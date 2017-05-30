@@ -117,7 +117,7 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 	migrate, err := m.confirm(&terraform.InputOpts{
 		Id: "backend-migrate-multistate-to-multistate",
 		Query: fmt.Sprintf(
-			"Do you want to migrate all environments to %q?",
+			"Do you want to migrate all workspaces to %q?",
 			opts.TwoType),
 		Description: fmt.Sprintf(
 			strings.TrimSpace(inputBackendMigrateMultiToMulti),
@@ -171,8 +171,8 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 		migrate, err = m.confirm(&terraform.InputOpts{
 			Id: "backend-migrate-multistate-to-single",
 			Query: fmt.Sprintf(
-				"Destination state %q doesn't support environments (named states).\n"+
-					"Do you want to copy only your current environment?",
+				"Destination state %q doesn't support workspaces.\n"+
+					"Do you want to copy only your current workspace?",
 				opts.TwoType),
 			Description: fmt.Sprintf(
 				strings.TrimSpace(inputBackendMigrateMultiToSingle),
@@ -458,17 +458,17 @@ above error and try again.
 `
 
 const errMigrateMulti = `
-Error migrating the environment %q from %q to %q:
+Error migrating the workspace %q from %q to %q:
 
 %s
 
-Terraform copies environments in alphabetical order. Any environments
-alphabetically earlier than this one have been copied. Any environments
-later than this haven't been modified in the destination. No environments
+Terraform copies workspaces in alphabetical order. Any workspaces
+alphabetically earlier than this one have been copied. Any workspaces
+later than this haven't been modified in the destination. No workspaces
 in the source state have been modified.
 
 Please resolve the error above and run the initialization command again.
-This will attempt to copy (with permission) all environments again.
+This will attempt to copy (with permission) all workspaces again.
 `
 
 const errBackendStateCopy = `
@@ -497,22 +497,22 @@ and "no" to start with the existing state in %[2]q.
 `
 
 const inputBackendMigrateMultiToSingle = `
-The existing backend %[1]q supports environments and you currently are
-using more than one. The target backend %[2]q doesn't support environments.
-If you continue, Terraform will offer to copy your current environment
-%[3]q to the default environment in the target. Your existing environments
-in the source backend won't be modified. If you want to switch environments,
+The existing backend %[1]q supports workspaces and you currently are
+using more than one. The target backend %[2]q doesn't support workspaces.
+If you continue, Terraform will offer to copy your current workspace
+%[3]q to the default workspace in the target. Your existing workspaces
+in the source backend won't be modified. If you want to switch workspaces,
 back them up, or cancel altogether, answer "no" and Terraform will abort.
 `
 
 const inputBackendMigrateMultiToMulti = `
 Both the existing backend %[1]q and the target backend %[2]q support
-environments. When migrating between backends, Terraform will copy all
-environments (with the same names). THIS WILL OVERWRITE any conflicting
+workspaces. When migrating between backends, Terraform will copy all
+workspaces (with the same names). THIS WILL OVERWRITE any conflicting
 states in the destination.
 
-Terraform initialization doesn't currently migrate only select environments.
-If you want to migrate a select number of environments, you must manually
+Terraform initialization doesn't currently migrate only select workspaces.
+If you want to migrate a select number of workspaces, you must manually
 pull and push those states.
 
 If you answer "yes", Terraform will migrate all states. If you answer

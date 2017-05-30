@@ -7,14 +7,17 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-type EnvSelectCommand struct {
+type WorkspaceSelectCommand struct {
 	Meta
+	LegacyName bool
 }
 
-func (c *EnvSelectCommand) Run(args []string) int {
+func (c *WorkspaceSelectCommand) Run(args []string) int {
 	args = c.Meta.process(args, true)
 
-	cmdFlags := c.Meta.flagSet("env select")
+	envCommandShowWarning(c.Ui, c.LegacyName)
+
+	cmdFlags := c.Meta.flagSet("workspace select")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -65,7 +68,7 @@ func (c *EnvSelectCommand) Run(args []string) int {
 	}
 
 	if name == current {
-		// already using this env
+		// already using this workspace
 		return 0
 	}
 
@@ -97,15 +100,15 @@ func (c *EnvSelectCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *EnvSelectCommand) Help() string {
+func (c *WorkspaceSelectCommand) Help() string {
 	helpText := `
-Usage: terraform env select NAME [DIR]
+Usage: terraform workspace select NAME [DIR]
 
-  Change Terraform environment.
+  Select a different Terraform workspace.
 `
 	return strings.TrimSpace(helpText)
 }
 
-func (c *EnvSelectCommand) Synopsis() string {
-	return "Change environments"
+func (c *WorkspaceSelectCommand) Synopsis() string {
+	return "Select a workspace"
 }

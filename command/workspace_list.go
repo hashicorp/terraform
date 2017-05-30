@@ -6,14 +6,17 @@ import (
 	"strings"
 )
 
-type EnvListCommand struct {
+type WorkspaceListCommand struct {
 	Meta
+	LegacyName bool
 }
 
-func (c *EnvListCommand) Run(args []string) int {
+func (c *WorkspaceListCommand) Run(args []string) int {
 	args = c.Meta.process(args, true)
 
-	cmdFlags := c.Meta.flagSet("env list")
+	envCommandShowWarning(c.Ui, c.LegacyName)
+
+	cmdFlags := c.Meta.flagSet("workspace list")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -69,15 +72,15 @@ func (c *EnvListCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *EnvListCommand) Help() string {
+func (c *WorkspaceListCommand) Help() string {
 	helpText := `
-Usage: terraform env list [DIR]
+Usage: terraform workspace list [DIR]
 
-  List Terraform environments.
+  List Terraform workspaces.
 `
 	return strings.TrimSpace(helpText)
 }
 
-func (c *EnvListCommand) Synopsis() string {
-	return "List Environments"
+func (c *WorkspaceListCommand) Synopsis() string {
+	return "List Workspaces"
 }

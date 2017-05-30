@@ -455,22 +455,22 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 }
 
 // EnvironmentNameEnvVar is the name of the environment variable (ie, the POSIX
-// feature) that can be used to set the name of the Terraform environment
-// (overriding the environment chosen by `terraform env select`).  Note that
-// this environment variable is ignored by `terraform env new` and `terraform
-// env delete`.
-const EnvironmentNameEnvVar = "TF_ENVIRONMENT"
+// feature) that can be used to set the name of the Terraform workspace
+// (overriding the workspace chosen by `terraform workspace select`). Note that
+// this environment variable is ignored by `terraform workspace new` and
+// `terraform workspace delete`.
+const EnvironmentNameEnvVar = "TF_WORKSPACE"
 
-// Env returns the name of the currently configured environment, corresponding
+// Env returns the name of the currently configured workspace, corresponding
 // to the desired named state.
 func (m *Meta) Env() string {
 	current, _ := m.EnvOverridden()
 	return current
 }
 
-// EnvOverridden returns the name of the currently configured environment,
+// EnvOverridden returns the name of the currently configured workspace,
 // corresponding to the desired named state, as well as a bool saying whether
-// this was set via the TF_ENVIRONMENT environment variable.
+// this was set via the TF_WORKSPACE environment variable.
 func (m *Meta) EnvOverridden() (string, bool) {
 	if envVar := os.Getenv(EnvironmentNameEnvVar); envVar != "" {
 		return envVar, true
@@ -488,14 +488,15 @@ func (m *Meta) EnvOverridden() (string, bool) {
 	}
 
 	if err != nil && !os.IsNotExist(err) {
-		// always return the default if we can't get an environment name
-		log.Printf("[ERROR] failed to read current environment: %s", err)
+		// always return the default if we can't get a workspace name
+		log.Printf("[ERROR] failed to read current workspace: %s", err)
 	}
 
 	return current, false
 }
 
-// SetEnv saves the named environment to the local filesystem.
+// SetEnv saves the given name as the current workspace in the local
+// filesystem.
 func (m *Meta) SetEnv(name string) error {
 	dataDir := m.dataDir
 	if m.dataDir == "" {
