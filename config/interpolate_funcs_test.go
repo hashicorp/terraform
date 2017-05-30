@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestInterpolateFuncZipMap(t *testing.T) {
@@ -2431,6 +2432,34 @@ func TestInterpolateFuncSubstr(t *testing.T) {
 			},
 			{
 				`${substr("", 0, -2)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncBcrypt(t *testing.T) {
+	node, err := hil.Parse(`${bcrypt("test")}`)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	result, err := hil.Eval(node, langEvalConfig(nil))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(result.Value.(string)), []byte("test"))
+
+	if err != nil {
+		t.Fatalf("Error comparing hash and password: %s", err)
+	}
+
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			//Negative test for more than two parameters
+			{
+				`${bcrypt("test", 15, 12)}`,
 				nil,
 				true,
 			},
