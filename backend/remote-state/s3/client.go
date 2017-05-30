@@ -32,7 +32,7 @@ type RemoteClient struct {
 	serverSideEncryption bool
 	acl                  string
 	kmsKeyID             string
-	lockTable            string
+	ddbTable             string
 }
 
 var (
@@ -191,7 +191,7 @@ func (c *RemoteClient) Delete() error {
 }
 
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
-	if c.lockTable == "" {
+	if c.ddbTable == "" {
 		return "", nil
 	}
 
@@ -211,7 +211,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 			"LockID": {S: aws.String(c.lockPath())},
 			"Info":   {S: aws.String(string(info.Marshal()))},
 		},
-		TableName:           aws.String(c.lockTable),
+		TableName:           aws.String(c.ddbTable),
 		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
 	}
 	_, err := c.dynClient.PutItem(putParams)
@@ -233,7 +233,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 }
 
 func (c *RemoteClient) getMD5() ([]byte, error) {
-	if c.lockTable == "" {
+	if c.ddbTable == "" {
 		return nil, nil
 	}
 
@@ -242,7 +242,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 			"LockID": {S: aws.String(c.lockPath() + stateIDSuffix)},
 		},
 		ProjectionExpression: aws.String("LockID, Digest"),
-		TableName:            aws.String(c.lockTable),
+		TableName:            aws.String(c.ddbTable),
 	}
 
 	resp, err := c.dynClient.GetItem(getParams)
@@ -265,7 +265,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 
 // store the hash of the state to that clients can check for stale state files.
 func (c *RemoteClient) putMD5(sum []byte) error {
-	if c.lockTable == "" {
+	if c.ddbTable == "" {
 		return nil
 	}
 
@@ -278,7 +278,7 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 			"LockID": {S: aws.String(c.lockPath() + stateIDSuffix)},
 			"Digest": {S: aws.String(hex.EncodeToString(sum))},
 		},
-		TableName: aws.String(c.lockTable),
+		TableName: aws.String(c.ddbTable),
 	}
 	_, err := c.dynClient.PutItem(putParams)
 	if err != nil {
@@ -290,7 +290,7 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 
 // remove the hash value for a deleted state
 func (c *RemoteClient) deleteMD5() error {
-	if c.lockTable == "" {
+	if c.ddbTable == "" {
 		return nil
 	}
 
@@ -298,7 +298,7 @@ func (c *RemoteClient) deleteMD5() error {
 		Key: map[string]*dynamodb.AttributeValue{
 			"LockID": {S: aws.String(c.lockPath() + stateIDSuffix)},
 		},
-		TableName: aws.String(c.lockTable),
+		TableName: aws.String(c.ddbTable),
 	}
 	if _, err := c.dynClient.DeleteItem(params); err != nil {
 		return err
@@ -312,7 +312,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 			"LockID": {S: aws.String(c.lockPath())},
 		},
 		ProjectionExpression: aws.String("LockID, Info"),
-		TableName:            aws.String(c.lockTable),
+		TableName:            aws.String(c.ddbTable),
 	}
 
 	resp, err := c.dynClient.GetItem(getParams)
@@ -335,7 +335,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 }
 
 func (c *RemoteClient) Unlock(id string) error {
-	if c.lockTable == "" {
+	if c.ddbTable == "" {
 		return nil
 	}
 
@@ -360,7 +360,7 @@ func (c *RemoteClient) Unlock(id string) error {
 		Key: map[string]*dynamodb.AttributeValue{
 			"LockID": {S: aws.String(c.lockPath())},
 		},
-		TableName: aws.String(c.lockTable),
+		TableName: aws.String(c.ddbTable),
 	}
 	_, err = c.dynClient.DeleteItem(params)
 
