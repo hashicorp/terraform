@@ -36,7 +36,9 @@ import (
 // destroyed.
 
 var flagSweep = flag.Bool("sweep", false, "toggle sweeping")
+var flagSweepRun = flag.String("sweep-run", "", "Comman seperated list of Sweeper Tests to run")
 var sweeperFuncs map[string][]*Sweeper
+var sweeperRan map[string]bool
 
 type SweeperFunc func(i interface{}) error
 
@@ -53,6 +55,7 @@ type Sweeper struct {
 
 func init() {
 	sweeperFuncs = make(map[string][]*Sweeper)
+	sweeperRan = make(map[string]bool)
 }
 
 // AddTestSweepers function adds a given name and Sweeper configuration
@@ -61,9 +64,9 @@ func init() {
 // with `go test`. Sweeper names must be unique to help ensure a given sweeper
 // is only ran once per run.
 func AddTestSweepers(name string, sf []*Sweeper) {
-	if _, ok := sweeperFuncs[name]; ok {
-		log.Fatalf("Error adding (%s) to sweeperFuncs: function already exists in map", name)
-	}
+	// if _, ok := sweeperFuncs[name]; ok {
+	// 	log.Fatalf("Error adding (%s) to sweeperFuncs: function already exists in map", name)
+	// }
 
 	sweeperFuncs[name] = sf
 }
@@ -72,12 +75,28 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 	if *flagSweep {
 		for sweeperName, sweepers := range sweeperFuncs {
+			// check if the sweeperName is in the run list. A given name can have several
+			// sub-sweepers, espeically across regions. We check at the top to make sure
+			// we've not ran this group of tests before.
+			if _, ok := sweeperRan[sweeperName]; ok {
+				log.Printf("[DEBUG] Sweeper (%s) already ran, skipping...", sweeperName)
+				continue
+			}
+
 			log.Printf("[DEBUG] Running (%s) Sweeper...\n", sweeperName)
 			for _, sweep := range sweepers {
-				if err := sweep.F(sweep.Config); err != nil {
+				err := sweep.F(sweep.Config)
+				sweeperRan[sweeperName] = true
+				if err != nil {
+					sweeperRan[sweeperName] = false
 					log.Fatalf("Error in (%s) Sweeper: %s", sweeperName, err)
 				}
 			}
+		}
+
+		fmt.Printf("Sweeper Tests ran:\n")
+		for s, _ := range sweeperRan {
+			fmt.Printf("\t- %s\n", s)
 		}
 		os.Exit(0)
 	}
