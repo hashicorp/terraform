@@ -19,7 +19,6 @@ please feel free to send the pull requests.
 ## Resources Implemented
 | Feature                 | Create | Read  | Update  | Delete |
 |-------------------------|--------|-------|---------|--------|
-| Security Tag            |   Y    |   Y   |    N    |   Y    |
 | Service                 |   Y    |   Y   |    N    |   Y    |
 
 

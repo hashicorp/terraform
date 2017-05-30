@@ -22,7 +22,7 @@ func Provider() terraform.ResourceProvider {
 			"insecure": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Default:  os.Getenv("NSX_INSECURE"),
 			},
 			"nsx_user": &schema.Schema{
 				Type:     schema.TypeString,
@@ -42,8 +42,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"nsx_service":                 resourceService(),
-			"nsx_security_tag":            resourceSecurityTag(),
+			"nsx_service": resourceService(),
 		},
 
 		ConfigureFunc: providerConfigure,

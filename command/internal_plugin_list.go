@@ -48,6 +48,7 @@ import (
 	newrelicprovider "github.com/hashicorp/terraform/builtin/providers/newrelic"
 	nomadprovider "github.com/hashicorp/terraform/builtin/providers/nomad"
 	ns1provider "github.com/hashicorp/terraform/builtin/providers/ns1"
+	nsxprovider "github.com/hashicorp/terraform/builtin/providers/nsx"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
 	oneandoneprovider "github.com/hashicorp/terraform/builtin/providers/oneandone"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
@@ -132,6 +133,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"newrelic":     newrelicprovider.Provider,
 	"nomad":        nomadprovider.Provider,
 	"ns1":          ns1provider.Provider,
+	"nsx":          nsxprovider.Provider,
 	"null":         nullprovider.Provider,
 	"oneandone":    oneandoneprovider.Provider,
 	"openstack":    openstackprovider.Provider,
