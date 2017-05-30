@@ -23,7 +23,7 @@ data "aws_elastic_beanstalk_solution_stack" "multi_docker" {
 ## Argument Reference
 
 * `most_recent` - (Optional) If more than one result is returned, use the most
-recent AMI.
+recent solution stack.
 
 * `name_regex` - A regex string to apply to the solution stack list returned
 by AWS.
