@@ -5,11 +5,13 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
+	"strings"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strings"
+	"github.com/hashicorp/terraform/helper/validation"
+
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 )
 
 func dataSourceIcanhazipIPAddress() *schema.Resource {
@@ -20,6 +22,12 @@ func dataSourceIcanhazipIPAddress() *schema.Resource {
 			"ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"version": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "ipv4",
+				ValidateFunc: validation.StringInSlice([]string{"ipv4", "ipv6"}, true),
 			},
 		},
 	}
