@@ -375,6 +375,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_network_interface":                        resourceAwsNetworkInterface(),
 			"aws_network_interface_attachment":             resourceAwsNetworkInterfaceAttachment(),
 			"aws_opsworks_application":                     resourceAwsOpsworksApplication(),
+			"aws_opsworks_chef_server":                     resourceAwsOpsworksChefServer(),
 			"aws_opsworks_stack":                           resourceAwsOpsworksStack(),
 			"aws_opsworks_java_app_layer":                  resourceAwsOpsworksJavaAppLayer(),
 			"aws_opsworks_haproxy_layer":                   resourceAwsOpsworksHaproxyLayer(),
