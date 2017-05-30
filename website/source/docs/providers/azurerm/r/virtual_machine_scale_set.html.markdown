@@ -1,12 +1,12 @@
 ---
 layout: "azurerm"
-page_title: "Azure Resource Manager: azurerm_virtual_machine_scale_sets"
-sidebar_current: "docs-azurerm-resource-virtualmachine-scale-sets"
+page_title: "Azure Resource Manager: azurerm_virtual_machine_scale_set"
+sidebar_current: "docs-azurerm-resource-virtualmachine-scale-set"
 description: |-
   Create a Virtual Machine scale set.
 ---
 
-# azurerm\_virtual\_machine\_scale\_sets
+# azurerm\_virtual\_machine\_scale\_set
 
 Create a virtual machine scale set.
 
@@ -108,7 +108,7 @@ resource "azurerm_virtual_machine_scale_set" "test" {
 
 ## Example Usage with Managed Disks
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg"
   location = "West US 2"
@@ -189,7 +189,7 @@ resource "azurerm_virtual_machine_scale_set" "test" {
   }
 
   storage_profile_os_disk {
-    name              = "myosdisk"
+    name              = ""
     caching           = "ReadWrite"
     create_option     = "FromImage"
     managed_disk_type = "Standard_LRS"
@@ -239,10 +239,8 @@ resource "azurerm_virtual_machine_scale_set" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) Specifies the name of the virtual machine scale set resource. Changing this forces a
-    new resource to be created.
-* `resource_group_name` - (Required) The name of the resource group in which to
-    create the virtual machine scale set. Changing this forces a new resource to be created.
+* `name` - (Required) Specifies the name of the virtual machine scale set resource. Changing this forces a new resource to be created.
+* `resource_group_name` - (Required) The name of the resource group in which to create the virtual machine scale set. Changing this forces a new resource to be created.
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 * `sku` - (Required) A sku block as documented below.
 * `upgrade_policy_mode` - (Required) Specifies the mode of an upgrade to virtual machines in the scale set. Possible values, `Manual` or `Automatic`.
@@ -327,7 +325,7 @@ The following arguments are supported:
 
 `storage_profile_os_disk` supports the following:
 
-* `name` - (Required) Specifies the disk name.
+* `name` - (Required) Specifies the disk name. Value must be blank (`""`) when `managed_disk_type` is specified. 
 * `vhd_containers` - (Optional) Specifies the vhd uri. Cannot be used when `image` or `managed_disk_type` is specified.
 * `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value you must be either `Standard_LRS` or `Premium_LRS`. Cannot be used when `vhd_containers` or `image` is specified.
 * `create_option` - (Required) Specifies how the virtual machine should be created. The only possible option is `FromImage`.
@@ -340,11 +338,10 @@ The following arguments are supported:
 `storage_profile_data_disk` supports the following:
 
 * `lun` - (Required) Specifies the Logical Unit Number of the disk in each virtual machine in the scale set.
-`Premium_LRS`.
 * `create_option` - (Optional) Specifies how the data disk should be created. The only possible options are `FromImage` and `Empty`.
 * `caching` - (Optional) Specifies the caching requirements. Possible values include: `None` (default), `ReadOnly`, `ReadWrite`.
 * `disk_size_gb` - (Optional) Specifies the size of the disk in GB. This element is required when creating an empty disk.
-* `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value must be either `Standard_LRS` or 
+* `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value must be either `Standard_LRS` or `Premium_LRS`.
 
 `storage_profile_image_reference` supports the following:
 
