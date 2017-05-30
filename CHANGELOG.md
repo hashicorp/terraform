@@ -8,6 +8,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * provider/aws: Expose RDS instance and cluster resource id [GH-14882]
+* provider/openstack: Add support provider networks [GH-10265]
 
 BUG FIXES:
 
