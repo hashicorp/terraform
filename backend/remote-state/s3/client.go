@@ -58,11 +58,19 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 			return nil, err
 		}
 
+		// If the remote state was manually removed the payload will be nil,
+		// but if there's still a digest entry for that state we will still try
+		// to compare the MD5 below.
+		var digest []byte
+		if payload != nil {
+			digest = payload.MD5
+		}
+
 		// verify that this state is what we expect
 		if expected, err := c.getMD5(); err != nil {
 			log.Printf("[WARNING] failed to fetch state md5: %s", err)
-		} else if len(expected) > 0 && !bytes.Equal(expected, payload.MD5) {
-			log.Printf("[WARNING] state md5 mismatch: expected '%x', got '%x'", expected, payload.MD5)
+		} else if len(expected) > 0 && !bytes.Equal(expected, digest) {
+			log.Printf("[WARNING] state md5 mismatch: expected '%x', got '%x'", expected, digest)
 
 			if testChecksumHook != nil {
 				testChecksumHook()
@@ -74,7 +82,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 				continue
 			}
 
-			return nil, fmt.Errorf(errBadChecksumFmt, payload.MD5)
+			return nil, fmt.Errorf(errBadChecksumFmt, digest)
 		}
 
 		break
