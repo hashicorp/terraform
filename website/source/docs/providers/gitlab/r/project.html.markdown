@@ -1,9 +1,9 @@
 ---
 layout: "gitlab"
 page_title: "GitLab: gitlab_project"
-sidebar_current: "docs-gitlab-resource-project"
+sidebar_current: "docs-gitlab-resource-project-x"
 description: |-
-  Creates and manages projects within Github organizations
+  Creates and manages projects within Gitlab
 ---
 
 # gitlab\_project
@@ -15,11 +15,11 @@ GitLab organization.
 ## Example Usage
 
 ```hcl
-resource "gitlab_repository" "example" {
+resource "gitlab_project" "example" {
   name        = "example"
   description = "My awesome codebase"
 
-  visbility_level = "public"
+  visibility_level = "public"
 }
 ```
 
@@ -31,6 +31,9 @@ The following arguments are supported:
 
 * `description` - (Optional) A description of the project.
 
+* `namespace_id` - (Optional) The namespace to create this project in.
+  See [`gitlab_group`](group.html) for an example.
+
 * `default_branch` - (Optional) The default branch for the project.
 
 * `issues_enabled` - (Optional) Enable issue tracking for the project.
@@ -41,13 +44,15 @@ The following arguments are supported:
 
 * `snippets_enabled` - (Optional) Enable snippets for the project.
 
-* `visbility_level` - (Optional) Set to `public` to create a public project.
+* `visibility_level` - (Optional) Set to `public` to create a public project.
   Valid values are `private`, `internal`, `public`.
   Repositories are created as private by default.
 
 ## Attributes Reference
 
 The following additional attributes are exported:
+
+* `id` - Integer that uniquely identifies the project within the gitlab install.
 
 * `ssh_url_to_repo` - URL that can be provided to `git clone` to clone the
   repository via SSH.

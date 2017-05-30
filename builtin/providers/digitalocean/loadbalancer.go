@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -9,7 +10,7 @@ import (
 
 func loadbalancerStateRefreshFunc(client *godo.Client, loadbalancerId string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		lb, _, err := client.LoadBalancers.Get(loadbalancerId)
+		lb, _, err := client.LoadBalancers.Get(context.Background(), loadbalancerId)
 		if err != nil {
 			return nil, "", fmt.Errorf("Error issuing read request in LoadbalancerStateRefreshFunc to DigitalOcean for Load Balancer '%s': %s", loadbalancerId, err)
 		}
