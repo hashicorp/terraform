@@ -242,6 +242,14 @@ The supported built-in functions are:
       `formatlist("instance %v has private ip %v", aws_instance.foo.*.id, aws_instance.foo.*.private_ip)`.
       Passing lists with different lengths to formatlist results in an error.
 
+  * `getenv(key)` - Gets the value for the environment variable defined by
+     `key`. Returns an empty string if the environment variable does not exist.
+     Note that this functionality differs from the
+     [`TF_VAR_`](/docs/configuration/environment-variables.html#tf_var_name) pattern
+     in that it does not assign values to
+     [variables](/docs/configuration/variables.html), and allows you to access any
+     environment variable available to the Terraform process.
+
   * `index(list, elem)` - Finds the index of a given element in a list.
       This function only works on flat lists.
       Example: `index(aws_instance.foo.*.tags.Name, "foo-test")`

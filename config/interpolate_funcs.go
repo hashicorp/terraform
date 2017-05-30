@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -72,6 +73,7 @@ func Funcs() map[string]ast.Function {
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
 		"file":         interpolationFuncFile(),
+		"getenv":       interpolationFuncGetenv(),
 		"matchkeys":    interpolationFuncMatchKeys(),
 		"floor":        interpolationFuncFloor(),
 		"format":       interpolationFuncFormat(),
@@ -1397,6 +1399,20 @@ func interpolationFuncSubstr() ast.Function {
 			}
 
 			return str[offset:length], nil
+		},
+	}
+}
+
+// interpolationFuncGetenv implements the "getenv" function, which literally
+// passes off to os.Getenv in the Go standard library. This function returns
+// the value of the requested environment variable, or an empty string if it
+// does not exist.
+func interpolationFuncGetenv() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return os.Getenv(args[0].(string)), nil
 		},
 	}
 }
