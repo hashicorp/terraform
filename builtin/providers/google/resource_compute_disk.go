@@ -234,12 +234,12 @@ func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("disk_encryption_key_sha256", disk.DiskEncryptionKey.Sha256)
 	}
 	if disk.SourceImage != "" {
-		imageUrl := strings.Split(disk.SourceImage, "/")
-		d.Set("image", imageUrl[len(imageUrl)-1])
+		imageUrlParts := strings.Split(disk.SourceImage, "/")
+		d.Set("image", imageUrlParts[len(imageUrlParts)-1])
 	}
 	if disk.SourceSnapshot != "" {
-		snapshotUrl := strings.Split(disk.SourceSnapshot, "/")
-		d.Set("snapshot", snapshotUrl[len(snapshotUrl)-1])
+		snapshotUrlParts := strings.Split(disk.SourceSnapshot, "/")
+		d.Set("snapshot", snapshotUrlParts[len(snapshotUrlParts)-1])
 	}
 
 	return nil
