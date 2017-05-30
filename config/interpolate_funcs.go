@@ -100,6 +100,7 @@ func Funcs() map[string]ast.Function {
 		"sort":         interpolationFuncSort(),
 		"split":        interpolationFuncSplit(),
 		"substr":       interpolationFuncSubstr(),
+		"tags_map":     interpolationFuncTagsMap(),
 		"timestamp":    interpolationFuncTimestamp(),
 		"title":        interpolationFuncTitle(),
 		"trimspace":    interpolationFuncTrimSpace(),
@@ -1397,6 +1398,35 @@ func interpolationFuncSubstr() ast.Function {
 			}
 
 			return str[offset:length], nil
+		},
+	}
+}
+
+func interpolationFuncTagsMap() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeList,
+		},
+		ReturnType: ast.TypeMap,
+		Callback: func(args []interface{}) (interface{}, error) {
+			//tags := args[0].([]map[string]string)
+			tags := args[0].([]ast.Variable)
+
+			result := make(map[string]ast.Variable)
+
+			for i := 0; i < len(tags); i++ {
+				tag := tags[i].Value.(map[string]ast.Variable)
+
+				key := tag["key"]
+				value := tag["value"]
+
+				result[key.Value.(string)] = ast.Variable{
+					Type:  ast.TypeString,
+					Value: value.Value.(string),
+				}
+			}
+
+			return result, nil
 		},
 	}
 }
