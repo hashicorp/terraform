@@ -8,6 +8,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * provider/aws: Expose RDS instance and cluster resource id [GH-14882]
+* provider/digitalocean: Add support for changing TTL on DigitalOcean domain records. [GH-14805]
 * provider/google: Add ability to import Google Compute persistent disks [GH-14573]
 * provider/openstack: Add support provider networks [GH-10265]
 
