@@ -3,6 +3,7 @@ package icanhazip
 import (
 	"fmt"
 	"net"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -19,6 +20,19 @@ func TestAccIcanhazipIPAddress_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccIcanhazipIPAddress("data.icanhazip_ipaddress.localip"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccIcanhazipIPAddress_invalidversion(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccIcanhazipIPAddressConfigInvalidVersion,
+				ExpectError: regexp.MustCompile("got invalid"),
 			},
 		},
 	})
@@ -42,4 +56,8 @@ func testAccIcanhazipIPAddress(n string) resource.TestCheckFunc {
 
 const testAccIcanhazipIPAddressConfig = `
 data "icanhazip_ipaddress" "localip" { }
+`
+
+const testAccIcanhazipIPAddressConfigInvalidVersion = `
+data "icanhazip_ipaddress" "bogus_version" { version = "invalid" }
 `
