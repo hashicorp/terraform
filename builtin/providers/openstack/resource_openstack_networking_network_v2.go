@@ -133,8 +133,10 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 			CreateOptsBuilder: createOpts,
 			Segments:          segments,
 		}
+		log.Printf("[DEBUG] Create Options: %#v", providerCreateOpts)
 		n, err = networks.Create(networkingClient, providerCreateOpts).Extract()
 	} else {
+		log.Printf("[DEBUG] Create Options: %#v", createOpts)
 		n, err = networks.Create(networkingClient, createOpts).Extract()
 	}
 
