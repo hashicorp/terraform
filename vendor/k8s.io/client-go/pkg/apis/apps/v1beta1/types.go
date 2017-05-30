@@ -48,7 +48,7 @@ type ScaleStatus struct {
 	// avoid introspection in the clients. The string will be in the same format as the
 	// query-param syntax. If the target type only supports map-based selectors, both this
 	// field and map-based selector field are populated.
-	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+	// More info: http://kubernetes.io/docs/user-guide/labels#label-selectors
 	// +optional
 	TargetSelector string `json:"targetSelector,omitempty" protobuf:"bytes,3,opt,name=targetSelector"`
 }
@@ -107,7 +107,7 @@ type StatefulSetSpec struct {
 
 	// Selector is a label query over pods that should match the replica count.
 	// If empty, defaulted to labels on the pod template.
-	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+	// More info: http://kubernetes.io/docs/user-guide/labels#label-selectors
 	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty" protobuf:"bytes,2,opt,name=selector"`
 
@@ -327,8 +327,6 @@ type DeploymentStatus struct {
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty" protobuf:"varint,5,opt,name=unavailableReplicas"`
 
 	// Represents the latest available observations of a deployment's current state.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
 	Conditions []DeploymentCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,6,rep,name=conditions"`
 }
 
