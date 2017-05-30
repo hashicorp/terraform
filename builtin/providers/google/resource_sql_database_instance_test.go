@@ -75,7 +75,7 @@ func sweepDatabases(c interface{}) error {
 		// instance. The ordering slice tracks replica databases for a given master
 		// and we call destroy on them before destroying the master
 		var ordering []string
-		for i, replicaName := range d.ReplicaNames {
+		for _, replicaName := range d.ReplicaNames {
 			// need to stop replication before being able to destroy a database
 			op, err := config.clientSqlAdmin.Instances.StopReplica(config.Project, replicaName).Do()
 
@@ -98,7 +98,7 @@ func sweepDatabases(c interface{}) error {
 		// ordering has a list of replicas (or none), now add the primary to the end
 		ordering = append(ordering, d.Name)
 
-		for i, db := range ordering {
+		for _, db := range ordering {
 			// destroy instances, replicas first
 			op, err := config.clientSqlAdmin.Instances.Delete(config.Project, db).Do()
 
