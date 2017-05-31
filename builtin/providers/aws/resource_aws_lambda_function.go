@@ -263,6 +263,10 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 	if v, ok := d.GetOk("dead_letter_config"); ok {
 		dlcMaps := v.([]interface{})
 		if len(dlcMaps) == 1 { // Schema guarantees either 0 or 1
+			// Prevent panic on nil dead_letter_config. See GH-14961
+			if dlcMaps[0] == nil {
+				return fmt.Errorf("Nil dead_letter_config supplied for function: %s", functionName)
+			}
 			dlcMap := dlcMaps[0].(map[string]interface{})
 			params.DeadLetterConfig = &lambda.DeadLetterConfig{
 				TargetArn: aws.String(dlcMap["target_arn"].(string)),
