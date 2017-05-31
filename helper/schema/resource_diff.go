@@ -78,7 +78,7 @@ func (r *newValueReader) ReadField(address []string) (FieldReadResult, error) {
 		return FieldReadResult{}, err
 	}
 	for computedKey := range r.computedKeys {
-		if strings.HasPrefix(addrKey, computedKey) {
+		if childAddrOf(addrKey, computedKey) {
 			if strings.HasSuffix(addrKey, ".#") {
 				// This is a count value for a list or set that has been marked as
 				// computed, or a sub-list/sub-set of a complex resource that has
