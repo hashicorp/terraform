@@ -30,10 +30,6 @@ core-dev: generate
 core-test: generate
 	@echo "Testing core packages..." && \
 		go test -tags 'core' $(TESTARGS) $(shell go list ./... | grep -v -E 'terraform/(builtin|vendor)')
-
-get-deps:
-	@echo "==> Fetching dependencies"
-	@go get -v $(TEST)
 	
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
