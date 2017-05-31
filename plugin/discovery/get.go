@@ -7,14 +7,18 @@ import (
 	"log"
 	"net/http"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"golang.org/x/net/html"
 
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	getter "github.com/hashicorp/go-getter"
 )
 
 const releasesURL = "https://releases.hashicorp.com/"
+
+var httpClient = cleanhttp.DefaultClient()
 
 // pluginURL generates URLs to lookup the versions of a plugin, or the file path.
 //
@@ -69,6 +73,16 @@ func GetProvider(dst, provider string, req Constraints) error {
 		return err
 	}
 
+	if len(versions) == 0 {
+		return fmt.Errorf("no plugins found for provider %q", provider)
+	}
+
+	versions = filterProtocolVersions(provider, versions)
+
+	if len(versions) == 0 {
+		return fmt.Errorf("no versions of %q compatible with the plugin ProtocolVersion", provider)
+	}
+
 	version, err := newestVersion(versions, req)
 	if err != nil {
 		return fmt.Errorf("no version of %q available that fulfills constraints %s", provider, req)
@@ -78,6 +92,48 @@ func GetProvider(dst, provider string, req Constraints) error {
 
 	log.Printf("[DEBUG] getting provider %q version %q at %s", provider, version, url)
 	return getter.Get(dst, url)
+}
+
+// Remove available versions that don't have the correct plugin protocol version.
+// TODO: stop checking older versions if the protocol version is too low
+func filterProtocolVersions(provider string, versions []Version) []Version {
+	var compatible []Version
+	for _, v := range versions {
+		log.Printf("[DEBUG] fetching provider info for %s version %s", provider, v)
+		url := providersURL.fileURL(provider, v.String())
+		resp, err := httpClient.Head(url)
+		if err != nil {
+			log.Printf("[ERROR] error fetching plugin headers: %s", err)
+			continue
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			log.Println("[ERROR] non-200 status fetching plugin headers:", resp.Status)
+			continue
+		}
+
+		proto := resp.Header.Get("X-TERRAFORM_PROTOCOL_VERSION")
+		if proto == "" {
+			log.Println("[WARNING] missing X-TERRAFORM_PROTOCOL_VERSION from:", url)
+			continue
+		}
+
+		protoVersion, err := strconv.Atoi(proto)
+		if err != nil {
+			log.Println("[ERROR] invalid ProtocolVersion: %s", proto)
+			continue
+		}
+
+		// FIXME: this shouldn't be hardcoded
+		if protoVersion != 4 {
+			log.Printf("[INFO] incompatible ProtocolVersion %d from %s version %s", protoVersion, provider, v)
+			continue
+		}
+
+		compatible = append(compatible, v)
+	}
+
+	return compatible
 }
 
 var errVersionNotFound = errors.New("version not found")
@@ -128,11 +184,8 @@ func listProvisionerVersions(name string) ([]Version, error) {
 }
 
 // return a list of the plugin versions at the given URL
-// TODO: This doesn't yet take into account plugin protocol version.
-//       That may have to be checked via an http header via a separate request
-//       to each plugin file.
 func listPluginVersions(url string) ([]Version, error) {
-	resp, err := http.Get(url)
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -167,8 +220,12 @@ func listPluginVersions(url string) ([]Version, error) {
 	}
 	f(body)
 
-	var versions []Version
+	return versionsFromNames(names), nil
+}
 
+// parse the list of directory names into a sorted list of available versions
+func versionsFromNames(names []string) []Version {
+	var versions []Version
 	for _, name := range names {
 		parts := strings.SplitN(name, "_", 2)
 		if len(parts) == 2 && parts[1] != "" {
@@ -183,5 +240,6 @@ func listPluginVersions(url string) ([]Version, error) {
 		}
 	}
 
-	return versions, nil
+	Versions(versions).Sort()
+	return versions
 }
