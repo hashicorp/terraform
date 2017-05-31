@@ -403,6 +403,20 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 				},
 			},
 			Key: "top",
+			NewValue: NewSet(testSetFunc, []interface{}{
+				map[string]interface{}{
+					"foo": 1,
+					"bar": 4,
+				},
+				map[string]interface{}{
+					"foo": 13,
+					"bar": 12,
+				},
+				map[string]interface{}{
+					"foo": 21,
+					"bar": 22,
+				},
+			}),
 			Expected: &terraform.InstanceDiff{
 				Attributes: func() map[string]*terraform.ResourceAttrDiff {
 					result := make(map[string]*terraform.ResourceAttrDiff)
