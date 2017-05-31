@@ -3551,6 +3551,12 @@
 			"revisionTime": "2017-01-11T19:10:52Z"
 		},
 		{
+			"checksumSHA1": "xsaHqy6/sonLV6xIxTNh4FfkWbU=",
+			"path": "gopkg.in/asn1-ber.v1",
+			"revision": "379148ca0225df7a432012b8df0355c2a2063ac0",
+			"revisionTime": "2017-05-11T16:59:59Z"
+		},
+		{
 			"checksumSHA1": "6f8MEU31llHM1sLM/GGH4/Qxu0A=",
 			"path": "gopkg.in/inf.v0",
 			"revision": "3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4",
@@ -3562,6 +3568,12 @@
 			"path": "gopkg.in/ini.v1",
 			"revision": "766e555c68dc8bda90d197ee8946c37519c19409",
 			"revisionTime": "2017-01-17T13:00:17Z"
+		},
+		{
+			"checksumSHA1": "itYnRitfdzJjy2mZlvJ+hCJZvtY=",
+			"path": "gopkg.in/ldap.v2",
+			"revision": "8168ee085ee43257585e50c6441aadf54ecb2c9f",
+			"revisionTime": "2016-12-01T20:47:33Z"
 		},
 		{
 			"checksumSHA1": "IOhjrvLMN5Mw8PeiRF/xAfSxvew=",
