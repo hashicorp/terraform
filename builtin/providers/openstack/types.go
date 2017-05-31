@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
@@ -75,7 +76,11 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Head
 		return nil, err
 	}
 
-	log.Printf("[DEBUG] Openstack Request headers:\n%s", strings.Join(RedactHeaders(headers), "\n"))
+	// Sort the headers for consistency
+	redactedHeaders := RedactHeaders(headers)
+	sort.Strings(redactedHeaders)
+
+	log.Printf("[DEBUG] Openstack Request headers:\n%s", strings.Join(redactedHeaders, "\n"))
 
 	// Handle request contentType
 	contentType := headers.Get("Content-Type")
@@ -92,7 +97,11 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Head
 // logResponse will log the HTTP Response details.
 // If the body is JSON, it will attempt to be pretty-formatted.
 func (lrt *LogRoundTripper) logResponse(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
-	log.Printf("[DEBUG] Openstack Response headers:\n%s", strings.Join(RedactHeaders(headers), "\n"))
+	// Sort the headers for consistency
+	redactedHeaders := RedactHeaders(headers)
+	sort.Strings(redactedHeaders)
+
+	log.Printf("[DEBUG] Openstack Response headers:\n%s", strings.Join(redactedHeaders, "\n"))
 
 	contentType := headers.Get("Content-Type")
 	if strings.HasPrefix(contentType, "application/json") {
