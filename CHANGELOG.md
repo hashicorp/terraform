@@ -15,6 +15,8 @@ IMPROVEMENTS:
 * provider/aws: Export internal tunnel addresses + document [GH-14835]
 * provider/digitalocean: Add support for changing TTL on DigitalOcean domain records. [GH-14805]
 * provider/google: Add ability to import Google Compute persistent disks [GH-14573]
+* provider/google: `google_container_cluster.master_auth` should be optional [GH-14630]
+* provider/google: Add CORS support for `google_storage_bucket` [GH-14695]
 * provider/kubernetes: Upgrade K8S from 1.5.3 to 1.6.1 [GH-14923]
 * provider/openstack: Add support provider networks [GH-10265]
 * provider/openstack: Allow numerical protocols in security group rules [GH-14917]
