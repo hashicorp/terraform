@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -26,6 +27,12 @@ type newValueWriter struct {
 // WriteField overrides MapValueWriter's WriteField, adding the ability to flag
 // the address as computed.
 func (w *newValueWriter) WriteField(address []string, value interface{}, computed bool) error {
+	// Fail the write if we have a non-nil value and computed is true.
+	// NewComputed values should not have a value when written.
+	if value != nil && computed {
+		return errors.New("Non-nil value with computed set")
+	}
+
 	if err := w.MapFieldWriter.WriteField(address, value); err != nil {
 		return err
 	}
@@ -261,12 +268,12 @@ func (d *ResourceDiff) SetNew(key string, value interface{}) error {
 	return d.SetDiff(key, d.get(strings.Split(key, "."), "state").Value, value, false)
 }
 
-// SetNewComputed functions like SetNew, except that it sets the new value to
-// the zero value and flags the attribute's diff as computed.
+// SetNewComputed functions like SetNew, except that it blanks out a new value
+// and marks it as computed.
 //
 // This function is only allowed on computed keys.
 func (d *ResourceDiff) SetNewComputed(key string) error {
-	return d.SetDiff(key, d.get(strings.Split(key, "."), "state").Value, d.schema[key].ZeroValue(), true)
+	return d.SetDiff(key, d.get(strings.Split(key, "."), "state").Value, nil, true)
 }
 
 // SetDiff allows the setting of both old and new values for the diff
