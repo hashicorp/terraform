@@ -13,6 +13,7 @@ IMPROVEMENTS:
 
 * provider/aws: Expose RDS instance and cluster resource id [GH-14882]
 * provider/aws: Export internal tunnel addresses + document [GH-14835]
+* provider/aws: Fix misleading error in aws_route validation [GH-14972]
 * provider/digitalocean: Add support for changing TTL on DigitalOcean domain records. [GH-14805]
 * provider/google: Add ability to import Google Compute persistent disks [GH-14573]
 * provider/google: `google_container_cluster.master_auth` should be optional [GH-14630]
