@@ -18,7 +18,7 @@ func TestAccAWSElasticBeanstalkSolutionStackDataSource(t *testing.T) {
 				Config: testAccCheckAwsElasticBeanstalkSolutionStackDataSourceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsElasticBeanstalkSolutionStackDataSourceID("data.aws_elastic_beanstalk_solution_stack.multi_docker"),
-					resource.TestMatchResourceAttr("data.aws_elastic_beanstalk_solution_stack.multi_docker", "name_regex", regexp.MustCompile("^64bit Amazon Linux (.*) Multi-container Docker (.*)$")),
+					resource.TestMatchResourceAttr("data.aws_elastic_beanstalk_solution_stack.multi_docker", "name", regexp.MustCompile("^64bit Amazon Linux (.*) Multi-container Docker (.*)$")),
 				),
 			},
 		},
