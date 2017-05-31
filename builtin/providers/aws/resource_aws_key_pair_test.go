@@ -15,17 +15,17 @@ import (
 
 func init() {
 	// add sweepers for each region
-	var fs []*resource.Sweeper
 	for _, r := range []string{"us-east-1", "us-west-2", "us-east-2"} {
-		fs = append(fs, &resource.Sweeper{
-			Config: &Config{
-				Region: r,
-			},
-			F: testSweepKeyPairs,
-		})
+		name := fmt.Sprintf("aws_key_pair-%s", r)
+		resource.AddTestSweepers(name,
+			&resource.Sweeper{
+				Name: name,
+				Config: &Config{
+					Region: r,
+				},
+				F: testSweepKeyPairs,
+			})
 	}
-
-	resource.AddTestSweepers("aws_key_pair", fs)
 }
 
 func testSweepKeyPairs(c interface{}) error {

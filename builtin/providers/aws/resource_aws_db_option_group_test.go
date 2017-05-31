@@ -18,17 +18,17 @@ import (
 
 func init() {
 	// add sweepers for each region
-	var fs []*resource.Sweeper
 	for _, r := range []string{"us-east-1", "us-west-2"} {
-		fs = append(fs, &resource.Sweeper{
-			Config: &Config{
-				Region: r,
-			},
-			F: testSweepDbOptionGroups,
-		})
+		name := fmt.Sprintf("aws-db-option-group-%s", r)
+		resource.AddTestSweepers(name,
+			&resource.Sweeper{
+				Name: name,
+				Config: &Config{
+					Region: r,
+				},
+				F: testSweepDbOptionGroups,
+			})
 	}
-
-	resource.AddTestSweepers("aws_db_option_group", fs)
 }
 
 func testSweepDbOptionGroups(c interface{}) error {

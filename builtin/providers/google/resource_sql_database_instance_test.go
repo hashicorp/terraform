@@ -22,21 +22,20 @@ import (
 )
 
 func init() {
-	var fs []*resource.Sweeper
-	// add sweepers for each region
 	for _, r := range []string{"us-central1"} {
 		c, err := sharedCredsForRegion(r)
 		if err != nil {
 			log.Printf("[ERR] error getting shared config for region: %s", err)
 			continue
 		}
-		fs = append(fs, &resource.Sweeper{
-			Config: c,
-			F:      sweepDatabases,
-		})
+		name := fmt.Sprintf("gcp-sql-db-instance-%s", r)
+		resource.AddTestSweepers(name,
+			&resource.Sweeper{
+				Name:   name,
+				Config: c,
+				F:      sweepDatabases,
+			})
 	}
-
-	resource.AddTestSweepers("google_sql_database_instance", fs)
 }
 
 func sweepDatabases(c interface{}) error {

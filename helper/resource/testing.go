@@ -37,16 +37,24 @@ import (
 
 var flagSweep = flag.Bool("sweep", false, "toggle sweeping")
 var flagSweepRun = flag.String("sweep-run", "", "Comman seperated list of Sweeper Tests to run")
-var sweeperFuncs map[string][]*Sweeper
+var sweeperFuncs map[string]*Sweeper
 var sweeperRan map[string]bool
 
 type SweeperFunc func(i interface{}) error
 
 type Sweeper struct {
+	// Name for sweeper. Must be unique to be ran by the Sweeper Runner
+	Name string
+
 	// Configuration for initializing the client connection for each Provider.
 	// Ex google/config.go Config Struct
 	// Ex aws/config.go Config Struct
 	Config interface{}
+
+	// Dependencies list the const names of other Sweeper functions that must be ran
+	// prior to running this Sweeper. This is an ordered list that will be invoked
+	// recursively at the helper/resource level
+	Dependencies []string
 
 	// Sweeper function that when invoked sweeps the Provider of specific
 	// resources
@@ -54,7 +62,7 @@ type Sweeper struct {
 }
 
 func init() {
-	sweeperFuncs = make(map[string][]*Sweeper)
+	sweeperFuncs = make(map[string]*Sweeper)
 	sweeperRan = make(map[string]bool)
 }
 
@@ -63,10 +71,10 @@ func init() {
 // resource sweeper to be available for running when the -sweep flag is used
 // with `go test`. Sweeper names must be unique to help ensure a given sweeper
 // is only ran once per run.
-func AddTestSweepers(name string, sf []*Sweeper) {
-	// if _, ok := sweeperFuncs[name]; ok {
-	// 	log.Fatalf("Error adding (%s) to sweeperFuncs: function already exists in map", name)
-	// }
+func AddTestSweepers(name string, sf *Sweeper) {
+	if _, ok := sweeperFuncs[name]; ok {
+		log.Fatalf("Error adding (%s) to sweeperFuncs: function already exists in map", name)
+	}
 
 	sweeperFuncs[name] = sf
 }
@@ -74,7 +82,7 @@ func AddTestSweepers(name string, sf []*Sweeper) {
 func TestMain(m *testing.M) {
 	flag.Parse()
 	if *flagSweep {
-		for sweeperName, sweepers := range sweeperFuncs {
+		for sweeperName, sweeper := range sweeperFuncs {
 			// check if the sweeperName is in the run list. A given name can have several
 			// sub-sweepers, espeically across regions. We check at the top to make sure
 			// we've not ran this group of tests before.
@@ -83,21 +91,19 @@ func TestMain(m *testing.M) {
 				continue
 			}
 
-			log.Printf("[DEBUG] Running (%s) Sweeper...\n", sweeperName)
-			for _, sweeper := range sweepers {
-				if err := run(sweeper); err != nil {
-
-					fmt.Println("Running: ", sweeperName)
-					log.Fatalf("\n\tError running (%s): %s", sweeperName, err)
-				}
-				// err := sweep.F(sweep.Config)
-				// sweeperRan[sweeperName] = true
-				// if err != nil {
-				// 	sweeperRan[sweeperName] = false
-				// 	log.Fatalf("Error in (%s) Sweeper: %s", sweeperName, err)
-				// }
+			// for _, sweeper := range sweepers {
+			fmt.Println("Running: ", sweeper.Name)
+			if err := runSweeper(sweeper); err != nil {
+				log.Fatalf("\n\tError running (%s): %s", sweeper.Name, err)
 			}
+			// err := sweep.F(sweep.Config)
+			// sweeperRan[sweeperName] = true
+			// if err != nil {
+			// 	sweeperRan[sweeperName] = false
+			// 	log.Fatalf("Error in (%s) Sweeper: %s", sweeperName, err)
+			// }
 		}
+		// }
 
 		fmt.Printf("Sweeper Tests ran:\n")
 		for s, _ := range sweeperRan {
@@ -109,12 +115,12 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func runSweeper(name string, s *Sweeper) error {
-	for _, dep := range s.deps {
-		fmt.Printf("Running (%s) deps\n", t.Name)
-		if d, ok := jobs[dep]; ok {
+func runSweeper(s *Sweeper) error {
+	for _, dep := range s.Dependencies {
+		fmt.Printf("Running (%s) dependencies\n", s.Name)
+		if depSweeper, ok := sweeperFuncs[dep]; ok {
 			fmt.Printf("\tFound dep: %s\n", dep)
-			if err := run(d); err != nil {
+			if err := runSweeper(depSweeper); err != nil {
 				return err
 			}
 		} else {
@@ -122,18 +128,17 @@ func runSweeper(name string, s *Sweeper) error {
 		}
 	}
 
-	fmt.Printf("\n\t -->>Running (%s)\n", t.Name)
-	if _, ok := ran[t.Name]; ok {
-
-		fmt.Printf("\n\t -->>(%s) already ran\n", t.Name)
+	fmt.Printf("\n\t -->>Running (%s)\n", s.Name)
+	if _, ok := sweeperRan[s.Name]; ok {
+		fmt.Printf("\n\t -->>(%s) already ran\n", s.Name)
 		return nil
 	}
 
-	runE := t.F()
+	runE := s.F(s.Config)
 	if runE == nil {
-		ran[t.Name] = true
+		sweeperRan[s.Name] = true
 	} else {
-		ran[t.Name] = false
+		sweeperRan[s.Name] = false
 	}
 
 	return runE
