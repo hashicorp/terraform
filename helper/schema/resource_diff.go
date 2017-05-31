@@ -197,7 +197,7 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 // UpdatedKeys returns the keys that were updated by SetNew, SetNewComputed, or
 // SetDiff. These are the only keys that a diff should be re-calculated for.
 func (d *ResourceDiff) UpdatedKeys() []string {
-	s := make([]string, 0)
+	var s []string
 	for k := range d.updatedKeys {
 		s = append(s, k)
 	}
@@ -435,5 +435,8 @@ func (d *ResourceDiff) finalizeResult(addr []string, result FieldReadResult) get
 func childAddrOf(child, parent string) bool {
 	cs := strings.Split(child, ".")
 	ps := strings.Split(parent, ".")
+	if len(ps) > len(cs) {
+		return false
+	}
 	return reflect.DeepEqual(ps, cs[:len(ps)])
 }
