@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -44,8 +45,8 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 	if same, reason := one.Same(two); !same {
 		log.Printf("[ERROR] %s: diffs didn't match", n.Info.Id)
 		log.Printf("[ERROR] %s: reason: %s", n.Info.Id, reason)
-		log.Printf("[ERROR] %s: diff one: %#v", n.Info.Id, one)
-		log.Printf("[ERROR] %s: diff two: %#v", n.Info.Id, two)
+		log.Printf("[ERROR] %s: diff one: %s", n.Info.Id, spew.Sdump(one))
+		log.Printf("[ERROR] %s: diff two: %s", n.Info.Id, spew.Sdump(two))
 		return nil, fmt.Errorf(
 			"%s: diffs didn't match during apply. This is a bug with "+
 				"Terraform and should be reported as a GitHub Issue.\n"+
@@ -55,12 +56,12 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 				"    Terraform Version: %s\n"+
 				"    Resource ID: %s\n"+
 				"    Mismatch reason: %s\n"+
-				"    Diff One (usually from plan): %#v\n"+
-				"    Diff Two (usually from apply): %#v\n"+
+				"    Diff One (usually from plan):  %s\n"+
+				"    Diff Two (usually from apply): %s\n"+
 				"\n"+
 				"Also include as much context as you can about your config, state, "+
 				"and the steps you performed to trigger this error.\n",
-			n.Info.Id, Version, n.Info.Id, reason, one, two)
+			n.Info.Id, Version, n.Info.Id, reason, spew.Sdump(one), spew.Sdump(two))
 	}
 
 	return nil, nil

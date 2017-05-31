@@ -40,10 +40,10 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			},
 
 			"vpc_id": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"delegation_set_id"},
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "",
 			},
 
 			"vpc_region": &schema.Schema{
@@ -59,10 +59,10 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			},
 
 			"delegation_set_id": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"vpc_id"},
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
 			},
 
 			"name_servers": &schema.Schema{
@@ -167,6 +167,9 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		if err := d.Set("name_servers", ns); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
 		}
+
+		d.Set("vpc_id", "")
+		d.Set("vpc_region", "")
 	} else {
 		ns, err := getNameServers(d.Id(), d.Get("name").(string), r53)
 		if err != nil {
