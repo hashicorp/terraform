@@ -232,6 +232,24 @@ func TestAccAWSLambdaFunction_DeadLetterConfig(t *testing.T) {
 	})
 }
 
+func TestAccAWSLambdaFunction_nilDeadLetterConfig(t *testing.T) {
+	rSt := acctest.RandString(5)
+	rName := fmt.Sprintf("tf_test_%s", rSt)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLambdaConfigWithNilDeadLetterConfig(rName, rSt),
+				ExpectError: regexp.MustCompile(
+					fmt.Sprintf("Nil dead_letter_config supplied for function: %s", rName)),
+			},
+		},
+	})
+}
+
 func TestAccAWSLambdaFunction_tracingConfig(t *testing.T) {
 	var conf lambda.GetFunctionOutput
 
@@ -1133,6 +1151,22 @@ resource "aws_sns_topic" "lambda_function_test" {
 }
 
 `, rName, rName)
+}
+
+func testAccAWSLambdaConfigWithNilDeadLetterConfig(rName, rSt string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig(rSt)+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "nodejs4.3"
+
+    dead_letter_config {
+        target_arn = ""
+    }
+}
+`, rName)
 }
 
 func testAccAWSLambdaConfigWithVPC(rName, rSt string) string {
