@@ -19,25 +19,36 @@ limitations under the License.
 package install
 
 import (
-	"k8s.io/kubernetes/pkg/apimachinery/announced"
+	"k8s.io/apimachinery/pkg/apimachinery/announced"
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/storage"
+	"k8s.io/kubernetes/pkg/apis/storage/v1"
 	"k8s.io/kubernetes/pkg/apis/storage/v1beta1"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 func init() {
+	Install(api.GroupFactoryRegistry, api.Registry, api.Scheme)
+}
+
+// Install registers the API group and adds types to a scheme
+func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
-			GroupName:                  storage.GroupName,
-			VersionPreferenceOrder:     []string{v1beta1.SchemeGroupVersion.Version},
+			GroupName: storage.GroupName,
+			// TODO:  change the order when GKE supports v1
+			VersionPreferenceOrder:     []string{v1beta1.SchemeGroupVersion.Version, v1.SchemeGroupVersion.Version},
 			ImportPrefix:               "k8s.io/kubernetes/pkg/apis/storage",
 			RootScopedKinds:            sets.NewString("StorageClass"),
 			AddInternalObjectsToScheme: storage.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{
+			v1.SchemeGroupVersion.Version:      v1.AddToScheme,
 			v1beta1.SchemeGroupVersion.Version: v1beta1.AddToScheme,
 		},
-	).Announce().RegisterAndEnable(); err != nil {
+	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)
 	}
 }

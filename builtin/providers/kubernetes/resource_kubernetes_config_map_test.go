@@ -9,8 +9,9 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	api "k8s.io/kubernetes/pkg/api/v1"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
+	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 func TestAccKubernetesConfigMap_basic(t *testing.T) {
@@ -187,7 +188,7 @@ func testAccCheckKubernetesConfigMapDestroy(s *terraform.State) error {
 			continue
 		}
 		namespace, name := idParts(rs.Primary.ID)
-		resp, err := conn.CoreV1().ConfigMaps(namespace).Get(name)
+		resp, err := conn.CoreV1().ConfigMaps(namespace).Get(name, meta_v1.GetOptions{})
 		if err == nil {
 			if resp.Name == rs.Primary.ID {
 				return fmt.Errorf("Config Map still exists: %s", rs.Primary.ID)
@@ -207,7 +208,7 @@ func testAccCheckKubernetesConfigMapExists(n string, obj *api.ConfigMap) resourc
 
 		conn := testAccProvider.Meta().(*kubernetes.Clientset)
 		namespace, name := idParts(rs.Primary.ID)
-		out, err := conn.CoreV1().ConfigMaps(namespace).Get(name)
+		out, err := conn.CoreV1().ConfigMaps(namespace).Get(name, meta_v1.GetOptions{})
 		if err != nil {
 			return err
 		}
