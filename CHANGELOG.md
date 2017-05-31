@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Data Source:** `aws_elasticache_cluster` [GH-14895]
  * **New Resource:** `librato_metric` [GH-14562]
  * **New Resource:** `digitalocean_certificate` [GH-14578]
  * **New Interpolation Function:** `bcrypt` [GH-14725]
