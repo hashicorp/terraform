@@ -28,6 +28,7 @@ BUG FIXES:
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
 * provider/postgresql: Fix for leaking credentials in the provider [GH-14817]
+* provider/postgresql: Drop the optional WITH token from CREATE ROLE. [GH-14864]
 
 ## 0.9.6 (May 25, 2017)
 
