@@ -8,11 +8,11 @@ import (
 
 func testResourceCustomDiff() *schema.Resource {
 	return &schema.Resource{
-		Create:        testResourceCustomDiffCreate,
-		Read:          testResourceCustomDiffRead,
-		CustomizeDiff: testResourceCustomDiffCustomizeDiff,
-		Update:        testResourceCustomDiffUpdate,
-		Delete:        testResourceCustomDiffDelete,
+		Create: testResourceCustomDiffCreate,
+		Read:   testResourceCustomDiffRead,
+		Review: testResourceCustomDiffReview,
+		Update: testResourceCustomDiffUpdate,
+		Delete: testResourceCustomDiffDelete,
 		Schema: map[string]*schema.Schema{
 			"required": {
 				Type:     schema.TypeString,
@@ -57,7 +57,7 @@ func testResourceCustomDiffRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func testResourceCustomDiffCustomizeDiff(d *schema.ResourceDiff, meta interface{}) error {
+func testResourceCustomDiffReview(d *schema.ResourceDiff, meta interface{}) error {
 	if d.Get("veto").(bool) == true {
 		return fmt.Errorf("veto is true, diff vetoed")
 	}
