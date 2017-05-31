@@ -1250,13 +1250,13 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 	}
 
 	// Verify existing workspaces exist
-	envPath := filepath.Join(backendlocal.DefaultEnvDir, "env2", backendlocal.DefaultStateFilename)
+	envPath := filepath.Join(backendlocal.DefaultWorkspaceDir, "env2", backendlocal.DefaultStateFilename)
 	if _, err := os.Stat(envPath); err != nil {
 		t.Fatal("env should exist")
 	}
 
 	// Verify we are now in the default env, or we may not be able to access the new backend
-	if env := m.Env(); env != backend.DefaultStateName {
+	if env := m.Workspace(); env != backend.DefaultStateName {
 		t.Fatal("using non-default env with single-env backend")
 	}
 }
@@ -1285,7 +1285,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 	m := testMetaBackend(t, nil)
 
 	// Change env
-	if err := m.SetEnv("env2"); err != nil {
+	if err := m.SetWorkspace("env2"); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 
@@ -1322,7 +1322,7 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 	}
 
 	// Verify existing workspaces exist
-	envPath := filepath.Join(backendlocal.DefaultEnvDir, "env2", backendlocal.DefaultStateFilename)
+	envPath := filepath.Join(backendlocal.DefaultWorkspaceDir, "env2", backendlocal.DefaultStateFilename)
 	if _, err := os.Stat(envPath); err != nil {
 		t.Fatal("env should exist")
 	}
@@ -1407,7 +1407,7 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 
 	{
 		// Verify existing workspaces exist
-		envPath := filepath.Join(backendlocal.DefaultEnvDir, "env2", backendlocal.DefaultStateFilename)
+		envPath := filepath.Join(backendlocal.DefaultWorkspaceDir, "env2", backendlocal.DefaultStateFilename)
 		if _, err := os.Stat(envPath); err != nil {
 			t.Fatal("env should exist")
 		}

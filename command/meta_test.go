@@ -282,27 +282,27 @@ func TestMeta_Env(t *testing.T) {
 
 	m := new(Meta)
 
-	env := m.Env()
+	env := m.Workspace()
 
 	if env != backend.DefaultStateName {
 		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
 	}
 
 	testEnv := "test_env"
-	if err := m.SetEnv(testEnv); err != nil {
+	if err := m.SetWorkspace(testEnv); err != nil {
 		t.Fatal("error setting env:", err)
 	}
 
-	env = m.Env()
+	env = m.Workspace()
 	if env != testEnv {
 		t.Fatalf("expected env %q, got env %q", testEnv, env)
 	}
 
-	if err := m.SetEnv(backend.DefaultStateName); err != nil {
+	if err := m.SetWorkspace(backend.DefaultStateName); err != nil {
 		t.Fatal("error setting env:", err)
 	}
 
-	env = m.Env()
+	env = m.Workspace()
 	if env != backend.DefaultStateName {
 		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
 	}

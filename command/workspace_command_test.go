@@ -23,7 +23,7 @@ func TestWorkspace_createAndChange(t *testing.T) {
 
 	newCmd := &WorkspaceNewCommand{}
 
-	current := newCmd.Env()
+	current := newCmd.Workspace()
 	if current != backend.DefaultStateName {
 		t.Fatal("current workspace should be 'default'")
 	}
@@ -35,7 +35,7 @@ func TestWorkspace_createAndChange(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current = newCmd.Env()
+	current = newCmd.Workspace()
 	if current != "test" {
 		t.Fatalf("current workspace should be 'test', got %q", current)
 	}
@@ -48,7 +48,7 @@ func TestWorkspace_createAndChange(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current = newCmd.Env()
+	current = newCmd.Workspace()
 	if current != backend.DefaultStateName {
 		t.Fatal("current workspace should be 'default'")
 	}
@@ -178,7 +178,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	newPath := filepath.Join(local.DefaultEnvDir, "test", DefaultStateFilename)
+	newPath := filepath.Join(local.DefaultWorkspaceDir, "test", DefaultStateFilename)
 	envState := state.LocalState{Path: newPath}
 	err = envState.RefreshState()
 	if err != nil {
@@ -198,7 +198,7 @@ func TestWorkspace_delete(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// create the workspace directories
-	if err := os.MkdirAll(filepath.Join(local.DefaultEnvDir, "test"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(local.DefaultWorkspaceDir, "test"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -206,7 +206,7 @@ func TestWorkspace_delete(t *testing.T) {
 	if err := os.MkdirAll(DefaultDataDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(DefaultDataDir, local.DefaultEnvFile), []byte("test"), 0644); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte("test"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -215,7 +215,7 @@ func TestWorkspace_delete(t *testing.T) {
 		Meta: Meta{Ui: ui},
 	}
 
-	current := delCmd.Env()
+	current := delCmd.Workspace()
 	if current != "test" {
 		t.Fatal("wrong workspace:", current)
 	}
@@ -227,7 +227,7 @@ func TestWorkspace_delete(t *testing.T) {
 	}
 
 	// change back to default
-	if err := delCmd.SetEnv(backend.DefaultStateName); err != nil {
+	if err := delCmd.SetWorkspace(backend.DefaultStateName); err != nil {
 		t.Fatal(err)
 	}
 
@@ -238,7 +238,7 @@ func TestWorkspace_delete(t *testing.T) {
 		t.Fatalf("error deleting workspace: %s", ui.ErrorWriter)
 	}
 
-	current = delCmd.Env()
+	current = delCmd.Workspace()
 	if current != backend.DefaultStateName {
 		t.Fatalf("wrong workspace: %q", current)
 	}
@@ -250,7 +250,7 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// create the workspace directories
-	if err := os.MkdirAll(filepath.Join(local.DefaultEnvDir, "test"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(local.DefaultWorkspaceDir, "test"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -271,7 +271,7 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 		},
 	}
 
-	envStatePath := filepath.Join(local.DefaultEnvDir, "test", DefaultStateFilename)
+	envStatePath := filepath.Join(local.DefaultWorkspaceDir, "test", DefaultStateFilename)
 	err := (&state.LocalState{Path: envStatePath}).WriteState(originalState)
 	if err != nil {
 		t.Fatal(err)
@@ -294,7 +294,7 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 		t.Fatalf("failure: %s", ui.ErrorWriter)
 	}
 
-	if _, err := os.Stat(filepath.Join(local.DefaultEnvDir, "test")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(local.DefaultWorkspaceDir, "test")); !os.IsNotExist(err) {
 		t.Fatal("env 'test' still exists!")
 	}
 }

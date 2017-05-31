@@ -32,7 +32,7 @@ func (c *StatePullCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	env := c.Env()
+	env := c.Workspace()
 	state, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))

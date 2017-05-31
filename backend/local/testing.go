@@ -18,11 +18,11 @@ import (
 func TestLocal(t *testing.T) *Local {
 	tempDir := testTempDir(t)
 	return &Local{
-		StatePath:       filepath.Join(tempDir, "state.tfstate"),
-		StateOutPath:    filepath.Join(tempDir, "state.tfstate"),
-		StateBackupPath: filepath.Join(tempDir, "state.tfstate.bak"),
-		StateEnvDir:     filepath.Join(tempDir, "state.tfstate.d"),
-		ContextOpts:     &terraform.ContextOpts{},
+		StatePath:         filepath.Join(tempDir, "state.tfstate"),
+		StateOutPath:      filepath.Join(tempDir, "state.tfstate"),
+		StateBackupPath:   filepath.Join(tempDir, "state.tfstate.bak"),
+		StateWorkspaceDir: filepath.Join(tempDir, "state.tfstate.d"),
+		ContextOpts:       &terraform.ContextOpts{},
 	}
 }
 
