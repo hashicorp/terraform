@@ -33,9 +33,9 @@ func testSweepAutoscalingGroups(c interface{}) error {
 	if err != nil {
 		return fmt.Errorf("error getting client: %s", err)
 	}
-	autoscalingconn := client.(*AWSClient).autoscalingconn
+	conn := client.(*AWSClient).autoscalingconn
 
-	resp, err := autoscalingconn.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{})
+	resp, err := conn.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{})
 	if err != nil {
 		return fmt.Errorf("Error retrieving launch configuration: %s", err)
 	}
@@ -63,17 +63,16 @@ func testSweepAutoscalingGroups(c interface{}) error {
 		}
 
 		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-			if _, err := autoscalingconn.DeleteAutoScalingGroup(&deleteopts); err != nil {
+			if _, err := conn.DeleteAutoScalingGroup(&deleteopts); err != nil {
 				if awserr, ok := err.(awserr.Error); ok {
 					switch awserr.Code() {
 					case "InvalidGroup.NotFound":
-						// Already gone? Sure!
 						return nil
 					case "ResourceInUse", "ScalingActivityInProgress":
-						// These are retryable
 						return resource.RetryableError(awserr)
 					}
 				}
+
 				// Didn't recognize the error, so shouldn't retry.
 				return resource.NonRetryableError(err)
 			}

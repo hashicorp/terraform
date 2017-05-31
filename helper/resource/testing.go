@@ -69,7 +69,7 @@ func init() {
 // is only ran once per run.
 func AddTestSweepers(name string, s *Sweeper) {
 	if _, ok := sweeperFuncs[name]; ok {
-		log.Fatalf("Error adding (%s) to sweeperFuncs: function already exists in map", name)
+		log.Fatalf("[ERR] Error adding (%s) to sweeperFuncs: function already exists in map", name)
 	}
 
 	sweeperFuncs[name] = s
@@ -81,13 +81,13 @@ func TestMain(m *testing.M) {
 		// parse flagSweep contents for regions to run
 		regions := strings.Split(*flagSweep, ",")
 		for _, region := range regions {
-			fmt.Printf("@@@\nRunning region (%s):\n", region)
+			fmt.Printf("[DEBUG] Running Sweepers for region (%s):\n", region)
+			// reset sweeperRan for each region
 			sweeperRan = map[string]bool{}
 
 			for _, sweeper := range sweeperFuncs {
-				fmt.Printf("\tRunning (%s) for (%s) region\n", sweeper.Name, region)
 				if err := runSweeperWithRegion(region, sweeper); err != nil {
-					log.Fatalf("\n\tError running (%s): %s", sweeper.Name, err)
+					log.Fatalf("[ERR] error running (%s): %s", sweeper.Name, err)
 				}
 			}
 
@@ -104,24 +104,18 @@ func TestMain(m *testing.M) {
 
 func runSweeperWithRegion(region string, s *Sweeper) error {
 	for _, dep := range s.Dependencies {
-		fmt.Printf("Running (%s - %s) dependencies\n", s.Name, region)
 		if depSweeper, ok := sweeperFuncs[dep]; ok {
-			fmt.Printf("\tFound dep: %s\n", dep)
+			log.Printf("[DEBUG] Sweeper (%s) has dependency (%s), running..", s.Name, dep)
 			if err := runSweeperWithRegion(region, depSweeper); err != nil {
 				return err
 			}
 		} else {
-			return fmt.Errorf("--dep not found:%s\n", dep)
+			log.Printf("[DEBUG] Sweeper (%s) has dependency (%s), but that sweeper was not found", s.Name, dep)
 		}
 	}
 
-	if len(s.Dependencies) == 0 {
-		fmt.Printf("\t\t%s has no deps, continuing", s.Name)
-	}
-
-	fmt.Printf("\n\t -->>Running (%s - %s)\n", s.Name, region)
 	if _, ok := sweeperRan[s.Name]; ok {
-		fmt.Printf("\n\t -->>(%s - %s) already ran\n", s.Name, region)
+		log.Printf("[DEBUG] Sweeper (%s) already ran in region (%s)", s.Name, region)
 		return nil
 	}
 

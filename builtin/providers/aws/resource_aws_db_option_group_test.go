@@ -17,18 +17,6 @@ import (
 )
 
 func init() {
-	// add sweepers for each region
-	// for _, r := range []string{"us-east-1", "us-west-2"} {
-	// 	name := fmt.Sprintf("aws-db-option-group-%s", r)
-	// 	resource.AddTestSweepers(name,
-	// 		&resource.Sweeper{
-	// 			Name: name,
-	// 			Config: &Config{
-	// 				Region: r,
-	// 			},
-	// 			F: testSweepDbOptionGroups,
-	// 		})
-	// }
 	resource.AddTestSweepers("aws_db_option_group", &resource.Sweeper{
 		Name: "aws_db_option_group",
 		F:    testSweepDbOptionGroups,
@@ -41,14 +29,13 @@ func testSweepDbOptionGroups(c interface{}) error {
 	if err != nil {
 		return fmt.Errorf("error getting client: %s", err)
 	}
-	conn := client.(*AWSClient).rdsconn
 
-	log.Printf("Destroying the DB Options Groups in (%s)", client.(*AWSClient).region)
+	conn := client.(*AWSClient).rdsconn
 
 	opts := rds.DescribeOptionGroupsInput{}
 	resp, err := conn.DescribeOptionGroups(&opts)
 	if err != nil {
-		return fmt.Errorf("Error describing DB Option Groups in Sweeper: %s", err)
+		return fmt.Errorf("error describing DB Option Groups in Sweeper: %s", err)
 	}
 
 	for _, og := range resp.OptionGroupsList {
@@ -67,7 +54,6 @@ func testSweepDbOptionGroups(c interface{}) error {
 			OptionGroupName: og.OptionGroupName,
 		}
 
-		log.Printf("[DEBUG] Delete DB Option Group: %s", *og.OptionGroupName)
 		ret := resource.Retry(1*time.Minute, func() *resource.RetryError {
 			_, err := conn.DeleteOptionGroup(deleteOpts)
 			if err != nil {

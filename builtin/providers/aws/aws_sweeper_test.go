@@ -12,7 +12,7 @@ func TestMain(m *testing.M) {
 	resource.TestMain(m)
 }
 
-// sharedCredsForRegion returns a common config setup needed for the sweeper
+// sharedClientForRegion returns a common AWSClient setup needed for the sweeper
 // functions for a given region
 func sharedClientForRegion(region string) (interface{}, error) {
 	if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
@@ -27,6 +27,7 @@ func sharedClientForRegion(region string) (interface{}, error) {
 		Region: region,
 	}
 
+	// configures a default client for the region, using the above env vars
 	client, err := conf.Client()
 	if err != nil {
 		return nil, fmt.Errorf("error getting AWS client")
