@@ -11,6 +11,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/swauth"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type Config struct {
@@ -68,6 +69,9 @@ func (c *Config) loadAndValidate() error {
 	if err != nil {
 		return err
 	}
+
+	// Set UserAgent
+	client.UserAgent.Prepend(terraform.UserAgentString())
 
 	config := &tls.Config{}
 	if c.CACertFile != "" {
