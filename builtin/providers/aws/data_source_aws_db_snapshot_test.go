@@ -49,7 +49,7 @@ resource "aws_db_instance" "bar" {
 	name = "baz"
 	password = "barbarbarbar"
 	username = "foo"
-
+	skip_final_snapshot = true
 
 	# Maintenance Window is stored in lower case in the API, though not strictly
 	# documented. Terraform will downcase this to match (as opposed to throw a

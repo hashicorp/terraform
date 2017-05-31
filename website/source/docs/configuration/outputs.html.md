@@ -35,7 +35,7 @@ output "address" {
 
 This will output a string value corresponding to the public
 DNS address of the Terraform-defined AWS instance named "db". It
-is possible to export complex data types like maps and strings as
+is possible to export complex data types like maps and lists as
 well:
 
 ```hcl

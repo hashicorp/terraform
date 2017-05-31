@@ -100,10 +100,10 @@ which the cluster's instances are launched
 
 **Master Auth** supports the following arguments:
 
-* `password` - The password to use for HTTP basic authentication when accessing
+* `password` - (Required) The password to use for HTTP basic authentication when accessing
     the Kubernetes master endpoint
 
-* `username` - The username to use for HTTP basic authentication when accessing
+* `username` - (Required) The username to use for HTTP basic authentication when accessing
     the Kubernetes master endpoint
 
 **Node Config** supports the following arguments:

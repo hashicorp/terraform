@@ -14,7 +14,17 @@ ASGs within a specific region. This will allow you to pass a list of AutoScaling
 ## Example Usage
 
 ```hcl
-data "aws_autoscaling_groups" "groups" {}
+data "aws_autoscaling_groups" "groups" {
+  filter {
+    name = "key"
+    values = ["Team"]
+  }
+
+  filter {
+    name = "value"
+    values = ["Pets"]
+  }
+}
 
 resource "aws_autoscaling_notification" "slack_notifications" {
   group_names = ["${data.aws_autoscaling_groups.groups.names}"]
@@ -32,7 +42,9 @@ resource "aws_autoscaling_notification" "slack_notifications" {
 
 ## Argument Reference
 
-The data source currently takes no arguments as it uses the current region in which the provider is currently operating.
+* `filter` - (Optional) A filter used to scope the list e.g. by tags. See [related docs](http://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_Filter.html).
+  * `name` - (Required) The name of the filter. The valid values are: `auto-scaling-group`, `key`, `value`, and `propagate-at-launch`.
+  * `values` - (Required) The value of the filter.
 
 ## Attributes Reference
 

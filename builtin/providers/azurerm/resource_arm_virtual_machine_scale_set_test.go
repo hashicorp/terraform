@@ -136,6 +136,25 @@ func TestAccAzureRMVirtualMachineScaleSet_loadBalancer(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMVirtualMachineScaleSet_loadBalancerManagedDataDisks(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualMachineScaleSetLoadbalancerTemplateManagedDataDisks, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineScaleSetExists("azurerm_virtual_machine_scale_set.test"),
+					testCheckAzureRMVirtualMachineScaleSetHasDataDisks("azurerm_virtual_machine_scale_set.test"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMVirtualMachineScaleSet_overprovision(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMVirtualMachineScaleSetOverprovisionTemplate, ri, ri, ri, ri, ri, ri)
@@ -363,6 +382,39 @@ func testCheckAzureRMVirtualMachineScaleSetExtension(name string) resource.TestC
 		n := resp.VirtualMachineProfile.ExtensionProfile.Extensions
 		if n == nil || len(*n) == 0 {
 			return fmt.Errorf("Bad: Could not get extensions for scale set %v", name)
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMVirtualMachineScaleSetHasDataDisks(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for virtual machine: scale set %s", name)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).vmScaleSetClient
+		resp, err := conn.Get(resourceGroup, name)
+		if err != nil {
+			return fmt.Errorf("Bad: Get on vmScaleSetClient: %s", err)
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("Bad: VirtualMachineScaleSet %q (resource group: %q) does not exist", name, resourceGroup)
+		}
+
+		storageProfile := resp.VirtualMachineProfile.StorageProfile.DataDisks
+		if storageProfile == nil || len(*storageProfile) == 0 {
+			return fmt.Errorf("Bad: Could not get data disks configurations for scale set %v", name)
 		}
 
 		return nil
@@ -1284,5 +1336,86 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     sku       = "16.04-LTS"
     version   = "latest"
   }
+}
+`
+
+var testAccAzureRMVirtualMachineScaleSetLoadbalancerTemplateManagedDataDisks = `
+resource "azurerm_resource_group" "test" {
+    name 	 = "acctestrg-%d"
+    location = "southcentralus"
+}
+resource "azurerm_virtual_network" "test" {
+    name 		        = "acctvn-%d"
+    address_space       = ["10.0.0.0/16"]
+    location            = "southcentralus"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+resource "azurerm_subnet" "test" {
+    name                 = "acctsub-%d"
+    resource_group_name  = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix       = "10.0.2.0/24"
+}
+resource "azurerm_lb" "test" {
+    name                = "acctestlb-%d"
+    location            = "southcentralus"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    frontend_ip_configuration {
+        name                          = "default"
+        subnet_id                     = "${azurerm_subnet.test.id}"
+        private_ip_address_allocation = "Dynamic"
+    }
+}
+resource "azurerm_lb_backend_address_pool" "test" {
+    name                = "test"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    loadbalancer_id     = "${azurerm_lb.test.id}"
+}
+resource "azurerm_virtual_machine_scale_set" "test" {
+  	name                = "acctvmss-%d"
+  	location            = "southcentralus"
+  	resource_group_name = "${azurerm_resource_group.test.name}"
+  	upgrade_policy_mode = "Manual"
+  	sku {
+		name     = "Standard_A0"
+    	tier     = "Standard"
+    	capacity = 1
+	}
+  	os_profile {
+    	computer_name_prefix = "testvm-%d"
+    	admin_username = "myadmin"
+    	admin_password = "Passwword1234"
+  	}
+  	network_profile {
+      	name    = "TestNetworkProfile"
+      	primary = true
+      	ip_configuration {
+        	name                                   = "TestIPConfiguration"
+        	subnet_id                              = "${azurerm_subnet.test.id}"
+			load_balancer_backend_address_pool_ids = [ "${azurerm_lb_backend_address_pool.test.id}" ]
+      	}
+  	}
+
+  	storage_profile_os_disk {
+    	name = ""
+    	caching       = "ReadWrite"
+    	create_option = "FromImage"
+    	managed_disk_type = "Standard_LRS"
+  	}
+		  
+  	storage_profile_data_disk {
+		lun 		   = 0
+    	caching        = "ReadWrite"
+    	create_option  = "Empty"
+		disk_size_gb   = 10
+	    managed_disk_type = "Standard_LRS"	
+  	}
+
+  	storage_profile_image_reference {
+    	publisher = "Canonical"
+    	offer     = "UbuntuServer"
+    	sku       = "16.04.0-LTS"
+    	version   = "latest"
+  	}
 }
 `

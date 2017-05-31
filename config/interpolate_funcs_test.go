@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestInterpolateFuncZipMap(t *testing.T) {
@@ -305,6 +306,69 @@ func TestInterpolateFuncMin(t *testing.T) {
 				`${min(-1)}`,
 				"-1",
 				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncPow(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${pow(1, 0)}`,
+				"1",
+				false,
+			},
+			{
+				`${pow(1, 1)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${pow(2, 0)}`,
+				"1",
+				false,
+			},
+			{
+				`${pow(2, 1)}`,
+				"2",
+				false,
+			},
+			{
+				`${pow(3, 2)}`,
+				"9",
+				false,
+			},
+			{
+				`${pow(-3, 2)}`,
+				"9",
+				false,
+			},
+			{
+				`${pow(2, -2)}`,
+				"0.25",
+				false,
+			},
+			{
+				`${pow(0, 2)}`,
+				"0",
+				false,
+			},
+			{
+				`${pow("invalid-input", 2)}`,
+				nil,
+				true,
+			},
+			{
+				`${pow(2, "invalid-input")}`,
+				nil,
+				true,
+			},
+			{
+				`${pow(2)}`,
+				nil,
+				true,
 			},
 		},
 	})
@@ -2368,6 +2432,34 @@ func TestInterpolateFuncSubstr(t *testing.T) {
 			},
 			{
 				`${substr("", 0, -2)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncBcrypt(t *testing.T) {
+	node, err := hil.Parse(`${bcrypt("test")}`)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	result, err := hil.Eval(node, langEvalConfig(nil))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(result.Value.(string)), []byte("test"))
+
+	if err != nil {
+		t.Fatalf("Error comparing hash and password: %s", err)
+	}
+
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			//Negative test for more than two parameters
+			{
+				`${bcrypt("test", 15, 12)}`,
 				nil,
 				true,
 			},

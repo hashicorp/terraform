@@ -340,6 +340,11 @@ func resourceAwsDbInstance() *schema.Resource {
 				Optional: true,
 			},
 
+			"resource_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -701,6 +706,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("name", v.DBName)
 	d.Set("identifier", v.DBInstanceIdentifier)
+	d.Set("resource_id", v.DbiResourceId)
 	d.Set("username", v.MasterUsername)
 	d.Set("engine", v.Engine)
 	d.Set("engine_version", v.EngineVersion)

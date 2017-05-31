@@ -58,6 +58,12 @@ func resourceComputeSubnetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"private_ip_google_access": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -97,10 +103,11 @@ func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) e
 
 	// Build the subnetwork parameters
 	subnetwork := &compute.Subnetwork{
-		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
-		IpCidrRange: d.Get("ip_cidr_range").(string),
-		Network:     network,
+		Name:                  d.Get("name").(string),
+		Description:           d.Get("description").(string),
+		IpCidrRange:           d.Get("ip_cidr_range").(string),
+		PrivateIpGoogleAccess: d.Get("private_ip_google_access").(bool),
+		Network:               network,
 	}
 
 	log.Printf("[DEBUG] Subnetwork insert request: %#v", subnetwork)

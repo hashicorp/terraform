@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccHerokuDrain_Basic(t *testing.T) {
-	var drain heroku.LogDrainInfoResult
+	var drain heroku.LogDrain
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
@@ -53,7 +53,7 @@ func testAccCheckHerokuDrainDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckHerokuDrainAttributes(Drain *heroku.LogDrainInfoResult) resource.TestCheckFunc {
+func testAccCheckHerokuDrainAttributes(Drain *heroku.LogDrain) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if Drain.URL != "syslog://terraform.example.com:1234" {
@@ -68,7 +68,7 @@ func testAccCheckHerokuDrainAttributes(Drain *heroku.LogDrainInfoResult) resourc
 	}
 }
 
-func testAccCheckHerokuDrainExists(n string, Drain *heroku.LogDrainInfoResult) resource.TestCheckFunc {
+func testAccCheckHerokuDrainExists(n string, Drain *heroku.LogDrain) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 

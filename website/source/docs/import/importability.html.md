@@ -153,6 +153,7 @@ To make a resource importable, please see the
 * google_compute_target_pool
 * google_dns_managed_zone
 * google_project
+* google_sql_user
 
 ### OpenStack
 

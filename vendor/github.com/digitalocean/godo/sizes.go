@@ -1,10 +1,12 @@
 package godo
 
+import "github.com/digitalocean/godo/context"
+
 // SizesService is an interface for interfacing with the size
 // endpoints of the DigitalOcean API
 // See: https://developers.digitalocean.com/documentation/v2#sizes
 type SizesService interface {
-	List(*ListOptions) ([]Size, *Response, error)
+	List(context.Context, *ListOptions) ([]Size, *Response, error)
 }
 
 // SizesServiceOp handles communication with the size related methods of the
@@ -38,20 +40,20 @@ type sizesRoot struct {
 }
 
 // List all images
-func (s *SizesServiceOp) List(opt *ListOptions) ([]Size, *Response, error) {
+func (s *SizesServiceOp) List(ctx context.Context, opt *ListOptions) ([]Size, *Response, error) {
 	path := "v2/sizes"
 	path, err := addOptions(path, opt)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	req, err := s.client.NewRequest("GET", path, nil)
+	req, err := s.client.NewRequest(ctx, "GET", path, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	root := new(sizesRoot)
-	resp, err := s.client.Do(req, root)
+	resp, err := s.client.Do(ctx, req, root)
 	if err != nil {
 		return nil, resp, err
 	}

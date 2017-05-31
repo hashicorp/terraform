@@ -15,7 +15,15 @@ func resourceHerokuPipelineCoupling() *schema.Resource {
 		Read:   resourceHerokuPipelineCouplingRead,
 		Delete: resourceHerokuPipelineCouplingDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
+			"app_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"app": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -81,9 +89,17 @@ func resourceHerokuPipelineCouplingRead(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error retrieving pipeline: %s", err)
 	}
 
-	d.Set("app", p.App)
-	d.Set("pipeline", p.Pipeline)
+	// grab App info
+	app, err := client.AppInfo(context.TODO(), p.App.ID)
+	if err != nil {
+		log.Printf("[WARN] Error looking up addional App info for pipeline coupling (%s): %s", d.Id(), err)
+	} else {
+		d.Set("app", app.Name)
+	}
+
+	d.Set("app_id", p.App.ID)
 	d.Set("stage", p.Stage)
+	d.Set("pipeline", p.Pipeline.ID)
 
 	return nil
 }
