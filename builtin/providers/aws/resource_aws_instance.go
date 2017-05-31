@@ -414,6 +414,8 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		ImageId:               instanceOpts.ImageID,
 		InstanceInitiatedShutdownBehavior: instanceOpts.InstanceInitiatedShutdownBehavior,
 		InstanceType:                      instanceOpts.InstanceType,
+		Ipv6AddressCount:                  instanceOpts.Ipv6AddressCount,
+		Ipv6Addresses:                     instanceOpts.Ipv6Addresses,
 		KeyName:                           instanceOpts.KeyName,
 		MaxCount:                          aws.Int64(int64(1)),
 		MinCount:                          aws.Int64(int64(1)),
@@ -426,28 +428,11 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		UserData:                          instanceOpts.UserData64,
 	}
 
-	ipv6Count, ipv6CountOk := d.GetOk("ipv6_address_count")
-	ipv6Address, ipv6AddressOk := d.GetOk("ipv6_addresses")
+	_, ipv6CountOk := d.GetOk("ipv6_address_count")
+	_, ipv6AddressOk := d.GetOk("ipv6_addresses")
 
 	if ipv6AddressOk && ipv6CountOk {
 		return fmt.Errorf("Only 1 of `ipv6_address_count` or `ipv6_addresses` can be specified")
-	}
-
-	if ipv6CountOk {
-		runOpts.Ipv6AddressCount = aws.Int64(int64(ipv6Count.(int)))
-	}
-
-	if ipv6AddressOk {
-		ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(ipv6Address.([]interface{})))
-		for _, address := range ipv6Address.([]interface{}) {
-			ipv6Address := &ec2.InstanceIpv6Address{
-				Ipv6Address: aws.String(address.(string)),
-			}
-
-			ipv6Addresses = append(ipv6Addresses, ipv6Address)
-		}
-
-		runOpts.Ipv6Addresses = ipv6Addresses
 	}
 
 	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
@@ -1238,6 +1223,23 @@ func buildNetworkInterfaceOpts(d *schema.ResourceData, groups []*string, nInterf
 			ni.PrivateIpAddress = aws.String(v.(string))
 		}
 
+		if v, ok := d.GetOk("ipv6_address_count"); ok {
+			ni.Ipv6AddressCount = aws.Int64(int64(v.(int)))
+		}
+
+		if v, ok := d.GetOk("ipv6_addresses"); ok {
+			ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(v.([]interface{})))
+			for _, address := range v.([]interface{}) {
+				ipv6Address := &ec2.InstanceIpv6Address{
+					Ipv6Address: aws.String(address.(string)),
+				}
+
+				ipv6Addresses = append(ipv6Addresses, ipv6Address)
+			}
+
+			ni.Ipv6Addresses = ipv6Addresses
+		}
+
 		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
 			for _, v := range v.List() {
 				ni.Groups = append(ni.Groups, aws.String(v.(string)))
@@ -1472,6 +1474,8 @@ type awsInstanceOpts struct {
 	ImageID                           *string
 	InstanceInitiatedShutdownBehavior *string
 	InstanceType                      *string
+	Ipv6AddressCount                  *int64
+	Ipv6Addresses                     []*ec2.InstanceIpv6Address
 	KeyName                           *string
 	NetworkInterfaces                 []*ec2.InstanceNetworkInterfaceSpecification
 	Placement                         *ec2.Placement
@@ -1567,6 +1571,23 @@ func buildAwsInstanceOpts(
 			opts.SecurityGroupIDs = groups
 		} else {
 			opts.SecurityGroups = groups
+		}
+
+		if v, ok := d.GetOk("ipv6_address_count"); ok {
+			opts.Ipv6AddressCount = aws.Int64(int64(v.(int)))
+		}
+
+		if v, ok := d.GetOk("ipv6_addresses"); ok {
+			ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(v.([]interface{})))
+			for _, address := range v.([]interface{}) {
+				ipv6Address := &ec2.InstanceIpv6Address{
+					Ipv6Address: aws.String(address.(string)),
+				}
+
+				ipv6Addresses = append(ipv6Addresses, ipv6Address)
+			}
+
+			opts.Ipv6Addresses = ipv6Addresses
 		}
 
 		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
