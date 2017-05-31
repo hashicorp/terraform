@@ -21,14 +21,20 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// flagSweep is a flag available when running tests on the command line. This
-// flag bypasses the normal Test path and instead runs functions designed to
+// flagSweep is a flag available when running tests on the command line. It
+// contains a comma seperated list of regions to for the sweeper functions to
+// run in.  This flag bypasses the normal Test path and instead runs functions designed to
 // clean up any leaked resources a testing environment could have created. It is
 // a best effort attempt, and relies on Provider authors to implement "Sweeper"
-// methods for resources. Adding Sweeper methods with AddTestSweepers will
-// construct a list of sweeper funcs to be called here. We iterate through the
+// methods for resources.
+
+// Adding Sweeper methods with AddTestSweepers will
+// construct a list of sweeper funcs to be called here. We iterate through
+// regions provided by the sweep flag, and for each region we iterate through the
 // tests, and exit on any errors. At time of writing, sweepers are ran
-// sequentially.
+// sequentially, however they can list dependencies to be ran first. We track
+// the sweepers that have been ran, so as to not run a sweeper twice for a given
+// region.
 //
 // WARNING:
 // Sweepers are designed to be destructive. You should not use the -sweep flag
@@ -39,9 +45,14 @@ var flagSweep = flag.String("sweep", "", "List of Regions to run available Sweep
 var flagSweepRun = flag.String("sweep-run", "", "Comman seperated list of Sweeper Tests to run")
 var sweeperFuncs map[string]*Sweeper
 
+// map of sweepers that have ran, and the success/fail status based on any error
+// raised
 var sweeperRan map[string]bool
 
-type SweeperFunc func(i interface{}) error
+// type SweeperFunc is a signature for a function that acts as a sweeper. It
+// accepts a string for the region that the sweeper is to be ran in. This
+// function must be able to construct a valid client for that region.
+type SweeperFunc func(r string) error
 
 type Sweeper struct {
 	// Name for sweeper. Must be unique to be ran by the Sweeper Runner

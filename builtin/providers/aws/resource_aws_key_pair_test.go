@@ -20,8 +20,7 @@ func init() {
 	})
 }
 
-func testSweepKeyPairs(c interface{}) error {
-	region := c.(string)
+func testSweepKeyPairs(region string) error {
 	client, err := sharedClientForRegion(region)
 	if err != nil {
 		return fmt.Errorf("error getting client: %s", err)

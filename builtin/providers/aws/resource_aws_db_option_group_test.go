@@ -23,8 +23,7 @@ func init() {
 	})
 }
 
-func testSweepDbOptionGroups(c interface{}) error {
-	region := c.(string)
+func testSweepDbOptionGroups(region string) error {
 	client, err := sharedClientForRegion(region)
 	if err != nil {
 		return fmt.Errorf("error getting client: %s", err)

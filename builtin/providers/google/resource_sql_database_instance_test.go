@@ -28,8 +28,8 @@ func init() {
 	})
 }
 
-func testSweepDatabases(c interface{}) error {
-	config, err := sharedConfigForRegion(c.(string))
+func testSweepDatabases(region string) error {
+	config, err := sharedConfigForRegion(region)
 	if err != nil {
 		return fmt.Errorf("error getting shared config for region: %s", err)
 	}

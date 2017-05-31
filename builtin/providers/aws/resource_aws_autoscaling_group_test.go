@@ -27,8 +27,7 @@ func init() {
 	})
 }
 
-func testSweepAutoscalingGroups(c interface{}) error {
-	region := c.(string)
+func testSweepAutoscalingGroups(region string) error {
 	client, err := sharedClientForRegion(region)
 	if err != nil {
 		return fmt.Errorf("error getting client: %s", err)

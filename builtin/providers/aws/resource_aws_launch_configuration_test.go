@@ -25,8 +25,7 @@ func init() {
 	})
 }
 
-func testSweepLaunchConfigurations(c interface{}) error {
-	region := c.(string)
+func testSweepLaunchConfigurations(region string) error {
 	client, err := sharedClientForRegion(region)
 	if err != nil {
 		return fmt.Errorf("error getting client: %s", err)
