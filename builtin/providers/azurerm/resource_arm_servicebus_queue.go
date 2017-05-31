@@ -59,16 +59,19 @@ func resourceArmServiceBusQueue() *schema.Resource {
 
 			"enable_batched_operations": {
 				Type:     schema.TypeBool,
+				Default:  false,
 				Optional: true,
 			},
 
 			"enable_express": {
 				Type:     schema.TypeBool,
+				Default:  false,
 				Optional: true,
 			},
 
 			"enable_partitioning": {
 				Type:     schema.TypeBool,
+				Default:  false,
 				Optional: true,
 				ForceNew: true,
 			},
@@ -81,12 +84,14 @@ func resourceArmServiceBusQueue() *schema.Resource {
 
 			"requires_duplicate_detection": {
 				Type:     schema.TypeBool,
+				Default:  false,
 				Optional: true,
 				ForceNew: true,
 			},
 
 			"support_ordering": {
 				Type:     schema.TypeBool,
+				Default:  false,
 				Optional: true,
 			},
 		},
