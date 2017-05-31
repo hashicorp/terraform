@@ -35,7 +35,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 	delEnv := args[0]
 
-	if !validEnvName(delEnv) {
+	if !validWorkspaceName(delEnv) {
 		c.Ui.Error(fmt.Sprintf(envInvalidName, delEnv))
 		return 1
 	}
@@ -81,7 +81,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	if delEnv == c.Env() {
+	if delEnv == c.Workspace() {
 		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envDelCurrent), delEnv))
 		return 1
 	}

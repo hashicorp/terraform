@@ -177,7 +177,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	// Now that we have loaded all modules, check the module tree for missing providers
 	if flagGetPlugins {
-		sMgr, err := back.State(c.Env())
+		sMgr, err := back.State(c.Workspace())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(
 				"Error loading state: %s", err))

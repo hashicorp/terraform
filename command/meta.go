@@ -247,7 +247,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	opts.ProviderSHA256s = m.providerPluginsLock().Read()
 
 	opts.Meta = &terraform.ContextMeta{
-		Env: m.Env(),
+		Env: m.Workspace(),
 	}
 
 	return &opts
@@ -454,25 +454,26 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 	return true
 }
 
-// EnvironmentNameEnvVar is the name of the environment variable (ie, the POSIX
-// feature) that can be used to set the name of the Terraform workspace
-// (overriding the workspace chosen by `terraform workspace select`). Note that
-// this environment variable is ignored by `terraform workspace new` and
-// `terraform workspace delete`.
-const EnvironmentNameEnvVar = "TF_WORKSPACE"
+// WorkspaceNameEnvVar is the name of the environment variable that can be used
+// to set the name of the Terraform workspace, overriding the workspace chosen
+// by `terraform workspace select`.
+//
+// Note that this environment variable is ignored by `terraform workspace new`
+// and `terraform workspace delete`.
+const WorkspaceNameEnvVar = "TF_WORKSPACE"
 
-// Env returns the name of the currently configured workspace, corresponding
+// Workspace returns the name of the currently configured workspace, corresponding
 // to the desired named state.
-func (m *Meta) Env() string {
-	current, _ := m.EnvOverridden()
+func (m *Meta) Workspace() string {
+	current, _ := m.WorkspaceOverridden()
 	return current
 }
 
-// EnvOverridden returns the name of the currently configured workspace,
+// WorkspaceOverridden returns the name of the currently configured workspace,
 // corresponding to the desired named state, as well as a bool saying whether
 // this was set via the TF_WORKSPACE environment variable.
-func (m *Meta) EnvOverridden() (string, bool) {
-	if envVar := os.Getenv(EnvironmentNameEnvVar); envVar != "" {
+func (m *Meta) WorkspaceOverridden() (string, bool) {
+	if envVar := os.Getenv(WorkspaceNameEnvVar); envVar != "" {
 		return envVar, true
 	}
 
@@ -481,7 +482,7 @@ func (m *Meta) EnvOverridden() (string, bool) {
 		dataDir = DefaultDataDir
 	}
 
-	envData, err := ioutil.ReadFile(filepath.Join(dataDir, local.DefaultEnvFile))
+	envData, err := ioutil.ReadFile(filepath.Join(dataDir, local.DefaultWorkspaceFile))
 	current := string(bytes.TrimSpace(envData))
 	if current == "" {
 		current = backend.DefaultStateName
@@ -495,9 +496,9 @@ func (m *Meta) EnvOverridden() (string, bool) {
 	return current, false
 }
 
-// SetEnv saves the given name as the current workspace in the local
+// SetWorkspace saves the given name as the current workspace in the local
 // filesystem.
-func (m *Meta) SetEnv(name string) error {
+func (m *Meta) SetWorkspace(name string) error {
 	dataDir := m.dataDir
 	if m.dataDir == "" {
 		dataDir = DefaultDataDir
@@ -508,7 +509,7 @@ func (m *Meta) SetEnv(name string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(dataDir, local.DefaultEnvFile), []byte(name), 0644)
+	err = ioutil.WriteFile(filepath.Join(dataDir, local.DefaultWorkspaceFile), []byte(name), 0644)
 	if err != nil {
 		return err
 	}

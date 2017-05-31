@@ -38,14 +38,14 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 
 	newEnv := args[0]
 
-	if !validEnvName(newEnv) {
+	if !validWorkspaceName(newEnv) {
 		c.Ui.Error(fmt.Sprintf(envInvalidName, newEnv))
 		return 1
 	}
 
 	// You can't ask to create a workspace when you're overriding the
 	// workspace name to be something different.
-	if current, isOverridden := c.EnvOverridden(); current != newEnv && isOverridden {
+	if current, isOverridden := c.WorkspaceOverridden(); current != newEnv && isOverridden {
 		c.Ui.Error(envIsOverriddenNewError)
 		return 1
 	}
@@ -86,7 +86,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	// now set the current workspace locally
-	if err := c.SetEnv(newEnv); err != nil {
+	if err := c.SetWorkspace(newEnv); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error selecting new workspace: %s", err))
 		return 1
 	}
