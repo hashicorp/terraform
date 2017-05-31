@@ -266,7 +266,7 @@ func TestResourceDiff_CustomizeFunc(t *testing.T) {
 
 	var called bool
 
-	r.Review = func(d *ResourceDiff, m interface{}) error {
+	r.CustomizeDiff = func(d *ResourceDiff, m interface{}) error {
 		called = true
 		return nil
 	}
