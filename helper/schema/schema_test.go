@@ -139,7 +139,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		State           *terraform.InstanceState
 		Config          map[string]interface{}
 		ConfigVariables map[string]ast.Variable
-		Review          ReviewFunc
+		CustomizeDiff   CustomizeDiffFunc
 		Diff            *terraform.InstanceDiff
 		Err             bool
 	}{
@@ -2827,7 +2827,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name: "overridden diff with a Review function, ForceNew not in schema",
+			Name: "overridden diff with a CustomizeDiff function, ForceNew not in schema",
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -2842,7 +2842,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"availability_zone": "foo",
 			},
 
-			Review: func(d *ResourceDiff, meta interface{}) error {
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
 				if err := d.SetNew("availability_zone", "bar"); err != nil {
 					return err
 				}
@@ -2866,7 +2866,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name: "overridden diff with a Review function, ForceNew in schema",
+			Name: "overridden diff with a CustomizeDiff function, ForceNew in schema",
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -2882,7 +2882,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"availability_zone": "foo",
 			},
 
-			Review: func(d *ResourceDiff, meta interface{}) error {
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
 				if err := d.SetNew("availability_zone", "bar"); err != nil {
 					return err
 				}
@@ -2903,7 +2903,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name: "required field with computed diff added with Review function",
+			Name: "required field with computed diff added with CustomizeDiff function",
 			Schema: map[string]*Schema{
 				"ami_id": &Schema{
 					Type:     TypeString,
@@ -2921,7 +2921,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"ami_id": "foo",
 			},
 
-			Review: func(d *ResourceDiff, meta interface{}) error {
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
 				if err := d.SetNew("instance_id", "bar"); err != nil {
 					return err
 				}
@@ -2945,7 +2945,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name: "Set ForceNew only marks the changing element as ForceNew - ReviewFunc edition",
+			Name: "Set ForceNew only marks the changing element as ForceNew - CustomizeDiffFunc edition",
 			Schema: map[string]*Schema{
 				"ports": &Schema{
 					Type:     TypeSet,
@@ -2971,7 +2971,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"ports": []interface{}{5, 2, 6},
 			},
 
-			Review: func(d *ResourceDiff, meta interface{}) error {
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
 				if err := d.SetNew("ports", []interface{}{5, 2, 1}); err != nil {
 					return err
 				}
@@ -3011,7 +3011,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name:   "tainted resource does not run ReviewFunc",
+			Name:   "tainted resource does not run CustomizeDiffFunc",
 			Schema: map[string]*Schema{},
 
 			State: &terraform.InstanceState{
@@ -3023,7 +3023,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Config: map[string]interface{}{},
 
-			Review: func(d *ResourceDiff, meta interface{}) error {
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
 				return errors.New("diff customization should not have run")
 			},
 
@@ -3036,7 +3036,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name: "NewComputed based on a conditional with ReviewFunc",
+			Name: "NewComputed based on a conditional with CustomizeDiffFunc",
 			Schema: map[string]*Schema{
 				"etag": &Schema{
 					Type:     TypeString,
@@ -3060,7 +3060,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"etag": "bar",
 			},
 
-			Review: func(d *ResourceDiff, meta interface{}) error {
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
 				if d.HasChange("etag") {
 					d.SetNewComputed("version_id")
 				}
@@ -3104,7 +3104,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"foo": "baz",
 			},
 
-			Review: func(d *ResourceDiff, meta interface{}) error {
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
 				return fmt.Errorf("diff vetoed")
 			},
 
@@ -3125,7 +3125,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				}
 			}
 
-			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.Review, nil)
+			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil)
 			if err != nil != tc.Err {
 				t.Fatalf("err: %s", err)
 			}
