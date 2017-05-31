@@ -100,7 +100,7 @@ The following arguments are supported:
 * `service_account` - (Optional) Service account to attach to the instance.
     Structure is documented below.
 
-* `tags` - (Optional) Tags to attach to the instance.
+* `tags` - (Optional) A list of tags to attach to the instance.
 
 * `create_timeout` - (Optional) Configurable timeout in minutes for creating instances. Default is 4 minutes.
     Changing this forces a new resource to be created.
