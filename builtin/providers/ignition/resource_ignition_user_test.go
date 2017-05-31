@@ -52,6 +52,7 @@ func TestIngnitionUser(t *testing.T) {
 		if len(u.SSHAuthorizedKeys) != 1 {
 			return fmt.Errorf("Lenght of field SSHAuthorizedKeys didn't match. Expected: %d, Given: %d", 1, len(u.SSHAuthorizedKeys))
 		}
+
 		if u.SSHAuthorizedKeys[0] != "keys" {
 			return fmt.Errorf("Field SSHAuthorizedKeys didn't match. Expected: %s, Given: %s", "keys", u.SSHAuthorizedKeys[0])
 		}
@@ -79,6 +80,7 @@ func TestIngnitionUser(t *testing.T) {
 		if len(u.Create.Groups) != 1 {
 			return fmt.Errorf("Lenght of field Groups didn't match. Expected: %d, Given: %d", 1, len(u.Create.Groups))
 		}
+
 		if u.Create.Groups[0] != "group" {
 			return fmt.Errorf("Field Groups didn't match. Expected: %s, Given: %s", "group", u.Create.Groups[0])
 		}
@@ -92,7 +94,7 @@ func TestIngnitionUser(t *testing.T) {
 		}
 
 		if u.Create.Shell != "shell" {
-			return fmt.Errorf("Field NoLogInit didn't match. Expected: %s, Given: %s", "shell", u.Create.Shell)
+			return fmt.Errorf("Field Shell didn't match. Expected: %s, Given: %s", "shell", u.Create.Shell)
 		}
 
 		u = c.Passwd.Users[1]
