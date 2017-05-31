@@ -20,6 +20,10 @@ variable "artifacts_location" {
   default     = "https://raw.githubusercontent.com/Microsoft/openshift-origin/b0bfbf25a7832fac424c0807a92fd15508364ffe/"
 }
 
+variable "openshift_artifacts_location" {
+  description = "The base URL where the deployOpenShift.sh script which is required by this template is located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from https://raw.githubusercontent.com/Microsoft/openshift-origin/master/ to https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/"
+}
+
 variable "os_image" {
   description = "Select from CentOS (centos) or RHEL (rhel) for the Operating System"
   default     = "centos"
@@ -158,8 +162,8 @@ variable "ssh_private_key" {
   description = "Name of your SSH Private Key"
 }
 
-variable "ssh_private_key_path" {
-  description = "Path to your SSH Private Key for use by the Bastion Host"
+variable "ssh_private_key_id" {
+  description = "SSH Private Key id"
 }
 
 variable "key_vault_resource_group" {
