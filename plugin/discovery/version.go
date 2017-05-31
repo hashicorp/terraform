@@ -1,6 +1,8 @@
 package discovery
 
 import (
+	"sort"
+
 	version "github.com/hashicorp/go-version"
 )
 
@@ -44,4 +46,13 @@ func (v Version) String() string {
 
 func (v Version) NewerThan(other Version) bool {
 	return v.raw.GreaterThan(other.raw)
+}
+
+type Versions []Version
+
+// Sort sorts version from newest to oldest.
+func (v Versions) Sort() {
+	sort.Slice(v, func(i, j int) bool {
+		return v[i].NewerThan(v[j])
+	})
 }
