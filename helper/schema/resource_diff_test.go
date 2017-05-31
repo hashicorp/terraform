@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -62,12 +61,11 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 				},
 			},
 			Key:      "foo",
-			OldValue: fmt.Sprintf("%sbar", oldPrefix),
 			NewValue: "qux",
 			Expected: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"foo": &terraform.ResourceAttrDiff{
-						Old: fmt.Sprintf("%sbar", oldPrefix),
+						Old: "bar",
 						New: func() string {
 							if computed {
 								return ""
@@ -113,7 +111,6 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 				},
 			},
 			Key:      "foo",
-			OldValue: []interface{}{fmt.Sprintf("%sbar", oldPrefix)},
 			NewValue: []interface{}{"qux"},
 			Expected: &terraform.InstanceDiff{
 				Attributes: func() map[string]*terraform.ResourceAttrDiff {
@@ -129,8 +126,8 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 							Old: "",
 							New: "qux",
 						}
-						result[fmt.Sprintf("foo.%d", HashString(fmt.Sprintf("%sbar", oldPrefix)))] = &terraform.ResourceAttrDiff{
-							Old:        fmt.Sprintf("%sbar", oldPrefix),
+						result["foo.1996459178"] = &terraform.ResourceAttrDiff{
+							Old:        "bar",
 							New:        "",
 							NewRemoved: true,
 						}
@@ -167,7 +164,6 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 				},
 			},
 			Key:      "foo",
-			OldValue: []interface{}{fmt.Sprintf("%sbar", oldPrefix)},
 			NewValue: []interface{}{"qux"},
 			Expected: &terraform.InstanceDiff{
 				Attributes: func() map[string]*terraform.ResourceAttrDiff {
@@ -180,7 +176,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 						}
 					} else {
 						result["foo.0"] = &terraform.ResourceAttrDiff{
-							Old: fmt.Sprintf("%sbar", oldPrefix),
+							Old: "bar",
 							New: "qux",
 						}
 					}
@@ -215,7 +211,6 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 				},
 			},
 			Key:      "foo",
-			OldValue: map[string]interface{}{"bar": fmt.Sprintf("%sbaz", oldPrefix)},
 			NewValue: map[string]interface{}{"bar": "quux"},
 			Expected: &terraform.InstanceDiff{
 				Attributes: func() map[string]*terraform.ResourceAttrDiff {
@@ -233,7 +228,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 						}
 					} else {
 						result["foo.bar"] = &terraform.ResourceAttrDiff{
-							Old: fmt.Sprintf("%sbaz", oldPrefix),
+							Old: "baz",
 							New: "quux",
 						}
 					}
@@ -272,7 +267,6 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 				},
 			},
 			Key:      "one",
-			OldValue: fmt.Sprintf("%stwo", oldPrefix),
 			NewValue: "four",
 			Expected: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
@@ -281,7 +275,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 						New: "baz",
 					},
 					"one": &terraform.ResourceAttrDiff{
-						Old: fmt.Sprintf("%stwo", oldPrefix),
+						Old: "two",
 						New: func() string {
 							if computed {
 								return ""
@@ -323,7 +317,6 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 				},
 			},
 			Key:      "one",
-			OldValue: fmt.Sprintf("%stwo", oldPrefix),
 			NewValue: "three",
 			Expected: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
@@ -332,7 +325,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 						New: "baz",
 					},
 					"one": &terraform.ResourceAttrDiff{
-						Old: fmt.Sprintf("%stwo", oldPrefix),
+						Old: "two",
 						New: func() string {
 							if computed {
 								return ""
@@ -410,30 +403,6 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 				},
 			},
 			Key: "top",
-			OldValue: NewSet(testSetFunc, []interface{}{
-				map[string]interface{}{
-					"foo": 1,
-					"bar": 4 + oldOffset,
-				},
-				map[string]interface{}{
-					"foo": 13 + oldOffset,
-					"bar": 12,
-				},
-			}),
-			NewValue: NewSet(testSetFunc, []interface{}{
-				map[string]interface{}{
-					"foo": 1,
-					"bar": 4,
-				},
-				map[string]interface{}{
-					"foo": 13,
-					"bar": 12,
-				},
-				map[string]interface{}{
-					"foo": 21,
-					"bar": 22,
-				},
-			}),
 			Expected: &terraform.InstanceDiff{
 				Attributes: func() map[string]*terraform.ResourceAttrDiff {
 					result := make(map[string]*terraform.ResourceAttrDiff)
@@ -493,12 +462,11 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			Config:   testConfig(t, map[string]interface{}{}),
 			Diff:     &terraform.InstanceDiff{Attributes: map[string]*terraform.ResourceAttrDiff{}},
 			Key:      "foo",
-			OldValue: fmt.Sprintf("%sbar", oldPrefix),
 			NewValue: "baz",
 			Expected: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"foo": &terraform.ResourceAttrDiff{
-						Old: fmt.Sprintf("%sbar", oldPrefix),
+						Old: "bar",
 						New: func() string {
 							if computed {
 								return ""
@@ -535,7 +503,6 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 				},
 			},
 			Key:           "foo",
-			OldValue:      fmt.Sprintf("%sbar", oldPrefix),
 			NewValue:      "qux",
 			ExpectedError: true,
 		},
@@ -576,33 +543,6 @@ func TestSetNewComputed(t *testing.T) {
 			m := schemaMap(tc.Schema)
 			d := newResourceDiff(tc.Schema, tc.Config, tc.State, tc.Diff)
 			err := d.SetNewComputed(tc.Key)
-			switch {
-			case err != nil && !tc.ExpectedError:
-				t.Fatalf("bad: %s", err)
-			case err == nil && tc.ExpectedError:
-				t.Fatalf("Expected error, got none")
-			case err != nil && tc.ExpectedError:
-				return
-			}
-			for _, k := range d.UpdatedKeys() {
-				if err := m.diff(k, m[k], tc.Diff, d, false); err != nil {
-					t.Fatalf("bad: %s", err)
-				}
-			}
-			if !reflect.DeepEqual(tc.Expected, tc.Diff) {
-				t.Fatalf("Expected %s, got %s", spew.Sdump(tc.Expected), spew.Sdump(tc.Diff))
-			}
-		})
-	}
-}
-
-func TestSetDiff(t *testing.T) {
-	testCases := testDiffCases(t, "testSetDiff", 1, false)
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			m := schemaMap(tc.Schema)
-			d := newResourceDiff(tc.Schema, tc.Config, tc.State, tc.Diff)
-			err := d.SetDiff(tc.Key, tc.OldValue, tc.NewValue, false)
 			switch {
 			case err != nil && !tc.ExpectedError:
 				t.Fatalf("bad: %s", err)
