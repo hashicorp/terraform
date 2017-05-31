@@ -12,6 +12,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * provider/aws: Expose RDS instance and cluster resource id [GH-14882]
+* provider/aws: Export internal tunnel addresses + document [GH-14835]
 * provider/digitalocean: Add support for changing TTL on DigitalOcean domain records. [GH-14805]
 * provider/google: Add ability to import Google Compute persistent disks [GH-14573]
 * provider/kubernetes: Upgrade K8S from 1.5.3 to 1.6.1 [GH-14923]
