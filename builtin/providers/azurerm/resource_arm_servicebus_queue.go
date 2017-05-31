@@ -182,13 +182,14 @@ func resourceArmServiceBusQueueRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("namespace_name", namespaceName)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
+	if resp.QueueProperties == nil {
+		return fmt.Errorf("Missing QueueProperties in response for Azure ServiceBus Queue %s: %s", name, err)
+	}
+
 	props := resp.QueueProperties
 	d.Set("auto_delete_on_idle", props.AutoDeleteOnIdle)
 	d.Set("default_message_ttl", props.DefaultMessageTimeToLive)
-
-	if props.DuplicateDetectionHistoryTimeWindow != nil && *props.DuplicateDetectionHistoryTimeWindow != "" {
-		d.Set("duplicate_detection_history_time_window", props.DuplicateDetectionHistoryTimeWindow)
-	}
+	d.Set("duplicate_detection_history_time_window", props.DuplicateDetectionHistoryTimeWindow)
 
 	d.Set("enable_batched_operations", props.EnableBatchedOperations)
 	d.Set("enable_express", props.EnableExpress)
@@ -198,8 +199,8 @@ func resourceArmServiceBusQueueRead(d *schema.ResourceData, meta interface{}) er
 
 	maxSize := int(*props.MaxSizeInMegabytes)
 
-	// if the queue is in a premium namespace and partitioning is enabled then the
-	// max size returned by the API will be 16 times greater than the value set
+	// If the queue is NOT in a premium namespace (ie. it is Basic or Standard) and partitioning is enabled
+	// then the max size returned by the API will be 16 times greater than the value set.
 	if *props.EnablePartitioning {
 		namespace, err := meta.(*ArmClient).serviceBusNamespacesClient.Get(resGroup, namespaceName)
 		if err != nil {
