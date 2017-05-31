@@ -62,9 +62,9 @@ func dataSourceAwsElasticBeanstalkSolutionStackRead(d *schema.ResourceData, meta
 	}
 
 	if len(filteredSolutionStacks) == 1 {
-    // Query returned single result.
+		// Query returned single result.
 		solutionStack = filteredSolutionStacks[0]
-  } else {
+	} else {
 		recent := d.Get("most_recent").(bool)
 		log.Printf("[DEBUG] aws_elastic_beanstalk_solution_stack - multiple results found and `most_recent` is set to: %t", recent)
 		if recent {
