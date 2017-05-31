@@ -28,6 +28,7 @@ BUG FIXES:
 * provider/aws: Fix panic on nil dead_letter_config [GH-14964]
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
+* provider/google: use a mutex to prevent concurrent sql instance operations [GH-14424]
 * provider/postgresql: Fix for leaking credentials in the provider [GH-14817]
 * provider/postgresql: Drop the optional WITH token from CREATE ROLE. [GH-14864]
 
