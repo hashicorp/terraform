@@ -22,6 +22,16 @@ type newValueWriter struct {
 	// A lock to prevent races on writes. The underlying writer will have one as
 	// well - this is for computed keys.
 	lock sync.Mutex
+
+	// To be used with init.
+	once sync.Once
+}
+
+// init performs any initialization tasks for the newValueWriter.
+func (w *newValueWriter) init() {
+	if w.computedKeys == nil {
+		w.computedKeys = make(map[string]bool)
+	}
 }
 
 // WriteField overrides MapValueWriter's WriteField, adding the ability to flag
@@ -37,12 +47,10 @@ func (w *newValueWriter) WriteField(address []string, value interface{}, compute
 		return err
 	}
 
+	w.once.Do(w.init)
+
 	w.lock.Lock()
 	defer w.lock.Unlock()
-	if w.computedKeys == nil {
-		w.computedKeys = make(map[string]bool)
-	}
-
 	if computed {
 		w.computedKeys[strings.Join(address, ".")] = true
 	}
@@ -51,11 +59,7 @@ func (w *newValueWriter) WriteField(address []string, value interface{}, compute
 
 // ComputedKeysMap returns the underlying computed keys map.
 func (w *newValueWriter) ComputedKeysMap() map[string]bool {
-	w.lock.Lock()
-	defer w.lock.Unlock()
-	if w.computedKeys == nil {
-		w.computedKeys = make(map[string]bool)
-	}
+	w.once.Do(w.init)
 	return w.computedKeys
 }
 
