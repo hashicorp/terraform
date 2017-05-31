@@ -21,7 +21,7 @@ func sharedCredsForRegion(region string) (*Config, error) {
 	}
 
 	creds := os.Getenv("GOOGLE_CREDENTIALS")
-	if project == "" {
+	if creds == "" {
 		return nil, fmt.Errorf("empty GOOGLE_CREDENTIALS")
 	}
 

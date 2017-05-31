@@ -18,21 +18,29 @@ import (
 
 func init() {
 	// add sweepers for each region
-	for _, r := range []string{"us-east-1", "us-west-2"} {
-		name := fmt.Sprintf("aws-db-option-group-%s", r)
-		resource.AddTestSweepers(name,
-			&resource.Sweeper{
-				Name: name,
-				Config: &Config{
-					Region: r,
-				},
-				F: testSweepDbOptionGroups,
-			})
-	}
+	// for _, r := range []string{"us-east-1", "us-west-2"} {
+	// 	name := fmt.Sprintf("aws-db-option-group-%s", r)
+	// 	resource.AddTestSweepers(name,
+	// 		&resource.Sweeper{
+	// 			Name: name,
+	// 			Config: &Config{
+	// 				Region: r,
+	// 			},
+	// 			F: testSweepDbOptionGroups,
+	// 		})
+	// }
+	resource.AddTestSweepers("aws_db_option_group", &resource.Sweeper{
+		Name: "aws_db_option_group",
+		F:    testSweepDbOptionGroups,
+	})
 }
 
 func testSweepDbOptionGroups(c interface{}) error {
-	client, err := c.(*Config).Client()
+	region := c.(string)
+	client, err := sharedClientForRegion(region)
+	if err != nil {
+		return fmt.Errorf("error getting client: %s", err)
+	}
 	conn := client.(*AWSClient).rdsconn
 
 	log.Printf("Destroying the DB Options Groups in (%s)", client.(*AWSClient).region)

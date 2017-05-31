@@ -35,9 +35,10 @@ import (
 // in any environment that is not strictly a test environment. Resources will be
 // destroyed.
 
-var flagSweep = flag.Bool("sweep", false, "toggle sweeping")
+var flagSweep = flag.String("sweep", "", "List of Regions to run available Sweepers")
 var flagSweepRun = flag.String("sweep-run", "", "Comman seperated list of Sweeper Tests to run")
 var sweeperFuncs map[string]*Sweeper
+
 var sweeperRan map[string]bool
 
 type SweeperFunc func(i interface{}) error
@@ -45,11 +46,6 @@ type SweeperFunc func(i interface{}) error
 type Sweeper struct {
 	// Name for sweeper. Must be unique to be ran by the Sweeper Runner
 	Name string
-
-	// Configuration for initializing the client connection for each Provider.
-	// Ex google/config.go Config Struct
-	// Ex aws/config.go Config Struct
-	Config interface{}
 
 	// Dependencies list the const names of other Sweeper functions that must be ran
 	// prior to running this Sweeper. This is an ordered list that will be invoked
@@ -63,7 +59,7 @@ type Sweeper struct {
 
 func init() {
 	sweeperFuncs = make(map[string]*Sweeper)
-	sweeperRan = make(map[string]bool)
+	// sweeperRan = make(map[string]bool)
 }
 
 // AddTestSweepers function adds a given name and Sweeper configuration
@@ -71,43 +67,34 @@ func init() {
 // resource sweeper to be available for running when the -sweep flag is used
 // with `go test`. Sweeper names must be unique to help ensure a given sweeper
 // is only ran once per run.
-func AddTestSweepers(name string, sf *Sweeper) {
+func AddTestSweepers(name string, s *Sweeper) {
 	if _, ok := sweeperFuncs[name]; ok {
 		log.Fatalf("Error adding (%s) to sweeperFuncs: function already exists in map", name)
 	}
 
-	sweeperFuncs[name] = sf
+	sweeperFuncs[name] = s
 }
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	if *flagSweep {
-		for sweeperName, sweeper := range sweeperFuncs {
-			// check if the sweeperName is in the run list. A given name can have several
-			// sub-sweepers, espeically across regions. We check at the top to make sure
-			// we've not ran this group of tests before.
-			if _, ok := sweeperRan[sweeperName]; ok {
-				log.Printf("[DEBUG] Sweeper (%s) already ran, skipping...", sweeperName)
-				continue
+	if *flagSweep != "" {
+		// parse flagSweep contents for regions to run
+		regions := strings.Split(*flagSweep, ",")
+		for _, region := range regions {
+			fmt.Printf("@@@\nRunning region (%s):\n", region)
+			sweeperRan = map[string]bool{}
+
+			for _, sweeper := range sweeperFuncs {
+				fmt.Printf("\tRunning (%s) for (%s) region\n", sweeper.Name, region)
+				if err := runSweeperWithRegion(region, sweeper); err != nil {
+					log.Fatalf("\n\tError running (%s): %s", sweeper.Name, err)
+				}
 			}
 
-			// for _, sweeper := range sweepers {
-			fmt.Println("Running: ", sweeper.Name)
-			if err := runSweeper(sweeper); err != nil {
-				log.Fatalf("\n\tError running (%s): %s", sweeper.Name, err)
+			fmt.Printf("Sweeper Tests ran:\n")
+			for s, _ := range sweeperRan {
+				fmt.Printf("\t- %s\n", s)
 			}
-			// err := sweep.F(sweep.Config)
-			// sweeperRan[sweeperName] = true
-			// if err != nil {
-			// 	sweeperRan[sweeperName] = false
-			// 	log.Fatalf("Error in (%s) Sweeper: %s", sweeperName, err)
-			// }
-		}
-		// }
-
-		fmt.Printf("Sweeper Tests ran:\n")
-		for s, _ := range sweeperRan {
-			fmt.Printf("\t- %s\n", s)
 		}
 		os.Exit(0)
 	}
@@ -115,12 +102,12 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func runSweeper(s *Sweeper) error {
+func runSweeperWithRegion(region string, s *Sweeper) error {
 	for _, dep := range s.Dependencies {
-		fmt.Printf("Running (%s) dependencies\n", s.Name)
+		fmt.Printf("Running (%s - %s) dependencies\n", s.Name, region)
 		if depSweeper, ok := sweeperFuncs[dep]; ok {
 			fmt.Printf("\tFound dep: %s\n", dep)
-			if err := runSweeper(depSweeper); err != nil {
+			if err := runSweeperWithRegion(region, depSweeper); err != nil {
 				return err
 			}
 		} else {
@@ -128,13 +115,17 @@ func runSweeper(s *Sweeper) error {
 		}
 	}
 
-	fmt.Printf("\n\t -->>Running (%s)\n", s.Name)
+	if len(s.Dependencies) == 0 {
+		fmt.Printf("\t\t%s has no deps, continuing", s.Name)
+	}
+
+	fmt.Printf("\n\t -->>Running (%s - %s)\n", s.Name, region)
 	if _, ok := sweeperRan[s.Name]; ok {
-		fmt.Printf("\n\t -->>(%s) already ran\n", s.Name)
+		fmt.Printf("\n\t -->>(%s - %s) already ran\n", s.Name, region)
 		return nil
 	}
 
-	runE := s.F(s.Config)
+	runE := s.F(region)
 	if runE == nil {
 		sweeperRan[s.Name] = true
 	} else {

@@ -14,22 +14,18 @@ import (
 )
 
 func init() {
-	// add sweepers for each region
-	for _, r := range []string{"us-east-1", "us-west-2", "us-east-2"} {
-		name := fmt.Sprintf("aws_key_pair-%s", r)
-		resource.AddTestSweepers(name,
-			&resource.Sweeper{
-				Name: name,
-				Config: &Config{
-					Region: r,
-				},
-				F: testSweepKeyPairs,
-			})
-	}
+	resource.AddTestSweepers("aws_key_pair", &resource.Sweeper{
+		Name: "aws_key_pair",
+		F:    testSweepKeyPairs,
+	})
 }
 
 func testSweepKeyPairs(c interface{}) error {
-	client, err := c.(*Config).Client()
+	region := c.(string)
+	client, err := sharedClientForRegion(region)
+	if err != nil {
+		return fmt.Errorf("error getting client: %s", err)
+	}
 	ec2conn := client.(*AWSClient).ec2conn
 
 	log.Printf("Destroying the tmp keys in (%s)", client.(*AWSClient).region)

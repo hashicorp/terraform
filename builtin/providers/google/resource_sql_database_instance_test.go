@@ -22,25 +22,33 @@ import (
 )
 
 func init() {
-	for _, r := range []string{"us-central1"} {
-		c, err := sharedCredsForRegion(r)
-		if err != nil {
-			log.Printf("[ERR] error getting shared config for region: %s", err)
-			continue
-		}
-		name := fmt.Sprintf("gcp-sql-db-instance-%s", r)
-		resource.AddTestSweepers(name,
-			&resource.Sweeper{
-				Name:   name,
-				Config: c,
-				F:      sweepDatabases,
-			})
-	}
+	// for _, r := range []string{"us-central1"} {
+	// 	c, err := sharedCredsForRegion(r)
+	// 	if err != nil {
+	// 		log.Printf("[ERR] error getting shared config for region: %s", err)
+	// 		continue
+	// 	}
+	// 	name := fmt.Sprintf("gcp-sql-db-instance-%s", r)
+	// 	resource.AddTestSweepers(name,
+	// 		&resource.Sweeper{
+	// 			Name:   name,
+	// 			Config: c,
+	// 			F:      sweepDatabases,
+	// 		})
+	// }
+	resource.AddTestSweepers("gcp_sql_db_instance", &resource.Sweeper{
+		Name: "gcp_sql_db_instance",
+		F:    testSweepDatabases,
+	})
 }
 
-func sweepDatabases(c interface{}) error {
-	config := c.(*Config)
-	err := config.loadAndValidate()
+func testSweepDatabases(c interface{}) error {
+	config, err := sharedCredsForRegion(c.(string))
+	if err != nil {
+		return fmt.Errorf("[ERR] error getting shared config for region: %s", err)
+	}
+
+	err = config.loadAndValidate()
 	if err != nil {
 		log.Fatalf("error loading: %s", err)
 	}
