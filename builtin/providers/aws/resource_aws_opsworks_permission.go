@@ -15,7 +15,7 @@ import (
 func resourceAwsOpsworksPermission() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsOpsworksSetPermission,
-		Update: resourceAwsOpsworksSetPermission,
+		Update: resourceAwsOpsworksPermissionUpdate,
 		Delete: resourceAwsOpsworksPermissionDelete,
 		Read:   resourceAwsOpsworksPermissionRead,
 
@@ -71,6 +71,33 @@ func resourceAwsOpsworksPermission() *schema.Resource {
 }
 
 func resourceAwsOpsworksPermissionDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*AWSClient).opsworksconn
+
+	req := &opsworks.SetPermissionInput{
+		AllowSsh:   aws.Bool(false),
+		AllowSudo:  aws.Bool(false),
+		IamUserArn: aws.String(d.Get("user_arn").(string)),
+		StackId:    aws.String(d.Get("stack_id").(string)),
+	}
+
+	if d.Get("level").(string) != "iam_only" {
+		req.Level = aws.String("iam_only")
+	}
+
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		var cerr error
+		_, cerr = client.SetPermission(req)
+		if cerr != nil {
+			log.Printf("[INFO] client error")
+			return resource.NonRetryableError(cerr)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -128,9 +155,12 @@ func resourceAwsOpsworksSetPermission(d *schema.ResourceData, meta interface{}) 
 	req := &opsworks.SetPermissionInput{
 		AllowSudo:  aws.Bool(d.Get("allow_sudo").(bool)),
 		AllowSsh:   aws.Bool(d.Get("allow_ssh").(bool)),
-		Level:      aws.String(d.Get("level").(string)),
 		IamUserArn: aws.String(d.Get("user_arn").(string)),
 		StackId:    aws.String(d.Get("stack_id").(string)),
+	}
+
+	if d.Get("level").(string) != "iam_only" {
+		req.Level = aws.String(d.Get("level").(string))
 	}
 
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
@@ -138,11 +168,41 @@ func resourceAwsOpsworksSetPermission(d *schema.ResourceData, meta interface{}) 
 		_, cerr = client.SetPermission(req)
 		if cerr != nil {
 			log.Printf("[INFO] client error")
-			if opserr, ok := cerr.(awserr.Error); ok {
-				// XXX: handle errors
-				log.Printf("[ERROR] OpsWorks error: %s message: %s", opserr.Code(), opserr.Message())
-				return resource.RetryableError(cerr)
-			}
+			return resource.NonRetryableError(cerr)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return resourceAwsOpsworksPermissionRead(d, meta)
+}
+
+func resourceAwsOpsworksPermissionUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*AWSClient).opsworksconn
+
+	req := &opsworks.SetPermissionInput{
+		AllowSudo:  aws.Bool(d.Get("allow_sudo").(bool)),
+		AllowSsh:   aws.Bool(d.Get("allow_ssh").(bool)),
+		IamUserArn: aws.String(d.Get("user_arn").(string)),
+		StackId:    aws.String(d.Get("stack_id").(string)),
+	}
+
+	lo, ln := d.GetChange("level")
+	los := lo.(string)
+	lns := ln.(string)
+
+	if los != "iam_only" || lns != "iam_only" {
+		req.Level = aws.String(lns)
+	}
+
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		var cerr error
+		_, cerr = client.SetPermission(req)
+		if cerr != nil {
+			log.Printf("[INFO] client error")
 			return resource.NonRetryableError(cerr)
 		}
 		return nil
