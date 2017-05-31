@@ -19,8 +19,9 @@ import (
 
 func init() {
 	resource.AddTestSweepers("aws_launch_configuration", &resource.Sweeper{
-		Name: "aws_launch_configuration",
-		F:    testSweepLaunchConfigurations,
+		Name:         "aws_launch_configuration",
+		Dependencies: []string{"aws_autoscaling_group"},
+		F:            testSweepLaunchConfigurations,
 	})
 }
 
