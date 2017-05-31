@@ -24,6 +24,7 @@ BUG FIXES:
 * provider/aws: Allow IPv6/IPv4 addresses to coexist [GH-13702]
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
+* provider/postgresql: Fix for leaking credentials in the provider [GH-14817]
 
 ## 0.9.6 (May 25, 2017)
 
