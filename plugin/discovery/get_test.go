@@ -6,13 +6,19 @@ import (
 	"testing"
 )
 
-func TestVersionListing(t *testing.T) {
+// lists a constant set of providers, and always returns a protocol version
+// equal to the Patch number.
+func testReleaseServer() *httptest.Server {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/terraform-providers/terraform-provider-test/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(versionList))
 	})
 
-	server := httptest.NewServer(handler)
+	return httptest.NewServer(handler)
+}
+
+func TestVersionListing(t *testing.T) {
+	server := testReleaseServer()
 	defer server.Close()
 
 	providersURL.releases = server.URL + "/"
@@ -22,17 +28,22 @@ func TestVersionListing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedSet := map[string]bool{
-		"1.2.4": true,
-		"1.2.3": true,
-		"1.2.1": true,
+	Versions(versions).Sort()
+
+	expected := []string{
+		"1.2.4",
+		"1.2.3",
+		"1.2.1",
 	}
 
-	for _, v := range versions {
-		if !expectedSet[v.String()] {
-			t.Fatalf("didn't get version %s in listing", v)
+	if len(versions) != len(expected) {
+		t.Fatalf("Received wrong number of versions. expected: %q, got: %q", expected, versions)
+	}
+
+	for i, v := range versions {
+		if v.String() != expected[i] {
+			t.Fatalf("incorrect version: %q, expected %q", v, expected[i])
 		}
-		delete(expectedSet, v.String())
 	}
 }
 
