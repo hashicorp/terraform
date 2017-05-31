@@ -16,7 +16,6 @@ func dataSourceAwsElasticBeanstalkSolutionStack() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name_regex": {
 				Type:         schema.TypeString,
-				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateSolutionStackNameRegex,
 			},
@@ -39,11 +38,7 @@ func dataSourceAwsElasticBeanstalkSolutionStack() *schema.Resource {
 func dataSourceAwsElasticBeanstalkSolutionStackRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
-	nameRegex, nameRegexOk := d.GetOk("name_regex")
-
-	if !nameRegexOk {
-		return fmt.Errorf("name_regex must be assigned")
-	}
+	nameRegex := d.Get("name_regex")
 
 	var params *elasticbeanstalk.ListAvailableSolutionStacksInput
 
@@ -66,7 +61,10 @@ func dataSourceAwsElasticBeanstalkSolutionStackRead(d *schema.ResourceData, meta
 		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again.")
 	}
 
-	if len(filteredSolutionStacks) > 1 {
+	if len(filteredSolutionStacks) == 1 {
+    // Query returned single result.
+		solutionStack = filteredSolutionStacks[0]
+  } else {
 		recent := d.Get("most_recent").(bool)
 		log.Printf("[DEBUG] aws_elastic_beanstalk_solution_stack - multiple results found and `most_recent` is set to: %t", recent)
 		if recent {
@@ -75,9 +73,6 @@ func dataSourceAwsElasticBeanstalkSolutionStackRead(d *schema.ResourceData, meta
 			return fmt.Errorf("Your query returned more than one result. Please try a more " +
 				"specific search criteria, or set `most_recent` attribute to true.")
 		}
-	} else {
-		// Query returned single result.
-		solutionStack = filteredSolutionStacks[0]
 	}
 
 	log.Printf("[DEBUG] aws_elastic_beanstalk_solution_stack - Single solution stack found: %s", *solutionStack)
