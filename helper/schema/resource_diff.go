@@ -237,7 +237,6 @@ func (d *ResourceDiff) clear(key string) error {
 // from ResourceDiff's own change data, in addition to existing diff, config, and state.
 func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, bool) {
 	old, new := d.getChange(key)
-	// log.Printf("\nkey:%s\n\nold:%s\n\nnew:%s\n", key, spew.Sdump(old), spew.Sdump(new))
 
 	if !old.Exists {
 		old.Value = nil
