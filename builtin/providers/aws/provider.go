@@ -430,6 +430,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_ssm_maintenance_window":                   resourceAwsSsmMaintenanceWindow(),
 			"aws_ssm_maintenance_window_target":            resourceAwsSsmMaintenanceWindowTarget(),
 			"aws_ssm_maintenance_window_task":              resourceAwsSsmMaintenanceWindowTask(),
+			"aws_ssm_patch_baseline":                       resourceAwsSsmPatchBaseline(),
+			"aws_ssm_patch_group":                          resourceAwsSsmPatchGroup(),
 			"aws_spot_datafeed_subscription":               resourceAwsSpotDataFeedSubscription(),
 			"aws_spot_instance_request":                    resourceAwsSpotInstanceRequest(),
 			"aws_spot_fleet_request":                       resourceAwsSpotFleetRequest(),
