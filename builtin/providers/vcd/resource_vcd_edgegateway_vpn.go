@@ -1,13 +1,11 @@
 package vcd
 
 import (
-	"log"
-
 	"fmt"
-
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	types "github.com/ukcloud/govcloudair/types/v56"
+	"log"
 )
 
 func resourceVcdEdgeGatewayVpn() *schema.Resource {
