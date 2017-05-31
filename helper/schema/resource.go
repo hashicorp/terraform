@@ -216,8 +216,7 @@ func (r *Resource) Apply(
 	return r.recordCurrentSchemaVersion(data.State()), err
 }
 
-// Diff returns a diff of this resource and is API compatible with the
-// ResourceProvider interface.
+// Diff returns a diff of this resource.
 func (r *Resource) Diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
