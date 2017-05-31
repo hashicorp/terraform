@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -54,7 +55,7 @@ func dataSourceDigitalOceanImageRead(d *schema.ResourceData, meta interface{}) e
 
 	opts := &godo.ListOptions{}
 
-	images, _, err := client.Images.ListUser(opts)
+	images, _, err := client.Images.ListUser(context.Background(), opts)
 	if err != nil {
 		d.SetId("")
 		return err

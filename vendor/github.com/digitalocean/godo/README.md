@@ -65,7 +65,9 @@ createRequest := &godo.DropletCreateRequest{
     },
 }
 
-newDroplet, _, err := client.Droplets.Create(createRequest)
+ctx := context.TODO()
+
+newDroplet, _, err := client.Droplets.Create(ctx, createRequest)
 
 if err != nil {
     fmt.Printf("Something bad happened: %s\n\n", err)
@@ -78,14 +80,14 @@ if err != nil {
 If a list of items is paginated by the API, you must request pages individually. For example, to fetch all Droplets:
 
 ```go
-func DropletList(client *godo.Client) ([]godo.Droplet, error) {
+func DropletList(ctx context.Context, client *godo.Client) ([]godo.Droplet, error) {
     // create a list to hold our droplets
     list := []godo.Droplet{}
 
     // create options. initially, these will be blank
     opt := &godo.ListOptions{}
     for {
-        droplets, resp, err := client.Droplets.List(opt)
+        droplets, resp, err := client.Droplets.List(ctx, opt)
         if err != nil {
             return nil, err
         }

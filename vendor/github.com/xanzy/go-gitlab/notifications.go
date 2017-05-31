@@ -9,7 +9,8 @@ import (
 // NotificationSettingsService handles communication with the notification settings
 // related methods of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/notification_settings.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/notification_settings.md
 type NotificationSettingsService struct {
 	client *Client
 }
@@ -17,7 +18,7 @@ type NotificationSettingsService struct {
 // NotificationSettings represents the Gitlab notification setting.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/notification_settings.html#notification-settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/notification_settings.md#notification-settings
 type NotificationSettings struct {
 	Level             NotificationLevelValue `json:"level"`
 	NotificationEmail string                 `json:"notification_email"`
@@ -27,7 +28,7 @@ type NotificationSettings struct {
 // NotificationEvents represents the avialable notification setting events.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/notification_settings.html#notification-settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/notification_settings.md#notification-settings
 type NotificationEvents struct {
 	CloseIssue           bool `json:"close_issue"`
 	CloseMergeRequest    bool `json:"close_merge_request"`
@@ -50,7 +51,7 @@ func (ns NotificationSettings) String() string {
 // GetGlobalSettings returns current notification settings and email address.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/notification_settings.html#global-notification-settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/notification_settings.md#global-notification-settings
 func (s *NotificationSettingsService) GetGlobalSettings(options ...OptionFunc) (*NotificationSettings, *Response, error) {
 	u := "notification_settings"
 
@@ -90,7 +91,7 @@ type NotificationSettingsOptions struct {
 // UpdateGlobalSettings updates current notification settings and email address.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/notification_settings.html#update-global-notification-settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/notification_settings.md#update-global-notification-settings
 func (s *NotificationSettingsService) UpdateGlobalSettings(opt *NotificationSettingsOptions, options ...OptionFunc) (*NotificationSettings, *Response, error) {
 	if opt.Level != nil && *opt.Level == GlobalNotificationLevel {
 		return nil, nil, errors.New(
@@ -116,7 +117,7 @@ func (s *NotificationSettingsService) UpdateGlobalSettings(opt *NotificationSett
 // GetSettingsForGroup returns current group notification settings.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/notification_settings.html#group-project-level-notification-settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/notification_settings.md#group-project-level-notification-settings
 func (s *NotificationSettingsService) GetSettingsForGroup(gid interface{}, options ...OptionFunc) (*NotificationSettings, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
@@ -141,7 +142,7 @@ func (s *NotificationSettingsService) GetSettingsForGroup(gid interface{}, optio
 // GetSettingsForProject returns current project notification settings.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/notification_settings.html#group-project-level-notification-settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/notification_settings.md#group-project-level-notification-settings
 func (s *NotificationSettingsService) GetSettingsForProject(pid interface{}, options ...OptionFunc) (*NotificationSettings, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -166,7 +167,7 @@ func (s *NotificationSettingsService) GetSettingsForProject(pid interface{}, opt
 // UpdateSettingsForGroup updates current group notification settings.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/notification_settings.html#update-group-project-level-notification-settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/notification_settings.md#update-group-project-level-notification-settings
 func (s *NotificationSettingsService) UpdateSettingsForGroup(gid interface{}, opt *NotificationSettingsOptions, options ...OptionFunc) (*NotificationSettings, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
@@ -191,7 +192,7 @@ func (s *NotificationSettingsService) UpdateSettingsForGroup(gid interface{}, op
 // UpdateSettingsForProject updates current project notification settings.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/notification_settings.html#update-group-project-level-notification-settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/notification_settings.md#update-group-project-level-notification-settings
 func (s *NotificationSettingsService) UpdateSettingsForProject(pid interface{}, opt *NotificationSettingsOptions, options ...OptionFunc) (*NotificationSettings, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

@@ -29,6 +29,10 @@ func dataSourceGoogleComputeSubnetwork() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"private_ip_google_access": &schema.Schema{
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"network": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -75,6 +79,7 @@ func dataSourceGoogleComputeSubnetworkRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.Set("ip_cidr_range", subnetwork.IpCidrRange)
+	d.Set("private_ip_google_access", subnetwork.PrivateIpGoogleAccess)
 	d.Set("self_link", subnetwork.SelfLink)
 	d.Set("description", subnetwork.Description)
 	d.Set("gateway_address", subnetwork.GatewayAddress)

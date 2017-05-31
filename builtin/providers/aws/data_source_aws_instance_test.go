@@ -396,6 +396,9 @@ data "aws_instance" "foo" {
 const testAccInstanceDataSourceConfig_privateIP = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInstanceDataSourceConfig_privateIP"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -450,6 +453,9 @@ data "aws_instance" "foo" {
 const testAccInstanceDataSourceConfig_VPC = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInstanceDataSourceConfig_VPC"
+	}
 }
 
 resource "aws_subnet" "foo" {

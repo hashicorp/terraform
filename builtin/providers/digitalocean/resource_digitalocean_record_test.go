@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -84,6 +85,8 @@ func TestAccDigitalOceanRecord_Updated(t *testing.T) {
 						"digitalocean_record.foobar", "value", "192.168.0.10"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_record.foobar", "type", "A"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foobar", "ttl", "1800"),
 				),
 			},
 			{
@@ -100,6 +103,8 @@ func TestAccDigitalOceanRecord_Updated(t *testing.T) {
 						"digitalocean_record.foobar", "value", "192.168.0.11"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_record.foobar", "type", "A"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foobar", "ttl", "90"),
 				),
 			},
 		},
@@ -235,7 +240,7 @@ func testAccCheckDigitalOceanRecordDestroy(s *terraform.State) error {
 			return err
 		}
 
-		_, _, err = client.Domains.Record(domain, id)
+		_, _, err = client.Domains.Record(context.Background(), domain, id)
 
 		if err == nil {
 			return fmt.Errorf("Record still exists")
@@ -287,7 +292,7 @@ func testAccCheckDigitalOceanRecordExists(n string, record *godo.DomainRecord) r
 			return err
 		}
 
-		foundRecord, _, err := client.Domains.Record(domain, id)
+		foundRecord, _, err := client.Domains.Record(context.Background(), domain, id)
 
 		if err != nil {
 			return err
@@ -340,6 +345,7 @@ resource "digitalocean_record" "foobar" {
   name  = "terraform"
   value = "192.168.0.11"
   type  = "A"
+  ttl   = 90
 }`
 
 const testAccCheckDigitalOceanRecordConfig_cname = `

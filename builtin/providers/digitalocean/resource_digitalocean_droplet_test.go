@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -332,7 +333,7 @@ func testAccCheckDigitalOceanDropletDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the Droplet
-		_, _, err = client.Droplets.Get(id)
+		_, _, err = client.Droplets.Get(context.Background(), id)
 
 		// Wait
 
@@ -482,7 +483,7 @@ func testAccCheckDigitalOceanDropletExists(n string, droplet *godo.Droplet) reso
 		}
 
 		// Try to find the Droplet
-		retrieveDroplet, _, err := client.Droplets.Get(id)
+		retrieveDroplet, _, err := client.Droplets.Get(context.Background(), id)
 
 		if err != nil {
 			return err

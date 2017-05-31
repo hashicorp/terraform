@@ -7,10 +7,11 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	pkgApi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgApi "k8s.io/apimachinery/pkg/types"
 	api "k8s.io/kubernetes/pkg/api/v1"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
+	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 func resourceKubernetesPersistentVolumeClaim() *schema.Resource {
@@ -169,7 +170,7 @@ func resourceKubernetesPersistentVolumeClaimCreate(d *schema.ResourceData, meta 
 			Pending: []string{"Pending"},
 			Timeout: d.Timeout(schema.TimeoutCreate),
 			Refresh: func() (interface{}, string, error) {
-				out, err := conn.CoreV1().PersistentVolumeClaims(metadata.Namespace).Get(name)
+				out, err := conn.CoreV1().PersistentVolumeClaims(metadata.Namespace).Get(name, meta_v1.GetOptions{})
 				if err != nil {
 					log.Printf("[ERROR] Received error: %#v", err)
 					return out, "", err
@@ -195,7 +196,7 @@ func resourceKubernetesPersistentVolumeClaimRead(d *schema.ResourceData, meta in
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Reading persistent volume claim %s", name)
-	claim, err := conn.CoreV1().PersistentVolumeClaims(namespace).Get(name)
+	claim, err := conn.CoreV1().PersistentVolumeClaims(namespace).Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Printf("[DEBUG] Received error: %#v", err)
 		return err
@@ -239,7 +240,7 @@ func resourceKubernetesPersistentVolumeClaimDelete(d *schema.ResourceData, meta 
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Deleting persistent volume claim: %#v", name)
-	err := conn.CoreV1().PersistentVolumeClaims(namespace).Delete(name, &api.DeleteOptions{})
+	err := conn.CoreV1().PersistentVolumeClaims(namespace).Delete(name, &meta_v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -255,7 +256,7 @@ func resourceKubernetesPersistentVolumeClaimExists(d *schema.ResourceData, meta 
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Checking persistent volume claim %s", name)
-	_, err := conn.CoreV1().PersistentVolumeClaims(namespace).Get(name)
+	_, err := conn.CoreV1().PersistentVolumeClaims(namespace).Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		if statusErr, ok := err.(*errors.StatusError); ok && statusErr.ErrStatus.Code == 404 {
 			return false, nil

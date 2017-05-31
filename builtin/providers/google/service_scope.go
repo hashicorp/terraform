@@ -23,6 +23,8 @@ func canonicalizeServiceScope(scope string) string {
 		"storage-ro":            "https://www.googleapis.com/auth/devstorage.read_only",
 		"storage-rw":            "https://www.googleapis.com/auth/devstorage.read_write",
 		"taskqueue":             "https://www.googleapis.com/auth/taskqueue",
+		"trace-append":          "https://www.googleapis.com/auth/trace.append",
+		"trace-ro":              "https://www.googleapis.com/auth/trace.readonly",
 		"useraccounts-ro":       "https://www.googleapis.com/auth/cloud.useraccounts.readonly",
 		"useraccounts-rw":       "https://www.googleapis.com/auth/cloud.useraccounts",
 		"userinfo-email":        "https://www.googleapis.com/auth/userinfo.email",

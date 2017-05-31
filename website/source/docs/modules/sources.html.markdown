@@ -87,7 +87,7 @@ module "private-infra" {
 
 ## Bitbucket
 
-Terraform will automatically recognize Bitbucket URLs and turn them into a link to the specific Git or Mercurial repository, for example:
+Terraform will automatically recognize public Bitbucket URLs and turn them into a link to the specific Git or Mercurial repository, for example:
 
 ```hcl
 module "consul" {
@@ -106,6 +106,25 @@ module "consul" {
 **Note:** The double-slash, `//`, is important. It is what tells Terraform that this is the separator for a subdirectory, and not part of the repository itself.
 
 Bitbucket URLs will require that Git or Mercurial is installed on your system, depending on the type of repository.
+
+## Private Bitbucket Repos
+Private bitbucket repositories must be specified similar to the Generic Git Respository section below.
+
+```hcl
+module "consul" {
+  source = "git::https://bitbucket.org/foocompany/module_name.git
+}
+```
+
+You can also specify branches and version withs the ?ref query
+
+```hcl
+module "consul" {
+  source = "git::https://bitbucket.org/foocompany/module_name.git?hotfix
+}
+```
+
+You will need to run a `terraform get -update=true` if you want to pull the latest versions. This can be handy when you are rapidly iterating on a module in development.
 
 ## Generic Git Repository
 
@@ -140,6 +159,8 @@ module "consul" {
   source = "git::https://hashicorp.com/consul.git?ref=master"
 }
 ```
+
+Terraform will cache the module locally by default `terraform get` is run, so successive updates to master or a specified branch will not be factored into future plans. Run `terraform get -update=true` to get the latest version of the branch. This is handy in development, but potentially bothersome in production if you don't have control of the repository.
 
 ## Generic Mercurial Repository
 

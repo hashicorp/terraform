@@ -468,7 +468,7 @@ func resourceServerUpdate(d *schema.ResourceData, m interface{}) error {
 
 	if d.HasChange("address") {
 		// Try updating the address
-		if err := updateAddress(d, meta); err != nil {
+		if err := updateAddress(d, m); err != nil {
 			return err
 		}
 
@@ -546,7 +546,7 @@ exists (maybe it was destroyed out of band). Just like the destroy callback, the
 
 ```go
 func resourceServerRead(d *schema.ResourceData, m interface{}) error {
-  client := meta.(*MyClient)
+  client := m.(*MyClient)
 
   // Attempt to read from an upstream API
   obj, ok := client.Get(d.Id())

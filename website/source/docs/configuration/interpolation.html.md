@@ -40,7 +40,7 @@ variable.
 
 #### User list variables
 
-The syntax is `["${var.LIST}"]`. For example, `["${var.subnets}"]`
+The syntax is `"${var.LIST}"`. For example, `"${var.subnets}"`
 would get the value of the `subnets` list, as a list. You can also
 return list elements by index: `${var.subnets[idx]}`.
 
@@ -162,6 +162,9 @@ The supported built-in functions are:
     SHA-512 sum of the given string.
     **This is not equivalent** of `base64encode(sha512(string))`
     since `sha512()` returns hexadecimal representation.
+
+  * `bcrypt(password, cost)` - Returns the Blowfish encrypted hash of the string 
+    at the given cost. A default `cost` of 10 will be used if not provided.
 
   * `ceil(float)` - Returns the least integer value greater than or equal
       to the argument.
@@ -312,6 +315,12 @@ The supported built-in functions are:
   * `pathexpand(string)` - Returns a filepath string with `~` expanded to the home directory. Note:
     This will create a plan diff between two different hosts, unless the filepaths are the same.
 
+  * `pow(x, y)` - Returns the base `x` of exponential `y` as a float.
+
+    Example:
+    * `${pow(3,2)}` = 9
+    * `${pow(4,0)}` = 1
+
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
       of `replace`. If `search` is wrapped in forward slashes, it is treated
@@ -427,26 +436,26 @@ variable "hostnames" {
 }
 
 data "template_file" "web_init" {
-  # Expand multiple template files - the same number as we have instances
-  count    = "${var.count}"
+  # Render the template once for each instance
+  count    = "${length(var.hostnames)}"
   template = "${file("templates/web_init.tpl")}"
   vars {
-    # that gives us access to use count.index to do the lookup
-    hostname = "${lookup(var.hostnames, count.index)}"
+    # count.index tells us the index of the instance we are rendering
+    hostname = "${var.hostnames[count.index]}"
   }
 }
 
 resource "aws_instance" "web" {
-  # ...
-  count = "${var.count}"
+  # Create one instance for each hostname
+  count     = "${length(var.hostnames)}"
 
-  # Link each web instance to the proper template_file
-  user_data = "${element(data.template_file.web_init.*.rendered, count.index)}"
+  # Pass each instance its corresponding template_file
+  user_data = "${data.template_file.web_init.*.rendered[count.index]}"
 }
 ```
 
-With this, we will build a list of `template_file.web_init` data sources which
-we can use in combination with our list of `aws_instance.web` resources.
+With this, we will build a list of `template_file.web_init` data resources
+which we can use in combination with our list of `aws_instance.web` resources.
 
 ## Math
 

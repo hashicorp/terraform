@@ -25,14 +25,16 @@ import (
 // MergeRequestsService handles communication with the merge requests related
 // methods of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/merge_requests.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md
 type MergeRequestsService struct {
 	client *Client
 }
 
 // MergeRequest represents a GitLab merge request.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/merge_requests.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md
 type MergeRequest struct {
 	ID             int        `json:"id"`
 	IID            int        `json:"iid"`
@@ -102,7 +104,7 @@ func (m MergeRequest) String() string {
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/merge_requests.html#list-merge-requests
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md#list-merge-requests
 type ListMergeRequestsOptions struct {
 	ListOptions
 	IID     *int    `url:"iid,omitempty" json:"iid,omitempty"`
@@ -117,7 +119,7 @@ type ListMergeRequestsOptions struct {
 // per_page can be used to restrict the list of merge requests.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/merge_requests.html#list-merge-requests
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md#list-merge-requests
 func (s *MergeRequestsService) ListMergeRequests(pid interface{}, opt *ListMergeRequestsOptions, options ...OptionFunc) ([]*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -142,7 +144,7 @@ func (s *MergeRequestsService) ListMergeRequests(pid interface{}, opt *ListMerge
 // GetMergeRequest shows information about a single merge request.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/merge_requests.html#get-single-mr
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md#get-single-mr
 func (s *MergeRequestsService) GetMergeRequest(pid interface{}, mergeRequest int, options ...OptionFunc) (*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -167,7 +169,7 @@ func (s *MergeRequestsService) GetMergeRequest(pid interface{}, mergeRequest int
 // GetMergeRequestCommits gets a list of merge request commits.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/merge_requests.html#get-single-mr-commits
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md#get-single-mr-commits
 func (s *MergeRequestsService) GetMergeRequestCommits(pid interface{}, mergeRequest int, options ...OptionFunc) ([]*Commit, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -193,7 +195,7 @@ func (s *MergeRequestsService) GetMergeRequestCommits(pid interface{}, mergeRequ
 // its files and changes.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/merge_requests.html#get-single-mr-changes
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md#get-single-mr-changes
 func (s *MergeRequestsService) GetMergeRequestChanges(pid interface{}, mergeRequest int, options ...OptionFunc) (*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -219,7 +221,7 @@ func (s *MergeRequestsService) GetMergeRequestChanges(pid interface{}, mergeRequ
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/merge_requests.html#create-mr
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md#create-mr
 type CreateMergeRequestOptions struct {
 	Title           *string `url:"title,omitempty" json:"title,omitempty"`
 	Description     *string `url:"description,omitempty" json:"description,omitempty"`
@@ -232,7 +234,7 @@ type CreateMergeRequestOptions struct {
 // CreateMergeRequest creates a new merge request.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/merge_requests.html#create-mr
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md#create-mr
 func (s *MergeRequestsService) CreateMergeRequest(pid interface{}, opt *CreateMergeRequestOptions, options ...OptionFunc) (*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -258,7 +260,7 @@ func (s *MergeRequestsService) CreateMergeRequest(pid interface{}, opt *CreateMe
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/merge_requests.html#update-mr
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md#update-mr
 type UpdateMergeRequestOptions struct {
 	Title        *string `url:"title,omitempty" json:"title,omitempty"`
 	Description  *string `url:"description,omitempty" json:"description,omitempty"`
@@ -270,7 +272,7 @@ type UpdateMergeRequestOptions struct {
 // UpdateMergeRequest updates an existing project milestone.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/merge_requests.html#update-mr
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md#update-mr
 func (s *MergeRequestsService) UpdateMergeRequest(pid interface{}, mergeRequest int, opt *UpdateMergeRequestOptions, options ...OptionFunc) (*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -296,7 +298,7 @@ func (s *MergeRequestsService) UpdateMergeRequest(pid interface{}, mergeRequest 
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/merge_requests.html#accept-mr
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md#accept-mr
 type AcceptMergeRequestOptions struct {
 	MergeCommitMessage       *string `url:"merge_commit_message,omitempty" json:"merge_commit_message,omitempty"`
 	ShouldRemoveSourceBranch *bool   `url:"should_remove_source_branch,omitempty" json:"should_remove_source_branch,omitempty"`
@@ -310,7 +312,7 @@ type AcceptMergeRequestOptions struct {
 // already merged or closed - you get 405 and error message 'Method Not Allowed'
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/merge_requests.html#accept-mr
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/merge_requests.md#accept-mr
 func (s *MergeRequestsService) AcceptMergeRequest(pid interface{}, mergeRequest int, opt *AcceptMergeRequestOptions, options ...OptionFunc) (*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

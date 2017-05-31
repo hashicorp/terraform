@@ -23,7 +23,7 @@ Upon saving the application, you will be redirected to https://bitbucket.org/acc
 
 ### Creating a Terraform Enterprise OAuth Client
 
-In a new tab, navigate to https://atlas.hashicorptest.com/settings and, in the left-side panel, select the organization that you’d like to administer your Bitbucket connection, then click on “configuration” in the left-side panel.
+In a new tab, navigate to https://atlas.hashicorp.com/settings and, in the left-side panel, select the organization that you’d like to administer your Bitbucket connection, then click on “configuration” in the left-side panel.
 
 Within the “Add OAuthClient” pane, select Bitbucket Cloud and fill in your application key and secret. In the base url field, enter the root url of your Bitbucket instance (i.e. https://bitbucket.org). In the API url field, enter the base api url (i.e. https://api.bitbucket.org/2.0). Create the OAuth client.
 
@@ -46,7 +46,7 @@ You are now ready to use your organization's token to manage builds and configur
 
 ### Linking your Terraform Enterprise User Account
 
-Navigate to https://atlas.hashicorptest.com/settings/connections and click on “Connect Bitbucket Cloud to Atlas”. You will briefly be redirected to Bitbucket in order to authenticate your OAuth Client. Once redirected back to Terraform Enterprise, You should see a green flash banner with the message: "Successfully Linked to Bitbucket".
+Navigate to https://atlas.hashicorp.com/settings/connections and click on “Connect Bitbucket Cloud to Atlas”. You will briefly be redirected to Bitbucket in order to authenticate your OAuth Client. Once redirected back to Terraform Enterprise, You should see a green flash banner with the message: "Successfully Linked to Bitbucket".
 
 You are now ready to use your personal token to manage builds and configurations within Terraform Enterprise.
 

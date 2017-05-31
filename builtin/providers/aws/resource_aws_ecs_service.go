@@ -230,13 +230,13 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		out, err = conn.CreateService(&input)
 
 		if err != nil {
-			ec2err, ok := err.(awserr.Error)
+			awsErr, ok := err.(awserr.Error)
 			if !ok {
 				return resource.NonRetryableError(err)
 			}
-			if ec2err.Code() == "InvalidParameterException" {
+			if awsErr.Code() == "InvalidParameterException" {
 				log.Printf("[DEBUG] Trying to create ECS service again: %q",
-					ec2err.Message())
+					awsErr.Message())
 				return resource.RetryableError(err)
 			}
 
@@ -400,12 +400,26 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	out, err := conn.UpdateService(&input)
+	// Retry due to AWS IAM policy eventual consistency
+	// See https://github.com/hashicorp/terraform/issues/4375
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		out, err := conn.UpdateService(&input)
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if ok && awsErr.Code() == "InvalidParameterException" {
+				log.Printf("[DEBUG] Trying to update ECS service again: %#v", err)
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+
+		log.Printf("[DEBUG] Updated ECS service %s", out.Service)
+		return nil
+	})
 	if err != nil {
 		return err
 	}
-	service := out.Service
-	log.Printf("[DEBUG] Updated ECS service %s", service)
 
 	return resourceAwsEcsServiceRead(d, meta)
 }

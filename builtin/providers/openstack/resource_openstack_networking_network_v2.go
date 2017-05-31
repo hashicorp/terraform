@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/provider"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 )
 
@@ -58,6 +59,30 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
+			"segments": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"physical_network": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"network_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"segmentation_id": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
+			},
 			"value_specs": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -100,11 +125,25 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 		createOpts.Shared = &shared
 	}
 
-	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	n, err := networks.Create(networkingClient, createOpts).Extract()
+	segments := resourceNetworkingNetworkV2Segments(d)
+
+	n := &networks.Network{}
+	if len(segments) > 0 {
+		providerCreateOpts := provider.CreateOptsExt{
+			CreateOptsBuilder: createOpts,
+			Segments:          segments,
+		}
+		log.Printf("[DEBUG] Create Options: %#v", providerCreateOpts)
+		n, err = networks.Create(networkingClient, providerCreateOpts).Extract()
+	} else {
+		log.Printf("[DEBUG] Create Options: %#v", createOpts)
+		n, err = networks.Create(networkingClient, createOpts).Extract()
+	}
+
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack Neutron network: %s", err)
 	}
+
 	log.Printf("[INFO] Network ID: %s", n.ID)
 
 	log.Printf("[DEBUG] Waiting for Network (%s) to become available", n.ID)
@@ -213,6 +252,29 @@ func resourceNetworkingNetworkV2Delete(d *schema.ResourceData, meta interface{})
 
 	d.SetId("")
 	return nil
+}
+
+func resourceNetworkingNetworkV2Segments(d *schema.ResourceData) (providerSegments []provider.Segment) {
+	segments := d.Get("segments").([]interface{})
+	for _, v := range segments {
+		var segment provider.Segment
+		segmentMap := v.(map[string]interface{})
+
+		if v, ok := segmentMap["physical_network"].(string); ok {
+			segment.PhysicalNetwork = v
+		}
+
+		if v, ok := segmentMap["network_type"].(string); ok {
+			segment.NetworkType = v
+		}
+
+		if v, ok := segmentMap["segmentation_id"].(int); ok {
+			segment.SegmentationID = v
+		}
+
+		providerSegments = append(providerSegments, segment)
+	}
+	return
 }
 
 func waitForNetworkActive(networkingClient *gophercloud.ServiceClient, networkId string) resource.StateRefreshFunc {

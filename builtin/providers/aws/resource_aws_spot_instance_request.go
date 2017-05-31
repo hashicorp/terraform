@@ -19,6 +19,11 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 		Delete: resourceAwsSpotInstanceRequestDelete,
 		Update: resourceAwsSpotInstanceRequestUpdate,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: func() map[string]*schema.Schema {
 			// The Spot Instance Request Schema is based on the AWS Instance schema.
 			s := resourceAwsInstance().Schema
@@ -157,7 +162,7 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 			Pending:    []string{"start", "pending-evaluation", "pending-fulfillment"},
 			Target:     []string{"fulfilled"},
 			Refresh:    SpotInstanceStateRefreshFunc(conn, sir),
-			Timeout:    10 * time.Minute,
+			Timeout:    d.Timeout(schema.TimeoutCreate),
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}
@@ -328,7 +333,7 @@ func resourceAwsSpotInstanceRequestDelete(d *schema.ResourceData, meta interface
 
 	if instanceId := d.Get("spot_instance_id").(string); instanceId != "" {
 		log.Printf("[INFO] Terminating instance: %s", instanceId)
-		if err := awsTerminateInstance(conn, instanceId); err != nil {
+		if err := awsTerminateInstance(conn, instanceId, d); err != nil {
 			return fmt.Errorf("Error terminating spot instance: %s", err)
 		}
 	}
