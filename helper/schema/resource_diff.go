@@ -124,9 +124,6 @@ type ResourceDiff struct {
 	// diff, and the new diff.
 	multiReader *MultiLevelFieldReader
 
-	// A writer that writes overridden old fields.
-	oldWriter *MapFieldWriter
-
 	// A writer that writes overridden new fields.
 	newWriter *newValueWriter
 
@@ -146,7 +143,6 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 		schema: schema,
 	}
 
-	d.oldWriter = &MapFieldWriter{Schema: d.schema}
 	d.newWriter = &newValueWriter{
 		MapFieldWriter: &MapFieldWriter{Schema: d.schema},
 	}
@@ -175,11 +171,7 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 			},
 		}
 	}
-	readers["newDiffOld"] = &MapFieldReader{
-		Schema: d.schema,
-		Map:    BasicMapReader(d.oldWriter.Map()),
-	}
-	readers["newDiffNew"] = &newValueReader{
+	readers["newDiff"] = &newValueReader{
 		MapFieldReader: &MapFieldReader{
 			Schema: d.schema,
 			Map:    BasicMapReader(d.newWriter.Map()),
@@ -191,8 +183,7 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 			"state",
 			"config",
 			"diff",
-			"newDiffOld",
-			"newDiffNew",
+			"newDiff",
 		},
 
 		Readers: readers,
@@ -261,7 +252,10 @@ func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, b
 //
 // This function is only allowed on computed attributes.
 func (d *ResourceDiff) SetNew(key string, value interface{}) error {
-	return d.SetDiff(key, d.get(strings.Split(key, "."), "state").Value, value, false)
+	if !d.schema[key].Computed {
+		return fmt.Errorf("SetNew only operates on computed keys - %s is not one", key)
+	}
+	return d.setDiff(key, d.get(strings.Split(key, "."), "state").Value, value, false)
 }
 
 // SetNewComputed functions like SetNew, except that it blanks out a new value
@@ -269,31 +263,16 @@ func (d *ResourceDiff) SetNew(key string, value interface{}) error {
 //
 // This function is only allowed on computed attributes.
 func (d *ResourceDiff) SetNewComputed(key string) error {
-	return d.SetDiff(key, d.get(strings.Split(key, "."), "state").Value, nil, true)
-}
-
-// SetDiff allows the setting of both old and new values for the diff
-// referenced by a given key. This can be used to completely override
-// Terraform's own diff behaviour, and can be used in conjunction with Clear or
-// ClearAll to construct a compleletely new diff based off of provider logic
-// alone.
-//
-// This function is only allowed on computed attributes.
-func (d *ResourceDiff) SetDiff(key string, old, new interface{}, computed bool) error {
 	if !d.schema[key].Computed {
-		return fmt.Errorf("SetNew, SetNewComputed, and SetDiff are allowed on computed attributes only - %s is not one", key)
+		return fmt.Errorf("SetNewComputed only operates on computed keys - %s is not one", key)
 	}
-
-	return d.setDiff(key, old, new, computed)
+	return d.setDiff(key, d.get(strings.Split(key, "."), "state").Value, nil, true)
 }
 
+// setDiff performs common diff setting behaviour.
 func (d *ResourceDiff) setDiff(key string, old, new interface{}, computed bool) error {
 	if err := d.clear(key); err != nil {
 		return err
-	}
-
-	if err := d.oldWriter.WriteField(strings.Split(key, "."), old); err != nil {
-		return fmt.Errorf("Cannot set old diff value for key %s: %s", key, err)
 	}
 
 	if err := d.newWriter.WriteField(strings.Split(key, "."), new, computed); err != nil {
@@ -341,7 +320,7 @@ func (d *ResourceDiff) GetChange(key string) (interface{}, interface{}) {
 // new diff levels to provide data consistent with the current state of the
 // customized diff.
 func (d *ResourceDiff) GetOk(key string) (interface{}, bool) {
-	r := d.get(strings.Split(key, "."), "newDiffNew")
+	r := d.get(strings.Split(key, "."), "newDiff")
 	exists := r.Exists && !r.Computed
 	if exists {
 		// If it exists, we also want to verify it is not the zero-value.
@@ -394,19 +373,16 @@ func (d *ResourceDiff) Id() string {
 // results from the exact levels for the new diff, then from state and diff as
 // per normal.
 func (d *ResourceDiff) getChange(key string) (getResult, getResult) {
-	old := d.getExact(strings.Split(key, "."), "newDiffOld")
-	new := d.getExact(strings.Split(key, "."), "newDiffNew")
-
-	if old.Exists || new.Exists {
-		// If one of these values exists, then SetDiff has operated on this value,
-		// and as such the newDiff level should be used.
-		return old, new
+	old := d.get(strings.Split(key, "."), "state")
+	var new getResult
+	for p := range d.updatedKeys {
+		if childAddrOf(key, p) {
+			new = d.getExact(strings.Split(key, "."), "newDiff")
+			goto done
+		}
 	}
-
-	// If we haven't set this in the new diff, then we want to get the default
-	// levels as if we were using ResourceData normally.
-	old = d.get(strings.Split(key, "."), "state")
-	new = d.get(strings.Split(key, "."), "diff")
+	new = d.get(strings.Split(key, "."), "newDiff")
+done:
 	return old, new
 }
 
@@ -452,4 +428,12 @@ func (d *ResourceDiff) finalizeResult(addr []string, result FieldReadResult) get
 		Exists:         result.Exists,
 		Schema:         schema,
 	}
+}
+
+// childAddrOf does a comparison of two addresses to see if one is the child of
+// the other.
+func childAddrOf(child, parent string) bool {
+	cs := strings.Split(child, ".")
+	ps := strings.Split(parent, ".")
+	return reflect.DeepEqual(ps, cs[:len(ps)])
 }
