@@ -1,13 +1,11 @@
 package aws
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"regexp"
 
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -20,13 +18,18 @@ func dataSourceAwsElasticBeanstalkSolutionStack() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateNameRegex,
+				ValidateFunc: validateSolutionStackNameRegex,
 			},
 			"most_recent": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
+			},
+			// Computed values.
+			"name": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -42,7 +45,9 @@ func dataSourceAwsElasticBeanstalkSolutionStackRead(d *schema.ResourceData, meta
 		return fmt.Errorf("name_regex must be assigned")
 	}
 
-	resp, err := conn.ListAvailableSolutionStacksRequest()
+	var params *elasticbeanstalk.ListAvailableSolutionStacksInput
+
+	resp, err := conn.ListAvailableSolutionStacks(params)
 	if err != nil {
 		return err
 	}
@@ -92,7 +97,7 @@ func solutionStackDescriptionAttributes(d *schema.ResourceData, solutionStack *s
 	return nil
 }
 
-func validateNameRegex(v interface{}, k string) (ws []string, errors []error) {
+func validateSolutionStackNameRegex(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
 	if _, err := regexp.Compile(value); err != nil {

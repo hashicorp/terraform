@@ -25,7 +25,7 @@ func TestAccAWSElasticBeanstalkSolutionStackDataSource(t *testing.T) {
 	})
 }
 
-func TestResourceValidateNameRegex(t *testing.T) {
+func TestResourceValidateSolutionStackNameRegex(t *testing.T) {
 	type testCases struct {
 		Value    string
 		ErrCount int
@@ -47,7 +47,7 @@ func TestResourceValidateNameRegex(t *testing.T) {
 	}
 
 	for _, tc := range invalidCases {
-		_, errors := validateNameRegex(tc.Value, "name_regex")
+		_, errors := validateSolutionStackNameRegex(tc.Value, "name_regex")
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
 		}
@@ -69,7 +69,7 @@ func TestResourceValidateNameRegex(t *testing.T) {
 	}
 
 	for _, tc := range validCases {
-		_, errors := validateNameRegex(tc.Value, "name_regex")
+		_, errors := validateSolutionStackNameRegex(tc.Value, "name_regex")
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
 		}
