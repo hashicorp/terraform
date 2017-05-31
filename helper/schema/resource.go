@@ -85,15 +85,16 @@ type Resource struct {
 	Delete DeleteFunc
 	Exists ExistsFunc
 
-	// CustomizeDiff is a custom function for controlling diff logic after the
-	// initial diff is performed - it can be used to veto particular changes in
-	// the diff, customize the diff that has been created, or diff values not
-	// controlled by config. It is passed a *ResourceDiff, a structure similar to
-	// ResourceData but lacking most write functions, allowing the provider to
-	// customize the diff only.
+	// Review is a custom function for "reviewing" the diff that Terraform has
+	// created for this resource - it can be used to customize the diff that has
+	// been created, diff values not controlled by configuration, or even veto
+	// the diff altogether and abort the plan. It is passed a *ResourceDiff, a
+	// structure similar to ResourceData but lacking most write functions,
+	// allowing the provider to customize the diff only.
 	//
-	// Only computed fields can be customized by this function.
-	CustomizeDiff CustomizeDiffFunc
+	// For the most part, only computed fields can be customized by this
+	// function.
+	Review ReviewFunc
 
 	// Importer is the ResourceImporter implementation for this resource.
 	// If this is nil, then this resource does not support importing. If
@@ -137,7 +138,7 @@ type StateMigrateFunc func(
 	int, *terraform.InstanceState, interface{}) (*terraform.InstanceState, error)
 
 // See Resource documentation.
-type CustomizeDiffFunc func(*ResourceDiff, interface{}) error
+type ReviewFunc func(*ResourceDiff, interface{}) error
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
@@ -229,7 +230,7 @@ func (r *Resource) Diff(
 		return nil, fmt.Errorf("[ERR] Error decoding timeout: %s", err)
 	}
 
-	instanceDiff, err := schemaMap(r.Schema).Diff(s, c, r.CustomizeDiff, meta)
+	instanceDiff, err := schemaMap(r.Schema).Diff(s, c, r.Review, meta)
 	if err != nil {
 		return instanceDiff, err
 	}

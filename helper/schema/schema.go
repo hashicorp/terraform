@@ -386,7 +386,7 @@ func (m *schemaMap) DeepCopy() schemaMap {
 func (m schemaMap) Diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	customizeFunc CustomizeDiffFunc,
+	review ReviewFunc,
 	meta interface{}) (*terraform.InstanceDiff, error) {
 	result := new(terraform.InstanceDiff)
 	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
@@ -411,10 +411,10 @@ func (m schemaMap) Diff(
 
 	// If this is a non-destroy diff, call any custom diff logic that has been
 	// defined.
-	if !result.DestroyTainted && customizeFunc != nil {
+	if !result.DestroyTainted && review != nil {
 		mc := m.DeepCopy()
 		rd := newResourceDiff(mc, c, s, result)
-		if err := customizeFunc(rd, meta); err != nil {
+		if err := review(rd, meta); err != nil {
 			return nil, err
 		}
 		for _, k := range rd.UpdatedKeys() {
@@ -451,10 +451,10 @@ func (m schemaMap) Diff(
 		}
 
 		// Re-run customization
-		if !result2.DestroyTainted && customizeFunc != nil {
+		if !result2.DestroyTainted && review != nil {
 			mc := m.DeepCopy()
 			rd := newResourceDiff(mc, c, d.state, result2)
-			if err := customizeFunc(rd, meta); err != nil {
+			if err := review(rd, meta); err != nil {
 				return nil, err
 			}
 			for _, k := range rd.UpdatedKeys() {
