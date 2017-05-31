@@ -33,7 +33,6 @@ Common commands:
     apply              Builds or changes infrastructure
     console            Interactive console for Terraform interpolations
     destroy            Destroy Terraform-managed infrastructure
-    env                Environment management
     fmt                Rewrites config files to canonical format
     get                Download and install modules for the configuration
     graph              Create a visual graph of Terraform resources
@@ -49,6 +48,7 @@ Common commands:
     untaint            Manually unmark a resource as tainted
     validate           Validates the Terraform files
     version            Prints the Terraform version
+    workspace          Workspace management
 
 All other commands:
     debug              Debug output management (experimental)
