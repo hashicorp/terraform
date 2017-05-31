@@ -70,6 +70,60 @@ func resourceAwsCloudTrail() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validateArn,
 			},
+			"has_custom_event_selectors": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+			"event_selector": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 5,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"include_management_events": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+						"data_resources": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"type": {
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+											value := v.(string)
+											if value != "AWS::S3::Object" {
+												es = append(es, fmt.Errorf("%q must be AWS::S3::Object", k))
+											}
+											return
+										},
+									},
+									"values": {
+										Type:     schema.TypeList,
+										MinItems: 1,
+										MaxItems: 250,
+										Required: true,
+										Elem: &schema.Schema{
+											Type:         schema.TypeString,
+											ValidateFunc: validateArn,
+										},
+									},
+								},
+							},
+						},
+						"read_write_type": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "All",
+							// TODO: validation
+						},
+					},
+				},
+			},
 			"home_region": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -182,8 +236,48 @@ func resourceAwsCloudTrailRead(d *schema.ResourceData, meta interface{}) error {
 	// https://github.com/hashicorp/terraform/pull/3928
 	d.Set("kms_key_id", trail.KmsKeyId)
 
+	d.Set("has_custom_event_selectors", trail.HasCustomEventSelectors)
+
 	d.Set("arn", trail.TrailARN)
 	d.Set("home_region", trail.HomeRegion)
+
+	if *trail.HasCustomEventSelectors {
+		req := &cloudtrail.GetEventSelectorsInput{
+			TrailName: trail.Name,
+		}
+
+		selectorsOut, err := conn.GetEventSelectors(req)
+		if err != nil {
+			return err
+		}
+
+		if len(selectorsOut.EventSelectors) > 0 {
+			selectors := make([]map[string]interface{}, 0, len(selectorsOut.EventSelectors))
+			for _, selectorObject := range selectorsOut.EventSelectors {
+				selector := make(map[string]interface{})
+				selector["include_management_events"] = *selectorObject.IncludeManagementEvents
+				selector["read_write_type"] = *selectorObject.ReadWriteType
+
+				if selectorObject.DataResources != nil {
+					resources := make([]map[string]interface{}, 0, len(selectorObject.DataResources))
+					for _, resourceObject := range selectorObject.DataResources {
+						resource := make(map[string]interface{})
+						resource["type"] = *resourceObject.Type
+						resource["values"] = flattenStringList(resourceObject.Values)
+						resources = append(resources, resource)
+					}
+
+					selector["data_resources"] = resources
+				}
+
+				selectors = append(selectors, selector)
+			}
+
+			if err := d.Set("event_selector", selectors); err != nil {
+				return err
+			}
+		}
+	}
 
 	// Get tags
 	req := &cloudtrail.ListTagsInput{
@@ -255,6 +349,13 @@ func resourceAwsCloudTrailUpdate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
+	if d.HasChange("event_selector") {
+		err = resourceAwsCloudTrailEventSelectorsUpdate(conn, d)
+		if err != nil {
+			return err
+		}
+	}
+
 	if d.HasChange("tags") {
 		err := setTagsCloudtrail(conn, d)
 		if err != nil {
@@ -284,6 +385,58 @@ func resourceAwsCloudTrailDelete(d *schema.ResourceData, meta interface{}) error
 	})
 
 	return err
+}
+
+func resourceAwsCloudTrailEventSelectorsUpdate(conn *cloudtrail.CloudTrail, d *schema.ResourceData) error {
+	trail := d.Get("name").(string)
+
+	selectors := d.Get("event_selector").([]interface{})
+	var selectorObjects []*cloudtrail.EventSelector
+
+	if len(selectors) > 0 {
+		selectorObjects = make([]*cloudtrail.EventSelector, 0, len(selectors))
+
+		for i, s := range selectors {
+			selector := s.(map[string]interface{})
+			resources := d.Get(fmt.Sprintf("event_selector.%d.data_resources", i)).([]interface{})
+			resourceObjects := make([]*cloudtrail.DataResource, 0, len(resources))
+
+			for _, r := range resources {
+				resource := r.(map[string]interface{})
+				vs := resource["values"].([]interface{})
+				values := make([]*string, len(vs))
+
+				for i, v := range vs {
+					values[i] = aws.String(v.(string))
+				}
+
+				resourceObject := &cloudtrail.DataResource{
+					Type:   aws.String(resource["type"].(string)),
+					Values: values,
+				}
+
+				resourceObjects = append(resourceObjects, resourceObject)
+			}
+			selectorObject := &cloudtrail.EventSelector{
+				IncludeManagementEvents: aws.Bool(selector["include_management_events"].(bool)),
+				DataResources:           resourceObjects,
+				ReadWriteType:           aws.String(selector["read_write_type"].(string)),
+			}
+			selectorObjects = append(selectorObjects, selectorObject)
+		}
+	}
+
+	req := &cloudtrail.PutEventSelectorsInput{
+		TrailName:      aws.String(trail),
+		EventSelectors: selectorObjects,
+	}
+
+	_, err := conn.PutEventSelectors(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func cloudTrailGetLoggingStatus(conn *cloudtrail.CloudTrail, id *string) (bool, error) {
