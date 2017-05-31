@@ -55,9 +55,9 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 	vcdClient.Mutex.Lock()
 	defer vcdClient.Mutex.Unlock()
 	portString := getPortString(d.Get("port").(int))
-	trlateportString := portString // default
+	translatedPortString := portString // default
 	if d.Get("translated_port").(int) > 0 {
-		trlateportString = getPortString(d.Get("translated_port").(int))
+		translatedPortString = getPortString(d.Get("translated_port").(int))
 	}
 
 	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
@@ -76,7 +76,7 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 			d.Get("external_ip").(string),
 			portString,
 			d.Get("internal_ip").(string),
-			trlateportString)
+			translatedPortString)
 		if err != nil {
 			return resource.RetryableError(
 				fmt.Errorf("Error setting DNAT rules: %#v", err))
@@ -89,7 +89,7 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error completing tasks: %#v", err)
 	}
 
-	d.SetId(d.Get("external_ip").(string) + ":" + portString + " > " + d.Get("internal_ip").(string) + ":" + trlateportString)
+	d.SetId(d.Get("external_ip").(string) + ":" + portString + " > " + d.Get("internal_ip").(string) + ":" + translatedPortString)
 	return nil
 }
 
@@ -127,9 +127,9 @@ func resourceVcdDNATDelete(d *schema.ResourceData, meta interface{}) error {
 	vcdClient.Mutex.Lock()
 	defer vcdClient.Mutex.Unlock()
 	portString := getPortString(d.Get("port").(int))
-	trlateportString := portString // default
+	translatedPortString := portString // default
 	if d.Get("translated_port").(int) > 0 {
-		trlateportString = getPortString(d.Get("translated_port").(int))
+		translatedPortString = getPortString(d.Get("translated_port").(int))
 	}
 
 	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
@@ -142,7 +142,7 @@ func resourceVcdDNATDelete(d *schema.ResourceData, meta interface{}) error {
 			d.Get("external_ip").(string),
 			portString,
 			d.Get("internal_ip").(string),
-			trlateportString)
+			translatedPortString)
 		if err != nil {
 			return resource.RetryableError(
 				fmt.Errorf("Error setting DNAT rules: %#v", err))
