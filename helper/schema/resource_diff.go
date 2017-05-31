@@ -260,10 +260,6 @@ func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, b
 // sets). The original value from the state is used as the old value.
 //
 // This function is only allowed on computed attributes.
-//
-// It is an unsupported operation to set invalid values with this function -
-// doing so will taint any existing diff for this key and will remove it from
-// the catalog.
 func (d *ResourceDiff) SetNew(key string, value interface{}) error {
 	return d.SetDiff(key, d.get(strings.Split(key, "."), "state").Value, value, false)
 }
@@ -271,7 +267,7 @@ func (d *ResourceDiff) SetNew(key string, value interface{}) error {
 // SetNewComputed functions like SetNew, except that it blanks out a new value
 // and marks it as computed.
 //
-// This function is only allowed on computed keys.
+// This function is only allowed on computed attributes.
 func (d *ResourceDiff) SetNewComputed(key string) error {
 	return d.SetDiff(key, d.get(strings.Split(key, "."), "state").Value, nil, true)
 }
@@ -282,7 +278,7 @@ func (d *ResourceDiff) SetNewComputed(key string) error {
 // ClearAll to construct a compleletely new diff based off of provider logic
 // alone.
 //
-// This function is only allowed on computed keys.
+// This function is only allowed on computed attributes.
 func (d *ResourceDiff) SetDiff(key string, old, new interface{}, computed bool) error {
 	if !d.schema[key].Computed {
 		return fmt.Errorf("SetNew, SetNewComputed, and SetDiff are allowed on computed attributes only - %s is not one", key)
