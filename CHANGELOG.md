@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Data Source:** `aws_elastic_beanstalk_solution_stack` [GH-14944]
  * **New Data Source:** `aws_elasticache_cluster` [GH-14895]
  * **New Resource:** `aws_ssm_patch_baseline` [GH-14954]
  * **New Resource:** `aws_ssm_patch_group` [GH-14954]
