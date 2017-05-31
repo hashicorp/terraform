@@ -3,13 +3,13 @@ layout: "gitlab"
 page_title: "GitLab: gitlab_project"
 sidebar_current: "docs-gitlab-resource-project-x"
 description: |-
-  Creates and manages projects within Gitlab
+  Creates and manages projects within GitLab groups or within your user
 ---
 
 # gitlab\_project
 
 This resource allows you to create and manage projects within your
-GitLab organization.
+GitLab group or within your user.
 
 
 ## Example Usage
@@ -29,10 +29,10 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the project.
 
-* `description` - (Optional) A description of the project.
-
-* `namespace_id` - (Optional) The namespace to create this project in.
+* `namespace_id` - (Optional) The namespace (group or user) of the project. Defaults to your user.
   See [`gitlab_group`](group.html) for an example.
+
+* `description` - (Optional) A description of the project.
 
 * `default_branch` - (Optional) The default branch for the project.
 
