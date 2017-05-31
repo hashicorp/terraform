@@ -99,7 +99,7 @@ func (r *newValueReader) ReadField(address []string) (FieldReadResult, error) {
 //
 // The object functions similar to ResourceData, however most notably lacks
 // Set, SetPartial, and Partial, as it should be used to change diff values
-// only.  Most other frist-class ResourceData functions exist, namely Get,
+// only.  Most other first-class ResourceData functions exist, namely Get,
 // GetOk, HasChange, and GetChange exist.
 //
 // All functions in ResourceDiff, save for ForceNew, can only be used on
