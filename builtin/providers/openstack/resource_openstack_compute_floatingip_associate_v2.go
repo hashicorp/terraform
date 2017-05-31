@@ -148,6 +148,17 @@ func resourceComputeFloatingIPAssociateV2Read(d *schema.ResourceData, meta inter
 	d.Set("fixed_ip", fixedIP)
 	d.Set("region", GetRegion(d))
 
+	// check whether floatingIP or associated instance deleted
+	fip, err := floatingips.Get(computeClient, floatingIP).Extract()
+	if err != nil {
+		if CheckDeleted(d, err, "floating ip") == nil {
+			return nil
+		}
+	}
+	if fip.InstanceID == "" {
+		d.SetId("")
+	}
+
 	return nil
 }
 
