@@ -16,6 +16,7 @@ func dataSourceAwsElasticBeanstalkSolutionStack() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name_regex": {
 				Type:         schema.TypeString,
+				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateSolutionStackNameRegex,
 			},
