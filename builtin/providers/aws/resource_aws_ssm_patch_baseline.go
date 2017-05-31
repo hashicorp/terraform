@@ -269,18 +269,6 @@ func flattenAwsSsmPatchRuleGroup(group *ssm.PatchRuleGroup) []map[string]interfa
 	for _, rule := range group.PatchRules {
 		r := make(map[string]interface{})
 		r["approve_after_days"] = *rule.ApproveAfterDays
-
-		// filters := make([]map[string]interface{}, 0, len(rule.PatchFilterGroup.PatchFilters))
-
-		// for _, filter := range rule.PatchFilterGroup.PatchFilters {
-		// 	f := make(map[string]interface{})
-		// 	f["key"] = *filter.Key
-		// 	f["values"] = flattenStringList(filter.Values)
-
-		// 	filters = append(filters, f)
-		// }
-
-		// r["patch_filter"] = filters
 		r["patch_filter"] = flattenAwsSsmPatchFilterGroup(rule.PatchFilterGroup)
 		result = append(result, r)
 	}
