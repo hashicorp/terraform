@@ -262,9 +262,21 @@ func resourceVcdEdgeGatewayVpnRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error finding edge gateway: %#v", err)
 	}
 
-	fmt.Println(edgeGateway)
+	egsc := edgeGateway.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.GatewayIpsecVpnService
+	for _, t := range egsc.Tunnel {
+		d.Set("name", t.Name)
+		d.Set("description", t.Description)
+		d.Set("encryption_protocol", t.EncryptionProtocol)
+		d.Set("local_ip_address", t.LocalIPAddress)
+		d.Set("local_id", t.LocalID)
+		d.Set("mtu", t.Mtu)
+		d.Set("peer_ip_address", t.PeerIPAddress)
+		d.Set("peer_id", t.PeerID)
+		d.Set("shared_secret", t.SharedSecret)
+		d.Set("local_subnets", t.LocalSubnet)
+		d.Set("peer_subnets", t.PeerSubnet)
 
-	//d.Set("name", *edgeGateway.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.GatewayIpsecVpnService.Tunnel[0].Name)
+	}
 	// and all the others
 
 	return nil
