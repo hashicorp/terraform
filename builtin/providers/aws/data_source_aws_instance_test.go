@@ -29,6 +29,28 @@ func TestAccAWSInstanceDataSource_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstancesDataSource_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstancesDataSourceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"data.aws_instances.web-group.instances.0", "ami", "ami-4fccb37f"),
+					resource.TestCheckResourceAttr(
+						"data.aws_instances.web-group.instances.0", "instance_type", "m1.small"),
+					resource.TestCheckResourceAttr(
+						"data.aws_instances.web-group.instances.1", "tags.#", "1"),
+					resource.TestCheckResourceAttr(
+						"data.aws_instances.web-group.instances.1", "instance_type", "m1.large"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstanceDataSource_tags(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
@@ -269,7 +291,7 @@ func TestAccAWSInstanceDataSource_VPCSecurityGroups(t *testing.T) {
 // Lookup based on InstanceID
 const testAccInstanceDataSourceConfig = `
 resource "aws_instance" "web" {
-	# us-west-2
+  # us-west-2
   ami = "ami-4fccb37f"
   instance_type = "m1.small"
   tags {
@@ -285,11 +307,36 @@ data "aws_instance" "web-instance" {
 }
 `
 
+// Lookup based on InstanceID
+const testAccInstancesDataSourceConfig = `
+resource "aws_instance" "web1" {
+  # us-west-2
+  ami = "ami-4fccb37f"
+  instance_type = "m1.small"
+  tags {
+    Name = "HelloWorld1"
+  }
+}
+
+resource "aws_instance" "web2" {
+  # us-west-2
+  ami = "ami-4fccb37f"
+  instance_type = "m1.large"
+  tags {
+    Name = "HelloWorld2"
+  }
+}
+
+data "aws_instances" "web-group" {
+  instance_ids = ["${aws_instance.web1.id}", "${aws_instance.web2.id}"]
+}
+`
+
 // Use the tags attribute to filter
 func testAccInstanceDataSourceConfig_Tags(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_instance" "web" {
-	# us-west-2
+  # us-west-2
   ami = "ami-4fccb37f"
   instance_type = "m1.small"
   tags {
