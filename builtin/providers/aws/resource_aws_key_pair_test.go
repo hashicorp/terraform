@@ -38,9 +38,7 @@ func testSweepKeyPairs(region string) error {
 		},
 	})
 	if err != nil {
-		if resp != nil {
-			return fmt.Errorf("Error describing key pairs in Sweeper: %s", err)
-		}
+		return fmt.Errorf("Error describing key pairs in Sweeper: %s", err)
 	}
 
 	keyPairs := resp.KeyPairs
