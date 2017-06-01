@@ -4943,6 +4943,39 @@ func TestSchemaSet_ValidateMinItems(t *testing.T) {
 				fmt.Errorf("aliases: attribute supports 2 item as a minimum, config has 1 declared"),
 			},
 		},
+
+		"Readonly attribute is set by user": {
+			Schema: map[string]*Schema{
+				"readonly_att": &Schema{
+					Type:     TypeString,
+					ReadOnly: true,
+					Required: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"readonly_att": "user-set-val",
+			},
+
+			Err: true,
+			Errors: []error{
+				fmt.Errorf("\"readonly_att\": This field is readonly and cannot be set by users"),
+			},
+		},
+
+		"Readonly attribute with no config is OK": {
+			Schema: map[string]*Schema{
+				"readonly_att": &Schema{
+					Type:     TypeString,
+					ReadOnly: true,
+					Optional: true,
+				},
+			},
+
+			Config: nil,
+
+			Err: false,
+		},
 	}
 
 	for tn, tc := range cases {
