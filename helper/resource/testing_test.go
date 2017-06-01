@@ -2,6 +2,7 @@ package resource
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"regexp"
@@ -118,6 +119,17 @@ func TestTest(t *testing.T) {
 	if !mp.TestResetCalled {
 		t.Fatal("didn't call TestReset")
 	}
+}
+
+func TestTest_Main(t *testing.T) {
+	flag.Parse()
+	if *flagSweep == "" {
+		// Tests for the TestMain method used for Sweepers will panic without the -sweep
+		// flag specified. Mock the value for now
+		*flagSweep = "us-east-1"
+	}
+	TestMain(&testing.M{})
+	t.Fatalf("fall")
 }
 
 func TestTest_plan_only(t *testing.T) {
