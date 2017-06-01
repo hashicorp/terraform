@@ -633,7 +633,6 @@ func TestTest_Main(t *testing.T) {
 
 	cases := []struct {
 		Name            string
-		ShouldErr       bool
 		Sweepers        map[string]*Sweeper
 		ExpectedRunList []string
 		SweepRun        string
@@ -740,9 +739,9 @@ func TestTest_Main(t *testing.T) {
 
 			TestMain(&testing.M{})
 
-			// get list of tests ran from sweeperRan keys
+			// get list of tests ran from sweeperRunList keys
 			var keys []string
-			for k, _ := range sweeperRan {
+			for k, _ := range sweeperRunList {
 				keys = append(keys, k)
 			}
 

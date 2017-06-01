@@ -47,7 +47,7 @@ var sweeperFuncs map[string]*Sweeper
 
 // map of sweepers that have ran, and the success/fail status based on any error
 // raised
-var sweeperRan map[string]bool
+var sweeperRunList map[string]bool
 
 // type SweeperFunc is a signature for a function that acts as a sweeper. It
 // accepts a string for the region that the sweeper is to be ran in. This
@@ -85,46 +85,27 @@ func AddTestSweepers(name string, s *Sweeper) {
 	sweeperFuncs[name] = s
 }
 
-func filterSweepers(f string) []string {
-	sweepersFiltered := strings.Split(strings.ToLower(f), ",")
-	if len(sweepersFiltered) == 1 && sweepersFiltered[0] == "" {
-		return []string{}
-	}
-	return sweepersFiltered
-}
-
 func TestMain(m *testing.M) {
 	flag.Parse()
 	if *flagSweep != "" {
 		// parse flagSweep contents for regions to run
 		regions := strings.Split(*flagSweep, ",")
-		sweepersFiltered := filterSweepers(*flagSweepRun)
-		for _, region := range regions {
-			fmt.Printf("[DEBUG] Running Sweepers for region (%s):\n", region)
-			// reset sweeperRan for each region
-			sweeperRan = map[string]bool{}
 
-			for name, sweeper := range sweeperFuncs {
-				var match bool
-				if len(sweepersFiltered) > 0 {
-					for _, s := range sweepersFiltered {
-						if strings.Contains(strings.ToLower(name), s) {
-							match = true
-						}
-					}
-				} else {
-					log.Printf("[DEBUG] No specific sweeper input, running all")
-					match = true
-				}
-				if match {
-					if err := runSweeperWithRegion(region, sweeper); err != nil {
-						log.Fatalf("[ERR] error running (%s): %s", sweeper.Name, err)
-					}
+		// get list of filtered sweepers to run
+		sweepers := filterSweepers(*flagSweepRun, sweeperFuncs)
+		for _, region := range regions {
+			// reset sweeperRunList for each region
+			sweeperRunList = map[string]bool{}
+
+			fmt.Printf("[DEBUG] Running Sweepers for region (%s):\n", region)
+			for _, sweeper := range sweepers {
+				if err := runSweeperWithRegion(region, sweeper); err != nil {
+					log.Fatalf("[ERR] error running (%s): %s", sweeper.Name, err)
 				}
 			}
 
 			fmt.Printf("Sweeper Tests ran:\n")
-			for s, _ := range sweeperRan {
+			for s, _ := range sweeperRunList {
 				fmt.Printf("\t- %s\n", s)
 			}
 		}
@@ -133,6 +114,32 @@ func TestMain(m *testing.M) {
 	}
 }
 
+// filterSweepers takes a comma seperated strings listing the names of sweepers
+// to be ran, and returns a filtered set from the list of all of sweepers to
+// run based on the names given.
+func filterSweepers(f string, source map[string]*Sweeper) map[string]*Sweeper {
+	filterSlice := strings.Split(strings.ToLower(f), ",")
+	if len(filterSlice) == 1 && filterSlice[0] == "" {
+		// if the filter slice is a single element of "" then no sweeper list was
+		// given, so just return the full list
+		return source
+	}
+
+	sweepers := make(map[string]*Sweeper)
+	for name, sweeper := range source {
+		for _, s := range filterSlice {
+			if strings.Contains(strings.ToLower(name), s) {
+				sweepers[name] = sweeper
+			}
+		}
+	}
+	return sweepers
+}
+
+// runSweeperWithRegion recieves a sweeper and a region, and recursively calls
+// itself with that region for every dependency found for that sweeper. If there
+// are no dependencies, invoke the contained sweeper fun with the region, and
+// add the success/fail status to the sweeperRunList.
 func runSweeperWithRegion(region string, s *Sweeper) error {
 	for _, dep := range s.Dependencies {
 		if depSweeper, ok := sweeperFuncs[dep]; ok {
@@ -145,16 +152,16 @@ func runSweeperWithRegion(region string, s *Sweeper) error {
 		}
 	}
 
-	if _, ok := sweeperRan[s.Name]; ok {
+	if _, ok := sweeperRunList[s.Name]; ok {
 		log.Printf("[DEBUG] Sweeper (%s) already ran in region (%s)", s.Name, region)
 		return nil
 	}
 
 	runE := s.F(region)
 	if runE == nil {
-		sweeperRan[s.Name] = true
+		sweeperRunList[s.Name] = true
 	} else {
-		sweeperRan[s.Name] = false
+		sweeperRunList[s.Name] = false
 	}
 
 	return runE
