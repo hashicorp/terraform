@@ -2998,6 +2998,18 @@
 			"revisionTime": "2017-04-17T16:09:14Z"
 		},
 		{
+			"checksumSHA1": "WQ6c1L4nRjy0wLc7l/Tjip5kL/U=",
+			"path": "github.com/sky-uk/go-brocade-vtm",
+			"revision": "d38119b7bba3b22238f8cb7389ec4eb2fc22d0a3",
+			"revisionTime": "2017-05-31T13:00:30Z"
+		},
+		{
+			"checksumSHA1": "X6qFg4o+aNcKGnh4kpfnnm+MJBQ=",
+			"path": "github.com/sky-uk/go-brocade-vtm/api",
+			"revision": "d38119b7bba3b22238f8cb7389ec4eb2fc22d0a3",
+			"revisionTime": "2017-05-31T13:00:30Z"
+		},
+		{
 			"checksumSHA1": "8tEiK6vhVXuUbnWME5XNWLgvtSo=",
 			"comment": "v1.1-2-g5578a8c",
 			"path": "github.com/soniah/dnsmadeeasy",
@@ -5315,5 +5327,5 @@
 			"versionExact": "v1.6.1"
 		}
 	],
-	"rootPath": "github.com/hashicorp/terraform"
+	"rootPath": "github.com/sky-uk/terraform"
 }
