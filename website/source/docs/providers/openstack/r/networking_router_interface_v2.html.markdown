@@ -39,9 +39,9 @@ resource "openstack_networking_router_interface_v2" "router_interface_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 networking client.
+* `region` - (Optional) The region in which to obtain the V2 networking client.
     A networking client is needed to create a router. If omitted, the
-    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    `region` argument of the provider is used. Changing this creates a new
     router interface.
 
 * `router_id` - (Required) ID of the router this interface belongs to. Changing

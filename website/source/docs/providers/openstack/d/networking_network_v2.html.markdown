@@ -20,9 +20,9 @@ data "openstack_networking_network_v2" "network" {
 
 ## Argument Reference
 
-* `region` - (Required) The region in which to obtain the V2 Neutron client.
+* `region` - (Optional) The region in which to obtain the V2 Neutron client.
   A Neutron client is needed to retrieve networks ids. If omitted, the
-  `OS_REGION_NAME` environment variable is used.
+  `region` argument of the provider is used.
 
 * `network_id` - (Optional) The ID of the network.
 

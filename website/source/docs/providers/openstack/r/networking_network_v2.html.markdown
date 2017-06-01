@@ -63,9 +63,9 @@ resource "openstack_compute_instance_v2" "instance_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 Networking client.
+* `region` - (Optional) The region in which to obtain the V2 Networking client.
     A Networking client is needed to create a Neutron network. If omitted, the
-    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    `region` argument of the provider is used. Changing this creates a new
     network.
 
 * `name` - (Optional) The name of the network. Changing this updates the name of

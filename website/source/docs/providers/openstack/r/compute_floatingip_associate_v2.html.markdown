@@ -68,9 +68,9 @@ resource "openstack_compute_floatingip_associate_v2" "fip_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 Compute client.
+* `region` - (Optional) The region in which to obtain the V2 Compute client.
     Keypairs are associated with accounts, but a Compute client is needed to
-    create one. If omitted, the `OS_REGION_NAME` environment variable is used.
+    create one. If omitted, the `region` argument of the provider is used.
     Changing this creates a new floatingip_associate.
 
 * `floating_ip` - (Required) The floating IP to associate.

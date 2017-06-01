@@ -29,9 +29,9 @@ resource "openstack_networking_port_v2" "port_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 networking client.
+* `region` - (Optional) The region in which to obtain the V2 networking client.
     A networking client is needed to create a port. If omitted, the
-    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    `region` argument of the provider is used. Changing this creates a new
     port.
 
 * `name` - (Optional) A unique name for the port. Changing this

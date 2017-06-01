@@ -34,9 +34,9 @@ resource "openstack_compute_volume_attach_v2" "va_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 Compute client.
+* `region` - (Optional) The region in which to obtain the V2 Compute client.
     A Compute client is needed to create a volume attachment. If omitted, the
-    `OS_REGION_NAME` environment variable is used. Changing this creates a
+    `region` argument of the provider is used. Changing this creates a
     new volume attachment.
 
 * `instance_id` - (Required) The ID of the Instance to attach the Volume to.

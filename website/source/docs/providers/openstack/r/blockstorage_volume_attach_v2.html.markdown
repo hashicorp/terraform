@@ -45,10 +45,10 @@ resource "openstack_blockstorage_volume_attach_v2" "va_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 Block Storage
+* `region` - (Optional) The region in which to obtain the V2 Block Storage
     client. A Block Storage client is needed to create a volume attachment.
-    If omitted, the `OS_REGION_NAME` environment variable is used. Changing
-    this creates a new volume attachment.
+    If omitted, the `region` argument of the provider is used. Changing this
+    creates a new volume attachment.
 
 * `attach_mode` - (Optional) Specify whether to attach the volume as Read-Only
   (`ro`) or Read-Write (`rw`). Only values of `ro` and `rw` are accepted.

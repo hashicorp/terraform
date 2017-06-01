@@ -25,10 +25,10 @@ resource "openstack_networking_floatingip_v2" "floatip_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 Networking client.
+* `region` - (Optional) The region in which to obtain the V2 Networking client.
     A Networking client is needed to create a floating IP that can be used with
     another networking resource, such as a load balancer. If omitted, the
-    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    `region` argument of the provider is used. Changing this creates a new
     floating IP (which may or may not have a different address).
 
 * `pool` - (Required) The name of the pool from which to obtain the floating

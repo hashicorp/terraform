@@ -49,9 +49,9 @@ resource "openstack_fw_firewall_v1" "firewall_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the v1 networking client.
+* `region` - (Optional) The region in which to obtain the v1 networking client.
     A networking client is needed to create a firewall. If omitted, the
-    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    `region` argument of the provider is used. Changing this creates a new
     firewall.
 
 * `policy_id` - (Required) The policy resource id for the firewall. Changing

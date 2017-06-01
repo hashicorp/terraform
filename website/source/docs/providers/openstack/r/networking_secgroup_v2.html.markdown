@@ -25,9 +25,9 @@ resource "openstack_networking_secgroup_v2" "secgroup_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 networking client.
+* `region` - (Optional) The region in which to obtain the V2 networking client.
     A networking client is needed to create a port. If omitted, the
-    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    `region` argument of the provider is used. Changing this creates a new
     security group.
 
 * `name` - (Required) A unique name for the security group.

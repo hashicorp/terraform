@@ -28,9 +28,9 @@ resource "openstack_dns_zone_v2" "example.com" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 Compute client.
+* `region` - (Optional) The region in which to obtain the V2 Compute client.
     Keypairs are associated with accounts, but a Compute client is needed to
-    create one. If omitted, the `OS_REGION_NAME` environment variable is used.
+    create one. If omitted, the `region` argument of the provider is used.
     Changing this creates a new DNS zone.
 
 * `name` - (Required) The name of the zone. Note the `.` at the end of the name.

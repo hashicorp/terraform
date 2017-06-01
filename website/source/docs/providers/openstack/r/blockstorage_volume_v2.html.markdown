@@ -25,8 +25,8 @@ resource "openstack_blockstorage_volume_v2" "volume_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to create the volume. If
-    omitted, the `OS_REGION_NAME` environment variable is used. Changing this
+* `region` - (Optional) The region in which to create the volume. If
+    omitted, the `region` argument of the provider is used. Changing this
     creates a new volume.
 
 * `size` - (Required) The size of the volume to create (in gigabytes). Changing

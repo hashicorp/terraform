@@ -23,6 +23,7 @@ provider "openstack" {
   tenant_name = "admin"
   password    = "pwd"
   auth_url    = "http://myauthurl:5000/v2.0"
+  region      = "RegionOne"
 }
 
 # Create a web server
@@ -37,6 +38,9 @@ The following arguments are supported:
 
 * `auth_url` - (Required) The Identity authentication URL. If omitted, the
   `OS_AUTH_URL` environment variable is used.
+
+* `region` - (Optional) The region of the OpenStack cloud to use. If omitted,
+  the `OS_REGION_NAME` environment variable is used.
 
 * `user_name` - (Optional) The Username to login with. If omitted, the
   `OS_USERNAME` environment variable is used.

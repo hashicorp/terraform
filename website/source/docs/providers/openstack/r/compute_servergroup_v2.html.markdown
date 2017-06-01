@@ -23,8 +23,8 @@ resource "openstack_compute_servergroup_v2" "test-sg" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 Compute client.
-    If omitted, the `OS_REGION_NAME` environment variable is used. Changing
+* `region` - (Optional) The region in which to obtain the V2 Compute client.
+    If omitted, the `region` argument of the provider is used. Changing
     this creates a new server group.
 
 * `name` - (Required) A unique name for the server group. Changing this creates
