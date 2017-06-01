@@ -52,13 +52,15 @@ func NewEndpointsClientWithBaseURI(baseURI string, subscriptionID string) Endpoi
 func (client EndpointsClient) CreateOrUpdate(resourceGroupName string, profileName string, endpointType string, endpointName string, parameters Endpoint) (result Endpoint, err error) {
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, profileName, endpointType, endpointName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "CreateOrUpdate", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "CreateOrUpdate", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CreateOrUpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "CreateOrUpdate", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "CreateOrUpdate", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CreateOrUpdateResponder(resp)
@@ -79,8 +81,9 @@ func (client EndpointsClient) CreateOrUpdatePreparer(resourceGroupName string, p
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -122,13 +125,15 @@ func (client EndpointsClient) CreateOrUpdateResponder(resp *http.Response) (resu
 func (client EndpointsClient) Delete(resourceGroupName string, profileName string, endpointType string, endpointName string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, profileName, endpointType, endpointName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Delete", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Delete", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.DeleteSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Delete", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Delete", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.DeleteResponder(resp)
@@ -149,8 +154,9 @@ func (client EndpointsClient) DeletePreparer(resourceGroupName string, profileNa
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -188,13 +194,15 @@ func (client EndpointsClient) DeleteResponder(resp *http.Response) (result autor
 func (client EndpointsClient) Get(resourceGroupName string, profileName string, endpointType string, endpointName string) (result Endpoint, err error) {
 	req, err := client.GetPreparer(resourceGroupName, profileName, endpointType, endpointName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -215,8 +223,9 @@ func (client EndpointsClient) GetPreparer(resourceGroupName string, profileName 
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -257,13 +266,15 @@ func (client EndpointsClient) GetResponder(resp *http.Response) (result Endpoint
 func (client EndpointsClient) Update(resourceGroupName string, profileName string, endpointType string, endpointName string, parameters Endpoint) (result Endpoint, err error) {
 	req, err := client.UpdatePreparer(resourceGroupName, profileName, endpointType, endpointName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Update", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Update", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.UpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Update", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.EndpointsClient", "Update", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.UpdateResponder(resp)
@@ -284,8 +295,9 @@ func (client EndpointsClient) UpdatePreparer(resourceGroupName string, profileNa
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(

@@ -101,7 +101,8 @@ func resourceArmServiceBusNamespaceCreate(d *schema.ResourceData, meta interface
 		Tags: expandTags(tags),
 	}
 
-	_, err := namespaceClient.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
+	_, error := namespaceClient.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -170,7 +171,9 @@ func resourceArmServiceBusNamespaceDelete(d *schema.ResourceData, meta interface
 	resGroup := id.ResourceGroup
 	name := id.Path["namespaces"]
 
-	resp, err := namespaceClient.Delete(resGroup, name, make(chan struct{}))
+	deleteResp, error := namespaceClient.Delete(resGroup, name, make(chan struct{}))
+	resp := <-deleteResp
+	err = <-error
 
 	if resp.StatusCode != http.StatusNotFound {
 		return fmt.Errorf("Error issuing Azure ARM delete request of ServiceBus Namespace'%s': %+v", name, err)

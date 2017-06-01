@@ -104,7 +104,9 @@ func testCheckAzureRMLocalNetworkGatewayDisappears(name string) resource.TestChe
 		// and finally, check that it exists on Azure:
 		lnetClient := testAccProvider.Meta().(*ArmClient).localNetConnClient
 
-		resp, err := lnetClient.Delete(resGrp, localNetName, make(chan struct{}))
+		deleteResp, error := lnetClient.Delete(resGrp, localNetName, make(chan struct{}))
+		resp := <-deleteResp
+		err = <-error
 		if err != nil {
 			if resp.StatusCode == http.StatusNotFound {
 				return fmt.Errorf("Local network gateway '%s' (resource group '%s') does not exist on Azure.", localNetName, resGrp)
