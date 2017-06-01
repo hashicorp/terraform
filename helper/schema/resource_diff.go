@@ -215,8 +215,8 @@ func (d *ResourceDiff) UpdatedKeys() []string {
 // Note that this does not wipe an override. This function is only allowed on
 // computed keys.
 func (d *ResourceDiff) Clear(key string) error {
-	if !d.schema[key].Computed {
-		return fmt.Errorf("Clear is allowed on computed attributes only - %s is not one", key)
+	if err := d.checkKey(key, "Clear"); err != nil {
+		return err
 	}
 
 	return d.clear(key)
@@ -256,9 +256,10 @@ func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, b
 //
 // This function is only allowed on computed attributes.
 func (d *ResourceDiff) SetNew(key string, value interface{}) error {
-	if !d.schema[key].Computed {
-		return fmt.Errorf("SetNew only operates on computed keys - %s is not one", key)
+	if err := d.checkKey(key, "SetNew"); err != nil {
+		return err
 	}
+
 	return d.setDiff(key, d.get(strings.Split(key, "."), "state").Value, value, false)
 }
 
@@ -267,9 +268,10 @@ func (d *ResourceDiff) SetNew(key string, value interface{}) error {
 //
 // This function is only allowed on computed attributes.
 func (d *ResourceDiff) SetNewComputed(key string) error {
-	if !d.schema[key].Computed {
-		return fmt.Errorf("SetNewComputed only operates on computed keys - %s is not one", key)
+	if err := d.checkKey(key, "SetNewComputed"); err != nil {
+		return err
 	}
+
 	return d.setDiff(key, d.get(strings.Split(key, "."), "state").Value, nil, true)
 }
 
@@ -295,7 +297,7 @@ func (d *ResourceDiff) setDiff(key string, old, new interface{}, computed bool) 
 // specific ResourceDiff instance.
 func (d *ResourceDiff) ForceNew(key string) error {
 	if !d.HasChange(key) {
-		return fmt.Errorf("ResourceDiff.ForceNew: No changes for %s", key)
+		return fmt.Errorf("ForceNew: No changes for %s", key)
 	}
 
 	old, new := d.GetChange(key)
@@ -443,4 +445,16 @@ func childAddrOf(child, parent string) bool {
 		return false
 	}
 	return reflect.DeepEqual(ps, cs[:len(ps)])
+}
+
+// checkKey checks the key to make sure it exists and is computed.
+func (d *ResourceDiff) checkKey(key, caller string) error {
+	s, ok := d.schema[key]
+	if !ok {
+		return fmt.Errorf("%s: invalid key: %s", caller, key)
+	}
+	if !s.Computed {
+		return fmt.Errorf("%s only operates on computed keys - %s is not one", caller, key)
+	}
+	return nil
 }

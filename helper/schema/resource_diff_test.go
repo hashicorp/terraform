@@ -520,6 +520,34 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			NewValue:      "qux",
 			ExpectedError: true,
 		},
+		resourceDiffTestCase{
+			Name: "bad key, should error",
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeString,
+					Required: true,
+				},
+			},
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"foo": "bar",
+				},
+			},
+			Config: testConfig(t, map[string]interface{}{
+				"foo": "baz",
+			}),
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo": &terraform.ResourceAttrDiff{
+						Old: "bar",
+						New: "baz",
+					},
+				},
+			},
+			Key:           "bad",
+			NewValue:      "qux",
+			ExpectedError: true,
+		},
 	}
 }
 
