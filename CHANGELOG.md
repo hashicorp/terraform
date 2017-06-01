@@ -23,6 +23,7 @@ IMPROVEMENTS:
 * provider/openstack: Add support provider networks [GH-10265]
 * provider/openstack: Allow numerical protocols in security group rules [GH-14917]
 * provider/openstack: Sort request/response headers in debug output [GH-14956]
+* provider/openstack: Add support for FWaaS routerinsertion extension [GH-12589]
 * provisioner/chef: Use `helpers.shema.Provisoner` in Chef provisioner V2 [GH-14681]
 
 BUG FIXES:
