@@ -141,8 +141,14 @@ func resourceArmLocalNetworkGatewayDelete(d *schema.ResourceData, meta interface
 	name := id.Path["localNetworkGateways"]
 	resGroup := id.ResourceGroup
 
-	_, error := lnetClient.Delete(resGroup, name, make(chan struct{}))
+	deleteResp, error := lnetClient.Delete(resGroup, name, make(chan struct{}))
+	resp := <-deleteResp
 	err = <-error
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM delete request of local network gateway '%s': %s", name, err)
 	}

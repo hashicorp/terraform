@@ -1018,7 +1018,7 @@ resource "azurerm_virtual_machine" "test" {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
-        disk_size_gb = "10"
+        disk_size_gb = "50"
         managed_disk_type = "Standard_LRS"
     }
 
@@ -1089,7 +1089,7 @@ resource "azurerm_virtual_machine" "test" {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
-        disk_size_gb = "10"
+        disk_size_gb = "50"
     }
 
     os_profile {
@@ -1168,7 +1168,7 @@ resource "azurerm_virtual_machine" "test" {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
-        disk_size_gb = "10"
+        disk_size_gb = "50"
         managed_disk_type = "Standard_LRS"
     }
 

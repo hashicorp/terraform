@@ -45,8 +45,9 @@ func resourceArmContainerRegistry() *schema.Resource {
 
 			"sku": {
 				Type:             schema.TypeString,
-				Required:         true,
+				Optional:         true,
 				ForceNew:         true,
+				Default:          string(containerregistry.Basic),
 				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(containerregistry.Basic),
