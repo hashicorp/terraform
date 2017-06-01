@@ -209,8 +209,8 @@ resource "azurerm_virtual_network" "test" {
     }
 
     tags {
-	environment = "Production"
-	cost_center = "MSFT"
+		environment = "Production"
+		cost_center = "MSFT"
     }
 }
 `
@@ -233,7 +233,7 @@ resource "azurerm_virtual_network" "test" {
     }
 
     tags {
-	environment = "staging"
+		environment = "staging"
     }
 }
 `
