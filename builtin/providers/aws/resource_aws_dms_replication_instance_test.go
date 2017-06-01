@@ -139,6 +139,10 @@ resource "aws_dms_replication_instance" "dms_replication_instance" {
 		Update = "to-update"
 		Remove = "to-remove"
 	}
+
+	timeouts {
+		create = "40m"
+	}
 }
 `, randId)
 }

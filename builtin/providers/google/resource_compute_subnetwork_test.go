@@ -102,4 +102,12 @@ resource "google_compute_subnetwork" "network-ref-by-name" {
 	network = "${google_compute_network.custom-test.name}"
 }
 
-`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
+resource "google_compute_subnetwork" "network-with-private-google-access" {
+	name = "subnetwork-test-%s"
+	ip_cidr_range = "10.2.0.0/16"
+	region = "us-central1"
+	network = "${google_compute_network.custom-test.self_link}"
+	private_ip_google_access = true
+}
+
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

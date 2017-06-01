@@ -50,9 +50,9 @@ import (
 	ns1provider "github.com/hashicorp/terraform/builtin/providers/ns1"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
 	oneandoneprovider "github.com/hashicorp/terraform/builtin/providers/oneandone"
-	opcprovider "github.com/hashicorp/terraform/builtin/providers/opc"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
 	opsgenieprovider "github.com/hashicorp/terraform/builtin/providers/opsgenie"
+	ovhprovider "github.com/hashicorp/terraform/builtin/providers/ovh"
 	packetprovider "github.com/hashicorp/terraform/builtin/providers/packet"
 	pagerdutyprovider "github.com/hashicorp/terraform/builtin/providers/pagerduty"
 	postgresqlprovider "github.com/hashicorp/terraform/builtin/providers/postgresql"
@@ -75,6 +75,7 @@ import (
 	vaultprovider "github.com/hashicorp/terraform/builtin/providers/vault"
 	vcdprovider "github.com/hashicorp/terraform/builtin/providers/vcd"
 	vsphereprovider "github.com/hashicorp/terraform/builtin/providers/vsphere"
+	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
 	localexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
 	remoteexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
@@ -82,8 +83,8 @@ import (
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
 
-	// Legacy, will remove once it conforms with new structure
-	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
+	//New Provider Builds
+	opcprovider "github.com/hashicorp/terraform-provider-opc/opc"
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
@@ -131,9 +132,9 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"ns1":          ns1provider.Provider,
 	"null":         nullprovider.Provider,
 	"oneandone":    oneandoneprovider.Provider,
-	"opc":          opcprovider.Provider,
 	"openstack":    openstackprovider.Provider,
 	"opsgenie":     opsgenieprovider.Provider,
+	"ovh":          ovhprovider.Provider,
 	"packet":       packetprovider.Provider,
 	"pagerduty":    pagerdutyprovider.Provider,
 	"postgresql":   postgresqlprovider.Provider,
@@ -159,13 +160,13 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 }
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
+	"chef":        chefprovisioner.Provisioner,
 	"file":        fileprovisioner.Provisioner,
 	"local-exec":  localexecprovisioner.Provisioner,
 	"remote-exec": remoteexecprovisioner.Provisioner,
 }
 
 func init() {
-	// Legacy provisioners that don't match our heuristics for auto-finding
-	// built-in provisioners.
-	InternalProvisioners["chef"] = func() terraform.ResourceProvisioner { return new(chefprovisioner.ResourceProvisioner) }
+	// New Provider Layouts
+	InternalProviders["opc"] = func() terraform.ResourceProvider { return opcprovider.Provider() }
 }

@@ -35,6 +35,7 @@ includes all calls to the following services:
 - [x] Namespaces
 - [x] Settings
 - [x] Pipelines
+- [x] Version
 
 ## Usage
 

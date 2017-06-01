@@ -122,7 +122,7 @@ func resourceHerokuCertDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceHerokuSSLCertRetrieve(app string, id string, client *heroku.Service) (*heroku.SSLEndpointInfoResult, error) {
+func resourceHerokuSSLCertRetrieve(app string, id string, client *heroku.Service) (*heroku.SSLEndpoint, error) {
 	addon, err := client.SSLEndpointInfo(context.TODO(), app, id)
 
 	if err != nil {

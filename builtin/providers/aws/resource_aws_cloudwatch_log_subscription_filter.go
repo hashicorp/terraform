@@ -57,7 +57,7 @@ func resourceAwsCloudwatchLogSubscriptionFilterCreate(d *schema.ResourceData, me
 	params := getAwsCloudWatchLogsSubscriptionFilterInput(d)
 	log.Printf("[DEBUG] Creating SubscriptionFilter %#v", params)
 
-	return resource.Retry(3*time.Minute, func() *resource.RetryError {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.PutSubscriptionFilter(&params)
 
 		if err == nil {
@@ -73,6 +73,9 @@ func resourceAwsCloudwatchLogSubscriptionFilterCreate(d *schema.ResourceData, me
 		if awsErr.Code() == "InvalidParameterException" {
 			log.Printf("[DEBUG] Caught message: %q, code: %q: Retrying", awsErr.Message(), awsErr.Code())
 			if strings.Contains(awsErr.Message(), "Could not deliver test message to specified") {
+				return resource.RetryableError(err)
+			}
+			if strings.Contains(awsErr.Message(), "Could not execute the lambda function") {
 				return resource.RetryableError(err)
 			}
 			resource.NonRetryableError(err)

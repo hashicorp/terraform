@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/api/resource"
-	apiValidation "k8s.io/kubernetes/pkg/api/validation"
-	utilValidation "k8s.io/kubernetes/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/api/resource"
+	apiValidation "k8s.io/apimachinery/pkg/api/validation"
+	utilValidation "k8s.io/apimachinery/pkg/util/validation"
 )
 
 func validateAnnotations(value interface{}, key string) (ws []string, es []error) {

@@ -111,6 +111,7 @@ To make a resource importable, please see the
 ### Azure (Resource Manager)
 
 * azurerm_availability_set
+* azurerm_express_route_circuit
 * azurerm_dns_zone
 * azurerm_local_network_gateway
 * azurerm_network_security_group
@@ -152,6 +153,7 @@ To make a resource importable, please see the
 * google_compute_target_pool
 * google_dns_managed_zone
 * google_project
+* google_sql_user
 
 ### OpenStack
 

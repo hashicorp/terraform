@@ -182,10 +182,10 @@ resource "gitlab_project" "foo" {
   # with no billing
   visibility_level = "public"
 
-	issues_enabled = false
-	merge_requests_enabled = false
-	wiki_enabled = false
-	snippets_enabled = false
+  issues_enabled = false
+  merge_requests_enabled = false
+  wiki_enabled = false
+  snippets_enabled = false
 }
 	`, rInt)
 }

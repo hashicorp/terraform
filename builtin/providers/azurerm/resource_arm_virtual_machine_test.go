@@ -6,12 +6,13 @@ import (
 	"strings"
 	"testing"
 
+	"regexp"
+
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/disk"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"regexp"
 )
 
 func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {

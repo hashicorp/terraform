@@ -205,7 +205,7 @@ func resourceAwsVpnGatewayAttach(d *schema.ResourceData, meta interface{}) error
 		Pending: []string{"detached", "attaching"},
 		Target:  []string{"attached"},
 		Refresh: vpnGatewayAttachStateRefreshFunc(conn, d.Id(), "available"),
-		Timeout: 5 * time.Minute,
+		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
@@ -266,7 +266,7 @@ func resourceAwsVpnGatewayDetach(d *schema.ResourceData, meta interface{}) error
 		Pending: []string{"attached", "detaching", "available"},
 		Target:  []string{"detached"},
 		Refresh: vpnGatewayAttachStateRefreshFunc(conn, d.Id(), "detached"),
-		Timeout: 5 * time.Minute,
+		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(

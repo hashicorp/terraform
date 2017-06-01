@@ -32,6 +32,12 @@ func resourceAwsInstance() *schema.Resource {
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsInstanceMigrateState,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"ami": {
 				Type:     schema.TypeString,
@@ -408,6 +414,8 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		ImageId:               instanceOpts.ImageID,
 		InstanceInitiatedShutdownBehavior: instanceOpts.InstanceInitiatedShutdownBehavior,
 		InstanceType:                      instanceOpts.InstanceType,
+		Ipv6AddressCount:                  instanceOpts.Ipv6AddressCount,
+		Ipv6Addresses:                     instanceOpts.Ipv6Addresses,
 		KeyName:                           instanceOpts.KeyName,
 		MaxCount:                          aws.Int64(int64(1)),
 		MinCount:                          aws.Int64(int64(1)),
@@ -420,28 +428,11 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		UserData:                          instanceOpts.UserData64,
 	}
 
-	ipv6Count, ipv6CountOk := d.GetOk("ipv6_address_count")
-	ipv6Address, ipv6AddressOk := d.GetOk("ipv6_addresses")
+	_, ipv6CountOk := d.GetOk("ipv6_address_count")
+	_, ipv6AddressOk := d.GetOk("ipv6_addresses")
 
 	if ipv6AddressOk && ipv6CountOk {
 		return fmt.Errorf("Only 1 of `ipv6_address_count` or `ipv6_addresses` can be specified")
-	}
-
-	if ipv6CountOk {
-		runOpts.Ipv6AddressCount = aws.Int64(int64(ipv6Count.(int)))
-	}
-
-	if ipv6AddressOk {
-		ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(ipv6Address.([]interface{})))
-		for _, address := range ipv6Address.([]interface{}) {
-			ipv6Address := &ec2.InstanceIpv6Address{
-				Ipv6Address: aws.String(address.(string)),
-			}
-
-			ipv6Addresses = append(ipv6Addresses, ipv6Address)
-		}
-
-		runOpts.Ipv6Addresses = ipv6Addresses
 	}
 
 	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
@@ -523,8 +514,8 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     []string{"running"},
-		Refresh:    InstanceStateRefreshFunc(conn, *instance.InstanceId),
-		Timeout:    10 * time.Minute,
+		Refresh:    InstanceStateRefreshFunc(conn, *instance.InstanceId, "terminated"),
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -649,12 +640,23 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		// Set primary network interface details
-		d.Set("subnet_id", primaryNetworkInterface.SubnetId)
-		d.Set("network_interface_id", primaryNetworkInterface.NetworkInterfaceId) // TODO: Deprecate me v0.10.0
-		d.Set("primary_network_interface_id", primaryNetworkInterface.NetworkInterfaceId)
+		// If an instance is shutting down, network interfaces are detached, and attributes may be nil,
+		// need to protect against nil pointer dereferences
+		if primaryNetworkInterface.SubnetId != nil {
+			d.Set("subnet_id", primaryNetworkInterface.SubnetId)
+		}
+		if primaryNetworkInterface.NetworkInterfaceId != nil {
+			d.Set("network_interface_id", primaryNetworkInterface.NetworkInterfaceId) // TODO: Deprecate me v0.10.0
+			d.Set("primary_network_interface_id", primaryNetworkInterface.NetworkInterfaceId)
+		}
+		if primaryNetworkInterface.Ipv6Addresses != nil {
+			d.Set("ipv6_address_count", len(primaryNetworkInterface.Ipv6Addresses))
+		}
+		if primaryNetworkInterface.SourceDestCheck != nil {
+			d.Set("source_dest_check", primaryNetworkInterface.SourceDestCheck)
+		}
+
 		d.Set("associate_public_ip_address", primaryNetworkInterface.Association != nil)
-		d.Set("ipv6_address_count", len(primaryNetworkInterface.Ipv6Addresses))
-		d.Set("source_dest_check", *primaryNetworkInterface.SourceDestCheck)
 
 		for _, address := range primaryNetworkInterface.Ipv6Addresses {
 			ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
@@ -732,7 +734,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
 
 	if d.HasChange("tags") {
-		if !d.IsNewResource() || !restricted {
+		if !d.IsNewResource() || restricted {
 			if err := setTags(conn, d); err != nil {
 				return err
 			} else {
@@ -887,8 +889,8 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 			Target:     []string{"stopped"},
-			Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
-			Timeout:    10 * time.Minute,
+			Refresh:    InstanceStateRefreshFunc(conn, d.Id(), ""),
+			Timeout:    d.Timeout(schema.TimeoutUpdate),
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}
@@ -918,8 +920,8 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		stateConf = &resource.StateChangeConf{
 			Pending:    []string{"pending", "stopped"},
 			Target:     []string{"running"},
-			Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
-			Timeout:    10 * time.Minute,
+			Refresh:    InstanceStateRefreshFunc(conn, d.Id(), "terminated"),
+			Timeout:    d.Timeout(schema.TimeoutUpdate),
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}
@@ -986,7 +988,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	if err := awsTerminateInstance(conn, d.Id()); err != nil {
+	if err := awsTerminateInstance(conn, d.Id(), d); err != nil {
 		return err
 	}
 
@@ -996,7 +998,7 @@ func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 
 // InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // an EC2 instance.
-func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRefreshFunc {
+func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID, failState string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 			InstanceIds: []*string{aws.String(instanceID)},
@@ -1018,8 +1020,27 @@ func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRe
 		}
 
 		i := resp.Reservations[0].Instances[0]
-		return i, *i.State.Name, nil
+		state := *i.State.Name
+
+		if state == failState {
+			return i, state, fmt.Errorf("Failed to reach target state. Reason: %s",
+				stringifyStateReason(i.StateReason))
+
+		}
+
+		return i, state, nil
 	}
+}
+
+func stringifyStateReason(sr *ec2.StateReason) string {
+	if sr.Message != nil {
+		return *sr.Message
+	}
+	if sr.Code != nil {
+		return *sr.Code
+	}
+
+	return sr.String()
 }
 
 func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.EC2) error {
@@ -1200,6 +1221,23 @@ func buildNetworkInterfaceOpts(d *schema.ResourceData, groups []*string, nInterf
 
 		if v, ok := d.GetOk("private_ip"); ok {
 			ni.PrivateIpAddress = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("ipv6_address_count"); ok {
+			ni.Ipv6AddressCount = aws.Int64(int64(v.(int)))
+		}
+
+		if v, ok := d.GetOk("ipv6_addresses"); ok {
+			ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(v.([]interface{})))
+			for _, address := range v.([]interface{}) {
+				ipv6Address := &ec2.InstanceIpv6Address{
+					Ipv6Address: aws.String(address.(string)),
+				}
+
+				ipv6Addresses = append(ipv6Addresses, ipv6Address)
+			}
+
+			ni.Ipv6Addresses = ipv6Addresses
 		}
 
 		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
@@ -1436,6 +1474,8 @@ type awsInstanceOpts struct {
 	ImageID                           *string
 	InstanceInitiatedShutdownBehavior *string
 	InstanceType                      *string
+	Ipv6AddressCount                  *int64
+	Ipv6Addresses                     []*ec2.InstanceIpv6Address
 	KeyName                           *string
 	NetworkInterfaces                 []*ec2.InstanceNetworkInterfaceSpecification
 	Placement                         *ec2.Placement
@@ -1533,6 +1573,23 @@ func buildAwsInstanceOpts(
 			opts.SecurityGroups = groups
 		}
 
+		if v, ok := d.GetOk("ipv6_address_count"); ok {
+			opts.Ipv6AddressCount = aws.Int64(int64(v.(int)))
+		}
+
+		if v, ok := d.GetOk("ipv6_addresses"); ok {
+			ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(v.([]interface{})))
+			for _, address := range v.([]interface{}) {
+				ipv6Address := &ec2.InstanceIpv6Address{
+					Ipv6Address: aws.String(address.(string)),
+				}
+
+				ipv6Addresses = append(ipv6Addresses, ipv6Address)
+			}
+
+			opts.Ipv6Addresses = ipv6Addresses
+		}
+
 		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
 			for _, v := range v.List() {
 				opts.SecurityGroupIDs = append(opts.SecurityGroupIDs, aws.String(v.(string)))
@@ -1554,7 +1611,7 @@ func buildAwsInstanceOpts(
 	return opts, nil
 }
 
-func awsTerminateInstance(conn *ec2.EC2, id string) error {
+func awsTerminateInstance(conn *ec2.EC2, id string, d *schema.ResourceData) error {
 	log.Printf("[INFO] Terminating instance: %s", id)
 	req := &ec2.TerminateInstancesInput{
 		InstanceIds: []*string{aws.String(id)},
@@ -1568,8 +1625,8 @@ func awsTerminateInstance(conn *ec2.EC2, id string) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 		Target:     []string{"terminated"},
-		Refresh:    InstanceStateRefreshFunc(conn, id),
-		Timeout:    10 * time.Minute,
+		Refresh:    InstanceStateRefreshFunc(conn, id, ""),
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

@@ -27,6 +27,29 @@ func TestAccDockerContainer_basic(t *testing.T) {
 	})
 }
 
+func TestAccDockerContainerPath_validation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{Value: "/var/log", ErrCount: 0},
+		{Value: "/tmp", ErrCount: 0},
+		{Value: "C:\\Windows\\System32", ErrCount: 0},
+		{Value: "C:\\Program Files\\MSBuild", ErrCount: 0},
+		{Value: "test", ErrCount: 1},
+		{Value: "C:Test", ErrCount: 1},
+		{Value: "", ErrCount: 1},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateDockerContainerPath(tc.Value, "docker_container")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the Docker Container Path to trigger a validation error")
+		}
+	}
+}
+
 func TestAccDockerContainer_volume(t *testing.T) {
 	var c dc.Container
 
@@ -178,6 +201,10 @@ func TestAccDockerContainer_customized(t *testing.T) {
 
 		if c.HostConfig.ExtraHosts[1] != "testhost:10.0.1.0" {
 			return fmt.Errorf("Container has incorrect extra host string: %q", c.HostConfig.ExtraHosts[1])
+		}
+
+		if _, ok := c.NetworkSettings.Networks["test"]; !ok {
+			return fmt.Errorf("Container is not connected to the right user defined network: test")
 		}
 
 		return nil
@@ -347,6 +374,9 @@ resource "docker_container" "foo" {
 	}
 	network_mode = "bridge"
 
+	networks = ["${docker_network.test_network.name}"]
+	network_alias = ["tftest"]
+
 	host {
 		host = "testhost"
 		ip = "10.0.1.0"
@@ -356,6 +386,10 @@ resource "docker_container" "foo" {
 		host = "testhost2"
 		ip = "10.0.2.0"
 	}
+}
+
+resource "docker_network" "test_network" {
+  name = "test"
 }
 `
 

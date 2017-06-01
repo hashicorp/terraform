@@ -19,6 +19,9 @@ func resourceStorageBucket() *schema.Resource {
 		Read:   resourceStorageBucketRead,
 		Update: resourceStorageBucketUpdate,
 		Delete: resourceStorageBucketDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceStorageBucketStateImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -86,6 +89,40 @@ func resourceStorageBucket() *schema.Resource {
 					},
 				},
 			},
+
+			"cors": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"origin": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+						"method": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+						"response_header": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+						"max_age_seconds": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -129,6 +166,10 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
+	if v, ok := d.GetOk("cors"); ok {
+		sb.Cors = expandCors(v.([]interface{}))
+	}
+
 	var res *storage.Bucket
 
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -154,12 +195,8 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] Created bucket %v at location %v\n\n", res.Name, res.SelfLink)
 
-	// Assign the bucket ID as the resource ID
-	d.Set("self_link", res.SelfLink)
-	d.Set("url", fmt.Sprintf("gs://%s", bucket))
 	d.SetId(res.Id)
-
-	return nil
+	return resourceStorageBucketRead(d, meta)
 }
 
 func resourceStorageBucketUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -198,6 +235,10 @@ func resourceStorageBucketUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
+	if v, ok := d.GetOk("cors"); ok {
+		sb.Cors = expandCors(v.([]interface{}))
+	}
+
 	res, err := config.clientStorage.Buckets.Patch(d.Get("name").(string), sb).Do()
 
 	if err != nil {
@@ -228,8 +269,11 @@ func resourceStorageBucketRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Update the bucket ID according to the resource ID
 	d.Set("self_link", res.SelfLink)
+	d.Set("url", fmt.Sprintf("gs://%s", bucket))
+	d.Set("storage_class", res.StorageClass)
+	d.Set("location", res.Location)
+	d.Set("cors", flattenCors(res.Cors))
 	d.SetId(res.Id)
-
 	return nil
 }
 
@@ -288,4 +332,49 @@ func resourceStorageBucketDelete(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] Deleted bucket %v\n\n", bucket)
 
 	return nil
+}
+
+func resourceStorageBucketStateImporter(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("name", d.Id())
+	return []*schema.ResourceData{d}, nil
+}
+
+func expandCors(configured []interface{}) []*storage.BucketCors {
+	corsRules := make([]*storage.BucketCors, 0, len(configured))
+	for _, raw := range configured {
+		data := raw.(map[string]interface{})
+		corsRule := storage.BucketCors{
+			Origin:         convertSchemaArrayToStringArray(data["origin"].([]interface{})),
+			Method:         convertSchemaArrayToStringArray(data["method"].([]interface{})),
+			ResponseHeader: convertSchemaArrayToStringArray(data["response_header"].([]interface{})),
+			MaxAgeSeconds:  int64(data["max_age_seconds"].(int)),
+		}
+
+		corsRules = append(corsRules, &corsRule)
+	}
+	return corsRules
+}
+
+func convertSchemaArrayToStringArray(input []interface{}) []string {
+	output := make([]string, 0, len(input))
+	for _, val := range input {
+		output = append(output, val.(string))
+	}
+
+	return output
+}
+
+func flattenCors(corsRules []*storage.BucketCors) []map[string]interface{} {
+	corsRulesSchema := make([]map[string]interface{}, 0, len(corsRules))
+	for _, corsRule := range corsRules {
+		data := map[string]interface{}{
+			"origin":          corsRule.Origin,
+			"method":          corsRule.Method,
+			"response_header": corsRule.ResponseHeader,
+			"max_age_seconds": corsRule.MaxAgeSeconds,
+		}
+
+		corsRulesSchema = append(corsRulesSchema, data)
+	}
+	return corsRulesSchema
 }

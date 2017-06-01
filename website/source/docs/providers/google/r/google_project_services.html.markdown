@@ -12,6 +12,9 @@ Allows management of enabled API services for an existing Google Cloud
 Platform project. Services in an existing project that are not defined
 in the config will be removed.
 
+For a list of services available, visit the
+[API library page](https://console.cloud.google.com/apis/library) or run `gcloud service-management list`.
+
 ## Example Usage
 
 ```hcl

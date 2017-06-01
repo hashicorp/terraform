@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -13,6 +14,22 @@ func TestLocalState(t *testing.T) {
 	ls := testLocalState(t)
 	defer os.Remove(ls.Path)
 	TestState(t, ls)
+}
+
+func TestLocalStateRace(t *testing.T) {
+	ls := testLocalState(t)
+	defer os.Remove(ls.Path)
+
+	current := TestStateInitial()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ls.WriteState(current)
+		}()
+	}
 }
 
 func TestLocalStateLocks(t *testing.T) {
