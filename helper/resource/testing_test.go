@@ -707,6 +707,25 @@ func TestTest_Main(t *testing.T) {
 			ExpectedRunList: []string{"aws_top", "aws_sub"},
 			SweepRun:        "aws_top",
 		},
+		{
+			Name: "filter and none",
+			Sweepers: map[string]*Sweeper{
+				"aws_dummy": &Sweeper{
+					Name: "aws_dummy",
+					F:    mockSweeperFunc,
+				},
+				"aws_top": &Sweeper{
+					Name:         "aws_top",
+					Dependencies: []string{"aws_sub"},
+					F:            mockSweeperFunc,
+				},
+				"aws_sub": &Sweeper{
+					Name: "aws_sub",
+					F:    mockSweeperFunc,
+				},
+			},
+			SweepRun: "none",
+		},
 	}
 
 	for _, tc := range cases {
