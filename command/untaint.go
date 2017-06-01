@@ -1,11 +1,12 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 
-	clistate "github.com/hashicorp/terraform/command/state"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
 )
 
@@ -27,6 +28,7 @@ func (c *UntaintCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -66,10 +68,13 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	if c.Meta.stateLock {
+	if c.stateLock {
+		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
+		defer cancel()
+
 		lockInfo := state.NewLockInfo()
 		lockInfo.Operation = "untaint"
-		lockID, err := clistate.Lock(st, lockInfo, c.Ui, c.Colorize())
+		lockID, err := clistate.Lock(lockCtx, st, lockInfo, c.Ui, c.Colorize())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
@@ -175,6 +180,8 @@ Options:
                       ".backup" extension. Set to "-" to disable backup.
 
   -lock=true          Lock the state file when locking is supported.
+
+  -lock-timeout=0s    Duration to retry a state lock.
 
   -module=path        The module path where the resource lives. By
                       default this will be root. Child modules can be specified

@@ -150,6 +150,8 @@ func Provider() terraform.ResourceProvider {
 			"openstack_compute_floatingip_v2":           resourceComputeFloatingIPV2(),
 			"openstack_compute_floatingip_associate_v2": resourceComputeFloatingIPAssociateV2(),
 			"openstack_compute_volume_attach_v2":        resourceComputeVolumeAttachV2(),
+			"openstack_dns_recordset_v2":                resourceDNSRecordSetV2(),
+			"openstack_dns_zone_v2":                     resourceDNSZoneV2(),
 			"openstack_fw_firewall_v1":                  resourceFWFirewallV1(),
 			"openstack_fw_policy_v1":                    resourceFWPolicyV1(),
 			"openstack_fw_rule_v1":                      resourceFWRuleV1(),

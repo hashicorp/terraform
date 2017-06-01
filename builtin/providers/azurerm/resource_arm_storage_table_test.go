@@ -13,7 +13,7 @@ import (
 )
 
 func TestAccAzureRMStorageTable_basic(t *testing.T) {
-	var table storage.AzureTable
+	var table storage.Table
 
 	ri := acctest.RandInt()
 	rs := strings.ToLower(acctest.RandString(11))
@@ -35,7 +35,7 @@ func TestAccAzureRMStorageTable_basic(t *testing.T) {
 }
 
 func TestAccAzureRMStorageTable_disappears(t *testing.T) {
-	var table storage.AzureTable
+	var table storage.Table
 
 	ri := acctest.RandInt()
 	rs := strings.ToLower(acctest.RandString(11))
@@ -58,7 +58,7 @@ func TestAccAzureRMStorageTable_disappears(t *testing.T) {
 	})
 }
 
-func testCheckAzureRMStorageTableExists(name string, t *storage.AzureTable) resource.TestCheckFunc {
+func testCheckAzureRMStorageTableExists(name string, t *storage.Table) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		rs, ok := s.RootModule().Resources[name]
@@ -82,15 +82,16 @@ func testCheckAzureRMStorageTableExists(name string, t *storage.AzureTable) reso
 			return fmt.Errorf("Bad: Storage Account %q does not exist", storageAccountName)
 		}
 
-		tables, err := tableClient.QueryTables()
+		options := &storage.QueryTablesOptions{}
+		tables, err := tableClient.QueryTables(storage.MinimalMetadata, options)
 
-		if len(tables) == 0 {
+		if len(tables.Tables) == 0 {
 			return fmt.Errorf("Bad: Storage Table %q (storage account: %q) does not exist", name, storageAccountName)
 		}
 
 		var found bool
-		for _, table := range tables {
-			if string(table) == name {
+		for _, table := range tables.Tables {
+			if table.Name == name {
 				found = true
 				*t = table
 			}
@@ -104,7 +105,7 @@ func testCheckAzureRMStorageTableExists(name string, t *storage.AzureTable) reso
 	}
 }
 
-func testAccARMStorageTableDisappears(name string, t *storage.AzureTable) resource.TestCheckFunc {
+func testAccARMStorageTableDisappears(name string, t *storage.Table) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -116,7 +117,7 @@ func testAccARMStorageTableDisappears(name string, t *storage.AzureTable) resour
 		storageAccountName := rs.Primary.Attributes["storage_account_name"]
 		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
 		if !hasResourceGroup {
-			return fmt.Errorf("Bad: no resource group found in state for storage table: %s", string(*t))
+			return fmt.Errorf("Bad: no resource group found in state for storage table: %s", t.Name)
 		}
 
 		tableClient, accountExists, err := armClient.getTableServiceClientForStorageAccount(resourceGroup, storageAccountName)
@@ -128,8 +129,10 @@ func testAccARMStorageTableDisappears(name string, t *storage.AzureTable) resour
 			return nil
 		}
 
-		table := storage.AzureTable(string(*t))
-		err = tableClient.DeleteTable(table)
+		table := tableClient.GetTableReference(t.Name)
+		timeout := uint(60)
+		options := &storage.TableOptions{}
+		err = table.Delete(timeout, options)
 		if err != nil {
 			return err
 		}
@@ -161,15 +164,16 @@ func testCheckAzureRMStorageTableDestroy(s *terraform.State) error {
 			return nil
 		}
 
-		tables, err := tableClient.QueryTables()
+		options := &storage.QueryTablesOptions{}
+		tables, err := tableClient.QueryTables(storage.NoMetadata, options)
 
 		if err != nil {
 			return nil
 		}
 
 		var found bool
-		for _, table := range tables {
-			if string(table) == name {
+		for _, table := range tables.Tables {
+			if table.Name == name {
 				found = true
 			}
 		}

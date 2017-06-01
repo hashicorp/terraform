@@ -121,7 +121,7 @@ func getTagSetS3(s3conn *s3.S3, bucket string) ([]*s3.Tag, error) {
 // compare a tag against a list of strings and checks if it should
 // be ignored or not
 func tagIgnoredS3(t *s3.Tag) bool {
-	filter := []string{"^aws:*"}
+	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
 		if r, _ := regexp.MatchString(v, *t.Key); r == true {

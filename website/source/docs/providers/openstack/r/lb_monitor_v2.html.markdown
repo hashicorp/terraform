@@ -1,19 +1,20 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_lb_monitor_v2"
-sidebar_current: "docs-openstack-resource-lbaas-monitor-v2"
+sidebar_current: "docs-openstack-resource-lb-monitor-v2"
 description: |-
   Manages a V2 monitor resource within OpenStack.
 ---
 
-# openstack\_lbaas\_monitor\_v2
+# openstack\_lb\_monitor\_v2
 
 Manages a V2 monitor resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_lb_monitor_v2" "monitor_1" {
+  pool_id     = "${openstack_lb_pool_v2.pool_1.id}"
   type        = "PING"
   delay       = 20
   timeout     = 10
@@ -29,6 +30,8 @@ The following arguments are supported:
     A Networking client is needed to create an . If omitted, the
     `OS_REGION_NAME` environment variable is used. Changing this creates a new
     monitor.
+    
+* `pool_id` - (Required) The id of the pool that this monitor will be assigned to.
 
 * `name` - (Optional) The Name of the Monitor.
 

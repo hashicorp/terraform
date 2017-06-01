@@ -6,13 +6,13 @@ description: |-
     Provides a list of Ecs Instance Types for use in alicloud_instance resource.
 ---
 
-# alicloud\_instance\_types
+# alicloud_instance_types
 
 The Instance Types data source list the ecs_instance_types of Alicloud.
 
 ## Example Usage
 
-```
+```hcl
 # Declare the data source
 data "alicloud_instance_types" "1c2g" {
   cpu_core_count = 1
@@ -20,11 +20,10 @@ data "alicloud_instance_types" "1c2g" {
 }
 
 # Create ecs instance with the first matched instance_type
-
 resource "alicloud_instance" "instance" {
   instance_type = "${data.alicloud_instance_types.1c2g.instance_types.0.id}"
 
-  # Other properties...
+  # ...
 }
 ```
 

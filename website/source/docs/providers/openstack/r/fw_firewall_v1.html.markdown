@@ -12,7 +12,7 @@ Manages a v1 firewall resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_fw_rule_v1" "rule_1" {
   name             = "my-rule-1"
   description      = "drop TELNET traffic"
@@ -71,6 +71,14 @@ The following arguments are supported:
     to create a firewall for another tenant. Changing this creates a new
     firewall.
 
+* `associated_routers` - (Optional) Router(s) to associate this firewall instance
+    with. Must be a list of strings. Changing this updates the associated routers
+    of an existing firewall. Conflicts with `no_routers`.
+
+* `no_routers` - (Optional) Should this firewall not be associated with any routers
+    (must be "true" or "false" if provide - defaults to "false").
+    Conflicts with `associated_routers`.
+
 * `value_specs` - (Optional) Map of additional options.
 
 ## Attributes Reference
@@ -83,6 +91,8 @@ The following attributes are exported:
 * `description` - See Argument Reference above.
 * `admin_state_up` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
+* `associated_routers` - See Argument Reference above.
+* `no_routers` - See Argument Reference above.
 
 ## Import
 

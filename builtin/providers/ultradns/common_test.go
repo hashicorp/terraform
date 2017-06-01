@@ -8,6 +8,29 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func testAccRdpoolCheckDestroy(s *terraform.State) error {
+	client := testAccProvider.Meta().(*udnssdk.Client)
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "ultradns_rdpool" {
+			continue
+		}
+
+		k := udnssdk.RRSetKey{
+			Zone: rs.Primary.Attributes["zone"],
+			Name: rs.Primary.Attributes["name"],
+			Type: rs.Primary.Attributes["type"],
+		}
+
+		_, err := client.RRSets.Select(k)
+		if err == nil {
+			return fmt.Errorf("Record still exists")
+		}
+	}
+
+	return nil
+}
+
 func testAccTcpoolCheckDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*udnssdk.Client)
 

@@ -70,6 +70,26 @@ func TestAccComputeInstanceGroup_update(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstanceGroup_outOfOrderInstances(t *testing.T) {
+	var instanceGroup compute.InstanceGroup
+	var instanceName = fmt.Sprintf("instancegroup-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccComputeInstanceGroup_destroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstanceGroup_outOfOrderInstances(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccComputeInstanceGroup_exists(
+						"google_compute_instance_group.group", &instanceGroup),
+				),
+			},
+		},
+	})
+}
+
 func testAccComputeInstanceGroup_destroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -296,4 +316,52 @@ func testAccComputeInstanceGroup_update2(instance string) string {
 			port = "8444"
 		}
 	}`, instance, instance)
+}
+
+func testAccComputeInstanceGroup_outOfOrderInstances(instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_instance" "ig_instance" {
+		name = "%s-1"
+		machine_type = "n1-standard-1"
+		can_ip_forward = false
+		zone = "us-central1-c"
+
+		disk {
+			image = "debian-8-jessie-v20160803"
+		}
+
+		network_interface {
+			network = "default"
+		}
+	}
+
+	resource "google_compute_instance" "ig_instance_2" {
+		name = "%s-2"
+		machine_type = "n1-standard-1"
+		can_ip_forward = false
+		zone = "us-central1-c"
+
+		disk {
+			image = "debian-8-jessie-v20160803"
+		}
+
+		network_interface {
+			network = "default"
+		}
+	}
+
+	resource "google_compute_instance_group" "group" {
+		description = "Terraform test instance group"
+		name = "%s"
+		zone = "us-central1-c"
+		instances = [ "${google_compute_instance.ig_instance_2.self_link}", "${google_compute_instance.ig_instance.self_link}" ]
+		named_port {
+			name = "http"
+			port = "8080"
+		}
+		named_port {
+			name = "https"
+			port = "8443"
+		}
+	}`, instance, instance, instance)
 }

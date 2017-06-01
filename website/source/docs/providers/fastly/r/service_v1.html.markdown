@@ -6,7 +6,7 @@ description: |-
   Provides an Fastly Service
 ---
 
-# fastly\_service\_v1
+# fastly_service_v1
 
 Provides a Fastly Service, representing the configuration for a website, app,
 API, or anything else to be served through Fastly. A Service encompasses Domains
@@ -20,7 +20,7 @@ on their documentation site for guidance.
 
 Basic usage:
 
-```
+```hcl
 resource "fastly_service_v1" "demo" {
   name = "demofastly"
 
@@ -41,7 +41,7 @@ resource "fastly_service_v1" "demo" {
 
 Basic usage with an Amazon S3 Website and that removes the `x-amz-request-id` header:
 
-```
+```hcl
 resource "fastly_service_v1" "demo" {
   name = "demofastly"
 
@@ -89,7 +89,7 @@ Basic usage with [custom
 VCL](https://docs.fastly.com/guides/vcl/uploading-custom-vcl) (must be
 enabled on your Fastly account):
 
-```
+```hcl
 resource "fastly_service_v1" "demo" {
   name = "demofastly"
 
@@ -153,6 +153,10 @@ order to destroy the Service, set `force_destroy` to `true`. Default `false`.
 Defined below.
 * `papertrail` - (Optional) A Papertrail endpoint to send streaming logs too.
 Defined below.
+* `sumologic` - (Optional) A Sumologic endpoint to send streaming logs too.
+Defined below.
+* `gcslogging` - (Optional) A gcs endpoint to send streaming logs too.
+Defined below.
 * `response_object` - (Optional) Allows you to create synthetic responses that exist entirely on the varnish machine. Useful for creating error or maintenance pages that exists outside the scope of your datacenter. Best when used with Condition objects.
 * `vcl` - (Optional) A set of custom VCL configuration blocks. The
 ability to upload custom VCL code is not enabled by default for new Fastly
@@ -205,7 +209,7 @@ The `cache_setting` block supports:
 * `name` - (Required) Unique name for this Cache Setting.
 * `action` - (Required) One of `cache`, `pass`, or `restart`, as defined
 on Fastly's documentation under ["Caching action descriptions"](https://docs.fastly.com/guides/performance-tuning/controlling-caching#caching-action-descriptions).
-* `cache_condition` - (Required) Name of already defined `condition` used to test whether this settings object should be used. This `condition` must be of type `CACHE`.
+* `cache_condition` - (Optional) Name of already defined `condition` used to test whether this settings object should be used. This `condition` must be of type `CACHE`.
 * `stale_ttl` - (Optional) Max "Time To Live" for stale (unreachable) objects.
 Default `300`.
 * `ttl` - (Optional) The Time-To-Live (TTL) for the object.
@@ -259,7 +263,7 @@ The `request_setting` block allow you to customize Fastly's request handling, by
 defining behavior that should change based on a predefined `condition`:
 
 * `name` - (Required) The domain for this request setting.
-* `request_condition` - (Required) Name of already defined `condition` to
+* `request_condition` - (Optional) Name of already defined `condition` to
 determine if this request setting should be applied.
 * `max_stale_age` - (Optional) How old an object is allowed to be to serve
 `stale-if-error` or `stale-while-revalidate`, in seconds. Default `60`.
@@ -315,6 +319,31 @@ The `papertrail` block supports:
 * `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals,
 see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
+The `sumologic` block supports:
+
+* `name` - (Required) A unique name to identify this Sumologic endpoint.
+* `url` - (Required) The URL to Sumologic collector endpoint
+* `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
+* `format_version` - (Optional) The version of the custom logging format used for the configured endpoint. Can be either 1 (the default, version 1 log format) or 2 (the version 2 log format).
+* `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals, see [Fastly's Documentation on Conditionals][fastly-conditionals].
+* `message_type` - (Optional) How the message should be formatted. One of: classic, loggly, logplex, blank. See [Fastly's Documentation on Sumologic][fastly-sumologic]
+
+The `gcslogging` block supports:
+
+* `name` - (Required) A unique name to identify this GCS endpoint.
+* `email` - (Required) The email address associated with the target GCS bucket on your account.
+* `bucket_name` - (Required) The name of the bucket in which to store the logs.
+* `secret_key` - (Required) The secret key associated with the target gcs bucket on your account.
+* `path` - (Optional) Path to store the files. Must end with a trailing slash.
+If this field is left empty, the files will be saved in the bucket's root path.
+* `period` - (Optional) How frequently the logs should be transferred, in
+seconds. Default `3600`.
+* `gzip_level` - (Optional) Level of GZIP compression, from `0-9`. `0` is no
+compression. `1` is fastest and least compressed, `9` is slowest and most
+compressed. Default `0`.
+* `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
+* `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals, see [Fastly's Documentation on Conditionals][fastly-conditionals].
+
 The `response_object` block supports:
 
 * `name` - (Required) A unique name to identify this Response Object.
@@ -357,3 +386,5 @@ Service.
 [fastly-s3]: https://docs.fastly.com/guides/integrations/amazon-s3
 [fastly-cname]: https://docs.fastly.com/guides/basic-setup/adding-cname-records
 [fastly-conditionals]: https://docs.fastly.com/guides/conditions/using-conditions
+[fastly-sumologic]: https://docs.fastly.com/api/logging#logging_sumologic
+[fastly-gcs]: https://docs.fastly.com/api/logging#logging_gcs

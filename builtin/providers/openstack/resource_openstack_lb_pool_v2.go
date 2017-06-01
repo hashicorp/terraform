@@ -167,10 +167,33 @@ func resourcePoolV2Create(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	pool, err := pools.Create(networkingClient, createOpts).Extract()
+
+	var pool *pools.Pool
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		var err error
+		log.Printf("[DEBUG] Attempting to create LBaaSV2 pool")
+		pool, err = pools.Create(networkingClient, createOpts).Extract()
+		if err != nil {
+			switch errCode := err.(type) {
+			case gophercloud.ErrDefault500:
+				log.Printf("[DEBUG] OpenStack LBaaSV2 pool is still creating.")
+				return resource.RetryableError(err)
+			case gophercloud.ErrUnexpectedResponseCode:
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] OpenStack LBaaSV2 pool is still creating.")
+					return resource.RetryableError(err)
+				}
+			default:
+				return resource.NonRetryableError(err)
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LBaaSV2 pool: %s", err)
 	}
+
 	log.Printf("[INFO] pool ID: %s", pool.ID)
 
 	log.Printf("[DEBUG] Waiting for Openstack LBaaSV2 pool (%s) to become available.", pool.ID)

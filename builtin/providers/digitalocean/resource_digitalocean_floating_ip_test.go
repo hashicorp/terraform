@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -60,7 +61,7 @@ func testAccCheckDigitalOceanFloatingIPDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the key
-		_, _, err := client.FloatingIPs.Get(rs.Primary.ID)
+		_, _, err := client.FloatingIPs.Get(context.Background(), rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Floating IP still exists")
@@ -85,7 +86,7 @@ func testAccCheckDigitalOceanFloatingIPExists(n string, floatingIP *godo.Floatin
 		client := testAccProvider.Meta().(*godo.Client)
 
 		// Try to find the FloatingIP
-		foundFloatingIP, _, err := client.FloatingIPs.Get(rs.Primary.ID)
+		foundFloatingIP, _, err := client.FloatingIPs.Get(context.Background(), rs.Primary.ID)
 
 		if err != nil {
 			return err

@@ -18,7 +18,7 @@ rules.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_vpc_endpoint" "private_s3" {
   vpc_id       = "${aws_vpc.foo.id}"
   service_name = "com.amazonaws.us-west-2.s3"

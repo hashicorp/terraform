@@ -2,6 +2,7 @@ package chef
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,10 +18,10 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/go-linereader"
-	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -81,81 +82,196 @@ enable_reporting false
 {{ end }}
 `
 
-// Provisioner represents a Chef provisioner
-type Provisioner struct {
-	AttributesJSON        string   `mapstructure:"attributes_json"`
-	ClientOptions         []string `mapstructure:"client_options"`
-	DisableReporting      bool     `mapstructure:"disable_reporting"`
-	Environment           string   `mapstructure:"environment"`
-	FetchChefCertificates bool     `mapstructure:"fetch_chef_certificates"`
-	LogToFile             bool     `mapstructure:"log_to_file"`
-	UsePolicyfile         bool     `mapstructure:"use_policyfile"`
-	PolicyGroup           string   `mapstructure:"policy_group"`
-	PolicyName            string   `mapstructure:"policy_name"`
-	HTTPProxy             string   `mapstructure:"http_proxy"`
-	HTTPSProxy            string   `mapstructure:"https_proxy"`
-	NamedRunList          string   `mapstructure:"named_run_list"`
-	NOProxy               []string `mapstructure:"no_proxy"`
-	NodeName              string   `mapstructure:"node_name"`
-	OhaiHints             []string `mapstructure:"ohai_hints"`
-	OSType                string   `mapstructure:"os_type"`
-	RecreateClient        bool     `mapstructure:"recreate_client"`
-	PreventSudo           bool     `mapstructure:"prevent_sudo"`
-	RunList               []string `mapstructure:"run_list"`
-	SecretKey             string   `mapstructure:"secret_key"`
-	ServerURL             string   `mapstructure:"server_url"`
-	SkipInstall           bool     `mapstructure:"skip_install"`
-	SkipRegister          bool     `mapstructure:"skip_register"`
-	SSLVerifyMode         string   `mapstructure:"ssl_verify_mode"`
-	UserName              string   `mapstructure:"user_name"`
-	UserKey               string   `mapstructure:"user_key"`
-	VaultJSON             string   `mapstructure:"vault_json"`
-	Version               string   `mapstructure:"version"`
+type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 
-	attributes map[string]interface{}
-	vaults     map[string][]string
+type provisioner struct {
+	Attributes            map[string]interface{}
+	ClientOptions         []string
+	DisableReporting      bool
+	Environment           string
+	FetchChefCertificates bool
+	LogToFile             bool
+	UsePolicyfile         bool
+	PolicyGroup           string
+	PolicyName            string
+	HTTPProxy             string
+	HTTPSProxy            string
+	NamedRunList          string
+	NOProxy               []string
+	NodeName              string
+	OhaiHints             []string
+	OSType                string
+	RecreateClient        bool
+	PreventSudo           bool
+	RunList               []string
+	SecretKey             string
+	ServerURL             string
+	SkipInstall           bool
+	SkipRegister          bool
+	SSLVerifyMode         string
+	UserName              string
+	UserKey               string
+	Vaults                map[string][]string
+	Version               string
 
 	cleanupUserKeyCmd     string
-	createConfigFiles     func(terraform.UIOutput, communicator.Communicator) error
-	installChefClient     func(terraform.UIOutput, communicator.Communicator) error
-	fetchChefCertificates func(terraform.UIOutput, communicator.Communicator) error
-	generateClientKey     func(terraform.UIOutput, communicator.Communicator) error
-	configureVaults       func(terraform.UIOutput, communicator.Communicator) error
-	runChefClient         func(terraform.UIOutput, communicator.Communicator) error
+	createConfigFiles     provisionFn
+	installChefClient     provisionFn
+	fetchChefCertificates provisionFn
+	generateClientKey     provisionFn
+	configureVaults       provisionFn
+	runChefClient         provisionFn
 	useSudo               bool
-
-	// Deprecated Fields
-	ValidationClientName string `mapstructure:"validation_client_name"`
-	ValidationKey        string `mapstructure:"validation_key"`
 }
 
-// ResourceProvisioner represents a generic chef provisioner
-type ResourceProvisioner struct{}
+// Provisioner returns a Chef provisioner
+func Provisioner() terraform.ResourceProvisioner {
+	return &schema.Provisioner{
+		Schema: map[string]*schema.Schema{
+			"node_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"server_url": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"user_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"user_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 
-func (r *ResourceProvisioner) Stop() error {
-	// Noop for now. TODO in the future.
-	return nil
+			"attributes_json": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"client_options": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
+			"disable_reporting": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"environment": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  defaultEnv,
+			},
+			"fetch_chef_certificates": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"log_to_file": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"use_policyfile": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"policy_group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"policy_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"http_proxy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"https_proxy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"no_proxy": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
+			"named_run_list": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"ohai_hints": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
+			"os_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"recreate_client": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"prevent_sudo": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"run_list": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
+			"secret_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"skip_install": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"skip_register": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"ssl_verify_mode": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"vault_json": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"version": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+		},
+
+		ApplyFunc:    applyFn,
+		ValidateFunc: validateFn,
+	}
 }
 
-// Apply executes the file provisioner
-func (r *ResourceProvisioner) Apply(
-	o terraform.UIOutput,
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) error {
+// TODO: Support context cancelling (Provisioner Stop)
+func applyFn(ctx context.Context) error {
+	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
+	d := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
+
 	// Decode the raw config for this provisioner
-	p, err := r.decodeConfig(c)
+	p, err := decodeConfig(d)
 	if err != nil {
 		return err
 	}
 
 	if p.OSType == "" {
-		switch s.Ephemeral.ConnInfo["type"] {
+		switch t := d.State().Ephemeral.ConnInfo["type"]; t {
 		case "ssh", "": // The default connection type is ssh, so if the type is empty assume ssh
 			p.OSType = "linux"
 		case "winrm":
 			p.OSType = "windows"
 		default:
-			return fmt.Errorf("Unsupported connection type: %s", s.Ephemeral.ConnInfo["type"])
+			return fmt.Errorf("Unsupported connection type: %s", t)
 		}
 	}
 
@@ -169,7 +285,7 @@ func (r *ResourceProvisioner) Apply(
 		p.generateClientKey = p.generateClientKeyFunc(linuxKnifeCmd, linuxConfDir, linuxNoOutput)
 		p.configureVaults = p.configureVaultsFunc(linuxGemCmd, linuxKnifeCmd, linuxConfDir)
 		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
-		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
+		p.useSudo = !p.PreventSudo && d.State().Ephemeral.ConnInfo["user"] != "root"
 	case "windows":
 		p.cleanupUserKeyCmd = fmt.Sprintf("cd %s && del /F /Q %s", windowsConfDir, p.UserName+".pem")
 		p.createConfigFiles = p.windowsCreateConfigFiles
@@ -184,15 +300,14 @@ func (r *ResourceProvisioner) Apply(
 	}
 
 	// Get a new communicator
-	comm, err := communicator.New(s)
+	comm, err := communicator.New(d.State())
 	if err != nil {
 		return err
 	}
 
 	// Wait and retry until we establish the connection
 	err = retryFunc(comm.Timeout(), func() error {
-		err := comm.Connect(o)
-		return err
+		return comm.Connect(o)
 	})
 	if err != nil {
 		return err
@@ -234,7 +349,7 @@ func (r *ResourceProvisioner) Apply(
 		}
 	}
 
-	if p.VaultJSON != "" {
+	if p.Vaults != nil {
 		o.Output("Configure Chef vaults...")
 		if err := p.configureVaults(o, comm); err != nil {
 			return err
@@ -253,22 +368,15 @@ func (r *ResourceProvisioner) Apply(
 	return nil
 }
 
-// Validate checks if the required arguments are configured
-func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
-	p, err := r.decodeConfig(c)
+func validateFn(d *schema.ResourceData) (ws []string, es []error) {
+	p, err := decodeConfig(d)
 	if err != nil {
 		es = append(es, err)
 		return ws, es
 	}
 
-	if p.NodeName == "" {
-		es = append(es, errors.New("Key not found: node_name"))
-	}
 	if !p.UsePolicyfile && p.RunList == nil {
 		es = append(es, errors.New("Key not found: run_list"))
-	}
-	if p.ServerURL == "" {
-		es = append(es, errors.New("Key not found: server_url"))
 	}
 	if p.UsePolicyfile && p.PolicyName == "" {
 		es = append(es, errors.New("Policyfile enabled but key not found: policy_name"))
@@ -276,129 +384,11 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	if p.UsePolicyfile && p.PolicyGroup == "" {
 		es = append(es, errors.New("Policyfile enabled but key not found: policy_group"))
 	}
-	if p.UserName == "" && p.ValidationClientName == "" {
-		es = append(es, errors.New(
-			"One of user_name or the deprecated validation_client_name must be provided"))
-	}
-	if p.UserKey == "" && p.ValidationKey == "" {
-		es = append(es, errors.New(
-			"One of user_key or the deprecated validation_key must be provided"))
-	}
-	if p.ValidationClientName != "" {
-		ws = append(ws, "validation_client_name is deprecated, please use user_name instead")
-	}
-	if p.ValidationKey != "" {
-		ws = append(ws, "validation_key is deprecated, please use user_key instead")
-
-		if p.RecreateClient {
-			es = append(es, errors.New(
-				"Cannot use recreate_client=true with the deprecated validation_key, please provide a user_key"))
-		}
-		if p.VaultJSON != "" {
-			es = append(es, errors.New(
-				"Cannot configure chef vaults using the deprecated validation_key, please provide a user_key"))
-		}
-	}
 
 	return ws, es
 }
 
-func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provisioner, error) {
-	p := new(Provisioner)
-
-	decConf := &mapstructure.DecoderConfig{
-		ErrorUnused:      true,
-		WeaklyTypedInput: true,
-		Result:           p,
-	}
-	dec, err := mapstructure.NewDecoder(decConf)
-	if err != nil {
-		return nil, err
-	}
-
-	// We need to merge both configs into a single map first. Order is
-	// important as we need to make sure interpolated values are used
-	// over raw values. This makes sure that all values are there even
-	// if some still need to be interpolated later on. Without this
-	// the validation will fail when using a variable for a required
-	// parameter (the node_name for example).
-	m := make(map[string]interface{})
-
-	for k, v := range c.Raw {
-		m[k] = v
-	}
-
-	for k, v := range c.Config {
-		m[k] = v
-	}
-
-	if err := dec.Decode(m); err != nil {
-		return nil, err
-	}
-
-	// Make sure the supplied URL has a trailing slash
-	p.ServerURL = strings.TrimSuffix(p.ServerURL, "/") + "/"
-
-	if p.Environment == "" {
-		p.Environment = defaultEnv
-	}
-
-	for i, hint := range p.OhaiHints {
-		hintPath, err := homedir.Expand(hint)
-		if err != nil {
-			return nil, fmt.Errorf("Error expanding the path %s: %v", hint, err)
-		}
-		p.OhaiHints[i] = hintPath
-	}
-
-	if p.UserName == "" && p.ValidationClientName != "" {
-		p.UserName = p.ValidationClientName
-	}
-
-	if p.UserKey == "" && p.ValidationKey != "" {
-		p.UserKey = p.ValidationKey
-	}
-
-	if attrs, ok := c.Config["attributes_json"].(string); ok && !c.IsComputed("attributes_json") {
-		var m map[string]interface{}
-		if err := json.Unmarshal([]byte(attrs), &m); err != nil {
-			return nil, fmt.Errorf("Error parsing attributes_json: %v", err)
-		}
-		p.attributes = m
-	}
-
-	if vaults, ok := c.Config["vault_json"].(string); ok && !c.IsComputed("vault_json") {
-		var m map[string]interface{}
-		if err := json.Unmarshal([]byte(vaults), &m); err != nil {
-			return nil, fmt.Errorf("Error parsing vault_json: %v", err)
-		}
-
-		v := make(map[string][]string)
-		for vault, items := range m {
-			switch items := items.(type) {
-			case []interface{}:
-				for _, item := range items {
-					if item, ok := item.(string); ok {
-						v[vault] = append(v[vault], item)
-					}
-				}
-			case interface{}:
-				if item, ok := items.(string); ok {
-					v[vault] = append(v[vault], item)
-				}
-			}
-		}
-
-		p.vaults = v
-	}
-
-	return p, nil
-}
-
-func (p *Provisioner) deployConfigFiles(
-	o terraform.UIOutput,
-	comm communicator.Communicator,
-	confDir string) error {
+func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.Communicator, confDir string) error {
 	// Copy the user key to the new instance
 	pk := strings.NewReader(p.UserKey)
 	if err := comm.Upload(path.Join(confDir, p.UserName+".pem"), pk); err != nil {
@@ -433,14 +423,14 @@ func (p *Provisioner) deployConfigFiles(
 	}
 
 	// Copy the client config to the new instance
-	if err := comm.Upload(path.Join(confDir, clienrb), &buf); err != nil {
+	if err = comm.Upload(path.Join(confDir, clienrb), &buf); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", clienrb, err)
 	}
 
 	// Create a map with first boot settings
 	fb := make(map[string]interface{})
-	if p.attributes != nil {
-		fb = p.attributes
+	if p.Attributes != nil {
+		fb = p.Attributes
 	}
 
 	// Check if the run_list was also in the attributes and if so log a warning
@@ -469,10 +459,7 @@ func (p *Provisioner) deployConfigFiles(
 	return nil
 }
 
-func (p *Provisioner) deployOhaiHints(
-	o terraform.UIOutput,
-	comm communicator.Communicator,
-	hintDir string) error {
+func (p *provisioner) deployOhaiHints(o terraform.UIOutput, comm communicator.Communicator, hintDir string) error {
 	for _, hint := range p.OhaiHints {
 		// Open the hint file
 		f, err := os.Open(hint)
@@ -490,7 +477,7 @@ func (p *Provisioner) deployOhaiHints(
 	return nil
 }
 
-func (p *Provisioner) fetchChefCertificatesFunc(
+func (p *provisioner) fetchChefCertificatesFunc(
 	knifeCmd string,
 	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
@@ -501,10 +488,7 @@ func (p *Provisioner) fetchChefCertificatesFunc(
 	}
 }
 
-func (p *Provisioner) generateClientKeyFunc(
-	knifeCmd string,
-	confDir string,
-	noOutput string) func(terraform.UIOutput, communicator.Communicator) error {
+func (p *provisioner) generateClientKeyFunc(knifeCmd string, confDir string, noOutput string) provisionFn {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
 		options := fmt.Sprintf("-c %s -u %s --key %s",
 			path.Join(confDir, clienrb),
@@ -562,10 +546,7 @@ func (p *Provisioner) generateClientKeyFunc(
 	}
 }
 
-func (p *Provisioner) configureVaultsFunc(
-	gemCmd string,
-	knifeCmd string,
-	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
+func (p *provisioner) configureVaultsFunc(gemCmd string, knifeCmd string, confDir string) provisionFn {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
 		if err := p.runCommand(o, comm, fmt.Sprintf("%s install chef-vault", gemCmd)); err != nil {
 			return err
@@ -577,9 +558,9 @@ func (p *Provisioner) configureVaultsFunc(
 			path.Join(confDir, p.UserName+".pem"),
 		)
 
-		for vault, items := range p.vaults {
+		for vault, items := range p.Vaults {
 			for _, item := range items {
-				updateCmd := fmt.Sprintf("%s vault update %s %s -A %s -M client %s",
+				updateCmd := fmt.Sprintf("%s vault update %s %s -C %s -M client %s",
 					knifeCmd,
 					vault,
 					item,
@@ -596,9 +577,7 @@ func (p *Provisioner) configureVaultsFunc(
 	}
 }
 
-func (p *Provisioner) runChefClientFunc(
-	chefCmd string,
-	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
+func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisionFn {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
 		fb := path.Join(confDir, firstBoot)
 		var cmd string
@@ -634,7 +613,7 @@ func (p *Provisioner) runChefClientFunc(
 }
 
 // Output implementation of terraform.UIOutput interface
-func (p *Provisioner) Output(output string) {
+func (p *provisioner) Output(output string) {
 	logFile := path.Join(logfileDir, p.NodeName)
 	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
@@ -660,10 +639,7 @@ func (p *Provisioner) Output(output string) {
 }
 
 // runCommand is used to run already prepared commands
-func (p *Provisioner) runCommand(
-	o terraform.UIOutput,
-	comm communicator.Communicator,
-	command string) error {
+func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communicator, command string) error {
 	// Unless prevented, prefix the command with sudo
 	if p.useSudo {
 		command = "sudo " + command
@@ -702,7 +678,7 @@ func (p *Provisioner) runCommand(
 	return err
 }
 
-func (p *Provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
+func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
 	defer close(doneCh)
 	lr := linereader.New(r)
 	for line := range lr.Ch {
@@ -725,5 +701,100 @@ func retryFunc(timeout time.Duration, f func() error) error {
 			return err
 		case <-time.After(3 * time.Second):
 		}
+	}
+}
+
+func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
+	p := &provisioner{
+		ClientOptions:         getStringList(d.Get("client_options")),
+		DisableReporting:      d.Get("disable_reporting").(bool),
+		Environment:           d.Get("environment").(string),
+		FetchChefCertificates: d.Get("fetch_chef_certificates").(bool),
+		LogToFile:             d.Get("log_to_file").(bool),
+		UsePolicyfile:         d.Get("use_policyfile").(bool),
+		PolicyGroup:           d.Get("policy_group").(string),
+		PolicyName:            d.Get("policy_name").(string),
+		HTTPProxy:             d.Get("http_proxy").(string),
+		HTTPSProxy:            d.Get("https_proxy").(string),
+		NOProxy:               getStringList(d.Get("no_proxy")),
+		NamedRunList:          d.Get("named_run_list").(string),
+		NodeName:              d.Get("node_name").(string),
+		OhaiHints:             getStringList(d.Get("ohai_hints")),
+		OSType:                d.Get("os_type").(string),
+		RecreateClient:        d.Get("recreate_client").(bool),
+		PreventSudo:           d.Get("prevent_sudo").(bool),
+		RunList:               getStringList(d.Get("run_list")),
+		SecretKey:             d.Get("secret_key").(string),
+		ServerURL:             d.Get("server_url").(string),
+		SkipInstall:           d.Get("skip_install").(bool),
+		SkipRegister:          d.Get("skip_register").(bool),
+		SSLVerifyMode:         d.Get("ssl_verify_mode").(string),
+		UserName:              d.Get("user_name").(string),
+		UserKey:               d.Get("user_key").(string),
+		Version:               d.Get("version").(string),
+	}
+
+	// Make sure the supplied URL has a trailing slash
+	p.ServerURL = strings.TrimSuffix(p.ServerURL, "/") + "/"
+
+	for i, hint := range p.OhaiHints {
+		hintPath, err := homedir.Expand(hint)
+		if err != nil {
+			return nil, fmt.Errorf("Error expanding the path %s: %v", hint, err)
+		}
+		p.OhaiHints[i] = hintPath
+	}
+
+	if attrs, ok := d.GetOk("attributes_json"); ok {
+		var m map[string]interface{}
+		if err := json.Unmarshal([]byte(attrs.(string)), &m); err != nil {
+			return nil, fmt.Errorf("Error parsing attributes_json: %v", err)
+		}
+		p.Attributes = m
+	}
+
+	if vaults, ok := d.GetOk("vault_json"); ok {
+		var m map[string]interface{}
+		if err := json.Unmarshal([]byte(vaults.(string)), &m); err != nil {
+			return nil, fmt.Errorf("Error parsing vault_json: %v", err)
+		}
+
+		v := make(map[string][]string)
+		for vault, items := range m {
+			switch items := items.(type) {
+			case []interface{}:
+				for _, item := range items {
+					if item, ok := item.(string); ok {
+						v[vault] = append(v[vault], item)
+					}
+				}
+			case interface{}:
+				if item, ok := items.(string); ok {
+					v[vault] = append(v[vault], item)
+				}
+			}
+		}
+
+		p.Vaults = v
+	}
+
+	return p, nil
+}
+
+func getStringList(v interface{}) []string {
+	if v == nil {
+		return nil
+	}
+	switch l := v.(type) {
+	case []string:
+		return l
+	case []interface{}:
+		arr := make([]string, len(l))
+		for i, x := range l {
+			arr[i] = x.(string)
+		}
+		return arr
+	default:
+		panic(fmt.Sprintf("Unsupported type: %T", v))
 	}
 }

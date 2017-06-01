@@ -3,6 +3,7 @@ package command
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -87,14 +88,25 @@ type Meta struct {
 	//
 	// provider is to specify specific resource providers
 	//
-	// lockState is set to false to disable state locking
-	statePath    string
-	stateOutPath string
-	backupPath   string
-	parallelism  int
-	shadow       bool
-	provider     string
-	stateLock    bool
+	// stateLock is set to false to disable state locking
+	//
+	// stateLockTimeout is the optional duration to retry a state locks locks
+	// when it is already locked by another process.
+	//
+	// forceInitCopy suppresses confirmation for copying state data during
+	// init.
+	//
+	// reconfigure forces init to ignore any stored configuration.
+	statePath        string
+	stateOutPath     string
+	backupPath       string
+	parallelism      int
+	shadow           bool
+	provider         string
+	stateLock        bool
+	stateLockTimeout time.Duration
+	forceInitCopy    bool
+	reconfigure      bool
 }
 
 // initStatePaths is used to initialize the default values for
@@ -255,6 +267,10 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	// Set the default Usage to empty
 	f.Usage = func() {}
 
+	// command that bypass locking will supply their own flag on this var, but
+	// set the initial meta value to true as a failsafe.
+	m.stateLock = true
+
 	return f
 }
 
@@ -337,6 +353,9 @@ func (m *Meta) uiHook() *UiHook {
 
 // confirm asks a yes/no confirmation.
 func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
+	if !m.input {
+		return false, errors.New("input disabled")
+	}
 	for {
 		v, err := m.UIInput().Input(opts)
 		if err != nil {

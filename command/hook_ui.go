@@ -16,7 +16,7 @@ import (
 )
 
 const defaultPeriodicUiTimer = 10 * time.Second
-const maxIdLen = 20
+const maxIdLen = 80
 
 type UiHook struct {
 	terraform.NilHook
@@ -58,6 +58,11 @@ func (h *UiHook) PreApply(
 	s *terraform.InstanceState,
 	d *terraform.InstanceDiff) (terraform.HookAction, error) {
 	h.once.Do(h.init)
+
+	// if there's no diff, there's nothing to output
+	if d.Empty() {
+		return terraform.HookActionContinue, nil
+	}
 
 	id := n.HumanId()
 

@@ -100,6 +100,9 @@ func testAccCheckNatGatewayExists(n string, ng *ec2.NatGateway) resource.TestChe
 const testAccNatGatewayConfig = `
 resource "aws_vpc" "vpc" {
     cidr_block = "10.0.0.0/16"
+		tags {
+			Name = "testAccNatGatewayConfig"
+		}
 }
 
 resource "aws_subnet" "private" {

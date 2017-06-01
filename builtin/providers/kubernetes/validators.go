@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	apiValidation "k8s.io/kubernetes/pkg/api/validation"
-	utilValidation "k8s.io/kubernetes/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/api/resource"
+	apiValidation "k8s.io/apimachinery/pkg/api/validation"
+	utilValidation "k8s.io/apimachinery/pkg/util/validation"
 )
 
 func validateAnnotations(value interface{}, key string) (ws []string, es []error) {
@@ -55,6 +56,27 @@ func validateLabels(value interface{}, key string) (ws []string, es []error) {
 		for _, msg := range utilValidation.IsValidLabelValue(val) {
 			es = append(es, fmt.Errorf("%s (%q) %s", key, val, msg))
 		}
+	}
+	return
+}
+
+func validateResourceList(value interface{}, key string) (ws []string, es []error) {
+	m := value.(map[string]interface{})
+	for k, value := range m {
+		if _, ok := value.(int); ok {
+			continue
+		}
+
+		if v, ok := value.(string); ok {
+			_, err := resource.ParseQuantity(v)
+			if err != nil {
+				es = append(es, fmt.Errorf("%s.%s (%q): %s", key, k, v, err))
+			}
+			continue
+		}
+
+		err := "Value can be either string or int"
+		es = append(es, fmt.Errorf("%s.%s (%#v): %s", key, k, value, err))
 	}
 	return
 }

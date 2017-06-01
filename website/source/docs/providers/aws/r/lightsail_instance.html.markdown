@@ -12,11 +12,11 @@ Provides a Lightsail Instance. Amazon Lightsail is a service to provide easy vir
 with custom software already setup. See [What is Amazon Lightsail?](https://lightsail.aws.amazon.com/ls/docs/getting-started/article/what-is-amazon-lightsail)
 for more information.
 
-Note: Lightsail is currently only supported in `us-east-1` region.
+~> **Note:** Lightsail is currently only supported in a limited number of AWS Regions, please see ["Regions and Availability Zones in Amazon Lightsail"](https://lightsail.aws.amazon.com/ls/docs/overview/article/understanding-regions-and-availability-zones-in-amazon-lightsail) for more details
 
 ## Example Usage
 
-```
+```hcl
 # Create a new GitLab Lightsail Instance
 resource "aws_lightsail_instance" "gitlab_test" {
   name              = "custom gitlab"
@@ -33,7 +33,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the Lightsail Instance
 * `availability_zone` - (Required) The Availability Zone in which to create your
-instance. At this time, must be in `us-east-1` region
+instance. At this time, must be in `us-east-1`, `us-east-2`, `us-west-2`, `eu-west-1`, `eu-west-2`, `eu-central-1` regions
 * `blueprint_id` - (Required) The ID for a virtual private server image
 (see list below)
 * `bundle_id` - (Required) The bundle of specification information (see list below)

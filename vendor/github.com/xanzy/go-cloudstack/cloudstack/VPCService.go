@@ -203,6 +203,7 @@ func (s *VPCService) CreateVPC(p *CreateVPCParams) (*CreateVPCResponse, error) {
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -671,6 +672,7 @@ func (s *VPCService) ListVPCs(p *ListVPCsParams) (*ListVPCsResponse, error) {
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -866,6 +868,7 @@ func (s *VPCService) DeleteVPC(p *DeleteVPCParams) (*DeleteVPCResponse, error) {
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -983,6 +986,7 @@ func (s *VPCService) UpdateVPC(p *UpdateVPCParams) (*UpdateVPCResponse, error) {
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1203,6 +1207,7 @@ func (s *VPCService) RestartVPC(p *RestartVPCParams) (*RestartVPCResponse, error
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1467,6 +1472,7 @@ func (s *VPCService) CreateVPCOffering(p *CreateVPCOfferingParams) (*CreateVPCOf
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1595,6 +1601,7 @@ func (s *VPCService) UpdateVPCOffering(p *UpdateVPCOfferingParams) (*UpdateVPCOf
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1685,6 +1692,7 @@ func (s *VPCService) DeleteVPCOffering(p *DeleteVPCOfferingParams) (*DeleteVPCOf
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1911,6 +1919,7 @@ func (s *VPCService) ListVPCOfferings(p *ListVPCOfferingsParams) (*ListVPCOfferi
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -2103,6 +2112,7 @@ func (s *VPCService) CreatePrivateGateway(p *CreatePrivateGatewayParams) (*Creat
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2338,6 +2348,7 @@ func (s *VPCService) ListPrivateGateways(p *ListPrivateGatewaysParams) (*ListPri
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -2424,6 +2435,7 @@ func (s *VPCService) DeletePrivateGateway(p *DeletePrivateGatewayParams) (*Delet
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2508,6 +2520,7 @@ func (s *VPCService) CreateStaticRoute(p *CreateStaticRouteParams) (*CreateStati
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2595,6 +2608,7 @@ func (s *VPCService) DeleteStaticRoute(p *DeleteStaticRouteParams) (*DeleteStati
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2809,6 +2823,7 @@ func (s *VPCService) ListStaticRoutes(p *ListStaticRoutesParams) (*ListStaticRou
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

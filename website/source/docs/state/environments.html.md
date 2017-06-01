@@ -20,6 +20,11 @@ Environments are a way to create multiple states that contain
 their own data so a single set of Terraform configurations can manage
 multiple distinct sets of resources.
 
+Environments are currently supported by the following backends:
+
+ * [Consul](/docs/backends/types/consul.html)
+ * [S3](/docs/backends/types/s3.html)
+
 ## Using Environments
 
 Terraform starts with a single environment named "default". This
@@ -33,7 +38,7 @@ to switch environments you can use `terraform env select`, etc.
 
 For example, creating an environment:
 
-```
+```text
 $ terraform env new bar
 Created and switched to environment "bar"!
 
@@ -57,7 +62,7 @@ Referencing the current environment is useful for changing behavior based
 on the environment. For example, for non-default environments, it may be useful
 to spin up smaller cluster sizes. You can do this:
 
-```
+```hcl
 resource "aws_instance" "example" {
   count = "${terraform.env == "default" ? 5 : 1}"
 
@@ -68,7 +73,7 @@ resource "aws_instance" "example" {
 Another popular use case is using the environment as part of naming or
 tagging behavior:
 
-```
+```hcl
 resource "aws_instance" "example" {
   tags { Name = "web - ${terraform.env}" }
 
@@ -78,12 +83,13 @@ resource "aws_instance" "example" {
 
 ## Best Practices
 
-An environment alone **should not** be used to manage the difference between
-development, staging, and production. As Terraform configurations get larger,
-it's much more manageable and safer to split one large configuration into many
-smaller ones linked together with terraform_remote_state data sources. This
+An environment can be used to manage the difference between development,
+staging, and production, but it **should not** be treated as the only isolation
+mechanism. As Terraform configurations get larger, it's much more
+manageable and safer to split one large configuration into many
+smaller ones linked together with `terraform_remote_state` data sources. This
 allows teams to delegate ownership and reduce the blast radius of changes.
-For each smaller configuration, you can use environments to model the
+For **each smaller configuration**, you can use environments to model the
 differences between development, staging, and production. However, if you have
 one large Terraform configuration, it is riskier and not recommended to use
 environments to model those differences.
@@ -114,13 +120,15 @@ aren't any more complex than that. Terraform wraps this simple notion with
 a set of protections and support for remote state.
 
 For local state, Terraform stores the state environments in a folder
-`terraform.state.d`. This folder should be committed to version control
+`terraform.tfstate.d`. This folder should be committed to version control
 (just like local-only `terraform.tfstate`).
 
 For [remote state](/docs/state/remote.html), the environments are stored
 directly in the configured [backend](/docs/backends). For example, if you
 use [Consul](/docs/backends/types/consul.html), the environments are stored
-by suffixing the state path with the environment name.
+by suffixing the state path with the environment name. To ensure that
+environment names are stored correctly and safely in all backends, the name
+must be valid to use in a URL path segment without escaping.
 
 The important thing about environment internals is that environments are
 meant to be a shared resource. They aren't a private, local-only notion

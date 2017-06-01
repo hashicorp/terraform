@@ -17,7 +17,7 @@ ElastiCache cluster **outside** of a VPC. If you are using a VPC, see the
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_security_group" "bar" {
   name = "security-group"
 }

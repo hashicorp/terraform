@@ -124,7 +124,7 @@ You should be able to very easily migrate `terraform remote config`
 scripting to the new `terraform init` command.
 
 The new `terraform init` command takes a `-backend-config` flag which is
-eitheran HCL file or a string in the format of `key=value`. This configuration
+either an HCL file or a string in the format of `key=value`. This configuration
 is merged with the backend configuration in your Terraform files.
 This lets you keep secrets out of your actual configuration.
 We call this "partial configuration" and you can learn more in the

@@ -66,6 +66,7 @@ func resourceArmNetworkSecurityGroup() *schema.Resource {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateNetworkSecurityRuleProtocol,
+							StateFunc:    ignoreCaseStateFunc,
 						},
 
 						"source_port_range": {
@@ -145,7 +146,8 @@ func resourceArmNetworkSecurityGroupCreate(d *schema.ResourceData, meta interfac
 		Tags: expandTags(tags),
 	}
 
-	_, err := secClient.CreateOrUpdate(resGroup, name, sg, make(chan struct{}))
+	_, error := secClient.CreateOrUpdate(resGroup, name, sg, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -216,7 +218,8 @@ func resourceArmNetworkSecurityGroupDelete(d *schema.ResourceData, meta interfac
 	resGroup := id.ResourceGroup
 	name := id.Path["networkSecurityGroups"]
 
-	_, err = secGroupClient.Delete(resGroup, name, make(chan struct{}))
+	_, error := secGroupClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
 
 	return err
 }

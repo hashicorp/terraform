@@ -12,7 +12,7 @@ Allows you to manage an Azure SQL Database
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"

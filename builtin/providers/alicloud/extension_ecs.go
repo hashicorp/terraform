@@ -30,3 +30,8 @@ const (
 	GroupRulePolicyAccept = GroupRulePolicy("accept")
 	GroupRulePolicyDrop   = GroupRulePolicy("drop")
 )
+
+const (
+	EcsApiVersion20160314 = "2016-03-14"
+	EcsApiVersion20140526 = "2014-05-26"
+)

@@ -79,6 +79,7 @@ type VpcSetType struct {
 	CidrBlock    string
 	VRouterId    string
 	Description  string
+	IsDefault    bool
 	CreationTime util.ISO6801Time
 }
 

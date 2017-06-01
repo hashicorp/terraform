@@ -12,11 +12,11 @@ Provides a Lightsail Key Pair, for use with Lightsail Instances. These key pairs
 are seperate from EC2 Key Pairs, and must be created or imported for use with
 Lightsail.
 
-~> **Note:** Lightsail is currently only supported in `us-east-1` region.
+~> **Note:** Lightsail is currently only supported in a limited number of AWS Regions, please see ["Regions and Availability Zones in Amazon Lightsail"](https://lightsail.aws.amazon.com/ls/docs/overview/article/understanding-regions-and-availability-zones-in-amazon-lightsail) for more details
 
 ## Example Usage, creating a new Key Pair
 
-```
+```hcl
 # Create a new Lightsail Key Pair
 resource "aws_lightsail_key_pair" "lg_key_pair" {
   name = "lg_key_pair"
@@ -25,7 +25,7 @@ resource "aws_lightsail_key_pair" "lg_key_pair" {
 
 ## Create new Key Pair, encrypting the private key with a PGP Key
 
-```
+```hcl
 resource "aws_lightsail_key_pair" "lg_key_pair" {
   name    = "lg_key_pair"
   pgp_key = "keybase:keybaseusername"
@@ -34,7 +34,7 @@ resource "aws_lightsail_key_pair" "lg_key_pair" {
 
 ## Import an existing public key
 
-```
+```hcl
 resource "aws_lightsail_key_pair" "lg_key_pair" {
   name       = "importing"
   public_key = "${file("~/.ssh/id_rsa.pub")}"

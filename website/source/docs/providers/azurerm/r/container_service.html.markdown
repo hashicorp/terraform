@@ -10,8 +10,12 @@ description: |-
 
 Creates an Azure Container Service Instance
 
+~> **Note:** All arguments including the client secret will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage (DCOS)
-```
+
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG1"
   location = "West US"
@@ -40,7 +44,6 @@ resource "azurerm_container_service" "test" {
     name       = "default"
     count      = 1
     dns_prefix = "acctestagent1"
-    fqdn       = "you.demo.com"
     vm_size    = "Standard_A0"
   }
 
@@ -56,7 +59,7 @@ resource "azurerm_container_service" "test" {
 
 ## Example Usage (Kubernetes)
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG1"
   location = "West US"
@@ -85,7 +88,6 @@ resource "azurerm_container_service" "test" {
     name       = "default"
     count      = 1
     dns_prefix = "acctestagent1"
-    fqdn       = "you.demo.com"
     vm_size    = "Standard_A0"
   }
 
@@ -105,7 +107,8 @@ resource "azurerm_container_service" "test" {
 ```
 
 ## Example Usage (Swarm)
-```
+
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG1"
   location = "West US"
@@ -134,7 +137,6 @@ resource "azurerm_container_service" "test" {
     name       = "default"
     count      = 1
     dns_prefix = "acctestagent1"
-    fqdn       = "you.demo.com"
     vm_size    = "Standard_A0"
   }
 

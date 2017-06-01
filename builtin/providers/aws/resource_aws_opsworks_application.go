@@ -102,8 +102,9 @@ func resourceAwsOpsworksApplication() *schema.Resource {
 						},
 
 						"password": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
 						},
 
 						"revision": {
@@ -187,8 +188,9 @@ func resourceAwsOpsworksApplication() *schema.Resource {
 							},
 						},
 						"private_key": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							Sensitive: true,
 							StateFunc: func(v interface{}) string {
 								switch v.(type) {
 								case string:

@@ -12,7 +12,7 @@ Enables you to manage DNS A Records within Azure DNS.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"
@@ -31,6 +31,7 @@ resource "azurerm_dns_a_record" "test" {
   records             = ["10.0.180.17"]
 }
 ```
+
 ## Argument Reference
 
 The following arguments are supported:

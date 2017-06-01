@@ -14,7 +14,7 @@ Creates a new object ACL in Google cloud storage service (GCS)
 
 Create an object ACL with one owner and one reader.
 
-```js
+```hcl
 resource "google_storage_bucket" "image-store" {
   name     = "image-store-bucket"
   location = "EU"

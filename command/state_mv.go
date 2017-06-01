@@ -133,7 +133,7 @@ func (c *StateMvCommand) Run(args []string) int {
 }
 
 // addableResult takes the result from a filter operation and returns what to
-// call State.Add with. The reason we do this is beacuse in the module case
+// call State.Add with. The reason we do this is because in the module case
 // we must add the list of all modules returned versus just the root module.
 func (c *StateMvCommand) addableResult(results []*terraform.StateFilterResult) interface{} {
 	switch v := results[0].Value.(type) {

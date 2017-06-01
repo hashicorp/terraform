@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -44,7 +45,7 @@ func resourceDigitalOceanDomainCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
-	domain, _, err := client.Domains.Create(opts)
+	domain, _, err := client.Domains.Create(context.Background(), opts)
 	if err != nil {
 		return fmt.Errorf("Error creating Domain: %s", err)
 	}
@@ -58,7 +59,7 @@ func resourceDigitalOceanDomainCreate(d *schema.ResourceData, meta interface{}) 
 func resourceDigitalOceanDomainRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*godo.Client)
 
-	domain, resp, err := client.Domains.Get(d.Id())
+	domain, resp, err := client.Domains.Get(context.Background(), d.Id())
 	if err != nil {
 		// If the domain is somehow already destroyed, mark as
 		// successfully gone
@@ -79,7 +80,7 @@ func resourceDigitalOceanDomainDelete(d *schema.ResourceData, meta interface{}) 
 	client := meta.(*godo.Client)
 
 	log.Printf("[INFO] Deleting Domain: %s", d.Id())
-	_, err := client.Domains.Delete(d.Id())
+	_, err := client.Domains.Delete(context.Background(), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting Domain: %s", err)
 	}

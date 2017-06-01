@@ -230,7 +230,12 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	d.Set("action", statement.Action)
-	d.Set("principal", statement.Principal["Service"])
+	// Check if the pricipal is a cross-account IAM role
+	if _, ok := statement.Principal["AWS"]; ok {
+		d.Set("principal", statement.Principal["AWS"])
+	} else {
+		d.Set("principal", statement.Principal["Service"])
+	}
 
 	if stringEquals, ok := statement.Condition["StringEquals"]; ok {
 		d.Set("source_account", stringEquals["AWS:SourceAccount"])

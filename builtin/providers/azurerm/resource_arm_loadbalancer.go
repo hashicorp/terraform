@@ -92,6 +92,11 @@ func resourceArmLoadBalancer() *schema.Resource {
 				},
 			},
 
+			"private_ip_address": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -122,7 +127,8 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 		LoadBalancerPropertiesFormat: &properties,
 	}
 
-	_, err := loadBalancerClient.CreateOrUpdate(resGroup, name, loadbalancer, make(chan struct{}))
+	_, error := loadBalancerClient.CreateOrUpdate(resGroup, name, loadbalancer, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return errwrap.Wrapf("Error Creating/Updating LoadBalancer {{err}}", err)
 	}
@@ -172,7 +178,17 @@ func resourecArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("resource_group_name", id.ResourceGroup)
 
 	if loadBalancer.LoadBalancerPropertiesFormat != nil && loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations != nil {
-		d.Set("frontend_ip_configuration", flattenLoadBalancerFrontendIpConfiguration(loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations))
+		ipconfigs := loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations
+		d.Set("frontend_ip_configuration", flattenLoadBalancerFrontendIpConfiguration(ipconfigs))
+
+		for _, config := range *ipconfigs {
+			if config.FrontendIPConfigurationPropertiesFormat.PrivateIPAddress != nil {
+				d.Set("private_ip_address", config.FrontendIPConfigurationPropertiesFormat.PrivateIPAddress)
+
+				// set the private IP address at most once
+				break
+			}
+		}
 	}
 
 	flattenAndSetTags(d, loadBalancer.Tags)
@@ -190,7 +206,8 @@ func resourceArmLoadBalancerDelete(d *schema.ResourceData, meta interface{}) err
 	resGroup := id.ResourceGroup
 	name := id.Path["loadBalancers"]
 
-	_, err = loadBalancerClient.Delete(resGroup, name, make(chan struct{}))
+	_, error := loadBalancerClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
 	if err != nil {
 		return errwrap.Wrapf("Error Deleting LoadBalancer {{err}}", err)
 	}

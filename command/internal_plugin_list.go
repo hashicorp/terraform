@@ -31,14 +31,17 @@ import (
 	externalprovider "github.com/hashicorp/terraform/builtin/providers/external"
 	fastlyprovider "github.com/hashicorp/terraform/builtin/providers/fastly"
 	githubprovider "github.com/hashicorp/terraform/builtin/providers/github"
+	gitlabprovider "github.com/hashicorp/terraform/builtin/providers/gitlab"
 	googleprovider "github.com/hashicorp/terraform/builtin/providers/google"
 	grafanaprovider "github.com/hashicorp/terraform/builtin/providers/grafana"
 	herokuprovider "github.com/hashicorp/terraform/builtin/providers/heroku"
+	httpprovider "github.com/hashicorp/terraform/builtin/providers/http"
 	icinga2provider "github.com/hashicorp/terraform/builtin/providers/icinga2"
 	ignitionprovider "github.com/hashicorp/terraform/builtin/providers/ignition"
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
 	kubernetesprovider "github.com/hashicorp/terraform/builtin/providers/kubernetes"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
+	localprovider "github.com/hashicorp/terraform/builtin/providers/local"
 	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
@@ -46,8 +49,10 @@ import (
 	nomadprovider "github.com/hashicorp/terraform/builtin/providers/nomad"
 	ns1provider "github.com/hashicorp/terraform/builtin/providers/ns1"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
+	oneandoneprovider "github.com/hashicorp/terraform/builtin/providers/oneandone"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
 	opsgenieprovider "github.com/hashicorp/terraform/builtin/providers/opsgenie"
+	ovhprovider "github.com/hashicorp/terraform/builtin/providers/ovh"
 	packetprovider "github.com/hashicorp/terraform/builtin/providers/packet"
 	pagerdutyprovider "github.com/hashicorp/terraform/builtin/providers/pagerduty"
 	postgresqlprovider "github.com/hashicorp/terraform/builtin/providers/postgresql"
@@ -70,6 +75,7 @@ import (
 	vaultprovider "github.com/hashicorp/terraform/builtin/providers/vault"
 	vcdprovider "github.com/hashicorp/terraform/builtin/providers/vcd"
 	vsphereprovider "github.com/hashicorp/terraform/builtin/providers/vsphere"
+	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
 	localexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
 	remoteexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
@@ -77,8 +83,8 @@ import (
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
 
-	// Legacy, will remove once it conforms with new structure
-	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
+	//New Provider Builds
+	opcprovider "github.com/hashicorp/terraform-provider-opc/opc"
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
@@ -107,14 +113,17 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"external":     externalprovider.Provider,
 	"fastly":       fastlyprovider.Provider,
 	"github":       githubprovider.Provider,
+	"gitlab":       gitlabprovider.Provider,
 	"google":       googleprovider.Provider,
 	"grafana":      grafanaprovider.Provider,
 	"heroku":       herokuprovider.Provider,
+	"http":         httpprovider.Provider,
 	"icinga2":      icinga2provider.Provider,
 	"ignition":     ignitionprovider.Provider,
 	"influxdb":     influxdbprovider.Provider,
 	"kubernetes":   kubernetesprovider.Provider,
 	"librato":      libratoprovider.Provider,
+	"local":        localprovider.Provider,
 	"logentries":   logentriesprovider.Provider,
 	"mailgun":      mailgunprovider.Provider,
 	"mysql":        mysqlprovider.Provider,
@@ -122,8 +131,10 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"nomad":        nomadprovider.Provider,
 	"ns1":          ns1provider.Provider,
 	"null":         nullprovider.Provider,
+	"oneandone":    oneandoneprovider.Provider,
 	"openstack":    openstackprovider.Provider,
 	"opsgenie":     opsgenieprovider.Provider,
+	"ovh":          ovhprovider.Provider,
 	"packet":       packetprovider.Provider,
 	"pagerduty":    pagerdutyprovider.Provider,
 	"postgresql":   postgresqlprovider.Provider,
@@ -149,13 +160,13 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 }
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
+	"chef":        chefprovisioner.Provisioner,
 	"file":        fileprovisioner.Provisioner,
 	"local-exec":  localexecprovisioner.Provisioner,
 	"remote-exec": remoteexecprovisioner.Provisioner,
 }
 
 func init() {
-	// Legacy provisioners that don't match our heuristics for auto-finding
-	// built-in provisioners.
-	InternalProvisioners["chef"] = func() terraform.ResourceProvisioner { return new(chefprovisioner.ResourceProvisioner) }
+	// New Provider Layouts
+	InternalProviders["opc"] = func() terraform.ResourceProvider { return opcprovider.Provider() }
 }

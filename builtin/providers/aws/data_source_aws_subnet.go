@@ -14,19 +14,25 @@ func dataSourceAwsSubnet() *schema.Resource {
 		Read: dataSourceAwsSubnetRead,
 
 		Schema: map[string]*schema.Schema{
-			"availability_zone": &schema.Schema{
+			"availability_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"cidr_block": &schema.Schema{
+			"cidr_block": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"default_for_az": &schema.Schema{
+			"ipv6_cidr_block": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"default_for_az": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
@@ -34,13 +40,13 @@ func dataSourceAwsSubnet() *schema.Resource {
 
 			"filter": ec2CustomFiltersSchema(),
 
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"state": &schema.Schema{
+			"state": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -48,9 +54,24 @@ func dataSourceAwsSubnet() *schema.Resource {
 
 			"tags": tagsSchemaComputed(),
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
+			},
+
+			"assign_ipv6_address_on_creation": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+
+			"map_public_ip_on_launch": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+
+			"ipv6_cidr_block_association_id": {
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
@@ -76,15 +97,22 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		defaultForAzStr = "true"
 	}
 
-	req.Filters = buildEC2AttributeFilterList(
-		map[string]string{
-			"availabilityZone": d.Get("availability_zone").(string),
-			"cidrBlock":        d.Get("cidr_block").(string),
-			"defaultForAz":     defaultForAzStr,
-			"state":            d.Get("state").(string),
-			"vpc-id":           d.Get("vpc_id").(string),
-		},
-	)
+	filters := map[string]string{
+		"availabilityZone": d.Get("availability_zone").(string),
+		"defaultForAz":     defaultForAzStr,
+		"state":            d.Get("state").(string),
+		"vpc-id":           d.Get("vpc_id").(string),
+	}
+
+	if v, ok := d.GetOk("cidr_block"); ok {
+		filters["cidrBlock"] = v.(string)
+	}
+
+	if v, ok := d.GetOk("ipv6_cidr_block"); ok {
+		filters["ipv6-cidr-block-association.ipv6-cidr-block"] = v.(string)
+	}
+
+	req.Filters = buildEC2AttributeFilterList(filters)
 	req.Filters = append(req.Filters, buildEC2TagFilterList(
 		tagsFromMap(d.Get("tags").(map[string]interface{})),
 	)...)
@@ -118,6 +146,15 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("default_for_az", subnet.DefaultForAz)
 	d.Set("state", subnet.State)
 	d.Set("tags", tagsToMap(subnet.Tags))
+	d.Set("assign_ipv6_address_on_creation", subnet.AssignIpv6AddressOnCreation)
+	d.Set("map_public_ip_on_launch", subnet.MapPublicIpOnLaunch)
+
+	for _, a := range subnet.Ipv6CidrBlockAssociationSet {
+		if *a.Ipv6CidrBlockState.State == "associated" { //we can only ever have 1 IPv6 block associated at once
+			d.Set("ipv6_cidr_block_association_id", a.AssociationId)
+			d.Set("ipv6_cidr_block", a.Ipv6CidrBlock)
+		}
+	}
 
 	return nil
 }

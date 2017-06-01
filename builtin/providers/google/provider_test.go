@@ -1,6 +1,7 @@
 package google
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -86,4 +87,26 @@ func TestProvider_getRegionFromZone(t *testing.T) {
 	if expected != actual {
 		t.Fatalf("Region (%s) did not match expected value: %s", actual, expected)
 	}
+}
+
+// getTestRegion has the same logic as the provider's getRegion, to be used in tests.
+func getTestRegion(is *terraform.InstanceState, config *Config) (string, error) {
+	if res, ok := is.Attributes["region"]; ok {
+		return res, nil
+	}
+	if config.Region != "" {
+		return config.Region, nil
+	}
+	return "", fmt.Errorf("%q: required field is not set", "region")
+}
+
+// getTestProject has the same logic as the provider's getProject, to be used in tests.
+func getTestProject(is *terraform.InstanceState, config *Config) (string, error) {
+	if res, ok := is.Attributes["project"]; ok {
+		return res, nil
+	}
+	if config.Project != "" {
+		return config.Project, nil
+	}
+	return "", fmt.Errorf("%q: required field is not set", "project")
 }

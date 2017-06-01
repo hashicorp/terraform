@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"log"
-	"regexp"
 	"strings"
 	"time"
 
@@ -31,10 +30,19 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 			},
 
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateDbSubnetGroupName,
+			},
+			"name_prefix": &schema.Schema{
 				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
-				Required:     true,
-				ValidateFunc: validateSubnetGroupName,
+				ValidateFunc: validateDbSubnetGroupNamePrefix,
 			},
 
 			"description": &schema.Schema{
@@ -65,8 +73,17 @@ func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) er
 		subnetIds[i] = aws.String(subnetId.(string))
 	}
 
+	var groupName string
+	if v, ok := d.GetOk("name"); ok {
+		groupName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		groupName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		groupName = resource.UniqueId()
+	}
+
 	createOpts := rds.CreateDBSubnetGroupInput{
-		DBSubnetGroupName:        aws.String(d.Get("name").(string)),
+		DBSubnetGroupName:        aws.String(groupName),
 		DBSubnetGroupDescription: aws.String(d.Get("description").(string)),
 		SubnetIds:                subnetIds,
 		Tags:                     tags,
@@ -237,21 +254,4 @@ func buildRDSsubgrpARN(identifier, partition, accountid, region string) (string,
 	arn := fmt.Sprintf("arn:%s:rds:%s:%s:subgrp:%s", partition, region, accountid, identifier)
 	return arn, nil
 
-}
-
-func validateSubnetGroupName(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if !regexp.MustCompile(`^[ .0-9a-z-_]+$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters, hyphens, underscores, periods, and spaces allowed in %q", k))
-	}
-	if len(value) > 255 {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot be longer than 255 characters", k))
-	}
-	if regexp.MustCompile(`(?i)^default$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q is not allowed as %q", "Default", k))
-	}
-	return
 }

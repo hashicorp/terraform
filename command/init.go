@@ -21,11 +21,17 @@ type InitCommand struct {
 func (c *InitCommand) Run(args []string) int {
 	var flagBackend, flagGet bool
 	var flagConfigExtra map[string]interface{}
+
 	args = c.Meta.process(args, false)
 	cmdFlags := c.flagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
 	cmdFlags.Var((*variables.FlagAny)(&flagConfigExtra), "backend-config", "")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
+	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
+
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -188,7 +194,7 @@ Usage: terraform init [options] [SOURCE] [PATH]
 
   This is the first command that should be run for any new or existing
   Terraform configuration per machine. This sets up all the local data
-  necessary to run Terraform that is typically not comitted to version
+  necessary to run Terraform that is typically not committed to version
   control.
 
   This command is always safe to run multiple times. Though subsequent runs
@@ -218,13 +224,22 @@ Options:
                        times. The backend type must be in the configuration
                        itself.
 
+  -force-copy          Suppress prompts about copying state data. This is
+                       equivalent to providing a "yes" to all confirmation
+                       prompts.
+
   -get=true            Download any modules for this configuration.
 
   -input=true          Ask for input if necessary. If false, will error if
                        input was required.
 
+  -lock=true           Lock the state file when locking is supported.
+
+  -lock-timeout=0s     Duration to retry a state lock.
+
   -no-color            If specified, output won't contain any color.
 
+  -reconfigure          Reconfigure the backend, ignoring any saved configuration.
 `
 	return strings.TrimSpace(helpText)
 }

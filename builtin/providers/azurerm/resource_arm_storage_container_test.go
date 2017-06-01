@@ -154,7 +154,9 @@ func testAccARMStorageContainerDisappears(name string, c *storage.Container) res
 			return nil
 		}
 
-		_, err = blobClient.DeleteContainerIfExists(c.Name)
+		reference := blobClient.GetContainerReference(c.Name)
+		options := &storage.DeleteContainerOptions{}
+		_, err = reference.DeleteIfExists(options)
 		if err != nil {
 			return err
 		}

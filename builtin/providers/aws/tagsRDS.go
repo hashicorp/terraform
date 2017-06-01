@@ -121,7 +121,7 @@ func saveTagsRDS(conn *rds.RDS, d *schema.ResourceData, arn string) error {
 // compare a tag against a list of strings and checks if it should
 // be ignored or not
 func tagIgnoredRDS(t *rds.Tag) bool {
-	filter := []string{"^aws:*"}
+	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
 		if r, _ := regexp.MatchString(v, *t.Key); r == true {

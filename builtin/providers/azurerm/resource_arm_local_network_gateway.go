@@ -74,7 +74,8 @@ func resourceArmLocalNetworkGatewayCreate(d *schema.ResourceData, meta interface
 		},
 	}
 
-	_, err := lnetClient.CreateOrUpdate(resGroup, name, gateway, make(chan struct{}))
+	_, error := lnetClient.CreateOrUpdate(resGroup, name, gateway, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return fmt.Errorf("Error creating Azure ARM Local Network Gateway '%s': %s", name, err)
 	}
@@ -101,6 +102,9 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 	name := id.Path["localNetworkGateways"]
+	if name == "" {
+		return fmt.Errorf("Cannot find 'localNetworkGateways' in '%s', make sure it is specified in the ID parameter", d.Id())
+	}
 	resGroup := id.ResourceGroup
 
 	resp, err := lnetClient.Get(resGroup, name)
@@ -137,7 +141,14 @@ func resourceArmLocalNetworkGatewayDelete(d *schema.ResourceData, meta interface
 	name := id.Path["localNetworkGateways"]
 	resGroup := id.ResourceGroup
 
-	_, err = lnetClient.Delete(resGroup, name, make(chan struct{}))
+	deleteResp, error := lnetClient.Delete(resGroup, name, make(chan struct{}))
+	resp := <-deleteResp
+	err = <-error
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM delete request of local network gateway '%s': %s", name, err)
 	}

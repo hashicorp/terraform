@@ -203,6 +203,28 @@ func TestValidateAwsEcsTaskDefinitionNetworkMode(t *testing.T) {
 	}
 }
 
+func TestValidateAwsEcsTaskDefinitionContainerDefinitions(t *testing.T) {
+	validDefinitions := []string{
+		testValidateAwsEcsTaskDefinitionValidContainerDefinitions,
+	}
+	for _, v := range validDefinitions {
+		_, errors := validateAwsEcsTaskDefinitionContainerDefinitions(v, "container_definitions")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid AWS ECS Task Definition Container Definitions: %q", v, errors)
+		}
+	}
+
+	invalidDefinitions := []string{
+		testValidateAwsEcsTaskDefinitionInvalidCommandContainerDefinitions,
+	}
+	for _, v := range invalidDefinitions {
+		_, errors := validateAwsEcsTaskDefinitionContainerDefinitions(v, "container_definitions")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid AWS ECS Task Definition Container Definitions", v)
+		}
+	}
+}
+
 func testAccCheckAWSEcsTaskDefinitionDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ecsconn
 
@@ -665,4 +687,30 @@ TASK_DEFINITION
     host_path = "/ecs/jenkins-home"
   }
 }
+`
+
+var testValidateAwsEcsTaskDefinitionValidContainerDefinitions = `
+[
+  {
+    "name": "sleep",
+    "image": "busybox",
+    "cpu": 10,
+    "command": ["sleep","360"],
+    "memory": 10,
+    "essential": true
+  }
+]
+`
+
+var testValidateAwsEcsTaskDefinitionInvalidCommandContainerDefinitions = `
+[
+  {
+    "name": "sleep",
+    "image": "busybox",
+    "cpu": 10,
+    "command": "sleep 360",
+    "memory": 10,
+    "essential": true
+  }
+]
 `

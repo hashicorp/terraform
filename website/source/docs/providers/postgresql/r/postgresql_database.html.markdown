@@ -15,12 +15,12 @@ within a PostgreSQL server instance.
 
 ## Usage
 
-```
+```hcl
 resource "postgresql_database" "my_db" {
   name              = "my_db"
   owner             = "my_role"
   template          = "template0"
-  collation         = "C"
+  lc_collate        = "C"
   connection_limit  = -1
   allow_connections = true
 }
@@ -87,7 +87,7 @@ resource "postgresql_database" "my_db" {
 `postgresql_database` supports importing resources.  Supposing the following
 Terraform:
 
-```
+```hcl
 provider "postgresql" {
   alias = "admindb"
 }

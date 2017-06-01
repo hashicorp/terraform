@@ -6,7 +6,7 @@ description: |-
   Manages Arukas Containers
 ---
 
-# arukas container
+# arukas_container
 
 Provides container resource. This allows container to be created, updated and deleted.
 

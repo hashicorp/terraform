@@ -1,18 +1,18 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_lb_listener_v2"
-sidebar_current: "docs-openstack-resource-lbaas-listener-v2"
+sidebar_current: "docs-openstack-resource-lb-listener-v2"
 description: |-
   Manages a V2 listener resource within OpenStack.
 ---
 
-# openstack\_lbaas\_listener\_v2
+# openstack\_lb\_listener\_v2
 
 Manages a V2 listener resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_lb_listener_v2" "listener_1" {
   protocol        = "HTTP"
   protocol_port   = 8080

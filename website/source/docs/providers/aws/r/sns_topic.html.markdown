@@ -12,7 +12,7 @@ Provides an SNS topic resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_sns_topic" "user_updates" {
   name = "user-updates-topic"
 }

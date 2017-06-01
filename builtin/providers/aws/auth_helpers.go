@@ -54,7 +54,7 @@ func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string)
 	awsErr, ok := err.(awserr.Error)
 	// AccessDenied and ValidationError can be raised
 	// if credentials belong to federated profile, so we ignore these
-	if !ok || (awsErr.Code() != "AccessDenied" && awsErr.Code() != "ValidationError") {
+	if !ok || (awsErr.Code() != "AccessDenied" && awsErr.Code() != "ValidationError" && awsErr.Code() != "InvalidClientTokenId") {
 		return "", "", fmt.Errorf("Failed getting account ID via 'iam:GetUser': %s", err)
 	}
 	log.Printf("[DEBUG] Getting account ID via iam:GetUser failed: %s", err)
@@ -134,7 +134,7 @@ func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
 			if usedEndpoint == "" {
 				usedEndpoint = "default location"
 			}
-			log.Printf("[WARN] Ignoring AWS metadata API endpoint at %s "+
+			log.Printf("[INFO] Ignoring AWS metadata API endpoint at %s "+
 				"as it doesn't return any instance-id", usedEndpoint)
 		}
 	}

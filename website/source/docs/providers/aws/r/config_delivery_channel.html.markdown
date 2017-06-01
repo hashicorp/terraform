@@ -14,7 +14,7 @@ Provides an AWS Config Delivery Channel.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_config_delivery_channel" "foo" {
   name           = "example"
   s3_bucket_name = "${aws_s3_bucket.b.bucket}"

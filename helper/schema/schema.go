@@ -23,6 +23,9 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// type used for schema package context keys
+type contextKey string
+
 // Schema is used to describe the structure of a value.
 //
 // Read the documentation of the struct elements for important details.
@@ -62,10 +65,20 @@ type Schema struct {
 	DiffSuppressFunc SchemaDiffSuppressFunc
 
 	// If this is non-nil, then this will be a default value that is used
-	// when this item is not set in the configuration/state.
+	// when this item is not set in the configuration.
 	//
-	// DefaultFunc can be specified if you want a dynamic default value.
-	// Only one of Default or DefaultFunc can be set.
+	// DefaultFunc can be specified to compute a dynamic default.
+	// Only one of Default or DefaultFunc can be set. If DefaultFunc is
+	// used then its return value should be stable to avoid generating
+	// confusing/perpetual diffs.
+	//
+	// Changing either Default or the return value of DefaultFunc can be
+	// a breaking change, especially if the attribute in question has
+	// ForceNew set. If a default needs to change to align with changing
+	// assumptions in an upstream API then it may be necessary to also use
+	// the MigrateState function on the resource to change the state to match,
+	// or have the Read function adjust the state value to align with the
+	// new default.
 	//
 	// If Required is true above, then Default cannot be set. DefaultFunc
 	// can be set with Required. If the DefaultFunc returns nil, then there
@@ -632,6 +645,19 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 			}
 		}
 
+		// Computed-only field
+		if v.Computed && !v.Optional {
+			if v.ValidateFunc != nil {
+				return fmt.Errorf("%s: ValidateFunc is for validating user input, "+
+					"there's nothing to validate on computed-only field", k)
+			}
+			if v.DiffSuppressFunc != nil {
+				return fmt.Errorf("%s: DiffSuppressFunc is for suppressing differences"+
+					" between config and state representation. "+
+					"There is no config for computed-only field, nothing to compare.", k)
+			}
+		}
+
 		if v.ValidateFunc != nil {
 			switch v.Type {
 			case TypeList, TypeSet:
@@ -641,19 +667,6 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 	}
 
 	return nil
-}
-
-func (m schemaMap) markAsRemoved(k string, schema *Schema, diff *terraform.InstanceDiff) {
-	existingDiff, ok := diff.Attributes[k]
-	if ok {
-		existingDiff.NewRemoved = true
-		diff.Attributes[k] = schema.finalizeDiff(existingDiff)
-		return
-	}
-
-	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
-		NewRemoved: true,
-	})
 }
 
 func (m schemaMap) diff(
@@ -744,6 +757,7 @@ func (m schemaMap) diffList(
 		diff.Attributes[k+".#"] = &terraform.ResourceAttrDiff{
 			Old:         oldStr,
 			NewComputed: true,
+			RequiresNew: schema.ForceNew,
 		}
 		return nil
 	}
@@ -779,7 +793,6 @@ func (m schemaMap) diffList(
 
 	switch t := schema.Elem.(type) {
 	case *Resource:
-		countDiff, cOk := diff.GetAttribute(k + ".#")
 		// This is a complex resource
 		for i := 0; i < maxLen; i++ {
 			for k2, schema := range t.Schema {
@@ -787,15 +800,6 @@ func (m schemaMap) diffList(
 				err := m.diff(subK, schema, diff, d, all)
 				if err != nil {
 					return err
-				}
-
-				// If parent list is being removed
-				// remove all subfields which were missed by the diff func
-				// We process these separately because type-specific diff functions
-				// lack the context (hierarchy of fields)
-				subKeyIsCount := strings.HasSuffix(subK, ".#")
-				if cOk && countDiff.New == "0" && !subKeyIsCount {
-					m.markAsRemoved(subK, schema, diff)
 				}
 			}
 		}
@@ -1006,7 +1010,6 @@ func (m schemaMap) diffSet(
 		for _, code := range list {
 			switch t := schema.Elem.(type) {
 			case *Resource:
-				countDiff, cOk := diff.GetAttribute(k + ".#")
 				// This is a complex resource
 				for k2, schema := range t.Schema {
 					subK := fmt.Sprintf("%s.%s.%s", k, code, k2)
@@ -1014,17 +1017,7 @@ func (m schemaMap) diffSet(
 					if err != nil {
 						return err
 					}
-
-					// If parent set is being removed
-					// remove all subfields which were missed by the diff func
-					// We process these separately because type-specific diff functions
-					// lack the context (hierarchy of fields)
-					subKeyIsCount := strings.HasSuffix(subK, ".#")
-					if cOk && countDiff.New == "0" && !subKeyIsCount {
-						m.markAsRemoved(subK, schema, diff)
-					}
 				}
-
 			case *Schema:
 				// Copy the schema so that we can set Computed/ForceNew from
 				// the parent schema (the TypeSet).
@@ -1219,6 +1212,13 @@ func (m schemaMap) validateList(
 	for i, raw := range raws {
 		key := fmt.Sprintf("%s.%d", k, i)
 
+		// Reify the key value from the ResourceConfig.
+		// If the list was computed we have all raw values, but some of these
+		// may be known in the config, and aren't individually marked as Computed.
+		if r, ok := c.Get(key); ok {
+			raw = r
+		}
+
 		var ws2 []string
 		var es2 []error
 		switch t := schema.Elem.(type) {
@@ -1373,8 +1373,8 @@ func (m schemaMap) validateObject(
 	k string,
 	schema map[string]*Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
-	raw, _ := c.GetRaw(k)
-	if _, ok := raw.(map[string]interface{}); !ok {
+	raw, _ := c.Get(k)
+	if _, ok := raw.(map[string]interface{}); !ok && !c.IsComputed(k) {
 		return nil, []error{fmt.Errorf(
 			"%s: expected object, got %s",
 			k, reflect.ValueOf(raw).Kind())}

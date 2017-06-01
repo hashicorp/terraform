@@ -54,13 +54,15 @@ func (client UsageClient) List(location string) (result ListUsagesResult, err er
 
 	req, err := client.ListPreparer(location)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "compute.UsageClient", "List", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "compute.UsageClient", "List", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "compute.UsageClient", "List", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "compute.UsageClient", "List", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListResponder(resp)
@@ -78,8 +80,9 @@ func (client UsageClient) ListPreparer(location string) (*http.Request, error) {
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-04-30-preview"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(

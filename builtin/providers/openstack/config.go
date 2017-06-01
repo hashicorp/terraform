@@ -113,8 +113,8 @@ func (c *Config) loadAndValidate() error {
 	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: config}
 	client.HTTPClient = http.Client{
 		Transport: &LogRoundTripper{
-			rt:      transport,
-			osDebug: osDebug,
+			Rt:      transport,
+			OsDebug: osDebug,
 		},
 	}
 
@@ -147,6 +147,13 @@ func (c *Config) blockStorageV2Client(region string) (*gophercloud.ServiceClient
 
 func (c *Config) computeV2Client(region string) (*gophercloud.ServiceClient, error) {
 	return openstack.NewComputeV2(c.osClient, gophercloud.EndpointOpts{
+		Region:       region,
+		Availability: c.getEndpointType(),
+	})
+}
+
+func (c *Config) dnsV2Client(region string) (*gophercloud.ServiceClient, error) {
+	return openstack.NewDNSV2(c.osClient, gophercloud.EndpointOpts{
 		Region:       region,
 		Availability: c.getEndpointType(),
 	})

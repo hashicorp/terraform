@@ -13,14 +13,15 @@ Config Map can be used to store fine-grained information like individual propert
 
 ## Example Usage
 
-```
+```hcl
 resource "kubernetes_config_map" "example" {
   metadata {
-  	name = "my_config"
+    name = "my-config"
   }
+
   data {
-  	api_host = "myhost:443"
-  	db_host = "dbhost:5432"
+    api_host = "myhost:443"
+    db_host  = "dbhost:5432"
   }
 }
 ```
@@ -53,8 +54,8 @@ The following arguments are supported:
 
 ## Import
 
-Config Map can be imported using its name, e.g.
+Config Map can be imported using its namespace and name, e.g.
 
 ```
-$ terraform import kubernetes_config_map.example my_config
+$ terraform import kubernetes_config_map.example default/my-config
 ```

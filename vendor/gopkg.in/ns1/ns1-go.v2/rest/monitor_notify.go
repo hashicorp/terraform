@@ -48,9 +48,8 @@ func (s *NotificationsService) Get(listID string) (*monitor.NotifyList, *http.Re
 			if err.(*Error).Message == "unknown notification list" {
 				return nil, resp, ErrListMissing
 			}
-		default:
-			return nil, resp, err
 		}
+		return nil, resp, err
 	}
 
 	return &nl, resp, nil
@@ -73,9 +72,8 @@ func (s *NotificationsService) Create(nl *monitor.NotifyList) (*http.Response, e
 			if err.(*Error).Message == fmt.Sprintf("notification list with name \"%s\" exists", nl.Name) {
 				return resp, ErrListExists
 			}
-		default:
-			return resp, err
 		}
+		return resp, err
 	}
 
 	return resp, nil

@@ -37,10 +37,11 @@ func resourceArmCdnProfile() *schema.Resource {
 			},
 
 			"sku": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateCdnProfileSku,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateFunc:     validateCdnProfileSku,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"tags": tagsSchema(),
@@ -68,7 +69,8 @@ func resourceArmCdnProfileCreate(d *schema.ResourceData, meta interface{}) error
 		},
 	}
 
-	_, err := cdnProfilesClient.Create(resGroup, name, cdnProfile, make(chan struct{}))
+	_, error := cdnProfilesClient.Create(resGroup, name, cdnProfile, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -133,7 +135,8 @@ func resourceArmCdnProfileUpdate(d *schema.ResourceData, meta interface{}) error
 		Tags: expandTags(newTags),
 	}
 
-	_, err := cdnProfilesClient.Update(resGroup, name, props, make(chan struct{}))
+	_, error := cdnProfilesClient.Update(resGroup, name, props, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM update request to update CDN Profile %q: %s", name, err)
 	}
@@ -151,7 +154,8 @@ func resourceArmCdnProfileDelete(d *schema.ResourceData, meta interface{}) error
 	resGroup := id.ResourceGroup
 	name := id.Path["profiles"]
 
-	_, err = cdnProfilesClient.Delete(resGroup, name, make(chan struct{}))
+	_, error := cdnProfilesClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
 	// TODO: check the status code
 
 	return err

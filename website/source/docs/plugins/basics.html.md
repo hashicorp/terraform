@@ -24,7 +24,7 @@ exposes an implementation for a specific service, such as AWS, or provisioner,
 such as bash. Plugins are executed as a separate process and communicate with
 the main Terraform binary over an RPC interface.
 
-More details are available in 
+More details are available in
 [Internal Docs](/docs/internals/internal-plugins.html).
 
 The code within the binaries must adhere to certain interfaces.
@@ -41,9 +41,9 @@ are defined is `~/.terraformrc` for Unix-like systems and
 
 An example that configures a new provider is shown below:
 
-```
+```hcl
 providers {
-	privatecloud = "/path/to/privatecloud"
+  privatecloud = "/path/to/privatecloud"
 }
 ```
 
@@ -74,7 +74,7 @@ the road.
 With the directory made, create a `main.go` file. This project will
 be a binary so the package is "main":
 
-```
+```golang
 package main
 
 import (

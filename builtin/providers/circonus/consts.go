@@ -17,6 +17,19 @@ const (
 	providerAutoTagAttr = "auto_tag"
 	providerKeyAttr     = "key"
 
+	apiConsulCheckBlacklist    = "check_name_blacklist"
+	apiConsulDatacenterAttr    = "dc"
+	apiConsulNodeBlacklist     = "node_blacklist"
+	apiConsulServiceBlacklist  = "service_blacklist"
+	apiConsulStaleAttr         = "stale"
+	checkConsulTokenHeader     = `X-Consul-Token`
+	checkConsulV1NodePrefix    = "node"
+	checkConsulV1Prefix        = "/v1/health"
+	checkConsulV1ServicePrefix = "service"
+	checkConsulV1StatePrefix   = "state"
+	defaultCheckConsulHTTPAddr = "http://consul.service.consul"
+	defaultCheckConsulPort     = "8500"
+
 	defaultCheckJSONMethod  = "GET"
 	defaultCheckJSONPort    = "443"
 	defaultCheckJSONVersion = "1.1"

@@ -122,6 +122,31 @@ func TestAccAzureRMServiceBusNamespace_readDefaultKeys(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMServiceBusNamespace_NonStandardCasing(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := testAccAzureRMServiceBusNamespaceNonStandardCasing(ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMServiceBusNamespaceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMServiceBusNamespaceExists("azurerm_servicebus_namespace.test"),
+				),
+			},
+			resource.TestStep{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMServiceBusNamespaceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).serviceBusNamespacesClient
 
@@ -140,7 +165,7 @@ func testCheckAzureRMServiceBusNamespaceDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("ServiceBus Namespace still exists:\n%#v", resp.NamespaceProperties)
+			return fmt.Errorf("ServiceBus Namespace still exists:\n%+v", resp)
 		}
 	}
 
@@ -165,7 +190,7 @@ func testCheckAzureRMServiceBusNamespaceExists(name string) resource.TestCheckFu
 
 		resp, err := conn.Get(resourceGroup, namespaceName)
 		if err != nil {
-			return fmt.Errorf("Bad: Get on serviceBusNamespacesClient: %s", err)
+			return fmt.Errorf("Bad: Get on serviceBusNamespacesClient: %+v", err)
 		}
 
 		if resp.StatusCode == http.StatusNotFound {
@@ -188,3 +213,18 @@ resource "azurerm_servicebus_namespace" "test" {
     sku = "basic"
 }
 `
+
+func testAccAzureRMServiceBusNamespaceNonStandardCasing(ri int) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+resource "azurerm_servicebus_namespace" "test" {
+    name = "acctestservicebusnamespace-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    sku = "Basic"
+}
+`, ri, ri)
+}

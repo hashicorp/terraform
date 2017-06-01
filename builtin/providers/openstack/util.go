@@ -2,8 +2,10 @@ package openstack
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
+	"github.com/Unknwon/com"
 	"github.com/gophercloud/gophercloud"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -16,12 +18,7 @@ func BuildRequest(opts interface{}, parent string) (map[string]interface{}, erro
 		return nil, err
 	}
 
-	if b["value_specs"] != nil {
-		for k, v := range b["value_specs"].(map[string]interface{}) {
-			b[k] = v
-		}
-		delete(b, "value_specs")
-	}
+	b = AddValueSpecs(b)
 
 	return map[string]interface{}{parent: b}, nil
 }
@@ -50,6 +47,19 @@ func GetRegion(d *schema.ResourceData) string {
 	return ""
 }
 
+// AddValueSpecs expands the 'value_specs' object and removes 'value_specs'
+// from the reqeust body.
+func AddValueSpecs(body map[string]interface{}) map[string]interface{} {
+	if body["value_specs"] != nil {
+		for k, v := range body["value_specs"].(map[string]interface{}) {
+			body[k] = v
+		}
+		delete(body, "value_specs")
+	}
+
+	return body
+}
+
 // MapValueSpecs converts ResourceData into a map
 func MapValueSpecs(d *schema.ResourceData) map[string]string {
 	m := make(map[string]string)
@@ -57,4 +67,24 @@ func MapValueSpecs(d *schema.ResourceData) map[string]string {
 		m[key] = val.(string)
 	}
 	return m
+}
+
+// List of headers that need to be redacted
+var REDACT_HEADERS = []string{"x-auth-token", "x-auth-key", "x-service-token",
+	"x-storage-token", "x-account-meta-temp-url-key", "x-account-meta-temp-url-key-2",
+	"x-container-meta-temp-url-key", "x-container-meta-temp-url-key-2", "set-cookie",
+	"x-subject-token"}
+
+// RedactHeaders processes a headers object, returning a redacted list
+func RedactHeaders(headers http.Header) (processedHeaders []string) {
+	for name, header := range headers {
+		for _, v := range header {
+			if com.IsSliceContainsStr(REDACT_HEADERS, name) {
+				processedHeaders = append(processedHeaders, fmt.Sprintf("%v: %v", name, "***"))
+			} else {
+				processedHeaders = append(processedHeaders, fmt.Sprintf("%v: %v", name, v))
+			}
+		}
+	}
+	return
 }

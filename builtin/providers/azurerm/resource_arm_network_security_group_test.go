@@ -153,7 +153,8 @@ func testCheckAzureRMNetworkSecurityGroupDisappears(name string) resource.TestCh
 
 		conn := testAccProvider.Meta().(*ArmClient).secGroupClient
 
-		_, err := conn.Delete(resourceGroup, sgName, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, sgName, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on secGroupClient: %s", err)
 		}
@@ -204,7 +205,7 @@ resource "azurerm_network_security_group" "test" {
     	priority = 100
     	direction = "Inbound"
     	access = "Allow"
-    	protocol = "Tcp"
+    	protocol = "TCP"
     	source_port_range = "*"
     	destination_port_range = "*"
     	source_address_prefix = "*"

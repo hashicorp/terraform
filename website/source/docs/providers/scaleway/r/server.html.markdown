@@ -13,7 +13,7 @@ For additional details please refer to [API documentation](https://developer.sca
 
 ## Example Usage
 
-```
+```hcl
 resource "scaleway_server" "test" {
   name  = "test"
   image = "5faef9cd-ea9b-4a63-9171-9e26bec03dbc"
@@ -45,6 +45,9 @@ Field `name`, `type`, `tags`, `dynamic_ip_required`, `security_group` are editab
 
 You can attach additional volumes to your instance, which will share the lifetime
 of your `scaleway_server` resource.
+
+**Warning:** Using the `volume` attribute does not modify the System Volume provided default with every `scaleway_server` instance.
+Instead it adds additional volumes to the server instance.
 
 The `volume` mapping supports the following:
 
