@@ -99,7 +99,8 @@ func testCheckAzureRMSubnetDisappears(name string) resource.TestCheckFunc {
 
 		conn := testAccProvider.Meta().(*ArmClient).subnetClient
 
-		_, err := conn.Delete(resourceGroup, vnetName, name, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, vnetName, name, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on subnetClient: %s", err)
 		}

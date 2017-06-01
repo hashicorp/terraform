@@ -111,7 +111,8 @@ func resourceArmRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	_, err := routeTablesClient.CreateOrUpdate(resGroup, name, routeSet, make(chan struct{}))
+	_, error := routeTablesClient.CreateOrUpdate(resGroup, name, routeSet, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -180,7 +181,8 @@ func resourceArmRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 	resGroup := id.ResourceGroup
 	name := id.Path["routeTables"]
 
-	_, err = routeTablesClient.Delete(resGroup, name, make(chan struct{}))
+	_, error := routeTablesClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
 
 	return err
 }
