@@ -131,10 +131,9 @@ type ResourceDiff struct {
 	// A writer that writes overridden new fields.
 	newWriter *newValueWriter
 
-	// Tracks which keys have been updated by SetNew, SetNewComputed, and SetDiff
-	// to ensure that the diff does not get re-run on keys that were not touched,
-	// or diffs that were just removed (re-running on the latter would just roll
-	// back the removal).
+	// Tracks which keys have been updated by ResourceDiff to ensure that the
+	// diff does not get re-run on keys that were not touched, or diffs that were
+	// just removed (re-running on the latter would just roll back the removal).
 	updatedKeys map[string]bool
 }
 
@@ -198,8 +197,8 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 	return d
 }
 
-// UpdatedKeys returns the keys that were updated by SetNew, SetNewComputed, or
-// SetDiff. These are the only keys that a diff should be re-calculated for.
+// UpdatedKeys returns the keys that were updated by this ResourceDiff run.
+// These are the only keys that a diff should be re-calculated for.
 func (d *ResourceDiff) UpdatedKeys() []string {
 	var s []string
 	for k := range d.updatedKeys {
@@ -208,9 +207,9 @@ func (d *ResourceDiff) UpdatedKeys() []string {
 	return s
 }
 
-// Clear wipes the diff for a particular key. It is called by SetDiff to remove
-// any possibility of conflicts, but can be called on its own to just remove a
-// specific key from the diff completely.
+// Clear wipes the diff for a particular key. It is called by ResourceDiff's
+// functionality to remove any possibility of conflicts, but can be called on
+// its own to just remove a specific key from the diff completely.
 //
 // Note that this does not wipe an override. This function is only allowed on
 // computed keys.
@@ -260,7 +259,7 @@ func (d *ResourceDiff) SetNew(key string, value interface{}) error {
 		return err
 	}
 
-	return d.setDiff(key, d.get(strings.Split(key, "."), "state").Value, value, false)
+	return d.setDiff(key, value, false)
 }
 
 // SetNewComputed functions like SetNew, except that it blanks out a new value
@@ -272,11 +271,11 @@ func (d *ResourceDiff) SetNewComputed(key string) error {
 		return err
 	}
 
-	return d.setDiff(key, d.get(strings.Split(key, "."), "state").Value, nil, true)
+	return d.setDiff(key, nil, true)
 }
 
 // setDiff performs common diff setting behaviour.
-func (d *ResourceDiff) setDiff(key string, old, new interface{}, computed bool) error {
+func (d *ResourceDiff) setDiff(key string, new interface{}, computed bool) error {
 	if err := d.clear(key); err != nil {
 		return err
 	}
@@ -300,9 +299,9 @@ func (d *ResourceDiff) ForceNew(key string) error {
 		return fmt.Errorf("ForceNew: No changes for %s", key)
 	}
 
-	old, new := d.GetChange(key)
+	_, new := d.GetChange(key)
 	d.schema[key].ForceNew = true
-	return d.setDiff(key, old, new, false)
+	return d.setDiff(key, new, false)
 }
 
 // Get hands off to ResourceData.Get.
