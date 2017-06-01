@@ -31,6 +31,7 @@ BUG FIXES:
 * provider/aws: ForceNew aws_launch_config on ebs_block_device change [GH-14899]
 * provider/aws: Avoid crash when EgressOnly IGW disappears [GH-14929]
 * provider/aws: Allow IPv6/IPv4 addresses to coexist [GH-13702]
+* provider/aws: Expect exception on deletion of APIG Usage Plan Key [GH-14958]
 * provider/aws: Fix panic on nil dead_letter_config [GH-14964]
 * provider/aws: Work around IAM eventual consistency in CW Log Subs [GH-14959]
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
