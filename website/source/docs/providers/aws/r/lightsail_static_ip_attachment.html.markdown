@@ -10,7 +10,7 @@ description: |-
 
 Provides a static IP address attachment - relationship between a Lightsail static IP & Lightsail instance.
 
-~> **Note:** Lightsail is currently only supported in `us-east-1` region.
+~> **Note:** Lightsail is currently only supported in a limited number of AWS Regions, please see ["Regions and Availability Zones in Amazon Lightsail"](https://lightsail.aws.amazon.com/ls/docs/overview/article/understanding-regions-and-availability-zones-in-amazon-lightsail) for more details
 
 ## Example Usage
 
