@@ -1,5 +1,9 @@
 ## 0.9.7 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* provider/azurerm: Users of `azurerm_container_registry` will need to set `Sku` to `Basic` - this value doesn't exist in prior releases (#14004)
+
 FEATURES:
 
  * **New Data Source:** `aws_elastic_beanstalk_solution_stack` [GH-14944]
@@ -15,6 +19,7 @@ IMPROVEMENTS:
 * provider/aws: Expose RDS instance and cluster resource id [GH-14882]
 * provider/aws: Export internal tunnel addresses + document [GH-14835]
 * provider/aws: Fix misleading error in aws_route validation [GH-14972]
+* Updating the Azure SDK to v10.0.2-beta [GH-14004]
 * provider/digitalocean: Add support for changing TTL on DigitalOcean domain records. [GH-14805]
 * provider/google: Add ability to import Google Compute persistent disks [GH-14573]
 * provider/google: `google_container_cluster.master_auth` should be optional [GH-14630]
