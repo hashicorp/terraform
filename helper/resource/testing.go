@@ -70,7 +70,6 @@ type Sweeper struct {
 
 func init() {
 	sweeperFuncs = make(map[string]*Sweeper)
-	// sweeperRan = make(map[string]bool)
 }
 
 // AddTestSweepers function adds a given name and Sweeper configuration
@@ -86,19 +85,41 @@ func AddTestSweepers(name string, s *Sweeper) {
 	sweeperFuncs[name] = s
 }
 
+func filterSweepers(f string) []string {
+	sweepersFiltered := strings.Split(strings.ToLower(f), ",")
+	if len(sweepersFiltered) == 1 && sweepersFiltered[0] == "" {
+		return []string{}
+	}
+	return sweepersFiltered
+}
+
 func TestMain(m *testing.M) {
 	flag.Parse()
 	if *flagSweep != "" {
 		// parse flagSweep contents for regions to run
 		regions := strings.Split(*flagSweep, ",")
+		sweepersFiltered := filterSweepers(*flagSweepRun)
 		for _, region := range regions {
 			fmt.Printf("[DEBUG] Running Sweepers for region (%s):\n", region)
 			// reset sweeperRan for each region
 			sweeperRan = map[string]bool{}
 
-			for _, sweeper := range sweeperFuncs {
-				if err := runSweeperWithRegion(region, sweeper); err != nil {
-					log.Fatalf("[ERR] error running (%s): %s", sweeper.Name, err)
+			for name, sweeper := range sweeperFuncs {
+				var match bool
+				if len(sweepersFiltered) > 0 {
+					for _, s := range sweepersFiltered {
+						if strings.Contains(strings.ToLower(name), s) {
+							match = true
+						}
+					}
+				} else {
+					log.Printf("[DEBUG] No specific sweeper input, running all")
+					match = true
+				}
+				if match {
+					if err := runSweeperWithRegion(region, sweeper); err != nil {
+						log.Fatalf("[ERR] error running (%s): %s", sweeper.Name, err)
+					}
 				}
 			}
 
