@@ -40,10 +40,11 @@ func resourceArmServiceBusNamespace() *schema.Resource {
 			},
 
 			"sku": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateServiceBusNamespaceSku,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateFunc:     validateServiceBusNamespaceSku,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"capacity": {
