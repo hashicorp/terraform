@@ -42,7 +42,7 @@ import (
 // destroyed.
 
 var flagSweep = flag.String("sweep", "", "List of Regions to run available Sweepers")
-var flagSweepRun = flag.String("sweep-run", "", "Comman seperated list of Sweeper Tests to run")
+var flagSweepRun = flag.String("sweep-run", "", "Comma seperated list of Sweeper Tests to run")
 var sweeperFuncs map[string]*Sweeper
 
 // map of sweepers that have ran, and the success/fail status based on any error
@@ -128,10 +128,9 @@ func TestMain(m *testing.M) {
 				fmt.Printf("\t- %s\n", s)
 			}
 		}
-		os.Exit(0)
+	} else {
+		os.Exit(m.Run())
 	}
-
-	os.Exit(m.Run())
 }
 
 func runSweeperWithRegion(region string, s *Sweeper) error {

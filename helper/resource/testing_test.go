@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -119,17 +121,6 @@ func TestTest(t *testing.T) {
 	if !mp.TestResetCalled {
 		t.Fatal("didn't call TestReset")
 	}
-}
-
-func TestTest_Main(t *testing.T) {
-	flag.Parse()
-	if *flagSweep == "" {
-		// Tests for the TestMain method used for Sweepers will panic without the -sweep
-		// flag specified. Mock the value for now
-		*flagSweep = "us-east-1"
-	}
-	TestMain(&testing.M{})
-	t.Fatalf("fall")
 }
 
 func TestTest_plan_only(t *testing.T) {
@@ -631,3 +622,120 @@ func testProvider() *terraform.MockResourceProvider {
 const testConfigStr = `
 resource "test_instance" "foo" {}
 `
+
+func TestTest_Main(t *testing.T) {
+	flag.Parse()
+	if *flagSweep == "" {
+		// Tests for the TestMain method used for Sweepers will panic without the -sweep
+		// flag specified. Mock the value for now
+		*flagSweep = "us-east-1"
+	}
+
+	cases := []struct {
+		Name            string
+		ShouldErr       bool
+		Sweepers        map[string]*Sweeper
+		ExpectedRunList []string
+		SweepRun        string
+	}{
+		{
+			Name: "normal",
+			Sweepers: map[string]*Sweeper{
+				"aws_dummy": &Sweeper{
+					Name: "aws_dummy",
+					F:    mockSweeperFunc,
+				},
+			},
+			ExpectedRunList: []string{"aws_dummy"},
+		},
+		{
+			Name: "with dep",
+			Sweepers: map[string]*Sweeper{
+				"aws_dummy": &Sweeper{
+					Name: "aws_dummy",
+					F:    mockSweeperFunc,
+				},
+				"aws_top": &Sweeper{
+					Name:         "aws_top",
+					Dependencies: []string{"aws_sub"},
+					F:            mockSweeperFunc,
+				},
+				"aws_sub": &Sweeper{
+					Name: "aws_sub",
+					F:    mockSweeperFunc,
+				},
+			},
+			ExpectedRunList: []string{"aws_dummy", "aws_sub", "aws_top"},
+		},
+		{
+			Name: "with filter",
+			Sweepers: map[string]*Sweeper{
+				"aws_dummy": &Sweeper{
+					Name: "aws_dummy",
+					F:    mockSweeperFunc,
+				},
+				"aws_top": &Sweeper{
+					Name:         "aws_top",
+					Dependencies: []string{"aws_sub"},
+					F:            mockSweeperFunc,
+				},
+				"aws_sub": &Sweeper{
+					Name: "aws_sub",
+					F:    mockSweeperFunc,
+				},
+			},
+			ExpectedRunList: []string{"aws_dummy"},
+			SweepRun:        "aws_dummy",
+		},
+		{
+			Name: "with dep and filter",
+			Sweepers: map[string]*Sweeper{
+				"aws_dummy": &Sweeper{
+					Name: "aws_dummy",
+					F:    mockSweeperFunc,
+				},
+				"aws_top": &Sweeper{
+					Name:         "aws_top",
+					Dependencies: []string{"aws_sub"},
+					F:            mockSweeperFunc,
+				},
+				"aws_sub": &Sweeper{
+					Name: "aws_sub",
+					F:    mockSweeperFunc,
+				},
+			},
+			ExpectedRunList: []string{"aws_top", "aws_sub"},
+			SweepRun:        "aws_top",
+		},
+	}
+
+	for _, tc := range cases {
+		// reset sweepers
+		sweeperFuncs = map[string]*Sweeper{}
+
+		t.Run(tc.Name, func(t *testing.T) {
+			for n, s := range tc.Sweepers {
+				AddTestSweepers(n, s)
+			}
+			*flagSweepRun = tc.SweepRun
+
+			TestMain(&testing.M{})
+
+			// get list of tests ran from sweeperRan keys
+			var keys []string
+			for k, _ := range sweeperRan {
+				keys = append(keys, k)
+			}
+
+			sort.Strings(keys)
+			sort.Strings(tc.ExpectedRunList)
+			if !reflect.DeepEqual(keys, tc.ExpectedRunList) {
+				t.Fatalf("Expected keys mismatch, expected:\n%#v\ngot:\n%#v\n", tc.ExpectedRunList, keys)
+			}
+		})
+	}
+}
+
+func mockSweeperFunc(s string) error {
+	return nil
+}
