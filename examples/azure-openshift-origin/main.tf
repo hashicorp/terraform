@@ -482,6 +482,7 @@ resource "azurerm_virtual_machine" "master" {
     vhd_uri       = "${azurerm_storage_account.master_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-master-osdisk.vhd"
     caching       = "ReadWrite"
     create_option = "FromImage"
+    disk_size_gb  = 40
   }
 
   storage_data_disk {
@@ -618,7 +619,7 @@ resource "azurerm_virtual_machine_extension" "deploy_open_shift_master" {
 {
   "fileUris": [
 		"${var.artifacts_location}scripts/masterPrep.sh", 
-    "https://raw.githubusercontent.com/10thmagnitude/openshift-origin/1bb308554cba54deae9cdc416715b593e4650bd8/scripts/deployOpenShift.sh"
+    "${var.openshift_artifacts_location}scripts/deployOpenShift.sh"
 	]
 }
 SETTINGS
