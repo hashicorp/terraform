@@ -32,6 +32,7 @@ BUG FIXES:
 * provider/aws: Avoid crash when EgressOnly IGW disappears [GH-14929]
 * provider/aws: Allow IPv6/IPv4 addresses to coexist [GH-13702]
 * provider/aws: Fix panic on nil dead_letter_config [GH-14964]
+* provider/aws: Work around IAM eventual consistency in CW Log Subs [GH-14959]
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
 * provider/google: use a mutex to prevent concurrent sql instance operations [GH-14424]
