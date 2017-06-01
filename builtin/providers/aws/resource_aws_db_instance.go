@@ -341,7 +341,8 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"resource_id": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"domain": {
