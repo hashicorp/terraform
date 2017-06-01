@@ -75,6 +75,9 @@ func resourceAwsCloudwatchLogSubscriptionFilterCreate(d *schema.ResourceData, me
 			if strings.Contains(awsErr.Message(), "Could not deliver test message to specified") {
 				return resource.RetryableError(err)
 			}
+			if strings.Contains(awsErr.Message(), "Could not execute the lambda function") {
+				return resource.RetryableError(err)
+			}
 			resource.NonRetryableError(err)
 		}
 
