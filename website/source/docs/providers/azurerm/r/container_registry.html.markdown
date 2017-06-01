@@ -58,7 +58,7 @@ The following arguments are supported:
 
 * `storage_account` - (Required) A Storage Account block as documented below - which must be located in the same data center as the Container Registry.
 
-* `sku` - (Required) The SKU name of the the container registry. `Basic` is the only acceptable value at this time.
+* `sku` - (Optional) The SKU name of the the container registry. `Basic` is the only acceptable value at this time.
 
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
