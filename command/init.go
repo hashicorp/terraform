@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/variables"
+	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -24,7 +25,7 @@ type InitCommand struct {
 	// them into the dst directory.
 	// This uses discovery.GetProvider by default, but it provided here as a
 	// way to mock fetching providers for tests.
-	getProvider func(dst, provider string, req discovery.Constraints) error
+	getProvider func(dst, provider string, req discovery.Constraints, protoVersion uint) error
 }
 
 func (c *InitCommand) Run(args []string) int {
@@ -222,7 +223,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 
 	dst := c.pluginDir()
 	for provider, reqd := range missing {
-		err := c.getProvider(dst, provider, reqd.Versions)
+		err := c.getProvider(dst, provider, reqd.Versions, plugin.Handshake.ProtocolVersion)
 		// TODO: return all errors
 		if err != nil {
 			return err
