@@ -30,7 +30,54 @@ func testResourceCustomDiff() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"list": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
+	}
+}
+
+type listDiffCases struct {
+	Type  string
+	Value string
+}
+
+func testListDiffCases(index int) []listDiffCases {
+	switch index {
+	case 0:
+		return []listDiffCases{
+			{
+				Type:  "add",
+				Value: "dc1",
+			},
+		}
+	case 1:
+		return []listDiffCases{
+			{
+				Type:  "remove",
+				Value: "dc1",
+			},
+			{
+				Type:  "add",
+				Value: "dc2",
+			},
+			{
+				Type:  "add",
+				Value: "dc3",
+			},
+		}
+	}
+	return nil
+}
+
+func testListDiffCasesReadResult(index int) []interface{} {
+	switch index {
+	case 1:
+		return []interface{}{"dc1"}
+	default:
+		return []interface{}{"dc2", "dc3"}
 	}
 }
 
@@ -54,6 +101,9 @@ func testResourceCustomDiffCreate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func testResourceCustomDiffRead(d *schema.ResourceData, meta interface{}) error {
+	if err := d.Set("list", testListDiffCasesReadResult(d.Get("index").(int))); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -64,6 +114,26 @@ func testResourceCustomDiffCustomizeDiff(d *schema.ResourceDiff, meta interface{
 	// Note that this gets put into state after the update, regardless of whether
 	// or not anything is acted upon in the diff.
 	d.SetNew("computed", d.Get("computed").(int)+1)
+
+	// This tests a diffed list, based off of the value of index
+	dcs := testListDiffCases(d.Get("index").(int))
+	s := d.Get("list").([]interface{})
+	for _, dc := range dcs {
+		switch dc.Type {
+		case "add":
+			s = append(s, dc.Value)
+		case "remove":
+			for i := range s {
+				if s[i].(string) == dc.Value {
+					copy(s[i:], s[i+1:])
+					s = s[:len(s)-1]
+					break
+				}
+			}
+		}
+	}
+	d.SetNew("list", s)
+
 	return nil
 }
 
@@ -75,7 +145,7 @@ func testResourceCustomDiffUpdate(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("expected computed to be 1 ahead of index, got computed: %d, index: %d", expected, actual)
 	}
 	d.Set("index", new)
-	return nil
+	return testResourceCustomDiffRead(d, meta)
 }
 
 func testResourceCustomDiffDelete(d *schema.ResourceData, meta interface{}) error {

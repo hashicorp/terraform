@@ -18,6 +18,8 @@ func TestResourceWithCustomDiff(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("test_resource_with_custom_diff.foo", "computed", "1"),
 					resource.TestCheckResourceAttr("test_resource_with_custom_diff.foo", "index", "1"),
+					resource.TestCheckResourceAttr("test_resource_with_custom_diff.foo", "list.#", "1"),
+					resource.TestCheckResourceAttr("test_resource_with_custom_diff.foo", "list.0", "dc1"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -26,6 +28,10 @@ func TestResourceWithCustomDiff(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("test_resource_with_custom_diff.foo", "computed", "2"),
 					resource.TestCheckResourceAttr("test_resource_with_custom_diff.foo", "index", "2"),
+					resource.TestCheckResourceAttr("test_resource_with_custom_diff.foo", "list.#", "2"),
+					resource.TestCheckResourceAttr("test_resource_with_custom_diff.foo", "list.0", "dc2"),
+					resource.TestCheckResourceAttr("test_resource_with_custom_diff.foo", "list.1", "dc3"),
+					resource.TestCheckNoResourceAttr("test_resource_with_custom_diff.foo", "list.2"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
