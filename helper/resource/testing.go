@@ -97,14 +97,14 @@ func TestMain(m *testing.M) {
 			// reset sweeperRunList for each region
 			sweeperRunList = map[string]bool{}
 
-			fmt.Printf("[DEBUG] Running Sweepers for region (%s):\n", region)
+			log.Printf("[DEBUG] Running Sweepers for region (%s):\n", region)
 			for _, sweeper := range sweepers {
 				if err := runSweeperWithRegion(region, sweeper); err != nil {
 					log.Fatalf("[ERR] error running (%s): %s", sweeper.Name, err)
 				}
 			}
 
-			fmt.Printf("Sweeper Tests ran:\n")
+			log.Printf("Sweeper Tests ran:\n")
 			for s, _ := range sweeperRunList {
 				fmt.Printf("\t- %s\n", s)
 			}
