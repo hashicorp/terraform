@@ -16,57 +16,49 @@ import (
 	getter "github.com/hashicorp/go-getter"
 )
 
-const releasesURL = "https://releases.hashicorp.com/"
-
-var httpClient = cleanhttp.DefaultClient()
-
-// pluginURL generates URLs to lookup the versions of a plugin, or the file path.
+// Releases are located by parsing the html listing from releases.hashicorp.com.
 //
 // The URL for releases follows the pattern:
 //    https://releases.hashicorp.com/terraform-providers/terraform-provider-name/ +
 //        terraform-provider-name_<x.y.z>/terraform-provider-name_<x.y.z>_<os>_<arch>.<ext>
-type pluginURL struct {
-	// the base url to search for releases
-	releases string
-	// The name prefix common to all plugins of this type.
-	// This is either `terraform-provider` or `terraform-provisioner`.
-	baseName string
+//
+// The plugin protocol version will be saved with the release and returned in
+// the header X-TERRAFORM_PROTOCOL_VERSION.
+
+const providersPath = "/terraform-providers/"
+const protocolVersionHeader = "X-TERRAFORM_PROTOCOL_VERSION"
+
+var releaseHost = "https://releases.hashicorp.com"
+
+var httpClient = cleanhttp.DefaultClient()
+
+// Plugins are referred to by the short name, but all URLs and files will use
+// the full name prefixed with terraform-<plugin_type>-
+func providerName(name string) string {
+	return "terraform-provider-" + name
 }
 
-// releasesURL returns the top level directory for all plugins of this type
-func (p pluginURL) releasesURL() string {
-	// the top level directory is the plural form of the plugin type
-	return p.releases + p.baseName + "s"
+// providerVersionsURL returns the path to the released versions directory for the provider:
+// https://releases.hashicorp.com/terraform-providers/terraform-provider-name/
+func providerVersionsURL(name string) string {
+	return releaseHost + providersPath + providerName(name) + "/"
 }
 
-// versionsURL returns the url to the directory to list available versionsURL for this plugin
-func (p pluginURL) versionsURL(name string) string {
-	return fmt.Sprintf("%s/%s-%s", p.releasesURL(), p.baseName, name)
-}
-
-// fileURL returns the full path to a plugin based on the plugin name,
-// version, GOOS and GOARCH.
-func (p pluginURL) fileURL(name, version string) string {
-	releasesDir := fmt.Sprintf("%s-%s_%s/", p.baseName, name, version)
-	fileName := fmt.Sprintf("%s-%s_%s_%s_%s.zip", p.baseName, name, version, runtime.GOOS, runtime.GOARCH)
-	return fmt.Sprintf("%s/%s/%s", p.versionsURL(name), releasesDir, fileName)
-}
-
-var providersURL = pluginURL{
-	releases: releasesURL,
-	baseName: "terraform-provider",
-}
-
-var provisionersURL = pluginURL{
-	releases: releasesURL,
-	baseName: "terraform-provisioners",
+// providerURL returns the full path to the provider file, using the current OS
+// and ARCH:
+// .../terraform-provider-name_<x.y.z>/terraform-provider-name_<x.y.z>_<os>_<arch>.<ext>
+func providerURL(name, version string) string {
+	versionDir := fmt.Sprintf("%s_%s", providerName(name), version)
+	fileName := fmt.Sprintf("%s_%s_%s_%s.zip", providerName(name), version, runtime.GOOS, runtime.GOARCH)
+	u := fmt.Sprintf("%s%s/%s", providerVersionsURL(name), versionDir, fileName)
+	return u
 }
 
 // GetProvider fetches a provider plugin based on the version constraints, and
 // copies it to the dst directory.
 //
 // TODO: verify checksum and signature
-func GetProvider(dst, provider string, req Constraints) error {
+func GetProvider(dst, provider string, req Constraints, pluginProtocolVersion uint) error {
 	versions, err := listProviderVersions(provider)
 	// TODO: return multiple errors
 	if err != nil {
@@ -77,7 +69,7 @@ func GetProvider(dst, provider string, req Constraints) error {
 		return fmt.Errorf("no plugins found for provider %q", provider)
 	}
 
-	versions = filterProtocolVersions(provider, versions)
+	versions = filterProtocolVersions(provider, versions, pluginProtocolVersion)
 
 	if len(versions) == 0 {
 		return fmt.Errorf("no versions of %q compatible with the plugin ProtocolVersion", provider)
@@ -88,7 +80,7 @@ func GetProvider(dst, provider string, req Constraints) error {
 		return fmt.Errorf("no version of %q available that fulfills constraints %s", provider, req)
 	}
 
-	url := providersURL.fileURL(provider, version.String())
+	url := providerURL(provider, version.String())
 
 	log.Printf("[DEBUG] getting provider %q version %q at %s", provider, version, url)
 	return getter.Get(dst, url)
@@ -96,11 +88,11 @@ func GetProvider(dst, provider string, req Constraints) error {
 
 // Remove available versions that don't have the correct plugin protocol version.
 // TODO: stop checking older versions if the protocol version is too low
-func filterProtocolVersions(provider string, versions []Version) []Version {
+func filterProtocolVersions(provider string, versions []Version, pluginProtocolVersion uint) []Version {
 	var compatible []Version
 	for _, v := range versions {
 		log.Printf("[DEBUG] fetching provider info for %s version %s", provider, v)
-		url := providersURL.fileURL(provider, v.String())
+		url := providerURL(provider, v.String())
 		resp, err := httpClient.Head(url)
 		if err != nil {
 			log.Printf("[ERROR] error fetching plugin headers: %s", err)
@@ -112,20 +104,19 @@ func filterProtocolVersions(provider string, versions []Version) []Version {
 			continue
 		}
 
-		proto := resp.Header.Get("X-TERRAFORM_PROTOCOL_VERSION")
+		proto := resp.Header.Get(protocolVersionHeader)
 		if proto == "" {
-			log.Println("[WARNING] missing X-TERRAFORM_PROTOCOL_VERSION from:", url)
+			log.Printf("[WARNING] missing %s from: %s", protocolVersionHeader, url)
 			continue
 		}
 
 		protoVersion, err := strconv.Atoi(proto)
 		if err != nil {
-			log.Println("[ERROR] invalid ProtocolVersion: %s", proto)
+			log.Printf("[ERROR] invalid ProtocolVersion: %s", proto)
 			continue
 		}
 
-		// FIXME: this shouldn't be hardcoded
-		if protoVersion != 4 {
+		if protoVersion != int(pluginProtocolVersion) {
 			log.Printf("[INFO] incompatible ProtocolVersion %d from %s version %s", protoVersion, provider, v)
 			continue
 		}
@@ -167,19 +158,10 @@ func newestVersion(available []Version, required Constraints) (Version, error) {
 
 // list the version available for the named plugin
 func listProviderVersions(name string) ([]Version, error) {
-	versions, err := listPluginVersions(providersURL.versionsURL(name))
+	versions, err := listPluginVersions(providerVersionsURL(name))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch versions for provider %q: %s", name, err)
 	}
-	return versions, nil
-}
-
-func listProvisionerVersions(name string) ([]Version, error) {
-	versions, err := listPluginVersions(provisionersURL.versionsURL(name))
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch versions for provisioner %q: %s", name, err)
-	}
-
 	return versions, nil
 }
 
