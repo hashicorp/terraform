@@ -17,6 +17,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/dns/v2/zones"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/routerinsertion"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
@@ -163,15 +164,35 @@ func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
 	return string(pretty)
 }
 
+// Firewall is an OpenStack firewall.
+type Firewall struct {
+	firewalls.Firewall
+	routerinsertion.FirewallExt
+}
+
 // FirewallCreateOpts represents the attributes used when creating a new firewall.
 type FirewallCreateOpts struct {
-	firewalls.CreateOpts
+	firewalls.CreateOptsBuilder
 	ValueSpecs map[string]string `json:"value_specs,omitempty"`
 }
 
-// ToFirewallCreateMap casts a CreateOpts struct to a map.
+// ToFirewallCreateMap casts a CreateOptsExt struct to a map.
 // It overrides firewalls.ToFirewallCreateMap to add the ValueSpecs field.
 func (opts FirewallCreateOpts) ToFirewallCreateMap() (map[string]interface{}, error) {
+	body, err := opts.CreateOptsBuilder.ToFirewallCreateMap()
+	if err != nil {
+		return nil, err
+	}
+
+	return AddValueSpecs(body), nil
+}
+
+//FirewallUpdateOpts
+type FirewallUpdateOpts struct {
+	firewalls.UpdateOptsBuilder
+}
+
+func (opts FirewallUpdateOpts) ToFirewallUpdateMap() (map[string]interface{}, error) {
 	return BuildRequest(opts, "firewall")
 }
 
