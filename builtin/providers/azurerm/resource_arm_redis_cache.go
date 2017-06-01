@@ -47,15 +47,17 @@ func resourceArmRedisCache() *schema.Resource {
 			},
 
 			"family": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateRedisFamily,
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validateRedisFamily,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"sku_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateRedisSku,
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validateRedisSku,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"shard_count": {

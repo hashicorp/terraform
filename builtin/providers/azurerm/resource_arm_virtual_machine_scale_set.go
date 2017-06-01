@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -50,9 +51,10 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						},
 
 						"tier": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"capacity": {
@@ -951,7 +953,7 @@ func resourceArmVirtualMachineScaleSetSkuHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	if m["tier"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["tier"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(m["tier"].(string))))
 	}
 	buf.WriteString(fmt.Sprintf("%d-", m["capacity"].(int)))
 

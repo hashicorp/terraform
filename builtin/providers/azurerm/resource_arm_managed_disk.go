@@ -43,6 +43,7 @@ func resourceArmManagedDisk() *schema.Resource {
 					string(disk.PremiumLRS),
 					string(disk.StandardLRS),
 				}, true),
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"create_option": {

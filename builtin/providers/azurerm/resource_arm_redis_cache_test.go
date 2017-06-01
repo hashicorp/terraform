@@ -185,6 +185,31 @@ func TestAccAzureRMRedisCache_premiumSharded(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMRedisCache_NonStandardCasing(t *testing.T) {
+	ri := acctest.RandInt()
+	config := testAccAzureRMRedisCacheNonStandardCasing(ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMRedisCacheDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMRedisCacheExists("azurerm_redis_cache.test"),
+				),
+			},
+
+			resource.TestStep{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMRedisCacheExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -330,3 +355,24 @@ resource "azurerm_redis_cache" "test" {
     }
 }
 `
+
+func testAccAzureRMRedisCacheNonStandardCasing(ri int) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+resource "azurerm_redis_cache" "test" {
+    name                = "acctestRedis-%d"
+    location            = "${azurerm_resource_group.test.location}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    capacity            = 1
+    family              = "c"
+    sku_name            = "basic"
+    enable_non_ssl_port = false
+    redis_configuration {
+      maxclients = "256"
+    }
+}
+`, ri, ri)
+}

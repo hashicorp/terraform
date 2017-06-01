@@ -170,6 +170,32 @@ func TestAccAzureRMStorageAccount_blobStorageWithUpdate(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMStorageAccount_NonStandardCasing(t *testing.T) {
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	preConfig := testAccAzureRMStorageAccountNonStandardCasing(ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+				),
+			},
+
+			resource.TestStep{
+				Config:             preConfig,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMStorageAccountExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -357,3 +383,20 @@ resource "azurerm_storage_account" "testsa" {
         environment = "production"
     }
 }`
+
+func testAccAzureRMStorageAccountNonStandardCasing(ri int, rs string) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "testrg" {
+    name = "testAccAzureRMSA-%d"
+    location = "westus"
+}
+resource "azurerm_storage_account" "testsa" {
+    name = "unlikely23exst2acct%s"
+    resource_group_name = "${azurerm_resource_group.testrg.name}"
+    location = "westus"
+    account_type = "standard_LRS"
+    tags {
+        environment = "production"
+    }
+}`, ri, rs)
+}

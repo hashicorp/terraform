@@ -37,10 +37,11 @@ func resourceArmCdnProfile() *schema.Resource {
 			},
 
 			"sku": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateCdnProfileSku,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateFunc:     validateCdnProfileSku,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"tags": tagsSchema(),
