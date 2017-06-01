@@ -1,9 +1,5 @@
 ## 0.9.7 (Unreleased)
 
-BACKWARDS INCOMPATIBILITIES / NOTES:
-
-* provider/azurerm: Users of `azurerm_container_registry` will need to set `Sku` to `Basic` - this value doesn't exist in prior releases (#14004)
-
 FEATURES:
 
  * **New Data Source:** `aws_elastic_beanstalk_solution_stack` [GH-14944]
@@ -41,6 +37,7 @@ BUG FIXES:
 * provider/aws: Expect exception on deletion of APIG Usage Plan Key [GH-14958]
 * provider/aws: Fix panic on nil dead_letter_config [GH-14964]
 * provider/aws: Work around IAM eventual consistency in CW Log Subs [GH-14959]
+* provider/azurerm: Preserve the Subnet properties on Update [GH-13877]
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
 * provider/google: use a mutex to prevent concurrent sql instance operations [GH-14424]
