@@ -91,7 +91,7 @@ func TestMain(m *testing.M) {
 		// parse flagSweep contents for regions to run
 		regions := strings.Split(*flagSweep, ",")
 
-		// get list of filtered sweepers to run
+		// get filtered list of sweepers to run based on sweep-run flag
 		sweepers := filterSweepers(*flagSweepRun, sweeperFuncs)
 		for _, region := range regions {
 			// reset sweeperRunList for each region
@@ -114,7 +114,7 @@ func TestMain(m *testing.M) {
 	}
 }
 
-// filterSweepers takes a comma seperated strings listing the names of sweepers
+// filterSweepers takes a comma seperated string listing the names of sweepers
 // to be ran, and returns a filtered set from the list of all of sweepers to
 // run based on the names given.
 func filterSweepers(f string, source map[string]*Sweeper) map[string]*Sweeper {

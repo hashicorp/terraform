@@ -687,6 +687,26 @@ func TestTest_Main(t *testing.T) {
 			SweepRun:        "aws_dummy",
 		},
 		{
+			Name: "with two filters",
+			Sweepers: map[string]*Sweeper{
+				"aws_dummy": &Sweeper{
+					Name: "aws_dummy",
+					F:    mockSweeperFunc,
+				},
+				"aws_top": &Sweeper{
+					Name:         "aws_top",
+					Dependencies: []string{"aws_sub"},
+					F:            mockSweeperFunc,
+				},
+				"aws_sub": &Sweeper{
+					Name: "aws_sub",
+					F:    mockSweeperFunc,
+				},
+			},
+			ExpectedRunList: []string{"aws_dummy", "aws_sub"},
+			SweepRun:        "aws_dummy,aws_sub",
+		},
+		{
 			Name: "with dep and filter",
 			Sweepers: map[string]*Sweeper{
 				"aws_dummy": &Sweeper{
