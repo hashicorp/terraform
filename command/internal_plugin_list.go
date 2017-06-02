@@ -62,6 +62,7 @@ import (
 	rancherprovider "github.com/hashicorp/terraform/builtin/providers/rancher"
 	randomprovider "github.com/hashicorp/terraform/builtin/providers/random"
 	rundeckprovider "github.com/hashicorp/terraform/builtin/providers/rundeck"
+	runscopeprovider "github.com/hashicorp/terraform/builtin/providers/runscope"
 	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
 	softlayerprovider "github.com/hashicorp/terraform/builtin/providers/softlayer"
 	spotinstprovider "github.com/hashicorp/terraform/builtin/providers/spotinst"
@@ -146,6 +147,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"rancher":      rancherprovider.Provider,
 	"random":       randomprovider.Provider,
 	"rundeck":      rundeckprovider.Provider,
+	"runscope":     runscopeprovider.Provider,
 	"scaleway":     scalewayprovider.Provider,
 	"softlayer":    softlayerprovider.Provider,
 	"spotinst":     spotinstprovider.Provider,

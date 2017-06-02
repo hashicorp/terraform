@@ -1485,6 +1485,12 @@
 			"versionExact": "1.0.0"
 		},
 		{
+			"checksumSHA1": "qQ+YriXypz5mEiLL3wEKpzpC/IU=",
+			"path": "github.com/ewilde/go-runscope",
+			"revision": "1c4acc6628957c6402f929cdff2f2894ba207ef7",
+			"revisionTime": "2017-05-30T12:16:57Z"
+		},
+		{
 			"checksumSHA1": "xPPXsop1MasrinvYYmMBeuwDu9c=",
 			"path": "github.com/exponent-io/jsonpath",
 			"revision": "d6023ce2651d8eafb5c75bb0c7167536102ec9f5",
