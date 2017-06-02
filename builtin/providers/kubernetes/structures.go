@@ -77,11 +77,11 @@ func expandStringSlice(s []interface{}) []string {
 
 func flattenMetadata(meta metav1.ObjectMeta) []map[string]interface{} {
 	m := make(map[string]interface{})
-	m["annotations"] = filterAnnotations(meta.Annotations)
+	m["annotations"] = removeInternalKeys(meta.Annotations)
 	if meta.GenerateName != "" {
 		m["generate_name"] = meta.GenerateName
 	}
-	m["labels"] = meta.Labels
+	m["labels"] = removeInternalKeys(meta.Labels)
 	m["name"] = meta.Name
 	m["resource_version"] = meta.ResourceVersion
 	m["self_link"] = meta.SelfLink
@@ -95,16 +95,16 @@ func flattenMetadata(meta metav1.ObjectMeta) []map[string]interface{} {
 	return []map[string]interface{}{m}
 }
 
-func filterAnnotations(m map[string]string) map[string]string {
+func removeInternalKeys(m map[string]string) map[string]string {
 	for k, _ := range m {
-		if isInternalAnnotationKey(k) {
+		if isInternalKey(k) {
 			delete(m, k)
 		}
 	}
 	return m
 }
 
-func isInternalAnnotationKey(annotationKey string) bool {
+func isInternalKey(annotationKey string) bool {
 	u, err := url.Parse("//" + annotationKey)
 	if err == nil && strings.HasSuffix(u.Hostname(), "kubernetes.io") {
 		return true
