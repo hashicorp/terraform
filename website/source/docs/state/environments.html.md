@@ -8,6 +8,8 @@ description: |-
 
 # State Environments
 
+*Since 0.9*
+
 An environment is a state namespace, allowing a single folder of Terraform
 configurations to manage multiple distinct infrastructure resources.
 
