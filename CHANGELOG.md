@@ -45,6 +45,7 @@ BUG FIXES:
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
 * provider/google: use a mutex to prevent concurrent sql instance operations [GH-14424]
+* provider/google: Set instances to computed in compute_instance_group [GH-15025]
 * provider/postgresql: Fix for leaking credentials in the provider [GH-14817]
 * provider/postgresql: Drop the optional WITH token from CREATE ROLE. [GH-14864]
 * provider/rancher: refresh rancher_host from state on nil or removed host [GH-15015]
