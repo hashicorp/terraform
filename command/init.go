@@ -228,6 +228,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 
 	dst := c.pluginDir()
 	for provider, reqd := range missing {
+		c.Ui.Output(fmt.Sprintf("- downloading plugin for provider %q...", provider))
 		err := c.getProvider(dst, provider, reqd.Versions, plugin.Handshake.ProtocolVersion)
 		// TODO: return all errors
 		if err != nil {
