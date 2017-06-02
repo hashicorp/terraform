@@ -737,7 +737,9 @@ func testCheckAzureRMVirtualMachineVHDExistence(name string, shouldExist bool) r
 				return fmt.Errorf("Error creating Blob storage client: %s", err)
 			}
 
-			exists, err := storageClient.BlobExists(containerName, name)
+			container := storageClient.GetContainerReference(containerName)
+			blob := container.GetBlobReference(name)
+			exists, err := blob.Exists()
 			if err != nil {
 				return fmt.Errorf("Error checking if Disk VHD Blob exists: %s", err)
 			}
@@ -769,7 +771,8 @@ func testCheckAzureRMVirtualMachineDisappears(name string) resource.TestCheckFun
 
 		conn := testAccProvider.Meta().(*ArmClient).vmClient
 
-		_, err := conn.Delete(resourceGroup, vmName, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, vmName, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on vmClient: %s", err)
 		}
@@ -1015,7 +1018,7 @@ resource "azurerm_virtual_machine" "test" {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
-        disk_size_gb = "10"
+        disk_size_gb = "50"
         managed_disk_type = "Standard_LRS"
     }
 
@@ -1086,7 +1089,7 @@ resource "azurerm_virtual_machine" "test" {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
-        disk_size_gb = "10"
+        disk_size_gb = "50"
     }
 
     os_profile {
@@ -1165,7 +1168,7 @@ resource "azurerm_virtual_machine" "test" {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
-        disk_size_gb = "10"
+        disk_size_gb = "50"
         managed_disk_type = "Standard_LRS"
     }
 

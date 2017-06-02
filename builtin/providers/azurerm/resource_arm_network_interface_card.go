@@ -224,7 +224,8 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		Tags: expandTags(tags),
 	}
 
-	_, err := ifaceClient.CreateOrUpdate(resGroup, name, iface, make(chan struct{}))
+	_, error := ifaceClient.CreateOrUpdate(resGroup, name, iface, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -350,7 +351,8 @@ func resourceArmNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 	azureRMLockMultiple(&namesToLock)
 	defer azureRMUnlockMultiple(&namesToLock)
 
-	_, err = ifaceClient.Delete(resGroup, name, make(chan struct{}))
+	_, error := ifaceClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
 
 	return err
 }

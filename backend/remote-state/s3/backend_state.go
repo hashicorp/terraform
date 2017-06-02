@@ -96,7 +96,7 @@ func (b *Backend) State(name string) (state.State, error) {
 		serverSideEncryption: b.serverSideEncryption,
 		acl:                  b.acl,
 		kmsKeyID:             b.kmsKeyID,
-		lockTable:            b.lockTable,
+		ddbTable:             b.ddbTable,
 	}
 
 	stateMgr := &remote.State{Client: client}

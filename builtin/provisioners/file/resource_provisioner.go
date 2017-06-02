@@ -35,7 +35,8 @@ func Provisioner() terraform.ResourceProvisioner {
 			},
 		},
 
-		ApplyFunc: applyFn,
+		ApplyFunc:    applyFn,
+		ValidateFunc: validateFn,
 	}
 }
 
@@ -75,6 +76,20 @@ func applyFn(ctx context.Context) error {
 	case <-ctx.Done():
 		return fmt.Errorf("file transfer interrupted")
 	}
+}
+
+func validateFn(d *schema.ResourceData) (ws []string, es []error) {
+	numSrc := 0
+	if _, ok := d.GetOk("source"); ok == true {
+		numSrc++
+	}
+	if _, ok := d.GetOk("content"); ok == true {
+		numSrc++
+	}
+	if numSrc != 1 {
+		es = append(es, fmt.Errorf("Must provide one of 'content' or 'source'"))
+	}
+	return
 }
 
 // getSrc returns the file to use as source

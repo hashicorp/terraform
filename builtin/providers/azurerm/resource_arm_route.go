@@ -90,7 +90,8 @@ func resourceArmRouteCreate(d *schema.ResourceData, meta interface{}) error {
 		RoutePropertiesFormat: &properties,
 	}
 
-	_, err := routesClient.CreateOrUpdate(resGroup, rtName, name, route, make(chan struct{}))
+	_, error := routesClient.CreateOrUpdate(resGroup, rtName, name, route, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -155,7 +156,8 @@ func resourceArmRouteDelete(d *schema.ResourceData, meta interface{}) error {
 	armMutexKV.Lock(rtName)
 	defer armMutexKV.Unlock(rtName)
 
-	_, err = routesClient.Delete(resGroup, rtName, routeName, make(chan struct{}))
+	_, error := routesClient.Delete(resGroup, rtName, routeName, make(chan struct{}))
+	err = <-error
 
 	return err
 }

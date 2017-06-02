@@ -1,7 +1,7 @@
 ---
 layout: "kubernetes"
 page_title: "Kubernetes: kubernetes_horizontal_pod_autoscaler"
-sidebar_current: "docs-kubernetes-horizontal-pod-autoscaler"
+sidebar_current: "docs-kubernetes-resource-horizontal-pod-autoscaler"
 description: |-
   Horizontal Pod Autoscaler automatically scales the number of pods in a replication controller, deployment or replica set based on observed CPU utilization.
 ---

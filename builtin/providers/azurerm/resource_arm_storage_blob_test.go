@@ -339,7 +339,9 @@ func testCheckAzureRMStorageBlobExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("Bad: Storage Account %q does not exist", storageAccountName)
 		}
 
-		exists, err := blobClient.BlobExists(storageContainerName, name)
+		container := blobClient.GetContainerReference(storageContainerName)
+		blob := container.GetBlobReference(name)
+		exists, err := blob.Exists()
 		if err != nil {
 			return err
 		}
@@ -377,7 +379,10 @@ func testCheckAzureRMStorageBlobDisappears(name string) resource.TestCheckFunc {
 			return fmt.Errorf("Bad: Storage Account %q does not exist", storageAccountName)
 		}
 
-		_, err = blobClient.DeleteBlobIfExists(storageContainerName, name, map[string]string{})
+		container := blobClient.GetContainerReference(storageContainerName)
+		blob := container.GetBlobReference(name)
+		options := &storage.DeleteBlobOptions{}
+		_, err = blob.DeleteIfExists(options)
 		if err != nil {
 			return err
 		}
@@ -411,16 +416,22 @@ func testCheckAzureRMStorageBlobMatchesFile(name string, kind storage.BlobType, 
 			return fmt.Errorf("Bad: Storage Account %q does not exist", storageAccountName)
 		}
 
-		properties, err := blobClient.GetBlobProperties(storageContainerName, name)
+		containerReference := blobClient.GetContainerReference(storageContainerName)
+		blobReference := containerReference.GetBlobReference(name)
+		propertyOptions := &storage.GetBlobPropertiesOptions{}
+		err = blobReference.GetProperties(propertyOptions)
 		if err != nil {
 			return err
 		}
+
+		properties := blobReference.Properties
 
 		if properties.BlobType != kind {
 			return fmt.Errorf("Bad: blob type %q does not match expected type %q", properties.BlobType, kind)
 		}
 
-		blob, err := blobClient.GetBlob(storageContainerName, name)
+		getOptions := &storage.GetBlobOptions{}
+		blob, err := blobReference.Get(getOptions)
 		if err != nil {
 			return err
 		}
@@ -467,7 +478,9 @@ func testCheckAzureRMStorageBlobDestroy(s *terraform.State) error {
 			return nil
 		}
 
-		exists, err := blobClient.BlobExists(storageContainerName, name)
+		container := blobClient.GetContainerReference(storageContainerName)
+		blob := container.GetBlobReference(name)
+		exists, err := blob.Exists()
 		if err != nil {
 			return nil
 		}

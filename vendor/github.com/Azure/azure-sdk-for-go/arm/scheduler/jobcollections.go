@@ -50,13 +50,15 @@ func NewJobCollectionsClientWithBaseURI(baseURI string, subscriptionID string) J
 func (client JobCollectionsClient) CreateOrUpdate(resourceGroupName string, jobCollectionName string, jobCollection JobCollectionDefinition) (result JobCollectionDefinition, err error) {
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, jobCollectionName, jobCollection)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "CreateOrUpdate", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "CreateOrUpdate", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CreateOrUpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "CreateOrUpdate", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "CreateOrUpdate", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CreateOrUpdateResponder(resp)
@@ -75,8 +77,9 @@ func (client JobCollectionsClient) CreateOrUpdatePreparer(resourceGroupName stri
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-03-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -114,24 +117,37 @@ func (client JobCollectionsClient) CreateOrUpdateResponder(resp *http.Response) 
 //
 // resourceGroupName is the resource group name. jobCollectionName is the job
 // collection name.
-func (client JobCollectionsClient) Delete(resourceGroupName string, jobCollectionName string, cancel <-chan struct{}) (result autorest.Response, err error) {
-	req, err := client.DeletePreparer(resourceGroupName, jobCollectionName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Delete", nil, "Failure preparing request")
-	}
+func (client JobCollectionsClient) Delete(resourceGroupName string, jobCollectionName string, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.DeletePreparer(resourceGroupName, jobCollectionName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Delete", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.DeleteSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Delete", resp, "Failure sending request")
-	}
+		resp, err := client.DeleteSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Delete", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Delete", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.DeleteResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Delete", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // DeletePreparer prepares the Delete request.
@@ -142,8 +158,9 @@ func (client JobCollectionsClient) DeletePreparer(resourceGroupName string, jobC
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-03-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -181,24 +198,37 @@ func (client JobCollectionsClient) DeleteResponder(resp *http.Response) (result 
 //
 // resourceGroupName is the resource group name. jobCollectionName is the job
 // collection name.
-func (client JobCollectionsClient) Disable(resourceGroupName string, jobCollectionName string, cancel <-chan struct{}) (result autorest.Response, err error) {
-	req, err := client.DisablePreparer(resourceGroupName, jobCollectionName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Disable", nil, "Failure preparing request")
-	}
+func (client JobCollectionsClient) Disable(resourceGroupName string, jobCollectionName string, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.DisablePreparer(resourceGroupName, jobCollectionName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Disable", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.DisableSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Disable", resp, "Failure sending request")
-	}
+		resp, err := client.DisableSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Disable", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.DisableResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Disable", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.DisableResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Disable", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // DisablePreparer prepares the Disable request.
@@ -209,8 +239,9 @@ func (client JobCollectionsClient) DisablePreparer(resourceGroupName string, job
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-03-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -248,24 +279,37 @@ func (client JobCollectionsClient) DisableResponder(resp *http.Response) (result
 //
 // resourceGroupName is the resource group name. jobCollectionName is the job
 // collection name.
-func (client JobCollectionsClient) Enable(resourceGroupName string, jobCollectionName string, cancel <-chan struct{}) (result autorest.Response, err error) {
-	req, err := client.EnablePreparer(resourceGroupName, jobCollectionName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Enable", nil, "Failure preparing request")
-	}
+func (client JobCollectionsClient) Enable(resourceGroupName string, jobCollectionName string, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.EnablePreparer(resourceGroupName, jobCollectionName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Enable", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.EnableSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Enable", resp, "Failure sending request")
-	}
+		resp, err := client.EnableSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Enable", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.EnableResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Enable", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.EnableResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Enable", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // EnablePreparer prepares the Enable request.
@@ -276,8 +320,9 @@ func (client JobCollectionsClient) EnablePreparer(resourceGroupName string, jobC
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-03-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -315,13 +360,15 @@ func (client JobCollectionsClient) EnableResponder(resp *http.Response) (result 
 func (client JobCollectionsClient) Get(resourceGroupName string, jobCollectionName string) (result JobCollectionDefinition, err error) {
 	req, err := client.GetPreparer(resourceGroupName, jobCollectionName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -340,8 +387,9 @@ func (client JobCollectionsClient) GetPreparer(resourceGroupName string, jobColl
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-03-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -377,13 +425,15 @@ func (client JobCollectionsClient) GetResponder(resp *http.Response) (result Job
 func (client JobCollectionsClient) ListByResourceGroup(resourceGroupName string) (result JobCollectionListResult, err error) {
 	req, err := client.ListByResourceGroupPreparer(resourceGroupName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "ListByResourceGroup", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "ListByResourceGroup", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListByResourceGroupSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "ListByResourceGroup", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "ListByResourceGroup", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListByResourceGroupResponder(resp)
@@ -401,8 +451,9 @@ func (client JobCollectionsClient) ListByResourceGroupPreparer(resourceGroupName
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-03-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -460,13 +511,15 @@ func (client JobCollectionsClient) ListByResourceGroupNextResults(lastResults Jo
 func (client JobCollectionsClient) ListBySubscription() (result JobCollectionListResult, err error) {
 	req, err := client.ListBySubscriptionPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "ListBySubscription", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "ListBySubscription", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListBySubscriptionSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "ListBySubscription", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "ListBySubscription", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListBySubscriptionResponder(resp)
@@ -483,8 +536,9 @@ func (client JobCollectionsClient) ListBySubscriptionPreparer() (*http.Request, 
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-03-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -545,13 +599,15 @@ func (client JobCollectionsClient) ListBySubscriptionNextResults(lastResults Job
 func (client JobCollectionsClient) Patch(resourceGroupName string, jobCollectionName string, jobCollection JobCollectionDefinition) (result JobCollectionDefinition, err error) {
 	req, err := client.PatchPreparer(resourceGroupName, jobCollectionName, jobCollection)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Patch", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Patch", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.PatchSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Patch", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobCollectionsClient", "Patch", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.PatchResponder(resp)
@@ -570,8 +626,9 @@ func (client JobCollectionsClient) PatchPreparer(resourceGroupName string, jobCo
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-03-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(

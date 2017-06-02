@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -45,7 +46,9 @@ func resourceAzureStorageQueueCreate(d *schema.ResourceData, meta interface{}) e
 	// create the queue:
 	log.Println("Sending Storage Queue creation request to Azure.")
 	name := d.Get("name").(string)
-	err = queueClient.CreateQueue(name)
+	queue := queueClient.GetQueueReference(name)
+	options := &storage.QueueServiceOptions{}
+	err = queue.Create(options)
 	if err != nil {
 		return fmt.Errorf("Error creation Storage Queue on Azure: %s", err)
 	}
@@ -67,7 +70,8 @@ func resourceAzureStorageQueueRead(d *schema.ResourceData, meta interface{}) err
 	// check for queue's existence:
 	log.Println("[INFO] Sending Storage Queue existence query to Azure.")
 	name := d.Get("name").(string)
-	exists, err := queueClient.QueueExists(name)
+	queue := queueClient.GetQueueReference(name)
+	exists, err := queue.Exists()
 	if err != nil {
 		return fmt.Errorf("Error checking for Storage Queue existence: %s", err)
 	}
@@ -94,7 +98,9 @@ func resourceAzureStorageQueueDelete(d *schema.ResourceData, meta interface{}) e
 	// issue the deletion of the storage queue:
 	log.Println("[INFO] Sending Storage Queue deletion request to Azure.")
 	name := d.Get("name").(string)
-	err = queueClient.DeleteQueue(name)
+	queue := queueClient.GetQueueReference(name)
+	options := &storage.QueueServiceOptions{}
+	err = queue.Delete(options)
 	if err != nil {
 		return fmt.Errorf("Error deleting Storage queue off Azure: %s", err)
 	}
