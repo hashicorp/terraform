@@ -3,12 +3,10 @@ package aws
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -27,18 +25,25 @@ func resourceAwsSsmParameter() *schema.Resource {
 			"type": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateSsmParameterType,
 			},
 			"value": {
+				Type:      schema.TypeString,
+				Required:  true,
+				Sensitive: true,
+			},
+			"key_id": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
 }
 
 func resourceAwsSsmParameterCreate(d *schema.ResourceData, meta interface{}) error {
-	return putAwsSSMParameter(d, meta, false)
+	return putAwsSSMParameter(d, meta)
 }
 
 func resourceAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error {
@@ -72,7 +77,7 @@ func resourceAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsSsmParameterUpdate(d *schema.ResourceData, meta interface{}) error {
-	return putAwsSSMParameter(d, meta, true)
+	return putAwsSSMParameter(d, meta)
 }
 
 func resourceAwsSsmParameterDelete(d *schema.ResourceData, meta interface{}) error {
@@ -94,7 +99,7 @@ func resourceAwsSsmParameterDelete(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func putAwsSSMParameter(d *schema.ResourceData, meta interface{}, overwrite bool) error {
+func putAwsSSMParameter(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
 	log.Printf("[INFO] Creating SSM Parameter: %s", d.Get("name").(string))
@@ -103,24 +108,21 @@ func putAwsSSMParameter(d *schema.ResourceData, meta interface{}, overwrite bool
 		Name:      aws.String(d.Get("name").(string)),
 		Type:      aws.String(d.Get("type").(string)),
 		Value:     aws.String(d.Get("value").(string)),
-		Overwrite: aws.Bool(overwrite),
+		Overwrite: aws.Bool(!d.IsNewResource()),
+	}
+	if keyID, ok := d.GetOk("key_id"); ok {
+		log.Printf("[DEBUG] Setting key_id for SSM Parameter %s: %s", d.Get("name").(string), keyID.(string))
+		paramInput.SetKeyId(keyID.(string))
 	}
 
 	log.Printf("[DEBUG] Waiting for SSM Parameter %q to be updated", d.Get("name").(string))
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
-		_, err := ssmconn.PutParameter(paramInput)
-
-		if err != nil {
-			return resource.NonRetryableError(err)
-		}
-
-		d.SetId(d.Get("name").(string))
-		return nil
-	})
+	_, err := ssmconn.PutParameter(paramInput)
 
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error creating SSM parameter: {{err}}", err)
 	}
+
+	d.SetId(d.Get("name").(string))
 
 	return resourceAwsSsmParameterRead(d, meta)
 }

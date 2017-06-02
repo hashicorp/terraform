@@ -65,6 +65,24 @@ func TestAccAWSSSMParameter_secure(t *testing.T) {
 	})
 }
 
+func TestAccAWSSSMParameter_secure_with_key(t *testing.T) {
+	name := acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSSMParameterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSSSMParameterSecureConfigWithKey(name, "secret", "supersecretkey"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSSMParameterHasValue("aws_ssm_parameter.secret_foo", "secret"),
+					testAccCheckAWSSSMParameterHasValue("aws_ssm_parameter.secret_foo", "supersecretkey"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSSSMParameterHasValue(n string, v string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -145,4 +163,15 @@ resource "aws_ssm_parameter" "secret_foo" {
   value = "%s"
 }
 `, rName, value)
+}
+
+func testAccAWSSSMParameterSecureConfigWithKey(rName string, value string, key string) string {
+	return fmt.Sprintf(`
+resource "aws_ssm_parameter" "secret_foo" {
+  name  = "test_secure_parameter-%s"
+  type  = "SecureString"
+  value = "%s"
+	key_id = "%s"
+}
+`, rName, value, value)
 }
