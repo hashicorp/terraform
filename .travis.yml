@@ -31,9 +31,6 @@ script:
 - make test
 - make vet
 - GOOS=windows go build
-# branches:
-#  only:
-#  - master
 matrix:
   fast_finish: true
   allow_failures:
