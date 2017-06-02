@@ -46,6 +46,7 @@ BUG FIXES:
 * provider/google: use a mutex to prevent concurrent sql instance operations [GH-14424]
 * provider/postgresql: Fix for leaking credentials in the provider [GH-14817]
 * provider/postgresql: Drop the optional WITH token from CREATE ROLE. [GH-14864]
+* provider/rancher: refresh rancher_host from state on nil or removed host [GH-15015]
 
 ## 0.9.6 (May 25, 2017)
 
