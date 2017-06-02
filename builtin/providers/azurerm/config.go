@@ -265,7 +265,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 
 	ddbc := documentdb.NewDatabaseAccountsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ddbc.Client)
-	ddbc.Authorizer = spt
+	ddbc.Authorizer = auth
 	ddbc.Sender = autorest.CreateSender(withRequestLogging())
 	client.documentDbClient = ddbc
 
