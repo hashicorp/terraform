@@ -8,6 +8,7 @@ FEATURES:
  * **New Resource:** `aws_ssm_patch_group` [GH-14954]
  * **New Resource:** `librato_metric` [GH-14562]
  * **New Resource:** `digitalocean_certificate` [GH-14578]
+ * **New Resource:** `vcd_edgegateway_vpn` [GH-13123]
  * **New Interpolation Function:** `bcrypt` [GH-14725]
 
 IMPROVEMENTS:
