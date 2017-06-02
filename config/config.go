@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/blang/semver"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
+	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/mitchellh/reflectwalk"
 )
 
@@ -391,7 +391,7 @@ func (c *Config) Validate() error {
 		}
 
 		if p.Version != "" {
-			_, err := semver.ParseRange(p.Version)
+			_, err := discovery.ConstraintStr(p.Version).Parse()
 			if err != nil {
 				errs = append(errs, fmt.Errorf(
 					"provider.%s: invalid version constraint %q: %s",
