@@ -26,6 +26,8 @@ func TestAccDatadogUser_Updated(t *testing.T) {
 						"datadog_user.foo", "handle", "test@example.com"),
 					resource.TestCheckResourceAttr(
 						"datadog_user.foo", "name", "Test User"),
+					resource.TestCheckResourceAttr(
+						"datadog_user.foo", "verified", "false"),
 				),
 			},
 			resource.TestStep{
@@ -42,6 +44,8 @@ func TestAccDatadogUser_Updated(t *testing.T) {
 						"datadog_user.foo", "is_admin", "true"),
 					resource.TestCheckResourceAttr(
 						"datadog_user.foo", "name", "Updated User"),
+					resource.TestCheckResourceAttr(
+						"datadog_user.foo", "verified", "false"),
 				),
 			},
 		},

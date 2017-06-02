@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/schema"
 	"gopkg.in/zorkian/go-datadog-api.v2"
 )
@@ -49,7 +50,7 @@ func resourceDatadogUser() *schema.Resource {
 			},
 			"verified": {
 				Type:     schema.TypeBool,
-				Optional: true,
+				Computed: true,
 			},
 		},
 	}
@@ -96,7 +97,7 @@ func resourceDatadogUserCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(u.GetHandle())
 
-	return nil
+	return resourceDatadogUserRead(d, meta)
 }
 
 func resourceDatadogUserRead(d *schema.ResourceData, meta interface{}) error {
@@ -107,7 +108,7 @@ func resourceDatadogUserRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	log.Printf("[DEBUG] user: %v", u)
+	log.Printf("[DEBUG] user: %s", spew.Sdump(u))
 	d.Set("disabled", u.GetDisabled())
 	d.Set("email", u.GetEmail())
 	d.Set("handle", u.GetHandle())
