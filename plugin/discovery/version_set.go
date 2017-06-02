@@ -69,3 +69,9 @@ func (s Constraints) Append(other Constraints) Constraints {
 func (s Constraints) String() string {
 	return s.raw.String()
 }
+
+// Unconstrained returns true if and only if the receiver is an empty
+// constraint set.
+func (s Constraints) Unconstrained() bool {
+	return len(s.raw) == 0
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	getter "github.com/hashicorp/go-getter"
@@ -187,6 +188,10 @@ func (c *InitCommand) Run(args []string) int {
 			return 1
 		}
 
+		c.Ui.Output(c.Colorize().Color(
+			"[reset][bold]Initializing provider plugins...",
+		))
+
 		err = c.getProviders(path, sMgr.State())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(
@@ -247,6 +252,37 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 	err = c.providerPluginsLock().Write(digests)
 	if err != nil {
 		return fmt.Errorf("failed to save provider manifest: %s", err)
+	}
+
+	// If any providers have "floating" versions (completely unconstrained)
+	// we'll suggest the user constrain with a pessimistic constraint to
+	// avoid implicitly adopting a later major release.
+	constraintSuggestions := make(map[string]discovery.ConstraintStr)
+	for name, meta := range chosen {
+		req := requirements[name]
+		if req == nil {
+			// should never happen, but we don't want to crash here, so we'll
+			// be cautious.
+			continue
+		}
+
+		if req.Versions.Unconstrained() {
+			// meta.Version.MustParse is safe here because our "chosen" metas
+			// were already filtered for validity of versions.
+			constraintSuggestions[name] = meta.Version.MustParse().MinorUpgradeConstraintStr()
+		}
+	}
+	if len(constraintSuggestions) != 0 {
+		names := make([]string, 0, len(constraintSuggestions))
+		for name := range constraintSuggestions {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+
+		c.Ui.Output(outputInitProvidersUnconstrained)
+		for _, name := range names {
+			c.Ui.Output(fmt.Sprintf("* provider.%s: version = %q", name, constraintSuggestions[name]))
+		}
 	}
 
 	return nil
@@ -360,4 +396,14 @@ should now work.
 If you ever set or change modules or backend configuration for Terraform,
 rerun this command to reinitialize your environment. If you forget, other
 commands will detect it and remind you to do so if necessary.
+`
+
+const outputInitProvidersUnconstrained = `
+The following providers do not have any version constraints in configuration,
+so the latest version was installed.
+
+To prevent automatic upgrades to new major versions that may contain breaking
+changes, it is recommended to add version = "..." constraints to the
+corresponding provider blocks in configuration, with the constraint strings
+suggested below.
 `
