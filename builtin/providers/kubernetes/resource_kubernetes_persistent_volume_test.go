@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -16,6 +17,10 @@ func TestAccKubernetesPersistentVolume_basic(t *testing.T) {
 	var conf api.PersistentVolume
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
+	diskName := fmt.Sprintf("tf-acc-test-disk-%s", randString)
+
+	region := os.Getenv("GOOGLE_REGION")
+	zone := os.Getenv("GOOGLE_ZONE")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -24,7 +29,7 @@ func TestAccKubernetesPersistentVolume_basic(t *testing.T) {
 		CheckDestroy:  testAccCheckKubernetesPersistentVolumeDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccKubernetesPersistentVolumeConfig_basic(name),
+				Config: testAccKubernetesPersistentVolumeConfig_basic(name, diskName, zone),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckKubernetesPersistentVolumeExists("kubernetes_persistent_volume.test", &conf),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.annotations.%", "2"),
@@ -35,7 +40,13 @@ func TestAccKubernetesPersistentVolume_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.labels.TestLabelOne", "one"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.labels.TestLabelTwo", "two"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.labels.TestLabelThree", "three"),
-					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{"TestLabelOne": "one", "TestLabelTwo": "two", "TestLabelThree": "three"}),
+					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{
+						"TestLabelOne":                             "one",
+						"TestLabelTwo":                             "two",
+						"TestLabelThree":                           "three",
+						"failure-domain.beta.kubernetes.io/region": region,
+						"failure-domain.beta.kubernetes.io/zone":   zone,
+					}),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.name", name),
 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume.test", "metadata.0.generation"),
 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume.test", "metadata.0.resource_version"),
@@ -46,11 +57,11 @@ func TestAccKubernetesPersistentVolume_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.access_modes.#", "1"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.access_modes.1254135962", "ReadWriteMany"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.gce_persistent_disk.#", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.gce_persistent_disk.0.pd_name", "test123"),
+					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.gce_persistent_disk.0.pd_name", diskName),
 				),
 			},
 			{
-				Config: testAccKubernetesPersistentVolumeConfig_modified(name),
+				Config: testAccKubernetesPersistentVolumeConfig_modified(name, diskName, zone),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckKubernetesPersistentVolumeExists("kubernetes_persistent_volume.test", &conf),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.annotations.%", "2"),
@@ -61,7 +72,13 @@ func TestAccKubernetesPersistentVolume_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.labels.TestLabelOne", "one"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.labels.TestLabelTwo", "two"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.labels.TestLabelThree", "three"),
-					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{"TestLabelOne": "one", "TestLabelTwo": "two", "TestLabelThree": "three"}),
+					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{
+						"TestLabelOne":                             "one",
+						"TestLabelTwo":                             "two",
+						"TestLabelThree":                           "three",
+						"failure-domain.beta.kubernetes.io/region": region,
+						"failure-domain.beta.kubernetes.io/zone":   zone,
+					}),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.name", name),
 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume.test", "metadata.0.generation"),
 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume.test", "metadata.0.resource_version"),
@@ -74,7 +91,7 @@ func TestAccKubernetesPersistentVolume_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.access_modes.1254135962", "ReadWriteMany"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.gce_persistent_disk.#", "1"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.gce_persistent_disk.0.fs_type", "ntfs"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.gce_persistent_disk.0.pd_name", "test123"),
+					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.gce_persistent_disk.0.pd_name", diskName),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.gce_persistent_disk.0.read_only", "true"),
 				),
 			},
@@ -86,6 +103,9 @@ func TestAccKubernetesPersistentVolume_importBasic(t *testing.T) {
 	resourceName := "kubernetes_persistent_volume.test"
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-import-%s", randString)
+	diskName := fmt.Sprintf("tf-acc-test-disk-%s", randString)
+
+	zone := os.Getenv("GOOGLE_ZONE")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -93,7 +113,7 @@ func TestAccKubernetesPersistentVolume_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckKubernetesPersistentVolumeDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccKubernetesPersistentVolumeConfig_basic(name),
+				Config: testAccKubernetesPersistentVolumeConfig_basic(name, diskName, zone),
 			},
 			{
 				ResourceName:      resourceName,
@@ -108,6 +128,10 @@ func TestAccKubernetesPersistentVolume_volumeSource(t *testing.T) {
 	var conf api.PersistentVolume
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("tf-acc-test-%s", randString)
+	diskName := fmt.Sprintf("tf-acc-test-disk-%s", randString)
+
+	region := os.Getenv("GOOGLE_REGION")
+	zone := os.Getenv("GOOGLE_ZONE")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -116,13 +140,16 @@ func TestAccKubernetesPersistentVolume_volumeSource(t *testing.T) {
 		CheckDestroy:  testAccCheckKubernetesPersistentVolumeDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccKubernetesPersistentVolumeConfig_volumeSource(name),
+				Config: testAccKubernetesPersistentVolumeConfig_volumeSource(name, diskName, zone),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckKubernetesPersistentVolumeExists("kubernetes_persistent_volume.test", &conf),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.annotations.%", "0"),
 					testAccCheckMetaAnnotations(&conf.ObjectMeta, map[string]string{}),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.labels.%", "0"),
-					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{}),
+					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{
+						"failure-domain.beta.kubernetes.io/region": region,
+						"failure-domain.beta.kubernetes.io/zone":   zone,
+					}),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.name", name),
 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume.test", "metadata.0.generation"),
 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume.test", "metadata.0.resource_version"),
@@ -132,11 +159,8 @@ func TestAccKubernetesPersistentVolume_volumeSource(t *testing.T) {
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.capacity.storage", "123Gi"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.access_modes.#", "1"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.access_modes.1254135962", "ReadWriteMany"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.aws_elastic_block_store.#", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.aws_elastic_block_store.0.volume_id", "vol-12345678"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.aws_elastic_block_store.0.fs_type", "ntfs"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.aws_elastic_block_store.0.partition", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.aws_elastic_block_store.0.read_only", "true"),
+					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.gce_persistent_disk.#", "1"),
+					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume.test", "spec.0.persistent_volume_source.0.gce_persistent_disk.0.pd_name"),
 				),
 			},
 			{
@@ -146,7 +170,10 @@ func TestAccKubernetesPersistentVolume_volumeSource(t *testing.T) {
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.annotations.%", "0"),
 					testAccCheckMetaAnnotations(&conf.ObjectMeta, map[string]string{}),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.labels.%", "0"),
-					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{}),
+					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{
+						"failure-domain.beta.kubernetes.io/region": region,
+						"failure-domain.beta.kubernetes.io/zone":   zone,
+					}),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume.test", "metadata.0.name", name),
 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume.test", "metadata.0.generation"),
 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume.test", "metadata.0.resource_version"),
@@ -242,7 +269,7 @@ func testAccCheckKubernetesPersistentVolumeExists(n string, obj *api.PersistentV
 	}
 }
 
-func testAccKubernetesPersistentVolumeConfig_basic(name string) string {
+func testAccKubernetesPersistentVolumeConfig_basic(name, diskName, zone string) string {
 	return fmt.Sprintf(`
 resource "kubernetes_persistent_volume" "test" {
 	metadata {
@@ -264,14 +291,23 @@ resource "kubernetes_persistent_volume" "test" {
 		access_modes = ["ReadWriteMany"]
 		persistent_volume_source {
 			gce_persistent_disk {
-				pd_name = "test123"
+				pd_name = "${google_compute_disk.test.name}"
 			}
 		}
 	}
-}`, name)
 }
 
-func testAccKubernetesPersistentVolumeConfig_modified(name string) string {
+resource "google_compute_disk" "test" {
+  name  = "%s"
+  type  = "pd-ssd"
+  zone  = "%s"
+  image = "debian-8-jessie-v20170523"
+  size = 10
+}
+`, name, diskName, zone)
+}
+
+func testAccKubernetesPersistentVolumeConfig_modified(name, diskName, zone string) string {
 	return fmt.Sprintf(`
 resource "kubernetes_persistent_volume" "test" {
 	metadata {
@@ -294,15 +330,24 @@ resource "kubernetes_persistent_volume" "test" {
 		persistent_volume_source {
 			gce_persistent_disk {
 				fs_type = "ntfs"
-				pd_name = "test123"
+				pd_name = "${google_compute_disk.test.name}"
 				read_only = true
 			}
 		}
 	}
-}`, name)
 }
 
-func testAccKubernetesPersistentVolumeConfig_volumeSource(name string) string {
+resource "google_compute_disk" "test" {
+  name  = "%s"
+  type  = "pd-ssd"
+  zone  = "%s"
+  image = "debian-8-jessie-v20170523"
+  size = 10
+}
+`, name, diskName, zone)
+}
+
+func testAccKubernetesPersistentVolumeConfig_volumeSource(name, diskName, zone string) string {
 	return fmt.Sprintf(`
 resource "kubernetes_persistent_volume" "test" {
 	metadata {
@@ -314,15 +359,21 @@ resource "kubernetes_persistent_volume" "test" {
 		}
 		access_modes = ["ReadWriteMany"]
 		persistent_volume_source {
-			aws_elastic_block_store {
-				volume_id = "vol-12345678"
-				fs_type = "ntfs"
-				partition = 1
-				read_only = true
+			gce_persistent_disk {
+				pd_name = "${google_compute_disk.test.name}"
 			}
 		}
 	}
-}`, name)
+}
+
+resource "google_compute_disk" "test" {
+  name  = "%s"
+  type  = "pd-ssd"
+  zone  = "%s"
+  image = "debian-8-jessie-v20170523"
+  size = 12
+}
+`, name, diskName, zone)
 }
 
 func testAccKubernetesPersistentVolumeConfig_volumeSource_modified(name string) string {
