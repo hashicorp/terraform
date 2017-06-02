@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"regexp"
 )
 
 func resourceArmDocumentDb() *schema.Resource {
@@ -25,9 +26,10 @@ func resourceArmDocumentDb() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateAzureRmDocumentDbName,
 			},
 
 			"location": {
@@ -342,6 +344,22 @@ func flattenAzureRmDocumentDbFailoverPolicy(list *[]documentdb.FailoverPolicy) [
 		result = append(result, l)
 	}
 	return result
+}
+
+func validateAzureRmDocumentDbName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	r, _ := regexp.Compile("[a-z0-9-]")
+	if !r.MatchString(value) {
+		errors = append(errors, fmt.Errorf("DocumentDB Name can only contain lower-case characters, numbers and the `-` character."))
+	}
+
+	length := len(value)
+	if length > 50 || 3 > length {
+		errors = append(errors, fmt.Errorf("DocumentDB Name can only be between 3 and 50 seconds."))
+	}
+
+	return
 }
 
 func validateAzureRmDocumentDbMaxIntervalInSeconds(v interface{}, k string) (ws []string, errors []error) {

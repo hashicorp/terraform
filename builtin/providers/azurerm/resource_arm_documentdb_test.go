@@ -10,6 +10,39 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestAccAzureRMDocumentDbName_validation(t *testing.T) {
+	str := acctest.RandString(50)
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "ab",
+			ErrCount: 1,
+		},
+		{
+			Value:    "abc",
+			ErrCount: 0,
+		},
+		{
+			Value:    str,
+			ErrCount: 0,
+		},
+		{
+			Value:    str + "a",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAzureRmDocumentDbName(tc.Value, "azurerm_documentdb")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the Azure RM DocumentDB Name to trigger a validation error for '%s'", tc.Value)
+		}
+	}
+}
+
 func TestAccAzureRMDocumentDbMaxIntervalInSeconds_validation(t *testing.T) {
 	cases := []struct {
 		Value    int
