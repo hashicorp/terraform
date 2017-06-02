@@ -79,6 +79,7 @@ func Funcs() map[string]ast.Function {
 		"dirname":      interpolationFuncDirname(),
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
+		"chunklist":    interpolationFuncChunklist(),
 		"file":         interpolationFuncFile(),
 		"matchkeys":    interpolationFuncMatchKeys(),
 		"flatten":      interpolationFuncFlatten(),
@@ -1125,6 +1126,56 @@ func interpolationFuncElement() ast.Function {
 					v.Type.Printable())
 			}
 			return v.Value, nil
+		},
+	}
+}
+
+// returns the `list` items chunked by `size`.
+func interpolationFuncChunklist() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeList, // inputList
+			ast.TypeInt,  // size
+		},
+		ReturnType: ast.TypeList,
+		Callback: func(args []interface{}) (interface{}, error) {
+			output := make([]ast.Variable, 0)
+
+			values, _ := args[0].([]ast.Variable)
+			size, _ := args[1].(int)
+
+			// errors if size is negative
+			if size < 0 {
+				return nil, fmt.Errorf("The size argument must be positive")
+			}
+
+			// if size is 0, returns a list made of the initial list
+			if size == 0 {
+				output = append(output, ast.Variable{
+					Type:  ast.TypeList,
+					Value: values,
+				})
+				return output, nil
+			}
+
+			variables := make([]ast.Variable, 0)
+			chunk := ast.Variable{
+				Type:  ast.TypeList,
+				Value: variables,
+			}
+			l := len(values)
+			for i, v := range values {
+				variables = append(variables, v)
+
+				// Chunk when index isn't 0, or when reaching the values's length
+				if (i+1)%size == 0 || (i+1) == l {
+					chunk.Value = variables
+					output = append(output, chunk)
+					variables = make([]ast.Variable, 0)
+				}
+			}
+
+			return output, nil
 		},
 	}
 }
