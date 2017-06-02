@@ -97,57 +97,13 @@ func TestVersionListing(t *testing.T) {
 	}
 }
 
-func TestNewestVersion(t *testing.T) {
-	var available []Version
-	for _, v := range []string{"1.2.3", "1.2.1", "1.2.4"} {
-		version, err := VersionStr(v).Parse()
-		if err != nil {
-			t.Fatal(err)
-		}
-		available = append(available, version)
+func TestCheckProtocolVersions(t *testing.T) {
+	if checkPlugin(providerURL("test", VersionStr("1.2.3").MustParse().String()), 4) {
+		t.Fatal("protocol version 4 is not compatible")
 	}
 
-	reqd, err := ConstraintStr(">1.2.1").Parse()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	found, err := newestVersion(available, reqd)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if found.String() != "1.2.4" {
-		t.Fatalf("expected newest version 1.2.4, got: %s", found)
-	}
-
-	reqd, err = ConstraintStr("> 1.2.4").Parse()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	found, err = newestVersion(available, reqd)
-	if err == nil {
-		t.Fatalf("expceted error, got version %s", found)
-	}
-}
-
-func TestFilterProtocolVersions(t *testing.T) {
-	versions, err := listProviderVersions("test")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// use plugin protocl version 3, which should only return version 1.2.3
-	compat := filterProtocolVersions("test", versions, 3)
-
-	if len(compat) != 1 || compat[0].String() != "1.2.3" {
-		t.Fatal("found wrong versions: %q", compat)
-	}
-
-	compat = filterProtocolVersions("test", versions, 6)
-	if len(compat) != 0 {
-		t.Fatal("should be no compatible versions, got: %q", compat)
+	if !checkPlugin(providerURL("test", VersionStr("1.2.3").MustParse().String()), 3) {
+		t.Fatal("protocol version 3 should be compatible")
 	}
 }
 
@@ -159,13 +115,19 @@ func TestGetProvider(t *testing.T) {
 
 	defer os.RemoveAll(tmpDir)
 
-	fileName := fmt.Sprintf("terraform-provider-test_1.2.3_%s_%s_X3", runtime.GOOS, runtime.GOARCH)
+	// attempt to use an incompatible protocol version
+	err = GetProvider(tmpDir, "test", AllVersions, 5)
+	if err == nil {
+		t.Fatal("protocol version is incompatible")
+	}
 
 	err = GetProvider(tmpDir, "test", AllVersions, 3)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// we should have version 1.2.3
+	fileName := fmt.Sprintf("terraform-provider-test_1.2.3_%s_%s_X3", runtime.GOOS, runtime.GOARCH)
 	dest := filepath.Join(tmpDir, fileName)
 	f, err := ioutil.ReadFile(dest)
 	if err != nil {
