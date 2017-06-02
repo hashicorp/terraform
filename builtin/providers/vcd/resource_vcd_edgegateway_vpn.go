@@ -263,21 +263,28 @@ func resourceVcdEdgeGatewayVpnRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	egsc := edgeGateway.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.GatewayIpsecVpnService
-	for _, t := range egsc.Tunnel {
-		d.Set("name", t.Name)
-		d.Set("description", t.Description)
-		d.Set("encryption_protocol", t.EncryptionProtocol)
-		d.Set("local_ip_address", t.LocalIPAddress)
-		d.Set("local_id", t.LocalID)
-		d.Set("mtu", t.Mtu)
-		d.Set("peer_ip_address", t.PeerIPAddress)
-		d.Set("peer_id", t.PeerID)
-		d.Set("shared_secret", t.SharedSecret)
-		d.Set("local_subnets", t.LocalSubnet)
-		d.Set("peer_subnets", t.PeerSubnet)
 
+	if len(egsc.Tunnel) == 0 {
+		d.SetId("")
+		return nil
 	}
-	// and all the others
+
+	if len(egsc.Tunnel) == 1 {
+		tunnel := egsc.Tunnel[0]
+		d.Set("name", tunnel.Name)
+		d.Set("description", tunnel.Description)
+		d.Set("encryption_protocol", tunnel.EncryptionProtocol)
+		d.Set("local_ip_address", tunnel.LocalIPAddress)
+		d.Set("local_id", tunnel.LocalID)
+		d.Set("mtu", tunnel.Mtu)
+		d.Set("peer_ip_address", tunnel.PeerIPAddress)
+		d.Set("peer_id", tunnel.PeerID)
+		d.Set("shared_secret", tunnel.SharedSecret)
+		d.Set("local_subnets", tunnel.LocalSubnet)
+		d.Set("peer_subnets", tunnel.PeerSubnet)
+	} else {
+		return fmt.Errorf("Multiple tunnels not currently supported")
+	}
 
 	return nil
 }
