@@ -311,7 +311,7 @@ func (c *InitCommand) Help() string {
 	helpText := `
 Usage: terraform init [options] [SOURCE] [PATH]
 
-  Initialize a new or existing Terraform environment by creating
+  Initialize a new or existing Terraform working directory by creating
   initial files, loading any remote state, downloading modules, etc.
 
   This is the first command that should be run for any new or existing
@@ -320,9 +320,9 @@ Usage: terraform init [options] [SOURCE] [PATH]
   control.
 
   This command is always safe to run multiple times. Though subsequent runs
-  may give errors, this command will never blow away your environment or state.
-  Even so, if you have important information, please back it up prior to
-  running this command just in case.
+  may give errors, this command will never delete your configuration or
+  state. Even so, if you have important information, please back it up prior
+  to running this command, just in case.
 
   If no arguments are given, the configuration in this working directory
   is initialized.
@@ -337,7 +337,7 @@ Usage: terraform init [options] [SOURCE] [PATH]
 
 Options:
 
-  -backend=true        Configure the backend for this environment.
+  -backend=true        Configure the backend for this configuration.
 
   -backend-config=path This can be either a path to an HCL file with key/value
                        assignments (same format as terraform.tfvars) or a
@@ -395,7 +395,7 @@ any changes that are required for your infrastructure. All Terraform commands
 should now work.
 
 If you ever set or change modules or backend configuration for Terraform,
-rerun this command to reinitialize your environment. If you forget, other
+rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
 `
 
