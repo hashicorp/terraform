@@ -121,6 +121,11 @@ variable "os_image_map" {
   }
 }
 
+variable "disk_size_gb" {
+  description = "storage os disk size"
+  default     = 60
+}
+
 variable "openshift_cluster_prefix" {
   description = "Cluster Prefix used to configure domain name label and hostnames for all nodes - master, infra and nodes. Between 1 and 20 characters"
 }

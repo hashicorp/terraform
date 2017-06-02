@@ -1,9 +1,9 @@
-# provider "azurerm" {
-#   subscription_id = "REPLACE-WITH-YOUR-SUBSCRIPTION-ID"
-#   client_id       = "REPLACE-WITH-YOUR-CLIENT-ID"
-#   client_secret   = "REPLACE-WITH-YOUR-CLIENT-SECRET"
-#   tenant_id       = "REPLACE-WITH-YOUR-TENANT-ID"
-# }
+provider "azurerm" {
+  subscription_id = "${var.subscription_id}"
+  client_id       = "${var.aad_client_id}"
+  client_secret   = "${var.aad_client_secret}"
+  tenant_id       = "${var.tenant_id}"
+}
 
 resource "azurerm_resource_group" "rg" {
   name     = "${var.resource_group_name}"
@@ -482,7 +482,7 @@ resource "azurerm_virtual_machine" "master" {
     vhd_uri       = "${azurerm_storage_account.master_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-master-osdisk.vhd"
     caching       = "ReadWrite"
     create_option = "FromImage"
-    disk_size_gb  = 40
+    disk_size_gb  = 60
   }
 
   storage_data_disk {
