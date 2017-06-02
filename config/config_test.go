@@ -626,6 +626,13 @@ func TestConfigValidate_varModuleInvalid(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_varProviderVersionInvalid(t *testing.T) {
+	c := testConfig(t, "validate-provider-version-invalid")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestNameRegexp(t *testing.T) {
 	cases := []struct {
 		Input string
