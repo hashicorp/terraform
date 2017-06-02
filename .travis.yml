@@ -3,6 +3,8 @@ sudo: false
 language: go
 go:
 - 1.8.1
+go_import_path: github.com/hashicorp/terraform
+
 
 # add TF_CONSUL_TEST=1 to run consul tests
 # they were causing timouts in travis
