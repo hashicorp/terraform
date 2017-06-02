@@ -2,7 +2,7 @@ dist: trusty
 sudo: false
 language: go
 go:
-- 1.8.3
+- 1.8.1
 
 # add TF_CONSUL_TEST=1 to run consul tests
 # they were causing timouts in travis
@@ -25,6 +25,8 @@ install:
 - bash scripts/gogetcookie.sh
 - go get github.com/kardianos/govendor
 script:
+- make vendor-status
+- make test
 - make vet
 - GOOS=windows go build
 # branches:
