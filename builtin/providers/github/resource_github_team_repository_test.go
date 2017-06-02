@@ -13,7 +13,9 @@ import (
 
 func TestAccGithubTeamRepository_basic(t *testing.T) {
 	var repository github.Repository
+
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	repoName := fmt.Sprintf("tf-acc-test-team-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -21,14 +23,14 @@ func TestAccGithubTeamRepository_basic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamRepositoryConfig(randString, testRepo),
+				Config: testAccGithubTeamRepositoryConfig(randString, repoName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamRepositoryExists("github_team_repository.test_team_test_repo", &repository),
 					testAccCheckGithubTeamRepositoryRoleState("pull", &repository),
 				),
 			},
 			{
-				Config: testAccGithubTeamRepositoryUpdateConfig(randString, testRepo),
+				Config: testAccGithubTeamRepositoryUpdateConfig(randString, repoName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamRepositoryExists("github_team_repository.test_team_test_repo", &repository),
 					testAccCheckGithubTeamRepositoryRoleState("push", &repository),
@@ -40,6 +42,7 @@ func TestAccGithubTeamRepository_basic(t *testing.T) {
 
 func TestAccGithubTeamRepository_importBasic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	repoName := fmt.Sprintf("tf-acc-test-team-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -47,7 +50,7 @@ func TestAccGithubTeamRepository_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamRepositoryConfig(randString, testRepo),
+				Config: testAccGithubTeamRepositoryConfig(randString, repoName),
 			},
 			{
 				ResourceName:      "github_team_repository.test_team_test_repo",
@@ -159,9 +162,13 @@ resource "github_team" "test_team" {
 	description = "Terraform acc test group"
 }
 
+resource "github_repository" "test" {
+	name = "%s"
+}
+
 resource "github_team_repository" "test_team_test_repo" {
 	team_id = "${github_team.test_team.id}"
-	repository = "%s"
+	repository = "${github_repository.test.name}"
 	permission = "pull"
 }
 `, randString, repoName)
@@ -174,9 +181,13 @@ resource "github_team" "test_team" {
 	description = "Terraform acc test group"
 }
 
+resource "github_repository" "test" {
+	name = "%s"
+}
+
 resource "github_team_repository" "test_team_test_repo" {
 	team_id = "${github_team.test_team.id}"
-	repository = "%s"
+	repository = "${github_repository.test.name}"
 	permission = "push"
 }
 `, randString, repoName)

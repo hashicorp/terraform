@@ -157,3 +157,31 @@ func TestAccAWSSecurityGroup_importIPRangesWithSameRules(t *testing.T) {
 		},
 	})
 }
+
+func TestAccAWSSecurityGroup_importPrefixList(t *testing.T) {
+	checkFn := func(s []*terraform.InstanceState) error {
+		// Expect 2: group, 1 rule
+		if len(s) != 2 {
+			return fmt.Errorf("expected 2 states: %#v", s)
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSSecurityGroupConfigPrefixListEgress,
+			},
+
+			{
+				ResourceName:     "aws_security_group.egress",
+				ImportState:      true,
+				ImportStateCheck: checkFn,
+			},
+		},
+	})
+}

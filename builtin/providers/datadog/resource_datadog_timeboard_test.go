@@ -224,7 +224,7 @@ func checkDestroy(s *terraform.State) error {
 
 func TestValidateAggregatorMethod(t *testing.T) {
 	validMethods := []string{
-		"average",
+		"avg",
 		"max",
 		"min",
 		"sum",
@@ -237,7 +237,7 @@ func TestValidateAggregatorMethod(t *testing.T) {
 	}
 
 	invalidMethods := []string{
-		"avg",
+		"average",
 		"suM",
 		"m",
 		"foo",

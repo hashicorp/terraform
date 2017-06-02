@@ -5,24 +5,30 @@ import (
 	"testing"
 
 	"github.com/PagerDuty/go-pagerduty"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccPagerDutyUser_Basic(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	usernameUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	emailUpdated := fmt.Sprintf("%s@foo.com", usernameUpdated)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyUserDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyUserConfig,
+			{
+				Config: testAccCheckPagerDutyUserConfig(username, email),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_user.foo", "name", "foo"),
+						"pagerduty_user.foo", "name", username),
 					resource.TestCheckResourceAttr(
-						"pagerduty_user.foo", "email", "foo@bar.com"),
+						"pagerduty_user.foo", "email", email),
 					resource.TestCheckResourceAttr(
 						"pagerduty_user.foo", "color", "green"),
 					resource.TestCheckResourceAttr(
@@ -33,14 +39,14 @@ func TestAccPagerDutyUser_Basic(t *testing.T) {
 						"pagerduty_user.foo", "description", "foo"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyUserConfigUpdated,
+			{
+				Config: testAccCheckPagerDutyUserConfigUpdated(usernameUpdated, emailUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_user.foo", "name", "bar"),
+						"pagerduty_user.foo", "name", usernameUpdated),
 					resource.TestCheckResourceAttr(
-						"pagerduty_user.foo", "email", "bar@foo.com"),
+						"pagerduty_user.foo", "email", emailUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_user.foo", "color", "red"),
 					resource.TestCheckResourceAttr(
@@ -56,43 +62,48 @@ func TestAccPagerDutyUser_Basic(t *testing.T) {
 }
 
 func TestAccPagerDutyUserWithTeams_Basic(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	team1 := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	team2 := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyUserDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyUserWithTeamsConfig,
+			{
+				Config: testAccCheckPagerDutyUserWithTeamsConfig(team1, username, email),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_user.foo", "name", "foo"),
+						"pagerduty_user.foo", "name", username),
 					resource.TestCheckResourceAttr(
-						"pagerduty_user.foo", "email", "foo@bar.com"),
+						"pagerduty_user.foo", "email", email),
 					resource.TestCheckResourceAttr(
 						"pagerduty_user.foo", "teams.#", "1"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyUserWithTeamsConfigUpdated,
+			{
+				Config: testAccCheckPagerDutyUserWithTeamsConfigUpdated(team1, team2, username, email),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_user.foo", "name", "foo"),
+						"pagerduty_user.foo", "name", username),
 					resource.TestCheckResourceAttr(
-						"pagerduty_user.foo", "email", "foo@bar.com"),
+						"pagerduty_user.foo", "email", email),
 					resource.TestCheckResourceAttr(
 						"pagerduty_user.foo", "teams.#", "2"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyUserWithNoTeamsConfig,
+			{
+				Config: testAccCheckPagerDutyUserWithNoTeamsConfig(team1, team2, username, email),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_user.foo", "name", "foo"),
+						"pagerduty_user.foo", "name", username),
 					resource.TestCheckResourceAttr(
-						"pagerduty_user.foo", "email", "foo@bar.com"),
+						"pagerduty_user.foo", "email", email),
 					resource.TestCheckResourceAttr(
 						"pagerduty_user.foo", "teams.#", "0"),
 				),
@@ -145,66 +156,75 @@ func testAccCheckPagerDutyUserExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccCheckPagerDutyUserConfig = `
+func testAccCheckPagerDutyUserConfig(username, email string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
   color       = "green"
   role        = "user"
   job_title   = "foo"
   description = "foo"
+}`, username, email)
 }
-`
 
-const testAccCheckPagerDutyUserConfigUpdated = `
+func testAccCheckPagerDutyUserConfigUpdated(username, email string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "bar"
-  email       = "bar@foo.com"
+  name        = "%s"
+  email       = "%s"
   color       = "red"
   role        = "team_responder"
   job_title   = "bar"
   description = "bar"
+}`, username, email)
 }
-`
 
-const testAccCheckPagerDutyUserWithTeamsConfig = `
+func testAccCheckPagerDutyUserWithTeamsConfig(team, username, email string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_team" "foo" {
-  name = "Foo team"
+  name = "%s"
 }
 
 resource "pagerduty_user" "foo" {
-  name  = "foo"
-  email = "foo@bar.com"
+  name  = "%s"
+  email = "%s"
   teams = ["${pagerduty_team.foo.id}"]
 }
-`
-const testAccCheckPagerDutyUserWithTeamsConfigUpdated = `
+`, team, username, email)
+}
+
+func testAccCheckPagerDutyUserWithTeamsConfigUpdated(team1, team2, username, email string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_team" "foo" {
-  name = "Foo team"
+  name = "%s"
 }
 
 resource "pagerduty_team" "bar" {
-  name = "Bar team"
+  name = "%s"
 }
 
 resource "pagerduty_user" "foo" {
-  name  = "foo"
-  email = "foo@bar.com"
+  name  = "%s"
+  email = "%s"
   teams = ["${pagerduty_team.foo.id}", "${pagerduty_team.bar.id}"]
 }
-`
+`, team1, team2, username, email)
+}
 
-const testAccCheckPagerDutyUserWithNoTeamsConfig = `
+func testAccCheckPagerDutyUserWithNoTeamsConfig(team1, team2, username, email string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_team" "foo" {
-  name = "Foo team"
+  name = "%s"
 }
 
 resource "pagerduty_team" "bar" {
-  name = "Bar team"
+  name = "%s"
 }
 
 resource "pagerduty_user" "foo" {
-  name  = "foo"
-  email = "foo@bar.com"
+  name  = "%s"
+  email = "%s"
 }
-`
+`, team1, team2, username, email)
+}

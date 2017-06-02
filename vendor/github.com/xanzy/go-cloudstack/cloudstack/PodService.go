@@ -137,6 +137,7 @@ func (s *PodService) CreatePod(p *CreatePodParams) (*CreatePodResponse, error) {
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -273,6 +274,7 @@ func (s *PodService) UpdatePod(p *UpdatePodParams) (*UpdatePodResponse, error) {
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -343,6 +345,7 @@ func (s *PodService) DeletePod(p *DeletePodParams) (*DeletePodResponse, error) {
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -556,6 +559,7 @@ func (s *PodService) ListPods(p *ListPodsParams) (*ListPodsResponse, error) {
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -674,6 +678,7 @@ func (s *PodService) DedicatePod(p *DedicatePodParams) (*DedicatePodResponse, er
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -745,6 +750,7 @@ func (s *PodService) ReleaseDedicatedPod(p *ReleaseDedicatedPodParams) (*Release
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -864,6 +870,7 @@ func (s *PodService) ListDedicatedPods(p *ListDedicatedPodsParams) (*ListDedicat
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

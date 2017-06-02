@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -56,6 +57,12 @@ func resourceDigitalOceanRecord() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"ttl": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"value": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -93,6 +100,12 @@ func resourceDigitalOceanRecordCreate(d *schema.ResourceData, meta interface{}) 
 			return fmt.Errorf("Failed to parse port as an integer: %v", err)
 		}
 	}
+	if ttl := d.Get("ttl").(string); ttl != "" {
+		newRecord.TTL, err = strconv.Atoi(ttl)
+		if err != nil {
+			return fmt.Errorf("Failed to parse ttl as an integer: %v", err)
+		}
+	}
 	if weight := d.Get("weight").(string); weight != "" {
 		newRecord.Weight, err = strconv.Atoi(weight)
 		if err != nil {
@@ -101,7 +114,7 @@ func resourceDigitalOceanRecordCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] record create configuration: %#v", newRecord)
-	rec, _, err := client.Domains.CreateRecord(d.Get("domain").(string), &newRecord)
+	rec, _, err := client.Domains.CreateRecord(context.Background(), d.Get("domain").(string), &newRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to create record: %s", err)
 	}
@@ -120,7 +133,7 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("invalid record ID: %v", err)
 	}
 
-	rec, resp, err := client.Domains.Record(domain, id)
+	rec, resp, err := client.Domains.Record(context.Background(), domain, id)
 	if err != nil {
 		// If the record is somehow already destroyed, mark as
 		// successfully gone
@@ -132,16 +145,11 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	// Update response data for records with domain value
 	if t := rec.Type; t == "CNAME" || t == "MX" || t == "NS" || t == "SRV" {
-		// Append dot to response if resource value is absolute
-		if value := d.Get("value").(string); strings.HasSuffix(value, ".") {
-			rec.Data += "."
-			// If resource value ends with current domain, make response data absolute
-			if strings.HasSuffix(value, domain+".") {
-				rec.Data += domain + "."
-			}
+		if rec.Data == "@" {
+			rec.Data = domain
 		}
+		rec.Data += "."
 	}
 
 	d.Set("name", rec.Name)
@@ -150,6 +158,7 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("weight", strconv.Itoa(rec.Weight))
 	d.Set("priority", strconv.Itoa(rec.Priority))
 	d.Set("port", strconv.Itoa(rec.Port))
+	d.Set("ttl", strconv.Itoa(rec.TTL))
 
 	en := constructFqdn(rec.Name, d.Get("domain").(string))
 	log.Printf("[DEBUG] Constructed FQDN: %s", en)
@@ -172,8 +181,16 @@ func resourceDigitalOceanRecordUpdate(d *schema.ResourceData, meta interface{}) 
 		editRecord.Name = v.(string)
 	}
 
+	if d.HasChange("ttl") {
+		newTTL := d.Get("ttl").(string)
+		editRecord.TTL, err = strconv.Atoi(newTTL)
+		if err != nil {
+			return fmt.Errorf("Failed to parse ttl as an integer: %v", err)
+		}
+	}
+
 	log.Printf("[DEBUG] record update configuration: %#v", editRecord)
-	_, _, err = client.Domains.EditRecord(domain, id, &editRecord)
+	_, _, err = client.Domains.EditRecord(context.Background(), domain, id, &editRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to update record: %s", err)
 	}
@@ -192,7 +209,7 @@ func resourceDigitalOceanRecordDelete(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[INFO] Deleting record: %s, %d", domain, id)
 
-	resp, delErr := client.Domains.DeleteRecord(domain, id)
+	resp, delErr := client.Domains.DeleteRecord(context.Background(), domain, id)
 	if delErr != nil {
 		// If the record is somehow already destroyed, mark as
 		// successfully gone

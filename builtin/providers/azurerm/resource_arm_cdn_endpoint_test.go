@@ -134,7 +134,8 @@ func testCheckAzureRMCdnEndpointDisappears(name string) resource.TestCheckFunc {
 
 		conn := testAccProvider.Meta().(*ArmClient).cdnEndpointsClient
 
-		_, err := conn.Delete(resourceGroup, profileName, name, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, profileName, name, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on cdnEndpointsClient: %s", err)
 		}
@@ -156,7 +157,6 @@ func testCheckAzureRMCdnEndpointDestroy(s *terraform.State) error {
 		profileName := rs.Primary.Attributes["profile_name"]
 
 		resp, err := conn.Get(resourceGroup, profileName, name)
-
 		if err != nil {
 			return nil
 		}

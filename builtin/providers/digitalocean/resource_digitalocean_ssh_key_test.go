@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -52,7 +53,7 @@ func testAccCheckDigitalOceanSSHKeyDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the key
-		_, _, err = client.Keys.GetByID(id)
+		_, _, err = client.Keys.GetByID(context.Background(), id)
 
 		if err == nil {
 			return fmt.Errorf("SSH key still exists")
@@ -82,7 +83,7 @@ func testAccCheckDigitalOceanSSHKeyExists(n string, key *godo.Key) resource.Test
 		}
 
 		// Try to find the key
-		foundKey, _, err := client.Keys.GetByID(id)
+		foundKey, _, err := client.Keys.GetByID(context.Background(), id)
 
 		if err != nil {
 			return err

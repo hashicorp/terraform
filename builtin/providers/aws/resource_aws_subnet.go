@@ -41,6 +41,7 @@ func resourceAwsSubnet() *schema.Resource {
 			"ipv6_cidr_block": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"availability_zone": {
@@ -169,25 +170,6 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("tags")
 	}
 
-	if d.HasChange("assign_ipv6_address_on_creation") {
-		modifyOpts := &ec2.ModifySubnetAttributeInput{
-			SubnetId: aws.String(d.Id()),
-			AssignIpv6AddressOnCreation: &ec2.AttributeBooleanValue{
-				Value: aws.Bool(d.Get("assign_ipv6_address_on_creation").(bool)),
-			},
-		}
-
-		log.Printf("[DEBUG] Subnet modify attributes: %#v", modifyOpts)
-
-		_, err := conn.ModifySubnetAttribute(modifyOpts)
-
-		if err != nil {
-			return err
-		} else {
-			d.SetPartial("assign_ipv6_address_on_creation")
-		}
-	}
-
 	if d.HasChange("map_public_ip_on_launch") {
 		modifyOpts := &ec2.ModifySubnetAttributeInput{
 			SubnetId: aws.String(d.Id()),
@@ -216,30 +198,33 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		_, new := d.GetChange("ipv6_cidr_block")
 
-		//Firstly we have to disassociate the old IPv6 CIDR Block
-		disassociateOps := &ec2.DisassociateSubnetCidrBlockInput{
-			AssociationId: aws.String(d.Get("ipv6_cidr_block_association_id").(string)),
-		}
+		if v, ok := d.GetOk("ipv6_cidr_block_association_id"); ok {
 
-		_, err := conn.DisassociateSubnetCidrBlock(disassociateOps)
-		if err != nil {
-			return err
-		}
+			//Firstly we have to disassociate the old IPv6 CIDR Block
+			disassociateOps := &ec2.DisassociateSubnetCidrBlockInput{
+				AssociationId: aws.String(v.(string)),
+			}
 
-		// Wait for the CIDR to become disassociated
-		log.Printf(
-			"[DEBUG] Waiting for IPv6 CIDR (%s) to become disassociated",
-			d.Id())
-		stateConf := &resource.StateChangeConf{
-			Pending: []string{"disassociating", "associated"},
-			Target:  []string{"disassociated"},
-			Refresh: SubnetIpv6CidrStateRefreshFunc(conn, d.Id(), d.Get("ipv6_cidr_block_association_id").(string)),
-			Timeout: 1 * time.Minute,
-		}
-		if _, err := stateConf.WaitForState(); err != nil {
-			return fmt.Errorf(
-				"Error waiting for IPv6 CIDR (%s) to become disassociated: %s",
-				d.Id(), err)
+			_, err := conn.DisassociateSubnetCidrBlock(disassociateOps)
+			if err != nil {
+				return err
+			}
+
+			// Wait for the CIDR to become disassociated
+			log.Printf(
+				"[DEBUG] Waiting for IPv6 CIDR (%s) to become disassociated",
+				d.Id())
+			stateConf := &resource.StateChangeConf{
+				Pending: []string{"disassociating", "associated"},
+				Target:  []string{"disassociated"},
+				Refresh: SubnetIpv6CidrStateRefreshFunc(conn, d.Id(), d.Get("ipv6_cidr_block_association_id").(string)),
+				Timeout: 3 * time.Minute,
+			}
+			if _, err := stateConf.WaitForState(); err != nil {
+				return fmt.Errorf(
+					"Error waiting for IPv6 CIDR (%s) to become disassociated: %s",
+					d.Id(), err)
+			}
 		}
 
 		//Now we need to try and associate the new CIDR block
@@ -259,11 +244,11 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 		log.Printf(
 			"[DEBUG] Waiting for IPv6 CIDR (%s) to become associated",
 			d.Id())
-		stateConf = &resource.StateChangeConf{
+		stateConf := &resource.StateChangeConf{
 			Pending: []string{"associating", "disassociated"},
 			Target:  []string{"associated"},
 			Refresh: SubnetIpv6CidrStateRefreshFunc(conn, d.Id(), *resp.Ipv6CidrBlockAssociation.AssociationId),
-			Timeout: 1 * time.Minute,
+			Timeout: 3 * time.Minute,
 		}
 		if _, err := stateConf.WaitForState(); err != nil {
 			return fmt.Errorf(
@@ -272,6 +257,25 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		d.SetPartial("ipv6_cidr_block")
+	}
+
+	if d.HasChange("assign_ipv6_address_on_creation") {
+		modifyOpts := &ec2.ModifySubnetAttributeInput{
+			SubnetId: aws.String(d.Id()),
+			AssignIpv6AddressOnCreation: &ec2.AttributeBooleanValue{
+				Value: aws.Bool(d.Get("assign_ipv6_address_on_creation").(bool)),
+			},
+		}
+
+		log.Printf("[DEBUG] Subnet modify attributes: %#v", modifyOpts)
+
+		_, err := conn.ModifySubnetAttribute(modifyOpts)
+
+		if err != nil {
+			return err
+		} else {
+			d.SetPartial("assign_ipv6_address_on_creation")
+		}
 	}
 
 	d.Partial(false)

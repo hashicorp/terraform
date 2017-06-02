@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -12,13 +13,14 @@ import (
 func TestAccAzureRMLocalNetworkGateway_basic(t *testing.T) {
 	name := "azurerm_local_network_gateway.test"
 
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLocalNetworkGatewayConfig_basic,
+				Config: testAccAzureRMLocalNetworkGatewayConfig_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLocalNetworkGatewayExists(name),
 					resource.TestCheckResourceAttr(name, "gateway_address", "127.0.0.1"),
@@ -31,6 +33,7 @@ func TestAccAzureRMLocalNetworkGateway_basic(t *testing.T) {
 
 func TestAccAzureRMLocalNetworkGateway_disappears(t *testing.T) {
 	name := "azurerm_local_network_gateway.test"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -38,7 +41,7 @@ func TestAccAzureRMLocalNetworkGateway_disappears(t *testing.T) {
 		CheckDestroy: testCheckAzureRMLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLocalNetworkGatewayConfig_basic,
+				Config: testAccAzureRMLocalNetworkGatewayConfig_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLocalNetworkGatewayExists(name),
 					resource.TestCheckResourceAttr(name, "gateway_address", "127.0.0.1"),
@@ -104,7 +107,9 @@ func testCheckAzureRMLocalNetworkGatewayDisappears(name string) resource.TestChe
 		// and finally, check that it exists on Azure:
 		lnetClient := testAccProvider.Meta().(*ArmClient).localNetConnClient
 
-		resp, err := lnetClient.Delete(resGrp, localNetName, make(chan struct{}))
+		deleteResp, error := lnetClient.Delete(resGrp, localNetName, make(chan struct{}))
+		resp := <-deleteResp
+		err = <-error
 		if err != nil {
 			if resp.StatusCode == http.StatusNotFound {
 				return fmt.Errorf("Local network gateway '%s' (resource group '%s') does not exist on Azure.", localNetName, resGrp)
@@ -144,17 +149,19 @@ func testCheckAzureRMLocalNetworkGatewayDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccAzureRMLocalNetworkGatewayConfig_basic = `
+func testAccAzureRMLocalNetworkGatewayConfig_basic(rInt int) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
-    name = "tftestingResourceGroup"
+    name = "acctest-%d"
     location = "West US"
 }
 
 resource "azurerm_local_network_gateway" "test" {
-	name = "tftestingLocalNetworkGateway"
+	name = "acctestlng-%d"
 	location = "${azurerm_resource_group.test.location}"
 	resource_group_name = "${azurerm_resource_group.test.name}"
 	gateway_address = "127.0.0.1"
 	address_space = ["127.0.0.0/8"]
 }
-`
+`, rInt, rInt)
+}

@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/container/v1"
-	"google.golang.org/api/googleapi"
 )
 
 var (
@@ -26,8 +25,10 @@ func resourceContainerCluster() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"master_auth": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				MaxItems: 1,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"client_certificate": &schema.Schema{
@@ -343,19 +344,18 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 	zoneName := d.Get("zone").(string)
 	clusterName := d.Get("name").(string)
 
-	masterAuths := d.Get("master_auth").([]interface{})
-	if len(masterAuths) > 1 {
-		return fmt.Errorf("Cannot specify more than one master_auth.")
-	}
-	masterAuth := masterAuths[0].(map[string]interface{})
-
 	cluster := &container.Cluster{
-		MasterAuth: &container.MasterAuth{
-			Password: masterAuth["password"].(string),
-			Username: masterAuth["username"].(string),
-		},
 		Name:             clusterName,
 		InitialNodeCount: int64(d.Get("initial_node_count").(int)),
+	}
+
+	if v, ok := d.GetOk("master_auth"); ok {
+		masterAuths := v.([]interface{})
+		masterAuth := masterAuths[0].(map[string]interface{})
+		cluster.MasterAuth = &container.MasterAuth{
+			Password: masterAuth["password"].(string),
+			Username: masterAuth["username"].(string),
+		}
 	}
 
 	if v, ok := d.GetOk("node_version"); ok {
@@ -535,15 +535,7 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	cluster, err := config.clientContainer.Projects.Zones.Clusters.Get(
 		project, zoneName, d.Get("name").(string)).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Container Cluster %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return err
+		return handleNotFoundError(err, d, fmt.Sprintf("Container Cluster %q", d.Get("name").(string)))
 	}
 
 	d.Set("name", cluster.Name)

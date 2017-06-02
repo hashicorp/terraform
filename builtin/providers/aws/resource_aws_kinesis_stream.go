@@ -18,21 +18,24 @@ func resourceAwsKinesisStream() *schema.Resource {
 		Read:   resourceAwsKinesisStreamRead,
 		Update: resourceAwsKinesisStreamUpdate,
 		Delete: resourceAwsKinesisStreamDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsKinesisStreamImport,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"shard_count": &schema.Schema{
+			"shard_count": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"retention_period": &schema.Schema{
+			"retention_period": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  24,
@@ -46,14 +49,14 @@ func resourceAwsKinesisStream() *schema.Resource {
 				},
 			},
 
-			"shard_level_metrics": &schema.Schema{
+			"shard_level_metrics": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -61,6 +64,12 @@ func resourceAwsKinesisStream() *schema.Resource {
 			"tags": tagsSchema(),
 		},
 	}
+}
+
+func resourceAwsKinesisStreamImport(
+	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("name", d.Id())
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceAwsKinesisStreamCreate(d *schema.ResourceData, meta interface{}) error {
@@ -140,6 +149,7 @@ func resourceAwsKinesisStreamRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 
 	}
+	d.SetId(state.arn)
 	d.Set("arn", state.arn)
 	d.Set("shard_count", len(state.openShards))
 	d.Set("retention_period", state.retentionPeriod)

@@ -107,6 +107,15 @@ const (
 	HTTPS ProtocolTypes = "Https"
 )
 
+// ResourceIdentityType enumerates the values for resource identity type.
+type ResourceIdentityType string
+
+const (
+	// SystemAssigned specifies the system assigned state for resource identity
+	// type.
+	SystemAssigned ResourceIdentityType = "SystemAssigned"
+)
+
 // SettingNames enumerates the values for setting names.
 type SettingNames string
 
@@ -783,6 +792,7 @@ type VirtualMachine struct {
 	Plan                      *Plan               `json:"plan,omitempty"`
 	*VirtualMachineProperties `json:"properties,omitempty"`
 	Resources                 *[]VirtualMachineExtension `json:"resources,omitempty"`
+	Identity                  *VirtualMachineIdentity    `json:"identity,omitempty"`
 }
 
 // VirtualMachineAgentInstanceView is the instance view of the VM Agent running
@@ -877,6 +887,13 @@ type VirtualMachineExtensionProperties struct {
 	InstanceView            *VirtualMachineExtensionInstanceView `json:"instanceView,omitempty"`
 }
 
+// VirtualMachineIdentity is identity for the virtual machine.
+type VirtualMachineIdentity struct {
+	PrincipalID *string              `json:"principalId,omitempty"`
+	TenantID    *string              `json:"tenantId,omitempty"`
+	Type        ResourceIdentityType `json:"type,omitempty"`
+}
+
 // VirtualMachineImage is describes a Virtual Machine Image.
 type VirtualMachineImage struct {
 	autorest.Response              `json:"-"`
@@ -959,6 +976,7 @@ type VirtualMachineScaleSet struct {
 	Sku                               *Sku                `json:"sku,omitempty"`
 	Plan                              *Plan               `json:"plan,omitempty"`
 	*VirtualMachineScaleSetProperties `json:"properties,omitempty"`
+	Identity                          *VirtualMachineScaleSetIdentity `json:"identity,omitempty"`
 }
 
 // VirtualMachineScaleSetDataDisk is describes a virtual machine scale set data
@@ -996,6 +1014,14 @@ type VirtualMachineScaleSetExtensionProperties struct {
 	Settings                *map[string]interface{} `json:"settings,omitempty"`
 	ProtectedSettings       *map[string]interface{} `json:"protectedSettings,omitempty"`
 	ProvisioningState       *string                 `json:"provisioningState,omitempty"`
+}
+
+// VirtualMachineScaleSetIdentity is identity for the virtual machine scale
+// set.
+type VirtualMachineScaleSetIdentity struct {
+	PrincipalID *string              `json:"principalId,omitempty"`
+	TenantID    *string              `json:"tenantId,omitempty"`
+	Type        ResourceIdentityType `json:"type,omitempty"`
 }
 
 // VirtualMachineScaleSetInstanceView is the instance view of a virtual machine

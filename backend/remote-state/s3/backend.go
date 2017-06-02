@@ -81,6 +81,14 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "DynamoDB table for state locking",
 				Default:     "",
+				Deprecated:  "please use the dynamodb_table attribute",
+			},
+
+			"dynamodb_table": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "DynamoDB table for state locking and consistency",
+				Default:     "",
 			},
 
 			"profile": {
@@ -151,7 +159,7 @@ type Backend struct {
 	serverSideEncryption bool
 	acl                  string
 	kmsKeyID             string
-	lockTable            string
+	ddbTable             string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -167,7 +175,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.serverSideEncryption = data.Get("encrypt").(bool)
 	b.acl = data.Get("acl").(string)
 	b.kmsKeyID = data.Get("kms_key_id").(string)
-	b.lockTable = data.Get("lock_table").(string)
+
+	b.ddbTable = data.Get("dynamodb_table").(string)
+	if b.ddbTable == "" {
+		// try the depracted field
+		b.ddbTable = data.Get("lock_table").(string)
+	}
 
 	cfg := &terraformAWS.Config{
 		AccessKey:             data.Get("access_key").(string),

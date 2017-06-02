@@ -1,10 +1,12 @@
 package triton
 
 import (
-	"fmt"
-	"github.com/hashicorp/errwrap"
-	"net/http"
+	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/hashicorp/errwrap"
 )
 
 type RolesClient struct {
@@ -27,8 +29,9 @@ type Role struct {
 
 type ListRolesInput struct{}
 
-func (client *RolesClient) ListRoles(*ListRolesInput) ([]*Role, error) {
-	respReader, err := client.executeRequest(http.MethodGet, fmt.Sprintf("/%s/roles", client.accountName), nil)
+func (client *RolesClient) ListRoles(ctx context.Context, _ *ListRolesInput) ([]*Role, error) {
+	path := fmt.Sprintf("/%s/roles", client.accountName)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -45,13 +48,13 @@ func (client *RolesClient) ListRoles(*ListRolesInput) ([]*Role, error) {
 	return result, nil
 }
 
-type GetRoleInput struct{
+type GetRoleInput struct {
 	RoleID string
 }
 
-func (client *RolesClient) GetRole(input *GetRoleInput) (*Role, error) {
+func (client *RolesClient) GetRole(ctx context.Context, input *GetRoleInput) (*Role, error) {
 	path := fmt.Sprintf("/%s/roles/%s", client.accountName, input.RoleID)
-	respReader, err := client.executeRequest(http.MethodGet, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -85,8 +88,9 @@ type CreateRoleInput struct {
 	DefaultMembers []string `json:"default_members,omitempty"`
 }
 
-func (client *RolesClient) CreateRole(input *CreateRoleInput) (*Role, error) {
-	respReader, err := client.executeRequest(http.MethodPost, fmt.Sprintf("/%s/roles", client.accountName), input)
+func (client *RolesClient) CreateRole(ctx context.Context, input *CreateRoleInput) (*Role, error) {
+	path := fmt.Sprintf("/%s/roles", client.accountName)
+	respReader, err := client.executeRequest(ctx, http.MethodPost, path, input)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -123,8 +127,9 @@ type UpdateRoleInput struct {
 	DefaultMembers []string `json:"default_members,omitempty"`
 }
 
-func (client *RolesClient) UpdateRole(input *UpdateRoleInput) (*Role, error) {
-	respReader, err := client.executeRequest(http.MethodPost, fmt.Sprintf("/%s/roles/%s", client.accountName, input.RoleID), input)
+func (client *RolesClient) UpdateRole(ctx context.Context, input *UpdateRoleInput) (*Role, error) {
+	path := fmt.Sprintf("/%s/roles/%s", client.accountName, input.RoleID)
+	respReader, err := client.executeRequest(ctx, http.MethodPost, path, input)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -145,9 +150,9 @@ type DeleteRoleInput struct {
 	RoleID string
 }
 
-func (client *RolesClient) DeleteRoles(input *DeleteRoleInput) error {
+func (client *RolesClient) DeleteRoles(ctx context.Context, input *DeleteRoleInput) error {
 	path := fmt.Sprintf("/%s/roles/%s", client.accountName, input.RoleID)
-	respReader, err := client.executeRequest(http.MethodDelete, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodDelete, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}

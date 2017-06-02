@@ -200,16 +200,19 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		if hasNameLabel {
 			name_label := nameLabel.(string)
 			ifaceDnsSettings.InternalDNSNameLabel = &name_label
-
 		}
 
 		properties.DNSSettings = &ifaceDnsSettings
 	}
 
-	ipConfigs, sgErr := expandAzureRmNetworkInterfaceIpConfigurations(d)
+	ipConfigs, namesToLock, sgErr := expandAzureRmNetworkInterfaceIpConfigurations(d)
 	if sgErr != nil {
 		return fmt.Errorf("Error Building list of Network Interface IP Configurations: %s", sgErr)
 	}
+
+	azureRMLockMultiple(namesToLock)
+	defer azureRMUnlockMultiple(namesToLock)
+
 	if len(ipConfigs) > 0 {
 		properties.IPConfigurations = &ipConfigs
 	}
@@ -221,7 +224,8 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		Tags: expandTags(tags),
 	}
 
-	_, err := ifaceClient.CreateOrUpdate(resGroup, name, iface, make(chan struct{}))
+	_, error := ifaceClient.CreateOrUpdate(resGroup, name, iface, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -327,7 +331,28 @@ func resourceArmNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 		defer armMutexKV.Unlock(networkSecurityGroupName)
 	}
 
-	_, err = ifaceClient.Delete(resGroup, name, make(chan struct{}))
+	configs := d.Get("ip_configuration").(*schema.Set).List()
+	namesToLock := make([]string, 0)
+
+	for _, configRaw := range configs {
+		data := configRaw.(map[string]interface{})
+
+		subnet_id := data["subnet_id"].(string)
+		subnetId, err := parseAzureResourceID(subnet_id)
+		if err != nil {
+			return err
+		}
+		subnetName := subnetId.Path["subnets"]
+		virtualNetworkName := subnetId.Path["virtualNetworks"]
+		namesToLock = append(namesToLock, subnetName)
+		namesToLock = append(namesToLock, virtualNetworkName)
+	}
+
+	azureRMLockMultiple(&namesToLock)
+	defer azureRMUnlockMultiple(&namesToLock)
+
+	_, error := ifaceClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
 
 	return err
 }
@@ -373,9 +398,10 @@ func validateNetworkInterfacePrivateIpAddressAllocation(v interface{}, k string)
 	return
 }
 
-func expandAzureRmNetworkInterfaceIpConfigurations(d *schema.ResourceData) ([]network.InterfaceIPConfiguration, error) {
+func expandAzureRmNetworkInterfaceIpConfigurations(d *schema.ResourceData) ([]network.InterfaceIPConfiguration, *[]string, error) {
 	configs := d.Get("ip_configuration").(*schema.Set).List()
 	ipConfigs := make([]network.InterfaceIPConfiguration, 0, len(configs))
+	namesToLock := make([]string, 0)
 
 	for _, configRaw := range configs {
 		data := configRaw.(map[string]interface{})
@@ -390,7 +416,7 @@ func expandAzureRmNetworkInterfaceIpConfigurations(d *schema.ResourceData) ([]ne
 		case "static":
 			allocationMethod = network.Static
 		default:
-			return []network.InterfaceIPConfiguration{}, fmt.Errorf(
+			return []network.InterfaceIPConfiguration{}, nil, fmt.Errorf(
 				"valid values for private_ip_allocation_method are 'dynamic' and 'static' - got '%s'",
 				private_ip_allocation_method)
 		}
@@ -401,6 +427,15 @@ func expandAzureRmNetworkInterfaceIpConfigurations(d *schema.ResourceData) ([]ne
 			},
 			PrivateIPAllocationMethod: allocationMethod,
 		}
+
+		subnetId, err := parseAzureResourceID(subnet_id)
+		if err != nil {
+			return []network.InterfaceIPConfiguration{}, nil, err
+		}
+		subnetName := subnetId.Path["subnets"]
+		virtualNetworkName := subnetId.Path["virtualNetworks"]
+		namesToLock = append(namesToLock, subnetName)
+		namesToLock = append(namesToLock, virtualNetworkName)
 
 		if v := data["private_ip_address"].(string); v != "" {
 			properties.PrivateIPAddress = &v
@@ -451,5 +486,5 @@ func expandAzureRmNetworkInterfaceIpConfigurations(d *schema.ResourceData) ([]ne
 		ipConfigs = append(ipConfigs, ipConfig)
 	}
 
-	return ipConfigs, nil
+	return ipConfigs, &namesToLock, nil
 }

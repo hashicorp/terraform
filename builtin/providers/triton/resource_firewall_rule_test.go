@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -96,7 +97,7 @@ func testCheckTritonFirewallRuleExists(name string) resource.TestCheckFunc {
 		}
 		conn := testAccProvider.Meta().(*triton.Client)
 
-		resp, err := conn.Firewall().GetFirewallRule(&triton.GetFirewallRuleInput{
+		resp, err := conn.Firewall().GetFirewallRule(context.Background(), &triton.GetFirewallRuleInput{
 			ID: rs.Primary.ID,
 		})
 		if err != nil && triton.IsResourceNotFound(err) {
@@ -121,7 +122,7 @@ func testCheckTritonFirewallRuleDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := conn.Firewall().GetFirewallRule(&triton.GetFirewallRuleInput{
+		resp, err := conn.Firewall().GetFirewallRule(context.Background(), &triton.GetFirewallRuleInput{
 			ID: rs.Primary.ID,
 		})
 		if triton.IsResourceNotFound(err) {

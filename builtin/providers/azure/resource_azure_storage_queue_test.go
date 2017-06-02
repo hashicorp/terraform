@@ -45,7 +45,8 @@ func testAccCheckAzureStorageQueueExists(name string) resource.TestCheckFunc {
 			return err
 		}
 
-		exists, err := queueClient.QueueExists(resource.Primary.ID)
+		queue := queueClient.GetQueueReference(resource.Primary.ID)
+		exists, err := queue.Exists()
 		if err != nil {
 			return fmt.Errorf("Error querying Azure for Storage Queue existence: %s", err)
 		}
@@ -73,7 +74,8 @@ func testAccCheckAzureStorageQueueDeleted(s *terraform.State) error {
 			return err
 		}
 
-		exists, err := queueClient.QueueExists(resource.Primary.ID)
+		queue := queueClient.GetQueueReference(resource.Primary.ID)
+		exists, err := queue.Exists()
 		if err != nil {
 			return fmt.Errorf("Error querying Azure for Storage Queue existence: %s", err)
 		}

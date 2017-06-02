@@ -2,11 +2,9 @@ package google
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/sqladmin/v1beta4"
 )
 
@@ -59,6 +57,8 @@ func resourceSqlDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		Instance: instance_name,
 	}
 
+	mutexKV.Lock(instanceMutexKey(project, instance_name))
+	defer mutexKV.Unlock(instanceMutexKey(project, instance_name))
 	op, err := config.clientSqlAdmin.Databases.Insert(project, instance_name,
 		db).Do()
 
@@ -93,17 +93,7 @@ func resourceSqlDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 		database_name).Do()
 
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing SQL Database %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error, failed to get"+
-			"database %s in instance %s: %s", database_name,
-			instance_name, err)
+		return handleNotFoundError(err, d, fmt.Sprintf("SQL Database %q in instance %q", database_name, instance_name))
 	}
 
 	d.Set("self_link", db.SelfLink)
@@ -123,6 +113,8 @@ func resourceSqlDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	database_name := d.Get("name").(string)
 	instance_name := d.Get("instance").(string)
 
+	mutexKV.Lock(instanceMutexKey(project, instance_name))
+	defer mutexKV.Unlock(instanceMutexKey(project, instance_name))
 	op, err := config.clientSqlAdmin.Databases.Delete(project, instance_name,
 		database_name).Do()
 

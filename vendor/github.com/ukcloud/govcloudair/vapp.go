@@ -28,6 +28,11 @@ func NewVApp(c *Client) *VApp {
 	}
 }
 
+func (v *VCDClient) NewVApp(c *Client) VApp {
+	newvapp := NewVApp(c)
+	return *newvapp
+}
+
 func (v *VApp) Refresh() error {
 
 	if v.VApp.HREF == "" {
@@ -55,7 +60,196 @@ func (v *VApp) Refresh() error {
 	return nil
 }
 
-func (v *VApp) ComposeVApp(orgvdcnetwork OrgVDCNetwork, vapptemplate VAppTemplate, name string, description string) (Task, error) {
+func (v *VApp) ComposeRawVApp(name string) error {
+	vcomp := &types.ComposeVAppParams{
+		Ovf:     "http://schemas.dmtf.org/ovf/envelope/1",
+		Xsi:     "http://www.w3.org/2001/XMLSchema-instance",
+		Xmlns:   "http://www.vmware.com/vcloud/v1.5",
+		Deploy:  false,
+		Name:    name,
+		PowerOn: false,
+	}
+
+	output, err := xml.MarshalIndent(vcomp, "  ", "    ")
+	if err != nil {
+		return fmt.Errorf("error marshaling vapp compose: %s", err)
+	}
+
+	debug := os.Getenv("GOVCLOUDAIR_DEBUG")
+
+	if debug == "true" {
+		fmt.Printf("\n\nXML DEBUG: %s\n\n", string(output))
+	}
+
+	b := bytes.NewBufferString(xml.Header + string(output))
+
+	s := v.c.VCDVDCHREF
+	s.Path += "/action/composeVApp"
+
+	req := v.c.NewRequest(map[string]string{}, "POST", s, b)
+
+	req.Header.Add("Content-Type", "application/vnd.vmware.vcloud.composeVAppParams+xml")
+
+	resp, err := checkResp(v.c.Http.Do(req))
+	if err != nil {
+		return fmt.Errorf("error instantiating a new vApp: %s", err)
+	}
+
+	if err = decodeBody(resp, v.VApp); err != nil {
+		return fmt.Errorf("error decoding vApp response: %s", err)
+	}
+
+	task := NewTask(v.c)
+
+	for _, t := range v.VApp.Tasks.Task {
+		task.Task = t
+		err = task.WaitTaskCompletion()
+		if err != nil {
+			return fmt.Errorf("Error performing task: %#v", err)
+		}
+	}
+
+	return nil
+}
+
+func (v *VApp) AddVM(orgvdcnetwork OrgVDCNetwork, vapptemplate VAppTemplate, name string) error {
+
+	vcomp := &types.ReComposeVAppParams{
+		Ovf:         "http://schemas.dmtf.org/ovf/envelope/1",
+		Xsi:         "http://www.w3.org/2001/XMLSchema-instance",
+		Xmlns:       "http://www.vmware.com/vcloud/v1.5",
+		Deploy:      false,
+		Name:        v.VApp.Name,
+		PowerOn:     false,
+		Description: v.VApp.Description,
+		SourcedItem: &types.SourcedCompositionItemParam{
+			Source: &types.Reference{
+				HREF: vapptemplate.VAppTemplate.Children.VM[0].HREF,
+				Name: name,
+			},
+			InstantiationParams: &types.InstantiationParams{
+				NetworkConnectionSection: &types.NetworkConnectionSection{
+					Type: vapptemplate.VAppTemplate.Children.VM[0].NetworkConnectionSection.Type,
+					HREF: vapptemplate.VAppTemplate.Children.VM[0].NetworkConnectionSection.HREF,
+					Info: "Network config for sourced item",
+					PrimaryNetworkConnectionIndex: vapptemplate.VAppTemplate.Children.VM[0].NetworkConnectionSection.PrimaryNetworkConnectionIndex,
+					NetworkConnection: &types.NetworkConnection{
+						Network:                 orgvdcnetwork.OrgVDCNetwork.Name,
+						NetworkConnectionIndex:  vapptemplate.VAppTemplate.Children.VM[0].NetworkConnectionSection.NetworkConnection.NetworkConnectionIndex,
+						IsConnected:             true,
+						IPAddressAllocationMode: "POOL",
+					},
+				},
+			},
+			NetworkAssignment: &types.NetworkAssignment{
+				InnerNetwork:     orgvdcnetwork.OrgVDCNetwork.Name,
+				ContainerNetwork: orgvdcnetwork.OrgVDCNetwork.Name,
+			},
+		},
+	}
+
+	output, _ := xml.MarshalIndent(vcomp, "  ", "    ")
+
+	s, _ := url.ParseRequestURI(v.VApp.HREF)
+	s.Path += "/action/recomposeVApp"
+
+	fmt.Println(s)
+	fmt.Println(string(output))
+
+	b := bytes.NewBufferString(xml.Header + string(output))
+
+	req := v.c.NewRequest(map[string]string{}, "POST", *s, b)
+
+	req.Header.Add("Content-Type", "application/vnd.vmware.vcloud.recomposeVAppParams+xml")
+
+	task := NewTask(v.c)
+	v.Refresh()
+	if v.VApp.Tasks != nil {
+		fmt.Println("AYE")
+		for _, t := range v.VApp.Tasks.Task {
+			task.Task = t
+			err := task.WaitTaskCompletion()
+			if err != nil {
+				return fmt.Errorf("Error performing task: %#v", err)
+			}
+		}
+	} else {
+		fmt.Println("NO")
+	}
+
+	resp, err := checkResp(v.c.Http.Do(req))
+	if err != nil {
+		return fmt.Errorf("error instantiating a new vApp: %s", err)
+	}
+
+	task = NewTask(v.c)
+
+	if err = decodeBody(resp, task.Task); err != nil {
+		return fmt.Errorf("error decoding task response: %s", err)
+	}
+
+	err = task.WaitTaskCompletion()
+	if err != nil {
+		return fmt.Errorf("Error performing task: %#v", err)
+	}
+
+	return nil
+}
+
+func (v *VApp) RemoveVM(vm VM) error {
+
+	task := NewTask(v.c)
+	for _, t := range v.VApp.Tasks.Task {
+		task.Task = t
+		err := task.WaitTaskCompletion()
+		if err != nil {
+			return fmt.Errorf("Error performing task: %#v", err)
+		}
+	}
+
+	vcomp := &types.ReComposeVAppParams{
+		Ovf:   "http://schemas.dmtf.org/ovf/envelope/1",
+		Xsi:   "http://www.w3.org/2001/XMLSchema-instance",
+		Xmlns: "http://www.vmware.com/vcloud/v1.5",
+		DeleteItem: &types.DeleteItem{
+			HREF: vm.VM.HREF,
+		},
+	}
+
+	output, _ := xml.MarshalIndent(vcomp, "  ", "    ")
+
+	s, _ := url.ParseRequestURI(v.VApp.HREF)
+	s.Path += "/action/recomposeVApp"
+
+	fmt.Println(s)
+	fmt.Println(string(output))
+
+	b := bytes.NewBufferString(xml.Header + string(output))
+
+	req := v.c.NewRequest(map[string]string{}, "POST", *s, b)
+
+	req.Header.Add("Content-Type", "application/vnd.vmware.vcloud.recomposeVAppParams+xml")
+
+	resp, err := checkResp(v.c.Http.Do(req))
+	if err != nil {
+		return fmt.Errorf("error instantiating a new vApp: %s", err)
+	}
+
+	task = NewTask(v.c)
+
+	if err = decodeBody(resp, task.Task); err != nil {
+		return fmt.Errorf("error decoding task response: %s", err)
+	}
+
+	err = task.WaitTaskCompletion()
+	if err != nil {
+		return fmt.Errorf("Error performing task: %#v", err)
+	}
+
+	return nil
+}
+
+func (v *VApp) ComposeVApp(orgvdcnetwork OrgVDCNetwork, vapptemplate VAppTemplate, storage_profile_reference *types.Reference, name string, description string) (Task, error) {
 
 	if vapptemplate.VAppTemplate.Children == nil || orgvdcnetwork.OrgVDCNetwork == nil {
 		return Task{}, fmt.Errorf("can't compose a new vApp, objects passed are not valid")
@@ -109,6 +303,7 @@ func (v *VApp) ComposeVApp(orgvdcnetwork OrgVDCNetwork, vapptemplate VAppTemplat
 				InnerNetwork:     orgvdcnetwork.OrgVDCNetwork.Name,
 				ContainerNetwork: orgvdcnetwork.OrgVDCNetwork.Name,
 			},
+			StorageProfile: storage_profile_reference,
 		},
 	}
 
@@ -396,7 +591,10 @@ func (v *VApp) Delete() (Task, error) {
 }
 
 func (v *VApp) RunCustomizationScript(computername, script string) (Task, error) {
+	return v.Customize(computername, script, false)
+}
 
+func (v *VApp) Customize(computername, script string, changeSid bool) (Task, error) {
 	err := v.Refresh()
 	if err != nil {
 		return Task{}, fmt.Errorf("error refreshing vapp before running customization: %v", err)
@@ -418,6 +616,7 @@ func (v *VApp) RunCustomizationScript(computername, script string) (Task, error)
 		Enabled:             true,
 		ComputerName:        computername,
 		CustomizationScript: script,
+		ChangeSid:           false,
 	}
 
 	output, err := xml.MarshalIndent(vu, "  ", "    ")

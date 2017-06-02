@@ -253,7 +253,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 		Pending: []string{""},
 		Target:  []string{"exists"},
 		Refresh: SGStateRefreshFunc(conn, d.Id()),
-		Timeout: 1 * time.Minute,
+		Timeout: 5 * time.Minute,
 	}
 
 	resp, err := stateConf.WaitForState()

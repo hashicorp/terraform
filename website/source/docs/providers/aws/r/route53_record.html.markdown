@@ -141,7 +141,18 @@ Weighted routing policies support the following:
 
 ## Import
 
-Route53 Records can be imported using ID of the record, e.g.
+Route53 Records can be imported using ID of the record. The ID is made up as ZONEID_RECORDNAME_TYPE_SET-IDENTIFIER
+
+e.g.
+
+```
+Z4KAPRWWNC7JR_dev.example.com_NS_dev
+```
+
+In this example, `Z4KAPRWWNC7JR` is the ZoneID, `dev.example.com` is the Record Name, `NS` is the Type and `dev` is the Set Identifier.
+Only the Set Identifier is actually optional in the ID
+
+To import the ID above, it would look as follows:
 
 ```
 $ terraform import aws_route53_record.myrecord Z4KAPRWWNC7JR_dev.example.com_NS_dev

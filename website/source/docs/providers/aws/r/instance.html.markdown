@@ -89,8 +89,15 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
   "Instance Store") volumes on the instance. See [Block Devices](#block-devices) below for details.
 * `network_interface` - (Optional) Customize network interfaces to be attached at instance boot time. See [Network Interfaces](#network-interfaces) below for more details.
 
+### Timeouts
 
-## Block devices
+The `timeouts` block allows you to specify [timeouts](https://www.terraform.io/docs/configuration/resources.html#timeouts) for certain actions:
+
+* `create` - (Defaults to 10 mins) Used when launching the instance (until it reaches the initial `running` state)
+* `update` - (Defaults to 10 mins) Used when stopping and starting the instance when necessary during update - e.g. when changing instance type
+* `delete` - (Defaults to 10 mins) Used when terminating the instance
+
+### Block devices
 
 Each of the `*_block_device` attributes controls a portion of the AWS
 Instance's "Block Device Mapping". It's a good idea to familiarize yourself with [AWS's Block Device
@@ -151,7 +158,7 @@ resources cannot be automatically detected by Terraform. After making updates
 to block device configuration, resource recreation can be manually triggered by
 using the [`taint` command](/docs/commands/taint.html).
 
-## Network Interfaces
+### Network Interfaces
 
 Each of the `network_interface` blocks attach a network interface to an EC2 Instance during boot time. However, because
 the network interface is attached at boot-time, replacing/modifying the network interface **WILL** trigger a recreation
@@ -195,7 +202,7 @@ resource "aws_network_interface" "foo" {
 }
 
 resource "aws_instance" "foo" {
-	ami = "ami-22b9a343" // us-west-2
+	ami = "ami-22b9a343" # us-west-2
 	instance_type = "t2.micro"
 	network_interface {
 	 network_interface_id = "${aws_network_interface.foo.id}"

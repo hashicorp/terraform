@@ -799,6 +799,65 @@ func TestValidateJsonString(t *testing.T) {
 	}
 }
 
+func TestValidateIAMPolicyJsonString(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    `{0:"1"}`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `{'abc':1}`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `{"def":}`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `{"xyz":[}}`,
+			ErrCount: 1,
+		},
+		{
+			Value:    ``,
+			ErrCount: 1,
+		},
+		{
+			Value:    `    {"xyz": "foo"}`,
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateIAMPolicyJson(tc.Value, "json")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    `{}`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `{"abc":["1","2"]}`,
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateIAMPolicyJson(tc.Value, "json")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
 func TestValidateCloudFormationTemplate(t *testing.T) {
 	type testCases struct {
 		Value    string
@@ -2206,6 +2265,29 @@ func TestValidateWafMetricName(t *testing.T) {
 		_, errors := validateWafMetricName(v, "name")
 		if len(errors) == 0 {
 			t.Fatalf("%q should be an invalid WAF metric name", v)
+		}
+	}
+}
+
+func TestValidateIamRoleDescription(t *testing.T) {
+	validNames := []string{
+		"This 1s a D3scr!pti0n with weird content: @ #^ù£ê®æ ø]ŒîÏî~ÈÙ£÷=,ë",
+		strings.Repeat("W", 1000),
+	}
+	for _, v := range validNames {
+		_, errors := validateIamRoleDescription(v, "description")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid IAM Role Description: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		strings.Repeat("W", 1001), // > 1000
+	}
+	for _, v := range invalidNames {
+		_, errors := validateIamRoleDescription(v, "description")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid IAM Role Description", v)
 		}
 	}
 }

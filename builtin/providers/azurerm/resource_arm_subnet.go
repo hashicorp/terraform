@@ -77,6 +77,9 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 	resGroup := d.Get("resource_group_name").(string)
 	addressPrefix := d.Get("address_prefix").(string)
 
+	armMutexKV.Lock(name)
+	defer armMutexKV.Unlock(name)
+
 	armMutexKV.Lock(vnetName)
 	defer armMutexKV.Unlock(vnetName)
 
@@ -119,7 +122,8 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 		SubnetPropertiesFormat: &properties,
 	}
 
-	_, err := subnetClient.CreateOrUpdate(resGroup, vnetName, name, subnet, make(chan struct{}))
+	_, error := subnetClient.CreateOrUpdate(resGroup, vnetName, name, subnet, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -223,7 +227,11 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 	armMutexKV.Lock(vnetName)
 	defer armMutexKV.Unlock(vnetName)
 
-	_, err = subnetClient.Delete(resGroup, vnetName, name, make(chan struct{}))
+	armMutexKV.Lock(name)
+	defer armMutexKV.Unlock(name)
+
+	_, error := subnetClient.Delete(resGroup, vnetName, name, make(chan struct{}))
+	err = <-error
 
 	return err
 }

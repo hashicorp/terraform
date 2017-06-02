@@ -1,25 +1,30 @@
 package pagerduty
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccPagerDutyService_import(t *testing.T) {
-	resourceName := "pagerduty_service.foo"
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	escalationPolicy := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	service := fmt.Sprintf("tf-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceConfig,
+			{
+				Config: testAccCheckPagerDutyServiceConfig(username, email, escalationPolicy, service),
 			},
 
-			resource.TestStep{
-				ResourceName:      resourceName,
+			{
+				ResourceName:      "pagerduty_service.foo",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -28,19 +33,22 @@ func TestAccPagerDutyService_import(t *testing.T) {
 }
 
 func TestAccPagerDutyServiceWithIncidentUrgency_import(t *testing.T) {
-	resourceName := "pagerduty_service.foo"
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	escalationPolicy := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	service := fmt.Sprintf("tf-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfig,
+			{
+				Config: testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfig(username, email, escalationPolicy, service),
 			},
 
-			resource.TestStep{
-				ResourceName:      resourceName,
+			{
+				ResourceName:      "pagerduty_service.foo",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

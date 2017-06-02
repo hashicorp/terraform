@@ -96,14 +96,34 @@ func (b *Backend) State(name string) (state.State, error) {
 		serverSideEncryption: b.serverSideEncryption,
 		acl:                  b.acl,
 		kmsKeyID:             b.kmsKeyID,
-		lockTable:            b.lockTable,
+		ddbTable:             b.ddbTable,
 	}
 
 	stateMgr := &remote.State{Client: client}
 
-	//if this isn't the default state name, we need to create the object so
-	//it's listed by States.
-	if name != backend.DefaultStateName {
+	// Check to see if this state already exists.
+	// If we're trying to force-unlock a state, we can't take the lock before
+	// fetching the state. If the state doesn't exist, we have to assume this
+	// is a normal create operation, and take the lock at that point.
+	//
+	// If we need to force-unlock, but for some reason the state no longer
+	// exists, the user will have to use aws tools to manually fix the
+	// situation.
+	existing, err := b.States()
+	if err != nil {
+		return nil, err
+	}
+
+	exists := false
+	for _, s := range existing {
+		if s == name {
+			exists = true
+			break
+		}
+	}
+
+	// We need to create the object so it's listed by States.
+	if !exists {
 		// take a lock on this state while we write it
 		lockInfo := state.NewLockInfo()
 		lockInfo.Operation = "init"
@@ -121,6 +141,8 @@ func (b *Backend) State(name string) (state.State, error) {
 		}
 
 		// Grab the value
+		// This is to ensure that no one beat us to writing a state between
+		// the `exists` check and taking the lock.
 		if err := stateMgr.RefreshState(); err != nil {
 			err = lockUnlock(err)
 			return nil, err

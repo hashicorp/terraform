@@ -75,6 +75,7 @@ On other OSs such as Linux, the host name can contain a maximum of 30 characters
 * `instance_charge_type` - (Optional) Valid values are `PrePaid`, `PostPaid`, The default is `PostPaid`.
 * `period` - (Optional) The time that you have bought the resource, in month. Only valid when instance_charge_type is set as `PrePaid`. Value range [1, 12].
 * `tags` - (Optional) A mapping of tags to assign to the resource.
+* `user_data` - (Optional) The user data to provide when launching the instance.
 
 ## Attributes Reference
 

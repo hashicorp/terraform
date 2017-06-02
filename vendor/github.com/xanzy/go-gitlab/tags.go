@@ -24,14 +24,16 @@ import (
 // TagsService handles communication with the tags related methods
 // of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/tags.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/tags.md
 type TagsService struct {
 	client *Client
 }
 
 // Tag represents a GitLab tag.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/tags.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/tags.md
 type Tag struct {
 	Commit  *Commit `json:"commit"`
 	Name    string  `json:"name"`
@@ -46,7 +48,7 @@ func (r Tag) String() string {
 // alphabetical order.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/tags.html#list-project-repository-tags
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/tags.md#list-project-repository-tags
 func (s *TagsService) ListTags(pid interface{}, options ...OptionFunc) ([]*Tag, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -72,7 +74,7 @@ func (s *TagsService) ListTags(pid interface{}, options ...OptionFunc) ([]*Tag, 
 // with the tag information if the tag exists. It returns 404 if the tag does not exist.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/tags.html#get-a-single-repository-tag
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/tags.md#get-a-single-repository-tag
 func (s *TagsService) GetTag(pid interface{}, tag string, options ...OptionFunc) (*Tag, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -97,7 +99,7 @@ func (s *TagsService) GetTag(pid interface{}, tag string, options ...OptionFunc)
 // CreateTagOptions represents the available CreateTag() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/tags.html#create-a-new-tag
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/tags.md#create-a-new-tag
 type CreateTagOptions struct {
 	TagName *string `url:"tag_name,omitempty" json:"tag_name,omitempty"`
 	Ref     *string `url:"ref,omitempty" json:"ref,omitempty"`
@@ -107,7 +109,7 @@ type CreateTagOptions struct {
 // CreateTag creates a new tag in the repository that points to the supplied ref.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/tags.html#create-a-new-tag
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/tags.md#create-a-new-tag
 func (s *TagsService) CreateTag(pid interface{}, opt *CreateTagOptions, options ...OptionFunc) (*Tag, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -132,7 +134,7 @@ func (s *TagsService) CreateTag(pid interface{}, opt *CreateTagOptions, options 
 // DeleteTag deletes a tag of a repository with given name.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/tags.html#delete-a-tag
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/tags.md#delete-a-tag
 func (s *TagsService) DeleteTag(pid interface{}, tag string, options ...OptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

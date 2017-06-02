@@ -1,6 +1,9 @@
 package cloudstack
 
 import (
+	"errors"
+
+	"github.com/go-ini/ini"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -10,21 +13,36 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"api_url": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_API_URL", nil),
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("CLOUDSTACK_API_URL", nil),
+				ConflictsWith: []string{"config", "profile"},
 			},
 
 			"api_key": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_API_KEY", nil),
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("CLOUDSTACK_API_KEY", nil),
+				ConflictsWith: []string{"config", "profile"},
 			},
 
 			"secret_key": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_SECRET_KEY", nil),
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("CLOUDSTACK_SECRET_KEY", nil),
+				ConflictsWith: []string{"config", "profile"},
+			},
+
+			"config": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"api_url", "api_key", "secret_key"},
+			},
+
+			"profile": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"api_url", "api_key", "secret_key"},
 			},
 
 			"http_get_only": &schema.Schema{
@@ -72,13 +90,49 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	config := Config{
-		APIURL:      d.Get("api_url").(string),
-		APIKey:      d.Get("api_key").(string),
-		SecretKey:   d.Get("secret_key").(string),
+	apiURL, apiURLOK := d.GetOk("api_url")
+	apiKey, apiKeyOK := d.GetOk("api_key")
+	secretKey, secretKeyOK := d.GetOk("secret_key")
+	config, configOK := d.GetOk("config")
+	profile, profileOK := d.GetOk("profile")
+
+	switch {
+	case apiURLOK, apiKeyOK, secretKeyOK:
+		if !(apiURLOK && apiKeyOK && secretKeyOK) {
+			return nil, errors.New("'api_url', 'api_key' and 'secret_key' should all have values")
+		}
+	case configOK, profileOK:
+		if !(configOK && profileOK) {
+			return nil, errors.New("'config' and 'profile' should both have a value")
+		}
+	default:
+		return nil, errors.New(
+			"either 'api_url', 'api_key' and 'secret_key' or 'config' and 'profile' should have values")
+	}
+
+	if configOK && profileOK {
+		cfg, err := ini.Load(config.(string))
+		if err != nil {
+			return nil, err
+		}
+
+		section, err := cfg.GetSection(profile.(string))
+		if err != nil {
+			return nil, err
+		}
+
+		apiURL = section.Key("url").String()
+		apiKey = section.Key("apikey").String()
+		secretKey = section.Key("secretkey").String()
+	}
+
+	cfg := Config{
+		APIURL:      apiURL.(string),
+		APIKey:      apiKey.(string),
+		SecretKey:   secretKey.(string),
 		HTTPGETOnly: d.Get("http_get_only").(bool),
 		Timeout:     int64(d.Get("timeout").(int)),
 	}
 
-	return config.NewClient()
+	return cfg.NewClient()
 }

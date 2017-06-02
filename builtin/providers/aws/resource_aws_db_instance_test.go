@@ -47,6 +47,8 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
 					resource.TestCheckResourceAttrSet("aws_db_instance.bar", "hosted_zone_id"),
+					resource.TestCheckResourceAttrSet(
+						"aws_db_instance.bar", "resource_id"),
 				),
 			},
 		},
@@ -1022,6 +1024,9 @@ func testAccAWSDBInstanceConfigWithSubnetGroup(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name="testAccAWSDBInstanceConfigWithSubnetGroup"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -1073,10 +1078,16 @@ func testAccAWSDBInstanceConfigWithSubnetGroupUpdated(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name="testAccAWSDBInstanceConfigWithSubnetGroupUpdated"
+	}
 }
 
 resource "aws_vpc" "bar" {
 	cidr_block = "10.10.0.0/16"
+	tags {
+		Name="testAccAWSDBInstanceConfigWithSubnetGroupUpdated_other"
+	}
 }
 
 resource "aws_subnet" "foo" {

@@ -129,7 +129,7 @@ data "template_file" "init" {
 ```
 
 In the above example, the template is processed by Terraform first to
-turn it into: `$${foo}:80`. After that, the template is processed as a
+turn it into: `${foo}:80`. After that, the template is processed as a
 template to interpolate `foo`.
 
 In general, you should use template variables in the `vars` block and try

@@ -69,7 +69,7 @@ The following arguments are supported:
   instances in the DB cluster can be created in
 * `backup_retention_period` - (Optional) The days to retain backups for. Default
 1
-* `preferred_backup_window` - (Optional) The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter.
+* `preferred_backup_window` - (Optional) The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter.Time in UTC
 Default: A 30-minute window selected at random from an 8-hour block of time per region. e.g. 04:00-09:00
 * `preferred_maintenance_window` - (Optional) The weekly time range during which system maintenance can occur, in (UTC) e.g. wed:04:00-wed:04:30
 * `port` - (Optional) The port on which the DB accepts connections
@@ -91,6 +91,7 @@ The following attributes are exported:
 
 * `id` - The RDS Cluster Identifier
 * `cluster_identifier` - The RDS Cluster Identifier
+* `cluster_resource_id` - The RDS Cluster Resource ID
 * `cluster_members` – List of RDS Instances that are a part of this cluster
 * `allocated_storage` - The amount of allocated storage
 * `availability_zones` - The availability zone of the instance
@@ -106,7 +107,7 @@ load-balanced across replicas
 * `database_name` - The database name
 * `port` - The database port
 * `status` - The RDS instance status
-* `username` - The master username for the database
+* `master_username` - The master username for the database
 * `storage_encrypted` - Specifies whether the DB cluster is encrypted
 * `preferred_backup_window` - The daily time range during which the backups happen
 * `replication_source_identifier` - ARN  of the source DB cluster if this DB cluster is created as a Read Replica.
@@ -115,6 +116,16 @@ load-balanced across replicas
 [2]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
 [3]: /docs/providers/aws/r/rds_cluster_instance.html
 [4]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
+
+## Timeouts
+
+`aws_rds_cluster` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `create` - (Default `120 minutes`) Used for Cluster creation
+- `update` - (Default `120 minutes`) Used for Cluster modifications
+- `delete` - (Default `120 minutes`) Used for destroying cluster. This includes
+any cleanup task during the destroying process.
 
 ## Import
 

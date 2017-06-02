@@ -19,6 +19,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
+	"github.com/Azure/azure-sdk-for-go/arm/sql"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
@@ -52,6 +53,7 @@ type ArmClient struct {
 
 	appGatewayClient             network.ApplicationGatewaysClient
 	ifaceClient                  network.InterfacesClient
+	expressRouteCircuitClient    network.ExpressRouteCircuitsClient
 	loadBalancerClient           network.LoadBalancersClient
 	localNetConnClient           network.LocalNetworkGatewaysClient
 	publicIPClient               network.PublicIPAddressesClient
@@ -85,7 +87,7 @@ type ArmClient struct {
 	jobsCollectionsClient scheduler.JobCollectionsClient
 
 	storageServiceClient storage.AccountsClient
-	storageUsageClient   storage.UsageOperationsClient
+	storageUsageClient   storage.UsageClient
 
 	deploymentsClient resources.DeploymentsClient
 
@@ -99,6 +101,8 @@ type ArmClient struct {
 	serviceBusSubscriptionsClient servicebus.SubscriptionsClient
 
 	keyVaultClient keyvault.VaultsClient
+
+	sqlElasticPoolsClient sql.ElasticPoolsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -278,6 +282,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	ifc.Sender = autorest.CreateSender(withRequestLogging())
 	client.ifaceClient = ifc
 
+	erc := network.NewExpressRouteCircuitsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&erc.Client)
+	erc.Authorizer = spt
+	erc.Sender = autorest.CreateSender(withRequestLogging())
+	client.expressRouteCircuitClient = erc
+
 	lbc := network.NewLoadBalancersClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&lbc.Client)
 	lbc.Authorizer = spt
@@ -392,7 +402,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	ssc.Sender = autorest.CreateSender(withRequestLogging())
 	client.storageServiceClient = ssc
 
-	suc := storage.NewUsageOperationsClientWithBaseURI(endpoint, c.SubscriptionID)
+	suc := storage.NewUsageClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&suc.Client)
 	suc.Authorizer = spt
 	suc.Sender = autorest.CreateSender(withRequestLogging())
@@ -457,6 +467,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	kvc.Authorizer = spt
 	kvc.Sender = autorest.CreateSender(withRequestLogging())
 	client.keyVaultClient = kvc
+
+	sqlepc := sql.NewElasticPoolsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&sqlepc.Client)
+	sqlepc.Authorizer = spt
+	sqlepc.Sender = autorest.CreateSender(withRequestLogging())
+	client.sqlElasticPoolsClient = sqlepc
 
 	return &client, nil
 }

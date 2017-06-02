@@ -24,6 +24,12 @@ func resourceAwsRDSCluster() *schema.Resource {
 			State: resourceAwsRdsClusterImport,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(120 * time.Minute),
+			Update: schema.DefaultTimeout(120 * time.Minute),
+			Delete: schema.DefaultTimeout(120 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 
 			"availability_zones": {
@@ -221,6 +227,11 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Optional: true,
 			},
 
+			"cluster_resource_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -302,12 +313,12 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			log.Println("[INFO] Waiting for RDS Cluster to be available")
 
 			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"creating", "backing-up", "modifying"},
+				Pending:    []string{"creating", "backing-up", "modifying", "preparing-data-migration", "migrating"},
 				Target:     []string{"available"},
 				Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
-				Timeout:    120 * time.Minute,
-				MinTimeout: 3 * time.Second,
-				Delay:      30 * time.Second, // Wait 30 secs before starting
+				Timeout:    d.Timeout(schema.TimeoutCreate),
+				MinTimeout: 10 * time.Second,
+				Delay:      30 * time.Second,
 			}
 
 			// Wait, catching any errors
@@ -458,8 +469,9 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
-		Timeout:    120 * time.Minute,
-		MinTimeout: 3 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second,
 	}
 
 	// Wait, catching any errors
@@ -516,6 +528,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("cluster_identifier", dbc.DBClusterIdentifier)
+	d.Set("cluster_resource_id", dbc.DbClusterResourceId)
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
 	d.Set("db_cluster_parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("endpoint", dbc.Endpoint)
@@ -660,8 +673,9 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 		Pending:    []string{"available", "deleting", "backing-up", "modifying"},
 		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
-		Timeout:    15 * time.Minute,
-		MinTimeout: 3 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second,
 	}
 
 	// Wait, catching any errors

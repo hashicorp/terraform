@@ -19,6 +19,10 @@ func resourceAwsKmsAlias() *schema.Resource {
 		Update: resourceAwsKmsAliasUpdate,
 		Delete: resourceAwsKmsAliasDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsKmsAliasImport,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -172,4 +176,9 @@ func findKmsAliasByName(conn *kms.KMS, name string, marker *string) (*kms.AliasL
 	}
 
 	return nil, nil
+}
+
+func resourceAwsKmsAliasImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("name", d.Id())
+	return []*schema.ResourceData{d}, nil
 }
