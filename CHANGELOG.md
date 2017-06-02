@@ -9,6 +9,7 @@ FEATURES:
  * **New Resource:** `librato_metric` [GH-14562]
  * **New Resource:** `digitalocean_certificate` [GH-14578]
  * **New Resource:** `vcd_edgegateway_vpn` [GH-13123]
+ * **New Resource:** `vault_mount` [GH-14456]
  * **New Interpolation Function:** `bcrypt` [GH-14725]
 
 IMPROVEMENTS:
