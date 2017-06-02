@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"fmt"
 	"sort"
 
 	version "github.com/hashicorp/go-version"
@@ -46,6 +47,13 @@ func (v Version) String() string {
 
 func (v Version) NewerThan(other Version) bool {
 	return v.raw.GreaterThan(other.raw)
+}
+
+// MinorUpgradeConstraintStr returns a ConstraintStr that would permit
+// minor upgrades relative to the receiving version.
+func (v Version) MinorUpgradeConstraintStr() ConstraintStr {
+	segments := v.raw.Segments()
+	return ConstraintStr(fmt.Sprintf("~> %d.%d", segments[0], segments[1]))
 }
 
 type Versions []Version
