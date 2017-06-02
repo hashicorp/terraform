@@ -183,7 +183,9 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 				// Some of the fetched attributes are stateful properties such as
 				// the number of subscriptions, the owner, etc. skip those
 				if resource.Schema[iKey] != nil {
+					var err error
 					var value string
+
 					if iKey == "policy" {
 						value, err = normalizeJsonString(*attrmap[oKey])
 						if err != nil {
@@ -192,6 +194,7 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 					} else {
 						value = *attrmap[oKey]
 					}
+
 					log.Printf("[DEBUG] Reading %s => %s -> %s", iKey, oKey, value)
 					d.Set(iKey, value)
 				}
