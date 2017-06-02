@@ -138,7 +138,22 @@ An `artifact_store` block supports the following arguments:
 A `stage` block supports the following arguments:
 
 * `name` - (Required) The name of the stage.
-* `action` - (Required) The action(s) to include in the stage
+* `action` - (Required) The action(s) to include in the stage. Defined as an `action` block below
+
+A `action` block supports the following arguments:
+
+* `category` - (Required) A category defines what kind of action can be taken in the stage, and constrains the provider type for the action. Possible values are `Approval`, `Build`, `Deploy`, `Invoke`, `Source` and `Test`.
+* `owner` - (Required) The creator of the action being called. Possible values are `AWS`, `Custom` and `ThirdParty`.
+* `name` - (Required) The action declaration's name.
+* `provider` - (Required) The provider of the service being called by the action. Valid providers are determined by the action category. For example, an action in the Deploy category type might have a provider of AWS CodeDeploy, which would be specified as CodeDeploy.
+* `version` - (Required) A string that identifies the action type.
+* `configuration` - (Optional) A Map of the action declaration's configuration.
+* `input_artifacts` - (Optional) A list of artifact names to be worked on.
+* `output_artifacts` - (Optional) A list of artifact names to output. Output artifact names must be unique within a pipeline.
+* `role_arn` - (Optional) The ARN of the IAM service role that will perform the declared action. This is assumed through the roleArn for the pipeline.
+* `run_order` - (Optional) The order in which actions are run.
+
+~> **Note:** The input artifact of an action must exactly match the output artifact declared in a preceding action, but the input artifact does not have to be the next action in strict sequence from the action that provided the output artifact. Actions in parallel can declare different output artifacts, which are in turn consumed by different following actions.
 
 ## Attributes Reference
 
