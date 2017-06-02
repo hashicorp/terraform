@@ -13,7 +13,7 @@ import (
 
 func TestAccAwsDmsEndpointBasic(t *testing.T) {
 	resourceName := "aws_dms_endpoint.dms_endpoint"
-	randId := acctest.RandString(8)
+	randId := acctest.RandString(8) + "-basic"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -21,7 +21,7 @@ func TestAccAwsDmsEndpointBasic(t *testing.T) {
 		CheckDestroy: dmsEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: dmsEndpointConfig(randId),
+				Config: dmsEndpointBasicConfig(randId),
 				Check: resource.ComposeTestCheckFunc(
 					checkDmsEndpointExists(resourceName),
 					resource.TestCheckResourceAttrSet(resourceName, "endpoint_arn"),
@@ -34,7 +34,7 @@ func TestAccAwsDmsEndpointBasic(t *testing.T) {
 				ImportStateVerifyIgnore: []string{"password"},
 			},
 			{
-				Config: dmsEndpointConfigUpdate(randId),
+				Config: dmsEndpointBasicConfigUpdate(randId),
 				Check: resource.ComposeTestCheckFunc(
 					checkDmsEndpointExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "database_name", "tf-test-dms-db-updated"),
@@ -44,6 +44,40 @@ func TestAccAwsDmsEndpointBasic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "ssl_mode", "none"),
 					resource.TestCheckResourceAttr(resourceName, "server_name", "tftestupdate"),
 					resource.TestCheckResourceAttr(resourceName, "username", "tftestupdate"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAwsDmsEndpointDynamoDb(t *testing.T) {
+	resourceName := "aws_dms_endpoint.dms_endpoint"
+	randId := acctest.RandString(8) + "-dynamodb"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: dmsEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: dmsEndpointDynamoDbConfig(randId),
+				Check: resource.ComposeTestCheckFunc(
+					checkDmsEndpointExists(resourceName),
+					resource.TestCheckResourceAttrSet(resourceName, "endpoint_arn"),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"password"},
+			},
+			{
+				Config: dmsEndpointDynamoDbConfigUpdate(randId),
+				Check: resource.ComposeTestCheckFunc(
+					checkDmsEndpointExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "ssl_mode", "none"),
+					resource.TestCheckResourceAttr(resourceName, "server_name", "tftestupdate"),
 				),
 			},
 		},
@@ -98,7 +132,7 @@ func checkDmsEndpointExists(n string) resource.TestCheckFunc {
 	}
 }
 
-func dmsEndpointConfig(randId string) string {
+func dmsEndpointBasicConfig(randId string) string {
 	return fmt.Sprintf(`
 resource "aws_dms_endpoint" "dms_endpoint" {
 	database_name = "tf-test-dms-db"
@@ -120,7 +154,7 @@ resource "aws_dms_endpoint" "dms_endpoint" {
 `, randId)
 }
 
-func dmsEndpointConfigUpdate(randId string) string {
+func dmsEndpointBasicConfigUpdate(randId string) string {
 	return fmt.Sprintf(`
 resource "aws_dms_endpoint" "dms_endpoint" {
 	database_name = "tf-test-dms-db-updated"
@@ -138,6 +172,129 @@ resource "aws_dms_endpoint" "dms_endpoint" {
 		Add = "added"
 	}
 	username = "tftestupdate"
+}
+`, randId)
+}
+
+func dmsEndpointDynamoDbConfig(randId string) string {
+	return fmt.Sprintf(`
+resource "aws_dms_endpoint" "dms_endpoint" {
+	endpoint_id = "tf-test-dms-endpoint-%[1]s"
+	endpoint_type = "target"
+	engine_name = "dynamodb"
+	server_name = "tftest"
+	service_access_role = "${aws_iam_role.iam_role.arn}"
+	ssl_mode = "none"
+	tags {
+		Name = "tf-test-dynamodb-endpoint-%[1]s"
+		Update = "to-update"
+		Remove = "to-remove"
+	}
+}
+resource "aws_iam_role" "iam_role" {
+  name = "tf-test-iam-dynamodb-role-%[1]s"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "dms.amazonaws.com"
+      },
+      "Effect": "Allow"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "dms_dynamodb_access" {
+  name = "tf-test-iam-dynamodb-role-policy-%[1]s"
+  role = "${aws_iam_role.iam_role.name}"
+
+  policy = <<EOF
+{
+"Version": "2012-10-17",
+"Statement": [
+{
+    "Effect": "Allow",
+    "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:CreateTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:DeleteTable",
+        "dynamodb:DeleteItem",
+        "dynamodb:ListTables"
+    ],
+    "Resource": "*"
+}
+]
+}
+EOF
+}
+
+`, randId)
+}
+
+func dmsEndpointDynamoDbConfigUpdate(randId string) string {
+	return fmt.Sprintf(`
+resource "aws_dms_endpoint" "dms_endpoint" {
+	endpoint_id = "tf-test-dms-endpoint-%[1]s"
+	endpoint_type = "target"
+	engine_name = "dynamodb"
+	server_name = "tftestupdate"
+	service_access_role = "${aws_iam_role.iam_role.arn}"
+	ssl_mode = "none"
+	tags {
+		Name = "tf-test-dynamodb-endpoint-%[1]s"
+		Update = "updated"
+		Add = "added"
+	}
+}
+resource "aws_iam_role" "iam_role" {
+  name = "tf-test-iam-dynamodb-role-%[1]s"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "dms.amazonaws.com"
+      },
+      "Effect": "Allow"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "dms_dynamodb_access" {
+  name = "tf-test-iam-dynamodb-role-policy-%[1]s"
+  role = "${aws_iam_role.iam_role.name}"
+
+  policy = <<EOF
+{
+"Version": "2012-10-17",
+"Statement": [
+{
+    "Effect": "Allow",
+    "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:CreateTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:DeleteTable",
+        "dynamodb:DeleteItem",
+        "dynamodb:ListTables"
+    ],
+    "Resource": "*"
+}
+]
+}
+EOF
 }
 `, randId)
 }
