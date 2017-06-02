@@ -112,6 +112,52 @@ is fully documented within our
 an AMI for Ubuntu, and request a "t2.micro" instance so we
 qualify under the free tier.
 
+## Initialization
+
+The first command to run for a new configuration -- or after checking out
+an existing configuration from version control -- is `terraform init`, which
+initializes various local settings and data that will be used by subsequent
+commands.
+
+In particular, this command will install the plugins for the providers in
+use within the configuration, which in this case is just the `aws` provider:
+
+```
+$ terraform init
+Initializing the backend...
+Initializing provider plugins...
+- downloading plugin for provider "aws"...
+
+The following providers do not have any version constraints in configuration,
+so the latest version was installed.
+
+To prevent automatic upgrades to new major versions that may contain breaking
+changes, it is recommended to add version = "..." constraints to the
+corresponding provider blocks in configuration, with the constraint strings
+suggested below.
+
+* provider.aws: version = "~> 1.0"
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your environment. If you forget, other
+commands will detect it and remind you to do so if necessary.
+```
+
+The `aws` provider plugin is downloaded and installed in a subdirectory of
+the current working directory, along with various other book-keeping files.
+
+The output specifies which version of the plugin was installed, and suggests
+specifying that version in configuration to ensure that running
+`terraform init` in future will install a compatible version. This step
+is not necessary for following the getting started guide, since this
+configuration will be discarded at the end.
+
 ## Execution Plan
 
 Next, let's see what Terraform would do if we asked it to
