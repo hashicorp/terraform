@@ -58,12 +58,12 @@ func resourceArmEventHubConsumerGroup() *schema.Resource {
 func resourceArmEventHubConsumerGroupCreateUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	eventhubClient := client.eventHubConsumerGroupClient
-	log.Printf("[INFO] preparing arguments for Azure ARM EventHub Consumer Group creation.")
+	log.Printf("[INFO] preparing arguments for AzureRM EventHub Consumer Group creation.")
 
 	name := d.Get("name").(string)
+	location := d.Get("location").(string)
 	namespaceName := d.Get("namespace_name").(string)
 	eventHubName := d.Get("eventhub_name").(string)
-	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
 	userMetaData := d.Get("user_metadata").(string)
 
@@ -117,10 +117,10 @@ func resourceArmEventHubConsumerGroupRead(d *schema.ResourceData, meta interface
 	}
 
 	d.Set("name", name)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("eventhub_name", eventHubName)
 	d.Set("namespace_name", namespaceName)
 	d.Set("resource_group_name", resGroup)
-	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("user_metadata", resp.ConsumerGroupProperties.UserMetadata)
 
 	return nil

@@ -28,6 +28,23 @@ func TestAccContainerCluster_basic(t *testing.T) {
 	})
 }
 
+func TestAccContainerCluster_withMasterAuth(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withMasterAuth,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerCluster(
+						"google_container_cluster.with_master_auth"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContainerCluster_withAdditionalZones(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -372,6 +389,13 @@ func matchError(attr, tf string, gcp interface{}) string {
 
 var testAccContainerCluster_basic = fmt.Sprintf(`
 resource "google_container_cluster" "primary" {
+	name = "cluster-test-%s"
+	zone = "us-central1-a"
+	initial_node_count = 3
+}`, acctest.RandString(10))
+
+var testAccContainerCluster_withMasterAuth = fmt.Sprintf(`
+resource "google_container_cluster" "with_master_auth" {
 	name = "cluster-test-%s"
 	zone = "us-central1-a"
 	initial_node_count = 3

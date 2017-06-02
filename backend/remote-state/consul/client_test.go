@@ -139,3 +139,52 @@ func TestConsul_destroyLock(t *testing.T) {
 		t.Fatalf("lock key not cleaned up at: %s", pair.Key)
 	}
 }
+
+func TestConsul_lostLock(t *testing.T) {
+	srv := newConsulTestServer(t)
+	defer srv.Stop()
+
+	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
+
+	// create 2 instances to get 2 remote.Clients
+	sA, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"address": srv.HTTPAddr,
+		"path":    path,
+	}).State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sB, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"address": srv.HTTPAddr,
+		"path":    path + "-not-used",
+	}).State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	info := state.NewLockInfo()
+	info.Operation = "test-lost-lock"
+	id, err := sA.Lock(info)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reLocked := make(chan struct{})
+	testLockHook = func() {
+		close(reLocked)
+	}
+
+	// now we use the second client to break the lock
+	kv := sB.(*remote.State).Client.(*RemoteClient).Client.KV()
+	_, err = kv.Delete(path+lockSuffix, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	<-reLocked
+
+	if err := sA.Unlock(id); err != nil {
+		t.Fatal(err)
+	}
+}

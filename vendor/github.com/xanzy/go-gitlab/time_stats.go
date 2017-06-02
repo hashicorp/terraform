@@ -8,15 +8,17 @@ import (
 // TimeStatsService handles communication with the time tracking related
 // methods of the GitLab API.
 //
-// GitLab docs: https://docs.gitlab.com/ce/workflow/time_tracking.html
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html
+// GitLab docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/workflow/time_tracking.md
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md
 type TimeStatsService struct {
 	client *Client
 }
 
 // TimeStats represents the time estimates and time spent for an issue.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md
 type TimeStats struct {
 	HumanTimeEstimate   string `json:"human_time_estimate"`
 	HumanTotalTimeSpent string `json:"human_total_time_spent"`
@@ -32,7 +34,7 @@ func (t TimeStats) String() string {
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/issues.html#set-a-time-estimate-for-an-issue
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#set-a-time-estimate-for-an-issue
 type SetTimeEstimateOptions struct {
 	Duration *string `url:"duration,omitempty" json:"duration,omitempty"`
 }
@@ -40,7 +42,7 @@ type SetTimeEstimateOptions struct {
 // SetTimeEstimate sets the time estimate for a single project issue.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/issues.html#set-a-time-estimate-for-an-issue
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#set-a-time-estimate-for-an-issue
 func (s *TimeStatsService) SetTimeEstimate(pid interface{}, issue int, opt *SetTimeEstimateOptions, options ...OptionFunc) (*TimeStats, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -65,7 +67,7 @@ func (s *TimeStatsService) SetTimeEstimate(pid interface{}, issue int, opt *SetT
 // ResetTimeEstimate resets the time estimate for a single project issue.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/issues.html#reset-the-time-estimate-for-an-issue
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#reset-the-time-estimate-for-an-issue
 func (s *TimeStatsService) ResetTimeEstimate(pid interface{}, issue int, options ...OptionFunc) (*TimeStats, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -90,7 +92,7 @@ func (s *TimeStatsService) ResetTimeEstimate(pid interface{}, issue int, options
 // AddSpentTimeOptions represents the available AddSpentTime() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/issues.html#add-spent-time-for-an-issue
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#add-spent-time-for-an-issue
 type AddSpentTimeOptions struct {
 	Duration *string `url:"duration,omitempty" json:"duration,omitempty"`
 }
@@ -98,7 +100,7 @@ type AddSpentTimeOptions struct {
 // AddSpentTime adds spent time for a single project issue.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/issues.html#add-spent-time-for-an-issue
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#add-spent-time-for-an-issue
 func (s *TimeStatsService) AddSpentTime(pid interface{}, issue int, opt *AddSpentTimeOptions, options ...OptionFunc) (*TimeStats, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -123,7 +125,7 @@ func (s *TimeStatsService) AddSpentTime(pid interface{}, issue int, opt *AddSpen
 // ResetSpentTime resets the spent time for a single project issue.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/issues.html#reset-spent-time-for-an-issue
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#reset-spent-time-for-an-issue
 func (s *TimeStatsService) ResetSpentTime(pid interface{}, issue int, options ...OptionFunc) (*TimeStats, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -148,7 +150,7 @@ func (s *TimeStatsService) ResetSpentTime(pid interface{}, issue int, options ..
 // GetTimeSpent gets the spent time for a single project issue.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/issues.html#get-time-tracking-stats
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#get-time-tracking-stats
 func (s *TimeStatsService) GetTimeSpent(pid interface{}, issue int, options ...OptionFunc) (*TimeStats, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

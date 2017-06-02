@@ -45,6 +45,10 @@ The following arguments are supported:
 * `region` - (Optional) The region this subnetwork will be created in. If
     unspecified, this defaults to the region configured in the provider.
 
+* `private_ip_google_access` - Whether the VMs in this subnet
+    can access Google services without assigned external IP
+    addresses.
+
 ## Attributes Reference
 
 In addition to the arguments listed above, the following computed attributes are

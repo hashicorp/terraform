@@ -11,11 +11,11 @@ git:
 
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-encrypt-running-linux-vm
+  - TEST_DIR=examples/azure-spark-and-cassandra-on-centos
 
 branches:
   only:
-    # - master
+    - master
     - /^(?i:topic)-.*$/
 
 # install terraform
@@ -25,7 +25,6 @@ before_deploy:
   - export EXISTING_IMAGE_URI=https://permanentstor.blob.core.windows.net/permanent-vhds/permanent-osdisk1.vhd
   - export EXISTING_STORAGE_ACCOUNT_NAME=permanentstor
   - export EXISTING_RESOURCE_GROUP=permanent
-  - export KEY_VAULT_NAME=permanentkeyvault
 
 # terraform deploy + script
 deploy:
@@ -34,4 +33,4 @@ deploy:
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
       repo: harijayms/terraform
-      branch: topic-201-encrypt-running-linux-vm
+      branch: topic-spark-and-cassandra-on-centos

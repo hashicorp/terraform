@@ -90,8 +90,8 @@ The following arguments are supported:
 
 ## Import
 
-Limit Range can be imported using its name, e.g.
+Limit Range can be imported using its namespace and name, e.g.
 
 ```
-$ terraform import kubernetes_limit_range.example terraform-example
+$ terraform import kubernetes_limit_range.example default/terraform-example
 ```

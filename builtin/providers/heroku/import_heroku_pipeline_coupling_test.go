@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccHerokuPipelineCoupling_importBasic(t *testing.T) {
-	var coupling heroku.PipelineCouplingInfoResult
+	var coupling heroku.PipelineCoupling
 
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 	pipelineName := fmt.Sprintf("tftest-%s", acctest.RandString(10))

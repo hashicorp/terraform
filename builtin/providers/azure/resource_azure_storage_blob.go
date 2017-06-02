@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -73,12 +74,19 @@ func resourceAzureStorageBlobCreate(d *schema.ResourceData, meta interface{}) er
 	name := d.Get("name").(string)
 	blobType := d.Get("type").(string)
 	cont := d.Get("storage_container_name").(string)
+
+	container := blobClient.GetContainerReference(cont)
+	blob := container.GetBlobReference(name)
+
 	switch blobType {
 	case "BlockBlob":
-		err = blobClient.CreateBlockBlob(cont, name)
+		options := &storage.PutBlobOptions{}
+		err = blob.CreateBlockBlob(options)
 	case "PageBlob":
 		size := int64(d.Get("size").(int))
-		err = blobClient.PutPageBlob(cont, name, size, map[string]string{})
+		options := &storage.PutBlobOptions{}
+		blob.Properties.ContentLength = size
+		err = blob.PutPageBlob(options)
 	default:
 		err = fmt.Errorf("Invalid blob type specified; see parameter desciptions for more info.")
 	}
@@ -112,7 +120,9 @@ func resourceAzureStorageBlobRead(d *schema.ResourceData, meta interface{}) erro
 
 		name := d.Get("name").(string)
 		cont := d.Get("storage_container_name").(string)
-		url := blobClient.GetBlobURL(cont, name)
+		container := blobClient.GetContainerReference(cont)
+		blob := container.GetBlobReference(name)
+		url := blob.GetURL()
 		d.Set("url", url)
 	}
 
@@ -135,7 +145,9 @@ func resourceAzureStorageBlobExists(d *schema.ResourceData, meta interface{}) (b
 	log.Println("[INFO] Querying Azure for storage blob's existence.")
 	name := d.Get("name").(string)
 	cont := d.Get("storage_container_name").(string)
-	exists, err := blobClient.BlobExists(cont, name)
+	container := blobClient.GetContainerReference(cont)
+	blob := container.GetBlobReference(name)
+	exists, err := blob.Exists()
 	if err != nil {
 		return false, fmt.Errorf("Error whilst checking for Azure storage blob's existence: %s", err)
 	}
@@ -163,7 +175,13 @@ func resourceAzureStorageBlobDelete(d *schema.ResourceData, meta interface{}) er
 	log.Println("[INFO] Issuing storage blob delete command off Azure.")
 	name := d.Get("name").(string)
 	cont := d.Get("storage_container_name").(string)
-	if _, err = blobClient.DeleteBlobIfExists(cont, name, make(map[string]string)); err != nil {
+
+	container := blobClient.GetContainerReference(cont)
+	blob := container.GetBlobReference(name)
+
+	options := &storage.DeleteBlobOptions{}
+	_, err = blob.DeleteIfExists(options)
+	if err != nil {
 		return fmt.Errorf("Error whilst deleting storage blob: %s", err)
 	}
 

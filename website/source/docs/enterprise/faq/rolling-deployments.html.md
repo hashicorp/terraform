@@ -26,7 +26,7 @@ variable "atlas_username" {}
 variable "pinned_name"    {}
 variable "pinned_version" { default = "latest" }
 
-resource "atlas_artifact" "pinned" {
+data "atlas_artifact" "pinned" {
   name     = "${var.atlas_username}/${var.pinned_name}"
   type     = "${var.type}"
   version  = "${var.pinned_version}"
@@ -57,7 +57,7 @@ variable "atlas_username"   {}
 variable "artifact_name"    {}
 variable "artifact_version" { default = "latest" }
 
-resource "atlas_artifact" "artifact" {
+data "atlas_artifact" "artifact" {
   name    = "${var.atlas_username}/${var.artifact_name}"
   type    = "${var.type}"
   count   = "${length(split(",", var.artifact_version))}"

@@ -47,6 +47,8 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
 					resource.TestCheckResourceAttrSet("aws_db_instance.bar", "hosted_zone_id"),
+					resource.TestCheckResourceAttrSet(
+						"aws_db_instance.bar", "resource_id"),
 				),
 			},
 		},

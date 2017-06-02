@@ -14,7 +14,7 @@ import (
 func TestAccAWSFlowLog_basic(t *testing.T) {
 	var flowLog ec2.FlowLog
 
-	fln := fmt.Sprintf("tf-test-fl-%d", acctest.RandInt())
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -23,7 +23,7 @@ func TestAccAWSFlowLog_basic(t *testing.T) {
 		CheckDestroy:  testAccCheckFlowLogDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccFlowLogConfig_basic(fln),
+				Config: testAccFlowLogConfig_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFlowLogExists("aws_flow_log.test_flow_log", &flowLog),
 					testAccCheckAWSFlowLogAttributes(&flowLog),
@@ -36,7 +36,7 @@ func TestAccAWSFlowLog_basic(t *testing.T) {
 func TestAccAWSFlowLog_subnet(t *testing.T) {
 	var flowLog ec2.FlowLog
 
-	fln := fmt.Sprintf("tf-test-fl-%d", acctest.RandInt())
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -45,7 +45,7 @@ func TestAccAWSFlowLog_subnet(t *testing.T) {
 		CheckDestroy:  testAccCheckFlowLogDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccFlowLogConfig_subnet(fln),
+				Config: testAccFlowLogConfig_subnet(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFlowLogExists("aws_flow_log.test_flow_log_subnet", &flowLog),
 					testAccCheckAWSFlowLogAttributes(&flowLog),
@@ -108,7 +108,7 @@ func testAccCheckFlowLogDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccFlowLogConfig_basic(fln string) string {
+func testAccFlowLogConfig_basic(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "default" {
         cidr_block = "10.0.0.0/16"
@@ -127,7 +127,7 @@ resource "aws_subnet" "test_subnet" {
 }
 
 resource "aws_iam_role" "test_role" {
-    name = "test_role"
+    name = "tf_test_flow_log_basic_%d"
     assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -149,29 +149,25 @@ EOF
 }
 
 resource "aws_cloudwatch_log_group" "foobar" {
-    name = "%s"
+    name = "tf-test-fl-%d"
 }
 resource "aws_flow_log" "test_flow_log" {
-        # log_group_name needs to exist before hand
-        # until we have a CloudWatch Log Group Resource
-        log_group_name = "tf-test-log-group"
+        log_group_name = "${aws_cloudwatch_log_group.foobar.name}"
         iam_role_arn = "${aws_iam_role.test_role.arn}"
         vpc_id = "${aws_vpc.default.id}"
         traffic_type = "ALL"
 }
 
 resource "aws_flow_log" "test_flow_log_subnet" {
-        # log_group_name needs to exist before hand
-        # until we have a CloudWatch Log Group Resource
         log_group_name = "${aws_cloudwatch_log_group.foobar.name}"
         iam_role_arn = "${aws_iam_role.test_role.arn}"
         subnet_id = "${aws_subnet.test_subnet.id}"
         traffic_type = "ALL"
 }
-`, fln)
+`, rInt, rInt)
 }
 
-func testAccFlowLogConfig_subnet(fln string) string {
+func testAccFlowLogConfig_subnet(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "default" {
         cidr_block = "10.0.0.0/16"
@@ -190,7 +186,7 @@ resource "aws_subnet" "test_subnet" {
 }
 
 resource "aws_iam_role" "test_role" {
-    name = "tf_test_%s"
+    name = "tf_test_flow_log_subnet_%d"
     assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -211,16 +207,14 @@ resource "aws_iam_role" "test_role" {
 EOF
 }
 resource "aws_cloudwatch_log_group" "foobar" {
-    name = "%s"
+    name = "tf-test-fl-%d"
 }
 
 resource "aws_flow_log" "test_flow_log_subnet" {
-        # log_group_name needs to exist before hand
-        # until we have a CloudWatch Log Group Resource
         log_group_name = "${aws_cloudwatch_log_group.foobar.name}"
         iam_role_arn = "${aws_iam_role.test_role.arn}"
         subnet_id = "${aws_subnet.test_subnet.id}"
         traffic_type = "ALL"
 }
-`, fln, fln)
+`, rInt, rInt)
 }

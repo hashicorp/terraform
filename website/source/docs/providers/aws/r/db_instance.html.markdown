@@ -126,6 +126,7 @@ standalone database.
 The following attributes are exported:
 
 * `id` - The RDS instance ID.
+* `resource_id` - The RDS Resource ID of this instance.
 * `address` - The address of the RDS instance.
 * `arn` - The ARN of the RDS instance.
 * `allocated_storage` - The amount of allocated storage

@@ -20,7 +20,7 @@ func TestAccAzureRMVirtualNetwork_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMVirtualNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkExists("azurerm_virtual_network.test"),
@@ -40,7 +40,7 @@ func TestAccAzureRMVirtualNetwork_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMVirtualNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkExists("azurerm_virtual_network.test"),
@@ -137,7 +137,8 @@ func testCheckAzureRMVirtualNetworkDisappears(name string) resource.TestCheckFun
 		// Ensure resource group/virtual network combination exists in API
 		conn := testAccProvider.Meta().(*ArmClient).vnetClient
 
-		_, err := conn.Delete(resourceGroup, virtualNetworkName, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, virtualNetworkName, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on vnetClient: %s", err)
 		}
@@ -208,8 +209,8 @@ resource "azurerm_virtual_network" "test" {
     }
 
     tags {
-	environment = "Production"
-	cost_center = "MSFT"
+		environment = "Production"
+		cost_center = "MSFT"
     }
 }
 `
@@ -232,7 +233,7 @@ resource "azurerm_virtual_network" "test" {
     }
 
     tags {
-	environment = "staging"
+		environment = "staging"
     }
 }
 `

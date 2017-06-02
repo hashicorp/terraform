@@ -45,3 +45,12 @@ resource "aws_lambda_event_source_mapping" "event_source_mapping" {
 
 [1]: http://docs.aws.amazon.com/lambda/latest/dg/welcome.html
 [2]: http://docs.aws.amazon.com/lambda/latest/dg/API_CreateEventSourceMapping.html
+
+
+## Import
+
+Lambda Event Source Mappings can be imported using the `UUID` (event source mapping identifier), e.g.
+
+```
+$ terraform import aws_lambda_event_source_mapping.event_source_mapping 12345kxodurf3443
+```

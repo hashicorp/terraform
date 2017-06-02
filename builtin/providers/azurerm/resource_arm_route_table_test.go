@@ -215,7 +215,8 @@ func testCheckAzureRMRouteTableDisappears(name string) resource.TestCheckFunc {
 
 		conn := testAccProvider.Meta().(*ArmClient).routeTablesClient
 
-		_, err := conn.Delete(resourceGroup, name, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, name, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on routeTablesClient: %s", err)
 		}

@@ -26,7 +26,7 @@ provider "atlas" {
   token = "${var.atlas_token}"
 }
 
-resource "atlas_artifact" "web-worker" {
+data "atlas_artifact" "web-worker" {
   name    = "my-username/web-worker"
   type    = "amazon.image"
   version = "latest"

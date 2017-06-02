@@ -87,7 +87,7 @@ type ArmClient struct {
 	jobsCollectionsClient scheduler.JobCollectionsClient
 
 	storageServiceClient storage.AccountsClient
-	storageUsageClient   storage.UsageOperationsClient
+	storageUsageClient   storage.UsageClient
 
 	deploymentsClient resources.DeploymentsClient
 
@@ -402,7 +402,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	ssc.Sender = autorest.CreateSender(withRequestLogging())
 	client.storageServiceClient = ssc
 
-	suc := storage.NewUsageOperationsClientWithBaseURI(endpoint, c.SubscriptionID)
+	suc := storage.NewUsageClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&suc.Client)
 	suc.Authorizer = spt
 	suc.Sender = autorest.CreateSender(withRequestLogging())

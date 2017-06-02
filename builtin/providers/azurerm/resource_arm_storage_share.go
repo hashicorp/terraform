@@ -62,20 +62,21 @@ func resourceArmStorageShareCreate(d *schema.ResourceData, meta interface{}) err
 
 	name := d.Get("name").(string)
 	metaData := make(map[string]string) // TODO: support MetaData
+	options := &storage.FileRequestOptions{}
 
 	log.Printf("[INFO] Creating share %q in storage account %q", name, storageAccountName)
 	reference := fileClient.GetShareReference(name)
-	err = reference.Create()
+	err = reference.Create(options)
 
 	log.Printf("[INFO] Setting share %q metadata in storage account %q", name, storageAccountName)
 	reference.Metadata = metaData
-	reference.SetMetadata()
+	reference.SetMetadata(options)
 
 	log.Printf("[INFO] Setting share %q properties in storage account %q", name, storageAccountName)
 	reference.Properties = storage.ShareProperties{
 		Quota: d.Get("quota").(int),
 	}
-	reference.SetProperties()
+	reference.SetProperties(options)
 
 	d.SetId(name)
 	return resourceArmStorageShareRead(d, meta)
@@ -170,9 +171,9 @@ func resourceArmStorageShareDelete(d *schema.ResourceData, meta interface{}) err
 	name := d.Get("name").(string)
 
 	reference := fileClient.GetShareReference(name)
-	err = reference.Create()
+	options := &storage.FileRequestOptions{}
 
-	if _, err = reference.DeleteIfExists(); err != nil {
+	if _, err = reference.DeleteIfExists(options); err != nil {
 		return fmt.Errorf("Error deleting storage file %q: %s", name, err)
 	}
 

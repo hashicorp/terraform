@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSRole_basic(t *testing.T) {
+func TestAccAWSIAMRole_basic(t *testing.T) {
 	var conf iam.GetRoleOutput
 	rName := acctest.RandString(10)
 
@@ -25,7 +25,7 @@ func TestAccAWSRole_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSRoleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSRoleConfig(rName),
+				Config: testAccAWSIAMRoleConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
 					resource.TestCheckResourceAttr("aws_iam_role.role", "path", "/"),
@@ -36,7 +36,7 @@ func TestAccAWSRole_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSRole_basicWithDescription(t *testing.T) {
+func TestAccAWSIAMRole_basicWithDescription(t *testing.T) {
 	var conf iam.GetRoleOutput
 	rName := acctest.RandString(10)
 
@@ -46,7 +46,7 @@ func TestAccAWSRole_basicWithDescription(t *testing.T) {
 		CheckDestroy: testAccCheckAWSRoleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSRoleConfigWithDescription(rName),
+				Config: testAccAWSIAMRoleConfigWithDescription(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
 					resource.TestCheckResourceAttr("aws_iam_role.role", "path", "/"),
@@ -54,7 +54,7 @@ func TestAccAWSRole_basicWithDescription(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccAWSRoleConfigWithUpdatedDescription(rName),
+				Config: testAccAWSIAMRoleConfigWithUpdatedDescription(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
 					resource.TestCheckResourceAttr("aws_iam_role.role", "path", "/"),
@@ -62,7 +62,7 @@ func TestAccAWSRole_basicWithDescription(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccAWSRoleConfig(rName),
+				Config: testAccAWSIAMRoleConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
 					resource.TestCheckResourceAttrSet("aws_iam_role.role", "create_date"),
@@ -73,7 +73,7 @@ func TestAccAWSRole_basicWithDescription(t *testing.T) {
 	})
 }
 
-func TestAccAWSRole_namePrefix(t *testing.T) {
+func TestAccAWSIAMRole_namePrefix(t *testing.T) {
 	var conf iam.GetRoleOutput
 	rName := acctest.RandString(10)
 
@@ -85,7 +85,7 @@ func TestAccAWSRole_namePrefix(t *testing.T) {
 		CheckDestroy:    testAccCheckAWSRoleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSRolePrefixNameConfig(rName),
+				Config: testAccAWSIAMRolePrefixNameConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
 					testAccCheckAWSRoleGeneratedNamePrefix(
@@ -96,7 +96,7 @@ func TestAccAWSRole_namePrefix(t *testing.T) {
 	})
 }
 
-func TestAccAWSRole_testNameChange(t *testing.T) {
+func TestAccAWSIAMRole_testNameChange(t *testing.T) {
 	var conf iam.GetRoleOutput
 	rName := acctest.RandString(10)
 
@@ -106,14 +106,14 @@ func TestAccAWSRole_testNameChange(t *testing.T) {
 		CheckDestroy: testAccCheckAWSRoleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSRolePre(rName),
+				Config: testAccAWSIAMRolePre(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role_update_test", &conf),
 				),
 			},
 
 			{
-				Config: testAccAWSRolePost(rName),
+				Config: testAccAWSIAMRolePost(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role_update_test", &conf),
 				),
@@ -122,7 +122,7 @@ func TestAccAWSRole_testNameChange(t *testing.T) {
 	})
 }
 
-func TestAccAWSRole_badJSON(t *testing.T) {
+func TestAccAWSIAMRole_badJSON(t *testing.T) {
 	rName := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
@@ -131,7 +131,7 @@ func TestAccAWSRole_badJSON(t *testing.T) {
 		CheckDestroy: testAccCheckAWSRoleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccAWSRoleConfig_badJson(rName),
+				Config:      testAccAWSIAMRoleConfig_badJson(rName),
 				ExpectError: regexp.MustCompile(`.*contains an invalid JSON:.*`),
 			},
 		},
@@ -210,7 +210,7 @@ func testAccCheckAWSRoleGeneratedNamePrefix(resource, prefix string) resource.Te
 	}
 }
 
-func testAccAWSRoleConfig(rName string) string {
+func testAccAWSIAMRoleConfig(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "role" {
   name   = "test-role-%s"
@@ -220,7 +220,7 @@ resource "aws_iam_role" "role" {
 `, rName)
 }
 
-func testAccAWSRoleConfigWithDescription(rName string) string {
+func testAccAWSIAMRoleConfigWithDescription(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "role" {
   name   = "test-role-%s"
@@ -231,7 +231,7 @@ resource "aws_iam_role" "role" {
 `, rName)
 }
 
-func testAccAWSRoleConfigWithUpdatedDescription(rName string) string {
+func testAccAWSIAMRoleConfigWithUpdatedDescription(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "role" {
   name   = "test-role-%s"
@@ -242,7 +242,7 @@ resource "aws_iam_role" "role" {
 `, rName)
 }
 
-func testAccAWSRolePrefixNameConfig(rName string) string {
+func testAccAWSIAMRolePrefixNameConfig(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "role" {
   name_prefix = "test-role-%s"
@@ -252,7 +252,7 @@ resource "aws_iam_role" "role" {
 `, rName)
 }
 
-func testAccAWSRolePre(rName string) string {
+func testAccAWSIAMRolePre(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "role_update_test" {
   name = "tf_old_name_%s"
@@ -302,7 +302,7 @@ resource "aws_iam_instance_profile" "role_update_test" {
 `, rName, rName, rName)
 }
 
-func testAccAWSRolePost(rName string) string {
+func testAccAWSIAMRolePost(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "role_update_test" {
   name = "tf_new_name_%s"
@@ -352,7 +352,7 @@ resource "aws_iam_instance_profile" "role_update_test" {
 `, rName, rName, rName)
 }
 
-func testAccAWSRoleConfig_badJson(rName string) string {
+func testAccAWSIAMRoleConfig_badJson(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "my_instance_role" {
   name = "test-role-%s"

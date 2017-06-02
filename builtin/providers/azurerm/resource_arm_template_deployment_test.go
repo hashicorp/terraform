@@ -152,7 +152,8 @@ func testCheckAzureRMTemplateDeploymentDisappears(name string) resource.TestChec
 
 		conn := testAccProvider.Meta().(*ArmClient).deploymentsClient
 
-		_, err := conn.Delete(resourceGroup, name, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, name, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on deploymentsClient: %s", err)
 		}

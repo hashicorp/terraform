@@ -29,8 +29,6 @@ The command-line flags are all optional. The list of available flags are:
 * `-backup=path` - Path to the backup file. Defaults to `-state-out` with
   the ".backup" extension. Disabled by setting to "-".
 
-* `-no-color` - Disables output with coloring
-
 * `-input=true` - Ask for input for variables if not directly set.
 
 * `-lock=true` - Lock the state file when locking is supported.
