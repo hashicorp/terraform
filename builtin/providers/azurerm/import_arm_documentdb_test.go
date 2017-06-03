@@ -7,16 +7,16 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccAzureRMDocumentDb_importStandardBoundedStaleness(t *testing.T) {
-	resourceName := "azurerm_documentdb.test"
+func TestAccAzureRMCosmosDB_importStandardBoundedStaleness(t *testing.T) {
+	resourceName := "azurerm_cosmos_db.test"
 
 	ri := acctest.RandInt()
-	config := testAccAzureRMDocumentDb_standard_boundedStaleness(ri)
+	config := testAccAzureRMCosmosDB_standard_boundedStaleness(ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDocumentDbDestroy,
+		CheckDestroy: testCheckAzureRMCosmosDBDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -31,16 +31,16 @@ func TestAccAzureRMDocumentDb_importStandardBoundedStaleness(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMDocumentDb_importStandardEventualConsistency(t *testing.T) {
-	resourceName := "azurerm_documentdb.test"
+func TestAccAzureRMCosmosDB_importStandardEventualConsistency(t *testing.T) {
+	resourceName := "azurerm_cosmos_db.test"
 
 	ri := acctest.RandInt()
-	config := testAccAzureRMDocumentDb_standard_eventualConsistency(ri)
+	config := testAccAzureRMCosmosDB_standard_eventualConsistency(ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDocumentDbDestroy,
+		CheckDestroy: testCheckAzureRMCosmosDBDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

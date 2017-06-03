@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAzureRMDocumentDbName_validation(t *testing.T) {
+func TestAccAzureRMCosmosDBName_validation(t *testing.T) {
 	str := acctest.RandString(50)
 	cases := []struct {
 		Value    string
@@ -35,79 +35,79 @@ func TestAccAzureRMDocumentDbName_validation(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		_, errors := validateAzureRmDocumentDbName(tc.Value, "azurerm_documentdb")
+		_, errors := validateAzureRmCosmosDBName(tc.Value, "azurerm_cosmos_db")
 
 		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Azure RM DocumentDB Name to trigger a validation error for '%s'", tc.Value)
+			t.Fatalf("Expected the AzureRM CosmosDB Name to trigger a validation error for '%s'", tc.Value)
 		}
 	}
 }
 
-func TestAccAzureRMDocumentDb_standard_boundedStaleness(t *testing.T) {
+func TestAccAzureRMCosmosDB_standard_boundedStaleness(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := testAccAzureRMDocumentDb_standard_boundedStaleness(ri)
+	config := testAccAzureRMCosmosDB_standard_boundedStaleness(ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDocumentDbDestroy,
+		CheckDestroy: testCheckAzureRMCosmosDBDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMDocumentDbExists("azurerm_documentdb.test"),
+					testCheckAzureRMCosmosDBExists("azurerm_cosmos_db.test"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccAzureRMDocumentDb_standard_eventualConsistency(t *testing.T) {
+func TestAccAzureRMCosmosDB_standard_eventualConsistency(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := testAccAzureRMDocumentDb_standard_eventualConsistency(ri)
+	config := testAccAzureRMCosmosDB_standard_eventualConsistency(ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDocumentDbDestroy,
+		CheckDestroy: testCheckAzureRMCosmosDBDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMDocumentDbExists("azurerm_documentdb.test"),
+					testCheckAzureRMCosmosDBExists("azurerm_cosmos_db.test"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccAzureRMDocumentDb_standardGeoReplicated(t *testing.T) {
+func TestAccAzureRMCosmosDB_standardGeoReplicated(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := testAccAzureRMDocumentDb_standardGeoReplicated(ri)
+	config := testAccAzureRMCosmosDB_standardGeoReplicated(ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDocumentDbDestroy,
+		CheckDestroy: testCheckAzureRMCosmosDBDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMDocumentDbExists("azurerm_documentdb.test"),
+					testCheckAzureRMCosmosDBExists("azurerm_cosmos_db.test"),
 				),
 			},
 		},
 	})
 }
 
-func testCheckAzureRMDocumentDbDestroy(s *terraform.State) error {
+func testCheckAzureRMCosmosDBDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).documentDbClient
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "azurerm_documentdb" {
+		if rs.Type != "azurerm_cosmos_db" {
 			continue
 		}
 
@@ -121,14 +121,14 @@ func testCheckAzureRMDocumentDbDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("DocumentDB instance still exists:\n%#v", resp)
+			return fmt.Errorf("CosmosDB instance still exists:\n%#v", resp)
 		}
 	}
 
 	return nil
 }
 
-func testCheckAzureRMDocumentDbExists(name string) resource.TestCheckFunc {
+func testCheckAzureRMCosmosDBExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
 		rs, ok := s.RootModule().Resources[name]
@@ -139,7 +139,7 @@ func testCheckAzureRMDocumentDbExists(name string) resource.TestCheckFunc {
 		name := rs.Primary.Attributes["name"]
 		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
 		if !hasResourceGroup {
-			return fmt.Errorf("Bad: no resource group found in state for DocumentDB instance: %s", name)
+			return fmt.Errorf("Bad: no resource group found in state for CosmosDB instance: %s", name)
 		}
 
 		conn := testAccProvider.Meta().(*ArmClient).documentDbClient
@@ -150,20 +150,20 @@ func testCheckAzureRMDocumentDbExists(name string) resource.TestCheckFunc {
 		}
 
 		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Bad: DocumentDB instance %q (resource group: %q) does not exist", name, resourceGroup)
+			return fmt.Errorf("Bad: CosmosDB instance %q (resource group: %q) does not exist", name, resourceGroup)
 		}
 
 		return nil
 	}
 }
 
-func testAccAzureRMDocumentDb_standard_boundedStaleness(rInt int) string {
+func testAccAzureRMCosmosDB_standard_boundedStaleness(rInt int) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
     location = "West US"
 }
-resource "azurerm_documentdb" "test" {
+resource "azurerm_cosmos_db" "test" {
   name                = "acctest-%d"
   location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
@@ -183,13 +183,13 @@ resource "azurerm_documentdb" "test" {
 `, rInt, rInt)
 }
 
-func testAccAzureRMDocumentDb_standard_eventualConsistency(rInt int) string {
+func testAccAzureRMCosmosDB_standard_eventualConsistency(rInt int) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
     location = "West US"
 }
-resource "azurerm_documentdb" "test" {
+resource "azurerm_cosmos_db" "test" {
   name                = "acctest-%d"
   location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
@@ -207,13 +207,13 @@ resource "azurerm_documentdb" "test" {
 `, rInt, rInt)
 }
 
-func testAccAzureRMDocumentDb_standardGeoReplicated(rInt int) string {
+func testAccAzureRMCosmosDB_standardGeoReplicated(rInt int) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
     location = "West US"
 }
-resource "azurerm_documentdb" "test" {
+resource "azurerm_cosmos_db" "test" {
   name                = "acctest-%d"
   location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
