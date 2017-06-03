@@ -33,7 +33,7 @@ A provider configuration looks like the following:
 provider "aws" {
   access_key = "foo"
   secret_key = "bar"
-  region = "us-east-1"
+  region     = "us-east-1"
 }
 ```
 
@@ -54,6 +54,61 @@ Both criteria must be matched for a provider to manage a resource:
 Within the block (the `{ }`) is configuration for the resource.
 The configuration is dependent on the type, and is documented
 [for each provider](/docs/providers/index.html).
+
+## Initialization
+
+Each time a new provider is added to configuration -- either explicitly via
+a `provider` block or by adding a resource from that provider -- it's necessary
+to initialize that provider before use. Initialization downloads and installs
+the provider's plugin and prepares it to be used.
+
+Provider initialization is one of the actions of `terraform init`. Running
+this command will download and initialize any providers that are not already
+initialized.
+
+For more information, see
+[the `terraform init` command](/docs/commands/init.html).
+
+## Provider Versions
+
+Providers are released on a separate rhythm from Terraform itself, and thus
+have their own version numbers. For production use, it is recommended to
+constrain the acceptable provider versions via configuration, to ensure that
+new versions with breaking changes will not be automatically installed by
+`terraform init` in future.
+
+When `terraform init` is run _without_ provider version constraints, it
+prints a suggested version constraint string for each provider:
+
+```
+The following providers do not have any version constraints in configuration,
+so the latest version was installed.
+
+To prevent automatic upgrades to new major versions that may contain breaking
+changes, it is recommended to add version = "..." constraints to the
+corresponding provider blocks in configuration, with the constraint strings
+suggested below.
+
+* provider.aws: version = "~> 1.0"
+```
+
+To constrain the provider version as suggested, add a `version` argument to
+the provider configuration block:
+
+```hcl
+provider "aws" {
+  version = "~> 1.0"
+
+  access_key = "foo"
+  secret_key = "bar"
+  region     = "us-east-1"
+}
+```
+
+This special argument applies to _all_ providers.
+[`terraform providers`](/docs/commands/providers.html) can be used to
+view the specified version constraints for all providers used in the
+current configuration.
 
 ## Multiple Provider Instances
 
