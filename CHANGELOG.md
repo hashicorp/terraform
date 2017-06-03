@@ -25,6 +25,7 @@ IMPROVEMENTS:
 * provider/google: `google_container_cluster.master_auth` should be optional [GH-14630]
 * provider/google: Add CORS support for `google_storage_bucket` [GH-14695]
 * provider/kubernetes: Upgrade K8S from 1.5.3 to 1.6.1 [GH-14923]
+* provider/kubernetes: Provide more details about why PVC failed to bind [GH-15019]
 * provider/openstack: Add support provider networks [GH-10265]
 * provider/openstack: Allow numerical protocols in security group rules [GH-14917]
 * provider/openstack: Sort request/response headers in debug output [GH-14956]
