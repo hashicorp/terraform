@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestIsInternalAnnotationKey(t *testing.T) {
+func TestIsInternalKey(t *testing.T) {
 	testCases := []struct {
 		Key      string
 		Expected bool
@@ -20,7 +20,7 @@ func TestIsInternalAnnotationKey(t *testing.T) {
 	}
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			isInternal := isInternalAnnotationKey(tc.Key)
+			isInternal := isInternalKey(tc.Key)
 			if tc.Expected && isInternal != tc.Expected {
 				t.Fatalf("Expected %q to be internal", tc.Key)
 			}
