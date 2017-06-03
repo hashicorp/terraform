@@ -77,7 +77,7 @@ func resourceArmDocumentDb() *schema.Resource {
 							ValidateFunc: validation.IntBetween(1, 100),
 						},
 
-						"max_staleness": {
+						"max_staleness_prefix": {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							Computed:     true,
@@ -261,13 +261,13 @@ func expandAzureRmDocumentDbConsistencyPolicy(d *schema.ResourceData) documentdb
 	input := inputs[0].(map[string]interface{})
 
 	consistencyLevel := input["consistency_level"].(string)
-	maxStaleness := int64(input["max_staleness"].(int))
+	maxStalenessPrefix := int64(input["max_staleness_prefix"].(int))
 	maxIntervalInSeconds := int32(input["max_interval_in_seconds"].(int))
 
 	policy := documentdb.ConsistencyPolicy{
 		DefaultConsistencyLevel: documentdb.DefaultConsistencyLevel(consistencyLevel),
 		MaxIntervalInSeconds:    &maxIntervalInSeconds,
-		MaxStalenessPrefix:      &maxStaleness,
+		MaxStalenessPrefix:      &maxStalenessPrefix,
 	}
 
 	return policy
@@ -330,7 +330,7 @@ func flattenAndSetAzureRmDocumentDbConsistencyPolicy(d *schema.ResourceData, pol
 	result := map[string]interface{}{}
 	result["consistency_level"] = string(policy.DefaultConsistencyLevel)
 	result["max_interval_in_seconds"] = int(*policy.MaxIntervalInSeconds)
-	result["max_staleness"] = int(*policy.MaxStalenessPrefix)
+	result["max_staleness_prefix"] = int(*policy.MaxStalenessPrefix)
 	results.Add(result)
 
 	d.Set("consistency_policy", &results)
@@ -360,9 +360,9 @@ func resourceAzureRMDocumentDbConsistencyPolicyHash(v interface{}) int {
 
 	consistencyLevel := m["consistency_level"].(string)
 	maxInterval := m["max_interval_in_seconds"].(int)
-	maxStaleness := m["max_staleness"].(int)
+	maxStalenessPrefix := m["max_staleness_prefix"].(int)
 
-	buf.WriteString(fmt.Sprintf("%s-%d-%d", consistencyLevel, maxInterval, maxStaleness))
+	buf.WriteString(fmt.Sprintf("%s-%d-%d", consistencyLevel, maxInterval, maxStalenessPrefix))
 
 	return hashcode.String(buf.String())
 }
