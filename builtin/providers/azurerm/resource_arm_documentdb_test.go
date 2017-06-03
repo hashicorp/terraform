@@ -43,48 +43,30 @@ func TestAccAzureRMDocumentDbName_validation(t *testing.T) {
 	}
 }
 
-func TestAccAzureRMDocumentDbMaxIntervalInSeconds_validation(t *testing.T) {
-	cases := []struct {
-		Value    int
-		ErrCount int
-	}{
-		{
-			Value:    0,
-			ErrCount: 1,
-		},
-		{
-			Value:    1,
-			ErrCount: 0,
-		},
-		{
-			Value:    99,
-			ErrCount: 0,
-		},
-		{
-			Value:    100,
-			ErrCount: 0,
-		},
-		{
-			Value:    101,
-			ErrCount: 1,
-		},
-	}
-
-	for _, tc := range cases {
-		_, errors := validateAzureRmDocumentDbMaxIntervalInSeconds(tc.Value, "azurerm_documentdb")
-
-		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Azure RM DocumentDB Max Interval in Seconds to trigger a validation error")
-		}
-	}
-}
-
-// TODO: validation for max staleness
-
-func TestAccAzureRMDocumentDb_standard(t *testing.T) {
+func TestAccAzureRMDocumentDb_standard_boundedStaleness(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMDocumentDb_standard, ri, ri)
+	config := testAccAzureRMDocumentDb_standard_boundedStaleness(ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMDocumentDbDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMDocumentDbExists("azurerm_documentdb.test"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMDocumentDb_standard_eventualConsistency(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := testAccAzureRMDocumentDb_standard_eventualConsistency(ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -104,7 +86,7 @@ func TestAccAzureRMDocumentDb_standard(t *testing.T) {
 func TestAccAzureRMDocumentDb_standardGeoReplicated(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMDocumentDb_standardGeoReplicated, ri, ri)
+	config := testAccAzureRMDocumentDb_standardGeoReplicated(ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -175,7 +157,8 @@ func testCheckAzureRMDocumentDbExists(name string) resource.TestCheckFunc {
 	}
 }
 
-var testAccAzureRMDocumentDb_standard = `
+func testAccAzureRMDocumentDb_standard_boundedStaleness(rInt int) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
     location = "West US"
@@ -187,7 +170,7 @@ resource "azurerm_documentdb" "test" {
   offer_type          = "Standard"
 
   consistency_policy {
-    consistency_level       = "Eventual"
+    consistency_level       = "BoundedStaleness"
     max_interval_in_seconds = 100
     max_staleness           = 30
   }
@@ -197,9 +180,35 @@ resource "azurerm_documentdb" "test" {
     priority = 0
   }
 }
-`
+`, rInt, rInt)
+}
 
-var testAccAzureRMDocumentDb_standardGeoReplicated = `
+func testAccAzureRMDocumentDb_standard_eventualConsistency(rInt int) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+resource "azurerm_documentdb" "test" {
+  name                = "acctest-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  offer_type          = "Standard"
+
+  consistency_policy {
+    consistency_level = "Eventual"
+  }
+
+  failover_policy {
+    location = "${azurerm_resource_group.test.location}"
+    priority = 0
+  }
+}
+`, rInt, rInt)
+}
+
+func testAccAzureRMDocumentDb_standardGeoReplicated(rInt int) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
     location = "West US"
@@ -226,4 +235,5 @@ resource "azurerm_documentdb" "test" {
     priority = 1
   }
 }
-`
+`, rInt, rInt)
+}
