@@ -1,14 +1,14 @@
 ---
 layout: "azurerm"
-page_title: "Azure Resource Manager: azurerm_documentdb"
-sidebar_current: "docs-azurerm-resource-documentdb"
+page_title: "Azure Resource Manager: azurerm_cosmos_db"
+sidebar_current: "docs-azurerm-resource-cosmos_db"
 description: |-
-  Creates a new DocumentDB Account.
+  Creates a new CosmosDB (DocumentDB) Account.
 ---
 
-# azurerm\_documentdb
+# azurerm\_cosmos_db
 
-Creates a new DocumentDB Account.
+Creates a new CosmosDB (DocumentDB) Account.
 
 ## Example Usage
 
@@ -18,15 +18,15 @@ resource "azurerm_resource_group" "test" {
     location = "West Europe"
 }
 
-resource "azurerm_documentdb" "test" {
+resource "azurerm_cosmos_db" "test" {
   name                = "documentDBAccount1"
   location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
   offer_type          = "Standard"
   consistency_policy {
-    consistency_level       = "Staleness"
-    max_interval_in_seconds = 100
-    max_staleness           = 20
+    consistency_level       = "BoundedStaleness"
+    max_interval_in_seconds = 10
+    max_staleness           = 200
   }
 
   failover_policy {
@@ -67,7 +67,7 @@ The following arguments are supported:
 
 * `consistency_level` - (Required) The Consistency Level to use for this DocumentDB Account - can be either `BoundedStaleness`, `Eventual`, `Session` or `Strong`.
 * `max_interval_in_seconds` - (Optional) When used with the Bounded Staleness consistency level, this value represents the time amount of staleness (in seconds) tolerated. Accepted range for this value is 1 - 100. Required when `consistency_level` is set to `BoundedStaleness`.
-* `max_staleness` - (Optional) When used with the Bounded Staleness consistency level, this value represents the number of stale requests tolerated. Accepted range for this value is 1 – 2,147,483,647. RequirRequired when `consistency_level` is set to `BoundedStaleness`.
+* `max_staleness` - (Optional) When used with the Bounded Staleness consistency level, this value represents the number of stale requests tolerated. Accepted range for this value is 1 – 2,147,483,647. Required when `consistency_level` is set to `BoundedStaleness`.
 
 `failover_policy` supports the following:
 
@@ -91,8 +91,8 @@ The following attributes are exported:
 
 ## Import
 
-DocumentDB accounts can be imported using the `resource id`, e.g.
+CosmosDB accounts can be imported using the `resource id`, e.g.
 
 ```
-terraform import azurerm_documentdb.account1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.DocumentDB/databaseAccounts/account1
+terraform import azurerm_cosmos_db.account1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.DocumentDB/databaseAccounts/account1
 ```
