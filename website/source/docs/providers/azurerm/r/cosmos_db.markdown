@@ -61,6 +61,8 @@ The following arguments are supported:
 
 * `failover_policy` - (Required) Specifies a `failover_policy` resource, used to define where data should be replicated.
 
+* `ip_range_filter` - (Optional) DocumentDB Firewall Support: This value specifies the set of IP addresses or IP address ranges in CIDR form to be included as the allowed list of client IPs for a given database account. IP addresses/ranges must be comma separated and must not contain any spaces.
+
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 `consistency_policy` supports the following:

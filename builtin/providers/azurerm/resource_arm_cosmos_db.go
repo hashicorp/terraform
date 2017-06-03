@@ -52,6 +52,11 @@ func resourceArmCosmosDB() *schema.Resource {
 				}, true),
 			},
 
+			"ip_range_filter": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"consistency_policy": {
 				Type:     schema.TypeSet,
 				Required: true,
@@ -147,6 +152,7 @@ func resourceArmCosmosDBCreateUpdate(d *schema.ResourceData, meta interface{}) e
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
 	offerType := d.Get("offer_type").(string)
+	ipRangeFilter := d.Get("ip_range_filter").(string)
 
 	consistencyPolicy := expandAzureRmCosmosDBConsistencyPolicy(d)
 	failoverPolicies, err := expandAzureRmCosmosDBFailoverPolicies(name, d)
@@ -161,6 +167,7 @@ func resourceArmCosmosDBCreateUpdate(d *schema.ResourceData, meta interface{}) e
 			ConsistencyPolicy:        &consistencyPolicy,
 			DatabaseAccountOfferType: &offerType,
 			Locations:                &failoverPolicies,
+			IPRangeFilter:            &ipRangeFilter,
 		},
 		Tags: expandTags(tags),
 	}
@@ -207,6 +214,7 @@ func resourceArmCosmosDBRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("resource_group_name", resGroup)
 	d.Set("offer_type", string(resp.DatabaseAccountOfferType))
+	d.Set("ip_range_filter", resp.IPRangeFilter)
 	flattenAndSetAzureRmCosmosDBConsistencyPolicy(d, resp.ConsistencyPolicy)
 	flattenAndSetAzureRmCosmosDBFailoverPolicy(d, resp.FailoverPolicies)
 
@@ -345,7 +353,7 @@ func flattenAndSetAzureRmCosmosDBFailoverPolicy(d *schema.ResourceData, list *[]
 		result := map[string]interface{}{
 			"id":       *i.ID,
 			"location": azureRMNormalizeLocation(*i.LocationName),
-			"priority": int(*i.FailoverPriority), // TODO: check we're parsing this out correctly
+			"priority": int(*i.FailoverPriority),
 		}
 
 		results.Add(result)
