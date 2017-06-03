@@ -7,7 +7,7 @@ description: |-
   in the current configuration.
 ---
 
-# Command: show
+# Command: providers
 
 The `terraform providers` command prints information about the providers
 used in the current configuration.
@@ -30,7 +30,7 @@ to understanding why a particular provider is needed.
 
 ## Usage
 
-Usage: `terraform show [config-path]`
+Usage: `terraform providers [config-path]`
 
 Pass an explicit configuration path to override the default of using the
 current working directory.
