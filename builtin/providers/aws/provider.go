@@ -221,6 +221,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_alb_target_group_attachment":              resourceAwsAlbTargetGroupAttachment(),
 			"aws_ami":                                      resourceAwsAmi(),
 			"aws_ami_copy":                                 resourceAwsAmiCopy(),
+			"aws_ami_description":                          resourceAwsAmiDescription(),
 			"aws_ami_from_instance":                        resourceAwsAmiFromInstance(),
 			"aws_ami_launch_permission":                    resourceAwsAmiLaunchPermission(),
 			"aws_api_gateway_account":                      resourceAwsApiGatewayAccount(),
