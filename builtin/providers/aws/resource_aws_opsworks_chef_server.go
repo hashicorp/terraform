@@ -32,13 +32,11 @@ func resourceAwsOpsworksChefServer() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		// TODO: timeouts
-		// for reference, these are from aws_db_instance:
-		// Timeouts: &schema.ResourceTimeout{
-		// 	Create: schema.DefaultTimeout(40 * time.Minute),
-		// 	Update: schema.DefaultTimeout(80 * time.Minute),
-		// 	Delete: schema.DefaultTimeout(40 * time.Minute),
-		// },
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(40 * time.Minute),
+			Update: schema.DefaultTimeout(80 * time.Minute),
+			Delete: schema.DefaultTimeout(40 * time.Minute),
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": {
