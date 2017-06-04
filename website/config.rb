@@ -6,6 +6,13 @@ activate :hashicorp do |h|
   h.github_slug = "hashicorp/terraform"
 end
 
+configure :build do
+  if local_build?
+    set :relative_links, true
+    activate :relative_assets
+  end
+end
+
 helpers do
   # Returns the FQDN of the image URL.
   #
@@ -96,5 +103,11 @@ helpers do
     end
 
     return classes.join(" ")
+  end
+
+  # Returns true iff environment is set to local_build
+  # @return Boolean
+  def local_build?
+    ENV['MM_ENV'] == 'local_build'
   end
 end
