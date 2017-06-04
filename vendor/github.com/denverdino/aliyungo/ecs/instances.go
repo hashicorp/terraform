@@ -336,16 +336,11 @@ func (client *Client) WaitForInstanceAsyn(instanceId string, status InstanceStat
 		instance, err := client.DescribeInstanceAttribute(instanceId)
 		if err != nil {
 			e, _ := err.(*common.Error)
-			if e.ErrorResponse.Code != "InvalidInstanceId.NotFound" {
+			if e.Code != "InvalidInstanceId.NotFound" && e.Code != "Forbidden.InstanceNotFound" {
 				return err
 			}
-			time.Sleep(DefaultWaitForInterval * time.Second)
-			continue
-		}
-		if instance.Status == status {
+		} else if instance != nil && instance.Status == status {
 			//TODO
-			//Sleep one more time for timing issues
-			time.Sleep(DefaultWaitForInterval * time.Second)
 			break
 		}
 		timeout = timeout - DefaultWaitForInterval
