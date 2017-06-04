@@ -2,13 +2,13 @@ package kubernetes
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/api/v1"
 )
 
 // Flatteners
 
-func flattenLabelSelector(in *unversioned.LabelSelector) []interface{} {
+func flattenLabelSelector(in *metav1.LabelSelector) []interface{} {
 	att := make(map[string]interface{})
 	if len(in.MatchLabels) > 0 {
 		att["match_labels"] = in.MatchLabels
@@ -19,7 +19,7 @@ func flattenLabelSelector(in *unversioned.LabelSelector) []interface{} {
 	return []interface{}{att}
 }
 
-func flattenLabelSelectorRequirement(in []unversioned.LabelSelectorRequirement) []interface{} {
+func flattenLabelSelectorRequirement(in []metav1.LabelSelectorRequirement) []interface{} {
 	att := make([]interface{}, len(in), len(in))
 	for i, n := range in {
 		m := make(map[string]interface{})
@@ -57,12 +57,12 @@ func flattenResourceRequirements(in v1.ResourceRequirements) []interface{} {
 
 // Expanders
 
-func expandLabelSelector(l []interface{}) *unversioned.LabelSelector {
+func expandLabelSelector(l []interface{}) *metav1.LabelSelector {
 	if len(l) == 0 || l[0] == nil {
-		return &unversioned.LabelSelector{}
+		return &metav1.LabelSelector{}
 	}
 	in := l[0].(map[string]interface{})
-	obj := &unversioned.LabelSelector{}
+	obj := &metav1.LabelSelector{}
 	if v, ok := in["match_labels"].(map[string]interface{}); ok && len(v) > 0 {
 		obj.MatchLabels = expandStringMap(v)
 	}
@@ -72,16 +72,16 @@ func expandLabelSelector(l []interface{}) *unversioned.LabelSelector {
 	return obj
 }
 
-func expandLabelSelectorRequirement(l []interface{}) []unversioned.LabelSelectorRequirement {
+func expandLabelSelectorRequirement(l []interface{}) []metav1.LabelSelectorRequirement {
 	if len(l) == 0 || l[0] == nil {
-		return []unversioned.LabelSelectorRequirement{}
+		return []metav1.LabelSelectorRequirement{}
 	}
-	obj := make([]unversioned.LabelSelectorRequirement, len(l), len(l))
+	obj := make([]metav1.LabelSelectorRequirement, len(l), len(l))
 	for i, n := range l {
 		in := n.(map[string]interface{})
-		obj[i] = unversioned.LabelSelectorRequirement{
+		obj[i] = metav1.LabelSelectorRequirement{
 			Key:      in["key"].(string),
-			Operator: unversioned.LabelSelectorOperator(in["operator"].(string)),
+			Operator: metav1.LabelSelectorOperator(in["operator"].(string)),
 			Values:   sliceOfString(in["values"].(*schema.Set).List()),
 		}
 	}

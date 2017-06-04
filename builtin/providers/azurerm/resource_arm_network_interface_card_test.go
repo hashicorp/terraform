@@ -161,7 +161,8 @@ func testCheckAzureRMNetworkInterfaceDisappears(name string) resource.TestCheckF
 
 		conn := testAccProvider.Meta().(*ArmClient).ifaceClient
 
-		_, err := conn.Delete(resourceGroup, name, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, name, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on ifaceClient: %s", err)
 		}

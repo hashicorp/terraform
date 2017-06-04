@@ -237,8 +237,13 @@ func resourceDigitalOceanLoadbalancerRead(d *schema.ResourceData, meta interface
 	client := meta.(*godo.Client)
 
 	log.Printf("[INFO] Reading the details of the Loadbalancer %s", d.Id())
-	loadbalancer, _, err := client.LoadBalancers.Get(context.Background(), d.Id())
+	loadbalancer, resp, err := client.LoadBalancers.Get(context.Background(), d.Id())
 	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			log.Printf("[WARN] DigitalOcean Load Balancer (%s) not found", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error retrieving Loadbalancer: %s", err)
 	}
 

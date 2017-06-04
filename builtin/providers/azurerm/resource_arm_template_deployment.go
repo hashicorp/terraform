@@ -100,7 +100,8 @@ func resourceArmTemplateDeploymentCreate(d *schema.ResourceData, meta interface{
 		Properties: &properties,
 	}
 
-	_, err := deployClient.CreateOrUpdate(resGroup, name, deployment, make(chan struct{}))
+	_, error := deployClient.CreateOrUpdate(resGroup, name, deployment, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return fmt.Errorf("Error creating deployment: %s", err)
 	}
@@ -206,8 +207,10 @@ func resourceArmTemplateDeploymentDelete(d *schema.ResourceData, meta interface{
 		name = id.Path["Deployments"]
 	}
 
-	_, err = deployClient.Delete(resGroup, name, make(chan struct{}))
-	return nil
+	_, error := deployClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
+
+	return err
 }
 
 func expandTemplateBody(template string) (map[string]interface{}, error) {

@@ -75,6 +75,7 @@ import (
 	vaultprovider "github.com/hashicorp/terraform/builtin/providers/vault"
 	vcdprovider "github.com/hashicorp/terraform/builtin/providers/vcd"
 	vsphereprovider "github.com/hashicorp/terraform/builtin/providers/vsphere"
+	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
 	localexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
 	remoteexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
@@ -84,9 +85,6 @@ import (
 
 	//New Provider Builds
 	opcprovider "github.com/hashicorp/terraform-provider-opc/opc"
-
-	// Legacy, will remove once it conforms with new structure
-	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
@@ -162,16 +160,13 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 }
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
+	"chef":        chefprovisioner.Provisioner,
 	"file":        fileprovisioner.Provisioner,
 	"local-exec":  localexecprovisioner.Provisioner,
 	"remote-exec": remoteexecprovisioner.Provisioner,
 }
 
 func init() {
-	// Legacy provisioners that don't match our heuristics for auto-finding
-	// built-in provisioners.
-	InternalProvisioners["chef"] = func() terraform.ResourceProvisioner { return new(chefprovisioner.ResourceProvisioner) }
-
 	// New Provider Layouts
 	InternalProviders["opc"] = func() terraform.ResourceProvider { return opcprovider.Provider() }
 }

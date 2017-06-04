@@ -29,6 +29,15 @@ resource "kubernetes_namespace" "example" {
 }
 ```
 
+## Kubernetes versions
+
+Both backward and forward compatibility with Kubernetes API is mostly defined
+by the [official K8S Go library](https://github.com/kubernetes/kubernetes) which we ship with Terraform.
+Below are versions of the library bundled with given versions of Terraform.
+
+* Terraform `<= 0.9.6` - Kubernetes `1.5.4`
+* Terraform `0.9.7+` - Kubernetes `1.6.1`
+
 ## Authentication
 
 There are generally two ways to configure the Kubernetes provider.

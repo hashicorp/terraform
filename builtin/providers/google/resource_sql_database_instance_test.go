@@ -277,6 +277,24 @@ func TestAccGoogleSqlDatabaseInstance_authNets(t *testing.T) {
 	})
 }
 
+// Tests that a SQL instance can be referenced from more than one other resource without
+// throwing an error during provisioning, see #9018.
+func TestAccGoogleSqlDatabaseInstance_multipleOperations(t *testing.T) {
+	databaseID, instanceID, userID := acctest.RandString(8), acctest.RandString(8), acctest.RandString(8)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_multipleOperations, databaseID, instanceID, userID),
+			},
+		},
+	})
+}
+
 func testAccCheckGoogleSqlDatabaseInstanceEquals(n string,
 	instance *sqladmin.DatabaseInstance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -676,5 +694,28 @@ resource "google_sql_database_instance" "instance" {
 			ipv4_enabled = "true"
 		}
 	}
+}
+`
+
+var testGoogleSqlDatabaseInstance_multipleOperations = `
+resource "google_sql_database_instance" "instance" {
+	name = "tf-test-%s"
+	region = "us-central"
+	settings {
+		tier = "D0"
+		crash_safe_replication = false
+	}
+}
+
+resource "google_sql_database" "database" {
+	name = "tf-test-%s"
+	instance = "${google_sql_database_instance.instance.name}"
+}
+
+resource "google_sql_user" "user" {
+	name = "tf-test-%s"
+	instance = "${google_sql_database_instance.instance.name}"
+	host = "google.com"
+	password = "hunter2"
 }
 `

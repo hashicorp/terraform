@@ -5,11 +5,11 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	pkgApi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgApi "k8s.io/apimachinery/pkg/types"
 	api "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
+	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 func resourceKubernetesHorizontalPodAutoscaler() *schema.Resource {
@@ -72,6 +72,7 @@ func resourceKubernetesHorizontalPodAutoscaler() *schema.Resource {
 							Type:        schema.TypeInt,
 							Description: "Target average CPU utilization (represented as a percentage of requested CPU) over all the pods. If not specified the default autoscaling policy will be used.",
 							Optional:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -105,7 +106,7 @@ func resourceKubernetesHorizontalPodAutoscalerRead(d *schema.ResourceData, meta 
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Reading horizontal pod autoscaler %s", name)
-	svc, err := conn.AutoscalingV1().HorizontalPodAutoscalers(namespace).Get(name)
+	svc, err := conn.AutoscalingV1().HorizontalPodAutoscalers(namespace).Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Printf("[DEBUG] Received error: %#v", err)
 		return err
@@ -156,7 +157,7 @@ func resourceKubernetesHorizontalPodAutoscalerDelete(d *schema.ResourceData, met
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Deleting horizontal pod autoscaler: %#v", name)
-	err := conn.AutoscalingV1().HorizontalPodAutoscalers(namespace).Delete(name, &api_v1.DeleteOptions{})
+	err := conn.AutoscalingV1().HorizontalPodAutoscalers(namespace).Delete(name, &meta_v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -172,7 +173,7 @@ func resourceKubernetesHorizontalPodAutoscalerExists(d *schema.ResourceData, met
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Checking horizontal pod autoscaler %s", name)
-	_, err := conn.AutoscalingV1().HorizontalPodAutoscalers(namespace).Get(name)
+	_, err := conn.AutoscalingV1().HorizontalPodAutoscalers(namespace).Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		if statusErr, ok := err.(*errors.StatusError); ok && statusErr.ErrStatus.Code == 404 {
 			return false, nil

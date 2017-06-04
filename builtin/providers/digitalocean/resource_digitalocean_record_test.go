@@ -85,6 +85,8 @@ func TestAccDigitalOceanRecord_Updated(t *testing.T) {
 						"digitalocean_record.foobar", "value", "192.168.0.10"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_record.foobar", "type", "A"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foobar", "ttl", "1800"),
 				),
 			},
 			{
@@ -101,6 +103,8 @@ func TestAccDigitalOceanRecord_Updated(t *testing.T) {
 						"digitalocean_record.foobar", "value", "192.168.0.11"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_record.foobar", "type", "A"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foobar", "ttl", "90"),
 				),
 			},
 		},
@@ -341,6 +345,7 @@ resource "digitalocean_record" "foobar" {
   name  = "terraform"
   value = "192.168.0.11"
   type  = "A"
+  ttl   = 90
 }`
 
 const testAccCheckDigitalOceanRecordConfig_cname = `

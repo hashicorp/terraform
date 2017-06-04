@@ -77,7 +77,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the rule
 * `description` - (Optional) Description of the rule
-* `input_parameters` - (Optional) A string in JSON format that is passed to the AWS Config rule Lambda function (only valid if `source.owner` is `CUSTOM_LAMBDA`).
+* `input_parameters` - (Optional) A string in JSON format that is passed to the AWS Config rule Lambda function.
 * `maximum_execution_frequency` - (Optional) The maximum frequency with which AWS Config runs evaluations for a rule.
 * `scope` - (Optional) Scope defines which resources can trigger an evaluation for the rule as documented below.
 * `source` - (Required) Source specifies the rule owner, the rule identifier, and the notifications that cause

@@ -126,7 +126,8 @@ func testCheckAzureRMResourceGroupDisappears(name string) resource.TestCheckFunc
 		// Ensure resource group exists in API
 		conn := testAccProvider.Meta().(*ArmClient).resourceGroupClient
 
-		_, err := conn.Delete(resourceGroup, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on resourceGroupClient: %s", err)
 		}

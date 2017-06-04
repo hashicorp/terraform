@@ -7,6 +7,7 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/routerinsertion"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -57,6 +58,18 @@ func resourceFWFirewallV1() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
+			"associated_routers": &schema.Schema{
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Set:           schema.HashString,
+				ConflictsWith: []string{"no_routers"},
+			},
+			"no_routers": &schema.Schema{
+				Type:          schema.TypeBool,
+				Optional:      true,
+				ConflictsWith: []string{"associated_routers"},
+			},
 			"value_specs": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -74,22 +87,49 @@ func resourceFWFirewallV1Create(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	adminStateUp := d.Get("admin_state_up").(bool)
+	var createOpts firewalls.CreateOptsBuilder
 
-	firewallConfiguration := FirewallCreateOpts{
-		firewalls.CreateOpts{
-			Name:         d.Get("name").(string),
-			Description:  d.Get("description").(string),
-			PolicyID:     d.Get("policy_id").(string),
-			AdminStateUp: &adminStateUp,
-			TenantID:     d.Get("tenant_id").(string),
-		},
+	adminStateUp := d.Get("admin_state_up").(bool)
+	createOpts = &firewalls.CreateOpts{
+		Name:         d.Get("name").(string),
+		Description:  d.Get("description").(string),
+		PolicyID:     d.Get("policy_id").(string),
+		AdminStateUp: &adminStateUp,
+		TenantID:     d.Get("tenant_id").(string),
+	}
+
+	associatedRoutersRaw := d.Get("associated_routers").(*schema.Set).List()
+	if len(associatedRoutersRaw) > 0 {
+		log.Printf("[DEBUG] Will attempt to associate Firewall with router(s): %+v", associatedRoutersRaw)
+
+		var routerIds []string
+		for _, v := range associatedRoutersRaw {
+			routerIds = append(routerIds, v.(string))
+		}
+
+		createOpts = &routerinsertion.CreateOptsExt{
+			CreateOptsBuilder: createOpts,
+			RouterIDs:         routerIds,
+		}
+	}
+
+	if d.Get("no_routers").(bool) {
+		routerIds := make([]string, 0)
+		log.Println("[DEBUG] No routers specified. Setting to empty slice")
+		createOpts = &routerinsertion.CreateOptsExt{
+			CreateOptsBuilder: createOpts,
+			RouterIDs:         routerIds,
+		}
+	}
+
+	createOpts = &FirewallCreateOpts{
+		createOpts,
 		MapValueSpecs(d),
 	}
 
-	log.Printf("[DEBUG] Create firewall: %#v", firewallConfiguration)
+	log.Printf("[DEBUG] Create firewall: %#v", createOpts)
 
-	firewall, err := firewalls.Create(networkingClient, firewallConfiguration).Extract()
+	firewall, err := firewalls.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return err
 	}
@@ -106,6 +146,7 @@ func resourceFWFirewallV1Create(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	_, err = stateConf.WaitForState()
+	log.Printf("[DEBUG] Firewall (%s) is active.", firewall.ID)
 
 	d.SetId(firewall.ID)
 
@@ -121,7 +162,8 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	firewall, err := firewalls.Get(networkingClient, d.Id()).Extract()
+	var firewall Firewall
+	err = firewalls.Get(networkingClient, d.Id()).ExtractInto(&firewall)
 	if err != nil {
 		return CheckDeleted(d, err, "firewall")
 	}
@@ -134,6 +176,7 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("admin_state_up", firewall.AdminStateUp)
 	d.Set("tenant_id", firewall.TenantID)
 	d.Set("region", GetRegion(d))
+	d.Set("associated_routers", firewall.RouterIDs)
 
 	return nil
 }
@@ -146,7 +189,10 @@ func resourceFWFirewallV1Update(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	opts := firewalls.UpdateOpts{}
+	// PolicyID is required
+	opts := firewalls.UpdateOpts{
+		PolicyID: d.Get("policy_id").(string),
+	}
 
 	if d.HasChange("name") {
 		opts.Name = d.Get("name").(string)
@@ -156,16 +202,39 @@ func resourceFWFirewallV1Update(d *schema.ResourceData, meta interface{}) error 
 		opts.Description = d.Get("description").(string)
 	}
 
-	if d.HasChange("policy_id") {
-		opts.PolicyID = d.Get("policy_id").(string)
-	}
-
 	if d.HasChange("admin_state_up") {
 		adminStateUp := d.Get("admin_state_up").(bool)
 		opts.AdminStateUp = &adminStateUp
 	}
 
-	log.Printf("[DEBUG] Updating firewall with id %s: %#v", d.Id(), opts)
+	var updateOpts firewalls.UpdateOptsBuilder
+	var routerIds []string
+	if d.HasChange("associated_routers") || d.HasChange("no_routers") {
+		// 'no_routers' = true means 'associated_routers' will be empty...
+		if d.Get("no_routers").(bool) {
+			log.Printf("[DEBUG] 'no_routers' is true.")
+			routerIds = make([]string, 0)
+		} else {
+			associatedRoutersRaw := d.Get("associated_routers").(*schema.Set).List()
+			for _, v := range associatedRoutersRaw {
+				routerIds = append(routerIds, v.(string))
+			}
+		}
+
+		updateOpts = routerinsertion.UpdateOptsExt{
+			UpdateOptsBuilder: opts,
+			RouterIDs:         routerIds,
+		}
+	} else {
+		updateOpts = opts
+	}
+
+	log.Printf("[DEBUG] Updating firewall with id %s: %#v", d.Id(), updateOpts)
+
+	err = firewalls.Update(networkingClient, d.Id(), updateOpts).Err
+	if err != nil {
+		return err
+	}
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"PENDING_CREATE", "PENDING_UPDATE"},
@@ -177,11 +246,6 @@ func resourceFWFirewallV1Update(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	_, err = stateConf.WaitForState()
-
-	err = firewalls.Update(networkingClient, d.Id(), opts).Err
-	if err != nil {
-		return err
-	}
 
 	return resourceFWFirewallV1Read(d, meta)
 }
@@ -230,9 +294,9 @@ func resourceFWFirewallV1Delete(d *schema.ResourceData, meta interface{}) error 
 func waitForFirewallActive(networkingClient *gophercloud.ServiceClient, id string) resource.StateRefreshFunc {
 
 	return func() (interface{}, string, error) {
-		fw, err := firewalls.Get(networkingClient, id).Extract()
-		log.Printf("[DEBUG] Get firewall %s => %#v", id, fw)
+		var fw Firewall
 
+		err := firewalls.Get(networkingClient, id).ExtractInto(&fw)
 		if err != nil {
 			return nil, "", err
 		}
@@ -244,7 +308,7 @@ func waitForFirewallDeletion(networkingClient *gophercloud.ServiceClient, id str
 
 	return func() (interface{}, string, error) {
 		fw, err := firewalls.Get(networkingClient, id).Extract()
-		log.Printf("[DEBUG] Get firewall %s => %#v", id, fw)
+		log.Printf("[DEBUG] Got firewall %s => %#v", id, fw)
 
 		if err != nil {
 			if _, ok := err.(gophercloud.ErrDefault404); ok {

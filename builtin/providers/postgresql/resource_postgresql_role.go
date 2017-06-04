@@ -236,7 +236,9 @@ func resourcePostgreSQLRoleCreate(d *schema.ResourceData, meta interface{}) erro
 	roleName := d.Get(roleNameAttr).(string)
 	createStr := strings.Join(createOpts, " ")
 	if len(createOpts) > 0 {
-		createStr = " WITH " + createStr
+		// FIXME(seanc@): Work around ParAccel/AWS RedShift's ancient fork of PostgreSQL
+		// createStr = " WITH " + createStr
+		createStr = " " + createStr
 	}
 
 	query := fmt.Sprintf("CREATE ROLE %s%s", pq.QuoteIdentifier(roleName), createStr)

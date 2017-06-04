@@ -95,7 +95,8 @@ func testCheckAzureRMStorageQueueExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("Bad: Storage Account %q does not exist", storageAccountName)
 		}
 
-		exists, err := queueClient.QueueExists(name)
+		queueReference := queueClient.GetQueueReference(name)
+		exists, err := queueReference.Exists()
 		if err != nil {
 			return err
 		}
@@ -130,7 +131,8 @@ func testCheckAzureRMStorageQueueDestroy(s *terraform.State) error {
 			return nil
 		}
 
-		exists, err := queueClient.QueueExists(name)
+		queueReference := queueClient.GetQueueReference(name)
+		exists, err := queueReference.Exists()
 		if err != nil {
 			return nil
 		}

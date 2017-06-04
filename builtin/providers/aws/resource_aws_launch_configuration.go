@@ -211,13 +211,6 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 						},
 					},
 				},
-				Set: func(v interface{}) int {
-					var buf bytes.Buffer
-					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
-					buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
-					return hashcode.String(buf.String())
-				},
 			},
 
 			"ephemeral_block_device": {

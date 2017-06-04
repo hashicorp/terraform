@@ -613,7 +613,7 @@ func validateIAMPolicyJson(v interface{}, k string) (ws []string, errors []error
 		return
 	}
 	if value[:1] != "{" {
-		errors = append(errors, fmt.Errorf("%q conatains an invalid JSON policy", k))
+		errors = append(errors, fmt.Errorf("%q contains an invalid JSON policy", k))
 		return
 	}
 	if _, err := normalizeJsonString(v); err != nil {

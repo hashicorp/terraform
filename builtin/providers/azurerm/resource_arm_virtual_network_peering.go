@@ -93,7 +93,8 @@ func resourceArmVirtualNetworkPeeringCreate(d *schema.ResourceData, meta interfa
 	peerMutex.Lock()
 	defer peerMutex.Unlock()
 
-	_, err := client.CreateOrUpdate(resGroup, vnetName, name, peer, make(chan struct{}))
+	_, error := client.CreateOrUpdate(resGroup, vnetName, name, peer, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -160,7 +161,8 @@ func resourceArmVirtualNetworkPeeringDelete(d *schema.ResourceData, meta interfa
 	peerMutex.Lock()
 	defer peerMutex.Unlock()
 
-	_, err = client.Delete(resGroup, vnetName, name, make(chan struct{}))
+	_, error := client.Delete(resGroup, vnetName, name, make(chan struct{}))
+	err = <-error
 
 	return err
 }

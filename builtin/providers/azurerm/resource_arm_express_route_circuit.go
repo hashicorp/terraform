@@ -142,7 +142,8 @@ func resourceArmExpressRouteCircuitCreateOrUpdate(d *schema.ResourceData, meta i
 		Tags: expandedTags,
 	}
 
-	_, err := ercClient.CreateOrUpdate(resGroup, name, erc, make(chan struct{}))
+	_, error := ercClient.CreateOrUpdate(resGroup, name, erc, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return errwrap.Wrapf("Error Creating/Updating ExpressRouteCircuit {{err}}", err)
 	}
@@ -203,7 +204,8 @@ func resourceArmExpressRouteCircuitDelete(d *schema.ResourceData, meta interface
 		return errwrap.Wrapf("Error Parsing Azure Resource ID {{err}}", err)
 	}
 
-	_, err = ercClient.Delete(resGroup, name, make(chan struct{}))
+	_, error := ercClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
 	return err
 }
 
