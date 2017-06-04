@@ -192,17 +192,15 @@ func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) erro
 	d.SetId(instanceID)
 
 	d.Set("password", d.Get("password"))
-	//d.Set("system_disk_category", d.Get("system_disk_category"))
-	//d.Set("system_disk_size", d.Get("system_disk_size"))
-
-	if err := allocateIpAndBandWidthRelative(d, meta); err != nil {
-		return fmt.Errorf("allocateIpAndBandWidthRelative err: %#v", err)
-	}
 
 	// after instance created, its status is pending,
 	// so we need to wait it become to stopped and then start it
 	if err := conn.WaitForInstance(d.Id(), ecs.Stopped, defaultTimeout); err != nil {
-		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Stopped, err)
+		return fmt.Errorf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Stopped, err)
+	}
+
+	if err := allocateIpAndBandWidthRelative(d, meta); err != nil {
+		return fmt.Errorf("allocateIpAndBandWidthRelative err: %#v", err)
 	}
 
 	if err := conn.StartInstance(d.Id()); err != nil {
@@ -210,7 +208,7 @@ func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if err := conn.WaitForInstance(d.Id(), ecs.Running, defaultTimeout); err != nil {
-		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
+		return fmt.Errorf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
 	}
 
 	return resourceAliyunInstanceUpdate(d, meta)
@@ -253,7 +251,7 @@ func resourceAliyunRunInstance(d *schema.ResourceData, meta interface{}) error {
 
 	// after instance created, its status change from pending, starting to running
 	if err := conn.WaitForInstanceAsyn(d.Id(), ecs.Running, defaultTimeout); err != nil {
-		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
+		return fmt.Errorf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
 	}
 
 	if err := allocateIpAndBandWidthRelative(d, meta); err != nil {
@@ -261,7 +259,7 @@ func resourceAliyunRunInstance(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if err := conn.WaitForInstanceAsyn(d.Id(), ecs.Running, defaultTimeout); err != nil {
-		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
+		return fmt.Errorf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
 	}
 
 	return resourceAliyunInstanceUpdate(d, meta)
