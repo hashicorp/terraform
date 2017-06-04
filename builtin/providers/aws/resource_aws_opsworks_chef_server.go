@@ -202,7 +202,7 @@ func resourceAwsOpsworksChefServer() *schema.Resource {
 				Default:  "12",
 				ForceNew: true,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					// Suppress diff if old is a prefix of the new (eg. "12" vs. "12.5.1")
+					// Suppress diff if new is a prefix of the old (eg. "12" vs. "12.5.1")
 					return len(old) > 0 && strings.HasPrefix(old, new)
 				},
 			},
@@ -286,7 +286,6 @@ func resourceAwsOpsworksChefServerCreate(d *schema.ResourceData, meta interface{
 	if v, ok := d.GetOk("chef_delivery_admin_password"); ok {
 		engineAttributes = append(engineAttributes, &opsworkscm.EngineAttribute{
 			Name: aws.String("CHEF_DELIVERY_ADMIN_PASSWORD"),
-			// TODO: does this need base64 encoding?
 			Value: aws.String(v.(string)),
 		})
 	}
@@ -604,15 +603,5 @@ func resourceAwsOpsworksChefServerStateRefreshFunc(client *opsworkscm.OpsWorksCM
 
 // Retrieves and configures the opsworkscm connection from the configuration
 func opsworkscmClient(meta interface{}) *opsworkscm.OpsWorksCM {
-	// logger := log.New(os.Stderr, "aws-sdk-go", log.Llongfile)
-	client := meta.(*AWSClient).opsworkscmconn
-	// logger := aws.LoggerFunc(func(args ...interface{}) {
-	//     fmt.Fprintln(os.Stderr, args...)
-	// })
-
-	// TODO: manipulate client before returning
-	client.Config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
-	// client.Config.Logger = logger
-
-	return client
+	return meta.(*AWSClient).opsworkscmconn
 }
