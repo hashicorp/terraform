@@ -20,9 +20,9 @@ func TestAccAwsOpsworksChefServer(t *testing.T) {
 		CheckDestroy: testCheckAWSOpsworksChefServerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAwsOpsworksChefServerConfig(serverName, "t2.medium"),
+				Config: testAccAwsOpsworksChefServerConfig(serverName, "false"),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAwsOpsworksChefServerExists(serverName, "t2.medium"),
+					testCheckAwsOpsworksChefServerExists(serverName),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_chef_server.tf-acc", "name", serverName,
 					),
@@ -35,17 +35,17 @@ func TestAccAwsOpsworksChefServer(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAwsOpsworksChefServerConfig(serverName, "m4.large"),
+				Config: testAccAwsOpsworksChefServerConfig(serverName, "true"),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAwsOpsworksChefServerExists(serverName, "m4.large"),
+					testCheckAwsOpsworksChefServerExists(serverName),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_chef_server.tf-acc", "name", serverName,
 					),
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_chef_server.tf-acc", "instance_type", "m4.large",
+						"aws_opsworks_chef_server.tf-acc", "instance_type", "t2.medium",
 					),
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_chef_server.tf-acc", "backup_automatically", "false",
+						"aws_opsworks_chef_server.tf-acc", "backup_automatically", "true",
 					),
 				),
 			},
@@ -57,9 +57,8 @@ func TestAccAwsOpsworksChefServer(t *testing.T) {
 //
 // The returned TestCheckFunc returns an error if the resource wasn't created
 // correctly, or nil otherwise.
-func testCheckAwsOpsworksChefServerExists(name string, instanceType string) resource.TestCheckFunc {
+func testCheckAwsOpsworksChefServerExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// TODO: Capture response and validate resource attributes match
 		connection := testAccProvider.Meta().(*AWSClient).opsworkscmconn
 		response, err := connection.DescribeServers(
 			&opsworkscm.DescribeServersInput{ServerName: aws.String(name)},
@@ -72,10 +71,6 @@ func testCheckAwsOpsworksChefServerExists(name string, instanceType string) reso
 		server := response.Servers[0]
 		if *server.ServerName != name {
 			return fmt.Errorf("Chef server name mismatch:\nexpected: %#v\n  actual: %#v", name, *server.ServerName)
-		}
-
-		if *server.InstanceType != instanceType {
-			return fmt.Errorf("Chef server type mismatch:\nexpected: %#v\n  actual: %#v", instanceType, *server.InstanceType)
 		}
 
 		return nil
@@ -117,16 +112,16 @@ func testCheckAWSOpsworksChefServerDestroy(s *terraform.State) error {
 }
 
 // Generates the Terraform configuration to use to create/update the server
-func testAccAwsOpsworksChefServerConfig(name string, instanceType string) string {
+func testAccAwsOpsworksChefServerConfig(name string, backupAutomatically string) string {
 	return fmt.Sprintf(`
 resource "aws_opsworks_chef_server" "tf-acc" {
 	name = "%[1]s"
 
-	instance_type = "%[2]s"
+	instance_type = "t2.medium"
 	subnet_ids    = ["${aws_subnet.tf-acc.id}"]
 
 	associate_public_ip_address = true
-	backup_automatically        = false
+	backup_automatically        = %[2]s
 
 	instance_profile_arn = "${aws_iam_instance_profile.tf-acc.arn}"
 	service_role_arn     = "${aws_iam_role.%[1]s-ServiceRole.arn}"
@@ -325,5 +320,5 @@ data "aws_iam_policy_document" "%[1]s-OpsworksCMPolicy" {
 		resources = ["*"]
 	}
 }
-	`, name, instanceType)
+	`, name, backupAutomatically)
 }
