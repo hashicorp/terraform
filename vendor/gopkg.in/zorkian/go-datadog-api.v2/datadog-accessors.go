@@ -3175,6 +3175,37 @@ func (d *Downtime) SetMessage(v string) {
 	d.Message = &v
 }
 
+// GetMonitorId returns the MonitorId field if non-nil, zero value otherwise.
+func (d *Downtime) GetMonitorId() int {
+	if d == nil || d.MonitorId == nil {
+		return 0
+	}
+	return *d.MonitorId
+}
+
+// GetOkMonitorId returns a tuple with the MonitorId field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (d *Downtime) GetMonitorIdOk() (int, bool) {
+	if d == nil || d.MonitorId == nil {
+		return 0, false
+	}
+	return *d.MonitorId, true
+}
+
+// HasMonitorId returns a boolean if a field has been set.
+func (d *Downtime) HasMonitorId() bool {
+	if d != nil && d.MonitorId != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetMonitorId allocates a new d.MonitorId and returns the pointer to it.
+func (d *Downtime) SetMonitorId(v int) {
+	d.MonitorId = &v
+}
+
 // GetRecurrence returns the Recurrence field if non-nil, zero value otherwise.
 func (d *Downtime) GetRecurrence() Recurrence {
 	if d == nil || d.Recurrence == nil {
@@ -7978,6 +8009,37 @@ func (o *Options) HasEscalationMessage() bool {
 // GetEscalationMessage allocates a new o.EscalationMessage and returns the pointer to it.
 func (o *Options) SetEscalationMessage(v string) {
 	o.EscalationMessage = &v
+}
+
+// GetEvaluationDelay returns the EvaluationDelay field if non-nil, zero value otherwise.
+func (o *Options) GetEvaluationDelay() int {
+	if o == nil || o.EvaluationDelay == nil {
+		return 0
+	}
+	return *o.EvaluationDelay
+}
+
+// GetOkEvaluationDelay returns a tuple with the EvaluationDelay field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (o *Options) GetEvaluationDelayOk() (int, bool) {
+	if o == nil || o.EvaluationDelay == nil {
+		return 0, false
+	}
+	return *o.EvaluationDelay, true
+}
+
+// HasEvaluationDelay returns a boolean if a field has been set.
+func (o *Options) HasEvaluationDelay() bool {
+	if o != nil && o.EvaluationDelay != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetEvaluationDelay allocates a new o.EvaluationDelay and returns the pointer to it.
+func (o *Options) SetEvaluationDelay(v int) {
+	o.EvaluationDelay = &v
 }
 
 // GetIncludeTags returns the IncludeTags field if non-nil, zero value otherwise.
