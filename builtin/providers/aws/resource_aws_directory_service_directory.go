@@ -41,6 +41,7 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 			"size": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "Large",
 				ForceNew: true,
 			},
 			"alias": &schema.Schema{
