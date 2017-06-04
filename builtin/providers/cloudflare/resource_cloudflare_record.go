@@ -15,6 +15,10 @@ func resourceCloudFlareRecord() *schema.Resource {
 		Update: resourceCloudFlareRecordUpdate,
 		Delete: resourceCloudFlareRecordDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: resourceCloudflareRecordImport,
+		},
+
 		SchemaVersion: 1,
 		MigrateState:  resourceCloudFlareRecordMigrateState,
 		Schema: map[string]*schema.Schema{
@@ -67,6 +71,32 @@ func resourceCloudFlareRecord() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceCloudflareRecordImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*cloudflare.API)
+	domain := d.Get("domain").(string)
+
+	zoneID, err := client.ZoneIDByName(domain)
+	if err != nil {
+		return nil, fmt.Errorf("Error finding zone %q: %s", domain, err)
+	}
+
+	record, err := client.DNSRecord(zoneID, d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	d.SetId(record.ID)
+	d.Set("hostname", record.Name)
+	d.Set("type", record.Type)
+	d.Set("value", record.Content)
+	d.Set("ttl", record.TTL)
+	d.Set("priority", record.Priority)
+	d.Set("proxied", record.Proxied)
+	d.Set("zone_id", zoneID)
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) error {
