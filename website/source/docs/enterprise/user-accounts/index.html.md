@@ -9,5 +9,5 @@ description: |-
 # User Accounts
 
 Users are the main identity system in Terraform Enterprise. A user can be a
-member of multiple [organizations](/docs/enterprise/organizations/index.html),
+member of multiple [organizations](docs/enterprise/organizations/index.html),
 as well as individually collaborate on various resources.

@@ -38,7 +38,7 @@ operation.
 Another way to resolve remote state conflicts is by manual intervention of the
 state file.
 
-Use the [`state pull`](/docs/commands/state/pull.html) subcommand to pull the
+Use the [`state pull`](docs/commands/state/pull.html) subcommand to pull the
 remote state into a local state file.
 
 ```shell
@@ -47,7 +47,7 @@ $ terraform state pull > example.tfstate
 
 Once a conflict has been resolved locally by editing the state file, the serial
 can be incremented past the current version and pushed with the
-[`state push`](/docs/commands/state/push.html) subcommand:
+[`state push`](docs/commands/state/push.html) subcommand:
 
 ```shell
 $ terraform state push example.tfstate

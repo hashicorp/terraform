@@ -252,5 +252,5 @@ Maps let you build lookup tables in cases where that makes sense.
 Setting and using variables is uniform throughout your configurations.
 
 In the next section, we'll take a look at
-[output variables](/intro/getting-started/outputs.html) as a mechanism
+[output variables](intro/getting-started/outputs.html) as a mechanism
 to expose certain values more prominently to the Terraform operator.

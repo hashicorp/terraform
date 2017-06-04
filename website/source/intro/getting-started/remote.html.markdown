@@ -13,7 +13,7 @@ from a local machine. This is great for testing and development,
 however in production environments it is more responsible to run
 Terraform remotely and store a master Terraform state remotely.
 
-Terraform supports a feature known as [remote backends](/docs/backends)
+Terraform supports a feature known as [remote backends](docs/backends)
 to support this. Backends are the recommended way to use Terraform in
 a team environment.
 
@@ -42,7 +42,7 @@ environments. It is a great way to get started with Terraform backends.
 
 We'll use the [demo Consul server](https://demo.consul.io) for this guide.
 This should not be used for real data. Additionally, the demo server doesn't
-permit locking. If you want to play with [state locking](/docs/state/locking.html),
+permit locking. If you want to play with [state locking](docs/state/locking.html),
 you'll have to run your own Consul server or use a backend that supports locking.
 
 First, configure the backend in your configuration:
@@ -130,7 +130,7 @@ Remember to run `terraform init`. At this point, Terraform is using Terraform
 Enterprise for everything shown before with Consul. Next, we'll show you some
 additional functionality Terraform Enterprise enables.
 
-Before you [push](/docs/commands/push.html) your Terraform configuration to
+Before you [push](docs/commands/push.html) your Terraform configuration to
 Terraform Enterprise you'll need to start a local version control system with
 at least one commit. Here is an example using `git`.
 
@@ -140,7 +140,7 @@ $ git add example.tf
 $ git commit -m "init commit"
 ```
 
-Next, [push](/docs/commands/push.html) your Terraform configuration:
+Next, [push](docs/commands/push.html) your Terraform configuration:
 
 ```
 $ terraform push
@@ -166,5 +166,5 @@ collaborate on infrastructure. With these building blocks,
 you can effectively experiment with any part of Terraform.
 
 We've now concluded the getting started guide, however
-there are a number of [next steps](/intro/getting-started/next-steps.html)
+there are a number of [next steps](intro/getting-started/next-steps.html)
 to get started with Terraform.

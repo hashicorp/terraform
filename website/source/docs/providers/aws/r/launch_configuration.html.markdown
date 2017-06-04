@@ -215,7 +215,7 @@ identified by the `virtual_name` in the format `"ephemeral{0..N}"`.
 ~> **NOTE:** Changes to `*_block_device` configuration of _existing_ resources
 cannot currently be detected by Terraform. After updating to block device
 configuration, resource recreation can be manually triggered by using the
-[`taint` command](/docs/commands/taint.html).
+[`taint` command](docs/commands/taint.html).
 
 ## Attributes Reference
 

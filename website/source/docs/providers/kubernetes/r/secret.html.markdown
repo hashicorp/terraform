@@ -14,7 +14,7 @@ The resource will by default create a secret which is available to any pod in th
 
 ~> Read more about security properties and risks involved with using Kubernetes secrets: https://kubernetes.io/docs/user-guide/secrets/#security-properties
 
-~> **Note:** All arguments including the secret data will be stored in the raw state as plain-text. [Read more about sensitive data in state](/docs/state/sensitive-data.html).
+~> **Note:** All arguments including the secret data will be stored in the raw state as plain-text. [Read more about sensitive data in state](docs/state/sensitive-data.html).
 
 ## Example Usage
 

@@ -28,4 +28,4 @@ auto-initialize because it may require additional information from the user,
 perform state migrations, etc.
 
 The `init` command will do more than just initialize the backend. Please see
-the [init documentation](/docs/commands/init.html) for more information.
+the [init documentation](docs/commands/init.html) for more information.

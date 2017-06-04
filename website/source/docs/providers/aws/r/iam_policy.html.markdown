@@ -44,7 +44,7 @@ The following arguments are supported:
   See [IAM Identifiers](https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html) for more information.
 * `policy` - (Required) The policy document. This is a JSON formatted string.
   The heredoc syntax, `file` function, or the [`aws_iam_policy_document` data
-  source](/docs/providers/aws/d/iam_policy_document.html)
+  source](docs/providers/aws/d/iam_policy_document.html)
   are all helpful here.
 
 ## Attributes Reference

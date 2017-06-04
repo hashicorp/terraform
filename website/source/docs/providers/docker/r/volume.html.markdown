@@ -9,7 +9,7 @@ description: |-
 # docker\_volume
 
 Creates and destroys a volume in Docker. This can be used alongside
-[docker\_container](/docs/providers/docker/r/container.html)
+[docker\_container](docs/providers/docker/r/container.html)
 to prepare volumes that can be shared across containers.
 
 ## Example Usage

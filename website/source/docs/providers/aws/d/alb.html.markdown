@@ -44,5 +44,5 @@ The following arguments are supported:
 
 ## Attributes Reference
 
-See the [ALB Resource](/docs/providers/aws/r/alb.html) for details on the
+See the [ALB Resource](docs/providers/aws/r/alb.html) for details on the
 returned attributes - they are identical.

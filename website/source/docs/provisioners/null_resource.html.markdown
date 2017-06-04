@@ -13,8 +13,8 @@ The `null_resource` is a resource that allows you to configure provisioners
 that are not directly associated with a single existing resource.
 
 A `null_resource` behaves exactly like any other resource, so you configure
-[provisioners](/docs/provisioners/index.html), [connection
-details](/docs/provisioners/connection.html), and other meta-parameters in the
+[provisioners](docs/provisioners/index.html), [connection
+details](docs/provisioners/connection.html), and other meta-parameters in the
 same way you would on any other resource.
 
 This allows fine-grained control over when provisioners run in the dependency

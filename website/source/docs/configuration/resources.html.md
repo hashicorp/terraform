@@ -16,7 +16,7 @@ component such as an email provider, DNS record, or database
 provider.
 
 This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](docs/configuration/syntax.html)
 already.
 
 ## Example
@@ -39,7 +39,7 @@ and name must be unique.
 Within the block (the `{ }`) is configuration for the resource. The
 configuration is dependent on the type, and is documented for each
 resource type in the
-[providers section](/docs/providers/index.html).
+[providers section](docs/providers/index.html).
 
 ### Meta-parameters
 
@@ -97,7 +97,7 @@ There are **meta-parameters** available to all resources:
 Individual Resources may provide a `timeouts` block to enable users to configure the
 amount of time a specific operation is allowed to take before being considered
 an error. For example, the
-[aws_db_instance](/docs/providers/aws/r/db_instance.html#timeouts)
+[aws_db_instance](docs/providers/aws/r/db_instance.html#timeouts)
 resource provides configurable timeouts for the
 `create`, `update`, and `delete` operations. Any Resource that provies Timeouts
 will document the default values for that operation, and users can overwrite
@@ -134,7 +134,7 @@ resource is created. During a destroy operation, Terraform ensures that
 this resource is destroyed before its dependencies.
 
 A resource automatically depends on anything it references via
-[interpolations](/docs/configuration/interpolation.html). The automatically
+[interpolations](docs/configuration/interpolation.html). The automatically
 determined dependencies are all that is needed most of the time. You can also
 use the `depends_on` parameter to explicitly define a list of additional
 dependencies.
@@ -175,7 +175,7 @@ could automatically do this a better way.
 Within a resource, you can optionally have a **connection block**.
 Connection blocks describe to Terraform how to connect to the
 resource for
-[provisioning](/docs/provisioners/index.html). This block doesn't
+[provisioning](docs/provisioners/index.html). This block doesn't
 need to be present if you're using only local provisioners, or
 if you're not provisioning at all.
 
@@ -183,13 +183,13 @@ Resources provide some data on their own, such as an IP address,
 but other data must be specified by the user.
 
 The full list of settings that can be specified are listed on
-the [provisioner connection page](/docs/provisioners/connection.html).
+the [provisioner connection page](docs/provisioners/connection.html).
 
 ### Provisioners
 
 Within a resource, you can specify zero or more **provisioner
 blocks**. Provisioner blocks configure
-[provisioners](/docs/provisioners/index.html).
+[provisioners](docs/provisioners/index.html).
 
 Within the provisioner block is provisioner-specific configuration,
 much like resource-specific configuration.
@@ -206,11 +206,11 @@ When declaring multiple instances of a resource using [`count`](#count), it is
 common to want each instance to have a different value for a given attribute.
 
 You can use the `${count.index}`
-[interpolation](/docs/configuration/interpolation.html) along with a map
-[variable](/docs/configuration/variables.html) to accomplish this.
+[interpolation](docs/configuration/interpolation.html) along with a map
+[variable](docs/configuration/variables.html) to accomplish this.
 
 For example, here's how you could create three [AWS
-Instances](/docs/providers/aws/r/instance.html) each with their own
+Instances](docs/providers/aws/r/instance.html) each with their own
 static IP address:
 
 ```hcl
@@ -250,7 +250,7 @@ resource "aws_instance" "foo" {
 
 The value of the field should be `TYPE` or `TYPE.ALIAS`. The `ALIAS` value
 comes from the `alias` field value when configuring the
-[provider](/docs/configuration/providers.html).
+[provider](docs/configuration/providers.html).
 
 ```hcl
 provider "aws" {

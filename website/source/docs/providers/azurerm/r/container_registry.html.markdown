@@ -11,7 +11,7 @@ description: |-
 Create as an Azure Container Registry instance.
 
 ~> **Note:** All arguments including the access key will be stored in the raw state as plain-text.
-[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+[Read more about sensitive data in state](docs/state/sensitive-data.html).
 
 ## Example Usage
 

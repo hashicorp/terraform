@@ -19,7 +19,7 @@ improve organization, and to treat pieces of infrastructure as a black box.
 
 This section of the getting started will cover the basics of using modules.
 Writing modules is covered in more detail in the
-[modules documentation](/docs/modules/index.html).
+[modules documentation](docs/modules/index.html).
 
 ~> **Warning!** The examples on this page are _**not** eligible_ for the AWS
 [free-tier](https://aws.amazon.com/free/). Do not execute the examples on this
@@ -56,7 +56,7 @@ module "consul" {
 ```
 
 (Note that the `provider` block can be omitted in favor of environment
-variables. See the [AWS Provider docs](/docs/providers/aws/index.html)
+variables. See the [AWS Provider docs](docs/providers/aws/index.html)
 for details.  This module requires that your AWS account has a default VPC.)
 
 The `module` block tells Terraform to create and manage a module. It is
@@ -73,8 +73,8 @@ The other configurations are parameters to our module. Please fill them
 in with the proper values.
 
 Prior to running any command such as `plan` with a configuration that
-uses modules, you'll have to [get](/docs/commands/get.html) the modules.
-This is done using the [get command](/docs/commands/get.html).
+uses modules, you'll have to [get](docs/commands/get.html) the modules.
+This is done using the [get command](docs/commands/get.html).
 
 ```
 $ terraform get
@@ -159,6 +159,6 @@ server.
 
 For more information on modules, the types of sources supported, how
 to write modules, and more, read the in depth
-[module documentation](/docs/modules/index.html).
+[module documentation](docs/modules/index.html).
 
-Next, we learn how to [use Terraform remotely and the associated benefits](/intro/getting-started/remote.html).
+Next, we learn how to [use Terraform remotely and the associated benefits](intro/getting-started/remote.html).

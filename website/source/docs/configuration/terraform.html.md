@@ -12,7 +12,7 @@ The `terraform` configuration section is used to configure Terraform itself,
 such as requiring a minimum Terraform version to execute a configuration.
 
 This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](docs/configuration/syntax.html)
 already.
 
 ## Example
@@ -37,7 +37,7 @@ that must be met to perform operations on this configuration. If the
 running Terraform version doesn't meet these constraints, an error
 is shown. See the section below dedicated to this option.
 
-See [backends](/docs/backends/index.html) for more detail on the `backend`
+See [backends](docs/backends/index.html) for more detail on the `backend`
 configuration.
 
 **No value within the `terraform` block can use interpolations.** The
@@ -50,7 +50,7 @@ The `required_version` setting can be used to require a specific version
 of Terraform. If the running version of Terraform doesn't match the
 constraints specified, Terraform will show an error and exit.
 
-When [modules](/docs/configuration/modules.html) are used, all Terraform
+When [modules](docs/configuration/modules.html) are used, all Terraform
 version requirements specified by the complete module tree must be
 satisified. This means that the `required_version` setting can be used
 by a module to require that all consumers of a module also use a specific

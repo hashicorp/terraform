@@ -77,7 +77,7 @@ The following attributes are exported in addition to the arguments listed above:
 ## Timeouts
 
 `aws_alb` provides the following
-[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+[Timeouts](docs/configuration/resources.html#timeouts) configuration options:
 
 - `create` - (Default `10 minutes`) Used for Creating ALB
 - `update` - (Default `10 minutes`) Used for ALB modifications

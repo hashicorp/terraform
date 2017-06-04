@@ -14,9 +14,9 @@ as tainted, forcing it to be destroyed and recreated on the next apply.
 This command _will not_ modify infrastructure, but does modify the
 state file in order to mark a resource as tainted. Once a resource is
 marked as tainted, the next
-[plan](/docs/commands/plan.html) will show that the resource will
+[plan](docs/commands/plan.html) will show that the resource will
 be destroyed and recreated and the next
-[apply](/docs/commands/apply.html) will implement this change.
+[apply](docs/commands/apply.html) will implement this change.
 
 Forcing the recreation of a resource is useful when you want a certain
 side effect of recreation that is not visible in the attributes of a resource.
@@ -28,7 +28,7 @@ Note that tainting a resource for recreation may affect resources that
 depend on the newly tainted resource. For example, a DNS resource that
 uses the IP address of a server may need to be modified to reflect
 the potentially new IP address of a tainted server. The
-[plan command](/docs/commands/plan.html) will show this if this is
+[plan command](docs/commands/plan.html) will show this if this is
 the case.
 
 ## Usage
@@ -60,8 +60,8 @@ The command-line flags are all optional. The list of available flags are:
 * `-no-color` - Disables output with coloring
 
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+  Ignored when [remote state](docs/state/remote.html) is used.
 
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used. Ignored when
-  [remote state](/docs/state/remote.html) is used.
+  [remote state](docs/state/remote.html) is used.

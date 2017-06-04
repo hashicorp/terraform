@@ -32,4 +32,4 @@ Packer build runs in an isolated machine environment with the contents of that
 version available to it.
 
 You can be alerted of build events with
-[Build Notifications](/docs/enterprise/packer/builds/notifications.html).
+[Build Notifications](docs/enterprise/packer/builds/notifications.html).

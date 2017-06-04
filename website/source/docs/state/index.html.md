@@ -18,17 +18,17 @@ but it can also be stored remotely, which works better in a team environment.
 
 Terraform uses this local state to create plans and make changes to your
 infrastructure. Prior to any operation, Terraform does a
-[refresh](/docs/commands/refresh.html) to update the state with the
+[refresh](docs/commands/refresh.html) to update the state with the
 real infrastructure.
 
 For more information on why Terraform requires state and why Terraform cannot
-function without state, please see the page [state purpose](/docs/state/purpose.html).
+function without state, please see the page [state purpose](docs/state/purpose.html).
 
 ## Inspection and Modification
 
 While the format of the state files are just JSON, direct file editing
 of the state is discouraged. Terraform provides the
-[terraform state](/docs/commands/state/index.html) command to perform
+[terraform state](docs/commands/state/index.html) command to perform
 basic modifications of the state using the CLI.
 
 The CLI usage and output of the state commands is structured to be

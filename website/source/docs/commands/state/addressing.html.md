@@ -17,4 +17,4 @@ the `-target` flag for apply and plan commands.
 
 Because resource addressing is unified across Terraform, it is documented
 in a single place rather than duplicating it in multiple locations. You
-can find the [resource addressing documentation here](/docs/internals/resource-addressing.html).
+can find the [resource addressing documentation here](docs/internals/resource-addressing.html).

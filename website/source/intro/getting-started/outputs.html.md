@@ -78,5 +78,5 @@ variables, extract important data using output variables,
 and bootstrap resources using provisioners.
 
 Next, we're going to take a look at
-[how to use modules](/intro/getting-started/modules.html), a useful
+[how to use modules](intro/getting-started/modules.html), a useful
 abstraction to organization and reuse Terraform configurations.

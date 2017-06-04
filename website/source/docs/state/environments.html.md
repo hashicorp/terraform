@@ -14,7 +14,7 @@ configurations to manage multiple distinct infrastructure resources.
 Terraform state determines what resources it manages based on what
 exists in the state. This is how `terraform plan` determines what isn't
 created, what needs to be updated, etc. The full details of state can be
-found on the [purpose page](/docs/state/purpose.html).
+found on the [purpose page](docs/state/purpose.html).
 
 Environments are a way to create multiple states that contain
 their own data so a single set of Terraform configurations can manage
@@ -22,8 +22,8 @@ multiple distinct sets of resources.
 
 Environments are currently supported by the following backends:
 
- * [Consul](/docs/backends/types/consul.html)
- * [S3](/docs/backends/types/s3.html)
+ * [Consul](docs/backends/types/consul.html)
+ * [S3](docs/backends/types/s3.html)
 
 ## Using Environments
 
@@ -94,7 +94,7 @@ differences between development, staging, and production. However, if you have
 one large Terraform configuration, it is riskier and not recommended to use
 environments to model those differences.
 
-The [terraform_remote_state](/docs/providers/terraform/d/remote_state.html)
+The [terraform_remote_state](docs/providers/terraform/d/remote_state.html)
 resource accepts an `environment` name to target. Therefore, you can link
 together multiple independently managed Terraform configurations with the same
 environment easily. But, they can also have different environments.
@@ -123,9 +123,9 @@ For local state, Terraform stores the state environments in a folder
 `terraform.tfstate.d`. This folder should be committed to version control
 (just like local-only `terraform.tfstate`).
 
-For [remote state](/docs/state/remote.html), the environments are stored
-directly in the configured [backend](/docs/backends). For example, if you
-use [Consul](/docs/backends/types/consul.html), the environments are stored
+For [remote state](docs/state/remote.html), the environments are stored
+directly in the configured [backend](docs/backends). For example, if you
+use [Consul](docs/backends/types/consul.html), the environments are stored
 by suffixing the state path with the environment name. To ensure that
 environment names are stored correctly and safely in all backends, the name
 must be valid to use in a URL path segment without escaping.

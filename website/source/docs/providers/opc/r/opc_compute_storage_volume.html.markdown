@@ -10,7 +10,7 @@ description: |-
 
 The ``opc_compute_storage_volume`` resource creates and manages a storage volume in an OPC identity domain.
 
-~> **Caution:** The ``opc_compute_storage_volume`` resource can completely delete your storage volume just as easily as it can create it. To avoid costly accidents, consider setting [``prevent_destroy``](/docs/configuration/resources.html#prevent_destroy) on your storage volume resources as an extra safety measure.
+~> **Caution:** The ``opc_compute_storage_volume`` resource can completely delete your storage volume just as easily as it can create it. To avoid costly accidents, consider setting [``prevent_destroy``](docs/configuration/resources.html#prevent_destroy) on your storage volume resources as an extra safety measure.
 
 ## Example Usage
 

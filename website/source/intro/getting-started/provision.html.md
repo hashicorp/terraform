@@ -37,13 +37,13 @@ resource "aws_instance" "example" {
 This adds a `provisioner` block within the `resource` block. Multiple
 `provisioner` blocks can be added to define multiple provisioning steps.
 Terraform supports
-[multiple provisioners](/docs/provisioners/index.html),
+[multiple provisioners](docs/provisioners/index.html),
 but for this example we are using the `local-exec` provisioner.
 
 The `local-exec` provisioner executes a command locally on the machine
 running Terraform. We're using this provisioner versus the others so
 we don't have to worry about specifying any
-[connection info](/docs/provisioners/connection.html) right now.
+[connection info](docs/provisioners/connection.html) right now.
 
 ## Running Provisioners
 
@@ -55,7 +55,7 @@ you should use Terraform provisioning to invoke a real configuration
 management solution.
 
 Make sure that your infrastructure is
-[destroyed](/intro/getting-started/destroy.html) if it isn't already,
+[destroyed](intro/getting-started/destroy.html) if it isn't already,
 then run `apply`:
 
 ```
@@ -112,7 +112,7 @@ necessary.
 
 The getting started guide won't show any destroy provisioner examples.
 If you need to use destroy provisioners, please
-[see the provisioner documentation](/docs/provisioners).
+[see the provisioner documentation](docs/provisioners).
 
 ## Next
 
@@ -123,4 +123,4 @@ configuration management, you should use the provisioning as a way
 to bootstrap the configuration management tool.
 
 In the next section, we start looking at [variables as a way to
-parameterize our configurations](/intro/getting-started/variables.html).
+parameterize our configurations](intro/getting-started/variables.html).

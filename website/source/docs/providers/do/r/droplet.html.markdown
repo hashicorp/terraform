@@ -10,7 +10,7 @@ description: |-
 
 Provides a DigitalOcean Droplet resource. This can be used to create,
 modify, and delete Droplets. Droplets also support
-[provisioning](/docs/provisioners/index.html).
+[provisioning](docs/provisioners/index.html).
 
 ## Example Usage
 
@@ -48,7 +48,7 @@ The following arguments are supported:
 * `tags` - (Optional) A list of the tags to label this droplet. A tag resource
    must exist before it can be associated with a droplet.
 * `user_data` (Optional) - A string of the desired User Data for the Droplet.
-* `volume_ids` (Optional) - A list of the IDs of each [block storage volume](/docs/providers/do/r/volume.html) to be attached to the Droplet.
+* `volume_ids` (Optional) - A list of the IDs of each [block storage volume](docs/providers/do/r/volume.html) to be attached to the Droplet.
 
 ## Attributes Reference
 

@@ -11,7 +11,7 @@ description: |-
 Allows you to manage an Azure SQL Database Server
 
 ~> **Note:** All arguments including the administrator login and password will be stored in the raw state as plain-text.
-[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+[Read more about sensitive data in state](docs/state/sensitive-data.html).
 
 ## Example Usage
 

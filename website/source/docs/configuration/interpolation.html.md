@@ -63,7 +63,7 @@ syntax to get a list of all the attributes: `${aws_instance.web.*.id}`.
 
 #### Attributes of a data source
 
-The syntax is `data.TYPE.NAME.ATTRIBUTE`. For example. `${data.aws_ami.ubuntu.id}` will interpolate the `id` attribute from the `aws_ami` [data source](/docs/configuration/data-sources.html) named `ubuntu`. If the data source has a `count`
+The syntax is `data.TYPE.NAME.ATTRIBUTE`. For example. `${data.aws_ami.ubuntu.id}` will interpolate the `id` attribute from the `aws_ami` [data source](docs/configuration/data-sources.html) named `ubuntu`. If the data source has a `count`
 attribute set, you can access individual attributes with a zero-based
 index, such as `${data.aws_subnet.example.0.cidr_block}`. You can also use the splat
 syntax to get a list of all the attributes: `${data.aws_subnet.example.*.cidr_block}`.
@@ -72,14 +72,14 @@ syntax to get a list of all the attributes: `${data.aws_subnet.example.*.cidr_bl
 
 The syntax is `MODULE.NAME.OUTPUT`. For example `${module.foo.bar}` will
 interpolate the `bar` output from the `foo`
-[module](/docs/modules/index.html).
+[module](docs/modules/index.html).
 
 #### Count information
 
 The syntax is `count.FIELD`. For example, `${count.index}` will
 interpolate the current index in a multi-count resource. For more
 information on `count`, see the [resource configuration
-page](/docs/configuration/resources.html).
+page](docs/configuration/resources.html).
 
 #### Path information
 
@@ -93,7 +93,7 @@ path of the root module.  In general, you probably want the
 
 The syntax is `terraform.FIELD`. This variable type contains metadata about
 the currently executing Terraform run. FIELD can currently only be `env` to
-reference the currently active [state environment](/docs/state/environments.html).
+reference the currently active [state environment](docs/state/environments.html).
 
 ## Conditionals
 
@@ -367,7 +367,7 @@ The supported built-in functions are:
 
   * `timestamp()` - Returns a UTC timestamp string in RFC 3339 format. This string will change with every
    invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the
-   [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
+   [`ignore_changes`](docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
 
@@ -375,7 +375,7 @@ The supported built-in functions are:
 
   * `upper(string)` - Returns a copy of the string with all Unicode letters mapped to their upper case.
 
-  * `uuid()` - Returns a UUID string in RFC 4122 v4 format. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
+  * `uuid()` - Returns a UUID string in RFC 4122 v4 format. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
   * `values(map)` - Returns a list of the map values, in the order of the keys
     returned by the `keys` function. This function only works on flat maps and
@@ -391,8 +391,8 @@ The supported built-in functions are:
 ## Templates
 
 Long strings can be managed using templates.
-[Templates](/docs/providers/template/index.html) are
-[data-sources](/docs/configuration/data-sources.html) defined by a
+[Templates](docs/providers/template/index.html) are
+[data-sources](docs/configuration/data-sources.html) defined by a
 filename and some variables to use during interpolation. They have a
 computed `rendered` attribute containing the result.
 
@@ -416,7 +416,7 @@ Then the rendered value would be `goodnight moon!`.
 
 You may use any of the built-in functions in your template. For more
 details on template usage, please see the
-[template_file documentation](/docs/providers/template/d/file.html).
+[template_file documentation](docs/providers/template/d/file.html).
 
 ### Using Templates with Count
 
@@ -493,7 +493,7 @@ Operator precedences is the standard mathematical order of operations:
 "${2 * (4 + 3) * 3}" # computes to 42
 ```
 
-You can use the [terraform console](/docs/commands/console.html) command to
+You can use the [terraform console](docs/commands/console.html) command to
 try the math operations.
 
 -> **Note:** Since Terraform allows hyphens in resource and variable names,

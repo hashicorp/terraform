@@ -27,7 +27,7 @@ brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][4]
 for more information.
 
 ~> **Note:** All arguments including the username and password will be stored in the raw state as plain-text.
-[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+[Read more about sensitive data in state](docs/state/sensitive-data.html).
 
 ## Example Usage
 
@@ -80,7 +80,7 @@ Default: A 30-minute window selected at random from an 8-hour block of time per 
 * `apply_immediately` - (Optional) Specifies whether any cluster modifications
      are applied immediately, or during the next maintenance window. Default is
      `false`. See [Amazon RDS Documentation for more information.](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
-* `db_subnet_group_name` - (Optional) A DB subnet group to associate with this DB instance. **NOTE:** This must match the `db_subnet_group_name` specified on every [`aws_rds_cluster_instance`](/docs/providers/aws/r/rds_cluster_instance.html) in the cluster.
+* `db_subnet_group_name` - (Optional) A DB subnet group to associate with this DB instance. **NOTE:** This must match the `db_subnet_group_name` specified on every [`aws_rds_cluster_instance`](docs/providers/aws/r/rds_cluster_instance.html) in the cluster.
 * `db_cluster_parameter_group_name` - (Optional) A cluster parameter group to associate with the cluster.
 * `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `storage_encrypted` needs to be set to true.
 * `iam_database_authentication_enabled` - (Optional) Specifies whether or mappings of AWS Identity and Access Management (IAM) accounts to database accounts is enabled.
@@ -120,7 +120,7 @@ load-balanced across replicas
 ## Timeouts
 
 `aws_rds_cluster` provides the following
-[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+[Timeouts](docs/configuration/resources.html#timeouts) configuration options:
 
 - `create` - (Default `120 minutes`) Used for Cluster creation
 - `update` - (Default `120 minutes`) Used for Cluster modifications

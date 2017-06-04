@@ -88,7 +88,7 @@ to create a dependency relationship with the `template_dir` resource.
 ## Template Syntax
 
 The syntax of the template files is the same as
-[standard interpolation syntax](/docs/configuration/interpolation.html),
+[standard interpolation syntax](docs/configuration/interpolation.html),
 but you only have access to the variables defined in the `vars` section.
 
 To access interpolations that are normally available to Terraform

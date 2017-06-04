@@ -9,7 +9,7 @@ description: |-
 # Command: state rm
 
 The `terraform state rm` command is used to remove items from the
-[Terraform state](/docs/state/index.html). This command can remove
+[Terraform state](docs/state/index.html). This command can remove
 single resources, single instances of a resource, entire modules,
 and more.
 
@@ -39,7 +39,7 @@ of this command, backups are required.
 
 This command requires one or more addresses that point to a resources in the
 state. Addresses are
-in [resource addressing format](/docs/commands/state/addressing.html).
+in [resource addressing format](docs/commands/state/addressing.html).
 
 The command-line flags are all optional. The list of available flags are:
 

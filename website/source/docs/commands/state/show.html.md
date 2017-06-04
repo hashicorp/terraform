@@ -10,7 +10,7 @@ description: |-
 
 The `terraform state show` command is used to show the attributes of a
 single resource in the
-[Terraform state](/docs/state/index.html).
+[Terraform state](docs/state/index.html).
 
 ## Usage
 
@@ -25,12 +25,12 @@ to parse on the command-line.
 
 This command requires a address that points to a single resource in the
 state. Addresses are
-in [resource addressing format](/docs/commands/state/addressing.html).
+in [resource addressing format](docs/commands/state/addressing.html).
 
 The command-line flags are all optional. The list of available flags are:
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+  Ignored when [remote state](docs/state/remote.html) is used.
 
 ## Example: Show a Resource
 

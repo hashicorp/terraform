@@ -14,7 +14,7 @@ problems it can solve, how it compares to existing software,
 and contains a quick start for using Terraform.
 
 If you are already familiar with the basics of Terraform, the
-[documentation](/docs/index.html) provides a better reference
+[documentation](docs/index.html) provides a better reference
 guide for all available features as well as internals.
 
 ## What is Terraform?
@@ -37,7 +37,7 @@ compute instances, storage, and networking, as well as high-level
 components such as DNS entries, SaaS features, etc.
 
 Examples work best to showcase Terraform. Please see the
-[use cases](/intro/use-cases.html).
+[use cases](intro/use-cases.html).
 
 The key features of Terraform are:
 
@@ -69,9 +69,9 @@ possible human errors.
 
 ## Next Steps
 
-See the page on [Terraform use cases](/intro/use-cases.html) to see the
+See the page on [Terraform use cases](intro/use-cases.html) to see the
 multiple ways Terraform can be used. Then see
-[how Terraform compares to other software](/intro/vs/index.html)
+[how Terraform compares to other software](intro/vs/index.html)
 to see how it fits into your existing infrastructure. Finally, continue onwards with
-the [getting started guide](/intro/getting-started/install.html) to use
+the [getting started guide](intro/getting-started/install.html) to use
 Terraform to manage real infrastructure and to see how it works.

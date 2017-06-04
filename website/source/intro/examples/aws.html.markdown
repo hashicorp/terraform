@@ -16,7 +16,7 @@ an ELB serving traffic.
 
 To simplify the example, it intentionally ignores deploying and
 getting your application onto the servers. However, you could do so either via
-[provisioners](/docs/provisioners/index.html) and a configuration
+[provisioners](docs/provisioners/index.html) and a configuration
 management tool, or by pre-baking configured AMIs with
 [Packer](https://www.packer.io).
 

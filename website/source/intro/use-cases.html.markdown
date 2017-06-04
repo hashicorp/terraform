@@ -8,7 +8,7 @@ description: |-
 
 # Use Cases
 
-Before understanding use cases, it's useful to know [what Terraform is](/intro/index.html).
+Before understanding use cases, it's useful to know [what Terraform is](intro/index.html).
 This page lists some concrete use cases for Terraform, but the possible use cases are
 much broader than what we cover. Due to its extensible nature, providers and provisioners
 can be added to further extend Terraform's ability to manipulate resources.
@@ -91,7 +91,7 @@ This configuration can then be used by Terraform to automatically setup and modi
 settings by interfacing with the control layer. This allows configuration to be
 versioned and changes to be automated. As an example, [AWS VPC](https://aws.amazon.com/vpc/)
 is one of the most commonly used SDN implementations, and [can be configured by
-Terraform](/docs/providers/aws/r/vpc.html).
+Terraform](docs/providers/aws/r/vpc.html).
 
 ## Resource Schedulers
 

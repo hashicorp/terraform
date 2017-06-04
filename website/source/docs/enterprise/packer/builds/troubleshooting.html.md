@@ -14,10 +14,10 @@ are all possible. Below is a list of debugging options you can use.
 
 ### Verbose Packer Logging
 
-You can [set a variable](/docs/enterprise/packer/builds/build-environment.html#environment-variables) in the UI that increases the logging verbosity
+You can [set a variable](docs/enterprise/packer/builds/build-environment.html#environment-variables) in the UI that increases the logging verbosity
 in Packer. Set the `PACKER_LOG` key to a value of `1` to accomplish this.
 
-After setting the variable, you'll need to [rebuild](/docs/enterprise/packer/builds/rebuilding.html).
+After setting the variable, you'll need to [rebuild](docs/enterprise/packer/builds/rebuilding.html).
 
 Verbose logging will be much louder than normal Packer logs and isn't
 recommended for day-to-day operations. Once enabled, you'll be able to see in
@@ -49,10 +49,10 @@ more about [debugging Packer builds](https://packer.io/docs/other/debugging.html
 ### Hardware Limitations
 
 Your build may be failing by requesting larger memory or
-disk usage then is available. Read more about the [build environment](/docs/enterprise/packer/builds/build-environment.html#hardware-limitations).
+disk usage then is available. Read more about the [build environment](docs/enterprise/packer/builds/build-environment.html#hardware-limitations).
 
 _Typically_ Packer builds that fail due to requesting hardware limits
-that exceed Terraform Enterprise's [hardware limitations](/docs/enterprise/packer/builds/build-environment.html#hardware-limitations)
+that exceed Terraform Enterprise's [hardware limitations](docs/enterprise/packer/builds/build-environment.html#hardware-limitations)
 will fail with a _The operation was canceled_ error message as shown below:
 
 ```text

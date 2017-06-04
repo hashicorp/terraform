@@ -37,4 +37,4 @@ This is possible due to the post-processors use of the public artifact API to
 store the artifacts.
 
 You can read more about artifacts and their use in the
-[Terraform section](/docs/enterprise/) of the documentation.
+[Terraform section](docs/enterprise/) of the documentation.

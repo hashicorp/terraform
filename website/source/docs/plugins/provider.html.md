@@ -29,7 +29,7 @@ this section of the documentation.
 
 If you're interested in provider development, then read on. The remainder
 of this page will assume you're familiar with
-[plugin basics](/docs/plugins/basics.html) and that you already have
+[plugin basics](docs/plugins/basics.html) and that you already have
 a basic development environment setup.
 
 ## Low-Level Interface
@@ -139,7 +139,7 @@ structure. This structure has the following fields:
       you may keep that field nil.
 
   * `Importer` - If this is non-nil, then this resource is
-    [importable](/docs/import/importability.html). It is recommended to
+    [importable](docs/import/importability.html). It is recommended to
     implement this.
 
 The CRUD operations in more detail, along with their contracts:

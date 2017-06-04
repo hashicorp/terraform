@@ -43,7 +43,7 @@ and associates an
 to an EC2 instance.
 
 The only parameter for
-[aws\_eip](/docs/providers/aws/r/eip.html) is "instance" which
+[aws\_eip](docs/providers/aws/r/eip.html) is "instance" which
 is the EC2 instance to assign the IP to. For this value, we
 use an interpolation to use an attribute from the EC2 instance
 we managed earlier.
@@ -153,7 +153,7 @@ resource "aws_eip" "ip" {
 ```
 
 If you're ever unsure about the dependency chain that Terraform
-is creating, you can use the [`terraform graph` command](/docs/commands/graph.html) to view
+is creating, you can use the [`terraform graph` command](docs/commands/graph.html) to view
 the graph. This command outputs a dot-formatted graph which can be
 viewed with
 [Graphviz](http://www.graphviz.org/).
@@ -185,5 +185,5 @@ In this page you were introduced to both multiple resources
 as well as basic resource dependencies and resource attribute
 interpolation.
 
-Moving on, [we'll use provisioners](/intro/getting-started/provision.html)
+Moving on, [we'll use provisioners](intro/getting-started/provision.html)
 to do some basic bootstrapping of our launched instance.

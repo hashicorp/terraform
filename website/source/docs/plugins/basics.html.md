@@ -25,7 +25,7 @@ such as bash. Plugins are executed as a separate process and communicate with
 the main Terraform binary over an RPC interface.
 
 More details are available in
-[Internal Docs](/docs/internals/internal-plugins.html).
+[Internal Docs](docs/internals/internal-plugins.html).
 
 The code within the binaries must adhere to certain interfaces.
 The network communication and RPC is handled automatically by higher-level

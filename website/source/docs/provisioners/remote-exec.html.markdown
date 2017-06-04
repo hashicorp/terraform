@@ -11,8 +11,8 @@ description: |-
 The `remote-exec` provisioner invokes a script on a remote resource after it
 is created. This can be used to run a configuration management tool, bootstrap
 into a cluster, etc. To invoke a local process, see the `local-exec`
-[provisioner](/docs/provisioners/local-exec.html) instead. The `remote-exec`
-provisioner supports both `ssh` and `winrm` type [connections](/docs/provisioners/connection.html).
+[provisioner](docs/provisioners/local-exec.html) instead. The `remote-exec`
+provisioner supports both `ssh` and `winrm` type [connections](docs/provisioners/connection.html).
 
 
 ## Example usage
@@ -50,7 +50,7 @@ The following arguments are supported:
 You cannot pass any arguments to scripts using the `script` or
 `scripts` arguments to this provisioner. If you want to specify arguments,
 upload the script with the
-[file provisioner](/docs/provisioners/file.html)
+[file provisioner](docs/provisioners/file.html)
 and then use `inline` to call it. Example:
 
 ```hcl

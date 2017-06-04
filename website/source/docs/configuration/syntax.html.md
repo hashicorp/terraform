@@ -56,7 +56,7 @@ Basic bullet point reference:
 
   * Strings can interpolate other values using syntax wrapped
     in `${}`, such as `${var.foo}`. The full syntax for interpolation
-    is [documented here](/docs/configuration/interpolation.html).
+    is [documented here](docs/configuration/interpolation.html).
 
   * Multiline strings can use shell-style "here doc" syntax, with
     the string starting with a marker like `<<EOF` and then the

@@ -18,7 +18,7 @@ values within the state. This is implemented on a per-resource basis and
 you should assume the value is plaintext unless otherwise documented.
 
 When using local state, state is stored in plain-text JSON files. When
-using [remote state](/docs/state/remote.html), state is only ever held in memory when used by Terraform.
+using [remote state](docs/state/remote.html), state is only ever held in memory when used by Terraform.
 It may be encrypted at rest but this depends on the specific remote state
 backend.
 
@@ -38,7 +38,7 @@ policies and logging can be used to identify any invalid access. Requests for
 the state go over a TLS connection.
 
 [Terraform Enterprise](https://www.hashicorp.com/products/terraform/) is
-a commercial product from HashiCorp that also acts as a [backend](/docs/backends)
+a commercial product from HashiCorp that also acts as a [backend](docs/backends)
 and provides encryption at rest for state. Terraform Enterprise also knows
 the identity of the user requesting state and maintains a history of state
 changes. This can be used to provide access control and detect any breaches.

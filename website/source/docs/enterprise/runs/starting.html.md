@@ -13,7 +13,7 @@ There are a variety of ways to queue a Terraform run in Terraform Enterprise. In
 `terraform push`, you can connect your environment
 to GitHub and runs based on new commits. You can
 also intelligently queue new runs when linked artifacts are uploaded or changed.
-Remember from the [previous section about Terraform runs](/docs/enterprise/runs)
+Remember from the [previous section about Terraform runs](docs/enterprise/runs)
 that it is safe to trigger many plans without consequence since Terraform plans
 do not change infrastructure.
 
@@ -48,7 +48,7 @@ Optionally, GitHub can be used to import Terraform configuration. When used
 within an organization, this can be extremely valuable for keeping differences
 in environments and last mile changes from occurring before an upload.
 
-After you have [connected your GitHub account to Terraform Enterprise](/docs/enterprise/vcs/github.html),
+After you have [connected your GitHub account to Terraform Enterprise](docs/enterprise/vcs/github.html),
 you can connect your environment to the target
 GitHub repository. The GitHub repository will be linked to the Terraform Enterprise
 configuration, and GitHub will start sending webhooks. Certain
@@ -85,7 +85,7 @@ Supported GitHub webhook events:
 ## Artifact Uploads
 
 Upon successful completion of a Terraform run, the remote state is parsed and
-any [artifacts](/docs/enterprise/artifacts/artifact-provider.html) are detected that
+any [artifacts](docs/enterprise/artifacts/artifact-provider.html) are detected that
 were referenced. When new versions of those referenced artifacts are uploaded, you have the option to automatically queue a new Terraform run.
 
 For example, consider the following Terraform configuration which references an
@@ -99,12 +99,12 @@ resource "aws_instance" "worker" {
 ```
 
 When a new version of the and artifact "worker" is uploaded either manually
-or as the output of a [Packer build](/docs/enterprise/packer/builds/starting.html), a Terraform plan can be automatically triggered with this new artifact version.
+or as the output of a [Packer build](docs/enterprise/packer/builds/starting.html), a Terraform plan can be automatically triggered with this new artifact version.
 You can enable this feature on a per-environment basis from the
 environment settings page.
 
 Combined with
-[Terraform auto apply](/docs/enterprise/runs/automatic-applies.html), you can
+[Terraform auto apply](docs/enterprise/runs/automatic-applies.html), you can
 continuously deliver infrastructure using Terraform and Terraform Enterprise.
 
 ## Terraform Plugins

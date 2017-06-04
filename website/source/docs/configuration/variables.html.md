@@ -11,11 +11,11 @@ description: |-
 Variables define the parameterization of Terraform configurations.
 Variables can be overridden via the CLI. Variable usage is
 covered in more detail in the
-[getting started guide](/intro/getting-started/variables.html).
+[getting started guide](intro/getting-started/variables.html).
 This page covers configuration syntax for variables.
 
 This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](docs/configuration/syntax.html)
 already.
 
 ## Example
@@ -125,7 +125,7 @@ variable "users" {
 ```
 
 The usage of maps, lists, strings, etc. is documented fully in the
-[interpolation syntax](/docs/configuration/interpolation.html)
+[interpolation syntax](docs/configuration/interpolation.html)
 page.
 
 ## Syntax
@@ -221,7 +221,7 @@ $ TF_VAR_image=foo terraform apply
 ```
 
 Maps and lists can be specified using environment variables as well using
-[HCL](/docs/configuration/syntax.html#HCL) syntax in the value.
+[HCL](docs/configuration/syntax.html#HCL) syntax in the value.
 
 For a list variable like so:
 

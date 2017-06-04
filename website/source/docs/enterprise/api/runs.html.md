@@ -11,7 +11,7 @@ description: |-
 Runs in Terraform Enterprise represents a two step Terraform plan and a
 subsequent apply.
 
-Runs are queued under [environments](/docs/enterprise/api/environments.html)
+Runs are queued under [environments](docs/enterprise/api/environments.html)
 and require a two-step confirmation workflow. However, environments
 can be configured to auto-apply to avoid this.
 

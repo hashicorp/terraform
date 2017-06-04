@@ -21,7 +21,7 @@ and applies the changes appropriately. However, a path to another configuration
 or an execution plan can be provided. Execution plans can be used to only
 execute a pre-determined set of actions.
 
-The `dir` argument can also be a [module source](/docs/modules/index.html).
+The `dir` argument can also be a [module source](docs/modules/index.html).
 In this case, `apply` behaves as though `init` were called with that
 argument followed by an `apply` in the current directory. This is meant
 as a shortcut for getting started.
@@ -40,31 +40,31 @@ The command-line flags are all optional. The list of available flags are:
 * `-no-color` - Disables output with coloring.
 
 * `-parallelism=n` - Limit the number of concurrent operation as Terraform
-  [walks the graph](/docs/internals/graph.html#walking-the-graph).
+  [walks the graph](docs/internals/graph.html#walking-the-graph).
 
 * `-refresh=true` - Update the state for each resource prior to planning
   and applying. This has no effect if a plan file is given directly to
   apply.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+  Ignored when [remote state](docs/state/remote.html) is used.
 
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used. Ignored when
-  [remote state](/docs/state/remote.html) is used.
+  [remote state](docs/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
-  Address](/docs/internals/resource-addressing.html) to target. Operation will
+  Address](docs/internals/resource-addressing.html) to target. Operation will
   be limited to this resource and its dependencies. This flag can be used
   multiple times.
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
-  [HCL](/docs/configuration/syntax.html#HCL), so list and map values can be
+  [HCL](docs/configuration/syntax.html#HCL), so list and map values can be
   specified via this flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-   a [variable file](/docs/configuration/variables.html#variable-files). If
+   a [variable file](docs/configuration/variables.html#variable-files). If
   "terraform.tfvars" is present, it will be automatically loaded first. Any
   files specified by `-var-file` override any values in a "terraform.tfvars".
   This flag can be used multiple times.

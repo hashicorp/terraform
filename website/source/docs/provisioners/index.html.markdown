@@ -25,7 +25,7 @@ resource "aws_instance" "web" {
 ```
 
 For provisioners other than local execution, you must specify
-[connection settings](/docs/provisioners/connection.html) so Terraform knows
+[connection settings](docs/provisioners/connection.html) so Terraform knows
 how to communicate with the resource.
 
 ## Creation-Time Provisioners

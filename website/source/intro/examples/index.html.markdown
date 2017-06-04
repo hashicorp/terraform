@@ -25,7 +25,7 @@ Experimenting in this way can help you learn how the Terraform lifecycle
 works, as well as how to repeatedly create and destroy infrastructure.
 
 If you're completely new to Terraform, we recommend reading the
-[getting started guide](/intro/getting-started/install.html) before diving into
+[getting started guide](intro/getting-started/install.html) before diving into
 the examples. However, due to the intuitive configuration Terraform
 uses it isn't required.
 
@@ -36,7 +36,7 @@ All of the examples are in the
 directory) has a README explaining the goal of the example.
 
 To use these examples, Terraform must first be installed on your machine.
-You can install Terraform from the [downloads page](/downloads.html).
+You can install Terraform from the [downloads page](downloads.html).
 Once installed, you can use two steps to view and run the examples.
 
 To clone any examples, run `terraform init` with the URL to the example:

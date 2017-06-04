@@ -20,12 +20,12 @@ organization owner on a per-environment basis.
 On the specified interval, a plan can be run that for you, determining any
 changes and sending the appropriate notifications.
 
-When used with [automatic applies](/docs/enterprise/runs/automatic-applies.html), this feature can help converge
+When used with [automatic applies](docs/enterprise/runs/automatic-applies.html), this feature can help converge
 changes to infrastructure without human input.
 
 Runs will not be queued while another plan or apply is in progress, or if the
 environment has been manually locked. Se
-[Environment Locking](/docs/enterprise/runs#environment-locking) for more
+[Environment Locking](docs/enterprise/runs#environment-locking) for more
  information.
 
 ## Enabling Periodic Plans

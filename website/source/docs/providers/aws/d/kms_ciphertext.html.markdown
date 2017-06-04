@@ -12,7 +12,7 @@ The KMS ciphertext data source allows you to encrypt plaintext into ciphertext
 by using an AWS KMS customer master key.
 
 ~> **Note:** All arguments including the plaintext be stored in the raw state as plain-text.
-[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+[Read more about sensitive data in state](docs/state/sensitive-data.html).
 
 ## Example Usage
 

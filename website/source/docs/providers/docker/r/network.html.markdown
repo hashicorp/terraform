@@ -9,7 +9,7 @@ description: |-
 # docker\_network
 
 Manages a Docker Network. This can be used alongside
-[docker\_container](/docs/providers/docker/r/container.html)
+[docker\_container](docs/providers/docker/r/container.html)
 to create virtual networks within the docker environment.
 
 ## Example Usage
