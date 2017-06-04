@@ -3,11 +3,11 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-        <a href="/docs/providers/index.html">All Providers</a>
+        <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-dns-index") %>>
-        <a href="/docs/providers/dns/index.html">DNS Provider</a>
+        <%= link_to "DNS Provider", "/docs/providers/dns/index.html" %>
                 </li>
 
                 <li<%= sidebar_current("docs-aws-datasource") %>>
@@ -15,13 +15,13 @@
                     <ul class="nav nav-visible">
 
                         <li<%= sidebar_current("docs-dns-datasource-a-record-set") %>>
-                            <a href="/docs/providers/dns/d/dns_a_record_set.html">dns_a_record_set</a>
+                            <%= link_to "dns_a_record_set", "/docs/providers/dns/d/dns_a_record_set.html" %>
                         </li>
                         <li<%= sidebar_current("docs-dns-datasource-cname-record-set") %>>
-                            <a href="/docs/providers/dns/d/dns_cname_record_set.html">dns_cname_record_set</a>
+                            <%= link_to "dns_cname_record_set", "/docs/providers/dns/d/dns_cname_record_set.html" %>
                         </li>
                         <li<%= sidebar_current("docs-dns-datasource-txt-record-set") %>>
-                            <a href="/docs/providers/dns/d/dns_txt_record_set.html">dns_txt_record_set</a>
+                            <%= link_to "dns_txt_record_set", "/docs/providers/dns/d/dns_txt_record_set.html" %>
                         </li>
                     </ul>
                 </li>
@@ -30,16 +30,16 @@
         <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-dns-a-record-set") %>>
-          <a href="/docs/providers/dns/r/dns_a_record_set.html">dns_a_record_set</a>
+          <%= link_to "dns_a_record_set", "/docs/providers/dns/r/dns_a_record_set.html" %>
                     </li>
                     <li<%= sidebar_current("docs-dns-aaaa-record-set") %>>
-          <a href="/docs/providers/dns/r/dns_aaaa_record_set.html">dns_aaaa_record_set</a>
+          <%= link_to "dns_aaaa_record_set", "/docs/providers/dns/r/dns_aaaa_record_set.html" %>
                     </li>
                     <li<%= sidebar_current("docs-dns-cname-record") %>>
-          <a href="/docs/providers/dns/r/dns_cname_record.html">dns_cname_record</a>
+          <%= link_to "dns_cname_record", "/docs/providers/dns/r/dns_cname_record.html" %>
                     </li>
                     <li<%= sidebar_current("docs-dns-ptr-record") %>>
-          <a href="/docs/providers/dns/r/dns_ptr_record.html">dns_ptr_record</a>
+          <%= link_to "dns_ptr_record", "/docs/providers/dns/r/dns_ptr_record.html" %>
                     </li>
                 </ul>
         </li>

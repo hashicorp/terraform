@@ -3,42 +3,42 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/providers/index.html">All Providers</a>
+          <%= link_to "All Providers", "/docs/providers/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-kubernetes-index") %>>
-          <a href="/docs/providers/kubernetes/index.html">Kubernetes Provider</a>
+          <%= link_to "Kubernetes Provider", "/docs/providers/kubernetes/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-kubernetes-resource") %>>
           <a href="#">Resources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-kubernetes-resource-config-map") %>>
-              <a href="/docs/providers/kubernetes/r/config_map.html">kubernetes_config_map</a>
+              <%= link_to "kubernetes_config_map", "/docs/providers/kubernetes/r/config_map.html" %>
             </li>
             <li<%= sidebar_current("docs-kubernetes-resource-horizontal-pod-autoscaler") %>>
-              <a href="/docs/providers/kubernetes/r/horizontal_pod_autoscaler.html">kubernetes_horizontal_pod_autoscaler</a>
+              <%= link_to "kubernetes_horizontal_pod_autoscaler", "/docs/providers/kubernetes/r/horizontal_pod_autoscaler.html" %>
             </li>
             <li<%= sidebar_current("docs-kubernetes-resource-limit-range") %>>
-              <a href="/docs/providers/kubernetes/r/limit_range.html">kubernetes_limit_range</a>
+              <%= link_to "kubernetes_limit_range", "/docs/providers/kubernetes/r/limit_range.html" %>
             </li>
             <li<%= sidebar_current("docs-kubernetes-resource-namespace") %>>
-              <a href="/docs/providers/kubernetes/r/namespace.html">kubernetes_namespace</a>
+              <%= link_to "kubernetes_namespace", "/docs/providers/kubernetes/r/namespace.html" %>
             </li>
             <li<%= sidebar_current("docs-kubernetes-resource-persistent-volume-x") %>>
-              <a href="/docs/providers/kubernetes/r/persistent_volume.html">kubernetes_persistent_volume</a>
+              <%= link_to "kubernetes_persistent_volume", "/docs/providers/kubernetes/r/persistent_volume.html" %>
             </li>
             <li<%= sidebar_current("docs-kubernetes-resource-persistent-volume-claim") %>>
-              <a href="/docs/providers/kubernetes/r/persistent_volume_claim.html">kubernetes_persistent_volume_claim</a>
+              <%= link_to "kubernetes_persistent_volume_claim", "/docs/providers/kubernetes/r/persistent_volume_claim.html" %>
             </li>
             <li<%= sidebar_current("docs-kubernetes-resource-resource-quota") %>>
-              <a href="/docs/providers/kubernetes/r/resource_quota.html">kubernetes_resource_quota</a>
+              <%= link_to "kubernetes_resource_quota", "/docs/providers/kubernetes/r/resource_quota.html" %>
             </li>
             <li<%= sidebar_current("docs-kubernetes-resource-secret") %>>
-              <a href="/docs/providers/kubernetes/r/secret.html">kubernetes_secret</a>
+              <%= link_to "kubernetes_secret", "/docs/providers/kubernetes/r/secret.html" %>
             </li>
             <li<%= sidebar_current("docs-kubernetes-resource-service") %>>
-              <a href="/docs/providers/kubernetes/r/service.html">kubernetes_service</a>
+              <%= link_to "kubernetes_service", "/docs/providers/kubernetes/r/service.html" %>
             </li>
           </ul>
         </li>

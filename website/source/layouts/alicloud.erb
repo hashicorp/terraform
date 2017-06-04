@@ -3,24 +3,24 @@
         <div class="docs-sidebar hidden-print affix-top" role="complementary">
             <ul class="nav docs-sidenav">
                 <li<%= sidebar_current("docs-home") %>>
-                    <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                    <%= link_to "&laquo; Documentation Home", "/docs/providers/index.html" %>
                 </li>
 
                 <li<%= sidebar_current("docs-alicloud-index") %>>
-                    <a href="/docs/providers/alicloud/index.html">Alicloud Provider</a>
+                    <%= link_to "Alicloud Provider", "/docs/providers/alicloud/index.html" %>
                 </li>
 
                  <li<%= sidebar_current("docs-alicloud-datasource") %>>
                     <a href="#">Data Sources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-alicloud-datasource-instance-types") %>>
-                            <a href="/docs/providers/alicloud/d/instance_types.html">alicloud_instance_types</a>
+                            <%= link_to "alicloud_instance_types", "/docs/providers/alicloud/d/instance_types.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-datasource-images") %>>
-                            <a href="/docs/providers/alicloud/d/images.html">alicloud_images</a>
+                            <%= link_to "alicloud_images", "/docs/providers/alicloud/d/images.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-datasource-zones") %>>
-                            <a href="/docs/providers/alicloud/d/zones.html">alicloud_zones</a>
+                            <%= link_to "alicloud_zones", "/docs/providers/alicloud/d/zones.html" %>
                         </li>
                     </ul>
                 </li>
@@ -29,19 +29,19 @@
                     <a href="#">ECS Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-alicloud-resource-disk") %>>
-                            <a href="/docs/providers/alicloud/r/disk.html">alicloud_disk</a>
+                            <%= link_to "alicloud_disk", "/docs/providers/alicloud/r/disk.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-disk-attachment") %>>
-                            <a href="/docs/providers/alicloud/r/disk_attachment.html">alicloud_disk_attachment</a>
+                            <%= link_to "alicloud_disk_attachment", "/docs/providers/alicloud/r/disk_attachment.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-instance") %>>
-                            <a href="/docs/providers/alicloud/r/instance.html">alicloud_instance</a>
+                            <%= link_to "alicloud_instance", "/docs/providers/alicloud/r/instance.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-eip") %>>
-                            <a href="/docs/providers/alicloud/r/eip.html">alicloud_eip</a>
+                            <%= link_to "alicloud_eip", "/docs/providers/alicloud/r/eip.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-eip-association") %>>
-                            <a href="/docs/providers/alicloud/r/eip_association.html">alicloud_eip_association</a>
+                            <%= link_to "alicloud_eip_association", "/docs/providers/alicloud/r/eip_association.html" %>
                         </li>
                     </ul>
                 </li>
@@ -50,10 +50,10 @@
                     <a href="#">SLB Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-alicloud-resource-slb") %>>
-                            <a href="/docs/providers/alicloud/r/slb.html">alicloud_slb</a>
+                            <%= link_to "alicloud_slb", "/docs/providers/alicloud/r/slb.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-slb-attachment") %>>
-                            <a href="/docs/providers/alicloud/r/slb_attachment.html">alicloud_slb_attachment</a>
+                            <%= link_to "alicloud_slb_attachment", "/docs/providers/alicloud/r/slb_attachment.html" %>
                         </li>
                     </ul>
                 </li>
@@ -62,22 +62,22 @@
                     <a href="#">VPC Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-alicloud-resource-vpc") %>>
-                            <a href="/docs/providers/alicloud/r/vpc.html">alicloud_vpc</a>
+                            <%= link_to "alicloud_vpc", "/docs/providers/alicloud/r/vpc.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-vswitch") %>>
-                            <a href="/docs/providers/alicloud/r/vswitch.html">alicloud_vswitch</a>
+                            <%= link_to "alicloud_vswitch", "/docs/providers/alicloud/r/vswitch.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-route-entry") %>>
-                            <a href="/docs/providers/alicloud/r/vroute_entry.html">alicloud_route_entry</a>
+                            <%= link_to "alicloud_route_entry", "/docs/providers/alicloud/r/vroute_entry.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-security-group") %>>
-                            <a href="/docs/providers/alicloud/r/security_group.html">alicloud_security_group</a>
+                            <%= link_to "alicloud_security_group", "/docs/providers/alicloud/r/security_group.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-security-group-rule") %>>
-                                                    <a href="/docs/providers/alicloud/r/security_group_rule.html">alicloud_security_group_rule</a>
+                                                    <%= link_to "alicloud_security_group_rule", "/docs/providers/alicloud/r/security_group_rule.html" %>
                                                 </li>
                         <li<%= sidebar_current("docs-alicloud-resource-nat-gateway") %>>
-                            <a href="/docs/providers/alicloud/r/nat_gateway.html">alicloud_nat_gateway</a>
+                            <%= link_to "alicloud_nat_gateway", "/docs/providers/alicloud/r/nat_gateway.html" %>
                         </li>
                     </ul>
                 </li>
@@ -86,7 +86,7 @@
                     <a href="#">RDS Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-alicloud-resource-rds") %>>
-                            <a href="/docs/providers/alicloud/r/db_instance.html">alicloud_rds</a>
+                            <%= link_to "alicloud_rds", "/docs/providers/alicloud/r/db_instance.html" %>
                         </li>
 
                     </ul>
@@ -96,16 +96,16 @@
                     <a href="#">ESS Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-alicloud-resource-ess") %>>
-                            <a href="/docs/providers/alicloud/r/ess_scaling_group.html">alicloud_ess_scaling_group</a>
+                            <%= link_to "alicloud_ess_scaling_group", "/docs/providers/alicloud/r/ess_scaling_group.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-ess") %>>
-                            <a href="/docs/providers/alicloud/r/ess_scaling_configuration.html">alicloud_ess_scaling_configuration</a>
+                            <%= link_to "alicloud_ess_scaling_configuration", "/docs/providers/alicloud/r/ess_scaling_configuration.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-ess") %>>
-                            <a href="/docs/providers/alicloud/r/ess_scaling_rule.html">alicloud_ess_scaling_rule</a>
+                            <%= link_to "alicloud_ess_scaling_rule", "/docs/providers/alicloud/r/ess_scaling_rule.html" %>
                         </li>
                         <li<%= sidebar_current("docs-alicloud-resource-ess") %>>
-                            <a href="/docs/providers/alicloud/r/ess_schedule.html">alicloud_ess_schedule</a>
+                            <%= link_to "alicloud_ess_schedule", "/docs/providers/alicloud/r/ess_schedule.html" %>
                         </li>
 
                     </ul>

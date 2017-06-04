@@ -3,24 +3,24 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/providers/index.html">All Providers</a>
+          <%= link_to "All Providers", "/docs/providers/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-random-index") %>>
-          <a href="/docs/providers/random/index.html">Random Provider</a>
+          <%= link_to "Random Provider", "/docs/providers/random/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-random-resource") %>>
           <a href="#">Resources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-random-resource-id") %>>
-              <a href="/docs/providers/random/r/id.html">random_id</a>
+              <%= link_to "random_id", "/docs/providers/random/r/id.html" %>
             </li>
             <li<%= sidebar_current("docs-random-resource-pet") %>>
-              <a href="/docs/providers/random/r/pet.html">random_pet</a>
+              <%= link_to "random_pet", "/docs/providers/random/r/pet.html" %>
             </li>
             <li<%= sidebar_current("docs-random-resource-shuffle") %>>
-              <a href="/docs/providers/random/r/shuffle.html">random_shuffle</a>
+              <%= link_to "random_shuffle", "/docs/providers/random/r/shuffle.html" %>
             </li>
           </ul>
         </li>

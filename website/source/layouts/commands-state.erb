@@ -3,42 +3,42 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/commands/index.html">All Commands</a>
+          <%= link_to "All Commands", "/docs/commands/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-state-index") %>>
-          <a href="/docs/commands/state/index.html">State Command</a>
+          <%= link_to "State Command", "/docs/commands/state/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-state-address") %>>
-          <a href="/docs/commands/state/addressing.html">Resource Addressing</a>
+          <%= link_to "Resource Addressing", "/docs/commands/state/addressing.html" %>
         </li>
 
         <li<%= sidebar_current("docs-state-sub") %>>
           <a href="#">Subcommands</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-state-sub-list") %>>
-              <a href="/docs/commands/state/list.html">list</a>
+              <%= link_to "list", "/docs/commands/state/list.html" %>
             </li>
 
             <li<%= sidebar_current("docs-state-sub-mv") %>>
-              <a href="/docs/commands/state/mv.html">mv</a>
+              <%= link_to "mv", "/docs/commands/state/mv.html" %>
             </li>
 
             <li<%= sidebar_current("docs-state-sub-pull") %>>
-              <a href="/docs/commands/state/pull.html">pull</a>
+              <%= link_to "pull", "/docs/commands/state/pull.html" %>
             </li>
 
             <li<%= sidebar_current("docs-state-sub-push") %>>
-              <a href="/docs/commands/state/push.html">push</a>
+              <%= link_to "push", "/docs/commands/state/push.html" %>
             </li>
 
             <li<%= sidebar_current("docs-state-sub-rm") %>>
-              <a href="/docs/commands/state/rm.html">rm</a>
+              <%= link_to "rm", "/docs/commands/state/rm.html" %>
             </li>
 
             <li<%= sidebar_current("docs-state-sub-show") %>>
-              <a href="/docs/commands/state/show.html">show</a>
+              <%= link_to "show", "/docs/commands/state/show.html" %>
             </li>
           </ul>
         </li>

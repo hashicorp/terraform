@@ -3,24 +3,24 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/providers/index.html">All Providers</a>
+          <%= link_to "All Providers", "/docs/providers/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-influxdb-index") %>>
-          <a href="/docs/providers/influxdb/index.html">InfluxDB Provider</a>
+          <%= link_to "InfluxDB Provider", "/docs/providers/influxdb/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-influxdb-resource") %>>
           <a href="#">Resources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-influxdb-resource-database") %>>
-              <a href="/docs/providers/influxdb/r/database.html">influxdb_database</a>
+              <%= link_to "influxdb_database", "/docs/providers/influxdb/r/database.html" %>
             </li>
             <li<%= sidebar_current("docs-influxdb-resource-user") %>>
-              <a href="/docs/providers/influxdb/r/user.html">influxdb_user</a>
+              <%= link_to "influxdb_user", "/docs/providers/influxdb/r/user.html" %>
             </li>
             <li<%= sidebar_current("docs-influxdb-resource-continuous_query") %>>
-              <a href="/docs/providers/influxdb/r/continuous_query.html">influxdb_continuous_query</a>
+              <%= link_to "influxdb_continuous_query", "/docs/providers/influxdb/r/continuous_query.html" %>
             </li>
           </ul>
         </li>

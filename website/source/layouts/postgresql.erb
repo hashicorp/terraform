@@ -3,27 +3,27 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-        <a href="/docs/providers/index.html">All Providers</a>
+        <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-postgresql-index") %>>
-        <a href="/docs/providers/postgresql/index.html">PostgreSQL Provider</a>
+        <%= link_to "PostgreSQL Provider", "/docs/providers/postgresql/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-postgresql-resource") %>>
         <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-postgresql-resource-postgresql_database") %>>
-                        <a href="/docs/providers/postgresql/r/postgresql_database.html">postgresql_database</a>
+                        <%= link_to "postgresql_database", "/docs/providers/postgresql/r/postgresql_database.html" %>
                     </li>
                     <li<%= sidebar_current("docs-postgresql-resource-postgresql_extension") %>>
-                        <a href="/docs/providers/postgresql/r/postgresql_extension.html">postgresql_extension</a>
+                        <%= link_to "postgresql_extension", "/docs/providers/postgresql/r/postgresql_extension.html" %>
                     </li>
                     <li<%= sidebar_current("docs-postgresql-resource-postgresql_role") %>>
-                        <a href="/docs/providers/postgresql/r/postgresql_role.html">postgresql_role</a>
+                        <%= link_to "postgresql_role", "/docs/providers/postgresql/r/postgresql_role.html" %>
                     </li>
                     <li<%= sidebar_current("docs-postgresql-resource-postgresql_schema") %>>
-                        <a href="/docs/providers/postgresql/r/postgresql_schema.html">postgresql_schema</a>
+                        <%= link_to "postgresql_schema", "/docs/providers/postgresql/r/postgresql_schema.html" %>
                     </li>
                 </ul>
         </li>

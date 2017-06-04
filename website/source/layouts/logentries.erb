@@ -3,21 +3,21 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/providers/index.html">All Providers</a>
+          <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-logentries-index") %>>
-          <a href="/docs/providers/logentries/index.html">Logentries Provider</a>
+          <%= link_to "Logentries Provider", "/docs/providers/logentries/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-logentries-resource") %>>
           <a href="#">Resources</a>
                   <ul class="nav nav-visible">
                       <li<%= sidebar_current("docs-logentries-resource-log") %>>
-              <a href="/docs/providers/logentries/r/log.html">logentries_log</a>
+              <%= link_to "logentries_log", "/docs/providers/logentries/r/log.html" %>
                       </li>
                       <li<%= sidebar_current("docs-logentries-resource-logset") %>>
-              <a href="/docs/providers/logentries/r/logset.html">logentries_logset</a>
+              <%= link_to "logentries_logset", "/docs/providers/logentries/r/logset.html" %>
                       </li>
           </ul>
         </li>

@@ -3,30 +3,30 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-        <a href="/docs/providers/index.html">All Providers</a>
+        <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-chef-index") %>>
-        <a href="/docs/providers/chef/index.html">Chef Provider</a>
+        <%= link_to "Chef Provider", "/docs/providers/chef/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-chef-resource") %>>
         <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-chef-resource-data-bag") %>>
-          <a href="/docs/providers/chef/r/data_bag.html">chef_data_bag</a>
+          <%= link_to "chef_data_bag", "/docs/providers/chef/r/data_bag.html" %>
           </li>
                     <li<%= sidebar_current("docs-chef-resource-data-bag-item") %>>
-          <a href="/docs/providers/chef/r/data_bag_item.html">chef_data_bag_item</a>
+          <%= link_to "chef_data_bag_item", "/docs/providers/chef/r/data_bag_item.html" %>
           </li>
                     <li<%= sidebar_current("docs-chef-resource-environment") %>>
-          <a href="/docs/providers/chef/r/environment.html">chef_environment</a>
+          <%= link_to "chef_environment", "/docs/providers/chef/r/environment.html" %>
           </li>
                     <li<%= sidebar_current("docs-chef-resource-node") %>>
-          <a href="/docs/providers/chef/r/node.html">chef_node</a>
+          <%= link_to "chef_node", "/docs/providers/chef/r/node.html" %>
           </li>
                     <li<%= sidebar_current("docs-chef-resource-role") %>>
-          <a href="/docs/providers/chef/r/role.html">chef_role</a>
+          <%= link_to "chef_role", "/docs/providers/chef/r/role.html" %>
           </li>
         </ul>
         </li>

@@ -3,18 +3,18 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-        <a href="/docs/providers/index.html">All Providers</a>
+        <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-mailgun-index") %>>
-        <a href="/docs/providers/mailgun/index.html">Mailgun Provider</a>
+        <%= link_to "Mailgun Provider", "/docs/providers/mailgun/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-mailgun-resource") %>>
         <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-mailgun-resource-domain") %>>
-          <a href="/docs/providers/mailgun/r/domain.html">mailgun_domain</a>
+          <%= link_to "mailgun_domain", "/docs/providers/mailgun/r/domain.html" %>
                     </li>
         </ul>
         </li>

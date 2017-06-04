@@ -3,11 +3,11 @@
         <div class="docs-sidebar hidden-print affix-top" role="complementary">
             <ul class="nav docs-sidenav">
                 <li<%= sidebar_current("docs-home") %>>
-                    <a href="/docs/providers/index.html">All Providers</a>
+                    <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
                 <li<%= sidebar_current("docs-vault-index") %>>
-                    <a href="/docs/providers/vault/index.html">Vault Provider</a>
+                    <%= link_to "Vault Provider", "/docs/providers/vault/index.html" %>
                 </li>
 
                 <li<%= sidebar_current("docs-vault-datasource") %>>
@@ -15,7 +15,7 @@
                     <ul class="nav nav-visible">
 
                         <li<%= sidebar_current("docs-vault-datasource-generic-secret") %>>
-                            <a href="/docs/providers/vault/d/generic_secret.html">vault_generic_secret</a>
+                            <%= link_to "vault_generic_secret", "/docs/providers/vault/d/generic_secret.html" %>
                         </li>
 
                     </ul>
@@ -25,19 +25,19 @@
                     <a href="#">Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-vault-resource-auth-backend") %>>
-                            <a href="/docs/providers/vault/r/auth_backend.html">vault_auth_backend</a>
+                            <%= link_to "vault_auth_backend", "/docs/providers/vault/r/auth_backend.html" %>
                         </li>
 
                         <li<%= sidebar_current("docs-vault-resource-generic-secret") %>>
-                            <a href="/docs/providers/vault/r/generic_secret.html">vault_generic_secret</a>
+                            <%= link_to "vault_generic_secret", "/docs/providers/vault/r/generic_secret.html" %>
                         </li>
 
                         <li<%= sidebar_current("docs-vault-resource-mount") %>>
-                            <a href="/docs/providers/vault/r/mount.html">vault_mount</a>
+                            <%= link_to "vault_mount", "/docs/providers/vault/r/mount.html" %>
                         </li>
 
                         <li<%= sidebar_current("docs-vault-resource-policy") %>>
-                            <a href="/docs/providers/vault/r/policy.html">vault_policy</a>
+                            <%= link_to "vault_policy", "/docs/providers/vault/r/policy.html" %>
                         </li>
 
                     </ul>

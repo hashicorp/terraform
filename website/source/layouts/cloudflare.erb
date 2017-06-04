@@ -3,18 +3,18 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-        <a href="/docs/providers/index.html">All Providers</a>
+        <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-cloudflare-index") %>>
-        <a href="/docs/providers/cloudflare/index.html">Cloudflare Provider</a>
+        <%= link_to "Cloudflare Provider", "/docs/providers/cloudflare/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-cloudflare-resource") %>>
         <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-cloudflare-resource-record") %>>
-          <a href="/docs/providers/cloudflare/r/record.html">cloudflare_record</a>
+          <%= link_to "cloudflare_record", "/docs/providers/cloudflare/r/record.html" %>
           </li>
         </ul>
         </li>

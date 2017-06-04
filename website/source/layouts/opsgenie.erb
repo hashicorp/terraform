@@ -3,18 +3,18 @@
 <div class="docs-sidebar hidden-print affix-top" role="complementary">
     <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-            <a href="/docs/providers/index.html">All Providers</a>
+            <%= link_to "All Providers", "/docs/providers/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-opsgenie-index") %>>
-            <a href="/docs/providers/opsgenie/index.html">OpsGenie Provider</a>
+            <%= link_to "OpsGenie Provider", "/docs/providers/opsgenie/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-opsgenie-datasource") %>>
             <a href="#">Data Sources</a>
             <ul class="nav nav-visible">
                 <li<%= sidebar_current("docs-opsgenie-datasource-user") %>>
-                    <a href="/docs/providers/opsgenie/d/user.html">opsgenie_user</a>
+                    <%= link_to "opsgenie_user", "/docs/providers/opsgenie/d/user.html" %>
                 </li>
             </ul>
         </li>
@@ -23,10 +23,10 @@
             <a href="#">Resources</a>
             <ul class="nav nav-visible">
                 <li<%= sidebar_current("docs-opsgenie-resource-team") %>>
-                    <a href="/docs/providers/opsgenie/r/team.html">opsgenie_team</a>
+                    <%= link_to "opsgenie_team", "/docs/providers/opsgenie/r/team.html" %>
                 </li>
                 <li<%= sidebar_current("docs-opsgenie-resource-user") %>>
-                    <a href="/docs/providers/opsgenie/r/user.html">opsgenie_user</a>
+                    <%= link_to "opsgenie_user", "/docs/providers/opsgenie/r/user.html" %>
                 </li>
             </ul>
         </li>

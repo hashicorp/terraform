@@ -3,30 +3,30 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-        <a href="/docs/providers/index.html">All Providers</a>
+        <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-librato-index") %>>
-        <a href="/docs/providers/librato/index.html">Librato Provider</a>
+        <%= link_to "Librato Provider", "/docs/providers/librato/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-librato-resource") %>>
         <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-librato-resource-alert") %>>
-          <a href="/docs/providers/librato/r/alert.html">librato_alert</a>
+          <%= link_to "librato_alert", "/docs/providers/librato/r/alert.html" %>
                     </li>
                     <li<%= sidebar_current("docs-librato-resource-metric") %>>
-          <a href="/docs/providers/librato/r/metric.html">librato_metric</a>
+          <%= link_to "librato_metric", "/docs/providers/librato/r/metric.html" %>
                     </li>
                     <li<%= sidebar_current("docs-librato-resource-service") %>>
-          <a href="/docs/providers/librato/r/service.html">librato_service</a>
+          <%= link_to "librato_service", "/docs/providers/librato/r/service.html" %>
                     </li>
                     <li<%= sidebar_current("docs-librato-resource-space") %>>
-          <a href="/docs/providers/librato/r/space.html">librato_space</a>
+          <%= link_to "librato_space", "/docs/providers/librato/r/space.html" %>
                     </li>
                     <li<%= sidebar_current("docs-librato-resource-space-chart") %>>
-          <a href="/docs/providers/librato/r/space_chart.html">librato_space_chart</a>
+          <%= link_to "librato_space_chart", "/docs/providers/librato/r/space_chart.html" %>
                     </li>
         </ul>
         </li>
