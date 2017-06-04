@@ -35,6 +35,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* provider/alicloud: set `alicloud_nat_gateway` zone to be Computed to avoid perpetual diffs [GH-15050]
+* provider/alicloud: set provider to read env vars for access key and secrey key if empty strings [GH-15050]
 * provider/aws: ForceNew aws_launch_config on ebs_block_device change [GH-14899]
 * provider/aws: Avoid crash when EgressOnly IGW disappears [GH-14929]
 * provider/aws: Allow IPv6/IPv4 addresses to coexist [GH-13702]
