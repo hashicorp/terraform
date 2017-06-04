@@ -114,7 +114,6 @@ func resourceAliyunInstance() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
-				ForceNew:     true,
 				ValidateFunc: validateIntegerInRange(40, 500),
 			},
 
