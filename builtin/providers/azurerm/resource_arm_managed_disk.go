@@ -43,6 +43,7 @@ func resourceArmManagedDisk() *schema.Resource {
 					string(disk.PremiumLRS),
 					string(disk.StandardLRS),
 				}, true),
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"create_option": {
@@ -151,8 +152,9 @@ func resourceArmManagedDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	createDisk.CreationData = creationData
 
 	_, diskErr := diskClient.CreateOrUpdate(resGroup, name, createDisk, make(chan struct{}))
-	if diskErr != nil {
-		return diskErr
+	err := <-diskErr
+	if err != nil {
+		return err
 	}
 
 	read, err := diskClient.Get(resGroup, name)
@@ -214,7 +216,9 @@ func resourceArmManagedDiskDelete(d *schema.ResourceData, meta interface{}) erro
 	resGroup := id.ResourceGroup
 	name := id.Path["disks"]
 
-	if _, err = diskClient.Delete(resGroup, name, make(chan struct{})); err != nil {
+	_, error := diskClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
+	if err != nil {
 		return err
 	}
 

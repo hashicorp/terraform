@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
@@ -16,6 +17,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/dns/v2/zones"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/routerinsertion"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
@@ -78,7 +80,11 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Head
 		return nil, err
 	}
 
-	log.Printf("[DEBUG] Openstack Request headers:\n%s", strings.Join(RedactHeaders(headers), "\n"))
+	// Sort the headers for consistency
+	redactedHeaders := RedactHeaders(headers)
+	sort.Strings(redactedHeaders)
+
+	log.Printf("[DEBUG] Openstack Request headers:\n%s", strings.Join(redactedHeaders, "\n"))
 
 	// Handle request contentType
 	contentType := headers.Get("Content-Type")
@@ -95,7 +101,11 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Head
 // logResponse will log the HTTP Response details.
 // If the body is JSON, it will attempt to be pretty-formatted.
 func (lrt *LogRoundTripper) logResponse(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
-	log.Printf("[DEBUG] Openstack Response headers:\n%s", strings.Join(RedactHeaders(headers), "\n"))
+	// Sort the headers for consistency
+	redactedHeaders := RedactHeaders(headers)
+	sort.Strings(redactedHeaders)
+
+	log.Printf("[DEBUG] Openstack Response headers:\n%s", strings.Join(redactedHeaders, "\n"))
 
 	contentType := headers.Get("Content-Type")
 	if strings.HasPrefix(contentType, "application/json") {
@@ -154,15 +164,35 @@ func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
 	return string(pretty)
 }
 
+// Firewall is an OpenStack firewall.
+type Firewall struct {
+	firewalls.Firewall
+	routerinsertion.FirewallExt
+}
+
 // FirewallCreateOpts represents the attributes used when creating a new firewall.
 type FirewallCreateOpts struct {
-	firewalls.CreateOpts
+	firewalls.CreateOptsBuilder
 	ValueSpecs map[string]string `json:"value_specs,omitempty"`
 }
 
-// ToFirewallCreateMap casts a CreateOpts struct to a map.
+// ToFirewallCreateMap casts a CreateOptsExt struct to a map.
 // It overrides firewalls.ToFirewallCreateMap to add the ValueSpecs field.
 func (opts FirewallCreateOpts) ToFirewallCreateMap() (map[string]interface{}, error) {
+	body, err := opts.CreateOptsBuilder.ToFirewallCreateMap()
+	if err != nil {
+		return nil, err
+	}
+
+	return AddValueSpecs(body), nil
+}
+
+//FirewallUpdateOpts
+type FirewallUpdateOpts struct {
+	firewalls.UpdateOptsBuilder
+}
+
+func (opts FirewallUpdateOpts) ToFirewallUpdateMap() (map[string]interface{}, error) {
 	return BuildRequest(opts, "firewall")
 }
 

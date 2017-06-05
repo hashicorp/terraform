@@ -67,10 +67,13 @@ func resourceArmStorageTableCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	name := d.Get("name").(string)
-	table := storage.AzureTable(name)
+	table := tableClient.GetTableReference(name)
 
 	log.Printf("[INFO] Creating table %q in storage account %q.", name, storageAccountName)
-	err = tableClient.CreateTable(table)
+
+	timeout := uint(60)
+	options := &storage.TableOptions{}
+	err = table.Create(timeout, storage.NoMetadata, options)
 	if err != nil {
 		return fmt.Errorf("Error creating table %q in storage account %q: %s", name, storageAccountName, err)
 	}
@@ -97,16 +100,19 @@ func resourceArmStorageTableRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	name := d.Get("name").(string)
-	tables, err := tableClient.QueryTables()
+	metaDataLevel := storage.MinimalMetadata
+	options := &storage.QueryTablesOptions{}
+	tables, err := tableClient.QueryTables(metaDataLevel, options)
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve storage tables in account %q: %s", name, err)
 	}
 
 	var found bool
-	for _, table := range tables {
-		if string(table) == name {
+	for _, table := range tables.Tables {
+		tableName := string(table.Name)
+		if tableName == name {
 			found = true
-			d.Set("name", string(table))
+			d.Set("name", tableName)
 		}
 	}
 
@@ -129,15 +135,17 @@ func resourceArmStorageTableDelete(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 	if !accountExists {
-		log.Printf("[INFO]Storage Account %q doesn't exist so the table won't exist", storageAccountName)
+		log.Printf("[INFO] Storage Account %q doesn't exist so the table won't exist", storageAccountName)
 		return nil
 	}
 
 	name := d.Get("name").(string)
-	table := storage.AzureTable(name)
+	table := tableClient.GetTableReference(name)
+	timeout := uint(60)
+	options := &storage.TableOptions{}
 
 	log.Printf("[INFO] Deleting storage table %q in account %q", name, storageAccountName)
-	if err := tableClient.DeleteTable(table); err != nil {
+	if err := table.Delete(timeout, options); err != nil {
 		return fmt.Errorf("Error deleting storage table %q from storage account %q: %s", name, storageAccountName, err)
 	}
 

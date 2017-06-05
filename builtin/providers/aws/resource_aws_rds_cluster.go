@@ -227,6 +227,11 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Optional: true,
 			},
 
+			"cluster_resource_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -523,6 +528,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("cluster_identifier", dbc.DBClusterIdentifier)
+	d.Set("cluster_resource_id", dbc.DbClusterResourceId)
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
 	d.Set("db_cluster_parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("endpoint", dbc.Endpoint)

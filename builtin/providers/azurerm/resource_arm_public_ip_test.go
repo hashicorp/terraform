@@ -278,7 +278,8 @@ func testCheckAzureRMPublicIpDisappears(name string) resource.TestCheckFunc {
 
 		conn := testAccProvider.Meta().(*ArmClient).publicIPClient
 
-		_, err := conn.Delete(resourceGroup, publicIpName, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, publicIpName, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on publicIPClient: %s", err)
 		}

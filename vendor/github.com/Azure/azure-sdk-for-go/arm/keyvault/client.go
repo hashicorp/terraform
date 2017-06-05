@@ -28,9 +28,6 @@ import (
 )
 
 const (
-	// APIVersion is the version of the Keyvault
-	APIVersion = "2015-06-01"
-
 	// DefaultBaseURI is the default URI used for the service Keyvault
 	DefaultBaseURI = "https://management.azure.com"
 )
@@ -39,7 +36,6 @@ const (
 type ManagementClient struct {
 	autorest.Client
 	BaseURI        string
-	APIVersion     string
 	SubscriptionID string
 }
 
@@ -53,7 +49,6 @@ func NewWithBaseURI(baseURI string, subscriptionID string) ManagementClient {
 	return ManagementClient{
 		Client:         autorest.NewClientWithUserAgent(UserAgent()),
 		BaseURI:        baseURI,
-		APIVersion:     APIVersion,
 		SubscriptionID: subscriptionID,
 	}
 }

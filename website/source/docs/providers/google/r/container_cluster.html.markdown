@@ -49,9 +49,6 @@ resource "google_container_cluster" "primary" {
 * `initial_node_count` - (Required) The number of nodes to create in this
     cluster (not including the Kubernetes master).
 
-* `master_auth` - (Required) The authentication information for accessing the
-    Kubernetes master.
-
 * `name` - (Required) The name of the cluster, unique within the project and
     zone.
 
@@ -59,6 +56,9 @@ resource "google_container_cluster" "primary" {
     in `initial_node_count` should be created in.
 
 - - -
+* `master_auth` - (Optional) The authentication information for accessing the
+    Kubernetes master.
+
 * `additional_zones` - (Optional) If additional zones are configured, the number
     of nodes specified in `initial_node_count` is created in all specified zones.
 
@@ -100,10 +100,10 @@ which the cluster's instances are launched
 
 **Master Auth** supports the following arguments:
 
-* `password` - The password to use for HTTP basic authentication when accessing
+* `password` - (Required) The password to use for HTTP basic authentication when accessing
     the Kubernetes master endpoint
 
-* `username` - The username to use for HTTP basic authentication when accessing
+* `username` - (Required) The username to use for HTTP basic authentication when accessing
     the Kubernetes master endpoint
 
 **Node Config** supports the following arguments:

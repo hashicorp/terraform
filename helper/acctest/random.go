@@ -1,13 +1,14 @@
 package acctest
 
 import (
-	"bufio"
 	"bytes"
 	crand "crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"strings"
 	"time"
@@ -58,23 +59,71 @@ func RandStringFromCharSet(strlen int, charSet string) string {
 // RandSSHKeyPair generates a public and private SSH key pair. The public key is
 // returned in OpenSSH format, and the private key is PEM encoded.
 func RandSSHKeyPair(comment string) (string, string, error) {
-	privateKey, err := rsa.GenerateKey(crand.Reader, 1024)
-	if err != nil {
-		return "", "", err
-	}
-
-	var privateKeyBuffer bytes.Buffer
-	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
-	if err := pem.Encode(bufio.NewWriter(&privateKeyBuffer), privateKeyPEM); err != nil {
-		return "", "", err
-	}
+	privateKey, privateKeyPEM, err := genPrivateKey()
 
 	publicKey, err := ssh.NewPublicKey(&privateKey.PublicKey)
 	if err != nil {
 		return "", "", err
 	}
 	keyMaterial := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicKey)))
-	return fmt.Sprintf("%s %s", keyMaterial, comment), privateKeyBuffer.String(), nil
+	return fmt.Sprintf("%s %s", keyMaterial, comment), privateKeyPEM, nil
+}
+
+// RandTLSCert generates a self-signed TLS certificate with a newly created
+// private key, and returns both the cert and the private key PEM encoded.
+func RandTLSCert(orgName string) (string, string, error) {
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(int64(RandInt())),
+		Subject: pkix.Name{
+			Organization: []string{orgName},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(24 * time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
+	privateKey, privateKeyPEM, err := genPrivateKey()
+	if err != nil {
+		return "", "", err
+	}
+
+	cert, err := x509.CreateCertificate(crand.Reader, template, template, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		return "", "", err
+	}
+
+	certPEM, err := pemEncode(cert, "CERTIFICATE")
+	if err != nil {
+		return "", "", err
+	}
+
+	return certPEM, privateKeyPEM, nil
+}
+
+func genPrivateKey() (*rsa.PrivateKey, string, error) {
+	privateKey, err := rsa.GenerateKey(crand.Reader, 1024)
+	if err != nil {
+		return nil, "", err
+	}
+
+	privateKeyPEM, err := pemEncode(x509.MarshalPKCS1PrivateKey(privateKey), "RSA PRIVATE KEY")
+	if err != nil {
+		return nil, "", err
+	}
+
+	return privateKey, privateKeyPEM, nil
+}
+
+func pemEncode(b []byte, block string) (string, error) {
+	var buf bytes.Buffer
+	pb := &pem.Block{Type: block, Bytes: b}
+	if err := pem.Encode(&buf, pb); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }
 
 // Seeds random with current timestamp

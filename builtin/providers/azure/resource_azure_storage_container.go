@@ -60,7 +60,11 @@ func resourceAzureStorageContainerCreate(d *schema.ResourceData, meta interface{
 	log.Println("[INFO] Creating storage container on Azure.")
 	name := d.Get("name").(string)
 	accessType := storage.ContainerAccessType(d.Get("container_access_type").(string))
-	err = blobClient.CreateContainer(name, accessType)
+	container := blobClient.GetContainerReference(name)
+	options := &storage.CreateContainerOptions{
+		Access: accessType,
+	}
+	err = container.Create(options)
 	if err != nil {
 		return fmt.Errorf("Failed to create storage container on Azure: %s", err)
 	}
@@ -129,7 +133,8 @@ func resourceAzureStorageContainerExists(d *schema.ResourceData, meta interface{
 
 	log.Println("[INFO] Checking existence of storage container on Azure.")
 	name := d.Get("name").(string)
-	exists, err := blobClient.ContainerExists(name)
+	container := blobClient.GetContainerReference(name)
+	exists, err := container.Exists()
 	if err != nil {
 		return false, fmt.Errorf("Failed to query for Azure storage container existence: %s", err)
 	}
@@ -154,7 +159,10 @@ func resourceAzureStorageContainerDelete(d *schema.ResourceData, meta interface{
 
 	log.Println("[INFO] Issuing Azure storage container deletion call.")
 	name := d.Get("name").(string)
-	if _, err := blobClient.DeleteContainerIfExists(name); err != nil {
+	container := blobClient.GetContainerReference(name)
+	options := &storage.DeleteContainerOptions{}
+	_, err = container.DeleteIfExists(options)
+	if err != nil {
 		return fmt.Errorf("Failed deleting storage container off Azure: %s", err)
 	}
 

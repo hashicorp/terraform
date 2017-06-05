@@ -9,9 +9,10 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	api "k8s.io/kubernetes/pkg/api/v1"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
-	"k8s.io/kubernetes/pkg/util/intstr"
+	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 func TestAccKubernetesService_basic(t *testing.T) {
@@ -328,7 +329,7 @@ func testAccCheckKubernetesServiceDestroy(s *terraform.State) error {
 			continue
 		}
 		namespace, name := idParts(rs.Primary.ID)
-		resp, err := conn.CoreV1().Services(namespace).Get(name)
+		resp, err := conn.CoreV1().Services(namespace).Get(name, meta_v1.GetOptions{})
 		if err == nil {
 			if resp.Name == rs.Primary.ID {
 				return fmt.Errorf("Service still exists: %s", rs.Primary.ID)
@@ -348,7 +349,7 @@ func testAccCheckKubernetesServiceExists(n string, obj *api.Service) resource.Te
 
 		conn := testAccProvider.Meta().(*kubernetes.Clientset)
 		namespace, name := idParts(rs.Primary.ID)
-		out, err := conn.CoreV1().Services(namespace).Get(name)
+		out, err := conn.CoreV1().Services(namespace).Get(name, meta_v1.GetOptions{})
 		if err != nil {
 			return err
 		}
