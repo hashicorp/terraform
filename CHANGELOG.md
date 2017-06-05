@@ -1,3 +1,4 @@
+
 ## 0.9.7 (Unreleased)
 
 FEATURES:
@@ -14,6 +15,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* provider/alicloud: Add the function of replacing ecs instance's system disk [GH-15048]
 * provider/aws: Expose RDS instance and cluster resource id [GH-14882]
 * provider/aws: Export internal tunnel addresses + document [GH-14835]
 * provider/aws: Fix misleading error in aws_route validation [GH-14972]
@@ -4129,128 +4131,4 @@ BUG FIXES:
   * provider/aws: Block devices can be encrypted ([#1718](https://github.com/hashicorp/terraform/issues/1718))
   * provider/aws: ASG health check grace period can be updated in-place ([#1682](https://github.com/hashicorp/terraform/issues/1682))
   * provider/aws: ELB security groups can be updated in-place ([#1662](https://github.com/hashicorp/terraform/issues/1662))
-  * provider/aws: `aws_main_route_table_association` can be deleted
-      manually ([#1806](https://github.com/hashicorp/terraform/issues/1806))
-  * provider/docker: image can reference more complex image addresses,
-      such as with private repos with ports ([#1818](https://github.com/hashicorp/terraform/issues/1818))
-  * provider/openstack: region config is not required ([#1441](https://github.com/hashicorp/terraform/issues/1441))
-  * provider/openstack: `enable_dhcp` for networking subnet should be bool ([#1741](https://github.com/hashicorp/terraform/issues/1741))
-  * provisioner/remote-exec: add random number to uploaded script path so
-      that parallel provisions work ([#1588](https://github.com/hashicorp/terraform/issues/1588))
-  * provisioner/remote-exec: chmod the script to 0755 properly ([#1796](https://github.com/hashicorp/terraform/issues/1796))
-
-## 0.4.2 (April 10, 2015)
-
-BUG FIXES:
-
-  * core: refresh won't remove outputs from state file ([#1369](https://github.com/hashicorp/terraform/issues/1369))
-  * core: clarify "unknown variable" error ([#1480](https://github.com/hashicorp/terraform/issues/1480))
-  * core: properly merge parent provider configs when asking for input
-  * provider/aws: fix panic possibility if RDS DB name is empty ([#1460](https://github.com/hashicorp/terraform/issues/1460))
-  * provider/aws: fix issue detecting credentials for some resources ([#1470](https://github.com/hashicorp/terraform/issues/1470))
-  * provider/google: fix issue causing unresolvable diffs when using legacy
-      `network` field on `google_compute_instance` ([#1458](https://github.com/hashicorp/terraform/issues/1458))
-
-## 0.4.1 (April 9, 2015)
-
-IMPROVEMENTS:
-
-  * provider/aws: Route 53 records can now update `ttl` and `records` attributes
-      without destroying/creating the record ([#1396](https://github.com/hashicorp/terraform/issues/1396))
-  * provider/aws: Support changing additional attributes of RDS databases
-      without forcing a new resource  ([#1382](https://github.com/hashicorp/terraform/issues/1382))
-
-BUG FIXES:
-
-  * core: module paths in ".terraform" are consistent across different
-      systems so copying your ".terraform" folder works. ([#1418](https://github.com/hashicorp/terraform/issues/1418))
-  * core: don't validate providers too early when nested in a module ([#1380](https://github.com/hashicorp/terraform/issues/1380))
-  * core: fix race condition in `count.index` interpolation ([#1454](https://github.com/hashicorp/terraform/issues/1454))
-  * core: properly initialize provisioners, fixing resource targeting
-      during destroy ([#1544](https://github.com/hashicorp/terraform/issues/1544))
-  * command/push: don't ask for input if terraform.tfvars is present
-  * command/remote-config: remove spurrious error "nil" when initializing
-      remote state on a new configuration. ([#1392](https://github.com/hashicorp/terraform/issues/1392))
-  * provider/aws: Fix issue with Route 53 and pre-existing Hosted Zones ([#1415](https://github.com/hashicorp/terraform/issues/1415))
-  * provider/aws: Fix refresh issue in Route 53 hosted zone ([#1384](https://github.com/hashicorp/terraform/issues/1384))
-  * provider/aws: Fix issue when changing map-public-ip in Subnets #1234
-  * provider/aws: Fix issue finding db subnets ([#1377](https://github.com/hashicorp/terraform/issues/1377))
-  * provider/aws: Fix issues with `*_block_device` attributes on instances and
-      launch configs creating unresolvable diffs when certain optional
-      parameters were omitted from the config ([#1445](https://github.com/hashicorp/terraform/issues/1445))
-  * provider/aws: Fix issue with `aws_launch_configuration` causing an
-      unnecessary diff for pre-0.4 environments ([#1371](https://github.com/hashicorp/terraform/issues/1371))
-  * provider/aws: Fix several related issues with `aws_launch_configuration`
-      causing unresolvable diffs ([#1444](https://github.com/hashicorp/terraform/issues/1444))
-  * provider/aws: Fix issue preventing launch configurations from being valid
-      in EC2 Classic ([#1412](https://github.com/hashicorp/terraform/issues/1412))
-  * provider/aws: Fix issue in updating Route 53 records on refresh/read. ([#1430](https://github.com/hashicorp/terraform/issues/1430))
-  * provider/docker: Don't ask for `cert_path` input on every run ([#1432](https://github.com/hashicorp/terraform/issues/1432))
-  * provider/google: Fix issue causing unresolvable diff on instances with
-      `network_interface` ([#1427](https://github.com/hashicorp/terraform/issues/1427))
-
-## 0.4.0 (April 2, 2015)
-
-BACKWARDS INCOMPATIBILITIES:
-
-  * Commands `terraform push` and `terraform pull` are now nested under
-    the `remote` command: `terraform remote push` and `terraform remote pull`.
-    The old `remote` functionality is now at `terraform remote config`. This
-    consolidates all remote state management under one command.
-  * Period-prefixed configuration files are now ignored. This might break
-    existing Terraform configurations if you had period-prefixed files.
-  * The `block_device` attribute of `aws_instance` has been removed in favor
-    of three more specific attributes to specify block device mappings:
-    `root_block_device`, `ebs_block_device`, and `ephemeral_block_device`.
-    Configurations using the old attribute will generate a validation error
-    indicating that they must be updated to use the new fields ([#1045](https://github.com/hashicorp/terraform/issues/1045)).
-
-FEATURES:
-
-  * **New provider: `dme` (DNSMadeEasy)** ([#855](https://github.com/hashicorp/terraform/issues/855))
-  * **New provider: `docker` (Docker)** - Manage container lifecycle
-      using the standard Docker API. ([#855](https://github.com/hashicorp/terraform/issues/855))
-  * **New provider: `openstack` (OpenStack)** - Interact with the many resources
-      provided by OpenStack. ([#924](https://github.com/hashicorp/terraform/issues/924))
-  * **New feature: `terraform_remote_state` resource** - Reference remote
-      states from other Terraform runs to use Terraform outputs as inputs
-      into another Terraform run.
-  * **New command: `taint`** - Manually mark a resource as tainted, causing
-      a destroy and recreate on the next plan/apply.
-  * **New resource: `aws_vpn_gateway`** ([#1137](https://github.com/hashicorp/terraform/issues/1137))
-  * **New resource: `aws_elastic_network_interfaces`** ([#1149](https://github.com/hashicorp/terraform/issues/1149))
-  * **Self-variables** can be used to reference the current resource's
-      attributes within a provisioner. Ex. `${self.private_ip_address}` ([#1033](https://github.com/hashicorp/terraform/issues/1033))
-  * **Continuous state** saving during `terraform apply`. The state file is
-      continuously updated as apply is running, meaning that the state is
-      less likely to become corrupt in a catastrophic case: terraform panic
-      or system killing Terraform.
-  * **Math operations** in interpolations. You can now do things like
-      `${count.index + 1}`. ([#1068](https://github.com/hashicorp/terraform/issues/1068))
-  * **New AWS SDK:** Move to `aws-sdk-go` (hashicorp/aws-sdk-go),
-      a fork of the official `awslabs` repo. We forked for stability while
-      `awslabs` refactored the library, and will move back to the officially
-      supported version in the next release.
-
-IMPROVEMENTS:
-
-  * **New config function: `format`** - Format a string using `sprintf`
-      format. ([#1096](https://github.com/hashicorp/terraform/issues/1096))
-  * **New config function: `replace`** - Search and replace string values.
-      Search can be a regular expression. See documentation for more
-      info. ([#1029](https://github.com/hashicorp/terraform/issues/1029))
-  * **New config function: `split`** - Split a value based on a delimiter.
-      This is useful for faking lists as parameters to modules.
-  * **New resource: `digitalocean_ssh_key`** ([#1074](https://github.com/hashicorp/terraform/issues/1074))
-  * config: Expand `~` with homedir in `file()` paths ([#1338](https://github.com/hashicorp/terraform/issues/1338))
-  * core: The serial of the state is only updated if there is an actual
-      change. This will lower the amount of state changing on things
-      like refresh.
-  * core: Autoload `terraform.tfvars.json` as well as `terraform.tfvars` ([#1030](https://github.com/hashicorp/terraform/issues/1030))
-  * core: `.tf` files that start with a period are now ignored. ([#1227](https://github.com/hashicorp/terraform/issues/1227))
-  * command/remote-config: After enabling remote state, a `pull` is
-      automatically done initially.
-  * providers/google: Add `size` option to disk blocks for instances. ([#1284](https://github.com/hashicorp/terraform/issues/1284))
-  * providers/aws: Improve support for tagging resources.
-  * providers/aws: Add a short syntax for Route 53 Record names, e.g.
-      `www`
+  * provider/aws: `aws_main_route_table
