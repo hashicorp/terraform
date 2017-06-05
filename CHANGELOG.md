@@ -1,6 +1,10 @@
 
 ## 0.9.7 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* The `lock_table` attribute in the S3 backend configuration has been deprecated in favor of `dynamodb_table`, which better reflects that the table is no longer only used for locks. [GH-14949]
+
 FEATURES:
 
  * **New Data Source:** `aws_elastic_beanstalk_solution_stack` [GH-14944]
@@ -15,6 +19,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* backend/consul: Storing state to Consul now uses Check-And-Set (CAS) by default to avoid inconsistent state, and will automatically attempt to re-acquire a lock if it is lost during Terraform execution. [GH-14930]
+* core: Remote state is now persisted more frequently to minimize data loss in the event of a crash. [GH-14834]
 * provider/alicloud: Add the function of replacing ecs instance's system disk [GH-15048]
 * provider/aws: Expose RDS instance and cluster resource id [GH-14882]
 * provider/aws: Export internal tunnel addresses + document [GH-14835]
