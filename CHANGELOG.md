@@ -50,6 +50,7 @@ BUG FIXES:
 * provider/aws: Retry Redshift cluster deletion on InvalidClusterState [GH-15068]
 * provider/aws: Retry Lambda func creation on IAM error [GH-15067]
 * provider/aws: Retry ECS service creation on ClusterNotFoundException [GH-15066]
+* provider/aws: Guard against panic when no aws_default_vpc found [GH-15070]
 * provider/azurerm: Preserve the Subnet properties on Update [GH-13877]
 * provider/datadog: make datadog_user verified a computed attribute [GH-15034]
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
