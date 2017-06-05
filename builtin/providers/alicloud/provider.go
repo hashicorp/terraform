@@ -61,6 +61,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_eip_association": resourceAliyunEipAssociation(),
 			"alicloud_slb":             resourceAliyunSlb(),
 			"alicloud_slb_attachment":  resourceAliyunSlbAttachment(),
+			"alicloud_oss_bucket":      resourceAlicloudOssBucket(),
 		},
 
 		ConfigureFunc: providerConfigure,
