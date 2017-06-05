@@ -7,22 +7,6 @@ variable "location" {
   default     = "southcentralus"
 }
 
-variable "subscription_id" {
-  description = "The subscription used by your service principal in which you will be using for your deployment"
-}
-
-variable "tenant_id" {
-  description = "The tenant id of the service principal in which you will be using for your deployment"
-}
-
-variable "client_id" {
-  description = "The client id of the service principal in which you will be using for your deployment"
-}
-
-variable "client_secret" {
-  description = "The client secret of the service principal in which you will be using for your deployment"
-}
-
 variable "unique_prefix" {
   description = "This prefix is used for names which need to be globally unique."
 }
