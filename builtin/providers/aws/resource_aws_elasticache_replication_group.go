@@ -267,6 +267,10 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 	d.Set("replication_group_id", rgp.ReplicationGroupId)
 
 	if rgp.NodeGroups != nil {
+		if len(rgp.NodeGroups[0].NodeGroupMembers) == 0 {
+			return nil
+		}
+
 		cacheCluster := *rgp.NodeGroups[0].NodeGroupMembers[0]
 
 		res, err := conn.DescribeCacheClusters(&elasticache.DescribeCacheClustersInput{
