@@ -19,6 +19,8 @@ func TestAccAwsSsmParameterDataSource_basic(t *testing.T) {
 				Config: testAccCheckAwsSsmParameterDataSourceConfig(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.aws_ssm_parameter.test", "name", name),
+					resource.TestCheckResourceAttr("data.aws_ssm_parameter.test", "type", "String"),
+					resource.TestCheckResourceAttr("data.aws_ssm_parameter.test", "value", "TestValue"),
 				),
 			},
 		},
@@ -27,8 +29,14 @@ func TestAccAwsSsmParameterDataSource_basic(t *testing.T) {
 
 func testAccCheckAwsSsmParameterDataSourceConfig(name string) string {
 	return fmt.Sprintf(`
-data "aws_ssm_parameter" "test" {
+resource "aws_ssm_parameter" "test" {
 	name = "%s"
+	type = "String"
+	value = "TestValue"
+}
+
+data "aws_ssm_parameter" "test" {
+	name = "${aws_ssm_parameter.test.name}"
 }
 `, name)
 }
