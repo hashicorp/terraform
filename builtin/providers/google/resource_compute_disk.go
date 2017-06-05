@@ -23,6 +23,7 @@ func resourceComputeDisk() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceComputeDiskCreate,
 		Read:   resourceComputeDiskRead,
+		Update: resourceComputeDiskUpdate,
 		Delete: resourceComputeDiskDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -68,7 +69,6 @@ func resourceComputeDisk() *schema.Resource {
 			"size": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"self_link": &schema.Schema{
@@ -183,6 +183,28 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	return resourceComputeDiskRead(d, meta)
+}
+
+func resourceComputeDiskUpdate(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
+	if d.HasChange("size") {
+		rb := &compute.DisksResizeRequest{
+			SizeGb: int64(d.Get("size").(int)),
+		}
+		_, err := config.clientCompute.Disks.Resize(
+			project, d.Get("zone").(string), d.Id(), rb).Do()
+		if err != nil {
+			return fmt.Errorf("Error resizing disk: %s", err)
+		}
+	}
+
+	return nil
 }
 
 func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
