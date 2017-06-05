@@ -11,14 +11,14 @@ description: |-
 # Install Terraform
 
 Terraform must first be installed on your machine. Terraform is distributed as a
-[binary package](/downloads.html) for all supported platforms and architectures.
+[binary package](downloads.html) for all supported platforms and architectures.
 This page will not cover how to compile Terraform from source, but compiling
-from source is covered in the [documentation](/docs/index.html) for those who
+from source is covered in the [documentation](docs/index.html) for those who
 want to be sure they're compiling source they trust into the final binary.
 
 ## Installing Terraform
 
-To install Terraform, find the [appropriate package](/downloads.html) for your
+To install Terraform, find the [appropriate package](downloads.html) for your
 system and download it. Terraform is packaged as a zip archive.
 
 After downloading Terraform, unzip the package. Terraform runs as a single
@@ -59,6 +59,6 @@ variable contains the directory where Terraform was installed.
 
 ## Next Steps
 
-Time to [build infrastructure](/intro/getting-started/build.html) using a
+Time to [build infrastructure](intro/getting-started/build.html) using a
 minimal Terraform configuration file. You will be able to examine Terraform's
 execution plan before you deploy it to AWS.

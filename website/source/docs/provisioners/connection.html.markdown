@@ -74,7 +74,7 @@ provisioner "file" {
 
 * `private_key` - The contents of an SSH key to use for the connection. These can
   be loaded from a file on disk using the [`file()` interpolation
-  function](/docs/configuration/interpolation.html#file_path_). This takes
+  function](docs/configuration/interpolation.html#file_path_). This takes
   preference over the password if provided.
 
 * `agent` - Set to `false` to disable using `ssh-agent` to authenticate. On Windows the
@@ -109,5 +109,5 @@ The `ssh` connection also supports the following fields to facilitate connnectio
 
 * `bastion_private_key` - The contents of an SSH key file to use for the bastion
   host. These can be loaded from a file on disk using the [`file()`
-  interpolation function](/docs/configuration/interpolation.html#file_path_).
+  interpolation function](docs/configuration/interpolation.html#file_path_).
   Defaults to the value of the `private_key` field.

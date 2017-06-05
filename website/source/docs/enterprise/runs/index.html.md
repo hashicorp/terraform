@@ -12,7 +12,7 @@ A "run" represents the logical grouping of two Terraform steps - a "plan" and an
 "apply". The distinction between these two phases of a Terraform run are
 documented below.
 
-When a [new run is created](/docs/enterprise/runs/starting.html), Terraform
+When a [new run is created](docs/enterprise/runs/starting.html), Terraform
 Enterprise automatically queues a Terraform plan. Because a plan does not change
 the state of infrastructure, it is safe to execute a plan multiple times without
 consequence. An apply executes the output of a plan and actively changes
@@ -32,7 +32,7 @@ Enterprise and may be used in the subsequent apply.
 Terraform plans do not change the state of infrastructure, so it is
 safe to execute a plan multiple times. In fact, there are a number of components
 that can trigger a Terraform plan. You can read more about this in the
-[starting runs](/docs/enterprise/runs/starting.html) section.
+[starting runs](docs/enterprise/runs/starting.html) section.
 
 ## Apply
 
@@ -44,10 +44,10 @@ specified in the Terraform configuration file.
 While Terraform plans are safe to run multiple times, Terraform applies often
 change active infrastructure. Because of this, the default behavior
 is to require user confirmation as part of the
-[Terraform run execution](/docs/enterprise/runs/how-runs-execute.html). Upon
+[Terraform run execution](docs/enterprise/runs/how-runs-execute.html). Upon
 user confirmation, the Terraform apply will be queued and executed. It is also
 possible to configure
-[automatic applies](/docs/enterprise/runs/automatic-applies.html), but this option is
+[automatic applies](docs/enterprise/runs/automatic-applies.html), but this option is
 disabled by default.
 
 ## Environment Locking
@@ -66,5 +66,5 @@ by visiting that environment's settings page.
 
 To receive alerts when user confirmation is needed or for any other phase of the
 run process, you can
-[enable run notifications](/docs/enterprise/runs/notifications.html) for your
+[enable run notifications](docs/enterprise/runs/notifications.html) for your
 organization or environment.

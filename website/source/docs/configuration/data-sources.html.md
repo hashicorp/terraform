@@ -13,9 +13,9 @@ in Terraform configuration. Use of data sources allows a Terraform
 configuration to build on information defined outside of Terraform,
 or defined by another separate Terraform configuration.
 
-[Providers](/docs/configuration/providers.html) are responsible in
+[Providers](docs/configuration/providers.html) are responsible in
 Terraform for defining and implementing data sources. Whereas
-a [resource](/docs/configuration/resources.html) causes Terraform
+a [resource](docs/configuration/resources.html) causes Terraform
 to create and manage a new infrastructure component, data sources
 present read-only views into pre-existing data, or they compute
 new values on the fly within Terraform itself.
@@ -29,7 +29,7 @@ on longest-prefix matching. For example the `aws_ami`
 data source would map to the `aws` provider (if that exists).
 
 This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](docs/configuration/syntax.html)
 already.
 
 ## Example
@@ -61,7 +61,7 @@ and name must be unique.
 
 Within the block (the `{ }`) is configuration for the data instance. The
 configuration is dependent on the type, and is documented for each
-data source in the [providers section](/docs/providers/index.html).
+data source in the [providers section](docs/providers/index.html).
 
 Each data instance will export one or more attributes, which can be
 interpolated into other resources using variables of the form
@@ -80,7 +80,7 @@ As data sources are essentially a read only subset of resources they also suppor
 
 ## Multiple Provider Instances
 
-Similarly to [resources](/docs/configuration/resources.html), the
+Similarly to [resources](docs/configuration/resources.html), the
 `provider` meta-parameter can be used where a configuration has
 multiple aliased instances of the same provider:
 
@@ -92,7 +92,7 @@ data "aws_ami" "web" {
 }
 ```
 
-See the ["Multiple Provider Instances"](/docs/configuration/resources.html#multiple-provider-instances) documentation for resources
+See the ["Multiple Provider Instances"](docs/configuration/resources.html#multiple-provider-instances) documentation for resources
 for more information.
 
 ## Data Source Lifecycle

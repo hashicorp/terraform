@@ -52,7 +52,7 @@ The following arguments are supported:
 
 * `template` - (Required) The contents of the template. These can be loaded
   from a file on disk using the [`file()` interpolation
-  function](/docs/configuration/interpolation.html#file_path_).
+  function](docs/configuration/interpolation.html#file_path_).
 
 * `vars` - (Optional) Variables for interpolation within the template. Note
   that variables must all be primitives. Direct references to lists or maps
@@ -62,7 +62,7 @@ The following arguments are maintained for backwards compatibility and may be
 removed in a future version:
 
 * `filename` - _Deprecated, please use `template` instead_. The filename for
-  the template. Use [path variables](/docs/configuration/interpolation.html#path-variables) to make
+  the template. Use [path variables](docs/configuration/interpolation.html#path-variables) to make
   this path relative to different path roots.
 
 ## Attributes Reference
@@ -76,7 +76,7 @@ The following attributes are exported:
 ## Template Syntax
 
 The syntax of the template files is the same as
-[standard interpolation syntax](/docs/configuration/interpolation.html),
+[standard interpolation syntax](docs/configuration/interpolation.html),
 but you only have access to the variables defined in the `vars` section.
 
 To access interpolations that are normally available to Terraform

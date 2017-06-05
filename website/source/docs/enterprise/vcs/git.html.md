@@ -9,7 +9,7 @@ description: |-
 # Git Integration
 
 Git repositories can be integrated with Terraform Enterprise by using
-[`terraform push`](/docs/commands/push.html) to import Terraform configuration
+[`terraform push`](docs/commands/push.html) to import Terraform configuration
 when changes are committed. When Terraform configuration is imported using
 `terraform push` a plan is automatically queued.
 

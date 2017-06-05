@@ -18,5 +18,5 @@ modules work.
 
 ## Definitions
 **Root module**
-That is the current working directory when you run [`terraform apply`](/docs/commands/apply.html) or [`get`](/docs/commands/get.html), holding the Terraform [configuration files](/docs/configuration/index.html).
+That is the current working directory when you run [`terraform apply`](docs/commands/apply.html) or [`get`](/docs/commands/get.html), holding the Terraform [configuration files](/docs/configuration/index.html).
 It is itself a valid module.

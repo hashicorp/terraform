@@ -10,7 +10,7 @@ description: |-
 
 The `terraform state` command is used for advanced state management.
 As your Terraform usage becomes more advanced, there are some cases where
-you may need to modify the [Terraform state](/docs/state/index.html).
+you may need to modify the [Terraform state](docs/state/index.html).
 Rather than modify the state directly, the `terraform state` commands can
 be used in many cases instead.
 
@@ -35,7 +35,7 @@ written to disk and the CLI usage is the same as if it were local state.
 All `terraform state` subcommands that modify the state write backup
 files. The path of these backup file can be controlled with `-backup`.
 
-Subcommands that are read-only (such as [list](/docs/commands/state/list.html))
+Subcommands that are read-only (such as [list](docs/commands/state/list.html))
 do not write any backup files since they aren't modifying the state.
 
 Note that backups for state modification _can not be disabled_. Due to

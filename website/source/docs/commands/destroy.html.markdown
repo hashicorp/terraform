@@ -19,7 +19,7 @@ Infrastructure managed by Terraform will be destroyed. This will ask for
 confirmation before destroying.
 
 This command accepts all the arguments and flags that the [apply
-command](/docs/commands/apply.html) accepts, with the exception of a plan file
+command](docs/commands/apply.html) accepts, with the exception of a plan file
 argument.
 
 If `-force` is set, then the destroy confirmation will not be shown.

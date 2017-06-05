@@ -19,7 +19,7 @@ you're interested in contributing that functionality, the Terraform team
 would be grateful.
 
 To make a resource importable, please see the
-[plugin documentation on writing a resource](/docs/plugins/provider.html).
+[plugin documentation on writing a resource](docs/plugins/provider.html).
 
 ## Currently Available to Import
 

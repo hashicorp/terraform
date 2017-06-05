@@ -30,7 +30,7 @@ infrastructure at a time.
 Usage: `terraform push [options] [path]`
 
 The `path` argument is the same as for the
-[apply](/docs/commands/apply.html) command.
+[apply](docs/commands/apply.html) command.
 
 The command-line flags are all optional. The list of available flags are:
 
@@ -38,7 +38,7 @@ The command-line flags are all optional. The list of available flags are:
   Defaults to `https://atlas.hashicorp.com`.
 
 * `-upload-modules=true` - If true (default), then the
-  [modules](/docs/modules/index.html)
+  [modules](docs/modules/index.html)
   being used are all locked at their current checkout and uploaded
   completely. This prevents Terraform Enterprise from running `terraform get`
   for you.
@@ -48,7 +48,7 @@ The command-line flags are all optional. The list of available flags are:
   configurations not just to your account but to other accounts and
   organizations. This setting can also be set in the configuration
   in the
-  [Terraform Enterprise section](/docs/configuration/terraform-enterprise.html).
+  [Terraform Enterprise section](docs/configuration/terraform-enterprise.html).
 
 * `-no-color` - Disables output with coloring
 
@@ -88,7 +88,7 @@ The reason Terraform uploads all of these files is because Terraform
 cannot know what is and isn't being used for provisioning, so it uploads
 all the files to be safe. To exclude certain files, specify the `-exclude`
 flag when pushing, or specify the `exclude` parameter in the
-[Terraform Enterprise configuration section](/docs/configuration/terraform-enterprise.html).
+[Terraform Enterprise configuration section](docs/configuration/terraform-enterprise.html).
 
 ## Terraform Variables
 
@@ -116,7 +116,7 @@ or plan), and the `-overwrite` flag tells the push command to update Terraform E
 ## Remote State Requirement
 
 `terraform push` requires that
-[remote state](/docs/state/remote.html)
+[remote state](docs/state/remote.html)
 is enabled. The reasoning for this is simple: `terraform push` sends your
 configuration to be managed remotely. For it to keep the state in sync
 and for you to be able to easily access that state, remote state must

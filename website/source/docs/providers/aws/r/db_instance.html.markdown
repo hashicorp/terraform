@@ -26,7 +26,7 @@ brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][2]
 for more information.
 
 ~> **Note:** All arguments including the username and password will be stored in the raw state as plain-text.
-[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+[Read more about sensitive data in state](docs/state/sensitive-data.html).
 
 ## Example Usage
 
@@ -155,7 +155,7 @@ On Oracle instances the following is exported additionally:
 ## Timeouts
 
 `aws_db_instance` provides the following
-[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+[Timeouts](docs/configuration/resources.html#timeouts) configuration options:
 
 - `create` - (Default `40 minutes`) Used for Creating Instances, Replicas, and
 restoring from Snapshots

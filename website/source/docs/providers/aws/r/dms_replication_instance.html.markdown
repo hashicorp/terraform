@@ -81,7 +81,7 @@ The following attributes are exported:
 ## Timeouts
 
 `aws_dms_replication_instance` provides the following
-[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+[Timeouts](docs/configuration/resources.html#timeouts) configuration options:
 
 - `create` - (Default `30 minutes`) Used for Creating Instances
 - `update` - (Default `30 minutes`) Used for Database modifications

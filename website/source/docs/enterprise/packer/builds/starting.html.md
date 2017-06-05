@@ -47,8 +47,8 @@ When used within an organization, this can be extremely valuable for keeping
 differences in environments and last mile changes from occurring before an
 upload.
 
-After you have [connected your GitHub account](/docs/enterprise/vcs/github.html) to Terraform Enterprise,
-you can connect your [Build Configuration](/docs/enterprise/glossary#build-configuration)
+After you have [connected your GitHub account](docs/enterprise/vcs/github.html) to Terraform Enterprise,
+you can connect your [Build Configuration](docs/enterprise/glossary#build-configuration)
 to the target GitHub repository. The GitHub repository will be linked to the
 Packer configuration, and GitHub will start sending webhooks.
 Certain GitHub webhook events, detailed below, will cause the repository to be

@@ -7,7 +7,7 @@ description: Explains the use of the source parameter, which tells Terraform whe
 
 # Module Sources
 
-As documented in the [Usage section](/docs/modules/usage.html), the only required parameter when using a module is `source`. The `source` parameter tells Terraform where the module can be found and what constraints to put on the module. Constraints can include a specific version or Git branch.
+As documented in the [Usage section](docs/modules/usage.html), the only required parameter when using a module is `source`. The `source` parameter tells Terraform where the module can be found and what constraints to put on the module. Constraints can include a specific version or Git branch.
 
 Terraform manages modules for you: it downloads them, organizes them on disk, checks for updates, etc. Terraform uses this `source` parameter to determine where it should retrieve and update modules from.
 
@@ -37,7 +37,7 @@ module "consul" {
 }
 ```
 
-Updates for file paths are automatic: when "downloading" the module using the [get command](/docs/commands/get.html), Terraform will create a symbolic link to the original directory. Therefore, any changes are automatically available.
+Updates for file paths are automatic: when "downloading" the module using the [get command](docs/commands/get.html), Terraform will create a symbolic link to the original directory. Therefore, any changes are automatically available.
 
 ## GitHub
 

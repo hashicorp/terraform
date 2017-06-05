@@ -14,7 +14,7 @@ storage, remote execution, etc.
 
 By default, Terraform uses the "local" backend, which is the normal behavior
 of Terraform you're used to. This is the backend that was being invoked
-throughout the [introduction](/intro/index.html).
+throughout the [introduction](intro/index.html).
 
 Here are some of the benefits of backends:
 

@@ -2,6 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <% if local_build? %>
+    <base href="<%= local_base_path %>">
+    <% else %>
+    <base href="/">
+    <% end %>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="<%= description_for(current_page) %>">
@@ -9,7 +14,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="<%= image_path("favicons/apple-touch-icon.png") %>">
     <link rel="icon" type="image/png" href="<%= image_path("favicons/favicon-32x32.png") %>" sizes="32x32">
     <link rel="icon" type="image/png" href="<%= image_path("favicons/favicon-16x16.png") %>" sizes="16x16">
-    <link rel="manifest" href="/android-manifest.json">
+    <link rel="manifest" href="android-manifest.json">
     <link rel="mask-icon" href="<%= image_path("favicons/safari-pinned-tab.svg") %>" color="#5C4EE5">
     <meta name="msapplication-config" content="/microsoft-tile.xml" />
     <meta name="theme-color" content="#ffffff">
@@ -32,7 +37,12 @@
     <!--[if lt IE 9]>
       <%= javascript_include_tag "ie-compat" %>
     <![endif]-->
-    <%= javascript_include_tag "application" %>
+
+    <% if local_build? %>
+      <%= javascript_include_tag "local_application" %>
+    <% else %>
+      <%= javascript_include_tag "application" %>
+    <% end %>
 
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -58,7 +68,7 @@
           <div class="col-xs-12">
             <div class="navbar-header">
               <div class="navbar-brand">
-                <a href="/">
+                <a href="">
                   <%= inline_svg "logo-text.svg", height: 50, class: "logo" %>
                 </a>
               </div>
@@ -72,13 +82,13 @@
             <div class="buttons hidden-xs">
               <nav class="navigation-links" role="navigation">
                 <ul class="main-links nav navbar-nav navbar-right">
-                  <li><a href="/intro/index.html">Intro</a></li>
-                  <li><a href="/docs/index.html">Docs</a></li>
-                  <li><a href="/guides/index.html">Guides</a></li>
-                  <li><a href="/community.html">Community</a></li>
+                  <li><a href="intro/index.html">Intro</a></li>
+                  <li><a href="docs/index.html">Docs</a></li>
+                  <li><a href="guides/index.html">Guides</a></li>
+                  <li><a href="community.html">Community</a></li>
                   <li><a href="https://www.hashicorp.com/products/terraform/?utm_source=oss&utm_medium=header-nav&utm_campaign=terraform">Enterprise</a></li>
                   <li>
-                    <a href="/downloads.html">
+                    <a href="downloads.html">
                       <%= inline_svg "download.svg" %> Download
                     </a>
                   </li>
@@ -104,11 +114,11 @@
         <div class="row">
           <div class="col-xs-12">
             <ul class="footer-links nav navbar-nav">
-              <li><a href="/intro/index.html">Intro</a></li>
-              <li><a href="/docs/index.html">Docs</a></li>
-              <li><a href="/community.html">Community</a></li>
-              <li><a href="/security.html">Security</a></li>
-              <li><a href="/assets/files/press-kit.zip">Press Kit</a></li>
+              <li><a href="intro/index.html">Intro</a></li>
+              <li><a href="docs/index.html">Docs</a></li>
+              <li><a href="community.html">Community</a></li>
+              <li><a href="security.html">Security</a></li>
+              <li><a href="assets/files/press-kit.zip">Press Kit</a></li>
             </ul>
             <ul class="footer-links nav navbar-nav navbar-right">
               <li><a href="<%= github_url :current_page %>">Edit this page</a></li>
@@ -118,16 +128,19 @@
       </div>
     </div>
 
-    <script>
-      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+    <% if not local_build? %>
+      <script>
+       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+       })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-      ga('create', 'UA-53231375-1', 'terraform.io');
-      ga('require', 'linkid');
-      ga('send', 'pageview', location.pathname);
-    </script>
+       ga('create', 'UA-53231375-1', 'terraform.io');
+       ga('require', 'linkid');
+       ga('send', 'pageview', location.pathname);
+      </script>
+    <% end %>
+
 
     <script type="application/ld+json">
       {

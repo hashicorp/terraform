@@ -10,7 +10,7 @@ description: |-
 
 Terraform Enterprise can automatically run a Packer build and
 create artifacts on a specified schedule. This option is disabled by default and can be enabled by an
-organization owner on a per-[environment](/docs/enterprise/glossary#environment) basis.
+organization owner on a per-[environment](docs/enterprise/glossary#environment) basis.
 
 On the specified interval, builds will be automatically queued that run Packer
 for you, creating any artifacts and sending the appropriate notifications.

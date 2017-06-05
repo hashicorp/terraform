@@ -9,7 +9,7 @@ description: |-
 # Provider Configuration
 
 Providers are responsible in Terraform for managing the lifecycle
-of a [resource](/docs/configuration/resources.html): create,
+of a [resource](docs/configuration/resources.html): create,
 read, update, delete.
 
 Every resource in Terraform is mapped to a provider based
@@ -22,7 +22,7 @@ blocks are a way to set this information globally for all
 matching resources.
 
 This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](docs/configuration/syntax.html)
 already.
 
 ## Example
@@ -53,7 +53,7 @@ Both criteria must be matched for a provider to manage a resource:
 
 Within the block (the `{ }`) is configuration for the resource.
 The configuration is dependent on the type, and is documented
-[for each provider](/docs/providers/index.html).
+[for each provider](docs/providers/index.html).
 
 ## Multiple Provider Instances
 
@@ -116,7 +116,7 @@ KEY {
 ```
 
 ## Interpolation
-Providers support [interpolation syntax](/docs/configuration/interpolation.html) allowing dynamic configuration at run time.
+Providers support [interpolation syntax](docs/configuration/interpolation.html) allowing dynamic configuration at run time.
 
 ```hcl
 provider "aws" {
@@ -124,4 +124,4 @@ provider "aws" {
 }
 ```
 
--> **NOTE:** Because providers are one of the first things loaded when Terraform parses the graph, it is not possible to use the output from modules or resources as inputs to the provider. At this time, only [variables](/docs/configuration/variables.html) and [data sources](/docs/configuration/data-sources.html), including [remote state](/docs/providers/terraform/d/remote_state.html) may be used in an interpolation inside a provider stanza.
+-> **NOTE:** Because providers are one of the first things loaded when Terraform parses the graph, it is not possible to use the output from modules or resources as inputs to the provider. At this time, only [variables](docs/configuration/variables.html) and [data sources](/docs/configuration/data-sources.html), including [remote state](/docs/providers/terraform/d/remote_state.html) may be used in an interpolation inside a provider stanza.

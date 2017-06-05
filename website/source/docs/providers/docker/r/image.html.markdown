@@ -13,7 +13,7 @@ description: |-
 Pulls a Docker image to a given Docker host from a Docker Registry.
 
 This resource will *not* pull new layers of the image automatically unless used in
-conjunction with [`docker_registry_image`](/docs/providers/docker/d/registry_image.html)
+conjunction with [`docker_registry_image`](docs/providers/docker/d/registry_image.html)
 data source to update the `pull_triggers` field.
 
 ## Example Usage
@@ -51,7 +51,7 @@ The following arguments are supported:
   the docker local storage on destroy operation.
 * `pull_triggers` - (Optional, list of strings) List of values which cause an
   image pull when changed. This is used to store the image digest from the
-  registry when using the `docker_registry_image` [data source](/docs/providers/docker/d/registry_image.html)
+  registry when using the `docker_registry_image` [data source](docs/providers/docker/d/registry_image.html)
   to trigger an image update.
 * `pull_trigger` - **Deprecated**, use `pull_triggers` instead.
 

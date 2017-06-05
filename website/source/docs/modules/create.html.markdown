@@ -26,14 +26,14 @@ module "child" {
 
 You've now created your first module! You can now add resources to the `child` module.
 
-**Note:** Prior to running the above, you'll have to run [the get command](/docs/commands/get.html) for Terraform to sync
+**Note:** Prior to running the above, you'll have to run [the get command](docs/commands/get.html) for Terraform to sync
 your modules. This should be instant since the module is a local path.
 
 ## Inputs/Outputs
 
 To make modules more useful than simple isolated containers of Terraform configurations, modules can be configured and also have outputs that can be consumed by your Terraform configuration.
 
-Inputs of a module are [variables](/docs/configuration/variables.html) and outputs are [outputs](/docs/configuration/outputs.html). There is no special syntax to define these, they're defined just like any other variables or outputs. You can think about these variables and outputs as the API interface to your module.
+Inputs of a module are [variables](docs/configuration/variables.html) and outputs are [outputs](/docs/configuration/outputs.html). There is no special syntax to define these, they're defined just like any other variables or outputs. You can think about these variables and outputs as the API interface to your module.
 
 Let's add a variable and an output to our `child` module.
 
@@ -67,7 +67,7 @@ If you now run `terraform apply`, you see how this works.
 
 It is sometimes useful to embed files within the module that aren't Terraform configuration files, such as a script to provision a resource or a file to upload.
 
-In these cases, you can't use a relative path, since paths in Terraform are generally relative to the working directory from which Terraform was executed. Instead, you want to use a module-relative path. To do this, you should use the [path interpolated variables](/docs/configuration/interpolation.html).
+In these cases, you can't use a relative path, since paths in Terraform are generally relative to the working directory from which Terraform was executed. Instead, you want to use a module-relative path. To do this, you should use the [path interpolated variables](docs/configuration/interpolation.html).
 
 ```hcl
 resource "aws_instance" "server" {
@@ -86,6 +86,6 @@ Here we use `${path.module}` to get a module-relative path.
 You can nest a module within another module. This module will be hidden from your root configuration, so you'll have to re-expose any
 variables and outputs you require.
 
-The [get command](/docs/commands/get.html) will automatically get all nested modules.
+The [get command](docs/commands/get.html) will automatically get all nested modules.
 
 You don't have to worry about conflicting versions of modules, since Terraform builds isolated subtrees of all dependencies. For example, one module might use version 1.0 of module `foo` and another module might use version 2.0, and this will all work fine within Terraform since the modules are created separately.

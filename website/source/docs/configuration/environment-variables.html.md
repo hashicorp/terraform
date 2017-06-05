@@ -22,7 +22,7 @@ To disable, either unset it or set it to empty. When unset, logging will default
 export TF_LOG=
 ```
 
-For more on debugging Terraform, check out the section on [Debugging](/docs/internals/debugging.html).
+For more on debugging Terraform, check out the section on [Debugging](docs/internals/debugging.html).
 
 ## TF_LOG_PATH
 
@@ -32,7 +32,7 @@ This specifies where the log should persist its output to. Note that even when `
 export TF_LOG_PATH=./terraform.log
 ```
 
-For more on debugging Terraform, check out the section on [Debugging](/docs/internals/debugging.html).
+For more on debugging Terraform, check out the section on [Debugging](docs/internals/debugging.html).
 
 ## TF_INPUT
 
@@ -44,13 +44,13 @@ export TF_INPUT=0
 
 ## TF_MODULE_DEPTH
 
-When given a value, causes terraform commands to behave as if the `-module-depth=VALUE` flag was specified. By setting this to 0, for example, you enable commands such as [plan](/docs/commands/plan.html) and [graph](/docs/commands/graph.html) to display more compressed information.
+When given a value, causes terraform commands to behave as if the `-module-depth=VALUE` flag was specified. By setting this to 0, for example, you enable commands such as [plan](docs/commands/plan.html) and [graph](/docs/commands/graph.html) to display more compressed information.
 
 ```shell
 export TF_MODULE_DEPTH=0
 ```
 
-For more information regarding modules, check out the section on [Using Modules](/docs/modules/usage.html).
+For more information regarding modules, check out the section on [Using Modules](docs/modules/usage.html).
 
 ## TF_VAR_name
 
@@ -63,7 +63,7 @@ export TF_VAR_alist='[1,2,3]'
 export TF_VAR_amap='{ foo = "bar", baz = "qux" }'
 ```
 
-For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](/docs/configuration/variables.html).
+For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](docs/configuration/variables.html).
 
 ## TF_CLI_ARGS and TF_CLI_ARGS_name
 

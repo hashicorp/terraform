@@ -16,7 +16,7 @@ resources.
 
 
 ~> **This resource is deprecated!** Please use the
-[Artifact Data Source](/docs/providers/terraform-enterprise/d/artifact.html)
+[Artifact Data Source](docs/providers/terraform-enterprise/d/artifact.html)
 
 ## Example Usage
 

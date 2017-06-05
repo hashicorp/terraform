@@ -12,7 +12,7 @@ description: |-
 
 Stores the state in the [Consul](https://www.consul.io/) KV store at a given path.
 
-This backend supports [state locking](/docs/state/locking.html).
+This backend supports [state locking](docs/state/locking.html).
 
 ## Example Configuration
 
@@ -26,7 +26,7 @@ terraform {
 ```
 
 Note that for the access credentials we recommend using a
-[partial configuration](/docs/backends/config.html).
+[partial configuration](docs/backends/config.html).
 
 ## Example Referencing
 

@@ -14,7 +14,7 @@ server.
 ~> **Caution:** The ``mysql_database`` resource can completely delete your
 database just as easily as it can create it. To avoid costly accidents,
 consider setting
-[``prevent_destroy``](/docs/configuration/resources.html#prevent_destroy)
+[``prevent_destroy``](docs/configuration/resources.html#prevent_destroy)
 on your database resources as an extra safety measure.
 
 ## Example Usage

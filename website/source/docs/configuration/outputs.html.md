@@ -10,9 +10,9 @@ description: |-
 
 Outputs define values that will be highlighted to the user
 when Terraform applies, and can be queried easily using the
-[output command](/docs/commands/output.html). Output usage
+[output command](docs/commands/output.html). Output usage
 is covered in more detail in the
-[getting started guide](/intro/getting-started/outputs.html).
+[getting started guide](intro/getting-started/outputs.html).
 This page covers configuration syntax for outputs.
 
 Terraform knows a lot about the infrastructure it manages.
@@ -20,7 +20,7 @@ Most resources have attributes associated with them, and
 outputs are a way to easily extract and query that information.
 
 This page assumes you are familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](docs/configuration/syntax.html)
 already.
 
 ## Example

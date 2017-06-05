@@ -65,7 +65,7 @@ The following attributes are exported:
 block with a /56 prefix length for the VPC was assigned
 * `main_route_table_id` - The ID of the main route table associated with
      this VPC. Note that you can change a VPC's main route table by using an
-     [`aws_main_route_table_association`](/docs/providers/aws/r/main_route_table_assoc.html)
+     [`aws_main_route_table_association`](docs/providers/aws/r/main_route_table_assoc.html)
 * `default_network_acl_id` - The ID of the network ACL created by default on VPC creation
 * `default_security_group_id` - The ID of the security group created by default on VPC creation
 * `default_route_table_id` - The ID of the route table created by default on VPC creation

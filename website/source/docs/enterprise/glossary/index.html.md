@@ -95,7 +95,7 @@ company named Acme Inc., your environment may be named
 `my-username/production`.
 
 To read more about features provided under environments, read the
-[Terraform](/docs/enterprise) sections.
+[Terraform](docs/enterprise) sections.
 
 ## Environment Variables
 

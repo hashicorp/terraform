@@ -9,7 +9,7 @@ description: |-
 # Env Command
 
 The `terraform env` command is used to manage
-[state environments](/docs/state/environments.html).
+[state environments](docs/state/environments.html).
 
 This command is a nested subcommand, meaning that it has further subcommands.
 These subcommands are listed to the left.

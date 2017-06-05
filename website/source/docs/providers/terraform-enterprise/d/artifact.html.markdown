@@ -10,7 +10,7 @@ description: |-
 
 # atlas_artifact
 
-Provides a [Data Source](/docs/configuration/data-sources.html) to access to deployment
+Provides a [Data Source](docs/configuration/data-sources.html) to access to deployment
 artifacts managed by Terraform Enterprise. This can be used to dynamically configure instantiation
 and provisioning of resources.
 

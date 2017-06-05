@@ -34,5 +34,5 @@ The following arguments are supported:
 
 ## Attributes Reference
 
-See the [ALB Listener Resource](/docs/providers/aws/r/alb_listener.html) for details
+See the [ALB Listener Resource](docs/providers/aws/r/alb_listener.html) for details
 on the returned attributes - they are identical.

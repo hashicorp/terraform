@@ -9,7 +9,7 @@ description: |-
 # aws\_instance
 
 Provides an EC2 instance resource. This allows instances to be created, updated,
-and deleted. Instances also support [provisioning](/docs/provisioners/index.html).
+and deleted. Instances also support [provisioning](docs/provisioners/index.html).
 
 ## Example Usage
 
@@ -156,7 +156,7 @@ identified by the `virtual_name` in the format `"ephemeral{0..N}"`.
 ~> **NOTE:** Currently, changes to `*_block_device` configuration of _existing_
 resources cannot be automatically detected by Terraform. After making updates
 to block device configuration, resource recreation can be manually triggered by
-using the [`taint` command](/docs/commands/taint.html).
+using the [`taint` command](docs/commands/taint.html).
 
 ### Network Interfaces
 
@@ -221,7 +221,7 @@ The following attributes are exported:
 * `key_name` - The key name of the instance
 * `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this
   is only available if you've enabled DNS hostnames for your VPC
-* `public_ip` - The public IP address assigned to the instance, if applicable. **NOTE**: If you are using an [`aws_eip`](/docs/providers/aws/r/eip.html) with your instance, you should refer to the EIP's address directly and not use `public_ip`, as this field will change after the EIP is attached.
+* `public_ip` - The public IP address assigned to the instance, if applicable. **NOTE**: If you are using an [`aws_eip`](docs/providers/aws/r/eip.html) with your instance, you should refer to the EIP's address directly and not use `public_ip`, as this field will change after the EIP is attached.
 * `network_interface_id` - The ID of the network interface that was created with the instance.
 * `primary_network_interface_id` - The ID of the instance's primary network interface.
 * `private_dns` - The private DNS name assigned to the instance. Can only be

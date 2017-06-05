@@ -42,7 +42,7 @@ Git history.
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-backend=true` - Initialize the [backend](/docs/backends) for this environment.
+* `-backend=true` - Initialize the [backend](docs/backends) for this environment.
 
 * `-backend-config=value` - Value can be a path to an HCL file or a string
   in the format of 'key=value'. This specifies additional configuration to merge
@@ -68,10 +68,10 @@ The command-line flags are all optional. The list of available flags are:
 ## Backend Config
 
 The `-backend-config` can take a path or `key=value` pair to specify additional
-backend configuration when [initializing a backend](/docs/backends/init.html).
+backend configuration when [initializing a backend](docs/backends/init.html).
 
 This is particularly useful for
-[partial configuration of backends](/docs/backends/config.html). Partial
+[partial configuration of backends](docs/backends/config.html). Partial
 configuration lets you keep sensitive information out of your Terraform
 configuration.
 

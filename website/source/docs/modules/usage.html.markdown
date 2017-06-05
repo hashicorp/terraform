@@ -16,7 +16,7 @@ module "consul" {
 }
 ```
 
-You can view the full documentation for configuring modules in the [Module Configuration](/docs/configuration/modules.html) section.
+You can view the full documentation for configuring modules in the [Module Configuration](docs/configuration/modules.html) section.
 
 In modules we only specify a name rather than a name and a type (as in resources). This name can be used elsewhere in the configuration to reference the module and its variables.
 
@@ -63,9 +63,9 @@ The resource names in your module  get prefixed by `module.<module-instance-name
 ## Source
 
 The only required configuration key for a module is the `source` parameter. The value of this tells Terraform where the module can be downloaded, updated, etc. Terraform comes with support for a variety of module sources. These
-are documented in the [Module sources documentation](/docs/modules/sources.html).
+are documented in the [Module sources documentation](docs/modules/sources.html).
 
-Prior to running any Terraform command with a configuration that uses modules, you'll have to [get](/docs/commands/get.html) the modules. This is done using the [get command](/docs/commands/get.html).
+Prior to running any Terraform command with a configuration that uses modules, you'll have to [get](docs/commands/get.html) the modules. This is done using the [get command](/docs/commands/get.html).
 
 ```shell
 $ terraform get
@@ -77,14 +77,14 @@ By default, the command will not check for updates, so it is safe (and fast) to 
 
 ## Configuration
 
-The parameters used to configure modules, such as the `servers` parameter above, map directly to [variables](/docs/configuration/variables.html) within the module itself. Therefore, you can quickly discover all the configuration
+The parameters used to configure modules, such as the `servers` parameter above, map directly to [variables](docs/configuration/variables.html) within the module itself. Therefore, you can quickly discover all the configuration
 for a module by inspecting the source of it.
 
 Additionally, because these map directly to variables, module configuration can have any data type available for variables, including maps and lists.
 
 ## Outputs
 
-Modules can also specify their own [outputs](/docs/configuration/outputs.html). These outputs can be referenced in other places in your configuration, for example:
+Modules can also specify their own [outputs](docs/configuration/outputs.html). These outputs can be referenced in other places in your configuration, for example:
 
 ```hcl
 resource "aws_instance" "client" {
@@ -106,7 +106,7 @@ $ terraform output -module=consul server_availability_zone
 
 ## Plans and Graphs
 
-Commands such as the [plan command](/docs/commands/plan.html) and [graph command](/docs/commands/graph.html) will expand modules by default. You can use the `-module-depth` parameter to limit the graph.
+Commands such as the [plan command](docs/commands/plan.html) and [graph command](/docs/commands/graph.html) will expand modules by default. You can use the `-module-depth` parameter to limit the graph.
 
 For example, with a configuration similar to what we've built above, here is what the graph output looks like by default:
 
@@ -120,7 +120,7 @@ Other commands work similarly with modules. Note that the `-module-depth` flag i
 
 ## Tainting resources within a module
 
-The [taint command](/docs/commands/taint.html) can be used to _taint_ specific resources within a module:
+The [taint command](docs/commands/taint.html) can be used to _taint_ specific resources within a module:
 
 ```shell
 $ terraform taint -module=salt_master aws_instance.salt_master

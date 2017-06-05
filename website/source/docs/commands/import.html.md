@@ -9,7 +9,7 @@ description: |-
 # Command: import
 
 The `terraform import` command is used to
-[import existing resources](/docs/import/index.html)
+[import existing resources](docs/import/index.html)
 into Terraform.
 
 ## Usage
@@ -19,7 +19,7 @@ Usage: `terraform import [options] ADDRESS ID`
 Import will find the existing resource from ID and import it into your Terraform
 state at the given ADDRESS.
 
-ADDRESS must be a valid [resource address](/docs/internals/resource-addressing.html).
+ADDRESS must be a valid [resource address](docs/internals/resource-addressing.html).
 Because any resource address is valid, the import command can import resources
 into modules as well directly into the root of your state.
 
@@ -54,19 +54,19 @@ The command-line flags are all optional. The list of available flags are:
   don't need to specify this.
 
 * `-state=path` - The path to read and save state files (unless state-out is
-  specified). Ignored when [remote state](/docs/state/remote.html) is used.
+  specified). Ignored when [remote state](docs/state/remote.html) is used.
 
 * `-state-out=path` - Path to write the final state file. By default, this is
-  the state path. Ignored when [remote state](/docs/state/remote.html) is
+  the state path. Ignored when [remote state](docs/state/remote.html) is
   used.
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
-  [HCL](/docs/configuration/syntax.html#HCL), so list and map values can be
+  [HCL](docs/configuration/syntax.html#HCL), so list and map values can be
   specified via this flag. This is only useful with the `-config` flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-   a [variable file](/docs/configuration/variables.html#variable-files). If
+   a [variable file](docs/configuration/variables.html#variable-files). If
   "terraform.tfvars" is present, it will be automatically loaded first. Any
   files specified by `-var-file` override any values in a "terraform.tfvars".
   This flag can be used multiple times. This is only useful with the `-config`

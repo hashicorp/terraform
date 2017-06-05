@@ -10,7 +10,7 @@ description: |-
 
 Backends are configured directly in Terraform files in the `terraform`
 section. After configuring a backend, it has to be
-[initialized](/docs/backends/init.html).
+[initialized](docs/backends/init.html).
 
 Below, we show a complete example configuring the "consul" backend:
 
@@ -53,7 +53,7 @@ This may be desirable to avoid storing secrets (such as access keys) within
 the configuration itself. We call this specifying only a _partial_ configuration.
 
 With a partial configuration, the remaining configuration is expected as
-part of the [initialization](/docs/backends/init.html) process. There are
+part of the [initialization](docs/backends/init.html) process. There are
 a few ways to supply the remaining configuration:
 
   * **Interactively**: Terraform will interactively ask you for the required
@@ -96,12 +96,12 @@ both the configuration itself as well as the type of backend (for example
 from "consul" to "s3").
 
 Terraform will automatically detect any changes in your configuration
-and request a [reinitialization](/docs/backends/init.html). As part of
+and request a [reinitialization](docs/backends/init.html). As part of
 the reinitialization process, Terraform will ask if you'd like to migrate
 your existing state to the new configuration. This allows you to easily
 switch from one backend to another.
 
-If you're using [state environments](/docs/state/environments.html),
+If you're using [state environments](docs/state/environments.html),
 Terraform is able to copy all environments to the destination. If Terraform
 detects you have multiple states, it will ask if this is what you want to do.
 
@@ -112,7 +112,7 @@ want to migrate your state. You can respond "no" in this scenario.
 
 If you no longer want to use any backend, you can simply remove the
 configuration from the file. Terraform will detect this like any other
-change and prompt you to [reinitialize](/docs/backends/init.html).
+change and prompt you to [reinitialize](docs/backends/init.html).
 
 As part of the reinitialization, Terraform will ask if you'd like to migrate
 your state back down to normal local state. Once this is complete then

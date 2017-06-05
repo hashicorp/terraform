@@ -19,7 +19,7 @@ this in a deploy.
 
 ### Steps
 
-If you run Packer in Terraform Enterprise, the following will happen after a [push](/docs/enterprise/packer/builds/starting.html):
+If you run Packer in Terraform Enterprise, the following will happen after a [push](docs/enterprise/packer/builds/starting.html):
 
 1. Terraform Enterprise will run `packer build` against your template in our
 infrastructure. This spins up an AWS instance in your account and provisions it

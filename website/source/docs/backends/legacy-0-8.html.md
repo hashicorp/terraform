@@ -42,7 +42,7 @@ very soon. As you'll see, this process is very easy.
 
 ## Migrating to Backends
 
-You should begin by reading the [complete backend documentation](/docs/backends)
+You should begin by reading the [complete backend documentation](docs/backends)
 section. This section covers in detail how you use and configure backends.
 
 Next, perform the following steps to migrate. These steps will also guide
@@ -57,12 +57,12 @@ a backup in case things go wrong.
 cache we just pulled. Please copy this file to a location outside of your
 Terraform module.
 
-1. [Configure your backend](/docs/backends/config.html) in your Terraform
+1. [Configure your backend](docs/backends/config.html) in your Terraform
 configuration. The backend type is the same backend type as you used with
 your legacy remote state. The configuration should be setup to match the
 same configuration you used with remote state.
 
-1. [Run the init command](/docs/backends/init.html). This is an interactive
+1. [Run the init command](docs/backends/init.html). This is an interactive
 process that will guide you through migrating your existing remote state
 to the new backend system. During this step, Terraform may ask if you want
 to copy your old remote state into the newly configured backend. If you
@@ -128,7 +128,7 @@ either an HCL file or a string in the format of `key=value`. This configuration
 is merged with the backend configuration in your Terraform files.
 This lets you keep secrets out of your actual configuration.
 We call this "partial configuration" and you can learn more in the
-docs on [configuring backends](/docs/backends/config.html).
+docs on [configuring backends](docs/backends/config.html).
 
 This does introduce an extra step: your automation must generate a
 JSON file (presumably JSON is easier to generate from a script than HCL

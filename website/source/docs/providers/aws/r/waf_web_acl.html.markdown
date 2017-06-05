@@ -82,7 +82,7 @@ See [docs](http://docs.aws.amazon.com/waf/latest/APIReference/API_ActivatedRule.
   e.g. `ALLOW`, `BLOCK` or `COUNT`
 * `priority` - (Required) Specifies the order in which the rules in a WebACL are evaluated.
   Rules with a lower value are evaluated before rules with a higher value.
-* `rule_id` - (Required) ID of the associated [rule](/docs/providers/aws/r/waf_rule.html)
+* `rule_id` - (Required) ID of the associated [rule](docs/providers/aws/r/waf_rule.html)
 
 ## Attributes Reference
 

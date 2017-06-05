@@ -9,7 +9,7 @@ description: |-
 # Command: state list
 
 The `terraform state list` command is used to list resources within a
-[Terraform state](/docs/state/index.html).
+[Terraform state](docs/state/index.html).
 
 ## Usage
 
@@ -25,12 +25,12 @@ within modules are listed last.
 
 For complex infrastructures, the state can contain thousands of resources.
 To filter these, provide one or more patterns to the command. Patterns are
-in [resource addressing format](/docs/commands/state/addressing.html).
+in [resource addressing format](docs/commands/state/addressing.html).
 
 The command-line flags are all optional. The list of available flags are:
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+  Ignored when [remote state](docs/state/remote.html) is used.
 
 ## Example: All Resources
 

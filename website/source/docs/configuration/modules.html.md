@@ -11,10 +11,10 @@ description: |-
 Modules are used in Terraform to modularize and encapsulate groups of
 resources in your infrastructure. For more information on modules, see
 the dedicated
-[modules section](/docs/modules/index.html).
+[modules section](docs/modules/index.html).
 
 This page assumes you're familiar with the
-[configuration syntax](/docs/configuration/syntax.html)
+[configuration syntax](docs/configuration/syntax.html)
 already.
 
 ## Example
@@ -42,11 +42,11 @@ Within the block (the `{ }`) is configuration for the module.
 The only required key is `source`, which tells Terraform where this module
 can be downloaded from. Valid source values are covered in more detail
 in the
-[module section](/docs/modules/index.html).
+[module section](docs/modules/index.html).
 
 Other configuration within the module are dependent on the module itself.
 Module configuration maps directly to
-[variables](/docs/configuration/variables.html) within the module, so
+[variables](docs/configuration/variables.html) within the module, so
 parameters can have any of the data types that variables support, including
 lists and maps.
 

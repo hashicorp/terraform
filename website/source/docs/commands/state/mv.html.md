@@ -9,7 +9,7 @@ description: |-
 # Command: state mv
 
 The `terraform state mv` command is used to move items in a
-[Terraform state](/docs/state/index.html). This command can move
+[Terraform state](docs/state/index.html). This command can move
 single resources, single instances of a resource, entire modules, and more.
 This command can also move items to a completely different state file,
 enabling efficient refactoring.
@@ -36,7 +36,7 @@ for each state file.
 
 This command requires a source and destination address of the item to move.
 Addresses are
-in [resource addressing format](/docs/commands/state/addressing.html).
+in [resource addressing format](docs/commands/state/addressing.html).
 
 The command-line flags are all optional. The list of available flags are:
 
@@ -47,12 +47,12 @@ The command-line flags are all optional. The list of available flags are:
                        This is only necessary if `-state-out` is specified.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+  Ignored when [remote state](docs/state/remote.html) is used.
 
 * `-state-out=path` - Path to the state file to write to. If this isn't specified
                       the state specified by `-state` will be used. This can be
                       a new or existing path. Ignored when
-                      [remote state](/docs/state/remote.html) is used.
+                      [remote state](docs/state/remote.html) is used.
 
 ## Example: Rename a Resource
 

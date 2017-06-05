@@ -17,8 +17,8 @@ It also allows you to delegate the outputs to other teams. This allows your
 infrastructure to be more easily broken down into components that multiple teams
 can access.
 
-Remote state is automatically updated when you run [`apply`](/docs/commands/apply.html)
+Remote state is automatically updated when you run [`apply`](docs/commands/apply.html)
 locally. It is also updated when an `apply` is executed in a [Terraform Enterprise
-Run](/docs/enterprise/runs/index.html).
+Run](docs/enterprise/runs/index.html).
 
-Read [more about remote state](/docs/state/remote.html).
+Read [more about remote state](docs/state/remote.html).

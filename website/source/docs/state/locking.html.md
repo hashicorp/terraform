@@ -8,7 +8,7 @@ description: |-
 
 # State Locking
 
-If supported by your [backend](/docs/backends), Terraform will lock your
+If supported by your [backend](docs/backends), Terraform will lock your
 state for all operations that could write state. This prevents
 others from acquiring the lock and potentially corrupting your state.
 
@@ -21,13 +21,13 @@ If acquiring the lock is taking longer than expected, Terraform will output
 a status message. If Terraform doesn't output a message, state locking is
 still occurring if your backend supports it.
 
-Not all [backends](/docs/backends) support locking. Please view the list
-of [backend types](/docs/backends/types) for details on whether a backend
+Not all [backends](docs/backends) support locking. Please view the list
+of [backend types](docs/backends/types) for details on whether a backend
 supports locking or not.
 
 ## Force Unlock
 
-Terraform has a [force-unlock command](/docs/commands/force-unlock.html)
+Terraform has a [force-unlock command](docs/commands/force-unlock.html)
 to manually unlock the state if unlocking failed.
 
 **Be very careful with this command.** If you unlock the state when someone

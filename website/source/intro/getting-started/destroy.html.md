@@ -65,4 +65,4 @@ from a local machine.
 
 Next, we move on to features that make Terraform configurations
 slightly more useful: [variables, resource dependencies, provisioning,
-and more](/intro/getting-started/dependencies.html).
+and more](intro/getting-started/dependencies.html).
