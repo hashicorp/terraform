@@ -222,8 +222,7 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] Creating ECS service: %s", input)
 
-	// Retry due to AWS IAM policy eventual consistency
-	// See https://github.com/hashicorp/terraform/issues/2869
+	// Retry due to AWS IAM & ECS eventual consistency
 	var out *ecs.CreateServiceOutput
 	var err error
 	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
@@ -235,6 +234,11 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 				return resource.NonRetryableError(err)
 			}
 			if awsErr.Code() == "InvalidParameterException" {
+				log.Printf("[DEBUG] Trying to create ECS service again: %q",
+					awsErr.Message())
+				return resource.RetryableError(err)
+			}
+			if awsErr.Code() == "ClusterNotFoundException" {
 				log.Printf("[DEBUG] Trying to create ECS service again: %q",
 					awsErr.Message())
 				return resource.RetryableError(err)
