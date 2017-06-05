@@ -54,6 +54,7 @@ BUG FIXES:
 * provider/azurerm: VM - making `os_profile` optional [GH-14176]
 * provider/azurerm: Preserve the Subnet properties on Update [GH-13877]
 * provider/datadog: make datadog_user verified a computed attribute [GH-15034]
+* provider/datadog: use correct evaluation_delay parameter [GH-14878]
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
 * provider/google: use a mutex to prevent concurrent sql instance operations [GH-14424]
