@@ -5,7 +5,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/schema"
 	"gopkg.in/zorkian/go-datadog-api.v2"
 )
@@ -108,7 +107,6 @@ func resourceDatadogUserRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	log.Printf("[DEBUG] user: %s", spew.Sdump(u))
 	d.Set("disabled", u.GetDisabled())
 	d.Set("email", u.GetEmail())
 	d.Set("handle", u.GetHandle())
