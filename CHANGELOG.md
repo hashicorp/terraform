@@ -52,6 +52,7 @@ BUG FIXES:
 * provider/aws: Work around IAM eventual consistency in CW Log Subs [GH-14959]
 * provider/aws: Fix ModifyInstanceAttribute on new instances [GH-14992]
 * provider/aws: Fix issue with removing tags in aws_cloudwatch_log_group [GH-14886]
+* provider/aws: Raise timeout for VPC DHCP options creation to 5 mins [GH-15084]
 * provider/aws: Retry Redshift cluster deletion on InvalidClusterState [GH-15068]
 * provider/aws: Retry Lambda func creation on IAM error [GH-15067]
 * provider/aws: Retry ECS service creation on ClusterNotFoundException [GH-15066]
