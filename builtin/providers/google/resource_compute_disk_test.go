@@ -32,6 +32,34 @@ func TestAccComputeDisk_basic(t *testing.T) {
 	})
 }
 
+func TestAccComputeDisk_updateSize(t *testing.T) {
+	diskName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	var disk compute.Disk
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccComputeDisk_basic(diskName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeDiskExists(
+						"google_compute_disk.foobar", &disk),
+					resource.TestCheckResourceAttr("google_compute_disk.foobar", "size", "50"),
+				),
+			},
+			{
+				Config: testAccComputeDisk_resized(diskName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeDiskExists(
+						"google_compute_disk.foobar", &disk),
+					resource.TestCheckResourceAttr("google_compute_disk.foobar", "size", "100"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeDisk_fromSnapshotURI(t *testing.T) {
 	diskName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	firstDiskName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
@@ -207,6 +235,17 @@ resource "google_compute_disk" "foobar" {
 	name = "%s"
 	image = "debian-8-jessie-v20160803"
 	size = 50
+	type = "pd-ssd"
+	zone = "us-central1-a"
+}`, diskName)
+}
+
+func testAccComputeDisk_resized(diskName string) string {
+	return fmt.Sprintf(`
+resource "google_compute_disk" "foobar" {
+	name = "%s"
+	image = "debian-8-jessie-v20160803"
+	size = 100
 	type = "pd-ssd"
 	zone = "us-central1-a"
 }`, diskName)
