@@ -277,11 +277,11 @@ func flattenIncidentUrgencyRule(service *pagerduty.Service) ([]interface{}, bool
 }
 
 func flattenIncidentUrgencyType(iut *pagerduty.IncidentUrgencyType) []interface{} {
-	incidenUrgencyType := map[string]interface{}{
+	incidentUrgencyType := map[string]interface{}{
 		"type":    iut.Type,
 		"urgency": iut.Urgency,
 	}
-	return []interface{}{incidenUrgencyType}
+	return []interface{}{incidentUrgencyType}
 }
 
 // Expands attribute to support hours
