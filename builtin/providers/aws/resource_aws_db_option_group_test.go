@@ -22,8 +22,30 @@ func TestAccAWSDBOptionGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBOptionGroupBasicConfig(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
+					testAccCheckAWSDBOptionGroupAttributes(&v),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.bar", "name", rName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBOptionGroup_timeoutBlock(t *testing.T) {
+	var v rds.OptionGroup
+	rName := fmt.Sprintf("option-group-test-terraform-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBOptionGroupBasicConfigTimeoutBlock(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
 					testAccCheckAWSDBOptionGroupAttributes(&v),
@@ -43,7 +65,7 @@ func TestAccAWSDBOptionGroup_namePrefix(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBOptionGroup_namePrefix,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.test", &v),
@@ -64,7 +86,7 @@ func TestAccAWSDBOptionGroup_generatedName(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBOptionGroup_generatedName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.test", &v),
@@ -83,7 +105,7 @@ func TestAccAWSDBOptionGroup_defaultDescription(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBOptionGroup_defaultDescription(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.test", &v),
@@ -103,7 +125,7 @@ func TestAccAWSDBOptionGroup_basicDestroyWithInstance(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBOptionGroupBasicDestroyConfig(rName),
 			},
 		},
@@ -119,7 +141,7 @@ func TestAccAWSDBOptionGroup_OptionSettings(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBOptionGroupOptionSettings(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
@@ -131,7 +153,7 @@ func TestAccAWSDBOptionGroup_OptionSettings(t *testing.T) {
 						"aws_db_option_group.bar", "option.961211605.option_settings.129825347.value", "UTC"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSDBOptionGroupOptionSettings_update(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
@@ -156,7 +178,7 @@ func TestAccAWSDBOptionGroup_sqlServerOptionsUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBOptionGroupSqlServerEEOptions(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
@@ -165,7 +187,7 @@ func TestAccAWSDBOptionGroup_sqlServerOptionsUpdate(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSDBOptionGroupSqlServerEEOptions_update(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
@@ -188,7 +210,7 @@ func TestAccAWSDBOptionGroup_multipleOptions(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBOptionGroupMultipleOptions(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.bar", &v),
@@ -286,6 +308,21 @@ func testAccCheckAWSDBOptionGroupDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func testAccAWSDBOptionGroupBasicConfigTimeoutBlock(r string) string {
+	return fmt.Sprintf(`
+resource "aws_db_option_group" "bar" {
+  name                     = "%s"
+  option_group_description = "Test option group for terraform"
+  engine_name              = "mysql"
+  major_engine_version     = "5.6"
+
+  timeouts {
+  	delete = "10m"
+  }
+}
+`, r)
 }
 
 func testAccAWSDBOptionGroupBasicConfig(r string) string {

@@ -65,6 +65,14 @@ The following attributes are exported:
 
 * `arn` - The ARN of the db option group.
 
+<a id="timeouts"></a>
+## Timeouts
+
+`aws_db_option_group` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `delete` - (Default `15 minutes`)
+
 ## Import
 
 DB Option groups can be imported using the `name`, e.g.
