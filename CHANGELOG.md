@@ -47,6 +47,7 @@ BUG FIXES:
 * provider/aws: Work around IAM eventual consistency in CW Log Subs [GH-14959]
 * provider/aws: Fix ModifyInstanceAttribute on new instances [GH-14992]
 * provider/aws: Fix issue with removing tags in aws_cloudwatch_log_group [GH-14886]
+* provider/aws: Retry Redshift cluster deletion on InvalidClusterState [GH-15068]
 * provider/azurerm: Preserve the Subnet properties on Update [GH-13877]
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
