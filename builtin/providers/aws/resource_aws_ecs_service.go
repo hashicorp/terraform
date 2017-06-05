@@ -404,13 +404,16 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	// Retry due to AWS IAM policy eventual consistency
-	// See https://github.com/hashicorp/terraform/issues/4375
+	// Retry due to IAM & ECS eventual consistency
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 		out, err := conn.UpdateService(&input)
 		if err != nil {
 			awsErr, ok := err.(awserr.Error)
 			if ok && awsErr.Code() == "InvalidParameterException" {
+				log.Printf("[DEBUG] Trying to update ECS service again: %#v", err)
+				return resource.RetryableError(err)
+			}
+			if ok && awsErr.Code() == "ServiceNotFoundException" {
 				log.Printf("[DEBUG] Trying to update ECS service again: %#v", err)
 				return resource.RetryableError(err)
 			}
