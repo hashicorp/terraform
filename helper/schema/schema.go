@@ -145,7 +145,12 @@ type Schema struct {
 	// The following fields are only valid for a TypeSet type.
 	//
 	// Set defines a function to determine the unique ID of an item so that
-	// a proper set can be built.
+	// a proper set can be built. It should take into account all properties
+	// inside the set - changes in properties not included in the hash will not
+	// be detected.
+	//
+	// NOTE: This should only be used for backwards compatibility.
+	// New code should leave this unset, which causes a default function to be used.
 	Set SchemaSetFunc
 
 	// ComputedWhen is a set of queries on the configuration. Whenever any

@@ -350,6 +350,21 @@ For more information on the different example configurations, please check out t
 * `image_uri` - (Optional) Specifies the image_uri in the form publisherName:offer:skus:version. `image_uri` can also specify the [VHD uri](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-cli-deploy-templates/#create-a-custom-vm-image) of a custom VM image to clone. When cloning a custom disk image the `os_type` documented below becomes required.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
 * `disk_size_gb` - (Optional) Specifies the size of the os disk in gigabytes.
+* `encryption_settings` - (Optional) Species the encryption settings for the OS disk as documented below. See [Azure Disk Encryption for Windows and Linux IaaS vms](https://docs.microsoft.com/en-us/azure/security/azure-security-disk-encryption) for more information.
+
+`encryption_settings` supports the following:
+
+* `enabled` - (Required) Specifies if the encryption is enabled. If false, disk_encryption_key and key_encryption_key must not be specified.
+* `disk_encryption_key` - (Optional) Specifies the location of the disk encryption key using `secret_url` and `source_vault_id` subproperties. Must be specified if enabled is true.
+* `key_encryption_key` - (Optional) Specifies the location of the key encryption key using `key_url` and `source_vault_id` subproperties.
+
+~> **Note:** An example `disk_encryption_key` could look like:
+```hcl
+disk_encryption_key {
+  secret_url = "https://{keyvaultname}.vault.azure.net/secrets/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  source_vault_id = "/subscriptions/{subscription id}/resourceGroups/{resource group}/providers/Microsoft.KeyVault/vaults/{vault name}"
+}
+```
 
 `storage_data_disk` supports the following:
 
