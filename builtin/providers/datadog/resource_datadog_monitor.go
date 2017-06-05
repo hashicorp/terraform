@@ -169,7 +169,7 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		o.SetNewHostDelay(attr.(int))
 	}
 	if attr, ok := d.GetOk("evaluation_delay"); ok {
-		o.SetNewHostDelay(attr.(int))
+		o.SetEvaluationDelay(attr.(int))
 	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
 		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
@@ -282,7 +282,7 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("thresholds", thresholds)
 
 	d.Set("new_host_delay", m.Options.GetNewHostDelay())
-	d.Set("evaluation_delay", m.Options.GetNewHostDelay())
+	d.Set("evaluation_delay", m.Options.GetEvaluationDelay())
 	d.Set("notify_no_data", m.Options.GetNotifyNoData())
 	d.Set("no_data_timeframe", m.Options.NoDataTimeframe)
 	d.Set("renotify_interval", m.Options.GetRenotifyInterval())
@@ -350,7 +350,7 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 		o.SetNewHostDelay(attr.(int))
 	}
 	if attr, ok := d.GetOk("evaluation_delay"); ok {
-		o.SetNewHostDelay(attr.(int))
+		o.SetEvaluationDelay(attr.(int))
 	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
 		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
