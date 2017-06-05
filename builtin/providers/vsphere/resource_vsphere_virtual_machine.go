@@ -1356,6 +1356,8 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
 	if len(existing) == 0 {
+		// TODO need this spec before I get the datastore
+		// BEGIN REFACTOR
 		disk.CapacityInKB = int64(size * 1024 * 1024)
 		if iops != 0 {
 			disk.StorageIOAllocation = &types.StorageIOAllocationInfo{
@@ -1376,6 +1378,7 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 			// thin provisioned virtual disk
 			backing.ThinProvisioned = types.NewBool(true)
 		}
+		// END REFACTOR
 
 		log.Printf("[DEBUG] addHardDisk: %#v\n", disk)
 		log.Printf("[DEBUG] addHardDisk capacity: %#v\n", disk.CapacityInKB)
@@ -1800,8 +1803,12 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] virtual machine Extra Config spec: %v", configSpec.ExtraConfig)
 	}
 
+	// TODO: start building of configSpec here
+	// REFACTOR START
+
 	var datastore *object.Datastore
 	if vm.datastore == "" {
+		// TODO: datastore cluster support in govmomi finder function
 		datastore, err = finder.DefaultDatastore(context.TODO())
 		if err != nil {
 			return err
@@ -1913,6 +1920,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 
 	var task *object.Task
 	if vm.template == "" {
+		// TODO CJL - refactor all of this to the - REFACTOR START
 		var mds mo.Datastore
 		if err = datastore.Properties(context.TODO(), datastore.Reference(), []string{"name"}, &mds); err != nil {
 			return err
@@ -1929,6 +1937,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		})
 
 		configSpec.Files = &types.VirtualMachineFileInfo{VmPathName: fmt.Sprintf("[%s]", mds.Name)}
+		// TODO: END REFACTOR
 
 		task, err = folder.CreateVM(context.TODO(), configSpec, resourcePool, nil)
 		if err != nil {
@@ -1942,6 +1951,8 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 
 	} else {
 
+		// TODO CJL - refactor all of this to the - REFACTOR START
+		// buildVMRelocateSpec needs to be adjusted
 		relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
 		if err != nil {
 			return err
@@ -1963,6 +1974,8 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			cloneSpec.Snapshot = template_mo.Snapshot.CurrentSnapshot
 		}
 		log.Printf("[DEBUG] clone spec: %v", cloneSpec)
+
+		// TODO: END REFACTOR
 
 		task, err = template.Clone(context.TODO(), folder, vm.name, cloneSpec)
 		if err != nil {
