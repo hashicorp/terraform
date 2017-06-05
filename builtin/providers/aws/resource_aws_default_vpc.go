@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -37,7 +38,7 @@ func resourceAwsDefaultVpcCreate(d *schema.ResourceData, meta interface{}) error
 	conn := meta.(*AWSClient).ec2conn
 	req := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("isDefault"),
 				Values: aws.StringSlice([]string{"true"}),
 			},
@@ -47,6 +48,10 @@ func resourceAwsDefaultVpcCreate(d *schema.ResourceData, meta interface{}) error
 	resp, err := conn.DescribeVpcs(req)
 	if err != nil {
 		return err
+	}
+
+	if resp.Vpcs == nil || len(resp.Vpcs) == 0 {
+		return fmt.Errorf("No default VPC found in this region.")
 	}
 
 	d.SetId(aws.StringValue(resp.Vpcs[0].VpcId))
