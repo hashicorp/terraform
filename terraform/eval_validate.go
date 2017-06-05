@@ -152,9 +152,10 @@ func (n *EvalValidateProvisioner) validateConnConfig(connConfig *ResourceConfig)
 		BastionPrivateKey interface{} `mapstructure:"bastion_private_key"`
 
 		// For type=winrm only (enforced in winrm communicator)
-		HTTPS    interface{} `mapstructure:"https"`
-		Insecure interface{} `mapstructure:"insecure"`
-		CACert   interface{} `mapstructure:"cacert"`
+		HTTPS         interface{} `mapstructure:"https"`
+		Insecure      interface{} `mapstructure:"insecure"`
+		TLSServerName interface{} `mapstructure:"tls_server_name"`
+		CACert        interface{} `mapstructure:"cacert"`
 	}
 
 	var metadata mapstructure.Metadata

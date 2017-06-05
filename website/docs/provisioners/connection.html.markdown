@@ -87,6 +87,9 @@ provisioner "file" {
 
 * `insecure` - Set to `true` to not validate the HTTPS certificate chain.
 
+* `tls_server_name` - Set to override the server name that is used when verifying the
+  server certificate.
+
 * `cacert` - The CA certificate to validate against.
 
 <a id="bastion"></a>

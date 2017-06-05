@@ -75,14 +75,15 @@ GnSud83VUo9G9w==
 	r := &terraform.InstanceState{
 		Ephemeral: terraform.EphemeralState{
 			ConnInfo: map[string]string{
-				"type":     "winrm",
-				"user":     "Administrator",
-				"password": "supersecret",
-				"host":     "127.0.0.1",
-				"port":     "5985",
-				"https":    "true",
-				"timeout":  "30s",
-				"cacert":   caCert,
+				"type":            "winrm",
+				"user":            "Administrator",
+				"password":        "supersecret",
+				"host":            "127.0.0.1",
+				"port":            "5985",
+				"https":           "true",
+				"timeout":         "30s",
+				"cacert":          caCert,
+				"tls_server_name": "cn",
 			},
 		},
 	}
@@ -115,6 +116,9 @@ GnSud83VUo9G9w==
 	}
 	if conf.CACert != caCert {
 		t.Fatalf("expected: %v: got: %v", caCert, conf.CACert)
+	}
+	if conf.TLSServerName != "cn" {
+		t.Fatalf("expected: %v: got %v", "cn", conf.TLSServerName)
 	}
 }
 
