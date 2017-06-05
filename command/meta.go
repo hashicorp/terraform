@@ -50,11 +50,6 @@ type Meta struct {
 	// Override certain behavior for tests within this package
 	testingOverrides *testingOverrides
 
-	// Override the set of provider plugin SHA256 digests we expect.
-	// If this is nil we will instead read from the provider lock file
-	// when setting up ContextOpts.
-	forceProviderSHA256s map[string][]byte
-
 	//----------------------------------------------------------
 	// Private: do not set these
 	//----------------------------------------------------------
@@ -249,11 +244,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 		opts.Provisioners = m.provisionerFactories()
 	}
 
-	if m.forceProviderSHA256s != nil {
-		opts.ProviderSHA256s = m.forceProviderSHA256s
-	} else {
-		opts.ProviderSHA256s = m.providerPluginsLock().Read()
-	}
+	opts.ProviderSHA256s = m.providerPluginsLock().Read()
 
 	opts.Meta = &terraform.ContextMeta{
 		Env: m.Env(),
