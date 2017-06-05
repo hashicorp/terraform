@@ -26,6 +26,7 @@ IMPROVEMENTS:
 * provider/google: Add ability to import Google Compute persistent disks [GH-14573]
 * provider/google: `google_container_cluster.master_auth` should be optional [GH-14630]
 * provider/google: Add CORS support for `google_storage_bucket` [GH-14695]
+* provider/heroku: can now import Heroku Spaces [GH-14973]
 * provider/kubernetes: Upgrade K8S from 1.5.3 to 1.6.1 [GH-14923]
 * provider/kubernetes: Provide more details about why PVC failed to bind [GH-15019]
 * provider/kubernetes: Allow sourcing config_path from `KUBECONFIG` env var [GH-14889]
