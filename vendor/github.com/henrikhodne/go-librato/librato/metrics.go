@@ -32,7 +32,6 @@ type MetricAttributes struct {
 	DisplayUnitsLong  string      `json:"display_units_long"`
 	DisplayUnitsShort string      `json:"display_units_short"`
 	DisplayStacked    bool        `json:"display_stacked"`
-	DisplayTransform  string      `json:"display_transform"`
 	CreatedByUA       string      `json:"created_by_ua,omitempty"`
 	GapDetection      bool        `json:"gap_detection,omitempty"`
 	Aggregate         bool        `json:"aggregate,omitempty"`
@@ -136,10 +135,10 @@ type GaugeMeasurement struct {
 	SumSquares *float64 `json:"sum_squares,omitempty"`
 }
 
-// Submit metrics
+// Create metrics
 //
 // Librato API docs: https://www.librato.com/docs/api/#create-a-measurement
-func (m *MetricsService) Submit(measurements *MeasurementSubmission) (*http.Response, error) {
+func (m *MetricsService) Create(measurements *MeasurementSubmission) (*http.Response, error) {
 	req, err := m.client.NewRequest("POST", "/metrics", measurements)
 	if err != nil {
 		return nil, err
@@ -148,10 +147,10 @@ func (m *MetricsService) Submit(measurements *MeasurementSubmission) (*http.Resp
 	return m.client.Do(req, nil)
 }
 
-// Edit a metric.
+// Update a metric.
 //
 // Librato API docs: https://www.librato.com/docs/api/#update-a-metric-by-name
-func (m *MetricsService) Edit(metric *Metric) (*http.Response, error) {
+func (m *MetricsService) Update(metric *Metric) (*http.Response, error) {
 	u := fmt.Sprintf("metrics/%s", *metric.Name)
 
 	req, err := m.client.NewRequest("PUT", u, metric)
