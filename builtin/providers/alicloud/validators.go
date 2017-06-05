@@ -591,7 +591,7 @@ func validateOssBucketAcl(v interface{}, k string) (ws []string, errors []error)
 		acls := oss.ACLType(value)
 		if acls != oss.ACLPrivate && acls != oss.ACLPublicRead && acls != oss.ACLPublicReadWrite {
 			errors = append(errors, fmt.Errorf(
-				"%q must be a valid ACL value , expected %s, %s, %s, %s or %s, got %q",
+				"%q must be a valid ACL value , expected %s, %s or %s, got %q",
 				k, oss.ACLPrivate, oss.ACLPublicRead, oss.ACLPublicReadWrite, acls))
 		}
 	}
