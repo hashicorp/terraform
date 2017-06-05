@@ -3146,6 +3146,89 @@ func (c *CodeDeploy) ListDeploymentsPagesWithContext(ctx aws.Context, input *Lis
 	return p.Err()
 }
 
+const opListGitHubAccountTokenNames = "ListGitHubAccountTokenNames"
+
+// ListGitHubAccountTokenNamesRequest generates a "aws/request.Request" representing the
+// client's request for the ListGitHubAccountTokenNames operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ListGitHubAccountTokenNames for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListGitHubAccountTokenNames method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListGitHubAccountTokenNamesRequest method.
+//    req, resp := client.ListGitHubAccountTokenNamesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListGitHubAccountTokenNames
+func (c *CodeDeploy) ListGitHubAccountTokenNamesRequest(input *ListGitHubAccountTokenNamesInput) (req *request.Request, output *ListGitHubAccountTokenNamesOutput) {
+	op := &request.Operation{
+		Name:       opListGitHubAccountTokenNames,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListGitHubAccountTokenNamesInput{}
+	}
+
+	output = &ListGitHubAccountTokenNamesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListGitHubAccountTokenNames API operation for AWS CodeDeploy.
+//
+// Lists the names of stored connections to GitHub accounts.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation ListGitHubAccountTokenNames for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The next token was specified in an invalid format.
+//
+//   * ErrCodeResourceValidationException "ResourceValidationException"
+//   The specified resource could not be validated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListGitHubAccountTokenNames
+func (c *CodeDeploy) ListGitHubAccountTokenNames(input *ListGitHubAccountTokenNamesInput) (*ListGitHubAccountTokenNamesOutput, error) {
+	req, out := c.ListGitHubAccountTokenNamesRequest(input)
+	return out, req.Send()
+}
+
+// ListGitHubAccountTokenNamesWithContext is the same as ListGitHubAccountTokenNames with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListGitHubAccountTokenNames for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CodeDeploy) ListGitHubAccountTokenNamesWithContext(ctx aws.Context, input *ListGitHubAccountTokenNamesInput, opts ...request.Option) (*ListGitHubAccountTokenNamesOutput, error) {
+	req, out := c.ListGitHubAccountTokenNamesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListOnPremisesInstances = "ListOnPremisesInstances"
 
 // ListOnPremisesInstancesRequest generates a "aws/request.Request" representing the
@@ -4153,6 +4236,9 @@ type ApplicationInfo struct {
 	// The time at which the application was created.
 	CreateTime *time.Time `locationName:"createTime" type:"timestamp" timestampFormat:"unix"`
 
+	// The name for a connection to a GitHub account.
+	GitHubAccountName *string `locationName:"gitHubAccountName" type:"string"`
+
 	// True if the user has authenticated with GitHub for the specified application;
 	// otherwise, false.
 	LinkedToGitHub *bool `locationName:"linkedToGitHub" type:"boolean"`
@@ -4183,6 +4269,12 @@ func (s *ApplicationInfo) SetApplicationName(v string) *ApplicationInfo {
 // SetCreateTime sets the CreateTime field's value.
 func (s *ApplicationInfo) SetCreateTime(v time.Time) *ApplicationInfo {
 	s.CreateTime = &v
+	return s
+}
+
+// SetGitHubAccountName sets the GitHubAccountName field's value.
+func (s *ApplicationInfo) SetGitHubAccountName(v string) *ApplicationInfo {
+	s.GitHubAccountName = &v
 	return s
 }
 
@@ -4262,7 +4354,7 @@ func (s *AutoScalingGroup) SetName(v string) *AutoScalingGroup {
 	return s
 }
 
-// Represents the input of a batch get application revisions operation.
+// Represents the input of a BatchGetApplicationRevisions operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetApplicationRevisionsInput
 type BatchGetApplicationRevisionsInput struct {
 	_ struct{} `type:"structure"`
@@ -4319,7 +4411,7 @@ func (s *BatchGetApplicationRevisionsInput) SetRevisions(v []*RevisionLocation) 
 	return s
 }
 
-// Represents the output of a batch get application revisions operation.
+// Represents the output of a BatchGetApplicationRevisions operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetApplicationRevisionsOutput
 type BatchGetApplicationRevisionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4362,7 +4454,7 @@ func (s *BatchGetApplicationRevisionsOutput) SetRevisions(v []*RevisionInfo) *Ba
 	return s
 }
 
-// Represents the input of a batch get applications operation.
+// Represents the input of a BatchGetApplications operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetApplicationsInput
 type BatchGetApplicationsInput struct {
 	_ struct{} `type:"structure"`
@@ -4387,7 +4479,7 @@ func (s *BatchGetApplicationsInput) SetApplicationNames(v []*string) *BatchGetAp
 	return s
 }
 
-// Represents the output of a batch get applications operation.
+// Represents the output of a BatchGetApplications operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetApplicationsOutput
 type BatchGetApplicationsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4412,7 +4504,7 @@ func (s *BatchGetApplicationsOutput) SetApplicationsInfo(v []*ApplicationInfo) *
 	return s
 }
 
-// Represents the input of a batch get deployment groups operation.
+// Represents the input of a BatchGetDeploymentGroups operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetDeploymentGroupsInput
 type BatchGetDeploymentGroupsInput struct {
 	_ struct{} `type:"structure"`
@@ -4470,7 +4562,7 @@ func (s *BatchGetDeploymentGroupsInput) SetDeploymentGroupNames(v []*string) *Ba
 	return s
 }
 
-// Represents the output of a batch get deployment groups operation.
+// Represents the output of a BatchGetDeploymentGroups operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetDeploymentGroupsOutput
 type BatchGetDeploymentGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4504,7 +4596,7 @@ func (s *BatchGetDeploymentGroupsOutput) SetErrorMessage(v string) *BatchGetDepl
 	return s
 }
 
-// Represents the input of a batch get deployment instances operation.
+// Represents the input of a BatchGetDeploymentInstances operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetDeploymentInstancesInput
 type BatchGetDeploymentInstancesInput struct {
 	_ struct{} `type:"structure"`
@@ -4558,7 +4650,7 @@ func (s *BatchGetDeploymentInstancesInput) SetInstanceIds(v []*string) *BatchGet
 	return s
 }
 
-// Represents the output of a batch get deployment instance operation.
+// Represents the output of a BatchGetDeploymentInstances operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetDeploymentInstancesOutput
 type BatchGetDeploymentInstancesOutput struct {
 	_ struct{} `type:"structure"`
@@ -4592,7 +4684,7 @@ func (s *BatchGetDeploymentInstancesOutput) SetInstancesSummary(v []*InstanceSum
 	return s
 }
 
-// Represents the input of a batch get deployments operation.
+// Represents the input of a BatchGetDeployments operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetDeploymentsInput
 type BatchGetDeploymentsInput struct {
 	_ struct{} `type:"structure"`
@@ -4617,7 +4709,7 @@ func (s *BatchGetDeploymentsInput) SetDeploymentIds(v []*string) *BatchGetDeploy
 	return s
 }
 
-// Represents the output of a batch get deployments operation.
+// Represents the output of a BatchGetDeployments operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetDeploymentsOutput
 type BatchGetDeploymentsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4642,7 +4734,7 @@ func (s *BatchGetDeploymentsOutput) SetDeploymentsInfo(v []*DeploymentInfo) *Bat
 	return s
 }
 
-// Represents the input of a batch get on-premises instances operation.
+// Represents the input of a BatchGetOnPremisesInstances operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetOnPremisesInstancesInput
 type BatchGetOnPremisesInstancesInput struct {
 	_ struct{} `type:"structure"`
@@ -4667,7 +4759,7 @@ func (s *BatchGetOnPremisesInstancesInput) SetInstanceNames(v []*string) *BatchG
 	return s
 }
 
-// Represents the output of a batch get on-premises instances operation.
+// Represents the output of a BatchGetOnPremisesInstances operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetOnPremisesInstancesOutput
 type BatchGetOnPremisesInstancesOutput struct {
 	_ struct{} `type:"structure"`
@@ -4820,7 +4912,7 @@ func (s ContinueDeploymentOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of a create application operation.
+// Represents the input of a CreateApplication operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateApplicationInput
 type CreateApplicationInput struct {
 	_ struct{} `type:"structure"`
@@ -4864,7 +4956,7 @@ func (s *CreateApplicationInput) SetApplicationName(v string) *CreateApplication
 	return s
 }
 
-// Represents the output of a create application operation.
+// Represents the output of a CreateApplication operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateApplicationOutput
 type CreateApplicationOutput struct {
 	_ struct{} `type:"structure"`
@@ -4889,7 +4981,7 @@ func (s *CreateApplicationOutput) SetApplicationId(v string) *CreateApplicationO
 	return s
 }
 
-// Represents the input of a create deployment configuration operation.
+// Represents the input of a CreateDeploymentConfig operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateDeploymentConfigInput
 type CreateDeploymentConfigInput struct {
 	_ struct{} `type:"structure"`
@@ -4959,7 +5051,7 @@ func (s *CreateDeploymentConfigInput) SetMinimumHealthyHosts(v *MinimumHealthyHo
 	return s
 }
 
-// Represents the output of a create deployment configuration operation.
+// Represents the output of a CreateDeploymentConfig operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateDeploymentConfigOutput
 type CreateDeploymentConfigOutput struct {
 	_ struct{} `type:"structure"`
@@ -4984,7 +5076,7 @@ func (s *CreateDeploymentConfigOutput) SetDeploymentConfigId(v string) *CreateDe
 	return s
 }
 
-// Represents the input of a create deployment group operation.
+// Represents the input of a CreateDeploymentGroup operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateDeploymentGroupInput
 type CreateDeploymentGroupInput struct {
 	_ struct{} `type:"structure"`
@@ -5171,7 +5263,7 @@ func (s *CreateDeploymentGroupInput) SetTriggerConfigurations(v []*TriggerConfig
 	return s
 }
 
-// Represents the output of a create deployment group operation.
+// Represents the output of a CreateDeploymentGroup operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateDeploymentGroupOutput
 type CreateDeploymentGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -5196,7 +5288,7 @@ func (s *CreateDeploymentGroupOutput) SetDeploymentGroupId(v string) *CreateDepl
 	return s
 }
 
-// Represents the input of a create deployment operation.
+// Represents the input of a CreateDeployment operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateDeploymentInput
 type CreateDeploymentInput struct {
 	_ struct{} `type:"structure"`
@@ -5356,7 +5448,7 @@ func (s *CreateDeploymentInput) SetUpdateOutdatedInstancesOnly(v bool) *CreateDe
 	return s
 }
 
-// Represents the output of a create deployment operation.
+// Represents the output of a CreateDeployment operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateDeploymentOutput
 type CreateDeploymentOutput struct {
 	_ struct{} `type:"structure"`
@@ -5381,7 +5473,7 @@ func (s *CreateDeploymentOutput) SetDeploymentId(v string) *CreateDeploymentOutp
 	return s
 }
 
-// Represents the input of a delete application operation.
+// Represents the input of a DeleteApplication operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/DeleteApplicationInput
 type DeleteApplicationInput struct {
 	_ struct{} `type:"structure"`
@@ -5440,7 +5532,7 @@ func (s DeleteApplicationOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of a delete deployment configuration operation.
+// Represents the input of a DeleteDeploymentConfig operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/DeleteDeploymentConfigInput
 type DeleteDeploymentConfigInput struct {
 	_ struct{} `type:"structure"`
@@ -5499,7 +5591,7 @@ func (s DeleteDeploymentConfigOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of a delete deployment group operation.
+// Represents the input of a DeleteDeploymentGroup operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/DeleteDeploymentGroupInput
 type DeleteDeploymentGroupInput struct {
 	_ struct{} `type:"structure"`
@@ -5560,7 +5652,7 @@ func (s *DeleteDeploymentGroupInput) SetDeploymentGroupName(v string) *DeleteDep
 	return s
 }
 
-// Represents the output of a delete deployment group operation.
+// Represents the output of a DeleteDeploymentGroup operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/DeleteDeploymentGroupOutput
 type DeleteDeploymentGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -5679,6 +5771,14 @@ type DeploymentGroupInfo struct {
 	// The Amazon EC2 tags on which to filter.
 	Ec2TagFilters []*EC2TagFilter `locationName:"ec2TagFilters" type:"list"`
 
+	// Information about the most recent attempted deployment to the deployment
+	// group.
+	LastAttemptedDeployment *LastDeploymentInfo `locationName:"lastAttemptedDeployment" type:"structure"`
+
+	// Information about the most recent successful deployment to the deployment
+	// group.
+	LastSuccessfulDeployment *LastDeploymentInfo `locationName:"lastSuccessfulDeployment" type:"structure"`
+
 	// Information about the load balancer to use in a deployment.
 	LoadBalancerInfo *LoadBalancerInfo `locationName:"loadBalancerInfo" type:"structure"`
 
@@ -5763,6 +5863,18 @@ func (s *DeploymentGroupInfo) SetDeploymentStyle(v *DeploymentStyle) *Deployment
 // SetEc2TagFilters sets the Ec2TagFilters field's value.
 func (s *DeploymentGroupInfo) SetEc2TagFilters(v []*EC2TagFilter) *DeploymentGroupInfo {
 	s.Ec2TagFilters = v
+	return s
+}
+
+// SetLastAttemptedDeployment sets the LastAttemptedDeployment field's value.
+func (s *DeploymentGroupInfo) SetLastAttemptedDeployment(v *LastDeploymentInfo) *DeploymentGroupInfo {
+	s.LastAttemptedDeployment = v
+	return s
+}
+
+// SetLastSuccessfulDeployment sets the LastSuccessfulDeployment field's value.
+func (s *DeploymentGroupInfo) SetLastSuccessfulDeployment(v *LastDeploymentInfo) *DeploymentGroupInfo {
+	s.LastSuccessfulDeployment = v
 	return s
 }
 
@@ -6231,7 +6343,7 @@ func (s *DeploymentStyle) SetDeploymentType(v string) *DeploymentStyle {
 	return s
 }
 
-// Represents the input of a deregister on-premises instance operation.
+// Represents the input of a DeregisterOnPremisesInstance operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/DeregisterOnPremisesInstanceInput
 type DeregisterOnPremisesInstanceInput struct {
 	_ struct{} `type:"structure"`
@@ -6568,7 +6680,7 @@ func (s *GenericRevisionInfo) SetRegisterTime(v time.Time) *GenericRevisionInfo 
 	return s
 }
 
-// Represents the input of a get application operation.
+// Represents the input of a GetApplication operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetApplicationInput
 type GetApplicationInput struct {
 	_ struct{} `type:"structure"`
@@ -6612,7 +6724,7 @@ func (s *GetApplicationInput) SetApplicationName(v string) *GetApplicationInput 
 	return s
 }
 
-// Represents the output of a get application operation.
+// Represents the output of a GetApplication operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetApplicationOutput
 type GetApplicationOutput struct {
 	_ struct{} `type:"structure"`
@@ -6637,7 +6749,7 @@ func (s *GetApplicationOutput) SetApplication(v *ApplicationInfo) *GetApplicatio
 	return s
 }
 
-// Represents the input of a get application revision operation.
+// Represents the input of a GetApplicationRevision operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetApplicationRevisionInput
 type GetApplicationRevisionInput struct {
 	_ struct{} `type:"structure"`
@@ -6694,7 +6806,7 @@ func (s *GetApplicationRevisionInput) SetRevision(v *RevisionLocation) *GetAppli
 	return s
 }
 
-// Represents the output of a get application revision operation.
+// Represents the output of a GetApplicationRevision operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetApplicationRevisionOutput
 type GetApplicationRevisionOutput struct {
 	_ struct{} `type:"structure"`
@@ -6737,7 +6849,7 @@ func (s *GetApplicationRevisionOutput) SetRevisionInfo(v *GenericRevisionInfo) *
 	return s
 }
 
-// Represents the input of a get deployment configuration operation.
+// Represents the input of a GetDeploymentConfig operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetDeploymentConfigInput
 type GetDeploymentConfigInput struct {
 	_ struct{} `type:"structure"`
@@ -6781,7 +6893,7 @@ func (s *GetDeploymentConfigInput) SetDeploymentConfigName(v string) *GetDeploym
 	return s
 }
 
-// Represents the output of a get deployment configuration operation.
+// Represents the output of a GetDeploymentConfig operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetDeploymentConfigOutput
 type GetDeploymentConfigOutput struct {
 	_ struct{} `type:"structure"`
@@ -6806,7 +6918,7 @@ func (s *GetDeploymentConfigOutput) SetDeploymentConfigInfo(v *DeploymentConfigI
 	return s
 }
 
-// Represents the input of a get deployment group operation.
+// Represents the input of a GetDeploymentGroup operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetDeploymentGroupInput
 type GetDeploymentGroupInput struct {
 	_ struct{} `type:"structure"`
@@ -6867,7 +6979,7 @@ func (s *GetDeploymentGroupInput) SetDeploymentGroupName(v string) *GetDeploymen
 	return s
 }
 
-// Represents the output of a get deployment group operation.
+// Represents the output of a GetDeploymentGroup operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetDeploymentGroupOutput
 type GetDeploymentGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -6892,7 +7004,7 @@ func (s *GetDeploymentGroupOutput) SetDeploymentGroupInfo(v *DeploymentGroupInfo
 	return s
 }
 
-// Represents the input of a get deployment operation.
+// Represents the input of a GetDeployment operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetDeploymentInput
 type GetDeploymentInput struct {
 	_ struct{} `type:"structure"`
@@ -6932,7 +7044,7 @@ func (s *GetDeploymentInput) SetDeploymentId(v string) *GetDeploymentInput {
 	return s
 }
 
-// Represents the input of a get deployment instance operation.
+// Represents the input of a GetDeploymentInstance operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetDeploymentInstanceInput
 type GetDeploymentInstanceInput struct {
 	_ struct{} `type:"structure"`
@@ -6986,7 +7098,7 @@ func (s *GetDeploymentInstanceInput) SetInstanceId(v string) *GetDeploymentInsta
 	return s
 }
 
-// Represents the output of a get deployment instance operation.
+// Represents the output of a GetDeploymentInstance operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetDeploymentInstanceOutput
 type GetDeploymentInstanceOutput struct {
 	_ struct{} `type:"structure"`
@@ -7011,7 +7123,7 @@ func (s *GetDeploymentInstanceOutput) SetInstanceSummary(v *InstanceSummary) *Ge
 	return s
 }
 
-// Represents the output of a get deployment operation.
+// Represents the output of a GetDeployment operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetDeploymentOutput
 type GetDeploymentOutput struct {
 	_ struct{} `type:"structure"`
@@ -7036,7 +7148,7 @@ func (s *GetDeploymentOutput) SetDeploymentInfo(v *DeploymentInfo) *GetDeploymen
 	return s
 }
 
-// Represents the input of a get on-premises instance operation.
+// Represents the input of a GetOnPremisesInstance operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetOnPremisesInstanceInput
 type GetOnPremisesInstanceInput struct {
 	_ struct{} `type:"structure"`
@@ -7076,7 +7188,7 @@ func (s *GetOnPremisesInstanceInput) SetInstanceName(v string) *GetOnPremisesIns
 	return s
 }
 
-// Represents the output of a get on-premises instance operation.
+// Represents the output of a GetOnPremisesInstance operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetOnPremisesInstanceOutput
 type GetOnPremisesInstanceOutput struct {
 	_ struct{} `type:"structure"`
@@ -7338,6 +7450,61 @@ func (s *InstanceSummary) SetStatus(v string) *InstanceSummary {
 	return s
 }
 
+// Information about the most recent attempted or successful deployment to a
+// deployment group.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/LastDeploymentInfo
+type LastDeploymentInfo struct {
+	_ struct{} `type:"structure"`
+
+	// A timestamp indicating when the most recent deployment to the deployment
+	// group started.
+	CreateTime *time.Time `locationName:"createTime" type:"timestamp" timestampFormat:"unix"`
+
+	// The deployment ID.
+	DeploymentId *string `locationName:"deploymentId" type:"string"`
+
+	// A timestamp indicating when the most recent deployment to the deployment
+	// group completed.
+	EndTime *time.Time `locationName:"endTime" type:"timestamp" timestampFormat:"unix"`
+
+	// The status of the most recent deployment.
+	Status *string `locationName:"status" type:"string" enum:"DeploymentStatus"`
+}
+
+// String returns the string representation
+func (s LastDeploymentInfo) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LastDeploymentInfo) GoString() string {
+	return s.String()
+}
+
+// SetCreateTime sets the CreateTime field's value.
+func (s *LastDeploymentInfo) SetCreateTime(v time.Time) *LastDeploymentInfo {
+	s.CreateTime = &v
+	return s
+}
+
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *LastDeploymentInfo) SetDeploymentId(v string) *LastDeploymentInfo {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *LastDeploymentInfo) SetEndTime(v time.Time) *LastDeploymentInfo {
+	s.EndTime = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *LastDeploymentInfo) SetStatus(v string) *LastDeploymentInfo {
+	s.Status = &v
+	return s
+}
+
 // Information about a deployment lifecycle event.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/LifecycleEvent
 type LifecycleEvent struct {
@@ -7412,7 +7579,7 @@ func (s *LifecycleEvent) SetStatus(v string) *LifecycleEvent {
 	return s
 }
 
-// Represents the input of a list application revisions operation.
+// Represents the input of a ListApplicationRevisions operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListApplicationRevisionsInput
 type ListApplicationRevisionsInput struct {
 	_ struct{} `type:"structure"`
@@ -7539,7 +7706,7 @@ func (s *ListApplicationRevisionsInput) SetSortOrder(v string) *ListApplicationR
 	return s
 }
 
-// Represents the output of a list application revisions operation.
+// Represents the output of a ListApplicationRevisions operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListApplicationRevisionsOutput
 type ListApplicationRevisionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -7575,7 +7742,7 @@ func (s *ListApplicationRevisionsOutput) SetRevisions(v []*RevisionLocation) *Li
 	return s
 }
 
-// Represents the input of a list applications operation.
+// Represents the input of a ListApplications operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListApplicationsInput
 type ListApplicationsInput struct {
 	_ struct{} `type:"structure"`
@@ -7601,7 +7768,7 @@ func (s *ListApplicationsInput) SetNextToken(v string) *ListApplicationsInput {
 	return s
 }
 
-// Represents the output of a list applications operation.
+// Represents the output of a ListApplications operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListApplicationsOutput
 type ListApplicationsOutput struct {
 	_ struct{} `type:"structure"`
@@ -7637,7 +7804,7 @@ func (s *ListApplicationsOutput) SetNextToken(v string) *ListApplicationsOutput 
 	return s
 }
 
-// Represents the input of a list deployment configurations operation.
+// Represents the input of a ListDeploymentConfigs operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeploymentConfigsInput
 type ListDeploymentConfigsInput struct {
 	_ struct{} `type:"structure"`
@@ -7664,7 +7831,7 @@ func (s *ListDeploymentConfigsInput) SetNextToken(v string) *ListDeploymentConfi
 	return s
 }
 
-// Represents the output of a list deployment configurations operation.
+// Represents the output of a ListDeploymentConfigs operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeploymentConfigsOutput
 type ListDeploymentConfigsOutput struct {
 	_ struct{} `type:"structure"`
@@ -7701,7 +7868,7 @@ func (s *ListDeploymentConfigsOutput) SetNextToken(v string) *ListDeploymentConf
 	return s
 }
 
-// Represents the input of a list deployment groups operation.
+// Represents the input of a ListDeploymentGroups operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeploymentGroupsInput
 type ListDeploymentGroupsInput struct {
 	_ struct{} `type:"structure"`
@@ -7755,7 +7922,7 @@ func (s *ListDeploymentGroupsInput) SetNextToken(v string) *ListDeploymentGroups
 	return s
 }
 
-// Represents the output of a list deployment groups operation.
+// Represents the output of a ListDeploymentGroups operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeploymentGroupsOutput
 type ListDeploymentGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -7800,7 +7967,7 @@ func (s *ListDeploymentGroupsOutput) SetNextToken(v string) *ListDeploymentGroup
 	return s
 }
 
-// Represents the input of a list deployment instances operation.
+// Represents the input of a ListDeploymentInstances operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeploymentInstancesInput
 type ListDeploymentInstancesInput struct {
 	_ struct{} `type:"structure"`
@@ -7882,7 +8049,7 @@ func (s *ListDeploymentInstancesInput) SetNextToken(v string) *ListDeploymentIns
 	return s
 }
 
-// Represents the output of a list deployment instances operation.
+// Represents the output of a ListDeploymentInstances operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeploymentInstancesOutput
 type ListDeploymentInstancesOutput struct {
 	_ struct{} `type:"structure"`
@@ -7918,7 +8085,7 @@ func (s *ListDeploymentInstancesOutput) SetNextToken(v string) *ListDeploymentIn
 	return s
 }
 
-// Represents the input of a list deployments operation.
+// Represents the input of a ListDeployments operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeploymentsInput
 type ListDeploymentsInput struct {
 	_ struct{} `type:"structure"`
@@ -8009,7 +8176,7 @@ func (s *ListDeploymentsInput) SetNextToken(v string) *ListDeploymentsInput {
 	return s
 }
 
-// Represents the output of a list deployments operation.
+// Represents the output of a ListDeployments operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeploymentsOutput
 type ListDeploymentsOutput struct {
 	_ struct{} `type:"structure"`
@@ -8045,7 +8212,69 @@ func (s *ListDeploymentsOutput) SetNextToken(v string) *ListDeploymentsOutput {
 	return s
 }
 
-// Represents the input of a list on-premises instances operation.
+// Represents the input of a ListGitHubAccountTokenNames operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListGitHubAccountTokenNamesInput
+type ListGitHubAccountTokenNamesInput struct {
+	_ struct{} `type:"structure"`
+
+	// An identifier returned from the previous ListGitHubAccountTokenNames call.
+	// It can be used to return the next set of names in the list.
+	NextToken *string `locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s ListGitHubAccountTokenNamesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListGitHubAccountTokenNamesInput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListGitHubAccountTokenNamesInput) SetNextToken(v string) *ListGitHubAccountTokenNamesInput {
+	s.NextToken = &v
+	return s
+}
+
+// Represents the output of a ListGitHubAccountTokenNames operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListGitHubAccountTokenNamesOutput
+type ListGitHubAccountTokenNamesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// If a large amount of information is returned, an identifier is also returned.
+	// It can be used in a subsequent ListGitHubAccountTokenNames call to return
+	// the next set of names in the list.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// A list of names of connections to GitHub accounts.
+	TokenNameList []*string `locationName:"tokenNameList" type:"list"`
+}
+
+// String returns the string representation
+func (s ListGitHubAccountTokenNamesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListGitHubAccountTokenNamesOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListGitHubAccountTokenNamesOutput) SetNextToken(v string) *ListGitHubAccountTokenNamesOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTokenNameList sets the TokenNameList field's value.
+func (s *ListGitHubAccountTokenNamesOutput) SetTokenNameList(v []*string) *ListGitHubAccountTokenNamesOutput {
+	s.TokenNameList = v
+	return s
+}
+
+// Represents the input of a ListOnPremisesInstances operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListOnPremisesInstancesInput
 type ListOnPremisesInstancesInput struct {
 	_ struct{} `type:"structure"`
@@ -8217,7 +8446,7 @@ func (s *MinimumHealthyHosts) SetValue(v int64) *MinimumHealthyHosts {
 	return s
 }
 
-// Represents the input of a register application revision operation.
+// Represents the input of a RegisterApplicationRevision operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/RegisterApplicationRevisionInput
 type RegisterApplicationRevisionInput struct {
 	_ struct{} `type:"structure"`
@@ -8373,7 +8602,7 @@ func (s RegisterOnPremisesInstanceOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of a remove tags from on-premises instances operation.
+// Represents the input of a RemoveTagsFromOnPremisesInstances operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/RemoveTagsFromOnPremisesInstancesInput
 type RemoveTagsFromOnPremisesInstancesInput struct {
 	_ struct{} `type:"structure"`
@@ -8687,7 +8916,7 @@ func (s SkipWaitTimeForInstanceTerminationOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of a stop deployment operation.
+// Represents the input of a StopDeployment operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/StopDeploymentInput
 type StopDeploymentInput struct {
 	_ struct{} `type:"structure"`
@@ -8738,7 +8967,7 @@ func (s *StopDeploymentInput) SetDeploymentId(v string) *StopDeploymentInput {
 	return s
 }
 
-// Represents the output of a stop deployment operation.
+// Represents the output of a StopDeployment operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/StopDeploymentOutput
 type StopDeploymentOutput struct {
 	_ struct{} `type:"structure"`
@@ -8978,7 +9207,7 @@ func (s *TriggerConfig) SetTriggerTargetArn(v string) *TriggerConfig {
 	return s
 }
 
-// Represents the input of an update application operation.
+// Represents the input of an UpdateApplication operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/UpdateApplicationInput
 type UpdateApplicationInput struct {
 	_ struct{} `type:"structure"`
@@ -9043,7 +9272,7 @@ func (s UpdateApplicationOutput) GoString() string {
 	return s.String()
 }
 
-// Represents the input of an update deployment group operation.
+// Represents the input of an UpdateDeploymentGroup operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/UpdateDeploymentGroupInput
 type UpdateDeploymentGroupInput struct {
 	_ struct{} `type:"structure"`
@@ -9230,7 +9459,7 @@ func (s *UpdateDeploymentGroupInput) SetTriggerConfigurations(v []*TriggerConfig
 	return s
 }
 
-// Represents the output of an update deployment group operation.
+// Represents the output of an UpdateDeploymentGroup operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/UpdateDeploymentGroupOutput
 type UpdateDeploymentGroupOutput struct {
 	_ struct{} `type:"structure"`

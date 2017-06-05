@@ -9352,6 +9352,222 @@ func (c *RDS) RevokeDBSecurityGroupIngressWithContext(ctx aws.Context, input *Re
 	return out, req.Send()
 }
 
+const opStartDBInstance = "StartDBInstance"
+
+// StartDBInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the StartDBInstance operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See StartDBInstance for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the StartDBInstance method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the StartDBInstanceRequest method.
+//    req, resp := client.StartDBInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/StartDBInstance
+func (c *RDS) StartDBInstanceRequest(input *StartDBInstanceInput) (req *request.Request, output *StartDBInstanceOutput) {
+	op := &request.Operation{
+		Name:       opStartDBInstance,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartDBInstanceInput{}
+	}
+
+	output = &StartDBInstanceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartDBInstance API operation for Amazon Relational Database Service.
+//
+// Starts a DB instance that was stopped using the AWS console, the stop-db-instance
+// AWS CLI command, or the StopDBInstance action. For more information, see
+// Stopping and Starting a DB instance in the AWS RDS user guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Relational Database Service's
+// API operation StartDBInstance for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
+//   DBInstanceIdentifier does not refer to an existing DB instance.
+//
+//   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
+//   The specified DB instance is not in the available state.
+//
+//   * ErrCodeInsufficientDBInstanceCapacityFault "InsufficientDBInstanceCapacity"
+//   Specified DB instance class is not available in the specified Availability
+//   Zone.
+//
+//   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
+//   DBSubnetGroupName does not refer to an existing DB subnet group.
+//
+//   * ErrCodeDBSubnetGroupDoesNotCoverEnoughAZs "DBSubnetGroupDoesNotCoverEnoughAZs"
+//   Subnets in the DB subnet group should cover at least two Availability Zones
+//   unless there is only one Availability Zone.
+//
+//   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
+//   The DB cluster is not in a valid state.
+//
+//   * ErrCodeInvalidSubnet "InvalidSubnet"
+//   The requested subnet is invalid, or multiple subnets were requested that
+//   are not all in a common VPC.
+//
+//   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
+//
+//   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
+//   DBClusterIdentifier does not refer to an existing DB cluster.
+//
+//   * ErrCodeAuthorizationNotFoundFault "AuthorizationNotFound"
+//   Specified CIDRIP or EC2 security group is not authorized for the specified
+//   DB security group.
+//
+//   RDS may not also be authorized via IAM to perform necessary actions on your
+//   behalf.
+//
+//   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
+//   Error accessing KMS key.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/StartDBInstance
+func (c *RDS) StartDBInstance(input *StartDBInstanceInput) (*StartDBInstanceOutput, error) {
+	req, out := c.StartDBInstanceRequest(input)
+	return out, req.Send()
+}
+
+// StartDBInstanceWithContext is the same as StartDBInstance with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartDBInstance for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *RDS) StartDBInstanceWithContext(ctx aws.Context, input *StartDBInstanceInput, opts ...request.Option) (*StartDBInstanceOutput, error) {
+	req, out := c.StartDBInstanceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStopDBInstance = "StopDBInstance"
+
+// StopDBInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the StopDBInstance operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See StopDBInstance for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the StopDBInstance method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the StopDBInstanceRequest method.
+//    req, resp := client.StopDBInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/StopDBInstance
+func (c *RDS) StopDBInstanceRequest(input *StopDBInstanceInput) (req *request.Request, output *StopDBInstanceOutput) {
+	op := &request.Operation{
+		Name:       opStopDBInstance,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StopDBInstanceInput{}
+	}
+
+	output = &StopDBInstanceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StopDBInstance API operation for Amazon Relational Database Service.
+//
+// Stops a DB instance. When you stop a DB instance, Amazon RDS retains the
+// DB instance's metadata, including its endpoint, DB parameter group, and option
+// group membership. Amazon RDS also retains the transaction logs so you can
+// do a point-in-time restore if necessary. For more information, see Stopping
+// and Starting a DB instance in the AWS RDS user guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Relational Database Service's
+// API operation StopDBInstance for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDBInstanceNotFoundFault "DBInstanceNotFound"
+//   DBInstanceIdentifier does not refer to an existing DB instance.
+//
+//   * ErrCodeInvalidDBInstanceStateFault "InvalidDBInstanceState"
+//   The specified DB instance is not in the available state.
+//
+//   * ErrCodeDBSnapshotAlreadyExistsFault "DBSnapshotAlreadyExists"
+//   DBSnapshotIdentifier is already used by an existing snapshot.
+//
+//   * ErrCodeSnapshotQuotaExceededFault "SnapshotQuotaExceeded"
+//   Request would result in user exceeding the allowed number of DB snapshots.
+//
+//   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
+//   The DB cluster is not in a valid state.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/StopDBInstance
+func (c *RDS) StopDBInstance(input *StopDBInstanceInput) (*StopDBInstanceOutput, error) {
+	req, out := c.StopDBInstanceRequest(input)
+	return out, req.Send()
+}
+
+// StopDBInstanceWithContext is the same as StopDBInstance with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StopDBInstance for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *RDS) StopDBInstanceWithContext(ctx aws.Context, input *StopDBInstanceInput, opts ...request.Option) (*StopDBInstanceOutput, error) {
+	req, out := c.StopDBInstanceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 // Describes a quota for an AWS account, for example, the number of DB instances
 // allowed.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/AccountQuota
@@ -10873,7 +11089,7 @@ type CreateDBClusterInput struct {
 	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string"`
 
-	// The name for your database of up to 8 alpha-numeric characters. If you do
+	// The name for your database of up to 64 alpha-numeric characters. If you do
 	// not provide a name, Amazon RDS will not create a database in the DB cluster
 	// you are creating.
 	DatabaseName *string `type:"string"`
@@ -11628,7 +11844,9 @@ type CreateDBInstanceInput struct {
 	//
 	// Oracle
 	//
-	// The Oracle System ID (SID) of the created DB instance.
+	// The Oracle System ID (SID) of the created DB instance. If you specify null,
+	// the default value ORCL is used. You can't specify the string NULL, or any
+	// other reserved word, for DBName.
 	//
 	// Default: ORCL
 	//
@@ -11795,6 +12013,9 @@ type CreateDBInstanceInput struct {
 	//
 	// Oracle 12c
 	//
+	//    * 12.1.0.2.v8 (supported for EE in all AWS regions, and SE2 in all AWS
+	//    regions except us-gov-west-1)
+	//
 	//    * 12.1.0.2.v7 (supported for EE in all AWS regions, and SE2 in all AWS
 	//    regions except us-gov-west-1)
 	//
@@ -11818,6 +12039,8 @@ type CreateDBInstanceInput struct {
 	//
 	// Oracle 11g
 	//
+	//    * 11.2.0.4.v12 (supported for EE, SE1, and SE, in all AWS regions)
+	//
 	//    * 11.2.0.4.v11 (supported for EE, SE1, and SE, in all AWS regions)
 	//
 	//    * 11.2.0.4.v10 (supported for EE, SE1, and SE, in all AWS regions)
@@ -11840,14 +12063,13 @@ type CreateDBInstanceInput struct {
 	//
 	// PostgreSQL
 	//
-	//    * Version 9.6: 9.6.1
+	//    * Version 9.6.x: 9.6.1 | 9.6.2
 	//
-	//    * Version 9.5:9.5.4 | 9.5.2
+	//    * Version 9.5.x:9.5.6 | 9.5.4 | 9.5.2
 	//
-	//    * Version 9.4: 9.4.9 | 9.4.7 | 9.4.5 | 9.4.4 | 9.4.1
+	//    * Version 9.4.x:9.4.11 | 9.4.9 | 9.4.7
 	//
-	//    * Version 9.3: 9.3.14 | 9.3.12 | 9.3.10 | 9.3.9 | 9.3.6 | 9.3.5 | 9.3.3
-	//    | 9.3.2 | 9.3.1
+	//    * Version 9.3.x:9.3.16 | 9.3.14 | 9.3.12
 	EngineVersion *string `type:"string"`
 
 	// The amount of Provisioned IOPS (input/output operations per second) to be
@@ -27082,6 +27304,158 @@ func (s *SourceRegion) SetRegionName(v string) *SourceRegion {
 // SetStatus sets the Status field's value.
 func (s *SourceRegion) SetStatus(v string) *SourceRegion {
 	s.Status = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/StartDBInstanceMessage
+type StartDBInstanceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The user-supplied instance identifier.
+	//
+	// DBInstanceIdentifier is a required field
+	DBInstanceIdentifier *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StartDBInstanceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartDBInstanceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartDBInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartDBInstanceInput"}
+	if s.DBInstanceIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("DBInstanceIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDBInstanceIdentifier sets the DBInstanceIdentifier field's value.
+func (s *StartDBInstanceInput) SetDBInstanceIdentifier(v string) *StartDBInstanceInput {
+	s.DBInstanceIdentifier = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/StartDBInstanceResult
+type StartDBInstanceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Contains the result of a successful invocation of the following actions:
+	//
+	//    * CreateDBInstance
+	//
+	//    * DeleteDBInstance
+	//
+	//    * ModifyDBInstance
+	//
+	// This data type is used as a response element in the DescribeDBInstances action.
+	DBInstance *DBInstance `type:"structure"`
+}
+
+// String returns the string representation
+func (s StartDBInstanceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartDBInstanceOutput) GoString() string {
+	return s.String()
+}
+
+// SetDBInstance sets the DBInstance field's value.
+func (s *StartDBInstanceOutput) SetDBInstance(v *DBInstance) *StartDBInstanceOutput {
+	s.DBInstance = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/StopDBInstanceMessage
+type StopDBInstanceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The user-supplied instance identifier.
+	//
+	// DBInstanceIdentifier is a required field
+	DBInstanceIdentifier *string `type:"string" required:"true"`
+
+	// The user-supplied instance identifier of the DB Snapshot created immediately
+	// before the DB instance is stopped.
+	DBSnapshotIdentifier *string `type:"string"`
+}
+
+// String returns the string representation
+func (s StopDBInstanceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopDBInstanceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StopDBInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StopDBInstanceInput"}
+	if s.DBInstanceIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("DBInstanceIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDBInstanceIdentifier sets the DBInstanceIdentifier field's value.
+func (s *StopDBInstanceInput) SetDBInstanceIdentifier(v string) *StopDBInstanceInput {
+	s.DBInstanceIdentifier = &v
+	return s
+}
+
+// SetDBSnapshotIdentifier sets the DBSnapshotIdentifier field's value.
+func (s *StopDBInstanceInput) SetDBSnapshotIdentifier(v string) *StopDBInstanceInput {
+	s.DBSnapshotIdentifier = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/StopDBInstanceResult
+type StopDBInstanceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Contains the result of a successful invocation of the following actions:
+	//
+	//    * CreateDBInstance
+	//
+	//    * DeleteDBInstance
+	//
+	//    * ModifyDBInstance
+	//
+	// This data type is used as a response element in the DescribeDBInstances action.
+	DBInstance *DBInstance `type:"structure"`
+}
+
+// String returns the string representation
+func (s StopDBInstanceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopDBInstanceOutput) GoString() string {
+	return s.String()
+}
+
+// SetDBInstance sets the DBInstance field's value.
+func (s *StopDBInstanceOutput) SetDBInstance(v *DBInstance) *StopDBInstanceOutput {
+	s.DBInstance = v
 	return s
 }
 
