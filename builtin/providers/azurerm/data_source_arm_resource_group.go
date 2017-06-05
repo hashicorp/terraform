@@ -27,9 +27,16 @@ func dataSourceArmResourceGroupRead(d *schema.ResourceData, meta interface{}) er
 
 	resourceGroupName := d.Get("name").(string)
 	location, getLocationOk := d.GetOk("location")
-	resourceId := fmt.Sprintf("/subscriptions/%s/resourceGroups/%s", armClient.subscriptionId, resourceGroupName)
+	resourceId := &ResourceID{
+		SubscriptionID: armClient.subscriptionId,
+		ResourceGroup:  resourceGroupName,
+	}
 
-	d.SetId(resourceId)
+	if resourceIdString, err := composeAzureResourceID(resourceId); err == nil {
+		d.SetId(resourceIdString)
+	} else {
+		return err
+	}
 
 	if err := resourceArmResourceGroupRead(d, meta); err != nil {
 		return err
