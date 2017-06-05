@@ -52,6 +52,7 @@ BUG FIXES:
 * provider/aws: Retry Lambda func creation on IAM error [GH-15067]
 * provider/aws: Retry ECS service creation on ClusterNotFoundException [GH-15066]
 * provider/aws: Retry ECS service update on ServiceNotFoundException [GH-15073]
+* provider/aws: Retry DB parameter group delete on InvalidDBParameterGroupState [GH-15071]
 * provider/aws: Guard against panic when no aws_default_vpc found [GH-15070]
 * provider/aws: Guard against panic if no NodeGroupMembers returned in 
   `elasticache_replication_group` [GH-13488]
