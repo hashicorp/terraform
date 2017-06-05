@@ -72,11 +72,14 @@ func testAccDataSourceAwsRoute53ZoneCheck(rsName, dsName, zName string) resource
 func testAccDataSourceAwsRoute53ZoneConfig(rInt int) string {
 	return fmt.Sprintf(`
 	provider "aws" {
-		region = "us-east-2"
+		region = "us-east-1"
 	}
 
 	resource "aws_vpc" "test" {
 		cidr_block = "172.16.0.0/16"
+		tags {
+			Name = "testAccDataSourceAwsRoute53ZoneConfig"
+		}
 	}
 
 	resource "aws_route53_zone" "test_private" {

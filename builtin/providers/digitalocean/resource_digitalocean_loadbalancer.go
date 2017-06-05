@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -210,7 +211,7 @@ func resourceDigitalOceanLoadbalancerCreate(d *schema.ResourceData, meta interfa
 	}
 
 	log.Printf("[DEBUG] Loadbalancer Create: %#v", lbOpts)
-	loadbalancer, _, err := client.LoadBalancers.Create(lbOpts)
+	loadbalancer, _, err := client.LoadBalancers.Create(context.Background(), lbOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating Load Balancer: %s", err)
 	}
@@ -236,8 +237,13 @@ func resourceDigitalOceanLoadbalancerRead(d *schema.ResourceData, meta interface
 	client := meta.(*godo.Client)
 
 	log.Printf("[INFO] Reading the details of the Loadbalancer %s", d.Id())
-	loadbalancer, _, err := client.LoadBalancers.Get(d.Id())
+	loadbalancer, resp, err := client.LoadBalancers.Get(context.Background(), d.Id())
 	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			log.Printf("[WARN] DigitalOcean Load Balancer (%s) not found", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error retrieving Loadbalancer: %s", err)
 	}
 
@@ -274,7 +280,7 @@ func resourceDigitalOceanLoadbalancerUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	log.Printf("[DEBUG] Load Balancer Update: %#v", lbOpts)
-	_, _, err = client.LoadBalancers.Update(d.Id(), lbOpts)
+	_, _, err = client.LoadBalancers.Update(context.Background(), d.Id(), lbOpts)
 	if err != nil {
 		return fmt.Errorf("Error updating Load Balancer: %s", err)
 	}
@@ -286,7 +292,7 @@ func resourceDigitalOceanLoadbalancerDelete(d *schema.ResourceData, meta interfa
 	client := meta.(*godo.Client)
 
 	log.Printf("[INFO] Deleting Load Balancer: %s", d.Id())
-	_, err := client.LoadBalancers.Delete(d.Id())
+	_, err := client.LoadBalancers.Delete(context.Background(), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting Load Balancer: %s", err)
 	}

@@ -110,6 +110,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 									"event_source": {
 										Type:     schema.TypeString,
 										Optional: true,
+										Default:  "aws.config",
 									},
 									"maximum_execution_frequency": {
 										Type:         schema.TypeString,
@@ -241,8 +242,17 @@ func resourceAwsConfigConfigRuleDelete(d *schema.ResourceData, meta interface{})
 	name := d.Get("name").(string)
 
 	log.Printf("[DEBUG] Deleting AWS Config config rule %q", name)
-	_, err := conn.DeleteConfigRule(&configservice.DeleteConfigRuleInput{
-		ConfigRuleName: aws.String(name),
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		_, err := conn.DeleteConfigRule(&configservice.DeleteConfigRuleInput{
+			ConfigRuleName: aws.String(name),
+		})
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceInUseException" {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("Deleting Config Rule failed: %s", err)

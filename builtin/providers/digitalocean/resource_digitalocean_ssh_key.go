@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -60,7 +61,7 @@ func resourceDigitalOceanSSHKeyCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] SSH Key create configuration: %#v", opts)
-	key, _, err := client.Keys.Create(opts)
+	key, _, err := client.Keys.Create(context.Background(), opts)
 	if err != nil {
 		return fmt.Errorf("Error creating SSH Key: %s", err)
 	}
@@ -79,7 +80,7 @@ func resourceDigitalOceanSSHKeyRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("invalid SSH key id: %v", err)
 	}
 
-	key, resp, err := client.Keys.GetByID(id)
+	key, resp, err := client.Keys.GetByID(context.Background(), id)
 	if err != nil {
 		// If the key is somehow already destroyed, mark as
 		// successfully gone
@@ -115,7 +116,7 @@ func resourceDigitalOceanSSHKeyUpdate(d *schema.ResourceData, meta interface{}) 
 	opts := &godo.KeyUpdateRequest{
 		Name: newName,
 	}
-	_, _, err = client.Keys.UpdateByID(id, opts)
+	_, _, err = client.Keys.UpdateByID(context.Background(), id, opts)
 	if err != nil {
 		return fmt.Errorf("Failed to update SSH key: %s", err)
 	}
@@ -132,7 +133,7 @@ func resourceDigitalOceanSSHKeyDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[INFO] Deleting SSH key: %d", id)
-	_, err = client.Keys.DeleteByID(id)
+	_, err = client.Keys.DeleteByID(context.Background(), id)
 	if err != nil {
 		return fmt.Errorf("Error deleting SSH key: %s", err)
 	}

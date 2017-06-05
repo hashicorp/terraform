@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
 	"github.com/Azure/azure-sdk-for-go/arm/containerservice"
+	"github.com/Azure/azure-sdk-for-go/arm/disk"
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
 	"github.com/Azure/azure-sdk-for-go/arm/keyvault"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -18,10 +19,12 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
+	"github.com/Azure/azure-sdk-for-go/arm/sql"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
@@ -47,8 +50,11 @@ type ArmClient struct {
 	vmImageClient          compute.VirtualMachineImagesClient
 	vmClient               compute.VirtualMachinesClient
 
+	diskClient disk.DisksClient
+
 	appGatewayClient             network.ApplicationGatewaysClient
 	ifaceClient                  network.InterfacesClient
+	expressRouteCircuitClient    network.ExpressRouteCircuitsClient
 	loadBalancerClient           network.LoadBalancersClient
 	localNetConnClient           network.LocalNetworkGatewaysClient
 	publicIPClient               network.PublicIPAddressesClient
@@ -82,7 +88,7 @@ type ArmClient struct {
 	jobsCollectionsClient scheduler.JobCollectionsClient
 
 	storageServiceClient storage.AccountsClient
-	storageUsageClient   storage.UsageOperationsClient
+	storageUsageClient   storage.UsageClient
 
 	deploymentsClient resources.DeploymentsClient
 
@@ -96,6 +102,8 @@ type ArmClient struct {
 	serviceBusSubscriptionsClient servicebus.SubscriptionsClient
 
 	keyVaultClient keyvault.VaultsClient
+
+	sqlElasticPoolsClient sql.ElasticPoolsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -166,7 +174,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	}
 	client.rivieraClient = rivieraClient
 
-	oauthConfig, err := env.OAuthConfigForTenant(c.TenantID)
+	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, c.TenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -176,278 +184,297 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 		return nil, fmt.Errorf("Unable to configure OAuthConfig for tenant %s", c.TenantID)
 	}
 
-	spt, err := azure.NewServicePrincipalToken(*oauthConfig, c.ClientID, c.ClientSecret, env.ResourceManagerEndpoint)
+	spt, err := adal.NewServicePrincipalToken(*oauthConfig, c.ClientID, c.ClientSecret, env.ResourceManagerEndpoint)
 	if err != nil {
 		return nil, err
 	}
 
 	endpoint := env.ResourceManagerEndpoint
+	auth := autorest.NewBearerAuthorizer(spt)
 
 	// NOTE: these declarations should be left separate for clarity should the
 	// clients be wished to be configured with custom Responders/PollingModess etc...
 	asc := compute.NewAvailabilitySetsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&asc.Client)
-	asc.Authorizer = spt
+	asc.Authorizer = auth
 	asc.Sender = autorest.CreateSender(withRequestLogging())
 	client.availSetClient = asc
 
 	uoc := compute.NewUsageClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&uoc.Client)
-	uoc.Authorizer = spt
+	uoc.Authorizer = auth
 	uoc.Sender = autorest.CreateSender(withRequestLogging())
 	client.usageOpsClient = uoc
 
 	vmeic := compute.NewVirtualMachineExtensionImagesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&vmeic.Client)
-	vmeic.Authorizer = spt
+	vmeic.Authorizer = auth
 	vmeic.Sender = autorest.CreateSender(withRequestLogging())
 	client.vmExtensionImageClient = vmeic
 
 	vmec := compute.NewVirtualMachineExtensionsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&vmec.Client)
-	vmec.Authorizer = spt
+	vmec.Authorizer = auth
 	vmec.Sender = autorest.CreateSender(withRequestLogging())
 	client.vmExtensionClient = vmec
 
 	vmic := compute.NewVirtualMachineImagesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&vmic.Client)
-	vmic.Authorizer = spt
+	vmic.Authorizer = auth
 	vmic.Sender = autorest.CreateSender(withRequestLogging())
 	client.vmImageClient = vmic
 
 	vmssc := compute.NewVirtualMachineScaleSetsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&vmssc.Client)
-	vmssc.Authorizer = spt
+	vmssc.Authorizer = auth
 	vmssc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vmScaleSetClient = vmssc
 
 	vmc := compute.NewVirtualMachinesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&vmc.Client)
-	vmc.Authorizer = spt
+	vmc.Authorizer = auth
 	vmc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vmClient = vmc
 
 	agc := network.NewApplicationGatewaysClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&agc.Client)
-	agc.Authorizer = spt
+	agc.Authorizer = auth
 	agc.Sender = autorest.CreateSender(withRequestLogging())
 	client.appGatewayClient = agc
 
 	crc := containerregistry.NewRegistriesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&crc.Client)
-	crc.Authorizer = spt
+	crc.Authorizer = auth
 	crc.Sender = autorest.CreateSender(withRequestLogging())
 	client.containerRegistryClient = crc
 
 	csc := containerservice.NewContainerServicesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&csc.Client)
-	csc.Authorizer = spt
+	csc.Authorizer = auth
 	csc.Sender = autorest.CreateSender(withRequestLogging())
 	client.containerServicesClient = csc
 
+	dkc := disk.NewDisksClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&dkc.Client)
+	dkc.Authorizer = auth
+	dkc.Sender = autorest.CreateSender(withRequestLogging())
+	client.diskClient = dkc
+
 	ehc := eventhub.NewEventHubsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ehc.Client)
-	ehc.Authorizer = spt
+	ehc.Authorizer = auth
 	ehc.Sender = autorest.CreateSender(withRequestLogging())
 	client.eventHubClient = ehc
 
 	chcgc := eventhub.NewConsumerGroupsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&chcgc.Client)
-	chcgc.Authorizer = spt
+	chcgc.Authorizer = auth
 	chcgc.Sender = autorest.CreateSender(withRequestLogging())
 	client.eventHubConsumerGroupClient = chcgc
 
 	ehnc := eventhub.NewNamespacesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ehnc.Client)
-	ehnc.Authorizer = spt
+	ehnc.Authorizer = auth
 	ehnc.Sender = autorest.CreateSender(withRequestLogging())
 	client.eventHubNamespacesClient = ehnc
 
 	ifc := network.NewInterfacesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ifc.Client)
-	ifc.Authorizer = spt
+	ifc.Authorizer = auth
 	ifc.Sender = autorest.CreateSender(withRequestLogging())
 	client.ifaceClient = ifc
 
+	erc := network.NewExpressRouteCircuitsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&erc.Client)
+	erc.Authorizer = auth
+	erc.Sender = autorest.CreateSender(withRequestLogging())
+	client.expressRouteCircuitClient = erc
+
 	lbc := network.NewLoadBalancersClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&lbc.Client)
-	lbc.Authorizer = spt
+	lbc.Authorizer = auth
 	lbc.Sender = autorest.CreateSender(withRequestLogging())
 	client.loadBalancerClient = lbc
 
 	lgc := network.NewLocalNetworkGatewaysClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&lgc.Client)
-	lgc.Authorizer = spt
+	lgc.Authorizer = auth
 	lgc.Sender = autorest.CreateSender(withRequestLogging())
 	client.localNetConnClient = lgc
 
 	pipc := network.NewPublicIPAddressesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&pipc.Client)
-	pipc.Authorizer = spt
+	pipc.Authorizer = auth
 	pipc.Sender = autorest.CreateSender(withRequestLogging())
 	client.publicIPClient = pipc
 
 	sgc := network.NewSecurityGroupsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&sgc.Client)
-	sgc.Authorizer = spt
+	sgc.Authorizer = auth
 	sgc.Sender = autorest.CreateSender(withRequestLogging())
 	client.secGroupClient = sgc
 
 	src := network.NewSecurityRulesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&src.Client)
-	src.Authorizer = spt
+	src.Authorizer = auth
 	src.Sender = autorest.CreateSender(withRequestLogging())
 	client.secRuleClient = src
 
 	snc := network.NewSubnetsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&snc.Client)
-	snc.Authorizer = spt
+	snc.Authorizer = auth
 	snc.Sender = autorest.CreateSender(withRequestLogging())
 	client.subnetClient = snc
 
 	vgcc := network.NewVirtualNetworkGatewayConnectionsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&vgcc.Client)
-	vgcc.Authorizer = spt
+	vgcc.Authorizer = auth
 	vgcc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vnetGatewayConnectionsClient = vgcc
 
 	vgc := network.NewVirtualNetworkGatewaysClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&vgc.Client)
-	vgc.Authorizer = spt
+	vgc.Authorizer = auth
 	vgc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vnetGatewayClient = vgc
 
 	vnc := network.NewVirtualNetworksClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&vnc.Client)
-	vnc.Authorizer = spt
+	vnc.Authorizer = auth
 	vnc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vnetClient = vnc
 
 	vnpc := network.NewVirtualNetworkPeeringsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&vnpc.Client)
-	vnpc.Authorizer = spt
+	vnpc.Authorizer = auth
 	vnpc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vnetPeeringsClient = vnpc
 
 	rtc := network.NewRouteTablesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&rtc.Client)
-	rtc.Authorizer = spt
+	rtc.Authorizer = auth
 	rtc.Sender = autorest.CreateSender(withRequestLogging())
 	client.routeTablesClient = rtc
 
 	rc := network.NewRoutesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&rc.Client)
-	rc.Authorizer = spt
+	rc.Authorizer = auth
 	rc.Sender = autorest.CreateSender(withRequestLogging())
 	client.routesClient = rc
 
 	rgc := resources.NewGroupsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&rgc.Client)
-	rgc.Authorizer = spt
+	rgc.Authorizer = auth
 	rgc.Sender = autorest.CreateSender(withRequestLogging())
 	client.resourceGroupClient = rgc
 
 	pc := resources.NewProvidersClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&pc.Client)
-	pc.Authorizer = spt
+	pc.Authorizer = auth
 	pc.Sender = autorest.CreateSender(withRequestLogging())
 	client.providers = pc
 
 	tc := resources.NewTagsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&tc.Client)
-	tc.Authorizer = spt
+	tc.Authorizer = auth
 	tc.Sender = autorest.CreateSender(withRequestLogging())
 	client.tagsClient = tc
 
 	rf := resources.NewGroupClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&rf.Client)
-	rf.Authorizer = spt
+	rf.Authorizer = auth
 	rf.Sender = autorest.CreateSender(withRequestLogging())
 	client.resourceFindClient = rf
 
 	jc := scheduler.NewJobsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&jc.Client)
-	jc.Authorizer = spt
+	jc.Authorizer = auth
 	jc.Sender = autorest.CreateSender(withRequestLogging())
 	client.jobsClient = jc
 
 	jcc := scheduler.NewJobCollectionsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&jcc.Client)
-	jcc.Authorizer = spt
+	jcc.Authorizer = auth
 	jcc.Sender = autorest.CreateSender(withRequestLogging())
 	client.jobsCollectionsClient = jcc
 
 	ssc := storage.NewAccountsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ssc.Client)
-	ssc.Authorizer = spt
+	ssc.Authorizer = auth
 	ssc.Sender = autorest.CreateSender(withRequestLogging())
 	client.storageServiceClient = ssc
 
-	suc := storage.NewUsageOperationsClientWithBaseURI(endpoint, c.SubscriptionID)
+	suc := storage.NewUsageClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&suc.Client)
-	suc.Authorizer = spt
+	suc.Authorizer = auth
 	suc.Sender = autorest.CreateSender(withRequestLogging())
 	client.storageUsageClient = suc
 
 	cpc := cdn.NewProfilesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&cpc.Client)
-	cpc.Authorizer = spt
+	cpc.Authorizer = auth
 	cpc.Sender = autorest.CreateSender(withRequestLogging())
 	client.cdnProfilesClient = cpc
 
 	cec := cdn.NewEndpointsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&cec.Client)
-	cec.Authorizer = spt
+	cec.Authorizer = auth
 	cec.Sender = autorest.CreateSender(withRequestLogging())
 	client.cdnEndpointsClient = cec
 
 	dc := resources.NewDeploymentsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&dc.Client)
-	dc.Authorizer = spt
+	dc.Authorizer = auth
 	dc.Sender = autorest.CreateSender(withRequestLogging())
 	client.deploymentsClient = dc
 
 	tmpc := trafficmanager.NewProfilesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&tmpc.Client)
-	tmpc.Authorizer = spt
+	tmpc.Authorizer = auth
 	tmpc.Sender = autorest.CreateSender(withRequestLogging())
 	client.trafficManagerProfilesClient = tmpc
 
 	tmec := trafficmanager.NewEndpointsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&tmec.Client)
-	tmec.Authorizer = spt
+	tmec.Authorizer = auth
 	tmec.Sender = autorest.CreateSender(withRequestLogging())
 	client.trafficManagerEndpointsClient = tmec
 
 	rdc := redis.NewGroupClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&rdc.Client)
-	rdc.Authorizer = spt
+	rdc.Authorizer = auth
 	rdc.Sender = autorest.CreateSender(withRequestLogging())
 	client.redisClient = rdc
 
 	sbnc := servicebus.NewNamespacesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&sbnc.Client)
-	sbnc.Authorizer = spt
+	sbnc.Authorizer = auth
 	sbnc.Sender = autorest.CreateSender(withRequestLogging())
 	client.serviceBusNamespacesClient = sbnc
 
 	sbtc := servicebus.NewTopicsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&sbtc.Client)
-	sbtc.Authorizer = spt
+	sbtc.Authorizer = auth
 	sbtc.Sender = autorest.CreateSender(withRequestLogging())
 	client.serviceBusTopicsClient = sbtc
 
 	sbsc := servicebus.NewSubscriptionsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&sbsc.Client)
-	sbsc.Authorizer = spt
+	sbsc.Authorizer = auth
 	sbsc.Sender = autorest.CreateSender(withRequestLogging())
 	client.serviceBusSubscriptionsClient = sbsc
 
 	kvc := keyvault.NewVaultsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&kvc.Client)
-	kvc.Authorizer = spt
+	kvc.Authorizer = auth
 	kvc.Sender = autorest.CreateSender(withRequestLogging())
 	client.keyVaultClient = kvc
+
+	sqlepc := sql.NewElasticPoolsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&sqlepc.Client)
+	sqlepc.Authorizer = auth
+	sqlepc.Sender = autorest.CreateSender(withRequestLogging())
+	client.sqlElasticPoolsClient = sqlepc
 
 	return &client, nil
 }

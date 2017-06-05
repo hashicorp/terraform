@@ -12,7 +12,7 @@ Create a ServiceBus Subscription.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "resourceGroup1"
   location = "West US"
@@ -98,7 +98,7 @@ The following arguments are supported:
 ### TimeSpan Format
 
 Some arguments for this resource are required in the TimeSpan format which is
-used to represent a lengh of time. The supported format is documented [here](https://msdn.microsoft.com/en-us/library/se73z7b9(v=vs.110).aspx#Anchor_2)
+used to represent a length of time. The supported format is documented [here](https://msdn.microsoft.com/en-us/library/se73z7b9(v=vs.110).aspx#Anchor_2)
 
 ## Attributes Reference
 

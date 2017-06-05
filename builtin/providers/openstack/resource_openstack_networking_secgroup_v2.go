@@ -17,6 +17,7 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceNetworkingSecGroupV2Create,
 		Read:   resourceNetworkingSecGroupV2Read,
+		Update: resourceNetworkingSecGroupV2Update,
 		Delete: resourceNetworkingSecGroupV2Delete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -36,12 +37,10 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 			},
 			"tenant_id": &schema.Schema{
@@ -121,6 +120,37 @@ func resourceNetworkingSecGroupV2Read(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
+func resourceNetworkingSecGroupV2Update(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
+
+	var update bool
+	var updateOpts groups.UpdateOpts
+
+	if d.HasChange("name") {
+		update = true
+		updateOpts.Name = d.Get("name").(string)
+	}
+
+	if d.HasChange("description") {
+		update = true
+		updateOpts.Name = d.Get("description").(string)
+	}
+
+	if update {
+		log.Printf("[DEBUG] Updating SecGroup %s with options: %#v", d.Id(), updateOpts)
+		_, err = groups.Update(networkingClient, d.Id(), updateOpts).Extract()
+		if err != nil {
+			return fmt.Errorf("Error updating OpenStack SecGroup: %s", err)
+		}
+	}
+
+	return resourceNetworkingSecGroupV2Read(d, meta)
+}
+
 func resourceNetworkingSecGroupV2Delete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Destroy security group: %s", d.Id())
 
@@ -166,6 +196,11 @@ func waitForSecGroupDelete(networkingClient *gophercloud.ServiceClient, secGroup
 			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Neutron Security Group %s", secGroupId)
 				return r, "DELETED", nil
+			}
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					return r, "ACTIVE", nil
+				}
 			}
 			return r, "ACTIVE", err
 		}

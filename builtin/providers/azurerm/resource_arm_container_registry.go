@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/jen20/riviera/azure"
 )
 
@@ -18,11 +19,13 @@ func resourceArmContainerRegistry() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceArmContainerRegistryCreate,
 		Read:   resourceArmContainerRegistryRead,
-		Update: resourceArmContainerRegistryCreate,
+		Update: resourceArmContainerRegistryUpdate,
 		Delete: resourceArmContainerRegistryDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+		MigrateState:  resourceAzureRMContainerRegistryMigrateState,
+		SchemaVersion: 1,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -39,6 +42,17 @@ func resourceArmContainerRegistry() *schema.Resource {
 			},
 
 			"location": locationSchema(),
+
+			"sku": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				ForceNew:         true,
+				Default:          string(containerregistry.Basic),
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(containerregistry.Basic),
+				}, true),
+			},
 
 			"admin_enabled": {
 				Type:     schema.TypeBool,
@@ -93,13 +107,18 @@ func resourceArmContainerRegistryCreate(d *schema.ResourceData, meta interface{}
 	resourceGroup := d.Get("resource_group_name").(string)
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
+	sku := d.Get("sku").(string)
 
 	adminUserEnabled := d.Get("admin_enabled").(bool)
 	tags := d.Get("tags").(map[string]interface{})
 
-	parameters := containerregistry.Registry{
+	parameters := containerregistry.RegistryCreateParameters{
 		Location: &location,
-		RegistryProperties: &containerregistry.RegistryProperties{
+		Sku: &containerregistry.Sku{
+			Name: &sku,
+			Tier: containerregistry.SkuTier(sku),
+		},
+		RegistryPropertiesCreateParameters: &containerregistry.RegistryPropertiesCreateParameters{
 			AdminUserEnabled: &adminUserEnabled,
 		},
 		Tags: expandTags(tags),
@@ -109,17 +128,63 @@ func resourceArmContainerRegistryCreate(d *schema.ResourceData, meta interface{}
 	account := accounts[0].(map[string]interface{})
 	storageAccountName := account["name"].(string)
 	storageAccountAccessKey := account["access_key"].(string)
-	parameters.RegistryProperties.StorageAccount = &containerregistry.StorageAccountProperties{
+	parameters.RegistryPropertiesCreateParameters.StorageAccount = &containerregistry.StorageAccountParameters{
 		Name:      azure.String(storageAccountName),
 		AccessKey: azure.String(storageAccountAccessKey),
 	}
 
-	_, err := client.CreateOrUpdate(resourceGroup, name, parameters)
+	_, error := client.Create(resourceGroup, name, parameters, make(<-chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
 
-	read, err := client.GetProperties(resourceGroup, name)
+	read, err := client.Get(resourceGroup, name)
+	if err != nil {
+		return err
+	}
+
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read Container Registry %s (resource group %s) ID", name, resourceGroup)
+	}
+
+	d.SetId(*read.ID)
+
+	return resourceArmContainerRegistryRead(d, meta)
+}
+
+func resourceArmContainerRegistryUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*ArmClient).containerRegistryClient
+	log.Printf("[INFO] preparing arguments for AzureRM Container Registry update.")
+
+	resourceGroup := d.Get("resource_group_name").(string)
+	name := d.Get("name").(string)
+
+	accounts := d.Get("storage_account").(*schema.Set).List()
+	account := accounts[0].(map[string]interface{})
+	storageAccountName := account["name"].(string)
+	storageAccountAccessKey := account["access_key"].(string)
+
+	adminUserEnabled := d.Get("admin_enabled").(bool)
+	tags := d.Get("tags").(map[string]interface{})
+
+	parameters := containerregistry.RegistryUpdateParameters{
+		RegistryPropertiesUpdateParameters: &containerregistry.RegistryPropertiesUpdateParameters{
+			AdminUserEnabled: &adminUserEnabled,
+			StorageAccount: &containerregistry.StorageAccountParameters{
+				Name:      azure.String(storageAccountName),
+				AccessKey: azure.String(storageAccountAccessKey),
+			},
+		},
+		Tags: expandTags(tags),
+	}
+
+	_, err := client.Update(resourceGroup, name, parameters)
+	if err != nil {
+		return err
+	}
+
+	read, err := client.Get(resourceGroup, name)
 	if err != nil {
 		return err
 	}
@@ -143,7 +208,7 @@ func resourceArmContainerRegistryRead(d *schema.ResourceData, meta interface{}) 
 	resourceGroup := id.ResourceGroup
 	name := id.Path["registries"]
 
-	resp, err := client.GetProperties(resourceGroup, name)
+	resp, err := client.Get(resourceGroup, name)
 	if err != nil {
 		return fmt.Errorf("Error making Read request on Azure Container Registry %s: %s", name, err)
 	}
@@ -158,18 +223,25 @@ func resourceArmContainerRegistryRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("admin_enabled", resp.AdminUserEnabled)
 	d.Set("login_server", resp.LoginServer)
 
+	if resp.Sku != nil {
+		d.Set("sku", string(resp.Sku.Tier))
+	}
+
 	if resp.StorageAccount != nil {
 		flattenArmContainerRegistryStorageAccount(d, resp.StorageAccount)
 	}
 
 	if *resp.AdminUserEnabled {
-		credsResp, err := client.GetCredentials(resourceGroup, name)
+		credsResp, err := client.ListCredentials(resourceGroup, name)
 		if err != nil {
 			return fmt.Errorf("Error making Read request on Azure Container Registry %s for Credentials: %s", name, err)
 		}
 
 		d.Set("admin_username", credsResp.Username)
-		d.Set("admin_password", credsResp.Password)
+		for _, v := range *credsResp.Passwords {
+			d.Set("admin_password", v.Value)
+			break
+		}
 	} else {
 		d.Set("admin_username", "")
 		d.Set("admin_password", "")

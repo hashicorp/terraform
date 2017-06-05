@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -60,6 +61,16 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 
 			"vcpus": {
 				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
+			"price_hourly": {
+				Type:     schema.TypeFloat,
+				Computed: true,
+			},
+
+			"price_monthly": {
+				Type:     schema.TypeFloat,
 				Computed: true,
 			},
 
@@ -203,7 +214,7 @@ func resourceDigitalOceanDropletCreate(d *schema.ResourceData, meta interface{})
 
 	log.Printf("[DEBUG] Droplet create configuration: %#v", opts)
 
-	droplet, _, err := client.Droplets.Create(opts)
+	droplet, _, err := client.Droplets.Create(context.Background(), opts)
 
 	if err != nil {
 		return fmt.Errorf("Error creating droplet: %s", err)
@@ -238,7 +249,7 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Retrieve the droplet properties for updating the state
-	droplet, resp, err := client.Droplets.Get(id)
+	droplet, resp, err := client.Droplets.Get(context.Background(), id)
 	if err != nil {
 		// check if the droplet no longer exists.
 		if resp != nil && resp.StatusCode == 404 {
@@ -250,15 +261,20 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error retrieving droplet: %s", err)
 	}
 
-	if droplet.Image.Slug != "" {
-		d.Set("image", droplet.Image.Slug)
-	} else {
+	_, err = strconv.Atoi(d.Get("image").(string))
+	if err == nil || droplet.Image.Slug == "" {
+		// The image field is provided as an ID (number), or
+		// the image bash no slug. In both cases we store it as an ID.
 		d.Set("image", droplet.Image.ID)
+	} else {
+		d.Set("image", droplet.Image.Slug)
 	}
 
 	d.Set("name", droplet.Name)
 	d.Set("region", droplet.Region.Slug)
 	d.Set("size", droplet.Size.Slug)
+	d.Set("price_hourly", droplet.Size.PriceHourly)
+	d.Set("price_monthly", droplet.Size.PriceMonthly)
 	d.Set("disk", droplet.Disk)
 	d.Set("vcpus", droplet.Vcpus)
 	d.Set("status", droplet.Status)
@@ -326,7 +342,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("size") || d.HasChange("resize_disk") && resize_disk {
 		newSize := d.Get("size")
 
-		_, _, err = client.DropletActions.PowerOff(id)
+		_, _, err = client.DropletActions.PowerOff(context.Background(), id)
 		if err != nil && !strings.Contains(err.Error(), "Droplet is already powered off") {
 			return fmt.Errorf(
 				"Error powering off droplet (%s): %s", d.Id(), err)
@@ -340,7 +356,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 		}
 
 		// Resize the droplet
-		action, _, err := client.DropletActions.Resize(id, newSize.(string), resize_disk)
+		action, _, err := client.DropletActions.Resize(context.Background(), id, newSize.(string), resize_disk)
 		if err != nil {
 			newErr := powerOnAndWait(d, meta)
 			if newErr != nil {
@@ -362,7 +378,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 				"Error waiting for resize droplet (%s) to finish: %s", d.Id(), err)
 		}
 
-		_, _, err = client.DropletActions.PowerOn(id)
+		_, _, err = client.DropletActions.PowerOn(context.Background(), id)
 
 		if err != nil {
 			return fmt.Errorf(
@@ -380,7 +396,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 		oldName, newName := d.GetChange("name")
 
 		// Rename the droplet
-		_, _, err = client.DropletActions.Rename(id, newName.(string))
+		_, _, err = client.DropletActions.Rename(context.Background(), id, newName.(string))
 
 		if err != nil {
 			return fmt.Errorf(
@@ -400,7 +416,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 	// As there is no way to disable private networking,
 	// we only check if it needs to be enabled
 	if d.HasChange("private_networking") && d.Get("private_networking").(bool) {
-		_, _, err = client.DropletActions.EnablePrivateNetworking(id)
+		_, _, err = client.DropletActions.EnablePrivateNetworking(context.Background(), id)
 
 		if err != nil {
 			return fmt.Errorf(
@@ -417,7 +433,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 
 	// As there is no way to disable IPv6, we only check if it needs to be enabled
 	if d.HasChange("ipv6") && d.Get("ipv6").(bool) {
-		_, _, err = client.DropletActions.EnableIPv6(id)
+		_, _, err = client.DropletActions.EnableIPv6(context.Background(), id)
 
 		if err != nil {
 			return fmt.Errorf(
@@ -463,7 +479,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 		oldIDSet := newSet(oldIDs.([]interface{}))
 		newIDSet := newSet(newIDs.([]interface{}))
 		for volumeID := range leftDiff(newIDSet, oldIDSet) {
-			action, _, err := client.StorageActions.Attach(volumeID, id)
+			action, _, err := client.StorageActions.Attach(context.Background(), volumeID, id)
 			if err != nil {
 				return fmt.Errorf("Error attaching volume %q to droplet (%s): %s", volumeID, d.Id(), err)
 			}
@@ -473,7 +489,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 			}
 		}
 		for volumeID := range leftDiff(oldIDSet, newIDSet) {
-			action, _, err := client.StorageActions.Detach(volumeID)
+			action, _, err := client.StorageActions.DetachByDropletID(context.Background(), volumeID, id)
 			if err != nil {
 				return fmt.Errorf("Error detaching volume %q from droplet (%s): %s", volumeID, d.Id(), err)
 			}
@@ -506,7 +522,7 @@ func resourceDigitalOceanDropletDelete(d *schema.ResourceData, meta interface{})
 	log.Printf("[INFO] Deleting droplet: %s", d.Id())
 
 	// Destroy the droplet
-	_, err = client.Droplets.Delete(id)
+	_, err = client.Droplets.Delete(context.Background(), id)
 
 	// Handle remotely destroyed droplets
 	if err != nil && strings.Contains(err.Error(), "404 Not Found") {
@@ -572,7 +588,7 @@ func newDropletStateRefreshFunc(
 		// See if we can access our attribute
 		if attr, ok := d.GetOk(attribute); ok {
 			// Retrieve the droplet properties
-			droplet, _, err := client.Droplets.Get(id)
+			droplet, _, err := client.Droplets.Get(context.Background(), id)
 			if err != nil {
 				return nil, "", fmt.Errorf("Error retrieving droplet: %s", err)
 			}
@@ -592,7 +608,7 @@ func powerOnAndWait(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	client := meta.(*godo.Client)
-	_, _, err = client.DropletActions.PowerOn(id)
+	_, _, err = client.DropletActions.PowerOn(context.Background(), id)
 	if err != nil {
 		return err
 	}

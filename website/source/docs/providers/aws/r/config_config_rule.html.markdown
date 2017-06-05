@@ -14,7 +14,7 @@ Provides an AWS Config Rule.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_config_config_rule" "r" {
   name = "example"
 
@@ -77,7 +77,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the rule
 * `description` - (Optional) Description of the rule
-* `input_parameters` - (Optional) A string in JSON format that is passed to the AWS Config rule Lambda function (only valid if `source.owner` is `CUSTOM_LAMBDA`).
+* `input_parameters` - (Optional) A string in JSON format that is passed to the AWS Config rule Lambda function.
 * `maximum_execution_frequency` - (Optional) The maximum frequency with which AWS Config runs evaluations for a rule.
 * `scope` - (Optional) Scope defines which resources can trigger an evaluation for the rule as documented below.
 * `source` - (Required) Source specifies the rule owner, the rule identifier, and the notifications that cause
@@ -108,7 +108,7 @@ Provides the rule owner (AWS or customer), the rule identifier, and the notifica
 	For custom rules, the identifier is the ARN of the rule's AWS Lambda function, such as `arn:aws:lambda:us-east-1:123456789012:function:custom_rule_name`.
 * `source_detail` - (Optional) Provides the source and type of the event that causes AWS Config to evaluate your AWS resources. Only valid if `owner` is `CUSTOM_LAMBDA`.
 	* `event_source` - (Optional) The source of the event, such as an AWS service, that triggers AWS Config
-		to evaluate your AWS resources. The only valid value is `aws.config`.
+		to evaluate your AWS resources. This defaults to `aws.config` and is the only valid value.
 	* `maximum_execution_frequency` - (Optional) The frequency that you want AWS Config to run evaluations for a rule that
 		is triggered periodically. If specified, requires `message_type` to be `ScheduledNotification`.
 	* `message_type` - (Optional) The type of notification that triggers AWS Config to run an evaluation for a rule. You can specify the following notification types:

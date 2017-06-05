@@ -105,6 +105,30 @@ func (v *Vdc) FindVDCNetwork(network string) (OrgVDCNetwork, error) {
 	return OrgVDCNetwork{}, fmt.Errorf("can't find VDC Network: %s", network)
 }
 
+func (v *Vdc) FindStorageProfile(storage_profile string) (types.Reference, error) {
+
+	for _, an := range v.Vdc.VdcStorageProfiles {
+		for _, n := range an.VdcStorageProfile {
+			if n.Name == storage_profile {
+				return *n, nil
+			}
+		}
+		return types.Reference{}, fmt.Errorf("can't find VDC Storage_profile: %s", storage_profile)
+	}
+	return types.Reference{}, fmt.Errorf("can't find any VDC Storage_profiles")
+}
+
+func (v *Vdc) GetDefaultStorageProfile(storage_profiles *types.QueryResultRecordsType) (types.Reference, error) {
+
+	for _, n := range storage_profiles.OrgVdcStorageProfileRecord {
+		if n.IsDefaultStorageProfile {
+			storage_profile_reference := types.Reference{HREF: n.HREF, Name: n.Name}
+			return storage_profile_reference, nil
+		}
+	}
+	return types.Reference{}, fmt.Errorf("can't find Default VDC Storage_profile")
+}
+
 // Doesn't work with vCloud API 5.5, only vCloud Air
 func (v *Vdc) GetVDCOrg() (Org, error) {
 
@@ -281,13 +305,13 @@ func (v *Vdc) FindVAppByID(vappid string) (VApp, error) {
 	}
 
 	urnslice := strings.SplitAfter(vappid, ":")
-	urnid := urnslice[len(urnslice)-1]
+	urnid := urnslice[len(urnslice) - 1]
 
 	for _, resents := range v.Vdc.ResourceEntities {
 		for _, resent := range resents.ResourceEntity {
 
 			hrefslice := strings.SplitAfter(resent.HREF, "/")
-			hrefslice = strings.SplitAfter(hrefslice[len(hrefslice)-1], "-")
+			hrefslice = strings.SplitAfter(hrefslice[len(hrefslice) - 1], "-")
 			res := strings.Join(hrefslice[1:], "")
 
 			if res == urnid && resent.Type == "application/vnd.vmware.vcloud.vApp+xml" {

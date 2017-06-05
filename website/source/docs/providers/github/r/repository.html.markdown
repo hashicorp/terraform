@@ -6,7 +6,7 @@ description: |-
   Creates and manages repositories within Github organizations
 ---
 
-# github\_repository
+# github_repository
 
 This resource allows you to create and manage repositories within your
 Github organization.
@@ -16,7 +16,7 @@ outside of organizations.
 
 ## Example Usage
 
-```
+```hcl
 resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"
@@ -69,3 +69,12 @@ The following additional attributes are exported:
 
 * `svn_url` - URL that can be provided to `svn checkout` to check out
   the repository via Github's Subversion protocol emulation.
+  
+
+## Import
+
+Repositories can be imported using the `name`, e.g.
+
+```
+$ terraform import github_repository.terraform terraform
+```

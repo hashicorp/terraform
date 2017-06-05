@@ -14,11 +14,11 @@ a domain name using Amazon Route 53 or another domain name registrar.
 If you have already registered your domain, you can enter its name in
 this parameter to manage the DNS records for that domain.
 
-~> **Note:** Lightsail is currently only supported in `us-east-1` region.
+~> **Note:** Lightsail is currently only supported in a limited number of AWS Regions, please see ["Regions and Availability Zones in Amazon Lightsail"](https://lightsail.aws.amazon.com/ls/docs/overview/article/understanding-regions-and-availability-zones-in-amazon-lightsail) for more details
 
 ## Example Usage, creating a new domain
 
-```
+```hcl
 resource "aws_lightsail_domain" "domain_test" {
   domain_name = "mydomain.com"
 }

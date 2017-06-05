@@ -3,6 +3,7 @@ package google
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -13,19 +14,20 @@ import (
 	storage "google.golang.org/api/storage/v1"
 )
 
-func TestAccStorage_basic(t *testing.T) {
+func TestAccStorageBucket_basic(t *testing.T) {
+	var bucket storage.Bucket
 	bucketName := fmt.Sprintf("tf-test-acl-bucket-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccGoogleStorageDestroy,
+		CheckDestroy: testAccStorageBucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageBucketsReaderDefaults(bucketName),
+				Config: testAccStorageBucket_basic(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStorageBucketExists(
-						"google_storage_bucket.bucket", bucketName),
+					testAccCheckStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName, &bucket),
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "location", "US"),
 					resource.TestCheckResourceAttr(
@@ -36,19 +38,20 @@ func TestAccStorage_basic(t *testing.T) {
 	})
 }
 
-func TestAccStorageCustomAttributes(t *testing.T) {
+func TestAccStorageBucket_customAttributes(t *testing.T) {
+	var bucket storage.Bucket
 	bucketName := fmt.Sprintf("tf-test-acl-bucket-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccGoogleStorageDestroy,
+		CheckDestroy: testAccStorageBucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageBucketsReaderCustomAttributes(bucketName),
+				Config: testAccStorageBucket_customAttributes(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStorageBucketExists(
-						"google_storage_bucket.bucket", bucketName),
+					testAccCheckStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName, &bucket),
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "location", "EU"),
 					resource.TestCheckResourceAttr(
@@ -59,60 +62,62 @@ func TestAccStorageCustomAttributes(t *testing.T) {
 	})
 }
 
-func TestAccStorageStorageClass(t *testing.T) {
+func TestAccStorageBucket_storageClass(t *testing.T) {
+	var bucket storage.Bucket
 	bucketName := fmt.Sprintf("tf-test-acc-bucket-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccGoogleStorageDestroy,
+		CheckDestroy: testAccStorageBucketDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "MULTI_REGIONAL", ""),
+				Config: testAccStorageBucket_storageClass(bucketName, "MULTI_REGIONAL", ""),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStorageBucketExists(
-						"google_storage_bucket.bucket", bucketName),
+					testAccCheckStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName, &bucket),
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "storage_class", "MULTI_REGIONAL"),
 				),
 			},
 			{
-				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "NEARLINE", ""),
+				Config: testAccStorageBucket_storageClass(bucketName, "NEARLINE", ""),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStorageBucketExists(
-						"google_storage_bucket.bucket", bucketName),
+					testAccCheckStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName, &bucket),
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "storage_class", "NEARLINE"),
 				),
 			},
 			{
-				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "REGIONAL", "us-central1"),
+				Config: testAccStorageBucket_storageClass(bucketName, "REGIONAL", "US-CENTRAL1"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStorageBucketExists(
-						"google_storage_bucket.bucket", bucketName),
+					testAccCheckStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName, &bucket),
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "storage_class", "REGIONAL"),
 					resource.TestCheckResourceAttr(
-						"google_storage_bucket.bucket", "location", "us-central1"),
+						"google_storage_bucket.bucket", "location", "US-CENTRAL1"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccStorageBucketUpdate(t *testing.T) {
+func TestAccStorageBucket_update(t *testing.T) {
+	var bucket storage.Bucket
 	bucketName := fmt.Sprintf("tf-test-acl-bucket-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccGoogleStorageDestroy,
+		CheckDestroy: testAccStorageBucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageBucketsReaderDefaults(bucketName),
+				Config: testAccStorageBucket_basic(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStorageBucketExists(
-						"google_storage_bucket.bucket", bucketName),
+					testAccCheckStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName, &bucket),
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "location", "US"),
 					resource.TestCheckResourceAttr(
@@ -120,10 +125,10 @@ func TestAccStorageBucketUpdate(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testGoogleStorageBucketsReaderCustomAttributes(bucketName),
+				Config: testAccStorageBucket_customAttributes(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStorageBucketExists(
-						"google_storage_bucket.bucket", bucketName),
+					testAccCheckStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName, &bucket),
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "predefined_acl", "publicReadWrite"),
 					resource.TestCheckResourceAttr(
@@ -136,38 +141,109 @@ func TestAccStorageBucketUpdate(t *testing.T) {
 	})
 }
 
-func TestAccStorageForceDestroy(t *testing.T) {
+func TestAccStorageBucket_forceDestroy(t *testing.T) {
+	var bucket storage.Bucket
 	bucketName := fmt.Sprintf("tf-test-acl-bucket-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccGoogleStorageDestroy,
+		CheckDestroy: testAccStorageBucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageBucketsReaderCustomAttributes(bucketName),
+				Config: testAccStorageBucket_customAttributes(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStorageBucketExists(
-						"google_storage_bucket.bucket", bucketName),
+					testAccCheckStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName, &bucket),
 				),
 			},
 			resource.TestStep{
-				Config: testGoogleStorageBucketsReaderCustomAttributes(bucketName),
+				Config: testAccStorageBucket_customAttributes(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStorageBucketPutItem(bucketName),
+					testAccCheckStorageBucketPutItem(bucketName),
 				),
 			},
 			resource.TestStep{
-				Config: testGoogleStorageBucketsReaderCustomAttributes("idontexist"),
+				Config: testAccStorageBucket_customAttributes("idontexist"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStorageBucketMissing(bucketName),
+					testAccCheckStorageBucketMissing(bucketName),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckCloudStorageBucketExists(n string, bucketName string) resource.TestCheckFunc {
+func TestAccStorageBucket_cors(t *testing.T) {
+	var bucket storage.Bucket
+	bucketName := fmt.Sprintf("tf-test-acl-bucket-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccStorageBucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testGoogleStorageBucketsCors(bucketName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName, &bucket),
+				),
+			},
+		},
+	})
+
+	if len(bucket.Cors) != 2 {
+		t.Errorf("Expected # of cors elements to be 2, got %d", len(bucket.Cors))
+	}
+
+	firstArr := bucket.Cors[0]
+	if firstArr.MaxAgeSeconds != 10 {
+		t.Errorf("Expected first block's MaxAgeSeconds to be 10, got %d", firstArr.MaxAgeSeconds)
+	}
+
+	for i, v := range []string{"abc", "def"} {
+		if firstArr.Origin[i] != v {
+			t.Errorf("Expected value in first block origin to be to be %v, got %v", v, firstArr.Origin[i])
+		}
+	}
+
+	for i, v := range []string{"a1a"} {
+		if firstArr.Method[i] != v {
+			t.Errorf("Expected value in first block method to be to be %v, got %v", v, firstArr.Method[i])
+		}
+	}
+
+	for i, v := range []string{"123", "456", "789"} {
+		if firstArr.ResponseHeader[i] != v {
+			t.Errorf("Expected value in first block response headerto be to be %v, got %v", v, firstArr.ResponseHeader[i])
+		}
+	}
+
+	secondArr := bucket.Cors[1]
+	if secondArr.MaxAgeSeconds != 5 {
+		t.Errorf("Expected second block's MaxAgeSeconds to be 5, got %d", secondArr.MaxAgeSeconds)
+	}
+
+	for i, v := range []string{"ghi", "jkl"} {
+		if secondArr.Origin[i] != v {
+			t.Errorf("Expected value in second block origin to be to be %v, got %v", v, secondArr.Origin[i])
+		}
+	}
+
+	for i, v := range []string{"z9z"} {
+		if secondArr.Method[i] != v {
+			t.Errorf("Expected value in second block method to be to be %v, got %v", v, secondArr.Method[i])
+		}
+	}
+
+	for i, v := range []string{"000"} {
+		if secondArr.ResponseHeader[i] != v {
+			t.Errorf("Expected value in second block response headerto be to be %v, got %v", v, secondArr.ResponseHeader[i])
+		}
+	}
+}
+
+func testAccCheckStorageBucketExists(n string, bucketName string, bucket *storage.Bucket) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -192,11 +268,13 @@ func testAccCheckCloudStorageBucketExists(n string, bucketName string) resource.
 		if found.Name != bucketName {
 			return fmt.Errorf("expected name %s, got %s", bucketName, found.Name)
 		}
+
+		*bucket = *found
 		return nil
 	}
 }
 
-func testAccCheckCloudStorageBucketPutItem(bucketName string) resource.TestCheckFunc {
+func testAccCheckStorageBucketPutItem(bucketName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		config := testAccProvider.Meta().(*Config)
 
@@ -206,7 +284,7 @@ func testAccCheckCloudStorageBucketPutItem(bucketName string) resource.TestCheck
 
 		// This needs to use Media(io.Reader) call, otherwise it does not go to /upload API and fails
 		if res, err := config.clientStorage.Objects.Insert(bucketName, object).Media(dataReader).Do(); err == nil {
-			fmt.Printf("Created object %v at location %v\n\n", res.Name, res.SelfLink)
+			log.Printf("[INFO] Created object %v at location %v\n\n", res.Name, res.SelfLink)
 		} else {
 			return fmt.Errorf("Objects.Insert failed: %v", err)
 		}
@@ -215,7 +293,7 @@ func testAccCheckCloudStorageBucketPutItem(bucketName string) resource.TestCheck
 	}
 }
 
-func testAccCheckCloudStorageBucketMissing(bucketName string) resource.TestCheckFunc {
+func testAccCheckStorageBucketMissing(bucketName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		config := testAccProvider.Meta().(*Config)
 
@@ -232,7 +310,7 @@ func testAccCheckCloudStorageBucketMissing(bucketName string) resource.TestCheck
 	}
 }
 
-func testAccGoogleStorageDestroy(s *terraform.State) error {
+func testAccStorageBucketDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
 	for _, rs := range s.RootModule().Resources {
@@ -249,7 +327,7 @@ func testAccGoogleStorageDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testGoogleStorageBucketsReaderDefaults(bucketName string) string {
+func testAccStorageBucket_basic(bucketName string) string {
 	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
@@ -257,7 +335,7 @@ resource "google_storage_bucket" "bucket" {
 `, bucketName)
 }
 
-func testGoogleStorageBucketsReaderCustomAttributes(bucketName string) string {
+func testAccStorageBucket_customAttributes(bucketName string) string {
 	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
@@ -268,7 +346,7 @@ resource "google_storage_bucket" "bucket" {
 `, bucketName)
 }
 
-func testGoogleStorageBucketsReaderStorageClass(bucketName, storageClass, location string) string {
+func testAccStorageBucket_storageClass(bucketName, storageClass, location string) string {
 	var locationBlock string
 	if location != "" {
 		locationBlock = fmt.Sprintf(`
@@ -280,4 +358,25 @@ resource "google_storage_bucket" "bucket" {
 	storage_class = "%s"%s
 }
 `, bucketName, storageClass, locationBlock)
+}
+
+func testGoogleStorageBucketsCors(bucketName string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "%s"
+	cors {
+	  origin = ["abc", "def"]
+	  method = ["a1a"]
+	  response_header = ["123", "456", "789"]
+	  max_age_seconds = 10
+	}
+
+	cors {
+	  origin = ["ghi", "jkl"]
+	  method = ["z9z"]
+	  response_header = ["000"]
+	  max_age_seconds = 5
+	}
+}
+`, bucketName)
 }

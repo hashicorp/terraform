@@ -12,7 +12,7 @@ Manages a V2 Neutron network resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_networking_network_v2" "network_1" {
   name           = "network_1"
   admin_state_up = "true"
@@ -82,7 +82,15 @@ The following arguments are supported:
     Acceptable values are "true" and "false". Changing this value updates the
     state of the existing network.
 
+* `segments` - (Optional) An array of one or more provider segment objects.
+
 * `value_specs` - (Optional) Map of additional options.
+
+The `segments` block supports:
+
+* `physical_network` - The phisical network where this network is implemented.
+* `segmentation_id` - An isolated segment on the physical network.
+* `network_type` - The type of physical network.
 
 ## Attributes Reference
 

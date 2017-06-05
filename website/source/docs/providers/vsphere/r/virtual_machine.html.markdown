@@ -13,7 +13,7 @@ modify, and delete virtual machines.
 
 ## Example Usage
 
-```
+```hcl
 resource "vsphere_virtual_machine" "web" {
   name   = "terraform-web"
   vcpu   = 2
@@ -31,7 +31,7 @@ resource "vsphere_virtual_machine" "web" {
 
 ## Example Usage VMware Cluster
 
-```
+```hcl
 resource "vsphere_virtual_machine" "lb" {
   name          = "lb01"
   folder        = "Loadbalancers"
@@ -42,12 +42,11 @@ resource "vsphere_virtual_machine" "lb" {
   cluster       = "Production Cluster"
   resource_pool = "Production Cluster/Resources/Production Servers"
 
-  gateway = "10.20.30.254"
-
   network_interface {
     label              = "10_20_30_VMNet"
     ipv4_address       = "10.20.30.40"
     ipv4_prefix_length = "24"
+    ipv4_gateway       = "10.20.30.254"
   }
 
   disk {
@@ -121,7 +120,8 @@ The `disk` block supports:
 * `type` - (Optional) 'eager_zeroed' (the default), 'lazy', or 'thin' are supported options.
 * `vmdk` - (Required if template and size not provided) Path to a vmdk in a vSphere datastore.
 * `bootable` - (Optional) Set to 'true' if a vmdk was given and it should attempt to boot after creation.
-* `controller_type` = (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
+* `controller_type` - (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
+* `keep_on_remove` - (Optional) Set to 'true' to not delete a disk on removal.
 
 <a id="cdrom"></a>
 ## CDROM
@@ -137,6 +137,7 @@ The following attributes are exported:
 
 * `id` - The instance ID.
 * `uuid` - The instance UUID.
+* `moid` - The instance MOID (Managed Object Reference ID).
 * `name` - See Argument Reference above.
 * `vcpu` - See Argument Reference above.
 * `memory` - See Argument Reference above.

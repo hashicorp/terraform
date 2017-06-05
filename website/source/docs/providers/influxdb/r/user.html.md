@@ -12,7 +12,7 @@ The user resource allows a user to be created on an InfluxDB server.
 
 ## Example Usage
 
-```
+```hcl
 resource "influxdb_database" "green" {
     name = "terraform-green"
 }

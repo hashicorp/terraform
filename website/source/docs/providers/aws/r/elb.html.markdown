@@ -21,7 +21,7 @@ conflict and will overwrite attachments.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new load balancer
 resource "aws_elb" "bar" {
   name               = "foobar-terraform-elb"

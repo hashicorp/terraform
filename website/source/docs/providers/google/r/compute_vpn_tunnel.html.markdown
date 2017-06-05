@@ -13,7 +13,7 @@ Manages a VPN Tunnel to the GCE network. For more info, read the
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_network" "network1" {
   name = "network1"
 }
@@ -118,6 +118,10 @@ The following arguments are supported:
 * `remote_traffic_selector` - (Optional) Specifies which CIDR ranges the VPN
     tunnel can route to the remote side. Mandatory if the VPN gateway is attached to a
     custom subnetted network. Refer to Google documentation for more
+    information.
+
+* `router` - (Optional) Name of a Cloud Router in the same region
+    to be used for dynamic routing. Refer to Google documentation for more
     information.
 
 * `project` - (Optional) The project in which the resource belongs. If it

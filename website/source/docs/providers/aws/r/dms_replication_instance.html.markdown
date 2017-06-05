@@ -12,7 +12,7 @@ Provides a DMS (Data Migration Service) replication instance resource. DMS repli
 
 ## Example Usage
 
-```
+```hcl
 # Create a new replication instance
 resource "aws_dms_replication_instance" "test" {
   allocated_storage            = 20
@@ -76,6 +76,16 @@ The following attributes are exported:
 * `replication_instance_arn` - The Amazon Resource Name (ARN) of the replication instance.
 * `replication_instance_private_ips` -  A list of the private IP addresses of the replication instance.
 * `replication_instance_public_ips` - A list of the public IP addresses of the replication instance.
+
+<a id="timeouts"></a>
+## Timeouts
+
+`aws_dms_replication_instance` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `create` - (Default `30 minutes`) Used for Creating Instances
+- `update` - (Default `30 minutes`) Used for Database modifications
+- `delete` - (Default `30 minutes`) Used for destroying databases.
 
 ## Import
 

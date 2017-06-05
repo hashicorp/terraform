@@ -18,7 +18,7 @@ InfluxDB. See
 [Grafana's *Data Sources Guides*](http://docs.grafana.org/#data-sources-guides)
 for more details on the supported data source types and the arguments they use.
 
-```
+```hcl
 resource "grafana_data_source" "metrics" {
   type          = "influxdb"
   name          = "myapp-metrics"

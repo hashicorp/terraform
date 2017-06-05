@@ -3,13 +3,18 @@ package google
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
+
+// Global MutexKV
+var mutexKV = mutexkv.NewMutexKV()
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
@@ -48,15 +53,23 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"google_iam_policy":    dataSourceGoogleIamPolicy(),
-			"google_compute_zones": dataSourceGoogleComputeZones(),
+			"google_compute_network":           dataSourceGoogleComputeNetwork(),
+			"google_compute_subnetwork":        dataSourceGoogleComputeSubnetwork(),
+			"google_compute_zones":             dataSourceGoogleComputeZones(),
+			"google_container_engine_versions": dataSourceGoogleContainerEngineVersions(),
+			"google_iam_policy":                dataSourceGoogleIamPolicy(),
+			"google_storage_object_signed_url": dataSourceGoogleSignedUrl(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"google_bigquery_dataset":               resourceBigQueryDataset(),
+			"google_bigquery_table":                 resourceBigQueryTable(),
 			"google_compute_autoscaler":             resourceComputeAutoscaler(),
 			"google_compute_address":                resourceComputeAddress(),
+			"google_compute_backend_bucket":         resourceComputeBackendBucket(),
 			"google_compute_backend_service":        resourceComputeBackendService(),
 			"google_compute_disk":                   resourceComputeDisk(),
+			"google_compute_snapshot":               resourceComputeSnapshot(),
 			"google_compute_firewall":               resourceComputeFirewall(),
 			"google_compute_forwarding_rule":        resourceComputeForwardingRule(),
 			"google_compute_global_address":         resourceComputeGlobalAddress(),
@@ -73,6 +86,9 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_project_metadata":       resourceComputeProjectMetadata(),
 			"google_compute_region_backend_service": resourceComputeRegionBackendService(),
 			"google_compute_route":                  resourceComputeRoute(),
+			"google_compute_router":                 resourceComputeRouter(),
+			"google_compute_router_interface":       resourceComputeRouterInterface(),
+			"google_compute_router_peer":            resourceComputeRouterPeer(),
 			"google_compute_ssl_certificate":        resourceComputeSslCertificate(),
 			"google_compute_subnetwork":             resourceComputeSubnetwork(),
 			"google_compute_target_http_proxy":      resourceComputeTargetHttpProxy(),
@@ -245,4 +261,28 @@ func getNetworkNameFromSelfLink(network string) (string, error) {
 	}
 
 	return network, nil
+}
+
+func getRouterLockName(region string, router string) string {
+	return fmt.Sprintf("router/%s/%s", region, router)
+}
+
+func handleNotFoundError(err error, d *schema.ResourceData, resource string) error {
+	if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+		log.Printf("[WARN] Removing %s because it's gone", resource)
+		// The resource doesn't exist anymore
+		d.SetId("")
+
+		return nil
+	}
+
+	return fmt.Errorf("Error reading %s: %s", resource, err)
+}
+
+func linkDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
+	parts := strings.Split(old, "/")
+	if parts[len(parts)-1] == new {
+		return true
+	}
+	return false
 }

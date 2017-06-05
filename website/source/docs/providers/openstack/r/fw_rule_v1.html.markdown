@@ -12,7 +12,7 @@ Manages a v1 firewall rule resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_fw_rule_v1" "rule_1" {
   name             = "my_rule"
   description      = "drop TELNET traffic"

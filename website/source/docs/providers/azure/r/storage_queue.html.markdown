@@ -12,12 +12,12 @@ Creates a new storage queue within a given storage service on Azure.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_storage_queue" "stor-queue" {
   name                 = "terraform-storage-queue"
   storage_service_name = "tfstorserv"
 }
-````
+```
 
 ## Argument Reference
 

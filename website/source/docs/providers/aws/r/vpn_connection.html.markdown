@@ -13,7 +13,7 @@ Provides a VPN connection connected to a VPC. These objects can be connected to 
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_vpc" "vpc" {
   cidr_block = "10.0.0.0/16"
 }
@@ -56,8 +56,12 @@ The following attributes are exported:
 * `static_routes_only` - Whether the VPN connection uses static routes exclusively.
 * `tags` - Tags applied to the connection.
 * `tunnel1_address` - The public IP address of the first VPN tunnel.
+* `tunnel1_cgw_inside_address` - The RFC 6890 link-local address of the first VPN tunnel (Customer Gateway Side).
+* `tunnel1_vgw_inside_address` - The RFC 6890 link-local address of the first VPN tunnel (VPN Gateway Side).
 * `tunnel1_preshared_key` - The preshared key of the first VPN tunnel.
 * `tunnel2_address` - The public IP address of the second VPN tunnel.
+* `tunnel2_cgw_inside_address` - The RFC 6890 link-local address of the second VPN tunnel (Customer Gateway Side).
+* `tunnel2_vgw_inside_address` - The RFC 6890 link-local address of the second VPN tunnel (VPN Gateway Side).
 * `tunnel2_preshared_key` - The preshared key of the second VPN tunnel.
 * `type` - The type of VPN connection.
 * `vpn_gateway_id` - The ID of the virtual private gateway to which the connection is attached.

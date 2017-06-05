@@ -12,7 +12,7 @@ Provides an Elastic Transcoder pipeline resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elastictranscoder_pipeline" "bar" {
   input_bucket = "${aws_s3_bucket.input_bucket.bucket}"
   name         = "aws_elastictranscoder_pipeline_tf_test_"
@@ -60,6 +60,7 @@ The `content_config` object supports the following:
 * `storage_class` - The Amazon S3 storage class, Standard or ReducedRedundancy, that you want Elastic Transcoder to assign to the files and playlists that it stores in your Amazon S3 bucket.
 
 The `content_config_permissions` object supports the following:
+
 * `access` - The permission that you want to give to the AWS user that you specified in `content_config_permissions.grantee`
 * `grantee` - The AWS user or group that you want to have access to transcoded files and playlists.
 * `grantee_type` - Specify the type of value that appears in the `content_config_permissions.grantee` object. Valid values are `Canonical`, `Email` or `Group`.

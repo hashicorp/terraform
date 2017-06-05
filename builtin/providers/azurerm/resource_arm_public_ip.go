@@ -130,7 +130,8 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 		Tags: expandTags(tags),
 	}
 
-	_, err := publicIPClient.CreateOrUpdate(resGroup, name, publicIp, make(chan struct{}))
+	_, error := publicIPClient.CreateOrUpdate(resGroup, name, publicIp, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -195,7 +196,8 @@ func resourceArmPublicIpDelete(d *schema.ResourceData, meta interface{}) error {
 	resGroup := id.ResourceGroup
 	name := id.Path["publicIPAddresses"]
 
-	_, err = publicIPClient.Delete(resGroup, name, make(chan struct{}))
+	_, error := publicIPClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
 
 	return err
 }

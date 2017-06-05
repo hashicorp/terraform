@@ -118,6 +118,12 @@ func resourceAwsEcsService() *schema.Resource {
 							Type:     schema.TypeString,
 							ForceNew: true,
 							Optional: true,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								if strings.ToLower(old) == strings.ToLower(new) {
+									return true
+								}
+								return false
+							},
 						},
 					},
 				},
@@ -224,13 +230,13 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		out, err = conn.CreateService(&input)
 
 		if err != nil {
-			ec2err, ok := err.(awserr.Error)
+			awsErr, ok := err.(awserr.Error)
 			if !ok {
 				return resource.NonRetryableError(err)
 			}
-			if ec2err.Code() == "InvalidParameterException" {
+			if awsErr.Code() == "InvalidParameterException" {
 				log.Printf("[DEBUG] Trying to create ECS service again: %q",
-					ec2err.Message())
+					awsErr.Message())
 				return resource.RetryableError(err)
 			}
 
@@ -394,12 +400,26 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	out, err := conn.UpdateService(&input)
+	// Retry due to AWS IAM policy eventual consistency
+	// See https://github.com/hashicorp/terraform/issues/4375
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		out, err := conn.UpdateService(&input)
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if ok && awsErr.Code() == "InvalidParameterException" {
+				log.Printf("[DEBUG] Trying to update ECS service again: %#v", err)
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+
+		log.Printf("[DEBUG] Updated ECS service %s", out.Service)
+		return nil
+	})
 	if err != nil {
 		return err
 	}
-	service := out.Service
-	log.Printf("[DEBUG] Updated ECS service %s", service)
 
 	return resourceAwsEcsServiceRead(d, meta)
 }
@@ -504,9 +524,14 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 func resourceAwsEcsLoadBalancerHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
+
 	buf.WriteString(fmt.Sprintf("%s-", m["elb_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["container_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", m["container_port"].(int)))
+
+	if s := m["target_group_arn"].(string); s != "" {
+		buf.WriteString(fmt.Sprintf("%s-", s))
+	}
 
 	return hashcode.String(buf.String())
 }

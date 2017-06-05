@@ -1,35 +1,35 @@
 <% wrap_layout :inner do %>
-	<% content_for :sidebar do %>
-		<div class="docs-sidebar hidden-print affix-top" role="complementary">
-			<ul class="nav docs-sidenav">
-				<li<%#= sidebar_current("docs-home") %>>
-					<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
-				</li>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%#= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
 
-				<li<%= sidebar_current("docs-tls-index") %>>
-					<a href="/docs/providers/tls/index.html">TLS Provider</a>
-				</li>
+        <li<%= sidebar_current("docs-tls-index") %>>
+          <a href="/docs/providers/tls/index.html">TLS Provider</a>
+        </li>
 
-				<li<%= sidebar_current(/^docs-tls-resource/) %>>
-					<a href="#">Resources</a>
-					<ul class="nav nav-visible">
-						<li<%= sidebar_current("docs-tls-resource-private-key") %>>
-							<a href="/docs/providers/tls/r/private_key.html">tls_private_key</a>
-						</li>
-						<li<%= sidebar_current("docs-tls-resource-self-signed-cert") %>>
-							<a href="/docs/providers/tls/r/self_signed_cert.html">tls_self_signed_cert</a>
-						</li>
-						<li<%= sidebar_current("docs-tls-resource-locally-signed-cert") %>>
-							<a href="/docs/providers/tls/r/locally_signed_cert.html">tls_locally_signed_cert</a>
-						</li>
-						<li<%= sidebar_current("docs-tls-resourse-cert-request") %>>
-							<a href="/docs/providers/tls/r/cert_request.html">tls_cert_request</a>
-						</li>
-					</ul>
-				</li>
-			</ul>
-		</div>
-	<% end %>
+        <li<%= sidebar_current("docs-tls-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-tls-resource-private-key") %>>
+              <a href="/docs/providers/tls/r/private_key.html">tls_private_key</a>
+            </li>
+            <li<%= sidebar_current("docs-tls-resource-self-signed-cert") %>>
+              <a href="/docs/providers/tls/r/self_signed_cert.html">tls_self_signed_cert</a>
+            </li>
+            <li<%= sidebar_current("docs-tls-resource-locally-signed-cert") %>>
+              <a href="/docs/providers/tls/r/locally_signed_cert.html">tls_locally_signed_cert</a>
+            </li>
+            <li<%= sidebar_current("docs-tls-resourse-cert-request") %>>
+              <a href="/docs/providers/tls/r/cert_request.html">tls_cert_request</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
 
-	<%= yield %>
+  <%= yield %>
 <% end %>

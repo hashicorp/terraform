@@ -77,6 +77,7 @@ type VSwitchSetType struct {
 	AvailableIpAddressCount int
 	Description             string
 	VSwitchName             string
+	IsDefault               bool
 	CreationTime            util.ISO6801Time
 }
 

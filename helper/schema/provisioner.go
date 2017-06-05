@@ -41,30 +41,34 @@ type Provisioner struct {
 	// information.
 	ApplyFunc func(ctx context.Context) error
 
+	// ValidateFunc is a function for extended validation. This is optional
+	// and should be used when individual field validation is not enough.
+	ValidateFunc func(*ResourceData) ([]string, []error)
+
 	stopCtx       context.Context
 	stopCtxCancel context.CancelFunc
 	stopOnce      sync.Once
 }
 
-// These constants are the keys that can be used to access data in
-// the context parameters for Provisioners.
-const (
-	connDataInvalid int = iota
+// Keys that can be used to access data in the context parameters for
+// Provisioners.
+var (
+	connDataInvalid = contextKey("data invalid")
 
 	// This returns a *ResourceData for the connection information.
 	// Guaranteed to never be nil.
-	ProvConnDataKey
+	ProvConnDataKey = contextKey("provider conn data")
 
 	// This returns a *ResourceData for the config information.
 	// Guaranteed to never be nil.
-	ProvConfigDataKey
+	ProvConfigDataKey = contextKey("provider config data")
 
 	// This returns a terraform.UIOutput. Guaranteed to never be nil.
-	ProvOutputKey
+	ProvOutputKey = contextKey("provider output")
 
 	// This returns the raw InstanceState passed to Apply. Guaranteed to
 	// be set, but may be nil.
-	ProvRawStateKey
+	ProvRawStateKey = contextKey("provider raw state")
 )
 
 // InternalValidate should be called to validate the structure
@@ -117,8 +121,30 @@ func (p *Provisioner) Stop() error {
 	return nil
 }
 
-func (p *Provisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	return schemaMap(p.Schema).Validate(c)
+func (p *Provisioner) Validate(config *terraform.ResourceConfig) ([]string, []error) {
+	if err := p.InternalValidate(); err != nil {
+		return nil, []error{fmt.Errorf(
+			"Internal validation of the provisioner failed! This is always a bug\n"+
+				"with the provisioner itself, and not a user issue. Please report\n"+
+				"this bug:\n\n%s", err)}
+	}
+	w := []string{}
+	e := []error{}
+	if p.Schema != nil {
+		w2, e2 := schemaMap(p.Schema).Validate(config)
+		w = append(w, w2...)
+		e = append(e, e2...)
+	}
+	if p.ValidateFunc != nil {
+		data := &ResourceData{
+			schema: p.Schema,
+			config: config,
+		}
+		w2, e2 := p.ValidateFunc(data)
+		w = append(w, w2...)
+		e = append(e, e2...)
+	}
+	return w, e
 }
 
 // Apply implementation of terraform.ResourceProvisioner interface.

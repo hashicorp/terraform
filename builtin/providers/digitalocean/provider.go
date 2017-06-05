@@ -17,7 +17,12 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"digitalocean_image": dataSourceDigitalOceanImage(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
+			"digitalocean_certificate":  resourceDigitalOceanCertificate(),
 			"digitalocean_domain":       resourceDigitalOceanDomain(),
 			"digitalocean_droplet":      resourceDigitalOceanDroplet(),
 			"digitalocean_floating_ip":  resourceDigitalOceanFloatingIp(),

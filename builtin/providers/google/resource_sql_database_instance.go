@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -29,6 +30,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 			"settings": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"version": &schema.Schema{
@@ -90,8 +92,10 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 							},
 						},
 						"disk_autoresize": &schema.Schema{
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:             schema.TypeBool,
+							Default:          true,
+							Optional:         true,
+							DiffSuppressFunc: suppressFirstGen,
 						},
 						"disk_size": &schema.Schema{
 							Type:     schema.TypeInt,
@@ -239,6 +243,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 			"replica_configuration": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ca_certificate": &schema.Schema{
@@ -263,6 +268,11 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 						},
 						"dump_file_path": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"failover_target": &schema.Schema{
+							Type:     schema.TypeBool,
 							Optional: true,
 							ForceNew: true,
 						},
@@ -303,6 +313,23 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 	}
 }
 
+// Suppress diff with any disk_autoresize value on 1st Generation Instances
+func suppressFirstGen(k, old, new string, d *schema.ResourceData) bool {
+	settingsList := d.Get("settings").([]interface{})
+
+	settings := settingsList[0].(map[string]interface{})
+	tier := settings["tier"].(string)
+	matched, err := regexp.MatchString("db*", tier)
+	if err != nil {
+		log.Printf("[ERR] error with regex in diff supression for disk_autoresize: %s", err)
+	}
+	if !matched {
+		log.Printf("[DEBUG] suppressing diff on disk_autoresize due to 1st gen instance type")
+		return true
+	}
+	return false
+}
+
 func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -315,13 +342,11 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 	databaseVersion := d.Get("database_version").(string)
 
 	_settingsList := d.Get("settings").([]interface{})
-	if len(_settingsList) > 1 {
-		return fmt.Errorf("At most one settings block is allowed")
-	}
 
 	_settings := _settingsList[0].(map[string]interface{})
 	settings := &sqladmin.Settings{
-		Tier: _settings["tier"].(string),
+		Tier:            _settings["tier"].(string),
+		ForceSendFields: []string{"StorageAutoResize"},
 	}
 
 	if v, ok := _settings["activation_policy"]; ok {
@@ -364,9 +389,7 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 		settings.CrashSafeReplicationEnabled = v.(bool)
 	}
 
-	if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
-		settings.StorageAutoResize = v.(bool)
-	}
+	settings.StorageAutoResize = _settings["disk_autoresize"].(bool)
 
 	if v, ok := _settings["disk_size"]; ok && v.(int) > 0 {
 		settings.DataDiskSizeGb = int64(v.(int))
@@ -500,14 +523,15 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("replica_configuration"); ok {
 		_replicaConfigurationList := v.([]interface{})
-		if len(_replicaConfigurationList) > 1 {
-			return fmt.Errorf("Only one replica_configuration block may be defined")
-		}
 
 		if len(_replicaConfigurationList) == 1 && _replicaConfigurationList[0] != nil {
 			replicaConfiguration := &sqladmin.ReplicaConfiguration{}
 			mySqlReplicaConfiguration := &sqladmin.MySqlReplicaConfiguration{}
 			_replicaConfiguration := _replicaConfigurationList[0].(map[string]interface{})
+
+			if vp, okp := _replicaConfiguration["failover_target"]; okp {
+				replicaConfiguration.FailoverTarget = vp.(bool)
+			}
 
 			if vp, okp := _replicaConfiguration["ca_certificate"]; okp {
 				mySqlReplicaConfiguration.CaCertificate = vp.(string)
@@ -610,16 +634,7 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 		d.Get("name").(string)).Do()
 
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing SQL Database %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error retrieving instance %s: %s",
-			d.Get("name").(string), err)
+		return handleNotFoundError(err, d, fmt.Sprintf("SQL Database Instance %q", d.Get("name").(string)))
 	}
 
 	_settingsList := d.Get("settings").([]interface{})
@@ -672,11 +687,7 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 		_settings["crash_safe_replication"] = settings.CrashSafeReplicationEnabled
 	}
 
-	if v, ok := _settings["disk_autoresize"]; ok && v != nil {
-		if v.(bool) {
-			_settings["disk_autoresize"] = settings.StorageAutoResize
-		}
-	}
+	_settings["disk_autoresize"] = settings.StorageAutoResize
 
 	if v, ok := _settings["disk_size"]; ok && v != nil {
 		if v.(int) > 0 && settings.DataDiskSizeGb < int64(v.(int)) {
@@ -823,53 +834,16 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 
 	if v, ok := d.GetOk("replica_configuration"); ok && v != nil {
 		_replicaConfigurationList := v.([]interface{})
-		if len(_replicaConfigurationList) > 1 {
-			return fmt.Errorf("Only one replica_configuration block may be defined")
-		}
-
 		if len(_replicaConfigurationList) == 1 && _replicaConfigurationList[0] != nil {
-			mySqlReplicaConfiguration := instance.ReplicaConfiguration.MysqlReplicaConfiguration
 			_replicaConfiguration := _replicaConfigurationList[0].(map[string]interface{})
 
-			if vp, okp := _replicaConfiguration["ca_certificate"]; okp && vp != nil {
-				_replicaConfiguration["ca_certificate"] = mySqlReplicaConfiguration.CaCertificate
+			if vp, okp := _replicaConfiguration["failover_target"]; okp && vp != nil {
+				_replicaConfiguration["failover_target"] = instance.ReplicaConfiguration.FailoverTarget
 			}
 
-			if vp, okp := _replicaConfiguration["client_certificate"]; okp && vp != nil {
-				_replicaConfiguration["client_certificate"] = mySqlReplicaConfiguration.ClientCertificate
-			}
-
-			if vp, okp := _replicaConfiguration["client_key"]; okp && vp != nil {
-				_replicaConfiguration["client_key"] = mySqlReplicaConfiguration.ClientKey
-			}
-
-			if vp, okp := _replicaConfiguration["connect_retry_interval"]; okp && vp != nil {
-				_replicaConfiguration["connect_retry_interval"] = mySqlReplicaConfiguration.ConnectRetryInterval
-			}
-
-			if vp, okp := _replicaConfiguration["dump_file_path"]; okp && vp != nil {
-				_replicaConfiguration["dump_file_path"] = mySqlReplicaConfiguration.DumpFilePath
-			}
-
-			if vp, okp := _replicaConfiguration["master_heartbeat_period"]; okp && vp != nil {
-				_replicaConfiguration["master_heartbeat_period"] = mySqlReplicaConfiguration.MasterHeartbeatPeriod
-			}
-
-			if vp, okp := _replicaConfiguration["password"]; okp && vp != nil {
-				_replicaConfiguration["password"] = mySqlReplicaConfiguration.Password
-			}
-
-			if vp, okp := _replicaConfiguration["ssl_cipher"]; okp && vp != nil {
-				_replicaConfiguration["ssl_cipher"] = mySqlReplicaConfiguration.SslCipher
-			}
-
-			if vp, okp := _replicaConfiguration["username"]; okp && vp != nil {
-				_replicaConfiguration["username"] = mySqlReplicaConfiguration.Username
-			}
-
-			if vp, okp := _replicaConfiguration["verify_server_certificate"]; okp && vp != nil {
-				_replicaConfiguration["verify_server_certificate"] = mySqlReplicaConfiguration.VerifyServerCertificate
-			}
+			// Don't attempt to assign anything from instance.ReplicaConfiguration.MysqlReplicaConfiguration,
+			// since those fields are set on create and then not stored. See description at
+			// https://cloud.google.com/sql/docs/mysql/admin-api/v1beta4/instances
 
 			_replicaConfigurationList[0] = _replicaConfiguration
 			d.Set("replica_configuration", _replicaConfigurationList)
@@ -922,14 +896,12 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 		_oList := _oListCast.([]interface{})
 		_o := _oList[0].(map[string]interface{})
 		_settingsList := _settingsListCast.([]interface{})
-		if len(_settingsList) > 1 {
-			return fmt.Errorf("At most one settings block is allowed")
-		}
 
 		_settings := _settingsList[0].(map[string]interface{})
 		settings := &sqladmin.Settings{
 			Tier:            _settings["tier"].(string),
 			SettingsVersion: instance.Settings.SettingsVersion,
+			ForceSendFields: []string{"StorageAutoResize"},
 		}
 
 		if v, ok := _settings["activation_policy"]; ok {
@@ -972,9 +944,7 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 			settings.CrashSafeReplicationEnabled = v.(bool)
 		}
 
-		if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
-			settings.StorageAutoResize = v.(bool)
-		}
+		settings.StorageAutoResize = _settings["disk_autoresize"].(bool)
 
 		if v, ok := _settings["disk_size"]; ok {
 			if v.(int) > 0 && int64(v.(int)) > instance.Settings.DataDiskSizeGb {
@@ -1201,4 +1171,8 @@ func validateNumericRange(v interface{}, k string, min int, max int) (ws []strin
 			"%q outside range %d-%d.", k, min, max))
 	}
 	return
+}
+
+func instanceMutexKey(project, instance_name string) string {
+	return fmt.Sprintf("google-sql-database-instance-%s-%s", project, instance_name)
 }

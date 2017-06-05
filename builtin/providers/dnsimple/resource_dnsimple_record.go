@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/dnsimple/dnsimple-go/dnsimple"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -15,6 +16,9 @@ func resourceDNSimpleRecord() *schema.Resource {
 		Read:   resourceDNSimpleRecordRead,
 		Update: resourceDNSimpleRecordUpdate,
 		Delete: resourceDNSimpleRecordDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceDNSimpleRecordImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"domain": {
@@ -104,6 +108,11 @@ func resourceDNSimpleRecordRead(d *schema.ResourceData, meta interface{}) error 
 
 	resp, err := provider.client.Zones.GetRecord(provider.config.Account, d.Get("domain").(string), recordID)
 	if err != nil {
+		if err != nil && strings.Contains(err.Error(), "404") {
+			log.Printf("DNSimple Record Not Found - Refreshing from State")
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Couldn't find DNSimple Record: %s", err)
 	}
 
@@ -177,4 +186,20 @@ func resourceDNSimpleRecordDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	return nil
+}
+
+func resourceDNSimpleRecordImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	parts := strings.Split(d.Id(), "_")
+
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("Error Importing dnsimple_record. Please make sure the record ID is in the form DOMAIN_RECORDID (i.e. example.com_1234")
+	}
+
+	d.SetId(parts[1])
+	d.Set("domain", parts[0])
+
+	if err := resourceDNSimpleRecordRead(d, meta); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }

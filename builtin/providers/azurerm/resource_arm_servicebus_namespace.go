@@ -40,10 +40,11 @@ func resourceArmServiceBusNamespace() *schema.Resource {
 			},
 
 			"sku": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateServiceBusNamespaceSku,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				ValidateFunc:     validateServiceBusNamespaceSku,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"capacity": {
@@ -101,7 +102,8 @@ func resourceArmServiceBusNamespaceCreate(d *schema.ResourceData, meta interface
 		Tags: expandTags(tags),
 	}
 
-	_, err := namespaceClient.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
+	_, error := namespaceClient.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -132,7 +134,7 @@ func resourceArmServiceBusNamespaceRead(d *schema.ResourceData, meta interface{}
 
 	resp, err := namespaceClient.Get(resGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure ServiceBus Namespace %s: %s", name, err)
+		return fmt.Errorf("Error making Read request on Azure ServiceBus Namespace %s: %+v", name, err)
 	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
@@ -147,7 +149,7 @@ func resourceArmServiceBusNamespaceRead(d *schema.ResourceData, meta interface{}
 
 	keys, err := namespaceClient.ListKeys(resGroup, name, serviceBusNamespaceDefaultAuthorizationRule)
 	if err != nil {
-		log.Printf("[ERROR] Unable to List default keys for Namespace %s: %s", name, err)
+		log.Printf("[ERROR] Unable to List default keys for Namespace %s: %+v", name, err)
 	} else {
 		d.Set("default_primary_connection_string", keys.PrimaryConnectionString)
 		d.Set("default_secondary_connection_string", keys.SecondaryConnectionString)
@@ -170,10 +172,12 @@ func resourceArmServiceBusNamespaceDelete(d *schema.ResourceData, meta interface
 	resGroup := id.ResourceGroup
 	name := id.Path["namespaces"]
 
-	resp, err := namespaceClient.Delete(resGroup, name, make(chan struct{}))
+	deleteResp, error := namespaceClient.Delete(resGroup, name, make(chan struct{}))
+	resp := <-deleteResp
+	err = <-error
 
 	if resp.StatusCode != http.StatusNotFound {
-		return fmt.Errorf("Error issuing Azure ARM delete request of ServiceBus Namespace'%s': %s", name, err)
+		return fmt.Errorf("Error issuing Azure ARM delete request of ServiceBus Namespace'%s': %+v", name, err)
 	}
 
 	return nil

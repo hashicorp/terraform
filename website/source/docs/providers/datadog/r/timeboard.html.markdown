@@ -6,13 +6,13 @@ description: |-
   Provides a Datadog timeboard resource. This can be used to create and manage timeboards.
 ---
 
-# datadog\_timeboard
+# datadog_timeboard
 
 Provides a Datadog timeboard resource. This can be used to create and manage Datadog timeboards.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Datadog timeboard
 resource "datadog_timeboard" "redis" {
   title       = "Redis Timeboard (created via Terraform)"
@@ -115,7 +115,7 @@ Nested `graph` `request` blocks have the following structure:
 * `q` - (Required) The query of the request. Pro tip: Use the JSON tab inside the Datadog UI to help build you query strings.
 * `aggregator` - (Optional) The aggregation method used when the number of data points outnumbers the max that can be shown.
 * `stacked` - (Optional) Boolean value to determine if this is this a stacked area graph. Default: false (line chart).
-* `type` - (Optional) Choose how to draw the graph. For example: "lines", "bars" or "areas". Default: "lines".
+* `type` - (Optional) Choose how to draw the graph. For example: "line", "bar" or "area". Default: "line".
 * `style` - (Optional) Nested block to customize the graph style.
 
 ### Nested `graph` `style` block

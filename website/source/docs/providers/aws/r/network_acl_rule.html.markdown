@@ -12,7 +12,7 @@ Creates an entry (a rule) in a network ACL with the specified rule number.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_network_acl" "bar" {
   vpc_id = "${aws_vpc.foo.id}"
 }

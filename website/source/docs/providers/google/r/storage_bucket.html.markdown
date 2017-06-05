@@ -8,14 +8,14 @@ description: |-
 
 # google\_storage\_bucket
 
-Creates a new bucket in Google cloud storage service(GCS). Currently, it will not change location nor ACL once a bucket has been created with Terraform. For more information see [the official documentation](https://cloud.google.com/storage/docs/overview) and [API](https://cloud.google.com/storage/docs/json_api).
+Creates a new bucket in Google cloud storage service(GCS). Currently, it will not change location nor ACL once a bucket has been created with Terraform. For more information see [the official documentation](https://cloud.google.com/storage/docs/overview) and [API](https://cloud.google.com/storage/docs/json_api/v1/buckets).
 
 
 ## Example Usage
 
 Example creating a private bucket in standard storage, in the EU region.
 
-```js
+```hcl
 resource "google_storage_bucket" "image-store" {
   name     = "image-store-bucket"
   location = "EU"
@@ -50,15 +50,27 @@ to `google_storage_bucket_acl.predefined_acl`.
 
 * `storage_class` - (Optional) The [Storage Class](https://cloud.google.com/storage/docs/storage-classes) of the new bucket. Supported values include: `MULTI_REGIONAL`, `REGIONAL`, `NEARLINE`, `COLDLINE`.
 
-* `website` - (Optional) Configuration if the bucket acts as a website.
+* `website` - (Optional) Configuration if the bucket acts as a website. Structure is documented below.
 
-The optional `website` block supports:
+* `cors` - (Optional) The bucket's [Cross-Origin Resource Sharing (CORS)](https://www.w3.org/TR/cors/) configuration. Multiple blocks of this type are permitted. Structure is documented below.
+
+The `website` block supports:
 
 * `main_page_suffix` - (Optional) Behaves as the bucket's directory index where
     missing objects are treated as potential directories.
 
 * `not_found_page` - (Optional) The custom object to return when a requested
     resource is not found.
+    
+The `cors` block supports:
+
+* `origin` - (Optional) The list of [Origins](https://tools.ietf.org/html/rfc6454) eligible to receive CORS response headers. Note: "*" is permitted in the list of origins, and means "any Origin".
+    
+* `method` - (Optional) The list of HTTP methods on which to include CORS response headers, (GET, OPTIONS, POST, etc) Note: "*" is permitted in the list of methods, and means "any method".
+    
+* `response_header` - (Optional) The list of HTTP headers other than the [simple response headers](https://www.w3.org/TR/cors/#simple-response-header) to give permission for the user-agent to share across domains.
+    
+* `max_age_seconds` - (Optional) The value, in seconds, to return in the [Access-Control-Max-Age header](https://www.w3.org/TR/cors/#access-control-max-age-response-header) used in preflight responses.
 
 ## Attributes Reference
 
@@ -66,3 +78,5 @@ In addition to the arguments listed above, the following computed attributes are
 exported:
 
 * `self_link` - The URI of the created resource.
+
+* `url` - The base URL of the bucket, in the format `gs://<bucket-name>`.

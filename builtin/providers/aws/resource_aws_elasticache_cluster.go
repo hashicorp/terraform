@@ -311,7 +311,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	// name contained uppercase characters.
 	d.SetId(strings.ToLower(*resp.CacheCluster.CacheClusterId))
 
-	pending := []string{"creating", "modifying", "restoring"}
+	pending := []string{"creating", "modifying", "restoring", "snapshotting"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
@@ -565,14 +565,25 @@ func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{
 	req := &elasticache.DeleteCacheClusterInput{
 		CacheClusterId: aws.String(d.Id()),
 	}
-	_, err := conn.DeleteCacheCluster(req)
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := conn.DeleteCacheCluster(req)
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			// The cluster may be just snapshotting, so we retry until it's ready for deletion
+			if ok && awsErr.Code() == "InvalidCacheClusterState" {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
 
 	log.Printf("[DEBUG] Waiting for deletion: %v", d.Id())
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "available", "deleting", "incompatible-parameters", "incompatible-network", "restore-failed"},
+		Pending:    []string{"creating", "available", "deleting", "incompatible-parameters", "incompatible-network", "restore-failed", "snapshotting"},
 		Target:     []string{},
 		Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "", []string{}),
 		Timeout:    40 * time.Minute,

@@ -1,13 +1,11 @@
 package vcd
 
 import (
-	"log"
-
 	"fmt"
-
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	types "github.com/ukcloud/govcloudair/types/v56"
+	"log"
 )
 
 func resourceVcdEdgeGatewayVpn() *schema.Resource {
@@ -187,15 +185,7 @@ func resourceVcdEdgeGatewayVpnCreate(d *schema.ResourceData, meta interface{}) e
 		Xmlns: "http://www.vmware.com/vcloud/v1.5",
 		GatewayIpsecVpnService: &types.GatewayIpsecVpnService{
 			IsEnabled: true,
-			/*
-				Endpoint: &types.GatewayIpsecVpnEndpoint{
-					Network: &types.Reference{
-						HREF: "http://myvpn.com",
-					},
-					PublicIP: "63.30.253.57",
-				},
-			*/
-			Tunnel: tunnels,
+			Tunnel:    tunnels,
 		},
 	}
 
@@ -272,10 +262,29 @@ func resourceVcdEdgeGatewayVpnRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error finding edge gateway: %#v", err)
 	}
 
-	fmt.Println(edgeGateway)
+	egsc := edgeGateway.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.GatewayIpsecVpnService
 
-	//d.Set("name", *edgeGateway.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.GatewayIpsecVpnService.Tunnel[0].Name)
-	// and all the others
+	if len(egsc.Tunnel) == 0 {
+		d.SetId("")
+		return nil
+	}
+
+	if len(egsc.Tunnel) == 1 {
+		tunnel := egsc.Tunnel[0]
+		d.Set("name", tunnel.Name)
+		d.Set("description", tunnel.Description)
+		d.Set("encryption_protocol", tunnel.EncryptionProtocol)
+		d.Set("local_ip_address", tunnel.LocalIPAddress)
+		d.Set("local_id", tunnel.LocalID)
+		d.Set("mtu", tunnel.Mtu)
+		d.Set("peer_ip_address", tunnel.PeerIPAddress)
+		d.Set("peer_id", tunnel.PeerID)
+		d.Set("shared_secret", tunnel.SharedSecret)
+		d.Set("local_subnets", tunnel.LocalSubnet)
+		d.Set("peer_subnets", tunnel.PeerSubnet)
+	} else {
+		return fmt.Errorf("Multiple tunnels not currently supported")
+	}
 
 	return nil
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSConfigConfigRule_basic(t *testing.T) {
+func testAccConfigConfigRule_basic(t *testing.T) {
 	var cr configservice.ConfigRule
 	rInt := acctest.RandInt()
 	expectedName := fmt.Sprintf("tf-acc-test-%d", rInt)
@@ -37,7 +37,7 @@ func TestAccAWSConfigConfigRule_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSConfigConfigRule_ownerAws(t *testing.T) {
+func testAccConfigConfigRule_ownerAws(t *testing.T) {
 	var cr configservice.ConfigRule
 	rInt := acctest.RandInt()
 	expectedName := fmt.Sprintf("tf-acc-test-%d", rInt)
@@ -72,7 +72,7 @@ func TestAccAWSConfigConfigRule_ownerAws(t *testing.T) {
 	})
 }
 
-func TestAccAWSConfigConfigRule_customlambda(t *testing.T) {
+func testAccConfigConfigRule_customlambda(t *testing.T) {
 	var cr configservice.ConfigRule
 	rInt := acctest.RandInt()
 
@@ -113,7 +113,7 @@ func TestAccAWSConfigConfigRule_customlambda(t *testing.T) {
 	})
 }
 
-func TestAccAWSConfigConfigRule_importAws(t *testing.T) {
+func testAccConfigConfigRule_importAws(t *testing.T) {
 	resourceName := "aws_config_config_rule.foo"
 	rInt := acctest.RandInt()
 
@@ -135,7 +135,7 @@ func TestAccAWSConfigConfigRule_importAws(t *testing.T) {
 	})
 }
 
-func TestAccAWSConfigConfigRule_importLambda(t *testing.T) {
+func testAccConfigConfigRule_importLambda(t *testing.T) {
 	resourceName := "aws_config_config_rule.foo"
 	rInt := acctest.RandInt()
 

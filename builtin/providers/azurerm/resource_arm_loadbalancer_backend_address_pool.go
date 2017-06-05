@@ -28,14 +28,7 @@ func resourceArmLoadBalancerBackendAddressPool() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:             schema.TypeString,
-				ForceNew:         true,
-				Optional:         true,
-				StateFunc:        azureRMNormalizeLocation,
-				DiffSuppressFunc: azureRMSuppressLocationDiff,
-				Deprecated:       "location is no longer used",
-			},
+			"location": deprecatedLocationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -99,7 +92,8 @@ func resourceArmLoadBalancerBackendAddressPoolCreate(d *schema.ResourceData, met
 		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
 	}
 
-	_, err = lbClient.CreateOrUpdate(resGroup, loadBalancerName, *loadBalancer, make(chan struct{}))
+	_, error := lbClient.CreateOrUpdate(resGroup, loadBalancerName, *loadBalancer, make(chan struct{}))
+	err = <-error
 	if err != nil {
 		return errwrap.Wrapf("Error Creating/Updating LoadBalancer {{err}}", err)
 	}
@@ -217,7 +211,8 @@ func resourceArmLoadBalancerBackendAddressPoolDelete(d *schema.ResourceData, met
 		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
 	}
 
-	_, err = lbClient.CreateOrUpdate(resGroup, loadBalancerName, *loadBalancer, make(chan struct{}))
+	_, error := lbClient.CreateOrUpdate(resGroup, loadBalancerName, *loadBalancer, make(chan struct{}))
+	err = <-error
 	if err != nil {
 		return errwrap.Wrapf("Error Creating/Updating LoadBalancer {{err}}", err)
 	}

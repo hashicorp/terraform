@@ -919,7 +919,7 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE", "SHUTOFF"},
-		Target:     []string{"DELETED"},
+		Target:     []string{"DELETED", "SOFT_DELETED"},
 		Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      10 * time.Second,
@@ -1056,19 +1056,26 @@ func getInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.Res
 					log.Printf("[DEBUG] os-tenant-networks disabled.")
 					tenantNetworkExt = false
 				} else {
-					return nil, err
+					log.Printf("[DEBUG] unexpected os-tenant-networks error: %s", err)
+					tenantNetworkExt = false
 				}
+			}
+		}
+
+		// In some cases, a call to os-tenant-networks might work,
+		// but the response is invalid. Catch this during extraction.
+		networkList := []tenantnetworks.Network{}
+		if tenantNetworkExt {
+			networkList, err = tenantnetworks.ExtractNetworks(allPages)
+			if err != nil {
+				log.Printf("[DEBUG] error extracting os-tenant-networks results: %s", err)
+				tenantNetworkExt = false
 			}
 		}
 
 		networkID := ""
 		networkName := ""
 		if tenantNetworkExt {
-			networkList, err := tenantnetworks.ExtractNetworks(allPages)
-			if err != nil {
-				return nil, err
-			}
-
 			for _, network := range networkList {
 				if network.Name == rawMap["name"] {
 					tenantnet = network

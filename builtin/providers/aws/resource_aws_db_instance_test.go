@@ -47,6 +47,48 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
 					resource.TestCheckResourceAttrSet("aws_db_instance.bar", "hosted_zone_id"),
+					resource.TestCheckResourceAttrSet(
+						"aws_db_instance.bar", "resource_id"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_namePrefix(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfig_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.test", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+					resource.TestMatchResourceAttr(
+						"aws_db_instance.test", "identifier", regexp.MustCompile("^tf-test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_generatedName(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.test", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
 				),
 			},
 		},
@@ -124,6 +166,27 @@ func TestAccAWSDBInstance_optionGroup(t *testing.T) {
 					testAccCheckAWSDBInstanceAttributes(&v),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "option_group_name", rName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_iamAuth(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckAWSDBIAMAuth(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "iam_database_authentication_enabled", "true"),
 				),
 			},
 		},
@@ -613,8 +676,8 @@ resource "aws_db_instance" "bar" {
 	username = "foo"
 
 
-	# Maintenance Window is stored in lower case in the API, though not strictly 
-	# documented. Terraform will downcase this to match (as opposed to throw a 
+	# Maintenance Window is stored in lower case in the API, though not strictly
+	# documented. Terraform will downcase this to match (as opposed to throw a
 	# validation error).
 	maintenance_window = "Fri:09:00-Fri:09:30"
 	skip_final_snapshot = true
@@ -622,6 +685,37 @@ resource "aws_db_instance" "bar" {
 	backup_retention_period = 0
 
 	parameter_group_name = "default.mysql5.6"
+
+	timeouts {
+		create = "30m"
+	}
+}`
+
+const testAccAWSDBInstanceConfig_namePrefix = `
+resource "aws_db_instance" "test" {
+	allocated_storage = 10
+	engine = "MySQL"
+	identifier_prefix = "tf-test-"
+	instance_class = "db.t1.micro"
+	password = "password"
+	username = "root"
+	publicly_accessible = true
+	skip_final_snapshot = true
+
+	timeouts {
+		create = "30m"
+	}
+}`
+
+const testAccAWSDBInstanceConfig_generatedName = `
+resource "aws_db_instance" "test" {
+	allocated_storage = 10
+	engine = "MySQL"
+	instance_class = "db.t1.micro"
+	password = "password"
+	username = "root"
+	publicly_accessible = true
+	skip_final_snapshot = true
 
 	timeouts {
 		create = "30m"
@@ -702,6 +796,24 @@ resource "aws_db_instance" "bar" {
 }`, rName, acctest.RandInt())
 }
 
+func testAccCheckAWSDBIAMAuth(n int) string {
+	return fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+	identifier = "foobarbaz-test-terraform-%d"
+	allocated_storage = 10
+	engine = "mysql"
+	engine_version = "5.6.34"
+	instance_class = "db.t2.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	backup_retention_period = 0
+	skip_final_snapshot = true
+	parameter_group_name = "default.mysql5.6"
+	iam_database_authentication_enabled = true
+}`, n)
+}
+
 func testAccReplicaInstanceConfig(val int) string {
 	return fmt.Sprintf(`
 	resource "aws_db_instance" "bar" {
@@ -720,7 +832,7 @@ func testAccReplicaInstanceConfig(val int) string {
 
 		parameter_group_name = "default.mysql5.6"
 	}
-	
+
 	resource "aws_db_instance" "replica" {
 		identifier = "tf-replica-db-%d"
 		backup_retention_period = 0
@@ -912,6 +1024,9 @@ func testAccAWSDBInstanceConfigWithSubnetGroup(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name="testAccAWSDBInstanceConfigWithSubnetGroup"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -963,10 +1078,16 @@ func testAccAWSDBInstanceConfigWithSubnetGroupUpdated(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name="testAccAWSDBInstanceConfigWithSubnetGroupUpdated"
+	}
 }
 
 resource "aws_vpc" "bar" {
 	cidr_block = "10.10.0.0/16"
+	tags {
+		Name="testAccAWSDBInstanceConfigWithSubnetGroupUpdated_other"
+	}
 }
 
 resource "aws_subnet" "foo" {

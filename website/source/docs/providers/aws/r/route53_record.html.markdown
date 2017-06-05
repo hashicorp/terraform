@@ -14,7 +14,7 @@ Provides a Route53 record resource.
 
 ### Simple routing policy
 
-```
+```hcl
 resource "aws_route53_record" "www" {
   zone_id = "${aws_route53_zone.primary.zone_id}"
   name    = "www.example.com"
@@ -27,7 +27,7 @@ resource "aws_route53_record" "www" {
 ### Weighted routing policy
 Other routing policies are configured similarly. See [AWS Route53 Developer Guide](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html) for details.
 
-```
+```hcl
 resource "aws_route53_record" "www-dev" {
   zone_id = "${aws_route53_zone.primary.zone_id}"
   name    = "www"
@@ -64,7 +64,7 @@ to understand differences between alias and non-alias records.
 TTL for all alias records is [60 seconds](https://aws.amazon.com/route53/faqs/#dns_failover_do_i_need_to_adjust),
 you cannot change this, therefore `ttl` has to be omitted in alias records.
 
-```
+```hcl
 resource "aws_elb" "main" {
   name               = "foobar-terraform-elb"
   availability_zones = ["us-east-1c"]
@@ -141,8 +141,19 @@ Weighted routing policies support the following:
 
 ## Import
 
-Route53 Records can be imported using ID of the record, e.g.
+Route53 Records can be imported using ID of the record. The ID is made up as ZONEID_RECORDNAME_TYPE_SET-IDENTIFIER
+
+e.g.
 
 ```
-$ terraform import aws_route53_record.myrecord Z4KAPRWWNC7JR_dev.example.com_NS
+Z4KAPRWWNC7JR_dev.example.com_NS_dev
+```
+
+In this example, `Z4KAPRWWNC7JR` is the ZoneID, `dev.example.com` is the Record Name, `NS` is the Type and `dev` is the Set Identifier.
+Only the Set Identifier is actually optional in the ID
+
+To import the ID above, it would look as follows:
+
+```
+$ terraform import aws_route53_record.myrecord Z4KAPRWWNC7JR_dev.example.com_NS_dev
 ```

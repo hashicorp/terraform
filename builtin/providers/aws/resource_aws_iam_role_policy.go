@@ -26,11 +26,13 @@ func resourceAwsIamRolePolicy() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+			"policy": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validateIAMPolicyJson,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -38,13 +40,13 @@ func resourceAwsIamRolePolicy() *schema.Resource {
 				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc:  validateIamRolePolicyName,
 			},
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateIamRolePolicyNamePrefix,
 			},
-			"role": &schema.Schema{
+			"role": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -140,7 +142,7 @@ func resourceAwsIamRolePolicyDelete(d *schema.ResourceData, meta interface{}) er
 func resourceAwsIamRolePolicyParseId(id string) (roleName, policyName string, err error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
-		err = fmt.Errorf("role_policy id must be of the for <role name>:<policy name>")
+		err = fmt.Errorf("role_policy id must be of the form <role name>:<policy name>")
 		return
 	}
 

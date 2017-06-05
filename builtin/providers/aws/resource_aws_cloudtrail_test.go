@@ -5,15 +5,41 @@ import (
 	"log"
 	"testing"
 
+	"regexp"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"regexp"
 )
 
-func TestAccAWSCloudTrail_basic(t *testing.T) {
+func TestAccAWSCloudTrail(t *testing.T) {
+	testCases := map[string]map[string]func(t *testing.T){
+		"Trail": {
+			"basic":         testAccAWSCloudTrail_basic,
+			"enableLogging": testAccAWSCloudTrail_enable_logging,
+			"isMultiRegion": testAccAWSCloudTrail_is_multi_region,
+			"logValidation": testAccAWSCloudTrail_logValidation,
+			"kmsKey":        testAccAWSCloudTrail_kmsKey,
+			"tags":          testAccAWSCloudTrail_tags,
+		},
+	}
+
+	for group, m := range testCases {
+		m := m
+		t.Run(group, func(t *testing.T) {
+			for name, tc := range m {
+				tc := tc
+				t.Run(name, func(t *testing.T) {
+					tc(t)
+				})
+			}
+		})
+	}
+}
+
+func testAccAWSCloudTrail_basic(t *testing.T) {
 	var trail cloudtrail.Trail
 	cloudTrailRandInt := acctest.RandInt()
 
@@ -45,7 +71,7 @@ func TestAccAWSCloudTrail_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
+func testAccAWSCloudTrail_enable_logging(t *testing.T) {
 	var trail cloudtrail.Trail
 	cloudTrailRandInt := acctest.RandInt()
 
@@ -87,7 +113,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 	})
 }
 
-func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
+func testAccAWSCloudTrail_is_multi_region(t *testing.T) {
 	var trail cloudtrail.Trail
 	cloudTrailRandInt := acctest.RandInt()
 
@@ -127,7 +153,7 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 	})
 }
 
-func TestAccAWSCloudTrail_logValidation(t *testing.T) {
+func testAccAWSCloudTrail_logValidation(t *testing.T) {
 	var trail cloudtrail.Trail
 	cloudTrailRandInt := acctest.RandInt()
 
@@ -160,7 +186,7 @@ func TestAccAWSCloudTrail_logValidation(t *testing.T) {
 	})
 }
 
-func TestAccAWSCloudTrail_kmsKey(t *testing.T) {
+func testAccAWSCloudTrail_kmsKey(t *testing.T) {
 	var trail cloudtrail.Trail
 	cloudTrailRandInt := acctest.RandInt()
 	keyRegex := regexp.MustCompile("^arn:aws:([a-zA-Z0-9\\-])+:([a-z]{2}-[a-z]+-\\d{1})?:(\\d{12})?:(.*)$")
@@ -184,7 +210,7 @@ func TestAccAWSCloudTrail_kmsKey(t *testing.T) {
 	})
 }
 
-func TestAccAWSCloudTrail_tags(t *testing.T) {
+func testAccAWSCloudTrail_tags(t *testing.T) {
 	var trail cloudtrail.Trail
 	var trailTags []*cloudtrail.Tag
 	var trailTagsModified []*cloudtrail.Tag

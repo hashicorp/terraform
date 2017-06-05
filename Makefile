@@ -29,12 +29,8 @@ core-dev: generate
 # Shorthand for quickly testing the core of Terraform (i.e. "not providers")
 core-test: generate
 	@echo "Testing core packages..." && \
-		go test -tags `core` $(TESTARGS) $(shell go list ./... | grep -v -E `terraform/(builtin|vendor)`)
+		go test -tags 'core' $(TESTARGS) $(shell go list ./... | grep -v -E 'terraform/(builtin|vendor)')
 
-get-deps:
-	@echo "==> Fetching dependencies"
-	@go get -v $(TEST)
-	
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
 plugin-dev: generate
@@ -79,8 +75,8 @@ cover:
 # vet runs the Go source code static analysis tool `vet` to find
 # any common errors.
 vet:
-	@echo "go vet ."
-	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
+	@echo 'go vet $$(go list ./... | grep -v /terraform/vendor/)'
+	@go vet $$(go list ./... | grep -v /terraform/vendor/) ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \

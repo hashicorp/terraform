@@ -12,7 +12,7 @@ Provides a DigitalOcean DNS record resource.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new domain
 resource "digitalocean_domain" "default" {
   name       = "www.example.com"
@@ -40,6 +40,7 @@ The following arguments are supported:
 * `port` - (Optional) The port of the record, for SRV records.
 * `priority` - (Optional) The priority of the record, for MX and SRV
    records.
+* `ttl` - (Optional) The time to live for the record, in seconds.
 
 ## Attributes Reference
 
@@ -47,4 +48,3 @@ The following attributes are exported:
 
 * `id` - The record ID
 * `fqdn` - The FQDN of the record
-

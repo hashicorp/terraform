@@ -12,7 +12,7 @@ Uploads an SSH public key and associates it with the specified IAM user.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_user" "user" {
   name = "test-user"
   path = "/"

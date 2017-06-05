@@ -19,9 +19,9 @@ already.
 
 Terraform configuration looks like the following:
 
-```
+```hcl
 terraform {
-    required_version = "> 0.7.0"
+  required_version = "> 0.7.0"
 }
 ```
 
@@ -29,11 +29,16 @@ terraform {
 
 The `terraform` block configures the behavior of Terraform itself.
 
-The currently only allowed configuration within this block is
-`required_version`. This setting specifies a set of version constraints
+The currently only allowed configurations within this block are
+`required_version` and `backend`.
+
+`required_version` specifies a set of version constraints
 that must be met to perform operations on this configuration. If the
 running Terraform version doesn't meet these constraints, an error
 is shown. See the section below dedicated to this option.
+
+See [backends](/docs/backends/index.html) for more detail on the `backend`
+configuration.
 
 **No value within the `terraform` block can use interpolations.** The
 `terraform` block is loaded very early in the execution of Terraform
@@ -55,12 +60,15 @@ The value of this configuration is a comma-separated list of constraints.
 A constraint is an operator followed by a version, such as `> 0.7.0`.
 Constraints support the following operations:
 
-  * `=` (or no operator): exact version equality
-  * `!=`: version not equal
-  * `>`, `>=`, `<`, `<=`: version comparison, where "greater than" is
-    a larger version number.
-  * `~>`: pessimistic constraint operator. Example: for `~> 0.9`, this means
-    `>= 0.9, < 1.0`. Example: for `~> 0.8.4`, this means `>= 0.8.4, < 0.9`
+- `=` (or no operator): exact version equality
+
+- `!=`: version not equal
+
+- `>`, `>=`, `<`, `<=`: version comparison, where "greater than" is a larger
+  version number
+
+- `~>`: pessimistic constraint operator. Example: for `~> 0.9`, this means
+  `>= 0.9, < 1.0`. Example: for `~> 0.8.4`, this means `>= 0.8.4, < 0.9`
 
 For modules, a minimum version is recommended, such as `> 0.8.0`. This
 minimum version ensures that a module operates as expected, but gives
@@ -70,8 +78,8 @@ the consumer flexibility to use newer versions.
 
 The full syntax is:
 
-```
+```text
 terraform {
-    required_version = VALUE
+  required_version = VALUE
 }
 ```

@@ -6,13 +6,13 @@ description: |-
   Get information on Fastly IP ranges.
 ---
 
-# fastly\_ip_ranges
+# fastly_ip_ranges
 
 Use this data source to get the [IP ranges][1] of Fastly edge nodes.
 
 ## Example Usage
 
-```
+```hcl
 data "fastly_ip_ranges" "fastly" {}
 
 resource "aws_security_group" "from_fastly" {

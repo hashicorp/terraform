@@ -16,7 +16,7 @@ Each job belongs to a project. A project can be created with the `rundeck_projec
 
 ## Example Usage
 
-```
+```hcl
 resource "rundeck_job" "bounceweb" {
     name = "Bounce Web Servers"
     project_name = "anvils"
@@ -124,6 +124,8 @@ The following arguments are supported:
   to scripts executed by job commands. Defaults to `false`.
 
 `command` blocks must have any one of the following combinations of arguments as contents:
+
+* `description`: (Optional) gives a description to the command block.
 
 * `shell_command` gives a single shell command to execute on the nodes.
 

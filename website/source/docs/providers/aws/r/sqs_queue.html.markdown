@@ -10,7 +10,7 @@ description: |-
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_sqs_queue" "terraform_queue" {
   name                      = "terraform-example-queue"
   delay_seconds             = 90
@@ -23,7 +23,7 @@ resource "aws_sqs_queue" "terraform_queue" {
 
 ## FIFO queue
 
-```
+```hcl
 resource "aws_sqs_queue" "terraform_queue" {
   name                        = "terraform-example-queue.fifo"
   fifo_queue                  = true

@@ -16,9 +16,15 @@ defined in-line. At this time you cannot use a Route Table with in-line routes
 in conjunction with any Route resources. Doing so will cause
 a conflict of rule settings and will overwrite rules.
 
+~> **NOTE on `gateway_id` and `nat_gateway_id`:** The AWS API is very foregiving with these two
+attributes and the `aws_route_table` resource can be created with a NAT ID specified as a Gateway ID attribute.
+This _will_ lead to a permanent diff between your configuration and statefile, as the API returns the correct
+parameters in the returned route table. If you're experiencing constant diffs in your `aws_route_table` resources,
+the first thing to check is whether or not you're specifying a NAT ID instead of a Gateway ID, or vice-versa.
+
 ## Example usage with tags:
 
-```
+```hcl
 resource "aws_route_table" "r" {
   vpc_id = "${aws_vpc.default.id}"
 
@@ -42,7 +48,7 @@ resource "aws_route_table" "r" {
 
 The following arguments are supported:
 
-* `vpc_id` - (Required) The ID of the routing table.
+* `vpc_id` - (Required) The VPC ID.
 * `route` - (Optional) A list of route objects. Their keys are documented below.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 * `propagating_vgws` - (Optional) A list of virtual gateways for propagation.

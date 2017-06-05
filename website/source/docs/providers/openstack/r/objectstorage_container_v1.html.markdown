@@ -12,7 +12,7 @@ Manages a V1 container resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_objectstorage_container_v1" "container_1" {
   region = "RegionOne"
   name   = "tf-test-container-1"
