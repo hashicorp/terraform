@@ -20,7 +20,7 @@ IMPROVEMENTS:
 * provider/aws: Export internal tunnel addresses + document [GH-14835]
 * provider/aws: Fix misleading error in aws_route validation [GH-14972]
 * provider/aws: Support import of aws_lambda_event_source_mapping [GH-14898]
-* Updating the Azure SDK to v10.0.2-beta [GH-14004]
+* provider/aws: Add support for a configurable timeout in db_option_group #15023
 * provider/azurerm: Ignore case sensivity in Azurerm resource enums [GH-14861]
 * provider/digitalocean: Add support for changing TTL on DigitalOcean domain records. [GH-14805]
 * provider/google: Add ability to import Google Compute persistent disks [GH-14573]
