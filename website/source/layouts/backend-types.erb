@@ -2,11 +2,11 @@
   <% content_for :sidebar do %>
     <ul class="nav docs-sidenav">
       <li>
-        <a class="back" href="/docs/backends/index.html">Backends</a>
+        <%= link_to "Backends", "/docs/backends/index.html", :class => "back" %>
       </li>
 
       <li<%= sidebar_current("docs-backends-types-index") %>>
-        <a class="back" href="/docs/backends/types/index.html">Backend Types</a>
+        <%= link_to "Backend Types", "/docs/backends/types/index.html", :class => "back" %>
       </li>
 
       <h4>Enhanced Backends</h4>

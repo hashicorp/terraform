@@ -2,11 +2,11 @@
   <% content_for :sidebar do %>
     <ul class="nav docs-sidenav">
       <li<%= sidebar_current("docs-home") %>>
-        <a class="back" href="/docs/index.html">Documentation Home</a>
+        <%= link_to "Documentation Home", "/docs/index.html", :class => "back" %>
       </li>
 
       <li<%= sidebar_current("docs-enterprise-home") %>>
-        <a class="back" href="/docs/enterprise/index.html">Terraform Enterprise</a>
+        <%= link_to "Terraform Enterprise", "/docs/enterprise/index.html", :class => "back" %>
       </li>
 
       <hr>

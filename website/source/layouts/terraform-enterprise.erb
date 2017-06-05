@@ -2,11 +2,11 @@
   <% content_for :sidebar do %>
     <ul class="nav docs-sidenav">
       <li>
-        <a class="back" href="/docs/providers/index.html">All Providers</a>
+        <%= link_to "All Providers", "/docs/providers/index.html", :class => "back" %>
       </li>
 
       <li<%= sidebar_current("docs-terraform-enterprise-index") %>>
-        <a class="back" href="/docs/providers/terraform-enterprise/index.html">Terraform Enterprise Provider</a>
+        <%= link_to "Terraform Enterprise Provider", "/docs/providers/terraform-enterprise/index.html", :class => "back" %>
       </li>
 
       <h4>Data Sources</h4>
