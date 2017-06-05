@@ -3,22 +3,22 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/providers/index.html">All Providers</a>
+          <%= link_to "All Providers", "/docs/providers/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-circonus-index") %>>
-          <a href="/docs/providers/circonus/index.html">Circonus Provider</a>
+          <%= link_to "Circonus Provider", "/docs/providers/circonus/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-circonus-datasource") %>>
           <a href="#">Data Sources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-circonus-datasource-account") %>>
-              <a href="/docs/providers/circonus/d/account.html">circonus_account</a>
+              <%= link_to "circonus_account", "/docs/providers/circonus/d/account.html" %>
             </li>
 
             <li<%= sidebar_current("docs-circonus-datasource-collector") %>>
-              <a href="/docs/providers/circonus/d/collector.html">circonus_collector</a>
+              <%= link_to "circonus_collector", "/docs/providers/circonus/d/collector.html" %>
             </li>
           </ul>
         </li>
@@ -27,27 +27,27 @@
           <a href="#">Resources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-circonus-resource-circonus_check") %>>
-              <a href="/docs/providers/circonus/r/check.html">circonus_check</a>
+              <%= link_to "circonus_check", "/docs/providers/circonus/r/check.html" %>
             </li>
 
             <li<%= sidebar_current("docs-circonus-resource-circonus_contact_group") %>>
-              <a href="/docs/providers/circonus/r/contact_group.html">circonus_contact_group</a>
+              <%= link_to "circonus_contact_group", "/docs/providers/circonus/r/contact_group.html" %>
             </li>
 
             <li<%= sidebar_current("docs-circonus-resource-circonus_graph") %>>
-              <a href="/docs/providers/circonus/r/graph.html">circonus_graph</a>
+              <%= link_to "circonus_graph", "/docs/providers/circonus/r/graph.html" %>
             </li>
 
             <li<%= sidebar_current("docs-circonus-resource-circonus_metric") %>>
-              <a href="/docs/providers/circonus/r/metric.html">circonus_metric</a>
+              <%= link_to "circonus_metric", "/docs/providers/circonus/r/metric.html" %>
             </li>
 
             <li<%= sidebar_current("docs-circonus-resource-circonus_metric_cluster") %>>
-              <a href="/docs/providers/circonus/r/metric_cluster.html">circonus_metric_cluster</a>
+              <%= link_to "circonus_metric_cluster", "/docs/providers/circonus/r/metric_cluster.html" %>
             </li>
 
             <li<%= sidebar_current("docs-circonus-resource-circonus_rule_set") %>>
-              <a href="/docs/providers/circonus/r/rule_set.html">circonus_rule_set</a>
+              <%= link_to "circonus_rule_set", "/docs/providers/circonus/r/rule_set.html" %>
             </li>
           </ul>
         </li>

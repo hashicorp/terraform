@@ -2,165 +2,165 @@
   <% content_for :sidebar do %>
     <ul class="nav docs-sidenav">
       <li<%= sidebar_current("docs-home") %>>
-        <a class="back" href="/docs/index.html">Documentation Home</a>
+        <%= link_to "Documentation Home", "/docs/index.html", :class => "back" %>
       </li>
 
       <li<%= sidebar_current("docs-enterprise-home") %>>
-        <a class="back" href="/docs/enterprise/index.html">Terraform Enterprise</a>
+        <%= link_to "Terraform Enterprise", "/docs/enterprise/index.html", :class => "back" %>
       </li>
 
       <hr>
 
       <li<%= sidebar_current("docs-enterprise-accounts") %>>
-        <a href="/docs/enterprise/user-accounts/index.html">User Accounts</a>
+        <%= link_to "User Accounts", "/docs/enterprise/user-accounts/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("docs-enterprise-accounts-authentication") %>>
-            <a href="/docs/enterprise/user-accounts/authentication.html">Authentication</a>
+            <%= link_to "Authentication", "/docs/enterprise/user-accounts/authentication.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-accounts-recovery") %>>
-            <a href="/docs/enterprise/user-accounts/recovery.html">Recovery</a>
+            <%= link_to "Recovery", "/docs/enterprise/user-accounts/recovery.html" %>
           </li>
         </ul>
       </li>
 
       <li<%= sidebar_current("docs-enterprise-organizations") %>>
-        <a href="/docs/enterprise/organizations/index.html">Organizations</a>
+        <%= link_to "Organizations", "/docs/enterprise/organizations/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("docs-enterprise-organizations-create") %>>
-            <a href="/docs/enterprise/organizations/create.html">Create</a>
+            <%= link_to "Create", "/docs/enterprise/organizations/create.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-organizations-trials") %>>
-            <a href="/docs/enterprise/organizations/trials.html">Trials</a>
+            <%= link_to "Trials", "/docs/enterprise/organizations/trials.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-organizations-migrate") %>>
-            <a href="/docs/enterprise/organizations/migrate.html">Migrate</a>
+            <%= link_to "Migrate", "/docs/enterprise/organizations/migrate.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-organizations-policy") %>>
-            <a href="/docs/enterprise/organizations/authentication-policy.html">Authentication Policy</a>
+            <%= link_to "Authentication Policy", "/docs/enterprise/organizations/authentication-policy.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-organizations-credit") %>>
-            <a href="/docs/enterprise/organizations/credit-card.html">Add Credit Card</a>
+            <%= link_to "Add Credit Card", "/docs/enterprise/organizations/credit-card.html" %>
           </li>
         </ul>
       </li>
 
       <li<%= sidebar_current("docs-enterprise-runs") %>>
-        <a href="/docs/enterprise/runs/index.html">Runs</a>
+        <%= link_to "Runs", "/docs/enterprise/runs/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("docs-enterprise-runs-starting") %>>
-            <a href="/docs/enterprise/runs/starting.html">Starting</a>
+            <%= link_to "Starting", "/docs/enterprise/runs/starting.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-runs-applies") %>>
-            <a href="/docs/enterprise/runs/automatic-applies.html">Automatic Applies</a>
+            <%= link_to "Automatic Applies", "/docs/enterprise/runs/automatic-applies.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-runs-schedule") %>>
-            <a href="/docs/enterprise/runs/scheduling-runs.html">Scheduling Runs</a>
+            <%= link_to "Scheduling Runs", "/docs/enterprise/runs/scheduling-runs.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-runs-variables") %>>
-            <a href="/docs/enterprise/runs/variables-and-configuration.html">Variables and Config</a>
+            <%= link_to "Variables and Config", "/docs/enterprise/runs/variables-and-configuration.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-runs-installing") %>>
-            <a href="/docs/enterprise/runs/installing-software.html">Installing Software</a>
+            <%= link_to "Installing Software", "/docs/enterprise/runs/installing-software.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-runs-execute") %>>
-            <a href="/docs/enterprise/runs/how-runs-execute.html">How Runs Execute</a>
+            <%= link_to "How Runs Execute", "/docs/enterprise/runs/how-runs-execute.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-runs-versions") %>>
-            <a href="/docs/enterprise/runs/managing-terraform-versions.html">Managing Versions</a>
+            <%= link_to "Managing Versions", "/docs/enterprise/runs/managing-terraform-versions.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-runs-notifications") %>>
-            <a href="/docs/enterprise/runs/notifications.html">Run Notifications</a>
+            <%= link_to "Run Notifications", "/docs/enterprise/runs/notifications.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-runs-multifactor-authentication") %>>
-            <a href="/docs/enterprise/runs/multifactor-authentication.html">Multi-Factor Authentication</a>
+            <%= link_to "Multi-Factor Authentication", "/docs/enterprise/runs/multifactor-authentication.html" %>
           </li>
         </ul>
       </li>
       <li<%= sidebar_current("docs-enterprise-state") %>>
-        <a href="/docs/enterprise/state/index.html">State</a>
+        <%= link_to "State", "/docs/enterprise/state/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("docs-enterprise-state-pushing") %>>
-            <a href="/docs/enterprise/state/pushing.html">Pushing State</a>
+            <%= link_to "Pushing State", "/docs/enterprise/state/pushing.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-state-resolving") %>>
-            <a href="/docs/enterprise/state/resolving-conflicts.html">Resolving Conflicts</a>
+            <%= link_to "Resolving Conflicts", "/docs/enterprise/state/resolving-conflicts.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-state-collaborating") %>>
-            <a href="/docs/enterprise/state/collaborating.html">Collaborating</a>
+            <%= link_to "Collaborating", "/docs/enterprise/state/collaborating.html" %>
           </li>
         </ul>
       </li>
       <li<%= sidebar_current("docs-enterprise-artifacts") %>>
-        <a href="/docs/enterprise/artifacts/index.html">Artifacts</a>
+        <%= link_to "Artifacts", "/docs/enterprise/artifacts/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("docs-enterprise-artifacts-provider") %>>
-            <a href="/docs/enterprise/artifacts/artifact-provider.html">Artifact Provider</a>
+            <%= link_to "Artifact Provider", "/docs/enterprise/artifacts/artifact-provider.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-artifacts-versions") %>>
-            <a href="/docs/enterprise/artifacts/managing-versions.html">Managing Versions</a>
+            <%= link_to "Managing Versions", "/docs/enterprise/artifacts/managing-versions.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-artifacts-amis") %>>
-            <a href="/docs/enterprise/artifacts/creating-amis.html">Creating AMI Artifacts</a>
+            <%= link_to "Creating AMI Artifacts", "/docs/enterprise/artifacts/creating-amis.html" %>
           </li>
         </ul>
       </li>
       <li<%= sidebar_current("docs-enterprise-vcs") %>>
-        <a href="/docs/enterprise/vcs/index.html">VCS Integration</a>
+        <%= link_to "VCS Integration", "/docs/enterprise/vcs/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("docs-enterprise-vcs-git-") %>>
-            <a href="/docs/enterprise/vcs/git.html">Git</a>
+            <%= link_to "Git", "/docs/enterprise/vcs/git.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-vcs-github") %>>
-            <a href="/docs/enterprise/vcs/github.html">GitHub</a>
+            <%= link_to "GitHub", "/docs/enterprise/vcs/github.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-vcs-gitlab") %>>
-            <a href="/docs/enterprise/vcs/gitlab.html">GitLab</a>
+            <%= link_to "GitLab", "/docs/enterprise/vcs/gitlab.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-vcs-bitbucket-cloud") %>>
-            <a href="/docs/enterprise/vcs/bitbucket.html">Bitbucket</a>
+            <%= link_to "Bitbucket", "/docs/enterprise/vcs/bitbucket.html" %>
           </li>
         </ul>
       </li>
       <li<%= sidebar_current("docs-enterprise-packerartifacts") %>>
-        <a href="/docs/enterprise/packer/artifacts/index.html">Packer Artifacts</a>
+        <%= link_to "Packer Artifacts", "/docs/enterprise/packer/artifacts/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("docs-enterprise-packerartifacts-amis") %>>
-            <a href="/docs/enterprise/packer/artifacts/creating-amis.html">Creating AMIs</a>
+            <%= link_to "Creating AMIs", "/docs/enterprise/packer/artifacts/creating-amis.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-packerartifacts-vagrant") %>>
-            <a href="/docs/enterprise/packer/artifacts/creating-vagrant-boxes.html">Creating Vagrant Boxes</a>
+            <%= link_to "Creating Vagrant Boxes", "/docs/enterprise/packer/artifacts/creating-vagrant-boxes.html" %>
           </li>
         </ul>
       </li>
       <li<%= sidebar_current("docs-enterprise-packerbuilds") %>>
-        <a href="/docs/enterprise/packer/builds/index.html">Packer Builds</a>
+        <%= link_to "Packer Builds", "/docs/enterprise/packer/builds/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("docs-enterprise-packerbuilds-starting") %>>
-            <a href="/docs/enterprise/packer/builds/starting.html">Starting Builds</a>
+            <%= link_to "Starting Builds", "/docs/enterprise/packer/builds/starting.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-packerbuilds-installing") %>>
-            <a href="/docs/enterprise/packer/builds/installing-software.html">Installing Software</a>
+            <%= link_to "Installing Software", "/docs/enterprise/packer/builds/installing-software.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-packerbuilds-rebuilding") %>>
-            <a href="/docs/enterprise/packer/builds/rebuilding.html">Rebuilding</a>
+            <%= link_to "Rebuilding", "/docs/enterprise/packer/builds/rebuilding.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-packerbuilds-runbuilds") %>>
-            <a href="/docs/enterprise/packer/builds/how-builds-run.html">How Builds Run</a>
+            <%= link_to "How Builds Run", "/docs/enterprise/packer/builds/how-builds-run.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-packerbuilds-environment") %>>
-            <a href="/docs/enterprise/packer/builds/build-environment.html">Build Environment</a>
+            <%= link_to "Build Environment", "/docs/enterprise/packer/builds/build-environment.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-packerbuilds-notifications") %>>
-            <a href="/docs/enterprise/packer/builds/notifications.html">Build Notifications</a>
+            <%= link_to "Build Notifications", "/docs/enterprise/packer/builds/notifications.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-packerbuilds-scheduling") %>>
-            <a href="/docs/enterprise/packer/builds/scheduling-builds.html">Scheduling Builds</a>
+            <%= link_to "Scheduling Builds", "/docs/enterprise/packer/builds/scheduling-builds.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-packerbuilds-versions") %>>
-            <a href="/docs/enterprise/packer/builds/managing-packer-versions.html">Managing Versions</a>
+            <%= link_to "Managing Versions", "/docs/enterprise/packer/builds/managing-packer-versions.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-packerbuilds-troubleshooting") %>>
-            <a href="/docs/enterprise/packer/builds/troubleshooting.html">Troubleshooting</a>
+            <%= link_to "Troubleshooting", "/docs/enterprise/packer/builds/troubleshooting.html" %>
           </li>
         </ul>
       </li>
@@ -168,48 +168,48 @@
       <hr>
 
       <li<%= sidebar_current("docs-enterprise-faq") %>>
-        <a href="/docs/enterprise/faq/index.html">FAQ</a>
+        <%= link_to "FAQ", "/docs/enterprise/faq/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("docs-enterprise-faq-monolithic") %>>
-            <a href="/docs/enterprise/faq/monolithic-artifacts.html">Monolithic Artifacts</a>
+            <%= link_to "Monolithic Artifacts", "/docs/enterprise/faq/monolithic-artifacts.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-faq-deployments") %>>
-            <a href="/docs/enterprise/faq/rolling-deployments.html">Rolling Deployments</a>
+            <%= link_to "Rolling Deployments", "/docs/enterprise/faq/rolling-deployments.html" %>
           </li>
 
           <li<%= sidebar_current("docs-enterprise-faq-vagrant-cloud-migration") %>>
-            <a href="/docs/enterprise/faq/vagrant-cloud-migration.html">Vagrant Cloud Migration</a>
+            <%= link_to "Vagrant Cloud Migration", "/docs/enterprise/faq/vagrant-cloud-migration.html" %>
           </li>
         </ul>
       </li>
 
       <li<%= sidebar_current("docs-enterprise-glossary") %>>
-        <a href="/docs/enterprise/glossary/index.html">Glossary</a>
+        <%= link_to "Glossary", "/docs/enterprise/glossary/index.html" %>
       </li>
 
       <li<%= sidebar_current("docs-enterprise-api") %>>
-        <a href="/docs/enterprise/api/index.html">API</a>
+        <%= link_to "API", "/docs/enterprise/api/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("docs-enterprise-api-environments") %>>
-            <a href="/docs/enterprise/api/environments.html">Environments</a>
+            <%= link_to "Environments", "/docs/enterprise/api/environments.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-api-runs") %>>
-            <a href="/docs/enterprise/api/runs.html">Runs</a>
+            <%= link_to "Runs", "/docs/enterprise/api/runs.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-api-states") %>>
-            <a href="/docs/enterprise/api/states.html">States</a>
+            <%= link_to "States", "/docs/enterprise/api/states.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-api-configurations") %>>
-            <a href="/docs/enterprise/api/configurations.html">Configurations</a>
+            <%= link_to "Configurations", "/docs/enterprise/api/configurations.html" %>
           </li>
           <li<%= sidebar_current("docs-enterprise-api-users") %>>
-            <a href="/docs/enterprise/api/users.html">Users</a>
+            <%= link_to "Users", "/docs/enterprise/api/users.html" %>
           </li>
         </ul>
       </li>
 
       <li<%= sidebar_current("docs-enterprise-support") %>>
-        <a href="/docs/enterprise/support.html">Support</a>
+        <%= link_to "Support", "/docs/enterprise/support.html" %>
       </li>
     </ul>
   <% end %>

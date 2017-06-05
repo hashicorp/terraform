@@ -3,30 +3,30 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-        <a href="/docs/providers/index.html">All Providers</a>
+        <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-cobbler-index") %>>
-        <a href="/docs/providers/cobbler/index.html">Cobbler Provider</a>
+        <%= link_to "Cobbler Provider", "/docs/providers/cobbler/index.html" %>
                 </li>
 
         <li<%= sidebar_current("docs-cobbler-resource") %>>
         <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-cobbler-resource-distro") %>>
-          <a href="/docs/providers/cobbler/r/distro.html">cobbler_distro</a>
+          <%= link_to "cobbler_distro", "/docs/providers/cobbler/r/distro.html" %>
                     </li>
                     <li<%= sidebar_current("docs-cobbler-resource-kickstart_file") %>>
-          <a href="/docs/providers/cobbler/r/kickstart_file.html">cobbler_kickstart_file</a>
+          <%= link_to "cobbler_kickstart_file", "/docs/providers/cobbler/r/kickstart_file.html" %>
                     </li>
                     <li<%= sidebar_current("docs-cobbler-resource-profile") %>>
-          <a href="/docs/providers/cobbler/r/profile.html">cobbler_profile</a>
+          <%= link_to "cobbler_profile", "/docs/providers/cobbler/r/profile.html" %>
                     </li>
                     <li<%= sidebar_current("docs-cobbler-resource-snippet") %>>
-          <a href="/docs/providers/cobbler/r/snippet.html">cobbler_snippet</a>
+          <%= link_to "cobbler_snippet", "/docs/providers/cobbler/r/snippet.html" %>
                     </li>
                     <li<%= sidebar_current("docs-cobbler-resource-system") %>>
-          <a href="/docs/providers/cobbler/r/system.html">cobbler_system</a>
+          <%= link_to "cobbler_system", "/docs/providers/cobbler/r/system.html" %>
                     </li>
         </ul>
         </li>

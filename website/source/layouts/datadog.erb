@@ -3,27 +3,27 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/providers/index.html">All Providers</a>
+          <%= link_to "All Providers", "/docs/providers/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-datadog-index") %>>
-          <a href="/docs/providers/datadog/index.html">Datadog Provider</a>
+          <%= link_to "Datadog Provider", "/docs/providers/datadog/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-datadog-resource") %>>
           <a href="#">Resources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-datadog-resource-downtime") %>>
-              <a href="/docs/providers/datadog/r/downtime.html">datadog_downtime</a>
+              <%= link_to "datadog_downtime", "/docs/providers/datadog/r/downtime.html" %>
             </li>
             <li<%= sidebar_current("docs-datadog-resource-monitor") %>>
-              <a href="/docs/providers/datadog/r/monitor.html">datadog_monitor</a>
+              <%= link_to "datadog_monitor", "/docs/providers/datadog/r/monitor.html" %>
             </li>
             <li<%= sidebar_current("docs-datadog-resource-timeboard") %>>
-              <a href="/docs/providers/datadog/r/timeboard.html">datadog_timeboard</a>
+              <%= link_to "datadog_timeboard", "/docs/providers/datadog/r/timeboard.html" %>
             </li>
             <li<%= sidebar_current("docs-datadog-resource-user") %>>
-              <a href="/docs/providers/datadog/r/user.html">datadog_user</a>
+              <%= link_to "datadog_user", "/docs/providers/datadog/r/user.html" %>
             </li>
           </ul>
         </li>

@@ -3,14 +3,14 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%#= sidebar_current("docs-home") %>>
-          <a href="/docs/providers/index.html">All Providers</a>
+          <%= link_to "All Providers", "/docs/providers/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-http-index") %>>
-          <a href="/docs/providers/http/index.html">HTTP Provider</a>
+          <%= link_to "HTTP Provider", "/docs/providers/http/index.html" %>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-http-data-source") %>>
-              <a href="/docs/providers/http/data_source.html">Data Source</a>
+              <%= link_to "Data Source", "/docs/providers/http/data_source.html" %>
             </li>
           </ul>
         </li>

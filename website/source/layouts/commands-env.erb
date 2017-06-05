@@ -3,30 +3,30 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/commands/index.html">All Providers</a>
+          <%= link_to "All Providers", "/docs/commands/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-env-index") %>>
-          <a href="/docs/commands/env/index.html">env Command</a>
+          <%= link_to "env Command", "/docs/commands/env/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-env-sub") %>>
           <a href="#">Subcommands</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-env-sub-list") %>>
-              <a href="/docs/commands/env/list.html">list</a>
+              <%= link_to "list", "/docs/commands/env/list.html" %>
             </li>
 
             <li<%= sidebar_current("docs-env-sub-select") %>>
-              <a href="/docs/commands/env/select.html">select</a>
+              <%= link_to "select", "/docs/commands/env/select.html" %>
             </li>
 
             <li<%= sidebar_current("docs-env-sub-new") %>>
-              <a href="/docs/commands/env/new.html">new</a>
+              <%= link_to "new", "/docs/commands/env/new.html" %>
             </li>
 
             <li<%= sidebar_current("docs-env-sub-delete") %>>
-              <a href="/docs/commands/env/delete.html">delete</a>
+              <%= link_to "delete", "/docs/commands/env/delete.html" %>
             </li>
           </ul>
         </li>

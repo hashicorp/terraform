@@ -3,21 +3,21 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/providers/index.html">All Providers</a>
+          <%= link_to "All Providers", "/docs/providers/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-template-index") %>>
-          <a href="/docs/providers/template/index.html">Template Provider</a>
+          <%= link_to "Template Provider", "/docs/providers/template/index.html" %>
         </li>
 
         <li<%= sidebar_current("docs-template-datasource") %>>
           <a href="#">Data Sources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-template-datasource-file") %>>
-              <a href="/docs/providers/template/d/file.html">template_file</a>
+              <%= link_to "template_file", "/docs/providers/template/d/file.html" %>
             </li>
             <li<%= sidebar_current("docs-template-datasource-cloudinit-config") %>>
-              <a href="/docs/providers/template/d/cloudinit_config.html">template_cloudinit_config</a>
+              <%= link_to "template_cloudinit_config", "/docs/providers/template/d/cloudinit_config.html" %>
             </li>
           </ul>
         </li>
@@ -26,7 +26,7 @@
           <a href="#">Resources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-template-resource-dir") %>>
-              <a href="/docs/providers/template/r/dir.html">template_dir</a>
+              <%= link_to "template_dir", "/docs/providers/template/r/dir.html" %>
             </li>
           </ul>
         </li>

@@ -6,21 +6,19 @@
   </div>
 
   <ul class="nav sidebar-nav">
-    <li><a href="/intro/index.html">Intro</a></li>
-    <li><a href="/docs/index.html">Docs</a></li>
-    <li><a href="/community.html">Community</a></li>
+    <li><%= link_to "Intro", "/intro/index.html" %></li>
+    <li><%= link_to "Docs", "/docs/index.html" %></li>
+    <li><%= link_to "Community", "/community.html" %></li>
     <li><a href="https://www.hashicorp.com/products/terraform/?utm_source=oss&utm_medium=header-nav&utm_campaign=terraform">Enterprise</a></li>
-    <li><a href="/security.html">Security</a></li>
-    <li><a href="/assets/files/press-kit.zip">Press Kit</a></li>
+    <li><%= link_to "Security", "/security.html" %></li>
+    <li><%= link_to "Press Kit", "/assets/files/press-kit.zip" %></li>
   </ul>
 
   <div class="divider"></div>
 
   <ul class="external nav sidebar-nav">
     <li>
-      <a href="/downloads.html">
-        <%= inline_svg "download.svg" %> Download
-      </a>
+      <%= link_to "#{inline_svg 'download.svg'} Download", "/downloads.html" %>
     </li>
     <li>
       <a href="https://github.com/hashicorp/terraform">

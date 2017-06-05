@@ -2,84 +2,84 @@
   <% content_for :sidebar do %>
     <ul class="nav docs-sidenav">
       <li<%= sidebar_current("what") %>>
-        <a href="/intro/index.html">What is Terraform?</a>
+        <%= link_to "What is Terraform?", "/intro/index.html" %>
       </li>
 
       <li<%= sidebar_current("use-cases") %>>
-        <a href="/intro/use-cases.html">Use Cases</a>
+        <%= link_to "Use Cases", "/intro/use-cases.html" %>
       </li>
 
       <li<%= sidebar_current("vs-other") %>>
-        <a href="/intro/vs/index.html">Terraform vs. Other</a>
+        <%= link_to "Terraform vs. Other", "/intro/vs/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("vs-other-chef") %>>
-            <a href="/intro/vs/chef-puppet.html">Chef, Puppet, etc.</a>
+            <%= link_to "Chef, Puppet, etc.", "/intro/vs/chef-puppet.html" %>
           </li>
           <li<%= sidebar_current("vs-other-cloudformation") %>>
-            <a href="/intro/vs/cloudformation.html">CloudFormation, Heat, etc.</a>
+            <%= link_to "CloudFormation, Heat, etc.", "/intro/vs/cloudformation.html" %>
           </li>
           <li<%= sidebar_current("vs-other-boto") %>>
-            <a href="/intro/vs/boto.html">Boto, Fog, etc.</a>
+            <%= link_to "Boto, Fog, etc.", "/intro/vs/boto.html" %>
           </li>
           <li<%= sidebar_current("vs-other-custom") %>>
-            <a href="/intro/vs/custom.html">Custom Solutions</a>
+            <%= link_to "Custom Solutions", "/intro/vs/custom.html" %>
           </li>
         </ul>
       </li>
 
       <li<%= sidebar_current("gettingstarted") %>>
-        <a href="/intro/getting-started/install.html">Getting Started</a>
+        <%= link_to "Getting Started", "/intro/getting-started/install.html" %>
         <ul class="nav">
           <li<%= sidebar_current("gettingstarted-install") %>>
-            <a href="/intro/getting-started/install.html">Install Terraform</a>
+            <%= link_to "Install Terraform", "/intro/getting-started/install.html" %>
           </li>
           <li<%= sidebar_current("gettingstarted-build") %>>
-            <a href="/intro/getting-started/build.html">Build Infrastructure</a>
+            <%= link_to "Build Infrastructure", "/intro/getting-started/build.html" %>
           </li>
           <li<%= sidebar_current("gettingstarted-change") %>>
-            <a href="/intro/getting-started/change.html">Change Infrastructure</a>
+            <%= link_to "Change Infrastructure", "/intro/getting-started/change.html" %>
           </li>
           <li<%= sidebar_current("gettingstarted-destroy") %>>
-            <a href="/intro/getting-started/destroy.html">Destroy Infrastructure</a>
+            <%= link_to "Destroy Infrastructure", "/intro/getting-started/destroy.html" %>
           </li>
           <li<%= sidebar_current("gettingstarted-deps") %>>
-            <a href="/intro/getting-started/dependencies.html">Resource Dependencies</a>
+            <%= link_to "Resource Dependencies", "/intro/getting-started/dependencies.html" %>
           </li>
           <li<%= sidebar_current("gettingstarted-provision") %>>
-            <a href="/intro/getting-started/provision.html">Provision</a>
+            <%= link_to "Provision", "/intro/getting-started/provision.html" %>
           </li>
           <li<%= sidebar_current("gettingstarted-variables") %>>
-            <a href="/intro/getting-started/variables.html">Input Variables</a>
+            <%= link_to "Input Variables", "/intro/getting-started/variables.html" %>
           </li>
           <li<%= sidebar_current("gettingstarted-outputs") %>>
-            <a href="/intro/getting-started/outputs.html">Output Variables</a>
+            <%= link_to "Output Variables", "/intro/getting-started/outputs.html" %>
           </li>
           <li<%= sidebar_current("gettingstarted-modules") %>>
-            <a href="/intro/getting-started/modules.html">Modules</a>
+            <%= link_to "Modules", "/intro/getting-started/modules.html" %>
           </li>
           <li<%= sidebar_current("gettingstarted-remote") %>>
-            <a href="/intro/getting-started/remote.html">Remote Backends</a>
+            <%= link_to "Remote Backends", "/intro/getting-started/remote.html" %>
           </li>
           <li<%= sidebar_current("gettingstarted-nextsteps") %>>
-            <a href="/intro/getting-started/next-steps.html">Next Steps</a>
+            <%= link_to "Next Steps", "/intro/getting-started/next-steps.html" %>
           </li>
         </ul>
       </li>
 
       <li<%= sidebar_current("examples") %>>
-        <a href="/intro/examples/index.html">Example Configurations</a>
+        <%= link_to "Example Configurations", "/intro/examples/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("examples-aws") %>>
-            <a href="/intro/examples/aws.html">Two-Tier AWS Architecture</a>
+            <%= link_to "Two-Tier AWS Architecture", "/intro/examples/aws.html" %>
           </li>
           <li<%= sidebar_current("examples-cross-provider") %>>
-            <a href="/intro/examples/cross-provider.html">Cross Provider</a>
+            <%= link_to "Cross Provider", "/intro/examples/cross-provider.html" %>
           </li>
           <li<%= sidebar_current("examples-count") %>>
-            <a href="/intro/examples/count.html">Count Parameter</a>
+            <%= link_to "Count Parameter", "/intro/examples/count.html" %>
           </li>
           <li<%= sidebar_current("examples-consul") %>>
-            <a href="/intro/examples/consul.html">Consul</a>
+            <%= link_to "Consul", "/intro/examples/consul.html" %>
           </li>
         </ul>
       </li>

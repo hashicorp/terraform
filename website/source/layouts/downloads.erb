@@ -2,20 +2,20 @@
   <% content_for :sidebar do %>
     <ul class="nav docs-sidenav">
       <li<%= sidebar_current("downloads-terraform") %>>
-        <a href="/downloads.html">Download Terraform</a>
+        <%= link_to "Download Terraform", "/downloads.html" %>
       </li>
 
       <li<%= sidebar_current("upgrade-guides") %>>
-        <a href="/upgrade-guides/index.html">Upgrade Guides</a>
+        <%= link_to "Upgrade Guides", "/upgrade-guides/index.html" %>
         <ul class="nav">
           <li<%= sidebar_current("upgrade-guides-0-9") %>>
-            <a href="/upgrade-guides/0-9.html">Upgrading to v0.9</a>
+            <%= link_to "Upgrading to v0.9", "/upgrade-guides/0-9.html" %>
           </li>
           <li<%= sidebar_current("upgrade-guides-0-8") %>>
-            <a href="/upgrade-guides/0-8.html">Upgrading to v0.8</a>
+            <%= link_to "Upgrading to v0.8", "/upgrade-guides/0-8.html" %>
           </li>
           <li<%= sidebar_current("upgrade-guides-0-7") %>>
-            <a href="/upgrade-guides/0-7.html">Upgrading to v0.7</a>
+            <%= link_to "Upgrading to v0.7", "/upgrade-guides/0-7.html" %>
           </li>
         </ul>
       </li>

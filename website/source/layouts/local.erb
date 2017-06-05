@@ -2,18 +2,18 @@
   <% content_for :sidebar do %>
     <ul class="nav docs-sidenav">
       <li<%= sidebar_current("docs-home") %>>
-        <a href="/docs/providers/index.html">All Providers</a>
+        <%= link_to "All Providers", "/docs/providers/index.html" %>
       </li>
 
       <li<%= sidebar_current("docs-local-index") %>>
-        <a href="/docs/providers/local/index.html">Local Provider</a>
+        <%= link_to "Local Provider", "/docs/providers/local/index.html" %>
       </li>
 
       <li<%= sidebar_current("docs-local-resource") %>>
         <a href="#">Resources</a>
         <ul class="nav nav-visible">
           <li<%= sidebar_current("docs-local-resource-file") %>>
-            <a href="/docs/providers/local/r/file.html">file</a>
+            <%= link_to "file", "/docs/providers/local/r/file.html" %>
           </li>
         </ul>
       </li>

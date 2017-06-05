@@ -3,11 +3,11 @@
         <div class="docs-sidebar hidden-print affix-top" role="complementary">
             <ul class="nav docs-sidenav">
                 <li<%= sidebar_current("docs-home") %>>
-                    <a href="/docs/providers/index.html">All Providers</a>
+                    <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
                 <li<%= sidebar_current("docs-triton-index") %>>
-                    <a href="/docs/providers/triton/index.html">Joyent Triton Provider</a>
+                    <%= link_to "Joyent Triton Provider", "/docs/providers/triton/index.html" %>
                 </li>
 
                 <li<%= sidebar_current("docs-triton-resource") %>>
@@ -15,19 +15,19 @@
 
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-triton-resource-key") %>>
-                            <a href="/docs/providers/triton/r/triton_key.html">triton_key</a>
+                            <%= link_to "triton_key", "/docs/providers/triton/r/triton_key.html" %>
                         </li>
                         <li<%= sidebar_current("docs-triton-resource-firewall-rule") %>>
-                            <a href="/docs/providers/triton/r/triton_firewall_rule.html">triton_firewall_rule</a>
+                            <%= link_to "triton_firewall_rule", "/docs/providers/triton/r/triton_firewall_rule.html" %>
                         </li>
                         <li<%= sidebar_current("docs-triton-resource-vlan") %>>
-                            <a href="/docs/providers/triton/r/triton_vlan.html">triton_vlan</a>
+                            <%= link_to "triton_vlan", "/docs/providers/triton/r/triton_vlan.html" %>
                         </li>
                         <li<%= sidebar_current("docs-triton-resource-fabric") %>>
-                            <a href="/docs/providers/triton/r/triton_fabric.html">triton_fabric</a>
+                            <%= link_to "triton_fabric", "/docs/providers/triton/r/triton_fabric.html" %>
                         </li>
                         <li<%= sidebar_current("docs-triton-resource-machine") %>>
-                            <a href="/docs/providers/triton/r/triton_machine.html">triton_machine</a>
+                            <%= link_to "triton_machine", "/docs/providers/triton/r/triton_machine.html" %>
                         </li>
                     </ul>
                 </li>

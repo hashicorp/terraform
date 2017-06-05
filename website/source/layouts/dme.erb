@@ -3,18 +3,18 @@
         <div class="docs-sidebar hidden-print affix-top" role="complementary">
             <ul class="nav docs-sidenav">
                 <li<%= sidebar_current("docs-home") %>>
-                <a href="/docs/providers/index.html">All Providers</a>
+                <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
                 <li<%= sidebar_current("docs-dme-index") %>>
-                <a href="/docs/providers/dme/index.html">DNSMadeEasy Provider</a>
+                <%= link_to "DNSMadeEasy Provider", "/docs/providers/dme/index.html" %>
                 </li>
 
                 <li<%= sidebar_current("docs-dme-resource") %>>
                 <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-dme-resource-record") %>>
-                    <a href="/docs/providers/dme/r/record.html">dme_record</a>
+                    <%= link_to "dme_record", "/docs/providers/dme/r/record.html" %>
                     </li>
                 </ul>
                 </li>

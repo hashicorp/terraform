@@ -3,30 +3,30 @@
         <div class="docs-sidebar hidden-print affix-top" role="complementary">
             <ul class="nav docs-sidenav">
                 <li<%= sidebar_current("docs-home") %>>
-                    <a href="/docs/providers/index.html">All Providers</a>
+                    <%= link_to "All Providers", "/docs/providers/index.html" %>
                 </li>
 
                 <li<%= sidebar_current("docs-clc-index") %>>
-                    <a href="/docs/providers/clc/index.html">CenturyLinkCloud Provider</a>
+                    <%= link_to "CenturyLinkCloud Provider", "/docs/providers/clc/index.html" %>
                 </li>
 
                 <li<%= sidebar_current("docs-clc-resource") %>>
                     <a href="#">Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-clc-resource-server") %>>
-                            <a href="/docs/providers/clc/r/server.html">clc_server</a>
+                            <%= link_to "clc_server", "/docs/providers/clc/r/server.html" %>
                         </li>
                         <li<%= sidebar_current("docs-clc-resource-group") %>>
-                            <a href="/docs/providers/clc/r/group.html">clc_group</a>
+                            <%= link_to "clc_group", "/docs/providers/clc/r/group.html" %>
                         </li>
                         <li<%= sidebar_current("docs-clc-resource-public-ip") %>>
-                            <a href="/docs/providers/clc/r/public_ip.html">clc_public_ip</a>
+                            <%= link_to "clc_public_ip", "/docs/providers/clc/r/public_ip.html" %>
                         </li>
                         <li<%= sidebar_current("docs-clc-resource-load-balancer") %>>
-                            <a href="/docs/providers/clc/r/load_balancer.html">clc_load_balancer</a>
+                            <%= link_to "clc_load_balancer", "/docs/providers/clc/r/load_balancer.html" %>
                         </li>
                         <li<%= sidebar_current("docs-clc-resource-load-balancer-pool") %>>
-                            <a href="/docs/providers/clc/r/load_balancer_pool.html">clc_load_balancer_pool</a>
+                            <%= link_to "clc_load_balancer_pool", "/docs/providers/clc/r/load_balancer_pool.html" %>
                         </li>
                     </ul>
                 </li>

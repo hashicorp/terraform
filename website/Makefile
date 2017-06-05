@@ -7,6 +7,7 @@ build:
 		--rm \
 		--tty \
 		--volume "$(shell pwd):/website" \
+		-e MM_ENV=$(MM_ENV) \
 		hashicorp/middleman-hashicorp:${VERSION} \
 		bundle exec middleman build --verbose --clean
 
