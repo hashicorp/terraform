@@ -23,61 +23,61 @@ func resourceLibratoAlert() *schema.Resource {
 		Delete: resourceLibratoAlertDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"active": &schema.Schema{
+			"active": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"rearm_seconds": &schema.Schema{
+			"rearm_seconds": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  600,
 			},
-			"services": &schema.Schema{
+			"services": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"condition": &schema.Schema{
+			"condition": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"metric_name": &schema.Schema{
+						"metric_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"source": &schema.Schema{
+						"source": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"detect_reset": &schema.Schema{
+						"detect_reset": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"duration": &schema.Schema{
+						"duration": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"threshold": &schema.Schema{
+						"threshold": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 						},
-						"summary_function": &schema.Schema{
+						"summary_function": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -85,12 +85,12 @@ func resourceLibratoAlert() *schema.Resource {
 				},
 				Set: resourceLibratoAlertConditionsHash,
 			},
-			"attributes": &schema.Schema{
+			"attributes": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"runbook_url": &schema.Schema{
+						"runbook_url": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -112,9 +112,9 @@ func resourceLibratoAlertConditionsHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", source.(string)))
 	}
 
-	detect_reset, present := m["detect_reset"]
+	detectReset, present := m["detect_reset"]
 	if present {
-		buf.WriteString(fmt.Sprintf("%t-", detect_reset.(bool)))
+		buf.WriteString(fmt.Sprintf("%t-", detectReset.(bool)))
 	}
 
 	duration, present := m["duration"]
@@ -127,9 +127,9 @@ func resourceLibratoAlertConditionsHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%f-", threshold.(float64)))
 	}
 
-	summary_function, present := m["summary_function"]
+	summaryFunction, present := m["summary_function"]
 	if present {
-		buf.WriteString(fmt.Sprintf("%s-", summary_function.(string)))
+		buf.WriteString(fmt.Sprintf("%s-", summaryFunction.(string)))
 	}
 
 	return hashcode.String(buf.String())
@@ -413,9 +413,9 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	log.Printf("[INFO] Updating Librato alert: %s", alert)
-	_, err = client.Alerts.Edit(uint(alertID), alert)
-	if err != nil {
-		return fmt.Errorf("Error updating Librato alert: %s", err)
+	_, updErr := client.Alerts.Update(uint(alertID), alert)
+	if updErr != nil {
+		return fmt.Errorf("Error updating Librato alert: %s", updErr)
 	}
 
 	log.Printf("[INFO] Updated Librato alert %d", alertID)
@@ -429,9 +429,9 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 		ContinuousTargetOccurence: 5,
 		Refresh: func() (interface{}, string, error) {
 			log.Printf("[DEBUG] Checking if Librato Alert %d was updated yet", alertID)
-			changedAlert, _, err := client.Alerts.Get(uint(alertID))
-			if err != nil {
-				return changedAlert, "", err
+			changedAlert, _, getErr := client.Alerts.Get(uint(alertID))
+			if getErr != nil {
+				return changedAlert, "", getErr
 			}
 			isEqual := reflect.DeepEqual(*fullAlert, *changedAlert)
 			log.Printf("[DEBUG] Updated Librato Alert %d match: %t", alertID, isEqual)
