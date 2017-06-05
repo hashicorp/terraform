@@ -475,16 +475,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		runResp, err = conn.RunInstances(runOpts)
 		// IAM instance profiles can take ~10 seconds to propagate in AWS:
 		// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
-		if isAWSErr(err, "InvalidParameterValue", "Invalid IAM Instance Profile") {
-			log.Print("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
-			return resource.RetryableError(err)
-		}
-		// IAM roles can also take time to propagate in AWS:
-		if isAWSErr(err, "InvalidParameterValue", " has no associated IAM Roles") {
-			log.Print("[DEBUG] IAM Instance Profile appears to have no IAM roles, retrying...")
-			return resource.RetryableError(err)
-		}
-		return resource.NonRetryableError(err)
+		return checkIAMProfileErr(err)
 	})
 	// Warn if the AWS Error involves group ids, to help identify situation
 	// where a user uses group ids in security_groups for the Default VPC.
@@ -772,29 +763,27 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		if _, ok := d.GetOk("iam_instance_profile"); ok {
 			// Does not have an Iam Instance Profile associated with it, need to associate
 			if len(resp.IamInstanceProfileAssociations) == 0 {
-				_, err := conn.AssociateIamInstanceProfile(&ec2.AssociateIamInstanceProfileInput{
-					InstanceId: aws.String(d.Id()),
-					IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
-						Name: aws.String(d.Get("iam_instance_profile").(string)),
-					},
+				err = resource.Retry(30*time.Second, func() *resource.RetryError {
+					_, err := conn.AssociateIamInstanceProfile(&ec2.AssociateIamInstanceProfileInput{
+						InstanceId: aws.String(d.Id()),
+						IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+							Name: aws.String(d.Get("iam_instance_profile").(string)),
+						},
+					})
+					return checkIAMProfileErr(err)
 				})
-				if err != nil {
-					return err
-				}
-
 			} else {
 				// Has an Iam Instance Profile associated with it, need to replace the association
 				associationId := resp.IamInstanceProfileAssociations[0].AssociationId
-
-				_, err := conn.ReplaceIamInstanceProfileAssociation(&ec2.ReplaceIamInstanceProfileAssociationInput{
-					AssociationId: associationId,
-					IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
-						Name: aws.String(d.Get("iam_instance_profile").(string)),
-					},
+				err = resource.Retry(30*time.Second, func() *resource.RetryError {
+					_, err := conn.ReplaceIamInstanceProfileAssociation(&ec2.ReplaceIamInstanceProfileAssociationInput{
+						AssociationId: associationId,
+						IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+							Name: aws.String(d.Get("iam_instance_profile").(string)),
+						},
+					})
+					return checkIAMProfileErr(err)
 				})
-				if err != nil {
-					return err
-				}
 			}
 			// An Iam Instance Profile has _not_ been provided but is pending a change. This means there is a pending removal
 		} else {
@@ -1688,4 +1677,17 @@ func getAwsInstanceVolumeIds(conn *ec2.EC2, d *schema.ResourceData) ([]*string, 
 	}
 
 	return volumeIds, nil
+}
+
+func checkIAMProfileErr(err error) *resource.RetryError {
+	if isAWSErr(err, "InvalidParameterValue", "Invalid IAM Instance Profile") {
+		log.Print("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
+		return resource.RetryableError(err)
+	}
+	// IAM roles can also take time to propagate in AWS:
+	if isAWSErr(err, "InvalidParameterValue", " has no associated IAM Roles") {
+		log.Print("[DEBUG] IAM Instance Profile appears to have no IAM roles, retrying...")
+		return resource.RetryableError(err)
+	}
+	return resource.NonRetryableError(err)
 }
