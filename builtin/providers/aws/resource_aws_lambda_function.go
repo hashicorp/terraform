@@ -342,6 +342,10 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 				log.Printf("[DEBUG] Received %s, retrying CreateFunction", err)
 				return resource.RetryableError(err)
 			}
+			if isAWSErr(err, "InvalidParameterValueException", "The provided execution role does not have permissions") {
+				log.Printf("[DEBUG] Received %s, retrying CreateFunction", err)
+				return resource.RetryableError(err)
+			}
 
 			return resource.NonRetryableError(err)
 		}
