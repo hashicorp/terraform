@@ -49,6 +49,7 @@ BUG FIXES:
 * provider/aws: Fix issue with removing tags in aws_cloudwatch_log_group [GH-14886]
 * provider/aws: Retry Redshift cluster deletion on InvalidClusterState [GH-15068]
 * provider/aws: Retry Lambda func creation on IAM error [GH-15067]
+* provider/aws: Retry ECS service creation on ClusterNotFoundException [GH-15066]
 * provider/azurerm: Preserve the Subnet properties on Update [GH-13877]
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
