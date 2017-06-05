@@ -4,7 +4,7 @@ status](https://travis-ci.org/zorkian/go-datadog-api.svg)](https://travis-ci.org
 
 # Datadog API in Go
 
-**This is the v2.0 version of the API, and has breaking changes. Use the main or v1.0 branch if you need
+**This is the v2.0 version of the API, and has breaking changes. Use the v1.0 branch if you need
 legacy code to be supported.**
 
 A Go wrapper for the Datadog API. Use this library if you need to interact
@@ -115,4 +115,4 @@ make generate
 
 Please see the LICENSE file for the included license information.
 
-Copyright 2017 by authors and contributors.
+Copyright 2013-2017 by authors and contributors.

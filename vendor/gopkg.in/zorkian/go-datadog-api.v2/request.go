@@ -110,11 +110,25 @@ func (client *Client) doRequestWithRetries(req *http.Request, maxTime time.Durat
 		err  error
 		resp *http.Response
 		bo   = backoff.NewExponentialBackOff()
+		body []byte
 	)
 
 	bo.MaxElapsedTime = maxTime
 
+	// Save the body for retries
+	if req.Body != nil {
+		body, err = ioutil.ReadAll(req.Body)
+		if err != nil {
+			return resp, err
+		}
+	}
+
 	operation := func() error {
+		if body != nil {
+			r := bytes.NewReader(body)
+			req.Body = ioutil.NopCloser(r)
+		}
+
 		resp, err = client.HttpClient.Do(req)
 		if err != nil {
 			return err
