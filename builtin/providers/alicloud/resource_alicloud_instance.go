@@ -195,7 +195,7 @@ func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) erro
 
 	// after instance created, its status is pending,
 	// so we need to wait it become to stopped and then start it
-	if err := conn.WaitForInstance(d.Id(), ecs.Stopped, defaultTimeout); err != nil {
+	if err := conn.WaitForInstanceAsyn(d.Id(), ecs.Stopped, defaultTimeout); err != nil {
 		return fmt.Errorf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Stopped, err)
 	}
 
@@ -207,7 +207,7 @@ func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Start instance got error: %#v", err)
 	}
 
-	if err := conn.WaitForInstance(d.Id(), ecs.Running, defaultTimeout); err != nil {
+	if err := conn.WaitForInstanceAsyn(d.Id(), ecs.Running, defaultTimeout); err != nil {
 		return fmt.Errorf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
 	}
 
