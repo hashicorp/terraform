@@ -92,7 +92,7 @@ The following arguments are supported:
 
 Azure requires that an application is added to Azure Active Directory to generate the `client_id`, `client_secret`, and `tenant_id` needed by Terraform (`subscription_id` can be recovered from your Azure account details).
 
-There are two high-level tasks to complete.  The first is to create an App Registration with Azure Active Directory.  You can do this in either the New ARM portal (http://portal.azure.com) or the older 'Classic' portal (http://manage.windowsazure.com).
+There are two high-level tasks to complete.  The first is to create an App Registration with Azure Active Directory.  You can do this in either [the New ARM portal](https://portal.azure.com) or [the older 'Classic' portal](https://manage.windowsazure.com).
 
 The second task is to grant permissions for the Application Registration in your Subscription.
 
@@ -103,7 +103,7 @@ To create the App Registration using the New ARM portal:
 - Click **Endpoints** at the top of the App Registrations blade.  This will display a list of URIs. Extract the GUID from the bottom URI for **OAUTH 2.0 AUTHORIZATION ENDPOINT**. This is the `tenant_id`
 - Select **Add** from the top of the blade.
 - Add a friendly name for the application e.g. **Terraform**. Choose **Web App / API** for Application Type
-- Add a valid URI as the Sign-on URL. This isn't used and can be anything e.g. http://terra.form.
+- Add a valid URI as the Sign-on URL. This isn't used and can be anything e.g. https://terra.form.
 - Click **Create** at the bottom to create the App Registration
 - Choose your new App Registration to show details
 - You should now be on the blade for your App Registration.  At the top, notice the "Application ID" GUID.  You'll use this as the `client_id`
