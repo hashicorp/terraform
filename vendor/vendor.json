@@ -1044,6 +1044,14 @@
 			"versionExact": "v1.8.25"
 		},
 		{
+			"checksumSHA1": "NJwLEPyO2NYuS8xWeYW+dr2aZLk=",
+			"path": "github.com/aws/aws-sdk-go/service/opsworkscm",
+			"revision": "3cf3ede801c0c4b8b0f6f65b7be60a61a55ef91c",
+			"revisionTime": "2017-05-17T22:36:48Z",
+			"version": "v1.8.25",
+			"versionExact": "v1.8.25"
+		},
+		{
 			"checksumSHA1": "hOMvmDsta9bUZXcE59EYXAF2lMM=",
 			"path": "github.com/aws/aws-sdk-go/service/rds",
 			"revision": "3cf3ede801c0c4b8b0f6f65b7be60a61a55ef91c",
