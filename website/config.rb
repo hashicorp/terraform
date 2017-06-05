@@ -110,4 +110,10 @@ helpers do
   def local_build?
     ENV['MM_ENV'] == 'local_build'
   end
+
+  # Returns path to root (for nav link)
+  # @return String
+  def path_to_root
+    local_build? ? '/index.html' : '/'
+  end
 end

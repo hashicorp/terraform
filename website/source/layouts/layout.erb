@@ -63,9 +63,7 @@
           <div class="col-xs-12">
             <div class="navbar-header">
               <div class="navbar-brand">
-                <a href="/">
-                  <%= inline_svg "logo-text.svg", height: 50, class: "logo" %>
-                </a>
+                <%= link_to "#{inline_svg 'logo-text.svg', height: 50, class: 'logo'}", path_to_root %>
               </div>
               <button class="navbar-toggle" type="button">
                 <span class="sr-only">Toggle navigation</span>
@@ -83,9 +81,7 @@
                   <li><%= link_to "Community", "/community.html" %></li>
                   <li><a href="https://www.hashicorp.com/products/terraform/?utm_source=oss&utm_medium=header-nav&utm_campaign=terraform">Enterprise</a></li>
                   <li>
-                    <a href="/downloads.html">
-                      <%= inline_svg "download.svg" %> Download
-                    </a>
+                    <%= link_to "#{inline_svg 'download.svg'} Download", "/downloads.html" %>
                   </li>
                   <li>
                     <a href="https://github.com/hashicorp/terraform">
