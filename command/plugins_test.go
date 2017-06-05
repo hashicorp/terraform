@@ -22,7 +22,7 @@ func (m mockGetProvider) FileName(provider, version string) string {
 
 // GetProvider will check the Providers map to see if it can find a suitable
 // version, and put an empty file in the dst directory.
-func (m mockGetProvider) GetProvider(dst, provider string, req discovery.Constraints) error {
+func (m mockGetProvider) GetProvider(dst, provider string, req discovery.Constraints, protoVersion uint) error {
 	versions := m.Providers[provider]
 	if len(versions) == 0 {
 		return fmt.Errorf("provider %q not found", provider)
