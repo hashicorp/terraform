@@ -1324,38 +1324,38 @@
 		{
 			"checksumSHA1": "4YIveqfMA1MH8oX8YMG7rDSl+ms=",
 			"path": "github.com/denverdino/aliyungo/common",
-			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
-			"revisionTime": "2017-04-13T09:54:00Z"
+			"revision": "812f2752cabdc83e7d410c49f25c2b4b99aa166b",
+			"revisionTime": "2017-05-25T09:14:12Z"
 		},
 		{
-			"checksumSHA1": "WkWWoA5aRYkE2apOEQdAOfn+9cc=",
+			"checksumSHA1": "x4l/zVF/J4ibAH39pNrSvTnFsPI=",
 			"path": "github.com/denverdino/aliyungo/ecs",
-			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
-			"revisionTime": "2017-04-13T09:54:00Z"
+			"revision": "812f2752cabdc83e7d410c49f25c2b4b99aa166b",
+			"revisionTime": "2017-05-25T09:14:12Z"
 		},
 		{
 			"checksumSHA1": "BgIs8qwCMRM8xL6oLeo2Ki1QwBc=",
 			"path": "github.com/denverdino/aliyungo/ess",
-			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
-			"revisionTime": "2017-04-13T09:54:00Z"
+			"revision": "812f2752cabdc83e7d410c49f25c2b4b99aa166b",
+			"revisionTime": "2017-05-25T09:14:12Z"
 		},
 		{
-			"checksumSHA1": "riQMe2AR7qkLRkQ/MSr8gQp3zL4=",
+			"checksumSHA1": "XGF+DfnJvqlql64Ygl+eCVxsfVY=",
 			"path": "github.com/denverdino/aliyungo/rds",
-			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
-			"revisionTime": "2017-04-13T09:54:00Z"
+			"revision": "812f2752cabdc83e7d410c49f25c2b4b99aa166b",
+			"revisionTime": "2017-05-25T09:14:12Z"
 		},
 		{
-			"checksumSHA1": "2g6VZONB51rul5YuSBvngH6u4A0=",
+			"checksumSHA1": "iZftKqx5jdcEaMJNJhrb5QwmMuc=",
 			"path": "github.com/denverdino/aliyungo/slb",
-			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
-			"revisionTime": "2017-04-13T09:54:00Z"
+			"revision": "812f2752cabdc83e7d410c49f25c2b4b99aa166b",
+			"revisionTime": "2017-05-25T09:14:12Z"
 		},
 		{
 			"checksumSHA1": "piZlmhWPLGxYkXLysTrjcXllO4c=",
 			"path": "github.com/denverdino/aliyungo/util",
-			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
-			"revisionTime": "2017-04-13T09:54:00Z"
+			"revision": "812f2752cabdc83e7d410c49f25c2b4b99aa166b",
+			"revisionTime": "2017-05-25T09:14:12Z"
 		},
 		{
 			"checksumSHA1": "yDQQpeUxwqB3C+4opweg6znWJQk=",
