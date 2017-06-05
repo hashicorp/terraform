@@ -250,41 +250,24 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsDbParameterGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending"},
-		Target:     []string{"destroyed"},
-		Refresh:    resourceAwsDbParameterGroupDeleteRefreshFunc(d, meta),
-		Timeout:    3 * time.Minute,
-		MinTimeout: 1 * time.Second,
-	}
-	_, err := stateConf.WaitForState()
-	return err
-}
-
-func resourceAwsDbParameterGroupDeleteRefreshFunc(
-	d *schema.ResourceData,
-	meta interface{}) resource.StateRefreshFunc {
-	rdsconn := meta.(*AWSClient).rdsconn
-
-	return func() (interface{}, string, error) {
-
+	conn := meta.(*AWSClient).rdsconn
+	return resource.Retry(3*time.Minute, func() *resource.RetryError {
 		deleteOpts := rds.DeleteDBParameterGroupInput{
 			DBParameterGroupName: aws.String(d.Id()),
 		}
 
-		if _, err := rdsconn.DeleteDBParameterGroup(&deleteOpts); err != nil {
-			rdserr, ok := err.(awserr.Error)
-			if !ok {
-				return d, "error", err
+		_, err := conn.DeleteDBParameterGroup(&deleteOpts)
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if ok && awsErr.Code() == "DBParameterGroupNotFoundFault" {
+				return resource.RetryableError(err)
 			}
-
-			if rdserr.Code() != "DBParameterGroupNotFoundFault" {
-				return d, "error", err
+			if ok && awsErr.Code() == "InvalidDBParameterGroupState" {
+				return resource.RetryableError(err)
 			}
 		}
-
-		return d, "destroyed", nil
-	}
+		return resource.NonRetryableError(err)
+	})
 }
 
 func resourceAwsDbParameterHash(v interface{}) int {
