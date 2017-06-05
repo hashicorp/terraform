@@ -78,7 +78,7 @@ func TestValidateCloudWatchEventRuleName(t *testing.T) {
 func TestValidateLambdaFunctionName(t *testing.T) {
 	validNames := []string{
 		"arn:aws:lambda:us-west-2:123456789012:function:ThumbNail",
-		"arn:aws-us-gov:lambda:us-west-2:123456789012:function:ThumbNail",
+		"arn:aws-us-gov:lambda:us-gov-west-1:123456789012:function:ThumbNail",
 		"FunctionName",
 		"function-name",
 	}
