@@ -42,7 +42,7 @@ func resourceAliyunInstance() *schema.Resource {
 			"security_groups": &schema.Schema{
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Optional: true,
+				Required: true,
 			},
 
 			"allocate_public_ip": &schema.Schema{
