@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	libraryVersion = "1.0.0"
+	libraryVersion = "1.1.0"
 	defaultBaseURL = "https://api.digitalocean.com/"
 	userAgent      = "godo/" + libraryVersion
 	mediaType      = "application/json"
@@ -63,6 +63,7 @@ type Client struct {
 	Tags              TagsService
 	LoadBalancers     LoadBalancersService
 	Certificates      CertificatesService
+	Firewalls         FirewallsService
 
 	// Optional function called after every successful request made to the DO APIs
 	onRequestCompleted RequestCompletionCallback
@@ -173,6 +174,7 @@ func NewClient(httpClient *http.Client) *Client {
 	c.Tags = &TagsServiceOp{client: c}
 	c.LoadBalancers = &LoadBalancersServiceOp{client: c}
 	c.Certificates = &CertificatesServiceOp{client: c}
+	c.Firewalls = &FirewallsServiceOp{client: c}
 
 	return c
 }
