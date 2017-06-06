@@ -263,7 +263,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 
 	img := compute.NewImagesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&img.Client)
-	img.Authorizer = spt
+	img.Authorizer = auth
 	img.Sender = autorest.CreateSender(withRequestLogging())
 	client.imageClient = img
 

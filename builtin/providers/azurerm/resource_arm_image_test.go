@@ -130,8 +130,9 @@ func testGeneralizeVMImage(groupName string, vmName string, userName string, pas
 		}
 
 		_, deallocateErr := vmClient.Deallocate(groupName, vmName, nil)
-		if deallocateErr != nil {
-			return fmt.Errorf("Bad: Deallocating error %s", deallocateErr)
+		err := <-deallocateErr
+		if err != nil {
+			return fmt.Errorf("Bad: Deallocating error %s", err)
 		}
 
 		_, generalizeErr := vmClient.Generalize(groupName, vmName)

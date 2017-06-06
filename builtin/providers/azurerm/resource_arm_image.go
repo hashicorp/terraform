@@ -218,8 +218,9 @@ func resourceArmImageCreateUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	_, imageErr := imageClient.CreateOrUpdate(resGroup, name, createImage, make(chan struct{}))
-	if imageErr != nil {
-		return imageErr
+	err = <-imageErr
+	if err != nil {
+		return err
 	}
 
 	read, err := imageClient.Get(resGroup, name, "")
@@ -300,7 +301,9 @@ func resourceArmImageDelete(d *schema.ResourceData, meta interface{}) error {
 	resGroup := id.ResourceGroup
 	name := id.Path["images"]
 
-	if _, err = imageClient.Delete(resGroup, name, make(chan struct{})); err != nil {
+	_, deleteErr := imageClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-deleteErr
+	if err != nil {
 		return err
 	}
 
