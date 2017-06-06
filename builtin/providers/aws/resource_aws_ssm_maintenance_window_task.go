@@ -165,9 +165,10 @@ func expandAwsSsmTaskParameters(config []interface{}) map[string]*ssm.Maintenanc
 func flattenAwsSsmTaskParameters(taskParameters map[string]*ssm.MaintenanceWindowTaskParameterValueExpression) []interface{} {
 	result := make([]interface{}, 0, len(taskParameters))
 	for k, v := range taskParameters {
-		taskParam := make(map[string]interface{})
-		taskParam["name"] = k
-		taskParam["values"] = flattenStringList(v.Values)
+		taskParam := map[string]interface{}{
+			"name":   k,
+			"values": flattenStringList(v.Values),
+		}
 		result = append(result, taskParam)
 	}
 
