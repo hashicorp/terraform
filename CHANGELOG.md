@@ -1,6 +1,10 @@
 
 ## 0.9.7 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* The `lock_table` attribute in the S3 backend configuration has been deprecated in favor of `dynamodb_table`, which better reflects that the table is no longer only used for locks. [GH-14949]
+
 FEATURES:
 
  * **New Data Source:** `aws_elastic_beanstalk_solution_stack` [GH-14944]
@@ -15,6 +19,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* backend/consul: Storing state to Consul now uses Check-And-Set (CAS) by default to avoid inconsistent state, and will automatically attempt to re-acquire a lock if it is lost during Terraform execution. [GH-14930]
+* core: Remote state is now persisted more frequently to minimize data loss in the event of a crash. [GH-14834]
 * provider/alicloud: Add the function of replacing ecs instance's system disk [GH-15048]
 * provider/aws: Expose RDS instance and cluster resource id [GH-14882]
 * provider/aws: Export internal tunnel addresses + document [GH-14835]
@@ -26,8 +32,11 @@ IMPROVEMENTS:
 * provider/google: Add ability to import Google Compute persistent disks [GH-14573]
 * provider/google: `google_container_cluster.master_auth` should be optional [GH-14630]
 * provider/google: Add CORS support for `google_storage_bucket` [GH-14695]
+* provider/google: Allow resizing of Google Cloud persistent disks [GH-15077]
+* provider/heroku: can now import Heroku Spaces [GH-14973]
 * provider/kubernetes: Upgrade K8S from 1.5.3 to 1.6.1 [GH-14923]
 * provider/kubernetes: Provide more details about why PVC failed to bind [GH-15019]
+* provider/kubernetes: Allow sourcing config_path from `KUBECONFIG` env var [GH-14889]
 * provider/openstack: Add support provider networks [GH-10265]
 * provider/openstack: Allow numerical protocols in security group rules [GH-14917]
 * provider/openstack: Sort request/response headers in debug output [GH-14956]
@@ -39,6 +48,8 @@ BUG FIXES:
 
 * provider/alicloud: set `alicloud_nat_gateway` zone to be Computed to avoid perpetual diffs [GH-15050]
 * provider/alicloud: set provider to read env vars for access key and secrey key if empty strings [GH-15050]
+* provider/alicloud: Fix vpc and vswitch bugs while creating vpc and vswitch [GH-15082]
+* provider/alicloud: Fix allocating public ip bug [GH-15049]
 * provider/aws: ForceNew aws_launch_config on ebs_block_device change [GH-14899]
 * provider/aws: Avoid crash when EgressOnly IGW disappears [GH-14929]
 * provider/aws: Allow IPv6/IPv4 addresses to coexist [GH-13702]
@@ -47,13 +58,19 @@ BUG FIXES:
 * provider/aws: Work around IAM eventual consistency in CW Log Subs [GH-14959]
 * provider/aws: Fix ModifyInstanceAttribute on new instances [GH-14992]
 * provider/aws: Fix issue with removing tags in aws_cloudwatch_log_group [GH-14886]
+* provider/aws: Raise timeout for VPC DHCP options creation to 5 mins [GH-15084]
 * provider/aws: Retry Redshift cluster deletion on InvalidClusterState [GH-15068]
 * provider/aws: Retry Lambda func creation on IAM error [GH-15067]
 * provider/aws: Retry ECS service creation on ClusterNotFoundException [GH-15066]
+* provider/aws: Retry ECS service update on ServiceNotFoundException [GH-15073]
+* provider/aws: Retry DB parameter group delete on InvalidDBParameterGroupState [GH-15071]
 * provider/aws: Guard against panic when no aws_default_vpc found [GH-15070]
+* provider/aws: Guard against panic if no NodeGroupMembers returned in `elasticache_replication_group` [GH-13488]
+* provider/aws: Revoke default ipv6 egress rule for aws_security_group [GH-15075]
 * provider/azurerm: VM - making `os_profile` optional [GH-14176]
 * provider/azurerm: Preserve the Subnet properties on Update [GH-13877]
 * provider/datadog: make datadog_user verified a computed attribute [GH-15034]
+* provider/datadog: use correct evaluation_delay parameter [GH-14878]
 * provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
 * provider/google: use a mutex to prevent concurrent sql instance operations [GH-14424]

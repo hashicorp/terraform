@@ -39,6 +39,8 @@ const (
 
 	// oss
 	OssBucketNotFound = "NoSuchBucket"
+	//unknown Error
+	UnknownError = "UnknownError"
 )
 
 func GetNotFoundErrorFromString(str string) error {
