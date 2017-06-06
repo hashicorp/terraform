@@ -21,6 +21,16 @@ func dataSourceArmPublicIP() *schema.Resource {
 				Required: true,
 			},
 
+			"domain_name_label": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"idle_timeout_in_minutes": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
 			"fqdn": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -32,11 +42,6 @@ func dataSourceArmPublicIP() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
-
-			"idle_timeout_in_minutes": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -57,8 +62,15 @@ func dataSourceArmPublicIPRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(*resp.ID)
 
-	if resp.PublicIPAddressPropertiesFormat.DNSSettings != nil && resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn != nil && *resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn != "" {
-		d.Set("fqdn", resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn)
+	if resp.PublicIPAddressPropertiesFormat.DNSSettings != nil {
+
+		if resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn != nil && *resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn != "" {
+			d.Set("fqdn", resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn)
+		}
+
+		if resp.PublicIPAddressPropertiesFormat.DNSSettings.DomainNameLabel != nil && *resp.PublicIPAddressPropertiesFormat.DNSSettings.DomainNameLabel != "" {
+			d.Set("domain_name_label", resp.PublicIPAddressPropertiesFormat.DNSSettings.DomainNameLabel)
+		}
 	}
 
 	if resp.PublicIPAddressPropertiesFormat.IPAddress != nil && *resp.PublicIPAddressPropertiesFormat.IPAddress != "" {
