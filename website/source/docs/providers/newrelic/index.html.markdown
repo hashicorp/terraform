@@ -69,3 +69,5 @@ resource "newrelic_alert_policy_channel" "alert_email" {
 The following arguments are supported:
 
 * `api_key` - (Required) Your New Relic API key.
+* `insecure_skip_verify` - (Optional) Trust self-signed SSL certificates. If omitted, the `NEWRELIC_API_SKIP_VERIFY` environment variable is used.
+* `cacert_file` - (Optional) A path to a PEM-encoded certificate authority used to verify the remote agent's certificate. The `NEWRELIC_API_CACERT` environment variable can also be used.
