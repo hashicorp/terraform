@@ -66,15 +66,17 @@ func resourceAliyunSecurityGroupRule() *schema.Resource {
 			},
 
 			"cidr_ip": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"source_security_group_id"},
 			},
 
 			"source_security_group_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"cidr_ip"},
 			},
 
 			"source_group_owner_account": &schema.Schema{
@@ -248,21 +250,12 @@ func buildAliyunSecurityIngressArgs(d *schema.ResourceData, meta interface{}) (*
 		args.Priority = v
 	}
 
-	if v := d.Get("nic_type").(string); v != "" {
-		args.NicType = ecs.NicType(v)
+	if v := d.Get("cidr_ip").(string); v != "" {
+		args.SourceCidrIp = v
 	}
 
-	cidrIp := d.Get("cidr_ip").(string)
-	sourceGroupId := d.Get("source_security_group_id").(string)
-	if err := checkCidrAndSourceGroupId(cidrIp, sourceGroupId); err != nil {
-		return nil, err
-	}
-	if cidrIp != "" {
-		args.SourceCidrIp = cidrIp
-	}
-
-	if sourceGroupId != "" {
-		args.SourceGroupId = sourceGroupId
+	if v := d.Get("source_security_group_id").(string); v != "" {
+		args.SourceGroupId = v
 	}
 
 	if v := d.Get("source_group_owner_account").(string); v != "" {
@@ -276,9 +269,19 @@ func buildAliyunSecurityIngressArgs(d *schema.ResourceData, meta interface{}) (*
 		RegionId:        getRegion(d, meta),
 	}
 
-	_, err := conn.DescribeSecurityGroupAttribute(sgArgs)
+	group, err := conn.DescribeSecurityGroupAttribute(sgArgs)
 	if err != nil {
 		return nil, fmt.Errorf("Error get security group %s error: %#v", sgId, err)
+	}
+
+	if v := d.Get("nic_type").(string); v != "" {
+		if (group != nil && group.VpcId != "") || args.SourceGroupId != "" {
+			if GroupRuleNicType(v) != GroupRuleIntranet {
+				return nil, fmt.Errorf("When security group in the vpc or authorizing permission for source security group, " +
+					"the nic_type must be 'intranet'.")
+			}
+		}
+		args.NicType = ecs.NicType(v)
 	}
 
 	args.SecurityGroupId = sgId
@@ -309,21 +312,12 @@ func buildAliyunSecurityEgressArgs(d *schema.ResourceData, meta interface{}) (*e
 		args.Priority = v
 	}
 
-	if v := d.Get("nic_type").(string); v != "" {
-		args.NicType = ecs.NicType(v)
+	if v := d.Get("cidr_ip").(string); v != "" {
+		args.DestCidrIp = v
 	}
 
-	cidrIp := d.Get("cidr_ip").(string)
-	sourceGroupId := d.Get("source_security_group_id").(string)
-	if err := checkCidrAndSourceGroupId(cidrIp, sourceGroupId); err != nil {
-		return nil, err
-	}
-	if cidrIp != "" {
-		args.DestCidrIp = cidrIp
-	}
-
-	if sourceGroupId != "" {
-		args.DestGroupId = sourceGroupId
+	if v := d.Get("source_security_group_id").(string); v != "" {
+		args.DestGroupId = v
 	}
 
 	if v := d.Get("source_group_owner_account").(string); v != "" {
@@ -337,9 +331,19 @@ func buildAliyunSecurityEgressArgs(d *schema.ResourceData, meta interface{}) (*e
 		RegionId:        getRegion(d, meta),
 	}
 
-	_, err := conn.DescribeSecurityGroupAttribute(sgArgs)
+	group, err := conn.DescribeSecurityGroupAttribute(sgArgs)
 	if err != nil {
 		return nil, fmt.Errorf("Error get security group %s error: %#v", sgId, err)
+	}
+
+	if v := d.Get("nic_type").(string); v != "" {
+		if (group != nil && group.VpcId != "") || args.DestGroupId != "" {
+			if GroupRuleNicType(v) != GroupRuleIntranet {
+				return nil, fmt.Errorf("When security group in the vpc or authorizing permission for destination security group, " +
+					"the nic_type must be 'intranet'.")
+			}
+		}
+		args.NicType = ecs.NicType(v)
 	}
 
 	args.SecurityGroupId = sgId
