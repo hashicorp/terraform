@@ -10,6 +10,6 @@ func setupPool(){
 
 }
 
-func testGetSinglePool(){
+func testGetSinglePool(t *testing.T){
 
 }

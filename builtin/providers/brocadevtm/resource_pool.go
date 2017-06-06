@@ -1,7 +1,6 @@
 package brocadevtm
 
 import (
-	"container/list"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/sky-uk/go-brocade-vtm"
@@ -34,7 +33,7 @@ func resourcePool() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
+				Type:     *schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
@@ -67,7 +66,7 @@ func resourcePoolCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Pool name argument required")
 	}
 	if v, ok := d.GetOk("nodelist"); ok {
-		createPool.Properties.Basic.NodesTable = v.(list.List)
+		createPool.Properties.Basic.NodesTable = v.([]interface{})
 	}
 	if v, ok := d.GetOk("max_connection_attempts"); ok {
 		createPool.Properties.Basic.MaxConnectionAttempts = v.(int)
@@ -79,10 +78,10 @@ func resourcePoolCreate(d *schema.ResourceData, m interface{}) error {
 		createPool.Properties.Basic.MaxTimeoutConnectionAttempts = v.(int)
 	}
 	if v, ok := d.GetOk("monitorlist"); ok {
-		createPool.Properties.Basic.Monitors = v.(list.List)
+		createPool.Properties.Basic.Monitors = v.([]interface{})
 	}
 	if v, ok := d.GetOk("node_close_with_rst"); ok {
-		createPool.Properties.Basic.NodeCloseWithReset = v.(bool)
+		createPool.Properties.Basic.NodeCloseWithReset = v.(*bool)
 	}
 	if v, ok := d.GetOk("max_connection_timeout"); ok {
 		createPool.Properties.Connection.MaxConnectTime = v.(int)
@@ -100,14 +99,14 @@ func resourcePoolCreate(d *schema.ResourceData, m interface{}) error {
 		createPool.Properties.Connection.QueueTimeout = v.(int)
 	}
 	if v, ok := d.GetOk("http_keepalive"); ok {
-		createPool.Properties.HTTP.HTTPKeepAlive = v.(bool)
+		createPool.Properties.HTTP.HTTPKeepAlive = v.(*bool)
 	}
 	if v, ok := d.GetOk("http_keepalive_non_idempotent"); ok {
-		createPool.Properties.HTTP.HTTPKeepAliveNonIdempotent = v.(bool)
+		createPool.Properties.HTTP.HTTPKeepAliveNonIdempotent = v.(*bool)
 	}
 	if v, ok := d.GetOk("load_balancing_priority_enabled"); ok {
 		1
-		createPool.Properties.LoadBalancing.PriorityEnabled = v.(bool)
+		createPool.Properties.LoadBalancing.PriorityEnabled = v.(*bool)
 	}
 	if v, ok := d.GetOk("load_balancing_priority_nodes"); ok {
 		createPool.Properties.LoadBalancing.PriorityNodes = v.(int)
@@ -132,7 +131,7 @@ func resourcePoolCreate(d *schema.ResourceData, m interface{}) error {
 
 // resourcePoolRead - Reads a  pool resource
 func resourcePoolRead(d *schema.ResourceData, m interface{}) error {
-	vtmClient := m.(*brocadevtm.VTMClient)
+	/*vtmClient := m.(*brocadevtm.VTMClient)
 	var readPool pool.Pool
 	var poolName string
 	if v, ok := d.GetOk("name"); ok {
@@ -141,21 +140,16 @@ func resourcePoolRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Pool name argument required")
 	}
 	if v, ok := d.GetOk("nodelist"); ok {
-		readPool.Properties.Basic.NodesTable = v.(list.List)
+		readPool.Properties.Basic.NodesTable = v.([]interface{})
 	}
 	if v, ok := d.GetOk("monitorlist"); ok {
-		readPool.Properties.Basic.Monitors = v.(list.List)
-	}
+		readPool.Properties.Basic.Monitors = v.([]interface{)
+	}*/
 
 }
 
 // resourcePoolDelete - Deletes a pool resource
 func resourcePoolDelete(d *schema.ResourceData, m interface{}) error {
-
-}
-
-// resourcePoolUpdate - Updates an existing pool resource
-func resourcePoolUpdate(d *schema.ResourceData, m interface{}) error {
 	vtmClient := m.(*brocadevtm.VTMClient)
 	var poolName string
 	if v, ok := d.GetOk("name"); ok {
@@ -170,4 +164,10 @@ func resourcePoolUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 	d.SetId("")
 	return nil
+
+}
+
+// resourcePoolUpdate - Updates an existing pool resource
+func resourcePoolUpdate(d *schema.ResourceData, m interface{}) error {
+
 }
