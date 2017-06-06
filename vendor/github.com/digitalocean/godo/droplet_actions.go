@@ -15,31 +15,31 @@ type ActionRequest map[string]interface{}
 // See: https://developers.digitalocean.com/documentation/v2#droplet-actions
 type DropletActionsService interface {
 	Shutdown(context.Context, int) (*Action, *Response, error)
-	ShutdownByTag(context.Context, string) (*Action, *Response, error)
+	ShutdownByTag(context.Context, string) ([]Action, *Response, error)
 	PowerOff(context.Context, int) (*Action, *Response, error)
-	PowerOffByTag(context.Context, string) (*Action, *Response, error)
+	PowerOffByTag(context.Context, string) ([]Action, *Response, error)
 	PowerOn(context.Context, int) (*Action, *Response, error)
-	PowerOnByTag(context.Context, string) (*Action, *Response, error)
+	PowerOnByTag(context.Context, string) ([]Action, *Response, error)
 	PowerCycle(context.Context, int) (*Action, *Response, error)
-	PowerCycleByTag(context.Context, string) (*Action, *Response, error)
+	PowerCycleByTag(context.Context, string) ([]Action, *Response, error)
 	Reboot(context.Context, int) (*Action, *Response, error)
 	Restore(context.Context, int, int) (*Action, *Response, error)
 	Resize(context.Context, int, string, bool) (*Action, *Response, error)
 	Rename(context.Context, int, string) (*Action, *Response, error)
 	Snapshot(context.Context, int, string) (*Action, *Response, error)
-	SnapshotByTag(context.Context, string, string) (*Action, *Response, error)
+	SnapshotByTag(context.Context, string, string) ([]Action, *Response, error)
 	EnableBackups(context.Context, int) (*Action, *Response, error)
-	EnableBackupsByTag(context.Context, string) (*Action, *Response, error)
+	EnableBackupsByTag(context.Context, string) ([]Action, *Response, error)
 	DisableBackups(context.Context, int) (*Action, *Response, error)
-	DisableBackupsByTag(context.Context, string) (*Action, *Response, error)
+	DisableBackupsByTag(context.Context, string) ([]Action, *Response, error)
 	PasswordReset(context.Context, int) (*Action, *Response, error)
 	RebuildByImageID(context.Context, int, int) (*Action, *Response, error)
 	RebuildByImageSlug(context.Context, int, string) (*Action, *Response, error)
 	ChangeKernel(context.Context, int, int) (*Action, *Response, error)
 	EnableIPv6(context.Context, int) (*Action, *Response, error)
-	EnableIPv6ByTag(context.Context, string) (*Action, *Response, error)
+	EnableIPv6ByTag(context.Context, string) ([]Action, *Response, error)
 	EnablePrivateNetworking(context.Context, int) (*Action, *Response, error)
-	EnablePrivateNetworkingByTag(context.Context, string) (*Action, *Response, error)
+	EnablePrivateNetworkingByTag(context.Context, string) ([]Action, *Response, error)
 	Upgrade(context.Context, int) (*Action, *Response, error)
 	Get(context.Context, int, int) (*Action, *Response, error)
 	GetByURI(context.Context, string) (*Action, *Response, error)
@@ -60,7 +60,7 @@ func (s *DropletActionsServiceOp) Shutdown(ctx context.Context, id int) (*Action
 }
 
 // ShutdownByTag shuts down Droplets matched by a Tag.
-func (s *DropletActionsServiceOp) ShutdownByTag(ctx context.Context, tag string) (*Action, *Response, error) {
+func (s *DropletActionsServiceOp) ShutdownByTag(ctx context.Context, tag string) ([]Action, *Response, error) {
 	request := &ActionRequest{"type": "shutdown"}
 	return s.doActionByTag(ctx, tag, request)
 }
@@ -72,7 +72,7 @@ func (s *DropletActionsServiceOp) PowerOff(ctx context.Context, id int) (*Action
 }
 
 // PowerOffByTag powers off Droplets matched by a Tag.
-func (s *DropletActionsServiceOp) PowerOffByTag(ctx context.Context, tag string) (*Action, *Response, error) {
+func (s *DropletActionsServiceOp) PowerOffByTag(ctx context.Context, tag string) ([]Action, *Response, error) {
 	request := &ActionRequest{"type": "power_off"}
 	return s.doActionByTag(ctx, tag, request)
 }
@@ -84,7 +84,7 @@ func (s *DropletActionsServiceOp) PowerOn(ctx context.Context, id int) (*Action,
 }
 
 // PowerOnByTag powers on Droplets matched by a Tag.
-func (s *DropletActionsServiceOp) PowerOnByTag(ctx context.Context, tag string) (*Action, *Response, error) {
+func (s *DropletActionsServiceOp) PowerOnByTag(ctx context.Context, tag string) ([]Action, *Response, error) {
 	request := &ActionRequest{"type": "power_on"}
 	return s.doActionByTag(ctx, tag, request)
 }
@@ -96,7 +96,7 @@ func (s *DropletActionsServiceOp) PowerCycle(ctx context.Context, id int) (*Acti
 }
 
 // PowerCycleByTag power cycles Droplets matched by a Tag.
-func (s *DropletActionsServiceOp) PowerCycleByTag(ctx context.Context, tag string) (*Action, *Response, error) {
+func (s *DropletActionsServiceOp) PowerCycleByTag(ctx context.Context, tag string) ([]Action, *Response, error) {
 	request := &ActionRequest{"type": "power_cycle"}
 	return s.doActionByTag(ctx, tag, request)
 }
@@ -149,7 +149,7 @@ func (s *DropletActionsServiceOp) Snapshot(ctx context.Context, id int, name str
 }
 
 // SnapshotByTag snapshots Droplets matched by a Tag.
-func (s *DropletActionsServiceOp) SnapshotByTag(ctx context.Context, tag string, name string) (*Action, *Response, error) {
+func (s *DropletActionsServiceOp) SnapshotByTag(ctx context.Context, tag string, name string) ([]Action, *Response, error) {
 	requestType := "snapshot"
 	request := &ActionRequest{
 		"type": requestType,
@@ -165,7 +165,7 @@ func (s *DropletActionsServiceOp) EnableBackups(ctx context.Context, id int) (*A
 }
 
 // EnableBackupsByTag enables backups for Droplets matched by a Tag.
-func (s *DropletActionsServiceOp) EnableBackupsByTag(ctx context.Context, tag string) (*Action, *Response, error) {
+func (s *DropletActionsServiceOp) EnableBackupsByTag(ctx context.Context, tag string) ([]Action, *Response, error) {
 	request := &ActionRequest{"type": "enable_backups"}
 	return s.doActionByTag(ctx, tag, request)
 }
@@ -177,7 +177,7 @@ func (s *DropletActionsServiceOp) DisableBackups(ctx context.Context, id int) (*
 }
 
 // DisableBackupsByTag disables backups for Droplet matched by a Tag.
-func (s *DropletActionsServiceOp) DisableBackupsByTag(ctx context.Context, tag string) (*Action, *Response, error) {
+func (s *DropletActionsServiceOp) DisableBackupsByTag(ctx context.Context, tag string) ([]Action, *Response, error) {
 	request := &ActionRequest{"type": "disable_backups"}
 	return s.doActionByTag(ctx, tag, request)
 }
@@ -213,7 +213,7 @@ func (s *DropletActionsServiceOp) EnableIPv6(ctx context.Context, id int) (*Acti
 }
 
 // EnableIPv6ByTag enables IPv6 for Droplets matched by a Tag.
-func (s *DropletActionsServiceOp) EnableIPv6ByTag(ctx context.Context, tag string) (*Action, *Response, error) {
+func (s *DropletActionsServiceOp) EnableIPv6ByTag(ctx context.Context, tag string) ([]Action, *Response, error) {
 	request := &ActionRequest{"type": "enable_ipv6"}
 	return s.doActionByTag(ctx, tag, request)
 }
@@ -225,7 +225,7 @@ func (s *DropletActionsServiceOp) EnablePrivateNetworking(ctx context.Context, i
 }
 
 // EnablePrivateNetworkingByTag enables private networking for Droplets matched by a Tag.
-func (s *DropletActionsServiceOp) EnablePrivateNetworkingByTag(ctx context.Context, tag string) (*Action, *Response, error) {
+func (s *DropletActionsServiceOp) EnablePrivateNetworkingByTag(ctx context.Context, tag string) ([]Action, *Response, error) {
 	request := &ActionRequest{"type": "enable_private_networking"}
 	return s.doActionByTag(ctx, tag, request)
 }
@@ -261,7 +261,7 @@ func (s *DropletActionsServiceOp) doAction(ctx context.Context, id int, request 
 	return root.Event, resp, err
 }
 
-func (s *DropletActionsServiceOp) doActionByTag(ctx context.Context, tag string, request *ActionRequest) (*Action, *Response, error) {
+func (s *DropletActionsServiceOp) doActionByTag(ctx context.Context, tag string, request *ActionRequest) ([]Action, *Response, error) {
 	if tag == "" {
 		return nil, nil, NewArgError("tag", "cannot be empty")
 	}
@@ -277,13 +277,13 @@ func (s *DropletActionsServiceOp) doActionByTag(ctx context.Context, tag string,
 		return nil, nil, err
 	}
 
-	root := new(actionRoot)
+	root := new(actionsRoot)
 	resp, err := s.client.Do(ctx, req, root)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return root.Event, resp, err
+	return root.Actions, resp, err
 }
 
 // Get an action for a particular Droplet by id.
