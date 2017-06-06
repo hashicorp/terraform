@@ -533,5 +533,6 @@
 			"revision": "453249f01cfeb54c3d549ddb75ff152ca243f9d8",
 			"revisionTime": "2017-02-08T20:51:15Z"
 		}
-	]
+	],
+	"rootPath": "github.com/terraform-providers/terraform-provider-terraform"
 }
