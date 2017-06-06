@@ -32,6 +32,7 @@ IMPROVEMENTS:
 * provider/aws: Add support for a configurable timeout in db_option_group [GH-15023]
 * provider/aws: Add task_parameters parameter to aws_ssm_maintenance_window_task resource [GH-15104]
 * provider/aws: Expose reason of EMR cluster termination [GH-15117]
+* provider/aws: `data.aws_acm_certificate` can now filter by `type` [GH-15063]
 * provider/azurerm: Ignore case sensivity in Azurerm resource enums [GH-14861]
 * provider/digitalocean: Add support for changing TTL on DigitalOcean domain records. [GH-14805]
 * provider/google: Add ability to import Google Compute persistent disks [GH-14573]
