@@ -22,6 +22,9 @@ func TestContext2Plan_basic(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
+		ProviderSHA256s: map[string][]byte{
+			"aws": []byte("placeholder"),
+		},
 	})
 
 	plan, err := ctx.Plan()
@@ -31,6 +34,10 @@ func TestContext2Plan_basic(t *testing.T) {
 
 	if len(plan.Diff.RootModule().Resources) < 2 {
 		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
+	}
+
+	if !reflect.DeepEqual(plan.ProviderSHA256s, ctx.providerSHA256s) {
+		t.Errorf("wrong ProviderSHA256s %#v; want %#v", plan.ProviderSHA256s, ctx.providerSHA256s)
 	}
 
 	actual := strings.TrimSpace(plan.String())
