@@ -302,7 +302,7 @@ resource "azurerm_virtual_machine" "master" {
   }
 }
 
-# ********************** SLAVE VIRTUAL MACHINES & EXTENSIONS ********************** #
+# ********************** SLAVE VIRTUAL MACHINES ********************** #
 resource "azurerm_virtual_machine" "slave" {
   name                  = "${var.vm_slave_name_prefix}${count.index}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
@@ -356,7 +356,7 @@ resource "azurerm_virtual_machine" "slave" {
   }
 }
 
-# ********************** CASSANDRA VIRTUAL MACHINE & EXTENSION ********************** #
+# ********************** CASSANDRA VIRTUAL MACHINE ********************** #
 resource "azurerm_virtual_machine" "cassandra" {
   name                  = "${var.vm_cassandra_name}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
