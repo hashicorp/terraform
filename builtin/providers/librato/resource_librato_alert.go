@@ -87,6 +87,7 @@ func resourceLibratoAlert() *schema.Resource {
 			"attributes": {
 				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"runbook_url": {
@@ -405,19 +406,15 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 	}
 	if d.HasChange("attributes") {
 		attributeData := d.Get("attributes").([]interface{})
-		if len(attributeData) > 1 {
-			return fmt.Errorf("Only one set of attributes per alert is supported")
-		} else if len(attributeData) == 1 {
-			if attributeData[0] == nil {
-				return fmt.Errorf("No attributes found in attributes block")
-			}
-			attributeDataMap := attributeData[0].(map[string]interface{})
-			attributes := new(librato.AlertAttributes)
-			if v, ok := attributeDataMap["runbook_url"].(string); ok && v != "" {
-				attributes.RunbookURL = librato.String(v)
-			}
-			alert.Attributes = attributes
+		if attributeData[0] == nil {
+			return fmt.Errorf("No attributes found in attributes block")
 		}
+		attributeDataMap := attributeData[0].(map[string]interface{})
+		attributes := new(librato.AlertAttributes)
+		if v, ok := attributeDataMap["runbook_url"].(string); ok && v != "" {
+			attributes.RunbookURL = librato.String(v)
+		}
+		alert.Attributes = attributes
 	}
 
 	log.Printf("[INFO] Updating Librato alert: %s", alert)
