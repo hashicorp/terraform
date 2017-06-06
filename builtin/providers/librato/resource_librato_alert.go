@@ -249,32 +249,40 @@ func resourceLibratoAlertRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLibratoAlertReadResult(d *schema.ResourceData, alert *librato.Alert) error {
-	d.Set("name", *alert.Name)
+	d.Set("name", alert.Name)
 
 	if alert.Description != nil {
-		if err := d.Set("description", *alert.Description); err != nil {
+		if err := d.Set("description", alert.Description); err != nil {
 			return err
 		}
 	}
 	if alert.Active != nil {
-		if err := d.Set("active", *alert.Active); err != nil {
+		if err := d.Set("active", alert.Active); err != nil {
 			return err
 		}
 	}
 	if alert.RearmSeconds != nil {
-		if err := d.Set("rearm_seconds", *alert.RearmSeconds); err != nil {
+		if err := d.Set("rearm_seconds", alert.RearmSeconds); err != nil {
 			return err
 		}
 	}
 
+	// Since the following aren't simple terraform types (TypeList), it's best to
+	// catch the error returned from the d.Set() function, and handle accordingly.
 	services := resourceLibratoAlertServicesGather(d, alert.Services.([]interface{}))
-	d.Set("services", schema.NewSet(schema.HashString, services))
+	if err := d.Set("services", schema.NewSet(schema.HashString, services)); err != nil {
+		return err
+	}
 
 	conditions := resourceLibratoAlertConditionsGather(d, alert.Conditions)
-	d.Set("condition", schema.NewSet(resourceLibratoAlertConditionsHash, conditions))
+	if err := d.Set("condition", schema.NewSet(resourceLibratoAlertConditionsHash, conditions)); err != nil {
+		return err
+	}
 
 	attributes := resourceLibratoAlertAttributesGather(d, alert.Attributes)
-	d.Set("attributes", attributes)
+	if err := d.Set("attributes", attributes); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -469,6 +477,5 @@ func resourceLibratoAlertDelete(d *schema.ResourceData, meta interface{}) error 
 		return resource.RetryableError(fmt.Errorf("alert still exists"))
 	})
 
-	d.SetId("")
 	return nil
 }
