@@ -251,9 +251,22 @@ func resourceLibratoAlertRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLibratoAlertReadResult(d *schema.ResourceData, alert *librato.Alert) error {
 	d.Set("name", *alert.Name)
-	d.Set("description", *alert.Description)
-	d.Set("active", *alert.Active)
-	d.Set("rearm_seconds", *alert.RearmSeconds)
+
+	if alert.Description != nil {
+		if err := d.Set("description", *alert.Description); err != nil {
+			return err
+		}
+	}
+	if alert.Active != nil {
+		if err := d.Set("active", *alert.Active); err != nil {
+			return err
+		}
+	}
+	if alert.RearmSeconds != nil {
+		if err := d.Set("rearm_seconds", *alert.RearmSeconds); err != nil {
+			return err
+		}
+	}
 
 	services := resourceLibratoAlertServicesGather(d, alert.Services.([]interface{}))
 	d.Set("services", schema.NewSet(schema.HashString, services))

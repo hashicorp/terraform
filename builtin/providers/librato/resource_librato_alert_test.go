@@ -11,6 +11,28 @@ import (
 	"github.com/henrikhodne/go-librato/librato"
 )
 
+func TestAccLibratoAlert_Minimal(t *testing.T) {
+	var alert librato.Alert
+	name := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLibratoAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckLibratoAlertConfig_minimal(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
+					testAccCheckLibratoAlertName(&alert, name),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "name", name),
+				),
+			},
+		},
+	})
+}
+
 func TestAccLibratoAlert_Basic(t *testing.T) {
 	var alert librato.Alert
 	name := acctest.RandString(10)
@@ -230,6 +252,13 @@ func testAccCheckLibratoAlertExists(n string, alert *librato.Alert) resource.Tes
 
 		return nil
 	}
+}
+
+func testAccCheckLibratoAlertConfig_minimal(name string) string {
+	return fmt.Sprintf(`
+resource "librato_alert" "foobar" {
+    name = "%s"
+}`, name)
 }
 
 func testAccCheckLibratoAlertConfig_basic(name string) string {
