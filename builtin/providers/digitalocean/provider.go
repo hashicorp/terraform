@@ -25,6 +25,7 @@ func Provider() terraform.ResourceProvider {
 			"digitalocean_certificate":  resourceDigitalOceanCertificate(),
 			"digitalocean_domain":       resourceDigitalOceanDomain(),
 			"digitalocean_droplet":      resourceDigitalOceanDroplet(),
+			"digitalocean_firewall":     resourceDigitalOceanFirewall(),
 			"digitalocean_floating_ip":  resourceDigitalOceanFloatingIp(),
 			"digitalocean_loadbalancer": resourceDigitalOceanLoadbalancer(),
 			"digitalocean_record":       resourceDigitalOceanRecord(),
