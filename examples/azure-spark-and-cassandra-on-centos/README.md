@@ -19,7 +19,7 @@ Please note that [Azure Resource Manager][3] is used to provision the environmen
 ### Defaults ###
 
 | Component | Setting | Default | Notes |
-| --- | --- | --- | --- | --- |
+| --- | --- | --- | --- |
 | Spark - Master | VM Size | Standard D1 V2 | |
 | Spark - Master | Storage | Standard LRS | |
 | Spark - Master | Internal IP | 10.0.0.5 | |
