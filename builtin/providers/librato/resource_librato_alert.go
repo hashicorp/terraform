@@ -212,7 +212,7 @@ func resourceLibratoAlertCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 	log.Printf("[INFO] Created Librato alert: %s", *alertResult)
 
-	resource.Retry(1*time.Minute, func() *resource.RetryError {
+	retryErr := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, _, err := client.Alerts.Get(*alertResult.ID)
 		if err != nil {
 			if errResp, ok := err.(*librato.ErrorResponse); ok && errResp.Response.StatusCode == 404 {
@@ -222,6 +222,9 @@ func resourceLibratoAlertCreate(d *schema.ResourceData, meta interface{}) error 
 		}
 		return nil
 	})
+	if retryErr != nil {
+		return fmt.Errorf("Error creating librato alert: %s", err)
+	}
 
 	d.SetId(strconv.FormatUint(uint64(*alertResult.ID), 10))
 
@@ -459,7 +462,7 @@ func resourceLibratoAlertDelete(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error deleting Alert: %s", err)
 	}
 
-	resource.Retry(1*time.Minute, func() *resource.RetryError {
+	retryErr := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, _, err := client.Alerts.Get(uint(id))
 		if err != nil {
 			if errResp, ok := err.(*librato.ErrorResponse); ok && errResp.Response.StatusCode == 404 {
@@ -469,6 +472,9 @@ func resourceLibratoAlertDelete(d *schema.ResourceData, meta interface{}) error 
 		}
 		return resource.RetryableError(fmt.Errorf("alert still exists"))
 	})
+	if retryErr != nil {
+		return fmt.Errorf("Error deleting librato alert: %s", err)
+	}
 
 	return nil
 }
