@@ -24,6 +24,10 @@ func TestAccAwsAcmCertificateDataSource_noMatchReturnsError(t *testing.T) {
 				Config:      testAccCheckAwsAcmCertificateDataSourceConfigWithStatus(domain),
 				ExpectError: regexp.MustCompile(`No certificate for domain`),
 			},
+			{
+				Config:      testAccCheckAwsAcmCertificateDataSourceConfigWithTypes(domain),
+				ExpectError: regexp.MustCompile(`No certificate for domain`),
+			},
 		},
 	})
 }
@@ -41,6 +45,15 @@ func testAccCheckAwsAcmCertificateDataSourceConfigWithStatus(domain string) stri
 data "aws_acm_certificate" "test" {
 	domain = "%s"
 	statuses = ["ISSUED"]
+}
+`, domain)
+}
+
+func testAccCheckAwsAcmCertificateDataSourceConfigWithTypes(domain string) string {
+	return fmt.Sprintf(`
+data "aws_acm_certificate" "test" {
+	domain = "%s"
+	types = ["IMPORTED"]
 }
 `, domain)
 }
