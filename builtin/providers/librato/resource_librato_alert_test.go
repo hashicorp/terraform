@@ -47,6 +47,7 @@ func TestAccLibratoAlert_Basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
 					testAccCheckLibratoAlertName(&alert, name),
+					testAccCheckLibratoAlertDescription(&alert, "A Test Alert"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "name", name),
 				),
@@ -69,10 +70,13 @@ func TestAccLibratoAlert_Full(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
 					testAccCheckLibratoAlertName(&alert, name),
+					testAccCheckLibratoAlertDescription(&alert, "A Test Alert"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "name", name),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "condition.836525194.metric_name", "librato.cpu.percent.idle"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "condition.836525194.type", "above"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "condition.836525194.threshold", "10"),
 					resource.TestCheckResourceAttr(
@@ -158,12 +162,15 @@ func TestAccLibratoAlert_FullUpdate(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
 					testAccCheckLibratoAlertName(&alert, name),
+					testAccCheckLibratoAlertDescription(&alert, "A Test Alert"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "name", name),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "rearm_seconds", "1200"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "condition.2524844643.metric_name", "librato.cpu.percent.idle"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "condition.2524844643.type", "above"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "condition.2524844643.threshold", "10"),
 					resource.TestCheckResourceAttr(
