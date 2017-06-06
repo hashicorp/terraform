@@ -13,26 +13,21 @@ Use this data source to access the properties of an existing Azure Public IP Add
 ## Example Usage
 
 ```hcl
-resource "azurerm_resource_group" "helloterraform" {
-    name = "terraformtest-65635546363"
-    location = "West US 2"
-}
-
 data "azurerm_public_ip" "datasourceip" {
     name = "testPublicIp"
-    resource_group_name = "${azurerm_resource_group.helloterraform.name}"
+    resource_group_name = "acctestRG"
 }
 
 resource "azurerm_virtual_network" "helloterraformnetwork" {
     name = "acctvn"
     address_space = ["10.0.0.0/16"]
     location = "West US 2"
-    resource_group_name = "${azurerm_resource_group.helloterraform.name}"
+    resource_group_name = "acctestRG"
 }
 
 resource "azurerm_subnet" "helloterraformsubnet" {
     name = "acctsub"
-    resource_group_name = "${azurerm_resource_group.helloterraform.name}"
+    resource_group_name = "acctestRG"
     virtual_network_name = "${azurerm_virtual_network.helloterraformnetwork.name}"
     address_prefix = "10.0.2.0/24"
 }
@@ -40,7 +35,7 @@ resource "azurerm_subnet" "helloterraformsubnet" {
 resource "azurerm_network_interface" "helloterraformnic" {
     name = "tfni"
     location = "West US 2"
-    resource_group_name = "${azurerm_resource_group.helloterraform.name}"
+    resource_group_name = "acctestRG"
 
     ip_configuration {
         name = "testconfiguration1"
