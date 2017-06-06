@@ -92,6 +92,36 @@ func TestAccLibratoAlert_Updated(t *testing.T) {
 	})
 }
 
+func TestAccLibratoAlert_Rename(t *testing.T) {
+	var alert librato.Alert
+	name := acctest.RandString(10)
+	newName := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLibratoAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckLibratoAlertConfig_basic(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "name", name),
+				),
+			},
+			{
+				Config: testAccCheckLibratoAlertConfig_basic(newName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "name", newName),
+				),
+			},
+		},
+	})
+}
+
 func TestAccLibratoAlert_FullUpdate(t *testing.T) {
 	var alert librato.Alert
 	name := acctest.RandString(10)

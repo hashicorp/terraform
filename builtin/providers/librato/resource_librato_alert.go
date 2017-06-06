@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -329,30 +328,22 @@ func resourceLibratoAlertAttributesGather(d *schema.ResourceData, attributes *li
 func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*librato.Client)
 
-	alertID, err := strconv.ParseUint(d.Id(), 10, 0)
-	if err != nil {
-		return err
-	}
-
-	// Just to have whole object for comparison before/after update
-	fullAlert, _, err := client.Alerts.Get(uint(alertID))
+	id, err := strconv.ParseUint(d.Id(), 10, 0)
 	if err != nil {
 		return err
 	}
 
 	alert := new(librato.Alert)
 	alert.Name = librato.String(d.Get("name").(string))
+
 	if d.HasChange("description") {
 		alert.Description = librato.String(d.Get("description").(string))
-		fullAlert.Description = alert.Description
 	}
 	if d.HasChange("active") {
 		alert.Active = librato.Bool(d.Get("active").(bool))
-		fullAlert.Active = alert.Active
 	}
 	if d.HasChange("rearm_seconds") {
 		alert.RearmSeconds = librato.Uint(uint(d.Get("rearm_seconds").(int)))
-		fullAlert.RearmSeconds = alert.RearmSeconds
 	}
 	if d.HasChange("services") {
 		vs := d.Get("services").(*schema.Set)
@@ -361,7 +352,6 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 			services[i] = librato.String(serviceData.(string))
 		}
 		alert.Services = services
-		fullAlert.RearmSeconds = alert.RearmSeconds
 	}
 
 	vs := d.Get("condition").(*schema.Set)
@@ -392,7 +382,6 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 		}
 		conditions[i] = condition
 		alert.Conditions = conditions
-		fullAlert.Conditions = conditions
 	}
 	if d.HasChange("attributes") {
 		attributeData := d.Get("attributes").([]interface{})
@@ -408,17 +397,16 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 				attributes.RunbookURL = librato.String(v)
 			}
 			alert.Attributes = attributes
-			fullAlert.Attributes = attributes
 		}
 	}
 
 	log.Printf("[INFO] Updating Librato alert: %s", alert)
-	_, updErr := client.Alerts.Update(uint(alertID), alert)
+	_, updErr := client.Alerts.Update(uint(id), alert)
 	if updErr != nil {
 		return fmt.Errorf("Error updating Librato alert: %s", updErr)
 	}
 
-	log.Printf("[INFO] Updated Librato alert %d", alertID)
+	log.Printf("[INFO] Updated Librato alert %d", id)
 
 	// Wait for propagation since Librato updates are eventually consistent
 	wait := resource.StateChangeConf{
@@ -428,20 +416,18 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 		MinTimeout:                2 * time.Second,
 		ContinuousTargetOccurence: 5,
 		Refresh: func() (interface{}, string, error) {
-			log.Printf("[DEBUG] Checking if Librato Alert %d was updated yet", alertID)
-			changedAlert, _, getErr := client.Alerts.Get(uint(alertID))
+			log.Printf("[DEBUG] Checking if Librato Alert %d was updated yet", id)
+			changedAlert, _, getErr := client.Alerts.Get(uint(id))
 			if getErr != nil {
 				return changedAlert, "", getErr
 			}
-			isEqual := reflect.DeepEqual(*fullAlert, *changedAlert)
-			log.Printf("[DEBUG] Updated Librato Alert %d match: %t", alertID, isEqual)
-			return changedAlert, fmt.Sprintf("%t", isEqual), nil
+			return changedAlert, "true", nil
 		},
 	}
 
 	_, err = wait.WaitForState()
 	if err != nil {
-		return fmt.Errorf("Failed updating Librato Alert %d: %s", alertID, err)
+		return fmt.Errorf("Failed updating Librato Alert %d: %s", id, err)
 	}
 
 	return resourceLibratoAlertRead(d, meta)
