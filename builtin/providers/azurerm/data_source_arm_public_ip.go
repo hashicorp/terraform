@@ -3,7 +3,6 @@ package azurerm
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -21,6 +20,18 @@ func dataSourceArmPublicIP() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+
+			"fqdn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"ip_address": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -35,14 +46,11 @@ func dataSourceArmPublicIPRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		if resp.StatusCode == http.StatusNotFound {
 			d.SetId("")
-			return nil
 		}
 		return fmt.Errorf("Error making Read request on Azure public ip %s: %s", name, err)
 	}
 
 	d.SetId(*resp.ID)
-	d.Set("location", resp.Location)
-	d.Set("public_ip_address_allocation", strings.ToLower(string(resp.PublicIPAddressPropertiesFormat.PublicIPAllocationMethod)))
 
 	if resp.PublicIPAddressPropertiesFormat.DNSSettings != nil && resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn != nil && *resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn != "" {
 		d.Set("fqdn", resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn)

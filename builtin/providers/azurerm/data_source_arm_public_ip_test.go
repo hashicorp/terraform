@@ -10,8 +10,11 @@ import (
 
 func TestAccDataSourceAzureRMPublicIP_basic(t *testing.T) {
 	ri := acctest.RandInt()
-	config := testAccDatSourceAzureRMPublicIPBasic(ri)
+
 	name := fmt.Sprintf("acctestpublicip-%d", ri)
+	resourceGroupName := fmt.Sprintf("acctestRG-%d", ri)
+
+	config := testAccDatSourceAzureRMPublicIPBasic(name, resourceGroupName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,35 +25,37 @@ func TestAccDataSourceAzureRMPublicIP_basic(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.azurerm_public_ip.test", "name", name),
-					resource.TestCheckResourceAttr("data.azurerm_public_ip.test", "location", "westus"),
 					resource.TestCheckResourceAttr("data.azurerm_public_ip.test", "tags.%", "1"),
-					resource.TestCheckResourceAttr("data.azurerm_public_ip.test", "tags.env", "test"),
+					resource.TestCheckResourceAttr("data.azurerm_public_ip.test", "tags.environment", "test"),
+					resource.TestCheckResourceAttrSet("data.azurerm_public_ip.test", "ip_address"),
+					resource.TestCheckResourceAttrSet("data.azurerm_public_ip.test", "fqdn"),
 				),
 			},
 		},
 	})
 }
 
-func testAccDatSourceAzureRMPublicIPBasic(ri int) string {
+func testAccDatSourceAzureRMPublicIPBasic(name string, resourceGroupName string) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
-    name = "acctestRG-%d"
+    name = "%s"
     location = "West US"
 }
 resource "azurerm_public_ip" "test" {
-    name = "acctestpublicip-%d"
+    name = "%s"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "static"
+	domain_name_label = "mylabel01"
 
     tags {
-	environment = "test"
+		environment = "test"
     }
 }
 
 data "azurerm_public_ip" "test" {
-    name = "acctestpublicip-%d"
-    resource_group_name = "acctestRG-%d"
+    name = "${azurerm_public_ip.test.name}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
 }
-`, ri, ri, ri, ri)
+`, resourceGroupName, name)
 }
