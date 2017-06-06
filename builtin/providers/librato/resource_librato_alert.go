@@ -137,9 +137,8 @@ func resourceLibratoAlertConditionsHash(v interface{}) int {
 func resourceLibratoAlertCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*librato.Client)
 
-	alert := new(librato.Alert)
-	if v, ok := d.GetOk("name"); ok {
-		alert.Name = librato.String(v.(string))
+	alert := librato.Alert{
+		Name: librato.String(d.Get("name").(string)),
 	}
 	if v, ok := d.GetOk("description"); ok {
 		alert.Description = librato.String(v.(string))
@@ -205,7 +204,7 @@ func resourceLibratoAlertCreate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	alertResult, _, err := client.Alerts.Create(alert)
+	alertResult, _, err := client.Alerts.Create(&alert)
 
 	if err != nil {
 		return fmt.Errorf("Error creating Librato alert %s: %s", *alert.Name, err)
