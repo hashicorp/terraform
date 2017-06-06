@@ -15,7 +15,6 @@ type Config struct {
 	APIKey             string
 	APIURL             string
 	CACertFile         string
-	Debug              bool
 	InsecureSkipVerify bool
 }
 
