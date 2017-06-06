@@ -142,18 +142,27 @@ To make a resource importable, please see the
 
 ### Google
 
+* google_bigquery_dataset
+* google_bigquery_table
 * google_compute_address
 * google_compute_autoscaler
+* google_compute_disk
 * google_compute_firewall
 * google_compute_forwarding_rule
 * google_compute_global_address
 * google_compute_http_health_check
 * google_compute_instance_group_manager
 * google_compute_instance_template
+* google_compute_network
+* google_compute_route
+* google_compute_router_interface
+* google_compute_router_peer
+* google_compute_router
 * google_compute_target_pool
 * google_dns_managed_zone
 * google_project
 * google_sql_user
+* google_storage_bucket
 
 ### OpenStack
 

@@ -48,9 +48,9 @@ when creating a Kinesis stream. See [Amazon Kinesis Streams][2] for more.
 ## Attributes Reference
 
 * `id` - The unique Stream id
-* `name` - The unique Stream name (same as `id`)
+* `name` - The unique Stream name
 * `shard_count` - The count of Shards for this Stream
-* `arn` - The Amazon Resource Name (ARN) specifying the Stream
+* `arn` - The Amazon Resource Name (ARN) specifying the Stream (same as `id`)
 
 
 ## Import

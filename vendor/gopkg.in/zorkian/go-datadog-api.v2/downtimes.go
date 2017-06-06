@@ -26,6 +26,7 @@ type Downtime struct {
 	Disabled   *bool       `json:"disabled,omitempty"`
 	End        *int        `json:"end,omitempty"`
 	Id         *int        `json:"id,omitempty"`
+	MonitorId  *int        `json:"monitor_id,omitempty"`
 	Message    *string     `json:"message,omitempty"`
 	Recurrence *Recurrence `json:"recurrence,omitempty"`
 	Scope      []string    `json:"scope,omitempty"`

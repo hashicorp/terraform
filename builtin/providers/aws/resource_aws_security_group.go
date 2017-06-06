@@ -295,6 +295,34 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 				d.Id(), err)
 		}
 
+		log.Printf("[DEBUG] Revoking default IPv6 egress rule for Security Group for %s", d.Id())
+		req = &ec2.RevokeSecurityGroupEgressInput{
+			GroupId: createResp.GroupId,
+			IpPermissions: []*ec2.IpPermission{
+				{
+					FromPort: aws.Int64(int64(0)),
+					ToPort:   aws.Int64(int64(0)),
+					Ipv6Ranges: []*ec2.Ipv6Range{
+						{
+							CidrIpv6: aws.String("::/0"),
+						},
+					},
+					IpProtocol: aws.String("-1"),
+				},
+			},
+		}
+
+		_, err = conn.RevokeSecurityGroupEgress(req)
+		if err != nil {
+			//If we have a NotFound, then we are trying to remove the default IPv6 egress of a non-IPv6
+			//enabled SG
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() != "InvalidPermission.NotFound" {
+				return fmt.Errorf(
+					"Error revoking default IPv6 egress rule for Security Group (%s): %s",
+					d.Id(), err)
+			}
+		}
+
 	}
 
 	return resourceAwsSecurityGroupUpdate(d, meta)
@@ -1116,10 +1144,6 @@ func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
 			{
 				Name:   aws.String("description"),
 				Values: []*string{aws.String("AWS Lambda VPC ENI: *")},
-			},
-			{
-				Name:   aws.String("requester-id"),
-				Values: []*string{aws.String("*:awslambda_*")},
 			},
 		},
 	}

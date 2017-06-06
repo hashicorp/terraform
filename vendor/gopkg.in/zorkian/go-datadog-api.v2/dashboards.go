@@ -72,7 +72,7 @@ type GraphDefinition struct {
 	Yaxis Yaxis `json:"yaxis,omitempty"`
 
 	// For query value type graphs
-	Autoscale  *bool   `json:"austoscale,omitempty"`
+	Autoscale  *bool   `json:"autoscale,omitempty"`
 	TextAlign  *string `json:"text_align,omitempty"`
 	Precision  *string `json:"precision,omitempty"`
 	CustomUnit *string `json:"custom_unit,omitempty"`

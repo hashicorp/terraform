@@ -113,10 +113,10 @@ resource "aws_elastic_beanstalk_application" "default" {
 }
 
 resource "aws_elastic_beanstalk_application_version" "default" {
-  application = "tf-test-name-%d"
+  application = "${aws_elastic_beanstalk_application.default.name}"
   name = "tf-test-version-label"
   bucket = "${aws_s3_bucket.default.id}"
   key = "${aws_s3_bucket_object.default.id}"
  }
- `, randInt, randInt, randInt)
+ `, randInt, randInt)
 }
