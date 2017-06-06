@@ -246,10 +246,6 @@ func resourceLibratoAlertRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[INFO] Received Librato Alert: %s", *alert)
 
-	return resourceLibratoAlertReadResult(d, alert)
-}
-
-func resourceLibratoAlertReadResult(d *schema.ResourceData, alert *librato.Alert) error {
 	d.Set("name", alert.Name)
 
 	if alert.Description != nil {
