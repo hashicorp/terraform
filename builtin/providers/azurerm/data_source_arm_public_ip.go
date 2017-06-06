@@ -32,6 +32,11 @@ func dataSourceArmPublicIP() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+			"idle_timeout_in_minutes": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -58,6 +63,10 @@ func dataSourceArmPublicIPRead(d *schema.ResourceData, meta interface{}) error {
 
 	if resp.PublicIPAddressPropertiesFormat.IPAddress != nil && *resp.PublicIPAddressPropertiesFormat.IPAddress != "" {
 		d.Set("ip_address", resp.PublicIPAddressPropertiesFormat.IPAddress)
+	}
+
+	if resp.PublicIPAddressPropertiesFormat.IdleTimeoutInMinutes != nil {
+		d.Set("idle_timeout_in_minutes", *resp.PublicIPAddressPropertiesFormat.IdleTimeoutInMinutes)
 	}
 
 	flattenAndSetTags(d, resp.Tags)

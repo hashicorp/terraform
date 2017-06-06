@@ -29,6 +29,7 @@ func TestAccDataSourceAzureRMPublicIP_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("data.azurerm_public_ip.test", "tags.environment", "test"),
 					resource.TestCheckResourceAttrSet("data.azurerm_public_ip.test", "ip_address"),
 					resource.TestCheckResourceAttrSet("data.azurerm_public_ip.test", "fqdn"),
+					resource.TestCheckResourceAttr("data.azurerm_public_ip.test", "idle_timeout_in_minutes", "30"),
 				),
 			},
 		},
@@ -47,7 +48,8 @@ resource "azurerm_public_ip" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "static"
 	domain_name_label = "mylabel01"
-
+	idle_timeout_in_minutes = 30
+	
     tags {
 		environment = "test"
     }
