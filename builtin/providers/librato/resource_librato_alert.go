@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -88,6 +87,7 @@ func resourceLibratoAlert() *schema.Resource {
 			"attributes": {
 				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"runbook_url": {
@@ -138,9 +138,8 @@ func resourceLibratoAlertConditionsHash(v interface{}) int {
 func resourceLibratoAlertCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*librato.Client)
 
-	alert := new(librato.Alert)
-	if v, ok := d.GetOk("name"); ok {
-		alert.Name = librato.String(v.(string))
+	alert := librato.Alert{
+		Name: librato.String(d.Get("name").(string)),
 	}
 	if v, ok := d.GetOk("description"); ok {
 		alert.Description = librato.String(v.(string))
@@ -206,14 +205,14 @@ func resourceLibratoAlertCreate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	alertResult, _, err := client.Alerts.Create(alert)
+	alertResult, _, err := client.Alerts.Create(&alert)
 
 	if err != nil {
 		return fmt.Errorf("Error creating Librato alert %s: %s", *alert.Name, err)
 	}
 	log.Printf("[INFO] Created Librato alert: %s", *alertResult)
 
-	resource.Retry(1*time.Minute, func() *resource.RetryError {
+	retryErr := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, _, err := client.Alerts.Get(*alertResult.ID)
 		if err != nil {
 			if errResp, ok := err.(*librato.ErrorResponse); ok && errResp.Response.StatusCode == 404 {
@@ -223,6 +222,9 @@ func resourceLibratoAlertCreate(d *schema.ResourceData, meta interface{}) error 
 		}
 		return nil
 	})
+	if retryErr != nil {
+		return fmt.Errorf("Error creating librato alert: %s", err)
+	}
 
 	d.SetId(strconv.FormatUint(uint64(*alertResult.ID), 10))
 
@@ -247,23 +249,40 @@ func resourceLibratoAlertRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[INFO] Received Librato Alert: %s", *alert)
 
-	return resourceLibratoAlertReadResult(d, alert)
-}
+	d.Set("name", alert.Name)
 
-func resourceLibratoAlertReadResult(d *schema.ResourceData, alert *librato.Alert) error {
-	d.Set("name", *alert.Name)
-	d.Set("description", *alert.Description)
-	d.Set("active", *alert.Active)
-	d.Set("rearm_seconds", *alert.RearmSeconds)
+	if alert.Description != nil {
+		if err := d.Set("description", alert.Description); err != nil {
+			return err
+		}
+	}
+	if alert.Active != nil {
+		if err := d.Set("active", alert.Active); err != nil {
+			return err
+		}
+	}
+	if alert.RearmSeconds != nil {
+		if err := d.Set("rearm_seconds", alert.RearmSeconds); err != nil {
+			return err
+		}
+	}
 
+	// Since the following aren't simple terraform types (TypeList), it's best to
+	// catch the error returned from the d.Set() function, and handle accordingly.
 	services := resourceLibratoAlertServicesGather(d, alert.Services.([]interface{}))
-	d.Set("services", schema.NewSet(schema.HashString, services))
+	if err := d.Set("services", schema.NewSet(schema.HashString, services)); err != nil {
+		return err
+	}
 
 	conditions := resourceLibratoAlertConditionsGather(d, alert.Conditions)
-	d.Set("condition", schema.NewSet(resourceLibratoAlertConditionsHash, conditions))
+	if err := d.Set("condition", schema.NewSet(resourceLibratoAlertConditionsHash, conditions)); err != nil {
+		return err
+	}
 
 	attributes := resourceLibratoAlertAttributesGather(d, alert.Attributes)
-	d.Set("attributes", attributes)
+	if err := d.Set("attributes", attributes); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -329,30 +348,22 @@ func resourceLibratoAlertAttributesGather(d *schema.ResourceData, attributes *li
 func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*librato.Client)
 
-	alertID, err := strconv.ParseUint(d.Id(), 10, 0)
-	if err != nil {
-		return err
-	}
-
-	// Just to have whole object for comparison before/after update
-	fullAlert, _, err := client.Alerts.Get(uint(alertID))
+	id, err := strconv.ParseUint(d.Id(), 10, 0)
 	if err != nil {
 		return err
 	}
 
 	alert := new(librato.Alert)
 	alert.Name = librato.String(d.Get("name").(string))
+
 	if d.HasChange("description") {
 		alert.Description = librato.String(d.Get("description").(string))
-		fullAlert.Description = alert.Description
 	}
 	if d.HasChange("active") {
 		alert.Active = librato.Bool(d.Get("active").(bool))
-		fullAlert.Active = alert.Active
 	}
 	if d.HasChange("rearm_seconds") {
 		alert.RearmSeconds = librato.Uint(uint(d.Get("rearm_seconds").(int)))
-		fullAlert.RearmSeconds = alert.RearmSeconds
 	}
 	if d.HasChange("services") {
 		vs := d.Get("services").(*schema.Set)
@@ -361,7 +372,6 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 			services[i] = librato.String(serviceData.(string))
 		}
 		alert.Services = services
-		fullAlert.RearmSeconds = alert.RearmSeconds
 	}
 
 	vs := d.Get("condition").(*schema.Set)
@@ -392,33 +402,27 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 		}
 		conditions[i] = condition
 		alert.Conditions = conditions
-		fullAlert.Conditions = conditions
 	}
 	if d.HasChange("attributes") {
 		attributeData := d.Get("attributes").([]interface{})
-		if len(attributeData) > 1 {
-			return fmt.Errorf("Only one set of attributes per alert is supported")
-		} else if len(attributeData) == 1 {
-			if attributeData[0] == nil {
-				return fmt.Errorf("No attributes found in attributes block")
-			}
-			attributeDataMap := attributeData[0].(map[string]interface{})
-			attributes := new(librato.AlertAttributes)
-			if v, ok := attributeDataMap["runbook_url"].(string); ok && v != "" {
-				attributes.RunbookURL = librato.String(v)
-			}
-			alert.Attributes = attributes
-			fullAlert.Attributes = attributes
+		if attributeData[0] == nil {
+			return fmt.Errorf("No attributes found in attributes block")
 		}
+		attributeDataMap := attributeData[0].(map[string]interface{})
+		attributes := new(librato.AlertAttributes)
+		if v, ok := attributeDataMap["runbook_url"].(string); ok && v != "" {
+			attributes.RunbookURL = librato.String(v)
+		}
+		alert.Attributes = attributes
 	}
 
 	log.Printf("[INFO] Updating Librato alert: %s", alert)
-	_, updErr := client.Alerts.Update(uint(alertID), alert)
+	_, updErr := client.Alerts.Update(uint(id), alert)
 	if updErr != nil {
 		return fmt.Errorf("Error updating Librato alert: %s", updErr)
 	}
 
-	log.Printf("[INFO] Updated Librato alert %d", alertID)
+	log.Printf("[INFO] Updated Librato alert %d", id)
 
 	// Wait for propagation since Librato updates are eventually consistent
 	wait := resource.StateChangeConf{
@@ -428,20 +432,18 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 		MinTimeout:                2 * time.Second,
 		ContinuousTargetOccurence: 5,
 		Refresh: func() (interface{}, string, error) {
-			log.Printf("[DEBUG] Checking if Librato Alert %d was updated yet", alertID)
-			changedAlert, _, getErr := client.Alerts.Get(uint(alertID))
+			log.Printf("[DEBUG] Checking if Librato Alert %d was updated yet", id)
+			changedAlert, _, getErr := client.Alerts.Get(uint(id))
 			if getErr != nil {
 				return changedAlert, "", getErr
 			}
-			isEqual := reflect.DeepEqual(*fullAlert, *changedAlert)
-			log.Printf("[DEBUG] Updated Librato Alert %d match: %t", alertID, isEqual)
-			return changedAlert, fmt.Sprintf("%t", isEqual), nil
+			return changedAlert, "true", nil
 		},
 	}
 
 	_, err = wait.WaitForState()
 	if err != nil {
-		return fmt.Errorf("Failed updating Librato Alert %d: %s", alertID, err)
+		return fmt.Errorf("Failed updating Librato Alert %d: %s", id, err)
 	}
 
 	return resourceLibratoAlertRead(d, meta)
@@ -460,7 +462,7 @@ func resourceLibratoAlertDelete(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error deleting Alert: %s", err)
 	}
 
-	resource.Retry(1*time.Minute, func() *resource.RetryError {
+	retryErr := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, _, err := client.Alerts.Get(uint(id))
 		if err != nil {
 			if errResp, ok := err.(*librato.ErrorResponse); ok && errResp.Response.StatusCode == 404 {
@@ -470,7 +472,9 @@ func resourceLibratoAlertDelete(d *schema.ResourceData, meta interface{}) error 
 		}
 		return resource.RetryableError(fmt.Errorf("alert still exists"))
 	})
+	if retryErr != nil {
+		return fmt.Errorf("Error deleting librato alert: %s", err)
+	}
 
-	d.SetId("")
 	return nil
 }
