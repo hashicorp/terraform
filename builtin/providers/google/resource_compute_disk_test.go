@@ -304,7 +304,7 @@ resource "google_compute_instance" "bar" {
 	zone = "us-central1-a"
 
 	disk {
-		image = "debian-8"
+		image = "debian-8-jessie-v20170523"
 	}
 
 	disk {

@@ -204,7 +204,7 @@ func resourceComputeDiskUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return nil
+	return resourceComputeDiskRead(d, meta)
 }
 
 func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
@@ -259,10 +259,7 @@ func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 		imageUrlParts := strings.Split(disk.SourceImage, "/")
 		d.Set("image", imageUrlParts[len(imageUrlParts)-1])
 	}
-	if disk.SourceSnapshot != "" {
-		snapshotUrlParts := strings.Split(disk.SourceSnapshot, "/")
-		d.Set("snapshot", snapshotUrlParts[len(snapshotUrlParts)-1])
-	}
+	d.Set("snapshot", disk.SourceSnapshot)
 
 	return nil
 }
