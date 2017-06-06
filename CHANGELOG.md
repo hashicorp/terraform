@@ -81,6 +81,7 @@ BUG FIXES:
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
 * provider/google: use a mutex to prevent concurrent sql instance operations [GH-14424]
 * provider/google: Set instances to computed in compute_instance_group [GH-15025]
+* provider/google: Make google_compute_autoscaler use Update instead of Patch. [GH-15101]
 * provider/kubernetes: Ignore internal k8s labels in `kubernetes_persistent_volume` [GH-13716]
 * provider/postgresql: Fix for leaking credentials in the provider [GH-14817]
 * provider/postgresql: Drop the optional WITH token from CREATE ROLE. [GH-14864]
