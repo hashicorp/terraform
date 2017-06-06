@@ -94,6 +94,7 @@ func TestMain(m *testing.M) {
 		// get filtered list of sweepers to run based on sweep-run flag
 		sweepers := filterSweepers(*flagSweepRun, sweeperFuncs)
 		for _, region := range regions {
+			region = strings.TrimSpace(region)
 			// reset sweeperRunList for each region
 			sweeperRunList = map[string]bool{}
 
