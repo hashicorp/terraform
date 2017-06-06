@@ -311,6 +311,30 @@ func TestAccAWSLambdaFunction_VPC(t *testing.T) {
 	})
 }
 
+// See https://github.com/hashicorp/terraform/issues/5767
+// and https://github.com/hashicorp/terraform/issues/10272
+func TestAccAWSLambdaFunction_VPC_withInvocation(t *testing.T) {
+	var conf lambda.GetFunctionOutput
+
+	rSt := acctest.RandString(5)
+	rName := fmt.Sprintf("tf_test_%s", rSt)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLambdaConfigWithVPC(rName, rSt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					testAccAwsInvokeLambdaFunction(&conf),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSLambdaFunction_s3(t *testing.T) {
 	var conf lambda.GetFunctionOutput
 	rSt := acctest.RandString(5)
@@ -749,6 +773,20 @@ func testAccCheckAwsLambdaFunctionExists(res, funcName string, function *lambda.
 		*function = *getFunction
 
 		return nil
+	}
+}
+
+func testAccAwsInvokeLambdaFunction(function *lambda.GetFunctionOutput) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		f := function.Configuration
+		conn := testAccProvider.Meta().(*AWSClient).lambdaconn
+
+		// If the function is VPC-enabled this will create ENI automatically
+		_, err := conn.Invoke(&lambda.InvokeInput{
+			FunctionName: f.FunctionName,
+		})
+
+		return err
 	}
 }
 
