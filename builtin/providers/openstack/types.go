@@ -63,6 +63,7 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	}
 
 	if lrt.OsDebug {
+		log.Printf("[DEBUG] Openstack Response Code: %d", response.StatusCode)
 		log.Printf("[DEBUG] Openstack Response Headers:\n%s", FormatHeaders(response.Header, "\n"))
 
 		response.Body, err = lrt.logResponse(response.Body, response.Header.Get("Content-Type"))
