@@ -113,6 +113,7 @@ To make a resource importable, please see the
 * azurerm_availability_set
 * azurerm_express_route_circuit
 * azurerm_dns_zone
+* azurerm_image
 * azurerm_local_network_gateway
 * azurerm_network_security_group
 * azurerm_network_security_rule
@@ -121,7 +122,6 @@ To make a resource importable, please see the
 * azurerm_sql_firewall_rule
 * azurerm_storage_account
 * azurerm_virtual_network
-* azurerm_image
 
 ### Circonus
 

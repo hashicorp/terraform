@@ -1,12 +1,12 @@
 ---
 layout: "azurerm"
 page_title: "Azure Resource Manager: azurerm_image"
-sidebar_current: "docs-azurerm-resource-managed-image"
+sidebar_current: "docs-azurerm-resource-image"
 description: |-
   Create a custom virtual machine image that can be used to create virtual machines.
 ---
 
-# azurerm\_managed\_image
+# azurerm\_image
 
 Create a custom virtual machine image that can be used to create virtual machines.
 
@@ -53,12 +53,12 @@ The following arguments are supported:
 * `name` - (Required) Specifies the name of the image. Changing this forces a
     new resource to be created.
 * `resource_group_name` - (Required) The name of the resource group in which to create
-    the managed image. Changing this forces a new resource to be created.
+    the image. Changing this forces a new resource to be created.
 * `location` - (Required) Specified the supported Azure location where the resource exists.
     Changing this forces a new resource to be created.
-* `source_virtual_machine_id` - (Required when creating managed image from existing VM) 
-    ID of an existing VM from which the managed image
-    will be created. VM must be generalized prior to creating managed image.
+* `source_virtual_machine_id` - (Required when creating image from existing VM) 
+    ID of an existing VM from which the image
+    will be created. VM must be generalized prior to creating image.
 * `os_disk_os_type` - (Required) Specifies the type of operating system contained in the the virtual machine image. Possible values are: Windows or Linux.
 * `os_disk_os_state` - (Required) Specifies the state of the operating system contained in the blob. Currently, the only value is Generalized.
 * `os_disk_managed_disk_id` - (Optional) Specifies the ID of the managed disk resource that you want to use to create the image.
@@ -85,8 +85,8 @@ The following attributes are exported:
 
 ## Import
 
-Managed Image can be imported using the `resource id`, e.g.
+Image can be imported using the `resource id`, e.g.
 
 ```
-terraform import azurerm_image.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.compute/images/managedimage1
+terraform import azurerm_image.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.compute/images/image1
 ```

@@ -96,10 +96,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"image_id": {
-							Type:          schema.TypeString,
-							Optional:      true,
-							ForceNew:      true,
-							ConflictsWith: []string{"storage_image_reference.publisher", "storage_image_reference.offer", "storage_image_reference.sku"},
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
 						},
 
 						"publisher": {
@@ -1343,14 +1342,12 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 			data_disk.ManagedDisk = managedDisk
 		}
 
-		//BEGIN: code to be removed after GH-13016 is merged
 		if vhdURI != "" && managedDiskID != "" {
 			return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_id` (only one or the other can be used)")
 		}
 		if vhdURI != "" && managedDiskType != "" {
 			return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_type` (only one or the other can be used)")
 		}
-		//END: code to be removed after GH-13016 is merged
 		if managedDiskID == "" && strings.EqualFold(string(data_disk.CreateOption), string(compute.Attach)) {
 			return nil, fmt.Errorf("[ERROR] Must specify which disk to attach")
 		}

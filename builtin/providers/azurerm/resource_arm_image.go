@@ -10,12 +10,12 @@ import (
 	"github.com/hashicorp/terraform/helper/validation"
 )
 
-func resourceArmManagedImage() *schema.Resource {
+func resourceArmImage() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmManagedImageCreate,
-		Read:   resourceArmManagedImageRead,
-		Update: resourceArmManagedImageCreate,
-		Delete: resourceArmManagedImageDelete,
+		Create: resourceArmImageCreateUpdate,
+		Read:   resourceArmImageRead,
+		Update: resourceArmImageCreateUpdate,
+		Delete: resourceArmImageDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -48,6 +48,7 @@ func resourceArmManagedImage() *schema.Resource {
 					string(compute.Linux),
 					string(compute.Windows),
 				}, true),
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"os_disk_os_state": {
@@ -63,7 +64,6 @@ func resourceArmManagedImage() *schema.Resource {
 			"os_disk_managed_disk_id": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"os_disk_blob_uri": {
@@ -75,6 +75,7 @@ func resourceArmManagedImage() *schema.Resource {
 			"os_disk_caching": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "None",
 				ValidateFunc: validation.StringInSlice([]string{
 					string(compute.None),
 					string(compute.ReadOnly),
@@ -113,11 +114,13 @@ func resourceArmManagedImage() *schema.Resource {
 						"caching": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  "None",
 							ValidateFunc: validation.StringInSlice([]string{
 								string(compute.None),
 								string(compute.ReadOnly),
 								string(compute.ReadWrite),
 							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"size_gb": {
@@ -133,7 +136,7 @@ func resourceArmManagedImage() *schema.Resource {
 	}
 }
 
-func resourceArmManagedImageCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmImageCreateUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	imageClient := client.imageClient
 
@@ -146,19 +149,18 @@ func resourceArmManagedImageCreate(d *schema.ResourceData, meta interface{}) err
 	expandedTags := expandTags(tags)
 
 	osDisk := &compute.ImageOSDisk{}
-	if v := d.Get("os_disk_os_type").(string); v != "" {
+	if v, ok := d.Get("os_disk_os_type").(string); ok {
 		osType := compute.OperatingSystemTypes(v)
 		osDisk.OsType = osType
 	}
 
-	if v := d.Get("os_disk_os_state").(string); v != "" {
+	if v, ok := d.Get("os_disk_os_state").(string); ok {
 		osState := compute.OperatingSystemStateTypes(v)
 		osDisk.OsState = osState
 	}
 
 	managedDisk := &compute.SubResource{}
-	managedDiskID := d.Get("os_disk_managed_disk_id").(string)
-	if managedDiskID != "" {
+	if managedDiskID, _ := d.Get("os_disk_managed_disk_id").(string); managedDiskID != "" {
 		managedDisk.ID = &managedDiskID
 		osDisk.ManagedDisk = managedDisk
 	}
@@ -230,10 +232,10 @@ func resourceArmManagedImageCreate(d *schema.ResourceData, meta interface{}) err
 
 	d.SetId(*read.ID)
 
-	return resourceArmManagedImageRead(d, meta)
+	return resourceArmImageRead(d, meta)
 }
 
-func resourceArmManagedImageRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmImageRead(d *schema.ResourceData, meta interface{}) error {
 	imageClient := meta.(*ArmClient).imageClient
 
 	id, err := parseAzureResourceID(d.Id())
@@ -249,28 +251,31 @@ func resourceArmManagedImageRead(d *schema.ResourceData, meta interface{}) error
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("[ERROR] Error making Read request on Azure Image %s (resource group %s): %s", name, resGroup, err)
+		return fmt.Errorf("[ERROR] Error making Read request on AzureRM Image %s (resource group %s): %s", name, resGroup, err)
 	}
 
 	d.Set("name", resp.Name)
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", resp.Location)
 
+	//either source VM or storage profile can be specified, but not both
 	if resp.SourceVirtualMachine != nil {
 		flattenAzureRmSourceVMProperties(d, resp.SourceVirtualMachine)
-	}
-
-	if resp.StorageProfile != nil {
+	} else if resp.StorageProfile != nil {
 		if resp.StorageProfile.OsDisk != nil {
-			osDisk := *resp.StorageProfile.OsDisk
-			d.Set("os_disk_os_type", osDisk.OsType)
-			d.Set("os_disk_os_state", osDisk.OsState)
-			if osDisk.ManagedDisk != nil {
-				d.Set("os_disk_managed_disk_id", *osDisk.ManagedDisk.ID)
+			d.Set("os_disk_os_type", resp.StorageProfile.OsDisk.OsType)
+			d.Set("os_disk_os_state", resp.StorageProfile.OsDisk.OsState)
+
+			if resp.StorageProfile.OsDisk.ManagedDisk != nil {
+				d.Set("os_disk_managed_disk_id", *resp.StorageProfile.OsDisk.ManagedDisk.ID)
 			}
-			d.Set("os_disk_blob_uri", *osDisk.BlobURI)
-			d.Set("os_disk_caching", osDisk.Caching)
-			d.Set("os_disk_size_gb", *osDisk.DiskSizeGB)
+			if resp.StorageProfile.OsDisk.BlobURI != nil {
+				d.Set("os_disk_blob_uri", *resp.StorageProfile.OsDisk.BlobURI)
+			}
+			d.Set("os_disk_caching", resp.StorageProfile.OsDisk.Caching)
+			if resp.StorageProfile.OsDisk.DiskSizeGB != nil {
+				d.Set("os_disk_size_gb", *resp.StorageProfile.OsDisk.DiskSizeGB)
+			}
 		}
 
 		if resp.StorageProfile.DataDisks != nil {
@@ -285,7 +290,7 @@ func resourceArmManagedImageRead(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceArmManagedImageDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmImageDelete(d *schema.ResourceData, meta interface{}) error {
 	imageClient := meta.(*ArmClient).imageClient
 
 	id, err := parseAzureResourceID(d.Id())
@@ -338,18 +343,16 @@ func expandAzureRmImageDataDisks(d *schema.ResourceData) ([]compute.ImageDataDis
 
 		managedDiskID := d.Get("managed_disk_id").(string)
 		blobURI := d.Get("blob_uri").(string)
-
 		lun := int32(config["lun"].(int))
 
-		diskSize := int32(0)
-		if size := d.Get("size_gb"); size != 0 {
-			diskSize = int32(size.(int))
+		dataDisk := compute.ImageDataDisk{
+			Lun:     &lun,
+			BlobURI: &blobURI,
 		}
 
-		dataDisk := compute.ImageDataDisk{
-			Lun:        &lun,
-			BlobURI:    &blobURI,
-			DiskSizeGB: &diskSize,
+		if size := d.Get("size_gb"); size != 0 {
+			diskSize := int32(size.(int))
+			dataDisk.DiskSizeGB = &diskSize
 		}
 
 		if v := d.Get("caching").(string); v != "" {
@@ -357,8 +360,8 @@ func expandAzureRmImageDataDisks(d *schema.ResourceData) ([]compute.ImageDataDis
 			dataDisk.Caching = caching
 		}
 
-		managedDisk := &compute.SubResource{}
 		if managedDiskID != "" {
+			managedDisk := &compute.SubResource{}
 			managedDisk.ID = &managedDiskID
 			dataDisk.ManagedDisk = managedDisk
 		}
