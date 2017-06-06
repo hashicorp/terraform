@@ -1145,10 +1145,6 @@ func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
 				Name:   aws.String("description"),
 				Values: []*string{aws.String("AWS Lambda VPC ENI: *")},
 			},
-			{
-				Name:   aws.String("requester-id"),
-				Values: []*string{aws.String("*:awslambda_*")},
-			},
 		},
 	}
 	networkInterfaceResp, err := conn.DescribeNetworkInterfaces(params)
