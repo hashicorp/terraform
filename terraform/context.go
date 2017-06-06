@@ -106,6 +106,7 @@ type Context struct {
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]interface{}
+	providerSHA256s     map[string][]byte
 	runLock             sync.Mutex
 	runCond             *sync.Cond
 	runContext          context.Context
@@ -218,6 +219,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]interface{}),
+		providerSHA256s:     opts.ProviderSHA256s,
 		sh:                  sh,
 	}, nil
 }
@@ -529,6 +531,9 @@ func (c *Context) Plan() (*Plan, error) {
 		Vars:    c.variables,
 		State:   c.state,
 		Targets: c.targets,
+
+		TerraformVersion: VersionString(),
+		ProviderSHA256s:  c.providerSHA256s,
 	}
 
 	var operation walkOperation
