@@ -8,7 +8,10 @@ description: |-
 
 # google\_storage\_bucket\_acl
 
-Creates a new bucket ACL in Google cloud storage service(GCS).
+Creates a new bucket ACL in Google cloud storage service (GCS). For more information see 
+[the official documentation](https://cloud.google.com/storage/docs/access-control/lists) 
+and 
+[API](https://cloud.google.com/storage/docs/json_api/v1/bucketAccessControls).
 
 ## Example Usage
 
