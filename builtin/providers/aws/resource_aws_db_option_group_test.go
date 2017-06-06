@@ -2,8 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"regexp"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -12,6 +15,64 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func init() {
+	resource.AddTestSweepers("aws_db_option_group", &resource.Sweeper{
+		Name: "aws_db_option_group",
+		F:    testSweepDbOptionGroups,
+	})
+}
+
+func testSweepDbOptionGroups(region string) error {
+	client, err := sharedClientForRegion(region)
+	if err != nil {
+		return fmt.Errorf("error getting client: %s", err)
+	}
+
+	conn := client.(*AWSClient).rdsconn
+
+	opts := rds.DescribeOptionGroupsInput{}
+	resp, err := conn.DescribeOptionGroups(&opts)
+	if err != nil {
+		return fmt.Errorf("error describing DB Option Groups in Sweeper: %s", err)
+	}
+
+	for _, og := range resp.OptionGroupsList {
+		var testOptGroup bool
+		for _, testName := range []string{"option-group-test-terraform-", "tf-test"} {
+			if strings.HasPrefix(*og.OptionGroupName, testName) {
+				testOptGroup = true
+			}
+		}
+
+		if !testOptGroup {
+			continue
+		}
+
+		deleteOpts := &rds.DeleteOptionGroupInput{
+			OptionGroupName: og.OptionGroupName,
+		}
+
+		ret := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			_, err := conn.DeleteOptionGroup(deleteOpts)
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					if awsErr.Code() == "InvalidOptionGroupStateFault" {
+						log.Printf("[DEBUG] AWS believes the RDS Option Group is still in use, retrying")
+						return resource.RetryableError(awsErr)
+					}
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		if ret != nil {
+			return fmt.Errorf("Error Deleting DB Option Group (%s) in Sweeper: %s", *og.OptionGroupName, ret)
+		}
+	}
+
+	return nil
+}
 
 func TestAccAWSDBOptionGroup_basic(t *testing.T) {
 	var v rds.OptionGroup
