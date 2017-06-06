@@ -9,6 +9,8 @@ FEATURES:
 
  * **New Data Source:** `aws_elastic_beanstalk_solution_stack` [GH-14944]
  * **New Data Source:** `aws_elasticache_cluster` [GH-14895]
+ * **New Data Source:** `aws_ssm_parameter` [GH-15035]
+ * **New Resource:** `aws_ssm_parameter` [GH-15035]
  * **New Resource:** `aws_ssm_patch_baseline` [GH-14954]
  * **New Resource:** `aws_ssm_patch_group` [GH-14954]
  * **New Resource:** `librato_metric` [GH-14562]
