@@ -213,10 +213,10 @@ func diffCloudWatchTags(oldTags map[string]interface{}, newTags map[string]inter
 	}
 
 	var remove []*string
-	for _, t := range oldTags {
-		old, ok := create[t.(string)]
-		if !ok || *old != t.(string) {
-			remove = append(remove, aws.String(t.(string)))
+	for t, _ := range oldTags {
+		_, ok := create[t]
+		if !ok {
+			remove = append(remove, aws.String(t))
 		}
 	}
 

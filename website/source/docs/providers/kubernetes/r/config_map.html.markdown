@@ -54,8 +54,8 @@ The following arguments are supported:
 
 ## Import
 
-Config Map can be imported using its name, e.g.
+Config Map can be imported using its namespace and name, e.g.
 
 ```
-$ terraform import kubernetes_config_map.example my-config
+$ terraform import kubernetes_config_map.example default/my-config
 ```

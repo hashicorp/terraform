@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -55,7 +56,7 @@ func waitForAction(client *godo.Client, action *godo.Action) error {
 		pending   = "in-progress"
 		target    = "completed"
 		refreshfn = func() (result interface{}, state string, err error) {
-			a, _, err := client.Actions.Get(action.ID)
+			a, _, err := client.Actions.Get(context.Background(), action.ID)
 			if err != nil {
 				return nil, "", err
 			}

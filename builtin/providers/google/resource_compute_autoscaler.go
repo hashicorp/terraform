@@ -269,7 +269,6 @@ func flattenAutoscalingPolicy(policy *compute.AutoscalingPolicy) []map[string]in
 		for _, customMetricUtilization := range policy.CustomMetricUtilizations {
 			metricUtil := make(map[string]interface{})
 			metricUtil["target"] = customMetricUtilization.UtilizationTarget
-
 			metricUtils = append(metricUtils, metricUtil)
 		}
 		policyMap["metric"] = metricUtils
@@ -299,7 +298,7 @@ func resourceComputeAutoscalerRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 	if resource == nil {
-		log.Printf("[WARN] Removing Autoscalar %q because it's gone", d.Get("name").(string))
+		log.Printf("[WARN] Removing Autoscaler %q because it's gone", d.Get("name").(string))
 		d.SetId("")
 		return nil
 	}
@@ -332,7 +331,7 @@ func resourceComputeAutoscalerUpdate(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	op, err := config.clientCompute.Autoscalers.Patch(
+	op, err := config.clientCompute.Autoscalers.Update(
 		project, zone, scaler).Do()
 	if err != nil {
 		return fmt.Errorf("Error updating Autoscaler: %s", err)

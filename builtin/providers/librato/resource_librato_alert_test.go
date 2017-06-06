@@ -11,6 +11,28 @@ import (
 	"github.com/henrikhodne/go-librato/librato"
 )
 
+func TestAccLibratoAlert_Minimal(t *testing.T) {
+	var alert librato.Alert
+	name := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLibratoAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckLibratoAlertConfig_minimal(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
+					testAccCheckLibratoAlertName(&alert, name),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "name", name),
+				),
+			},
+		},
+	})
+}
+
 func TestAccLibratoAlert_Basic(t *testing.T) {
 	var alert librato.Alert
 	name := acctest.RandString(10)
@@ -25,6 +47,7 @@ func TestAccLibratoAlert_Basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
 					testAccCheckLibratoAlertName(&alert, name),
+					testAccCheckLibratoAlertDescription(&alert, "A Test Alert"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "name", name),
 				),
@@ -47,10 +70,13 @@ func TestAccLibratoAlert_Full(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
 					testAccCheckLibratoAlertName(&alert, name),
+					testAccCheckLibratoAlertDescription(&alert, "A Test Alert"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "name", name),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "condition.836525194.metric_name", "librato.cpu.percent.idle"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "condition.836525194.type", "above"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "condition.836525194.threshold", "10"),
 					resource.TestCheckResourceAttr(
@@ -92,6 +118,36 @@ func TestAccLibratoAlert_Updated(t *testing.T) {
 	})
 }
 
+func TestAccLibratoAlert_Rename(t *testing.T) {
+	var alert librato.Alert
+	name := acctest.RandString(10)
+	newName := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLibratoAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckLibratoAlertConfig_basic(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "name", name),
+				),
+			},
+			{
+				Config: testAccCheckLibratoAlertConfig_basic(newName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "name", newName),
+				),
+			},
+		},
+	})
+}
+
 func TestAccLibratoAlert_FullUpdate(t *testing.T) {
 	var alert librato.Alert
 	name := acctest.RandString(10)
@@ -106,12 +162,15 @@ func TestAccLibratoAlert_FullUpdate(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoAlertExists("librato_alert.foobar", &alert),
 					testAccCheckLibratoAlertName(&alert, name),
+					testAccCheckLibratoAlertDescription(&alert, "A Test Alert"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "name", name),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "rearm_seconds", "1200"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "condition.2524844643.metric_name", "librato.cpu.percent.idle"),
+					resource.TestCheckResourceAttr(
+						"librato_alert.foobar", "condition.2524844643.type", "above"),
 					resource.TestCheckResourceAttr(
 						"librato_alert.foobar", "condition.2524844643.threshold", "10"),
 					resource.TestCheckResourceAttr(
@@ -200,6 +259,13 @@ func testAccCheckLibratoAlertExists(n string, alert *librato.Alert) resource.Tes
 
 		return nil
 	}
+}
+
+func testAccCheckLibratoAlertConfig_minimal(name string) string {
+	return fmt.Sprintf(`
+resource "librato_alert" "foobar" {
+    name = "%s"
+}`, name)
 }
 
 func testAccCheckLibratoAlertConfig_basic(name string) string {

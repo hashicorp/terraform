@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 const awsMutexLambdaKey = `aws_lambda_function`
@@ -174,6 +175,22 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				},
 			},
 
+			"tracing_config": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"mode": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringInSlice([]string{"Active", "PassThrough"}, true),
+						},
+					},
+				},
+			},
+
 			"kms_key_arn": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -246,6 +263,10 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 	if v, ok := d.GetOk("dead_letter_config"); ok {
 		dlcMaps := v.([]interface{})
 		if len(dlcMaps) == 1 { // Schema guarantees either 0 or 1
+			// Prevent panic on nil dead_letter_config. See GH-14961
+			if dlcMaps[0] == nil {
+				return fmt.Errorf("Nil dead_letter_config supplied for function: %s", functionName)
+			}
 			dlcMap := dlcMaps[0].(map[string]interface{})
 			params.DeadLetterConfig = &lambda.DeadLetterConfig{
 				TargetArn: aws.String(dlcMap["target_arn"].(string)),
@@ -274,6 +295,14 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 				SubnetIds:        subnetIds,
 				SecurityGroupIds: securityGroupIds,
 			}
+		}
+	}
+
+	if v, ok := d.GetOk("tracing_config"); ok {
+		tracingConfig := v.([]interface{})
+		tracing := tracingConfig[0].(map[string]interface{})
+		params.TracingConfig = &lambda.TracingConfig{
+			Mode: aws.String(tracing["mode"].(string)),
 		}
 	}
 
@@ -310,6 +339,10 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 			log.Printf("[DEBUG] Error creating Lambda Function: %s", err)
 
 			if isAWSErr(err, "InvalidParameterValueException", "The role defined for the function cannot be assumed by Lambda") {
+				log.Printf("[DEBUG] Received %s, retrying CreateFunction", err)
+				return resource.RetryableError(err)
+			}
+			if isAWSErr(err, "InvalidParameterValueException", "The provided execution role does not have permissions") {
 				log.Printf("[DEBUG] Received %s, retrying CreateFunction", err)
 				return resource.RetryableError(err)
 			}
@@ -386,6 +419,14 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 		})
 	} else {
 		d.Set("dead_letter_config", []interface{}{})
+	}
+
+	if function.TracingConfig != nil {
+		d.Set("tracing_config", []interface{}{
+			map[string]interface{}{
+				"mode": *function.TracingConfig.Mode,
+			},
+		})
 	}
 
 	// List is sorted from oldest to latest
@@ -545,6 +586,16 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 			dlcMap := dlcMaps[0].(map[string]interface{})
 			configReq.DeadLetterConfig = &lambda.DeadLetterConfig{
 				TargetArn: aws.String(dlcMap["target_arn"].(string)),
+			}
+			configUpdate = true
+		}
+	}
+	if d.HasChange("tracing_config") {
+		tracingConfig := d.Get("tracing_config").([]interface{})
+		if len(tracingConfig) == 1 { // Schema guarantees either 0 or 1
+			config := tracingConfig[0].(map[string]interface{})
+			configReq.TracingConfig = &lambda.TracingConfig{
+				Mode: aws.String(config["mode"].(string)),
 			}
 			configUpdate = true
 		}

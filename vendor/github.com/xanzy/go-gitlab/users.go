@@ -25,14 +25,16 @@ import (
 // UsersService handles communication with the user related methods of
 // the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md
 type UsersService struct {
 	client *Client
 }
 
 // User represents a GitLab user.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md
 type User struct {
 	ID               int             `json:"id"`
 	Username         string          `json:"username"`
@@ -68,7 +70,8 @@ type UserIdentity struct {
 
 // ListUsersOptions represents the available ListUsers() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#list-users
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#list-users
 type ListUsersOptions struct {
 	ListOptions
 	Active   *bool   `url:"active,omitempty" json:"active,omitempty"`
@@ -78,7 +81,8 @@ type ListUsersOptions struct {
 
 // ListUsers gets a list of users.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#list-users
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#list-users
 func (s *UsersService) ListUsers(opt *ListUsersOptions, options ...OptionFunc) ([]*User, *Response, error) {
 	req, err := s.client.NewRequest("GET", "users", opt, options)
 	if err != nil {
@@ -96,7 +100,8 @@ func (s *UsersService) ListUsers(opt *ListUsersOptions, options ...OptionFunc) (
 
 // GetUser gets a single user.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#single-user
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#single-user
 func (s *UsersService) GetUser(user int, options ...OptionFunc) (*User, *Response, error) {
 	u := fmt.Sprintf("users/%d", user)
 
@@ -116,7 +121,8 @@ func (s *UsersService) GetUser(user int, options ...OptionFunc) (*User, *Respons
 
 // CreateUserOptions represents the available CreateUser() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#user-creation
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#user-creation
 type CreateUserOptions struct {
 	Email          *string `url:"email,omitempty" json:"email,omitempty"`
 	Password       *string `url:"password,omitempty" json:"password,omitempty"`
@@ -137,7 +143,8 @@ type CreateUserOptions struct {
 
 // CreateUser creates a new user. Note only administrators can create new users.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#user-creation
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#user-creation
 func (s *UsersService) CreateUser(opt *CreateUserOptions, options ...OptionFunc) (*User, *Response, error) {
 	req, err := s.client.NewRequest("POST", "users", opt, options)
 	if err != nil {
@@ -155,7 +162,8 @@ func (s *UsersService) CreateUser(opt *CreateUserOptions, options ...OptionFunc)
 
 // ModifyUserOptions represents the available ModifyUser() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#user-modification
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#user-modification
 type ModifyUserOptions struct {
 	Email          *string `url:"email,omitempty" json:"email,omitempty"`
 	Password       *string `url:"password,omitempty" json:"password,omitempty"`
@@ -176,7 +184,8 @@ type ModifyUserOptions struct {
 // ModifyUser modifies an existing user. Only administrators can change attributes
 // of a user.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#user-modification
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#user-modification
 func (s *UsersService) ModifyUser(user int, opt *ModifyUserOptions, options ...OptionFunc) (*User, *Response, error) {
 	u := fmt.Sprintf("users/%d", user)
 
@@ -200,7 +209,8 @@ func (s *UsersService) ModifyUser(user int, opt *ModifyUserOptions, options ...O
 // actually deleted or not. In the former the user is returned and in the
 // latter not.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#user-deletion
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#user-deletion
 func (s *UsersService) DeleteUser(user int, options ...OptionFunc) (*Response, error) {
 	u := fmt.Sprintf("users/%d", user)
 
@@ -214,7 +224,8 @@ func (s *UsersService) DeleteUser(user int, options ...OptionFunc) (*Response, e
 
 // CurrentUser gets currently authenticated user.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#current-user
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#current-user
 func (s *UsersService) CurrentUser(options ...OptionFunc) (*User, *Response, error) {
 	req, err := s.client.NewRequest("GET", "user", nil, options)
 	if err != nil {
@@ -232,7 +243,8 @@ func (s *UsersService) CurrentUser(options ...OptionFunc) (*User, *Response, err
 
 // SSHKey represents a SSH key.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#list-ssh-keys
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#list-ssh-keys
 type SSHKey struct {
 	ID        int        `json:"id"`
 	Title     string     `json:"title"`
@@ -242,7 +254,8 @@ type SSHKey struct {
 
 // ListSSHKeys gets a list of currently authenticated user's SSH keys.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#list-ssh-keys
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#list-ssh-keys
 func (s *UsersService) ListSSHKeys(options ...OptionFunc) ([]*SSHKey, *Response, error) {
 	req, err := s.client.NewRequest("GET", "user/keys", nil, options)
 	if err != nil {
@@ -262,7 +275,7 @@ func (s *UsersService) ListSSHKeys(options ...OptionFunc) ([]*SSHKey, *Response,
 // only for admin
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/users.html#list-ssh-keys-for-user
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#list-ssh-keys-for-user
 func (s *UsersService) ListSSHKeysForUser(user int, options ...OptionFunc) ([]*SSHKey, *Response, error) {
 	u := fmt.Sprintf("users/%d/keys", user)
 
@@ -282,7 +295,8 @@ func (s *UsersService) ListSSHKeysForUser(user int, options ...OptionFunc) ([]*S
 
 // GetSSHKey gets a single key.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#single-ssh-key
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#single-ssh-key
 func (s *UsersService) GetSSHKey(kid int, options ...OptionFunc) (*SSHKey, *Response, error) {
 	u := fmt.Sprintf("user/keys/%d", kid)
 
@@ -302,7 +316,8 @@ func (s *UsersService) GetSSHKey(kid int, options ...OptionFunc) (*SSHKey, *Resp
 
 // AddSSHKeyOptions represents the available AddSSHKey() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#add-ssh-key
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/projects.md#add-ssh-key
 type AddSSHKeyOptions struct {
 	Title *string `url:"title,omitempty" json:"title,omitempty"`
 	Key   *string `url:"key,omitempty" json:"key,omitempty"`
@@ -310,7 +325,8 @@ type AddSSHKeyOptions struct {
 
 // AddSSHKey creates a new key owned by the currently authenticated user.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#add-ssh-key
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#add-ssh-key
 func (s *UsersService) AddSSHKey(opt *AddSSHKeyOptions, options ...OptionFunc) (*SSHKey, *Response, error) {
 	req, err := s.client.NewRequest("POST", "user/keys", opt, options)
 	if err != nil {
@@ -329,7 +345,8 @@ func (s *UsersService) AddSSHKey(opt *AddSSHKeyOptions, options ...OptionFunc) (
 // AddSSHKeyForUser creates new key owned by specified user. Available only for
 // admin.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#add-ssh-key-for-user
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#add-ssh-key-for-user
 func (s *UsersService) AddSSHKeyForUser(user int, opt *AddSSHKeyOptions, options ...OptionFunc) (*SSHKey, *Response, error) {
 	u := fmt.Sprintf("users/%d/keys", user)
 
@@ -352,7 +369,7 @@ func (s *UsersService) AddSSHKeyForUser(user int, opt *AddSSHKeyOptions, options
 // available results in 200 OK.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/users.html#delete-ssh-key-for-current-owner
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#delete-ssh-key-for-current-owner
 func (s *UsersService) DeleteSSHKey(kid int, options ...OptionFunc) (*Response, error) {
 	u := fmt.Sprintf("user/keys/%d", kid)
 
@@ -368,7 +385,7 @@ func (s *UsersService) DeleteSSHKey(kid int, options ...OptionFunc) (*Response, 
 // for admin.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/users.html#delete-ssh-key-for-given-user
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#delete-ssh-key-for-given-user
 func (s *UsersService) DeleteSSHKeyForUser(user int, kid int, options ...OptionFunc) (*Response, error) {
 	u := fmt.Sprintf("users/%d/keys/%d", user, kid)
 
@@ -382,7 +399,8 @@ func (s *UsersService) DeleteSSHKeyForUser(user int, kid int, options ...OptionF
 
 // BlockUser blocks the specified user. Available only for admin.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#block-user
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#block-user
 func (s *UsersService) BlockUser(user int, options ...OptionFunc) error {
 	u := fmt.Sprintf("users/%d/block", user)
 
@@ -402,7 +420,7 @@ func (s *UsersService) BlockUser(user int, options ...OptionFunc) error {
 	case 403:
 		return errors.New("Cannot block a user that is already blocked by LDAP synchronization")
 	case 404:
-		return errors.New("User does not exists")
+		return errors.New("User does not exist")
 	default:
 		return fmt.Errorf("Received unexpected result code: %d", resp.StatusCode)
 	}
@@ -410,7 +428,8 @@ func (s *UsersService) BlockUser(user int, options ...OptionFunc) error {
 
 // UnblockUser unblocks the specified user. Available only for admin.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#unblock-user
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#unblock-user
 func (s *UsersService) UnblockUser(user int, options ...OptionFunc) error {
 	u := fmt.Sprintf("users/%d/unblock", user)
 
@@ -430,7 +449,7 @@ func (s *UsersService) UnblockUser(user int, options ...OptionFunc) error {
 	case 403:
 		return errors.New("Cannot unblock a user that is blocked by LDAP synchronization")
 	case 404:
-		return errors.New("User does not exists")
+		return errors.New("User does not exist")
 	default:
 		return fmt.Errorf("Received unexpected result code: %d", resp.StatusCode)
 	}
@@ -446,7 +465,8 @@ type Email struct {
 
 // ListEmails gets a list of currently authenticated user's Emails.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#list-emails
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#list-emails
 func (s *UsersService) ListEmails(options ...OptionFunc) ([]*Email, *Response, error) {
 	req, err := s.client.NewRequest("GET", "user/emails", nil, options)
 	if err != nil {
@@ -466,7 +486,7 @@ func (s *UsersService) ListEmails(options ...OptionFunc) ([]*Email, *Response, e
 // only for admin
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/users.html#list-emails-for-user
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#list-emails-for-user
 func (s *UsersService) ListEmailsForUser(uid int, options ...OptionFunc) ([]*Email, *Response, error) {
 	u := fmt.Sprintf("users/%d/emails", uid)
 
@@ -486,7 +506,8 @@ func (s *UsersService) ListEmailsForUser(uid int, options ...OptionFunc) ([]*Ema
 
 // GetEmail gets a single email.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#single-email
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#single-email
 func (s *UsersService) GetEmail(eid int, options ...OptionFunc) (*Email, *Response, error) {
 	u := fmt.Sprintf("user/emails/%d", eid)
 
@@ -506,14 +527,16 @@ func (s *UsersService) GetEmail(eid int, options ...OptionFunc) (*Email, *Respon
 
 // AddEmailOptions represents the available AddEmail() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#add-email
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/projects.md#add-email
 type AddEmailOptions struct {
 	Email *string `url:"email,omitempty" json:"email,omitempty"`
 }
 
 // AddEmail creates a new email owned by the currently authenticated user.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#add-email
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#add-email
 func (s *UsersService) AddEmail(opt *AddEmailOptions, options ...OptionFunc) (*Email, *Response, error) {
 	req, err := s.client.NewRequest("POST", "user/emails", opt, options)
 	if err != nil {
@@ -532,7 +555,8 @@ func (s *UsersService) AddEmail(opt *AddEmailOptions, options ...OptionFunc) (*E
 // AddEmailForUser creates new email owned by specified user. Available only for
 // admin.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#add-email-for-user
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#add-email-for-user
 func (s *UsersService) AddEmailForUser(uid int, opt *AddEmailOptions, options ...OptionFunc) (*Email, *Response, error) {
 	u := fmt.Sprintf("users/%d/emails", uid)
 
@@ -555,7 +579,7 @@ func (s *UsersService) AddEmailForUser(uid int, opt *AddEmailOptions, options ..
 // available results in 200 OK.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/users.html#delete-email-for-current-owner
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#delete-email-for-current-owner
 func (s *UsersService) DeleteEmail(eid int, options ...OptionFunc) (*Response, error) {
 	u := fmt.Sprintf("user/emails/%d", eid)
 
@@ -571,7 +595,7 @@ func (s *UsersService) DeleteEmail(eid int, options ...OptionFunc) (*Response, e
 // for admin.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/users.html#delete-email-for-given-user
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/users.md#delete-email-for-given-user
 func (s *UsersService) DeleteEmailForUser(uid int, eid int, options ...OptionFunc) (*Response, error) {
 	u := fmt.Sprintf("users/%d/emails/%d", uid, eid)
 

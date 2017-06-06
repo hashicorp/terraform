@@ -7,10 +7,11 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	pkgApi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgApi "k8s.io/apimachinery/pkg/types"
 	api "k8s.io/kubernetes/pkg/api/v1"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
+	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 func resourceKubernetesNamespace() *schema.Resource {
@@ -53,7 +54,7 @@ func resourceKubernetesNamespaceRead(d *schema.ResourceData, meta interface{}) e
 
 	name := d.Id()
 	log.Printf("[INFO] Reading namespace %s", name)
-	namespace, err := conn.CoreV1().Namespaces().Get(name)
+	namespace, err := conn.CoreV1().Namespaces().Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Printf("[DEBUG] Received error: %#v", err)
 		return err
@@ -92,7 +93,7 @@ func resourceKubernetesNamespaceDelete(d *schema.ResourceData, meta interface{})
 
 	name := d.Id()
 	log.Printf("[INFO] Deleting namespace: %#v", name)
-	err := conn.CoreV1().Namespaces().Delete(name, &api.DeleteOptions{})
+	err := conn.CoreV1().Namespaces().Delete(name, &meta_v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -102,7 +103,7 @@ func resourceKubernetesNamespaceDelete(d *schema.ResourceData, meta interface{})
 		Pending: []string{"Terminating"},
 		Timeout: 5 * time.Minute,
 		Refresh: func() (interface{}, string, error) {
-			out, err := conn.CoreV1().Namespaces().Get(name)
+			out, err := conn.CoreV1().Namespaces().Get(name, meta_v1.GetOptions{})
 			if err != nil {
 				if statusErr, ok := err.(*errors.StatusError); ok && statusErr.ErrStatus.Code == 404 {
 					return nil, "", nil
@@ -131,7 +132,7 @@ func resourceKubernetesNamespaceExists(d *schema.ResourceData, meta interface{})
 
 	name := d.Id()
 	log.Printf("[INFO] Checking namespace %s", name)
-	_, err := conn.CoreV1().Namespaces().Get(name)
+	_, err := conn.CoreV1().Namespaces().Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		if statusErr, ok := err.(*errors.StatusError); ok && statusErr.ErrStatus.Code == 404 {
 			return false, nil

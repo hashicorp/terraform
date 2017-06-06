@@ -146,6 +146,31 @@ func TestAccAzureRMEventHubNamespace_readDefaultKeys(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMEventHubNamespace_NonStandardCasing(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := testAccAzureRMEventHubNamespaceNonStandardCasing(ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMEventHubNamespaceExists("azurerm_eventhub_namespace.test"),
+				),
+			},
+			resource.TestStep{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMEventHubNamespaceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).eventHubNamespacesClient
 
@@ -226,3 +251,18 @@ resource "azurerm_eventhub_namespace" "test" {
     capacity = "2"
 }
 `
+
+func testAccAzureRMEventHubNamespaceNonStandardCasing(ri int) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+resource "azurerm_eventhub_namespace" "test" {
+    name = "acctesteventhubnamespace-%d"
+    location = "${azurerm_resource_group.test.location}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    sku = "basic"
+}
+`, ri, ri)
+}

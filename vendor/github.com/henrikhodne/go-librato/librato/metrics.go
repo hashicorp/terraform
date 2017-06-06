@@ -14,28 +14,36 @@ type MetricsService struct {
 // Metric represents a Librato Metric.
 type Metric struct {
 	Name        *string           `json:"name"`
+	Description *string           `json:"description,omitempty"`
+	Type        *string           `json:"type"`
 	Period      *uint             `json:"period,omitempty"`
 	DisplayName *string           `json:"display_name,omitempty"`
+	Composite   *string           `json:"composite,omitempty"`
 	Attributes  *MetricAttributes `json:"attributes,omitempty"`
 }
 
+// MetricAttributes are named attributes as key:value pairs.
 type MetricAttributes struct {
 	Color *string `json:"color"`
 	// These are interface{} because sometimes the Librato API
 	// returns strings, and sometimes it returns integers
 	DisplayMax        interface{} `json:"display_max"`
 	DisplayMin        interface{} `json:"display_min"`
+	DisplayUnitsLong  string      `json:"display_units_long"`
 	DisplayUnitsShort string      `json:"display_units_short"`
 	DisplayStacked    bool        `json:"display_stacked"`
-	DisplayTransform  string      `json:"display_transform"`
+	CreatedByUA       string      `json:"created_by_ua,omitempty"`
+	GapDetection      bool        `json:"gap_detection,omitempty"`
+	Aggregate         bool        `json:"aggregate,omitempty"`
 }
 
+// ListMetricsOptions are used to coordinate paging of metrics.
 type ListMetricsOptions struct {
 	*PaginationMeta
 	Name string `url:"name,omitempty"`
 }
 
-// Advance to the specified page in result set, while retaining
+// AdvancePage advances to the specified page in result set, while retaining
 // the filtering options.
 func (l *ListMetricsOptions) AdvancePage(next *PaginationMeta) ListMetricsOptions {
 	return ListMetricsOptions{
@@ -44,6 +52,7 @@ func (l *ListMetricsOptions) AdvancePage(next *PaginationMeta) ListMetricsOption
 	}
 }
 
+// ListMetricsResponse represents the response of a List call against the metrics service.
 type ListMetricsResponse struct {
 	ThisPage *PaginationResponseMeta
 	NextPage *PaginationMeta
@@ -51,7 +60,7 @@ type ListMetricsResponse struct {
 
 // List metrics using the provided options.
 //
-// Librato API docs: https://www.librato.com/docs/api/#retrieve-metrics
+// Librato API docs: https://www.librato.com/docs/api/#list-a-subset-of-metrics
 func (m *MetricsService) List(opts *ListMetricsOptions) ([]Metric, *ListMetricsResponse, error) {
 	u, err := urlWithOptions("metrics", opts)
 	if err != nil {
@@ -83,7 +92,7 @@ func (m *MetricsService) List(opts *ListMetricsOptions) ([]Metric, *ListMetricsR
 
 // Get a metric by name
 //
-// Librato API docs: https://www.librato.com/docs/api/#retrieve-metric-by-name
+// Librato API docs: https://www.librato.com/docs/api/#retrieve-a-metric-by-name
 func (m *MetricsService) Get(name string) (*Metric, *http.Response, error) {
 	u := fmt.Sprintf("metrics/%s", name)
 	req, err := m.client.NewRequest("GET", u, nil)
@@ -100,6 +109,7 @@ func (m *MetricsService) Get(name string) (*Metric, *http.Response, error) {
 	return metric, resp, err
 }
 
+// MeasurementSubmission represents the payload to submit/create a metric.
 type MeasurementSubmission struct {
 	MeasureTime *uint               `json:"measure_time,omitempty"`
 	Source      *string             `json:"source,omitempty"`
@@ -107,6 +117,7 @@ type MeasurementSubmission struct {
 	Counters    []*Measurement      `json:"counters,omitempty"`
 }
 
+// Measurement represents a Librato Measurement.
 type Measurement struct {
 	Name        string   `json:"name"`
 	Value       *float64 `json:"value,omitempty"`
@@ -114,6 +125,7 @@ type Measurement struct {
 	Source      *string  `json:"source,omitempty"`
 }
 
+// GaugeMeasurement represents a Librato measurement gauge.
 type GaugeMeasurement struct {
 	*Measurement
 	Count      *uint    `json:"count,omitempty"`
@@ -123,10 +135,10 @@ type GaugeMeasurement struct {
 	SumSquares *float64 `json:"sum_squares,omitempty"`
 }
 
-// Submit metrics
+// Create metrics
 //
-// Librato API docs: https://www.librato.com/docs/api/#submit-metrics
-func (m *MetricsService) Submit(measurements *MeasurementSubmission) (*http.Response, error) {
+// Librato API docs: https://www.librato.com/docs/api/#create-a-measurement
+func (m *MetricsService) Create(measurements *MeasurementSubmission) (*http.Response, error) {
 	req, err := m.client.NewRequest("POST", "/metrics", measurements)
 	if err != nil {
 		return nil, err
@@ -135,10 +147,10 @@ func (m *MetricsService) Submit(measurements *MeasurementSubmission) (*http.Resp
 	return m.client.Do(req, nil)
 }
 
-// Edit a metric.
+// Update a metric.
 //
-// Librato API docs: https://www.librato.com/docs/api/#update-metric-by-name
-func (m *MetricsService) Edit(metric *Metric) (*http.Response, error) {
+// Librato API docs: https://www.librato.com/docs/api/#update-a-metric-by-name
+func (m *MetricsService) Update(metric *Metric) (*http.Response, error) {
 	u := fmt.Sprintf("metrics/%s", *metric.Name)
 
 	req, err := m.client.NewRequest("PUT", u, metric)
@@ -151,7 +163,7 @@ func (m *MetricsService) Edit(metric *Metric) (*http.Response, error) {
 
 // Delete a metric.
 //
-// Librato API docs: https://www.librato.com/docs/api/#delete-metric-by-name
+// Librato API docs: https://www.librato.com/docs/api/#delete-a-metric-by-name
 func (m *MetricsService) Delete(name string) (*http.Response, error) {
 	u := fmt.Sprintf("metrics/%s", name)
 	req, err := m.client.NewRequest("DELETE", u, nil)

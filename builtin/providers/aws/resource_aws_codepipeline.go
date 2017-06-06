@@ -337,6 +337,10 @@ func expandAwsCodePipelineActions(s []interface{}) []*codepipeline.ActionDeclara
 			action.InputArtifacts = inputArtifacts
 
 		}
+		ra := data["role_arn"].(string)
+		if ra != "" {
+			action.RoleArn = aws.String(ra)
+		}
 		ro := data["run_order"].(int)
 		if ro > 0 {
 			action.RunOrder = aws.Int64(int64(ro))
@@ -372,6 +376,10 @@ func flattenAwsCodePipelineStageActions(actions []*codepipeline.ActionDeclaratio
 
 		if len(action.InputArtifacts) > 0 {
 			values["input_artifacts"] = flattenAwsCodePipelineActionsInputArtifacts(action.InputArtifacts)
+		}
+
+		if action.RoleArn != nil {
+			values["role_arn"] = *action.RoleArn
 		}
 
 		if action.RunOrder != nil {

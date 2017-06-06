@@ -9,10 +9,10 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 func Provider() terraform.ResourceProvider {
@@ -61,9 +61,14 @@ func Provider() terraform.ResourceProvider {
 				Description: "PEM-encoded root certificates bundle for TLS authentication.",
 			},
 			"config_path": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_CONFIG", "~/.kube/config"),
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc(
+					[]string{
+						"KUBE_CONFIG",
+						"KUBECONFIG",
+					},
+					"~/.kube/config"),
 				Description: "Path to the kube config file, defaults to ~/.kube/config",
 			},
 			"config_context": {
@@ -86,13 +91,15 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"kubernetes_config_map":              resourceKubernetesConfigMap(),
-			"kubernetes_limit_range":             resourceKubernetesLimitRange(),
-			"kubernetes_namespace":               resourceKubernetesNamespace(),
-			"kubernetes_persistent_volume":       resourceKubernetesPersistentVolume(),
-			"kubernetes_persistent_volume_claim": resourceKubernetesPersistentVolumeClaim(),
-			"kubernetes_resource_quota":          resourceKubernetesResourceQuota(),
-			"kubernetes_secret":                  resourceKubernetesSecret(),
+			"kubernetes_config_map":                resourceKubernetesConfigMap(),
+			"kubernetes_horizontal_pod_autoscaler": resourceKubernetesHorizontalPodAutoscaler(),
+			"kubernetes_limit_range":               resourceKubernetesLimitRange(),
+			"kubernetes_namespace":                 resourceKubernetesNamespace(),
+			"kubernetes_persistent_volume":         resourceKubernetesPersistentVolume(),
+			"kubernetes_persistent_volume_claim":   resourceKubernetesPersistentVolumeClaim(),
+			"kubernetes_resource_quota":            resourceKubernetesResourceQuota(),
+			"kubernetes_secret":                    resourceKubernetesSecret(),
+			"kubernetes_service":                   resourceKubernetesService(),
 		},
 		ConfigureFunc: providerConfigure,
 	}

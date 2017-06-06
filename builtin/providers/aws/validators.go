@@ -605,6 +605,23 @@ func validateJsonString(v interface{}, k string) (ws []string, errors []error) {
 	return
 }
 
+func validateIAMPolicyJson(v interface{}, k string) (ws []string, errors []error) {
+	// IAM Policy documents need to be valid JSON, and pass legacy parsing
+	value := v.(string)
+	if len(value) < 1 {
+		errors = append(errors, fmt.Errorf("%q contains an invalid JSON policy", k))
+		return
+	}
+	if value[:1] != "{" {
+		errors = append(errors, fmt.Errorf("%q contains an invalid JSON policy", k))
+		return
+	}
+	if _, err := normalizeJsonString(v); err != nil {
+		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+	}
+	return
+}
+
 func validateCloudFormationTemplate(v interface{}, k string) (ws []string, errors []error) {
 	if looksLikeJsonString(v) {
 		if _, err := normalizeJsonString(v); err != nil {
@@ -1316,6 +1333,20 @@ func validateIamRoleDescription(v interface{}, k string) (ws []string, errors []
 		errors = append(errors, fmt.Errorf(
 			"Only alphanumeric & accented characters allowed in %q: %q (Must satisfy regular expression pattern: [\\p{L}\\p{M}\\p{Z}\\p{S}\\p{N}\\p{P}]*)",
 			k, value))
+	}
+	return
+}
+
+func validateSsmParameterType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	types := map[string]bool{
+		"String":       true,
+		"StringList":   true,
+		"SecureString": true,
+	}
+
+	if !types[value] {
+		errors = append(errors, fmt.Errorf("Parameter type %s is invalid. Valid types are String, StringList or SecureString", value))
 	}
 	return
 }

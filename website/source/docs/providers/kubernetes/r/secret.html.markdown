@@ -78,8 +78,8 @@ The following arguments are supported:
 
 ## Import
 
-Secret can be imported using its name, e.g.
+Secret can be imported using its namespace and name, e.g.
 
 ```
-$ terraform import kubernetes_secret.example my-secret
+$ terraform import kubernetes_secret.example default/my-secret
 ```

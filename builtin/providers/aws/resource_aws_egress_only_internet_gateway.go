@@ -74,6 +74,9 @@ func EIGWStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 				return nil, "", err
 			}
 		}
+		if len(resp.EgressOnlyInternetGateways) < 1 {
+			resp = nil
+		}
 
 		if resp == nil {
 			// Sometimes AWS just has consistency issues and doesn't see

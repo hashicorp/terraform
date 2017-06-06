@@ -9,8 +9,9 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	api "k8s.io/kubernetes/pkg/api/v1"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
+	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 func TestAccKubernetesNamespace_basic(t *testing.T) {
@@ -155,7 +156,7 @@ func TestAccKubernetesNamespace_importGeneratedName(t *testing.T) {
 	})
 }
 
-func testAccCheckMetaAnnotations(om *api.ObjectMeta, expected map[string]string) resource.TestCheckFunc {
+func testAccCheckMetaAnnotations(om *meta_v1.ObjectMeta, expected map[string]string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if len(expected) == 0 && len(om.Annotations) == 0 {
 			return nil
@@ -168,7 +169,7 @@ func testAccCheckMetaAnnotations(om *api.ObjectMeta, expected map[string]string)
 	}
 }
 
-func testAccCheckMetaLabels(om *api.ObjectMeta, expected map[string]string) resource.TestCheckFunc {
+func testAccCheckMetaLabels(om *meta_v1.ObjectMeta, expected map[string]string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if len(expected) == 0 && len(om.Labels) == 0 {
 			return nil
@@ -189,7 +190,7 @@ func testAccCheckKubernetesNamespaceDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := conn.CoreV1().Namespaces().Get(rs.Primary.ID)
+		resp, err := conn.CoreV1().Namespaces().Get(rs.Primary.ID, meta_v1.GetOptions{})
 		if err == nil {
 			if resp.Name == rs.Primary.ID {
 				return fmt.Errorf("Namespace still exists: %s", rs.Primary.ID)
@@ -208,7 +209,7 @@ func testAccCheckKubernetesNamespaceExists(n string, obj *api.Namespace) resourc
 		}
 
 		conn := testAccProvider.Meta().(*kubernetes.Clientset)
-		out, err := conn.CoreV1().Namespaces().Get(rs.Primary.ID)
+		out, err := conn.CoreV1().Namespaces().Get(rs.Primary.ID, meta_v1.GetOptions{})
 		if err != nil {
 			return err
 		}

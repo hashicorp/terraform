@@ -22,6 +22,8 @@ func TestAccNetworkingV2Subnet_basic(t *testing.T) {
 				Config: testAccNetworkingV2Subnet_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_subnet_v2.subnet_1", "allocation_pools.0.start", "192.168.199.100"),
 				),
 			},
 			resource.TestStep{
@@ -33,6 +35,8 @@ func TestAccNetworkingV2Subnet_basic(t *testing.T) {
 						"openstack_networking_subnet_v2.subnet_1", "gateway_ip", "192.168.199.1"),
 					resource.TestCheckResourceAttr(
 						"openstack_networking_subnet_v2.subnet_1", "enable_dhcp", "true"),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_subnet_v2.subnet_1", "allocation_pools.0.start", "192.168.199.150"),
 				),
 			},
 		},
@@ -220,7 +224,7 @@ resource "openstack_networking_subnet_v2" "subnet_1" {
   network_id = "${openstack_networking_network_v2.network_1.id}"
 
   allocation_pools {
-    start = "192.168.199.100"
+    start = "192.168.199.150"
     end = "192.168.199.200"
   }
 }

@@ -376,6 +376,14 @@ func resourceDockerContainer() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"network_alias": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"network_mode": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,

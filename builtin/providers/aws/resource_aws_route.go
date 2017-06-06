@@ -16,7 +16,7 @@ import (
 
 // How long to sleep if a limit-exceeded event happens
 var routeTargetValidationError = errors.New("Error: more than 1 target specified. Only 1 of gateway_id, " +
-	"egress_only_gateway_id, nat_gateway_id, instance_id, network_interface_id, route_table_id or " +
+	"egress_only_gateway_id, nat_gateway_id, instance_id, network_interface_id or " +
 	"vpc_peering_connection_id is allowed.")
 
 // AWS Route resource Schema declaration

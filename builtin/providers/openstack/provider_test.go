@@ -39,8 +39,8 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatal("OS_AUTH_URL must be set for acceptance tests")
 	}
 
-	if OS_IMAGE_ID == "" || OS_IMAGE_NAME == "" {
-		t.Fatal("OS_IMAGE_ID and OS_IMAGE_NAME must be set for acceptance tests")
+	if OS_IMAGE_ID == "" && OS_IMAGE_NAME == "" {
+		t.Fatal("OS_IMAGE_ID or OS_IMAGE_NAME must be set for acceptance tests")
 	}
 
 	if OS_POOL_NAME == "" {

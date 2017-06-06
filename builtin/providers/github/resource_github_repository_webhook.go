@@ -89,7 +89,7 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 
 	hook, resp, err := client.Repositories.GetHook(context.TODO(), meta.(*Organization).name, d.Get("repository").(string), hookID)
 	if err != nil {
-		if resp.StatusCode == 404 {
+		if resp != nil && resp.StatusCode == 404 {
 			d.SetId("")
 			return nil
 		}

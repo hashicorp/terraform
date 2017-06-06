@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
@@ -16,6 +17,8 @@ import (
 
 // LocalState manages a state storage that is local to the filesystem.
 type LocalState struct {
+	mu sync.Mutex
+
 	// Path is the path to read the state from. PathOut is the path to
 	// write the state to. If PathOut is not specified, Path will be used.
 	// If PathOut already exists, it will be overwritten.
@@ -42,6 +45,9 @@ type LocalState struct {
 
 // SetState will force a specific state in-memory for this local state.
 func (s *LocalState) SetState(state *terraform.State) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.state = state
 	s.readState = state
 }
@@ -58,6 +64,9 @@ func (s *LocalState) State() *terraform.State {
 //
 // StateWriter impl.
 func (s *LocalState) WriteState(state *terraform.State) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if s.stateFileOut == nil {
 		if err := s.createStateFiles(); err != nil {
 			return nil
@@ -99,6 +108,9 @@ func (s *LocalState) PersistState() error {
 
 // StateRefresher impl.
 func (s *LocalState) RefreshState() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var reader io.Reader
 	if !s.written {
 		// we haven't written a state file yet, so load from Path
@@ -141,6 +153,9 @@ func (s *LocalState) RefreshState() error {
 
 // Lock implements a local filesystem state.Locker.
 func (s *LocalState) Lock(info *LockInfo) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if s.stateFileOut == nil {
 		if err := s.createStateFiles(); err != nil {
 			return "", err
@@ -170,6 +185,9 @@ func (s *LocalState) Lock(info *LockInfo) (string, error) {
 }
 
 func (s *LocalState) Unlock(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if s.lockID == "" {
 		return fmt.Errorf("LocalState not locked")
 	}

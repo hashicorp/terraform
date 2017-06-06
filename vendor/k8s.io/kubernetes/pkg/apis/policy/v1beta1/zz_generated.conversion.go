@@ -21,12 +21,10 @@ limitations under the License.
 package v1beta1
 
 import (
-	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	v1 "k8s.io/kubernetes/pkg/api/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	policy "k8s.io/kubernetes/pkg/apis/policy"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
 )
 
@@ -52,11 +50,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1beta1_Eviction_To_policy_Eviction(in *Eviction, out *policy.Eviction, s conversion.Scope) error {
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-		return err
-	}
-	out.DeleteOptions = (*api.DeleteOptions)(unsafe.Pointer(in.DeleteOptions))
+	out.ObjectMeta = in.ObjectMeta
+	out.DeleteOptions = (*v1.DeleteOptions)(unsafe.Pointer(in.DeleteOptions))
 	return nil
 }
 
@@ -65,10 +60,7 @@ func Convert_v1beta1_Eviction_To_policy_Eviction(in *Eviction, out *policy.Evict
 }
 
 func autoConvert_policy_Eviction_To_v1beta1_Eviction(in *policy.Eviction, out *Eviction, s conversion.Scope) error {
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.DeleteOptions = (*v1.DeleteOptions)(unsafe.Pointer(in.DeleteOptions))
 	return nil
 }
@@ -78,10 +70,7 @@ func Convert_policy_Eviction_To_v1beta1_Eviction(in *policy.Eviction, out *Evict
 }
 
 func autoConvert_v1beta1_PodDisruptionBudget_To_policy_PodDisruptionBudget(in *PodDisruptionBudget, out *policy.PodDisruptionBudget, s conversion.Scope) error {
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1beta1_PodDisruptionBudgetSpec_To_policy_PodDisruptionBudgetSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -96,10 +85,7 @@ func Convert_v1beta1_PodDisruptionBudget_To_policy_PodDisruptionBudget(in *PodDi
 }
 
 func autoConvert_policy_PodDisruptionBudget_To_v1beta1_PodDisruptionBudget(in *policy.PodDisruptionBudget, out *PodDisruptionBudget, s conversion.Scope) error {
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_policy_PodDisruptionBudgetSpec_To_v1beta1_PodDisruptionBudgetSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -125,7 +111,11 @@ func Convert_v1beta1_PodDisruptionBudgetList_To_policy_PodDisruptionBudgetList(i
 
 func autoConvert_policy_PodDisruptionBudgetList_To_v1beta1_PodDisruptionBudgetList(in *policy.PodDisruptionBudgetList, out *PodDisruptionBudgetList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]PodDisruptionBudget)(unsafe.Pointer(&in.Items))
+	if in.Items == nil {
+		out.Items = make([]PodDisruptionBudget, 0)
+	} else {
+		out.Items = *(*[]PodDisruptionBudget)(unsafe.Pointer(&in.Items))
+	}
 	return nil
 }
 
@@ -135,7 +125,7 @@ func Convert_policy_PodDisruptionBudgetList_To_v1beta1_PodDisruptionBudgetList(i
 
 func autoConvert_v1beta1_PodDisruptionBudgetSpec_To_policy_PodDisruptionBudgetSpec(in *PodDisruptionBudgetSpec, out *policy.PodDisruptionBudgetSpec, s conversion.Scope) error {
 	out.MinAvailable = in.MinAvailable
-	out.Selector = (*unversioned.LabelSelector)(unsafe.Pointer(in.Selector))
+	out.Selector = (*v1.LabelSelector)(unsafe.Pointer(in.Selector))
 	return nil
 }
 
@@ -145,7 +135,7 @@ func Convert_v1beta1_PodDisruptionBudgetSpec_To_policy_PodDisruptionBudgetSpec(i
 
 func autoConvert_policy_PodDisruptionBudgetSpec_To_v1beta1_PodDisruptionBudgetSpec(in *policy.PodDisruptionBudgetSpec, out *PodDisruptionBudgetSpec, s conversion.Scope) error {
 	out.MinAvailable = in.MinAvailable
-	out.Selector = (*unversioned.LabelSelector)(unsafe.Pointer(in.Selector))
+	out.Selector = (*v1.LabelSelector)(unsafe.Pointer(in.Selector))
 	return nil
 }
 
@@ -155,7 +145,7 @@ func Convert_policy_PodDisruptionBudgetSpec_To_v1beta1_PodDisruptionBudgetSpec(i
 
 func autoConvert_v1beta1_PodDisruptionBudgetStatus_To_policy_PodDisruptionBudgetStatus(in *PodDisruptionBudgetStatus, out *policy.PodDisruptionBudgetStatus, s conversion.Scope) error {
 	out.ObservedGeneration = in.ObservedGeneration
-	out.DisruptedPods = *(*map[string]unversioned.Time)(unsafe.Pointer(&in.DisruptedPods))
+	out.DisruptedPods = *(*map[string]v1.Time)(unsafe.Pointer(&in.DisruptedPods))
 	out.PodDisruptionsAllowed = in.PodDisruptionsAllowed
 	out.CurrentHealthy = in.CurrentHealthy
 	out.DesiredHealthy = in.DesiredHealthy
@@ -169,7 +159,7 @@ func Convert_v1beta1_PodDisruptionBudgetStatus_To_policy_PodDisruptionBudgetStat
 
 func autoConvert_policy_PodDisruptionBudgetStatus_To_v1beta1_PodDisruptionBudgetStatus(in *policy.PodDisruptionBudgetStatus, out *PodDisruptionBudgetStatus, s conversion.Scope) error {
 	out.ObservedGeneration = in.ObservedGeneration
-	out.DisruptedPods = *(*map[string]unversioned.Time)(unsafe.Pointer(&in.DisruptedPods))
+	out.DisruptedPods = *(*map[string]v1.Time)(unsafe.Pointer(&in.DisruptedPods))
 	out.PodDisruptionsAllowed = in.PodDisruptionsAllowed
 	out.CurrentHealthy = in.CurrentHealthy
 	out.DesiredHealthy = in.DesiredHealthy
