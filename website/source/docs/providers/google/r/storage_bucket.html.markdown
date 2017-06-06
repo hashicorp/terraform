@@ -8,7 +8,10 @@ description: |-
 
 # google\_storage\_bucket
 
-Creates a new bucket in Google cloud storage service(GCS). Currently, it will not change location nor ACL once a bucket has been created with Terraform. For more information see [the official documentation](https://cloud.google.com/storage/docs/overview) and [API](https://cloud.google.com/storage/docs/json_api/v1/buckets).
+Creates a new bucket in Google cloud storage service (GCS). Currently, it will not change location nor ACL once a bucket has been created with Terraform. For more information see 
+[the official documentation](https://cloud.google.com/storage/docs/overview) 
+and 
+[API](https://cloud.google.com/storage/docs/json_api/v1/buckets).
 
 
 ## Example Usage
