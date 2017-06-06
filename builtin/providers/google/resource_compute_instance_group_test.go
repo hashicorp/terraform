@@ -454,14 +454,14 @@ func testAccComputeInstanceGroup_network(instance string) string {
 
 	resource "google_compute_instance_group" "with_instance" {
 		description = "Terraform test instance group"
-		name = "%[1]s-with-insntance"
+		name = "%[1]s-with-instance"
 		zone = "us-central1-c"
 		instances = [ "${google_compute_instance.ig_instance.self_link}" ]
 	}
 
 	resource "google_compute_instance_group" "without_instance" {
 		description = "Terraform test instance group"
-		name = "%[1]s-without-insntance"
+		name = "%[1]s-without-instance"
 		zone = "us-central1-c"
 		network = "${google_compute_network.ig_network.self_link}"
 	}`, instance)
