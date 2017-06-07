@@ -19,7 +19,7 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var flagBackend, flagGet bool
+	var flagBackend, flagGet, flagUpdate bool
 	var flagConfigExtra map[string]interface{}
 
 	args = c.Meta.process(args, false)
@@ -31,6 +31,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
+	cmdFlags.BoolVar(&flagUpdate, "update", false, "")
 
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -124,7 +125,13 @@ func (c *InitCommand) Run(args []string) int {
 			c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
 				"[reset][bold]" +
 					"Downloading modules (if any)...")))
-			if err := getModules(&c.Meta, path, module.GetModeGet); err != nil {
+
+			mode := module.GetModeGet
+			if flagUpdate {
+				mode = module.GetModeUpdate
+			}
+
+			if err := getModules(&c.Meta, path, mode); err != nil {
 				c.Ui.Error(fmt.Sprintf(
 					"Error downloading modules: %s", err))
 				return 1
@@ -239,7 +246,10 @@ Options:
 
   -no-color            If specified, output won't contain any color.
 
-  -reconfigure          Reconfigure the backend, ignoring any saved configuration.
+  -reconfigure         Reconfigure the backend, ignoring any saved configuration.
+
+  -update=false        If true, modules already downloaded will be checked
+                       for updates and updated if necessary.
 `
 	return strings.TrimSpace(helpText)
 }
