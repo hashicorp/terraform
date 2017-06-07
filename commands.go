@@ -224,6 +224,12 @@ func init() {
 			}, nil
 		},
 
+		"workspace show": func() (cli.Command, error) {
+			return &command.WorkspaceShowCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"workspace new": func() (cli.Command, error) {
 			return &command.WorkspaceNewCommand{
 				Meta: meta,
