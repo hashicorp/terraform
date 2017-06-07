@@ -8,24 +8,41 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAwsSecurityGroupAttachment_basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAwsSecurityGroupAttachmentConfig(true),
-				Check:  checkSecurityGroupAttachment(true),
-			},
-			resource.TestStep{
-				Config: testAccAwsSecurityGroupAttachmentConfig(false),
-				Check:  checkSecurityGroupAttachment(false),
-			},
+func TestAccAwsSecurityGroupAttachment(t *testing.T) {
+	cases := []struct {
+		Name     string
+		External bool
+	}{
+		{
+			Name:     "instance primary interface",
+			External: false,
 		},
-	})
+		{
+			Name:     "externally supplied instance through data source",
+			External: true,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { testAccPreCheck(t) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					resource.TestStep{
+						Config: testAccAwsSecurityGroupAttachmentConfig(tc.External, true),
+						Check:  checkSecurityGroupAttachment(tc.External, true),
+					},
+					resource.TestStep{
+						Config: testAccAwsSecurityGroupAttachmentConfig(tc.External, false),
+						Check:  checkSecurityGroupAttachment(tc.External, false),
+					},
+				},
+			})
+		})
+	}
 }
 
-func testAccAwsSecurityGroupAttachmentConfig(attach bool) string {
+func testAccAwsSecurityGroupAttachmentConfig(external bool, attach bool) string {
 	baseConfig := `
 data "aws_ami" "ami" {
   most_recent = true
@@ -47,30 +64,47 @@ resource "aws_instance" "instance" {
   }
 }
 
+data "aws_instance" "external_instance" {
+	instance_id = "${aws_instance.instance.id}"
+}
+
 resource "aws_security_group" "sg" {
   tags = {
     "type" = "terraform-test-security-group"
   }
 }
+
 `
 	optionalConfig := `
 resource "aws_security_group_attachment" "sg_attachment" {
   security_group_id    = "${aws_security_group.sg.id}"
-  network_interface_id = "${aws_instance.instance.primary_network_interface_id}"
+  network_interface_id = "${%saws_instance.%sinstance.%snetwork_interface_id}"
 }
 `
 
 	if attach {
-		return baseConfig + optionalConfig
+		externalResPre := ""
+		externalDataPre := ""
+		externalAttrPre := "primary_"
+		if external {
+			externalResPre = "data."
+			externalDataPre = "external_"
+			externalAttrPre = ""
+		}
+		return baseConfig + fmt.Sprintf(optionalConfig, externalResPre, externalDataPre, externalAttrPre)
 	}
 	return baseConfig
 }
 
-func checkSecurityGroupAttachment(expected bool) resource.TestCheckFunc {
+func checkSecurityGroupAttachment(external bool, expected bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
-		interfaceID := s.Modules[0].Resources["aws_instance.instance"].Primary.Attributes["primary_network_interface_id"]
+		ifAttr := "primary_network_interface_id"
+		if external {
+			ifAttr = "network_interface_id"
+		}
+		interfaceID := s.Modules[0].Resources["aws_instance.instance"].Primary.Attributes[ifAttr]
 		sgID := s.Modules[0].Resources["aws_security_group.sg"].Primary.ID
 
 		iface, err := fetchNetworkInterface(conn, interfaceID)
