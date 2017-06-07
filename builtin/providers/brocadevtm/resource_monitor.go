@@ -116,7 +116,9 @@ func resourceMonitorCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Error: %+v", err)
 	}
 
+
 	if createAPI.StatusCode() != 201 && createAPI.StatusCode() != 200 {
+
 		return fmt.Errorf("Invalid HTTP response code %+v returned. Response object was %+v", createAPI.StatusCode(), createAPI.ResponseObject())
 	}
 
@@ -219,4 +221,5 @@ func resourceMonitorDelete(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId("")
 	return nil
+
 }

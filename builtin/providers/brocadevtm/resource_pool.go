@@ -46,6 +46,7 @@ func resourcePool() *schema.Resource {
 						},
 					},
 				},
+
 			},
 			"monitorlist": {
 				Type:     schema.TypeList,
@@ -57,7 +58,7 @@ func resourcePool() *schema.Resource {
 				Type: 	  schema.TypeInt,
 				Optional: true,
 				ForceNew: false,
-
+				Elem:     *schema.TypeString,
 			},
 		},
 	}
@@ -162,7 +163,6 @@ func resourcePoolCreate(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId(poolName)
 	return resourcePoolRead(d, m)
-
 }
 
 // resourcePoolRead - Reads a  pool resource
@@ -274,10 +274,10 @@ func resourcePoolRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("tcp_nagle", readPool.Properties.TCP.Nagle)
 
 	return nil
-
 }
 
 // resourcePoolDelete - Deletes a pool resource
+
 func resourcePoolDelete(d *schema.ResourceData, m interface{}) error {
 	vtmClient := m.(*brocadevtm.VTMClient)
 	var poolName string
@@ -298,4 +298,6 @@ func resourcePoolDelete(d *schema.ResourceData, m interface{}) error {
 // resourcePoolUpdate - Updates an existing pool resource
 func resourcePoolUpdate(d *schema.ResourceData, m interface{}) error {
 	return nil
+
 }
+

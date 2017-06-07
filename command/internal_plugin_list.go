@@ -89,6 +89,7 @@ import (
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
+<<<<<<< HEAD
 	"alicloud":   alicloudprovider.Provider,
 	"archive":   archiveprovider.Provider,
 	"arukas":   arukasprovider.Provider,
@@ -101,6 +102,20 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"chef":   chefprovider.Provider,
 	"circonus":   circonusprovider.Provider,
 	"clc":   clcprovider.Provider,
+=======
+	"alicloud":     alicloudprovider.Provider,
+	"archive":      archiveprovider.Provider,
+	"arukas":       arukasprovider.Provider,
+	"atlas":        atlasprovider.Provider,
+	"aws":          awsprovider.Provider,
+	"azure":        azureprovider.Provider,
+	"azurerm":      azurermprovider.Provider,
+	"bitbucket":    bitbucketprovider.Provider,
+	"brocadevtm":   brocadevtmprovider.Provider,
+	"chef":         chefprovider.Provider,
+	"circonus":     circonusprovider.Provider,
+	"clc":          clcprovider.Provider,
+>>>>>>> 8ecfc4a3badb6ed943effaef35857c4bdc49aed8
 	"cloudflare":   cloudflareprovider.Provider,
 	"cloudstack":   cloudstackprovider.Provider,
 	"cobbler":   cobblerprovider.Provider,
