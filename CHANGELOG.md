@@ -39,6 +39,7 @@ IMPROVEMENTS:
 * provider/google: `google_container_cluster.master_auth` should be optional [GH-14630]
 * provider/google: Add CORS support for `google_storage_bucket` [GH-14695]
 * provider/google: Allow resizing of Google Cloud persistent disks [GH-15077]
+* provider/google: Add private_ip_google_access update support to google_compute_subnetwork [GH-15125]
 * provider/heroku: can now import Heroku Spaces [GH-14973]
 * provider/kubernetes: Upgrade K8S from 1.5.3 to 1.6.1 [GH-14923]
 * provider/kubernetes: Provide more details about why PVC failed to bind [GH-15019]
