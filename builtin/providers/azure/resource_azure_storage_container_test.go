@@ -50,7 +50,8 @@ func testAccCheckAzureStorageContainerExists(name string) resource.TestCheckFunc
 			return err
 		}
 
-		exists, err := blobClient.ContainerExists(resource.Primary.ID)
+		container := blobClient.GetContainerReference(resource.Primary.ID)
+		exists, err := container.Exists()
 		if err != nil {
 			return err
 		}
@@ -74,7 +75,8 @@ func testAccCheckAzureStorageContainerDestroyed(s *terraform.State) error {
 			return err
 		}
 
-		exists, err := blobClient.ContainerExists(resource.Primary.ID)
+		container := blobClient.GetContainerReference(resource.Primary.ID)
+		exists, err := container.Exists()
 		if err != nil {
 			return err
 		}

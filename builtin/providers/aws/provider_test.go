@@ -46,4 +46,8 @@ func testAccPreCheck(t *testing.T) {
 		log.Println("[INFO] Test: Using us-west-2 as test region")
 		os.Setenv("AWS_DEFAULT_REGION", "us-west-2")
 	}
+	err := testAccProvider.Configure(terraform.NewResourceConfig(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
 }

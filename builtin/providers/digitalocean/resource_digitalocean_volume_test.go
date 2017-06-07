@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -60,7 +61,7 @@ func testAccCheckDigitalOceanVolumeExists(rn string, volume *godo.Volume) resour
 
 		client := testAccProvider.Meta().(*godo.Client)
 
-		got, _, err := client.Storage.GetVolume(rs.Primary.ID)
+		got, _, err := client.Storage.GetVolume(context.Background(), rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -82,7 +83,7 @@ func testAccCheckDigitalOceanVolumeDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the volume
-		_, _, err := client.Storage.GetVolume(rs.Primary.ID)
+		_, _, err := client.Storage.GetVolume(context.Background(), rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Volume still exists")

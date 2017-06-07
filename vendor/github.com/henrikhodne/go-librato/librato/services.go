@@ -63,10 +63,10 @@ func (s *ServicesService) Create(service *Service) (*Service, *http.Response, er
 	return sv, resp, err
 }
 
-// Edit a service.
+// Update a service.
 //
 // Librato API docs: https://www.librato.com/docs/api/#update-a-service
-func (s *ServicesService) Edit(serviceID uint, service *Service) (*http.Response, error) {
+func (s *ServicesService) Update(serviceID uint, service *Service) (*http.Response, error) {
 	u := fmt.Sprintf("services/%d", serviceID)
 	req, err := s.client.NewRequest("PUT", u, service)
 	if err != nil {

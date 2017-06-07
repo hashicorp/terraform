@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeSubnetwork() *schema.Resource {
@@ -59,6 +58,12 @@ func resourceComputeSubnetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"private_ip_google_access": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -98,10 +103,11 @@ func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) e
 
 	// Build the subnetwork parameters
 	subnetwork := &compute.Subnetwork{
-		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
-		IpCidrRange: d.Get("ip_cidr_range").(string),
-		Network:     network,
+		Name:                  d.Get("name").(string),
+		Description:           d.Get("description").(string),
+		IpCidrRange:           d.Get("ip_cidr_range").(string),
+		PrivateIpGoogleAccess: d.Get("private_ip_google_access").(bool),
+		Network:               network,
 	}
 
 	log.Printf("[DEBUG] Subnetwork insert request: %#v", subnetwork)
@@ -146,15 +152,7 @@ func resourceComputeSubnetworkRead(d *schema.ResourceData, meta interface{}) err
 	subnetwork, err := config.clientCompute.Subnetworks.Get(
 		project, region, name).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Subnetwork %q because it's gone", name)
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading subnetwork: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Subnetwork %q", name))
 	}
 
 	d.Set("gateway_address", subnetwork.GatewayAddress)

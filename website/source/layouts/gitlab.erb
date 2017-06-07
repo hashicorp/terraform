@@ -1,0 +1,35 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-gitlab-index") %>>
+        <a href="/docs/providers/gitlab/index.html">Gitlab Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-gitlab-resource") %>>
+        <a href="#">Resources</a>
+        <ul class="nav nav-visible">
+          <li<%= sidebar_current("docs-gitlab-resource-deploy_key") %>>
+            <a href="/docs/providers/gitlab/r/deploy_key.html">gitlab_deploy_key</a>
+          </li>
+          <li<%= sidebar_current("docs-gitlab-resource-group") %>>
+            <a href="/docs/providers/gitlab/r/group.html">gitlab_group</a>
+          </li>
+          <li<%= sidebar_current("docs-gitlab-resource-project-hook") %>>
+            <a href="/docs/providers/gitlab/r/project_hook.html">gitlab_project_hook</a>
+          </li>
+          <li<%= sidebar_current("docs-gitlab-resource-project-x") %>>
+            <a href="/docs/providers/gitlab/r/project.html">gitlab_project</a>
+          </li>
+        </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+  <% end %>

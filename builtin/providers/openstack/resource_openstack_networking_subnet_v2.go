@@ -58,7 +58,6 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 			"allocation_pools": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -291,6 +290,10 @@ func resourceNetworkingSubnetV2Update(d *schema.ResourceData, meta interface{}) 
 	if d.HasChange("enable_dhcp") {
 		v := d.Get("enable_dhcp").(bool)
 		updateOpts.EnableDHCP = &v
+	}
+
+	if d.HasChange("allocation_pools") {
+		updateOpts.AllocationPools = resourceSubnetAllocationPoolsV2(d)
 	}
 
 	log.Printf("[DEBUG] Updating Subnet %s with options: %+v", d.Id(), updateOpts)

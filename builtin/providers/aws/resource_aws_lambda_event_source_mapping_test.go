@@ -24,14 +24,14 @@ func TestAccAWSLambdaEventSourceMapping_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLambdaEventSourceMappingDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLambdaEventSourceMappingConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaEventSourceMappingExists("aws_lambda_event_source_mapping.lambda_event_source_mapping_test", &conf),
 					testAccCheckAWSLambdaEventSourceMappingAttributes(&conf),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSLambdaEventSourceMappingConfigUpdate(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaEventSourceMappingExists("aws_lambda_event_source_mapping.lambda_event_source_mapping_test", &conf),
@@ -52,6 +52,29 @@ func TestAccAWSLambdaEventSourceMapping_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSLambdaEventSourceMapping_importBasic(t *testing.T) {
+	resourceName := "aws_lambda_event_source_mapping.lambda_event_source_mapping_test"
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaEventSourceMappingDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLambdaEventSourceMappingConfig(rInt),
+			},
+
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"enabled", "starting_position"},
+			},
+		},
+	})
+}
+
 func TestAccAWSLambdaEventSourceMapping_disappears(t *testing.T) {
 	var conf lambda.EventSourceMappingConfiguration
 
@@ -62,7 +85,7 @@ func TestAccAWSLambdaEventSourceMapping_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLambdaEventSourceMappingDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLambdaEventSourceMappingConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaEventSourceMappingExists("aws_lambda_event_source_mapping.lambda_event_source_mapping_test", &conf),

@@ -46,13 +46,13 @@ resource "oneandone_firewall_policy" "fw" {
 
 The following arguments are supported:
 
-* `description` - (Optional) [string] Description for the VPN
-* `name` - (Required) [string] The name of the VPN.
+* `description` - (Optional) Description for the VPN
+* `name` - (Required) The name of the VPN.
 
 Firewall Policy Rules (`rules`) support the follwing:
 
-* `protocol` - (Required) [String]  The protocol for the rule ["TCP", "UDP", "TCP/UDP", "ICMP", "IPSEC"]
-* `port_from` - (Optional) [String]  Defines the start range of the allowed port
-* `port_to` - (Optional) [String]  Defines the end range of the allowed port
-* `source_ip` - (Optional) [String]  Only traffic directed to the respective IP address
+* `protocol` - (Required)  The protocol for the rule. Allowed values are `TCP`, `UDP`, `TCP/UDP`, `ICMP` and `IPSEC`.
+* `port_from` - (Optional)   Defines the start range of the allowed port
+* `port_to` - (Optional)   Defines the end range of the allowed port
+* `source_ip` - (Optional)   Only traffic directed to the respective IP address
 

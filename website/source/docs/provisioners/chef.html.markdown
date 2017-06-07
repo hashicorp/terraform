@@ -157,9 +157,3 @@ The following arguments are supported:
 
 * `version (string)` - (Optional) The Chef Client version to install on the remote machine.
   If not set, the latest available version will be installed.
-
-These options are supported for backwards compatibility and may be removed in a
-future version:
-
-* `validation_client_name (string)` - __Deprecated: please use `user_name` instead__.
-* `validation_key (string)` - __Deprecated: please use `user_key` instead__.

@@ -46,6 +46,7 @@ The following arguments are supported:
 
 * `path` - (Optional) The path to the role.
   See [IAM Identifiers](https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html) for more information.
+* `description` - (Optional) The description of the role.
 
 ## Attributes Reference
 
@@ -55,6 +56,7 @@ The following attributes are exported:
 * `create_date` - The creation date of the IAM role.
 * `unique_id` - The stable and unique string identifying the role.
 * `name` - The name of the role.
+* `description` - The description of the role.
 
 ## Example of Using Data Source for Assume Role Policy
 

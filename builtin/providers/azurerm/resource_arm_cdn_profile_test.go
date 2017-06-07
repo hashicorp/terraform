@@ -108,6 +108,32 @@ func TestAccAzureRMCdnProfile_withTags(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMCdnProfile_NonStandardCasing(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := testAccAzureRMCdnProfileNonStandardCasing(ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMCdnProfileDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMCdnProfileExists("azurerm_cdn_profile.test"),
+				),
+			},
+
+			resource.TestStep{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMCdnProfileExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -209,3 +235,18 @@ resource "azurerm_cdn_profile" "test" {
     }
 }
 `
+
+func testAccAzureRMCdnProfileNonStandardCasing(ri int) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+resource "azurerm_cdn_profile" "test" {
+    name = "acctestcdnprof%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    sku = "standard_verizon"
+}
+`, ri, ri)
+}

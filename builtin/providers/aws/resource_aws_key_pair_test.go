@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"testing"
 
@@ -11,6 +12,47 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func init() {
+	resource.AddTestSweepers("aws_key_pair", &resource.Sweeper{
+		Name: "aws_key_pair",
+		F:    testSweepKeyPairs,
+	})
+}
+
+func testSweepKeyPairs(region string) error {
+	client, err := sharedClientForRegion(region)
+	if err != nil {
+		return fmt.Errorf("error getting client: %s", err)
+	}
+	ec2conn := client.(*AWSClient).ec2conn
+
+	log.Printf("Destroying the tmp keys in (%s)", client.(*AWSClient).region)
+
+	resp, err := ec2conn.DescribeKeyPairs(&ec2.DescribeKeyPairsInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("key-name"),
+				Values: []*string{aws.String("tmp-key*")},
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("Error describing key pairs in Sweeper: %s", err)
+	}
+
+	keyPairs := resp.KeyPairs
+	for _, d := range keyPairs {
+		_, err := ec2conn.DeleteKeyPair(&ec2.DeleteKeyPairInput{
+			KeyName: d.KeyName,
+		})
+
+		if err != nil {
+			return fmt.Errorf("Error deleting key pairs in Sweeper: %s", err)
+		}
+	}
+	return nil
+}
 
 func TestAccAWSKeyPair_basic(t *testing.T) {
 	var conf ec2.KeyPairInfo

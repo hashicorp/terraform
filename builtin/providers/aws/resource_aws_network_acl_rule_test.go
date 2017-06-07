@@ -269,6 +269,9 @@ provider "aws" {
 }
 resource "aws_vpc" "foo" {
 	cidr_block = "10.3.0.0/16"
+	tags {
+		Name = "testAccAWSNetworkAclRuleBasicConfig"
+	}
 }
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
@@ -309,6 +312,9 @@ provider "aws" {
 }
 resource "aws_vpc" "foo" {
 	cidr_block = "10.3.0.0/16"
+	tags {
+		Name = "testAccAWSNetworkAclRuleMissingParam"
+	}
 }
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
@@ -327,6 +333,9 @@ resource "aws_network_acl_rule" "baz" {
 const testAccAWSNetworkAclRuleAllProtocolConfigNoRealUpdate = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.3.0.0/16"
+	tags {
+		Name = "testAccAWSNetworkAclRuleAllProtocolConfigNoRealUpdate"
+	}
 }
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
@@ -346,6 +355,9 @@ resource "aws_network_acl_rule" "baz" {
 const testAccAWSNetworkAclRuleAllProtocolConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.3.0.0/16"
+	tags {
+		Name = "testAccAWSNetworkAclRuleAllProtocolConfig"
+	}
 }
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
@@ -365,6 +377,9 @@ resource "aws_network_acl_rule" "baz" {
 const testAccAWSNetworkAclRuleIpv6Config = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.3.0.0/16"
+	tags {
+		Name = "testAccAWSNetworkAclRuleIpv6Config"
+	}
 }
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"

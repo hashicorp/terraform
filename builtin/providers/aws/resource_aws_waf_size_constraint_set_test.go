@@ -31,6 +31,18 @@ func TestAccAWSWafSizeConstraintSet_basic(t *testing.T) {
 						"aws_waf_size_constraint_set.size_constraint_set", "name", sizeConstraintSet),
 					resource.TestCheckResourceAttr(
 						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.comparison_operator", "EQ"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.field_to_match.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.field_to_match.281401076.data", ""),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.field_to_match.281401076.type", "BODY"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.size", "4096"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.text_transformation", "NONE"),
 				),
 			},
 		},
@@ -87,6 +99,86 @@ func TestAccAWSWafSizeConstraintSet_disappears(t *testing.T) {
 					testAccCheckAWSWafSizeConstraintSetDisappears(&v),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAccAWSWafSizeConstraintSet_changeConstraints(t *testing.T) {
+	var before, after waf.SizeConstraintSet
+	setName := fmt.Sprintf("sizeConstraintSet-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSWafSizeConstraintSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSWafSizeConstraintSetConfig(setName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafSizeConstraintSetExists("aws_waf_size_constraint_set.size_constraint_set", &before),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "name", setName),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.comparison_operator", "EQ"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.field_to_match.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.field_to_match.281401076.data", ""),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.field_to_match.281401076.type", "BODY"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.size", "4096"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.2029852522.text_transformation", "NONE"),
+				),
+			},
+			{
+				Config: testAccAWSWafSizeConstraintSetConfig_changeConstraints(setName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafSizeConstraintSetExists("aws_waf_size_constraint_set.size_constraint_set", &after),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "name", setName),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.3222308386.comparison_operator", "GE"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.3222308386.field_to_match.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.3222308386.field_to_match.281401076.data", ""),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.3222308386.field_to_match.281401076.type", "BODY"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.3222308386.size", "1024"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.3222308386.text_transformation", "NONE"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSWafSizeConstraintSet_noConstraints(t *testing.T) {
+	var ipset waf.SizeConstraintSet
+	setName := fmt.Sprintf("sizeConstraintSet-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSWafSizeConstraintSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSWafSizeConstraintSetConfig_noConstraints(setName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafSizeConstraintSetExists("aws_waf_size_constraint_set.size_constraint_set", &ipset),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "name", setName),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.#", "0"),
+				),
 			},
 		},
 	})
@@ -222,5 +314,27 @@ resource "aws_waf_size_constraint_set" "size_constraint_set" {
       type = "BODY"
     }
   }
+}`, name)
+}
+
+func testAccAWSWafSizeConstraintSetConfig_changeConstraints(name string) string {
+	return fmt.Sprintf(`
+resource "aws_waf_size_constraint_set" "size_constraint_set" {
+  name = "%s"
+  size_constraints {
+    text_transformation = "NONE"
+    comparison_operator = "GE"
+    size = "1024"
+    field_to_match {
+      type = "BODY"
+    }
+  }
+}`, name)
+}
+
+func testAccAWSWafSizeConstraintSetConfig_noConstraints(name string) string {
+	return fmt.Sprintf(`
+resource "aws_waf_size_constraint_set" "size_constraint_set" {
+  name = "%s"
 }`, name)
 }

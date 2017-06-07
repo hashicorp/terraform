@@ -49,3 +49,34 @@ func (client *Client) DescribeInstanceTypesNew(args *DescribeInstanceTypesArgs) 
 	return response.InstanceTypes.InstanceType, nil
 
 }
+
+type DescribeInstanceTypeFamiliesArgs struct {
+	RegionId   common.Region
+	Generation string
+}
+
+type InstanceTypeFamilies struct {
+	InstanceTypeFamily []InstanceTypeFamily
+}
+
+type InstanceTypeFamily struct {
+	InstanceTypeFamilyId string
+	Generation           string
+}
+
+type DescribeInstanceTypeFamiliesResponse struct {
+	common.Response
+
+	InstanceTypeFamilies InstanceTypeFamilies
+}
+
+func (client *Client) DescribeInstanceTypeFamilies(args *DescribeInstanceTypeFamiliesArgs) (*DescribeInstanceTypeFamiliesResponse, error) {
+	response := &DescribeInstanceTypeFamiliesResponse{}
+
+	err := client.Invoke("DescribeInstanceTypeFamilies", args, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}

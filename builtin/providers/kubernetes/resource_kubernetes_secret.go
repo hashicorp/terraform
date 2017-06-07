@@ -5,10 +5,11 @@ import (
 
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
-	pkgApi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgApi "k8s.io/apimachinery/pkg/types"
 	api "k8s.io/kubernetes/pkg/api/v1"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
+	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 func resourceKubernetesSecret() *schema.Resource {
@@ -72,7 +73,7 @@ func resourceKubernetesSecretRead(d *schema.ResourceData, meta interface{}) erro
 	namespace, name := idParts(d.Id())
 
 	log.Printf("[INFO] Reading secret %s", name)
-	secret, err := conn.CoreV1().Secrets(namespace).Get(name)
+	secret, err := conn.CoreV1().Secrets(namespace).Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -129,7 +130,7 @@ func resourceKubernetesSecretDelete(d *schema.ResourceData, meta interface{}) er
 	namespace, name := idParts(d.Id())
 
 	log.Printf("[INFO] Deleting secret: %q", name)
-	err := conn.CoreV1().Secrets(namespace).Delete(name, &api.DeleteOptions{})
+	err := conn.CoreV1().Secrets(namespace).Delete(name, &meta_v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -147,7 +148,7 @@ func resourceKubernetesSecretExists(d *schema.ResourceData, meta interface{}) (b
 	namespace, name := idParts(d.Id())
 
 	log.Printf("[INFO] Checking secret %s", name)
-	_, err := conn.CoreV1().Secrets(namespace).Get(name)
+	_, err := conn.CoreV1().Secrets(namespace).Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		if statusErr, ok := err.(*errors.StatusError); ok && statusErr.ErrStatus.Code == 404 {
 			return false, nil

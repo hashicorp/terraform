@@ -318,17 +318,18 @@ func resourceServiceV1() *schema.Resource {
 							Required:    true,
 							Description: "A name to refer to this Cache Setting",
 						},
-						"cache_condition": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Name of a condition to check if this Cache Setting applies",
-						},
 						"action": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "Action to take",
 						},
 						// optional
+						"cache_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition to check if this Cache Setting applies",
+						},
 						"stale_ttl": {
 							Type:        schema.TypeInt,
 							Optional:    true,
@@ -504,12 +505,14 @@ func resourceServiceV1() *schema.Resource {
 							Optional:    true,
 							DefaultFunc: schema.EnvDefaultFunc("FASTLY_S3_ACCESS_KEY", ""),
 							Description: "AWS Access Key",
+							Sensitive:   true,
 						},
 						"s3_secret_key": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							DefaultFunc: schema.EnvDefaultFunc("FASTLY_S3_SECRET_KEY", ""),
 							Description: "AWS Secret Key",
+							Sensitive:   true,
 						},
 						// Optional fields
 						"path": {
@@ -672,6 +675,7 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The secret key associated with the target gcs bucket on your account.",
+							Sensitive:   true,
 						},
 						// Optional fields
 						"path": {
@@ -776,12 +780,13 @@ func resourceServiceV1() *schema.Resource {
 							Required:    true,
 							Description: "Unique name to refer to this Request Setting",
 						},
+						// Optional fields
 						"request_condition": {
 							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Name of a request condition to apply.",
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a request condition to apply. If there is no condition this setting will always be applied.",
 						},
-						// Optional fields
 						"max_stale_age": {
 							Type:        schema.TypeInt,
 							Optional:    true,
@@ -2010,7 +2015,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up GCS for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up GCS for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		gcsl := flattenGCS(GCSList)

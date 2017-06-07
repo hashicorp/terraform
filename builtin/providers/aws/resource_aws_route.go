@@ -16,7 +16,7 @@ import (
 
 // How long to sleep if a limit-exceeded event happens
 var routeTargetValidationError = errors.New("Error: more than 1 target specified. Only 1 of gateway_id, " +
-	"egress_only_gateway_id, nat_gateway_id, instance_id, network_interface_id, route_table_id or " +
+	"egress_only_gateway_id, nat_gateway_id, instance_id, network_interface_id or " +
 	"vpc_peering_connection_id is allowed.")
 
 // AWS Route resource Schema declaration
@@ -133,10 +133,18 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	switch setTarget {
 	case "gateway_id":
 		createOpts = &ec2.CreateRouteInput{
-			RouteTableId:         aws.String(d.Get("route_table_id").(string)),
-			DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
-			GatewayId:            aws.String(d.Get("gateway_id").(string)),
+			RouteTableId: aws.String(d.Get("route_table_id").(string)),
+			GatewayId:    aws.String(d.Get("gateway_id").(string)),
 		}
+
+		if v, ok := d.GetOk("destination_cidr_block"); ok {
+			createOpts.DestinationCidrBlock = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("destination_ipv6_cidr_block"); ok {
+			createOpts.DestinationIpv6CidrBlock = aws.String(v.(string))
+		}
+
 	case "egress_only_gateway_id":
 		createOpts = &ec2.CreateRouteInput{
 			RouteTableId:                aws.String(d.Get("route_table_id").(string)),

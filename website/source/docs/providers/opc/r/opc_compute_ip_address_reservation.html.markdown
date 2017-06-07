@@ -25,7 +25,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the ip address reservation.
 
-* `ip_address_pool` - (Required) The IP address pool from which you want to reserve an IP address.
+* `ip_address_pool` - (Required) The IP address pool from which you want to reserve an IP address. Must be either `public-ippool` or `cloud-ippool`.
 
 * `description` - (Optional) A description of the ip address reservation.
 

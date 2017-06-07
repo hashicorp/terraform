@@ -163,7 +163,7 @@ func testAccCheckFastlyServiceV1HeaderAttributes(service *gofastly.ServiceDetail
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(headersList) != len(headers) {

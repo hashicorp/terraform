@@ -98,6 +98,7 @@ type virtualMachine struct {
 	linkedClone           bool
 	skipCustomization     bool
 	enableDiskUUID        bool
+	moid                  string
 	windowsOptionalConfig windowsOptConfig
 	customConfigurations  map[string](types.AnyType)
 }
@@ -228,6 +229,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			},
 
 			"uuid": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"moid": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -924,6 +930,13 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
+	err = d.Set("moid", vm.Reference().Value)
+	if err != nil {
+		return fmt.Errorf("Invalid moid to set: %#v", vm.Reference().Value)
+	} else {
+		log.Printf("[DEBUG] Set the moid: %#v", vm.Reference().Value)
+	}
+
 	state, err := vm.PowerState(context.TODO())
 	if err != nil {
 		return err
@@ -951,6 +964,13 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	log.Printf("[DEBUG] mvm.Summary.Config - %#v", mvm.Summary.Config)
 	log.Printf("[DEBUG] mvm.Summary.Config - %#v", mvm.Config)
 	log.Printf("[DEBUG] mvm.Guest.Net - %#v", mvm.Guest.Net)
+
+	err = d.Set("moid", mvm.Reference().Value)
+	if err != nil {
+		return fmt.Errorf("Invalid moid to set: %#v", mvm.Reference().Value)
+	} else {
+		log.Printf("[DEBUG] Set the moid: %#v", mvm.Reference().Value)
+	}
 
 	disks := make([]map[string]interface{}, 0)
 	templateDisk := make(map[string]interface{}, 1)

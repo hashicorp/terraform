@@ -102,8 +102,10 @@ func resourceAwsApiGatewayUsagePlanKeyDelete(d *schema.ResourceData, meta interf
 			UsagePlanId: aws.String(d.Get("usage_plan_id").(string)),
 			KeyId:       aws.String(d.Get("key_id").(string)),
 		})
-
 		if err == nil {
+			return nil
+		}
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
 			return nil
 		}
 

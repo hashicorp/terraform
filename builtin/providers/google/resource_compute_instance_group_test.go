@@ -20,7 +20,7 @@ func TestAccComputeInstanceGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccComputeInstanceGroup_destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeInstanceGroup_basic(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccComputeInstanceGroup_exists(
@@ -42,7 +42,7 @@ func TestAccComputeInstanceGroup_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccComputeInstanceGroup_destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeInstanceGroup_update(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccComputeInstanceGroup_exists(
@@ -53,7 +53,7 @@ func TestAccComputeInstanceGroup_update(t *testing.T) {
 						&instanceGroup),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccComputeInstanceGroup_update2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccComputeInstanceGroup_exists(
@@ -79,7 +79,7 @@ func TestAccComputeInstanceGroup_outOfOrderInstances(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccComputeInstanceGroup_destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeInstanceGroup_outOfOrderInstances(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccComputeInstanceGroup_exists(

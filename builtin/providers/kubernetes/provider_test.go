@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/builtin/providers/google"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -16,6 +17,7 @@ func init() {
 	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"kubernetes": testAccProvider,
+		"google":     google.Provider(),
 	}
 }
 
@@ -49,5 +51,9 @@ func testAccPreCheck(t *testing.T) {
 				"KUBE_CLIENT_KEY_DATA",
 				"KUBE_CLUSTER_CA_CERT_DATA",
 			}, ", "))
+	}
+
+	if os.Getenv("GOOGLE_PROJECT") == "" || os.Getenv("GOOGLE_REGION") == "" || os.Getenv("GOOGLE_ZONE") == "" {
+		t.Fatal("GOOGLE_PROJECT, GOOGLE_REGION and GOOGLE_ZONE must be set for acceptance tests")
 	}
 }

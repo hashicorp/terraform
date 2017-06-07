@@ -2,9 +2,10 @@ package triton
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
-	"fmt"
+	"context"
 	"github.com/hashicorp/errwrap"
 )
 
@@ -35,8 +36,9 @@ type Network struct {
 
 type ListNetworksInput struct{}
 
-func (client *NetworksClient) ListNetworks(*ListNetworksInput) ([]*Network, error) {
-	respReader, err := client.executeRequest(http.MethodGet, "/my/networks", nil)
+func (client *NetworksClient) ListNetworks(ctx context.Context, _ *ListNetworksInput) ([]*Network, error) {
+	path := fmt.Sprintf("/%s/networks", client.accountName)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -57,9 +59,9 @@ type GetNetworkInput struct {
 	ID string
 }
 
-func (client *NetworksClient) GetNetwork(input *GetNetworkInput) (*Network, error) {
+func (client *NetworksClient) GetNetwork(ctx context.Context, input *GetNetworkInput) (*Network, error) {
 	path := fmt.Sprintf("/%s/networks/%s", client.accountName, input.ID)
-	respReader, err := client.executeRequest(http.MethodGet, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}

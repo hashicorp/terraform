@@ -22,25 +22,31 @@ func Provider() terraform.ResourceProvider {
 			"account": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("SDC_ACCOUNT", ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"TRITON_ACCOUNT", "SDC_ACCOUNT"}, ""),
 			},
 
 			"url": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("SDC_URL", "https://us-west-1.api.joyentcloud.com"),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"TRITON_URL", "SDC_URL"}, "https://us-west-1.api.joyentcloud.com"),
 			},
 
 			"key_material": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("SDC_KEY_MATERIAL", ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"TRITON_KEY_MATERIAL", "SDC_KEY_MATERIAL"}, ""),
 			},
 
 			"key_id": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("SDC_KEY_ID", ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"TRITON_KEY_ID", "SDC_KEY_ID"}, ""),
+			},
+
+			"insecure_skip_tls_verify": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TRITON_SKIP_TLS_VERIFY", ""),
 			},
 		},
 
@@ -56,10 +62,11 @@ func Provider() terraform.ResourceProvider {
 }
 
 type Config struct {
-	Account     string
-	KeyMaterial string
-	KeyID       string
-	URL         string
+	Account               string
+	KeyMaterial           string
+	KeyID                 string
+	URL                   string
+	InsecureSkipTLSVerify bool
 }
 
 func (c Config) validate() error {
@@ -98,6 +105,10 @@ func (c Config) getTritonClient() (*triton.Client, error) {
 		return nil, errwrap.Wrapf("Error Creating Triton Client: {{err}}", err)
 	}
 
+	if c.InsecureSkipTLSVerify {
+		client.InsecureSkipTLSVerify()
+	}
+
 	return client, nil
 }
 
@@ -106,6 +117,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Account: d.Get("account").(string),
 		URL:     d.Get("url").(string),
 		KeyID:   d.Get("key_id").(string),
+
+		InsecureSkipTLSVerify: d.Get("insecure_skip_tls_verify").(bool),
 	}
 
 	if keyMaterial, ok := d.GetOk("key_material"); ok {

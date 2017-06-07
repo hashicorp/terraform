@@ -48,8 +48,8 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-no-color` - If specified, output won't contain any color.
 
-* `-provider=provider` - Specified provider to use for import. This is used for
-  specifying provider aliases, such as "aws.eu". This defaults to the normal
+* `-provider=provider` - Specified provider to use for import. The value should be a provider
+  alias in the form `TYPE.ALIAS`, such as "aws.eu". This defaults to the normal
   provider based on the prefix of the resource being imported. You usually
   don't need to specify this.
 

@@ -9,6 +9,7 @@ package google
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,6 +20,105 @@ import (
 
 	"google.golang.org/api/sqladmin/v1beta4"
 )
+
+func init() {
+	resource.AddTestSweepers("gcp_sql_db_instance", &resource.Sweeper{
+		Name: "gcp_sql_db_instance",
+		F:    testSweepDatabases,
+	})
+}
+
+func testSweepDatabases(region string) error {
+	config, err := sharedConfigForRegion(region)
+	if err != nil {
+		return fmt.Errorf("error getting shared config for region: %s", err)
+	}
+
+	err = config.loadAndValidate()
+	if err != nil {
+		log.Fatalf("error loading: %s", err)
+	}
+
+	found, err := config.clientSqlAdmin.Instances.List(config.Project).Do()
+	if err != nil {
+		log.Fatalf("error listing databases: %s", err)
+	}
+
+	if len(found.Items) == 0 {
+		log.Printf("No databases found")
+		return nil
+	}
+
+	for _, d := range found.Items {
+		var testDbInstance bool
+		for _, testName := range []string{"tf-lw-", "sqldatabasetest"} {
+			// only destroy instances we know to fit our test naming pattern
+			if strings.HasPrefix(d.Name, testName) {
+				testDbInstance = true
+			}
+		}
+
+		if !testDbInstance {
+			continue
+		}
+
+		log.Printf("Destroying SQL Instance (%s)", d.Name)
+
+		// replicas need to be stopped and destroyed before destroying a master
+		// instance. The ordering slice tracks replica databases for a given master
+		// and we call destroy on them before destroying the master
+		var ordering []string
+		for _, replicaName := range d.ReplicaNames {
+			// need to stop replication before being able to destroy a database
+			op, err := config.clientSqlAdmin.Instances.StopReplica(config.Project, replicaName).Do()
+
+			if err != nil {
+				return fmt.Errorf("error, failed to stop replica instance (%s) for instance (%s): %s", replicaName, d.Name, err)
+			}
+
+			err = sqladminOperationWait(config, op, "Stop Replica")
+			if err != nil {
+				if strings.Contains(err.Error(), "does not exist") {
+					log.Printf("Replication operation not found")
+				} else {
+					return err
+				}
+			}
+
+			ordering = append(ordering, replicaName)
+		}
+
+		// ordering has a list of replicas (or none), now add the primary to the end
+		ordering = append(ordering, d.Name)
+
+		for _, db := range ordering {
+			// destroy instances, replicas first
+			op, err := config.clientSqlAdmin.Instances.Delete(config.Project, db).Do()
+
+			if err != nil {
+				if strings.Contains(err.Error(), "409") {
+					// the GCP api can return a 409 error after the delete operation
+					// reaches a successful end
+					log.Printf("Operation not found, got 409 response")
+					continue
+				}
+
+				return fmt.Errorf("Error, failed to delete instance %s: %s", db, err)
+			}
+
+			err = sqladminOperationWait(config, op, "Delete Instance")
+			if err != nil {
+				if strings.Contains(err.Error(), "does not exist") {
+					log.Printf("SQL instance not found")
+					continue
+				}
+				return err
+			}
+		}
+	}
+
+	return nil
+}
 
 func TestAccGoogleSqlDatabaseInstance_basic(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
@@ -277,6 +377,24 @@ func TestAccGoogleSqlDatabaseInstance_authNets(t *testing.T) {
 	})
 }
 
+// Tests that a SQL instance can be referenced from more than one other resource without
+// throwing an error during provisioning, see #9018.
+func TestAccGoogleSqlDatabaseInstance_multipleOperations(t *testing.T) {
+	databaseID, instanceID, userID := acctest.RandString(8), acctest.RandString(8), acctest.RandString(8)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_multipleOperations, databaseID, instanceID, userID),
+			},
+		},
+	})
+}
+
 func testAccCheckGoogleSqlDatabaseInstanceEquals(n string,
 	instance *sqladmin.DatabaseInstance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -408,66 +526,11 @@ func testAccCheckGoogleSqlDatabaseInstanceEquals(n string,
 			return fmt.Errorf("Error settings.pricing_plan mismatch, (%s, %s)", server, local)
 		}
 
-		if instance.ReplicaConfiguration != nil &&
-			instance.ReplicaConfiguration.MysqlReplicaConfiguration != nil {
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.CaCertificate
-			local = attributes["replica_configuration.0.ca_certificate"]
+		if instance.ReplicaConfiguration != nil {
+			server = strconv.FormatBool(instance.ReplicaConfiguration.FailoverTarget)
+			local = attributes["replica_configuration.0.failover_target"]
 			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.ca_certificate mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.ClientCertificate
-			local = attributes["replica_configuration.0.client_certificate"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.client_certificate mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.ClientKey
-			local = attributes["replica_configuration.0.client_key"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.client_key mismatch, (%s, %s)", server, local)
-			}
-
-			server = strconv.FormatInt(instance.ReplicaConfiguration.MysqlReplicaConfiguration.ConnectRetryInterval, 10)
-			local = attributes["replica_configuration.0.connect_retry_interval"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.connect_retry_interval mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.DumpFilePath
-			local = attributes["replica_configuration.0.dump_file_path"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.dump_file_path mismatch, (%s, %s)", server, local)
-			}
-
-			server = strconv.FormatInt(instance.ReplicaConfiguration.MysqlReplicaConfiguration.MasterHeartbeatPeriod, 10)
-			local = attributes["replica_configuration.0.master_heartbeat_period"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.master_heartbeat_period mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.Password
-			local = attributes["replica_configuration.0.password"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.password mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.SslCipher
-			local = attributes["replica_configuration.0.ssl_cipher"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.ssl_cipher mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.Username
-			local = attributes["replica_configuration.0.username"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.username mismatch, (%s, %s)", server, local)
-			}
-
-			server = strconv.FormatBool(instance.ReplicaConfiguration.MysqlReplicaConfiguration.VerifyServerCertificate)
-			local = attributes["replica_configuration.0.verify_server_certificate"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.verify_server_certificate mismatch, (%s, %s)", server, local)
+				return fmt.Errorf("Error replica_configuration.failover_target mismatch, (%s, %s)", server, local)
 			}
 		}
 
@@ -731,5 +794,28 @@ resource "google_sql_database_instance" "instance" {
 			ipv4_enabled = "true"
 		}
 	}
+}
+`
+
+var testGoogleSqlDatabaseInstance_multipleOperations = `
+resource "google_sql_database_instance" "instance" {
+	name = "tf-test-%s"
+	region = "us-central"
+	settings {
+		tier = "D0"
+		crash_safe_replication = false
+	}
+}
+
+resource "google_sql_database" "database" {
+	name = "tf-test-%s"
+	instance = "${google_sql_database_instance.instance.name}"
+}
+
+resource "google_sql_user" "user" {
+	name = "tf-test-%s"
+	instance = "${google_sql_database_instance.instance.name}"
+	host = "google.com"
+	password = "hunter2"
 }
 `

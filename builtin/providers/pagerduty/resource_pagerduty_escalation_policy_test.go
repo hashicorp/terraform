@@ -5,22 +5,28 @@ import (
 	"testing"
 
 	"github.com/PagerDuty/go-pagerduty"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccPagerDutyEscalationPolicy_Basic(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	escalationPolicy := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	escalationPolicyUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyEscalationPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyEscalationPolicyConfig,
+			{
+				Config: testAccCheckPagerDutyEscalationPolicyConfig(username, email, escalationPolicy),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyEscalationPolicyExists("pagerduty_escalation_policy.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_escalation_policy.foo", "name", "foo"),
+						"pagerduty_escalation_policy.foo", "name", escalationPolicy),
 					resource.TestCheckResourceAttr(
 						"pagerduty_escalation_policy.foo", "description", "foo"),
 					resource.TestCheckResourceAttr(
@@ -31,12 +37,13 @@ func TestAccPagerDutyEscalationPolicy_Basic(t *testing.T) {
 						"pagerduty_escalation_policy.foo", "rule.0.escalation_delay_in_minutes", "10"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyEscalationPolicyConfigUpdated,
+
+			{
+				Config: testAccCheckPagerDutyEscalationPolicyConfigUpdated(username, email, escalationPolicyUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyEscalationPolicyExists("pagerduty_escalation_policy.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_escalation_policy.foo", "name", "bar"),
+						"pagerduty_escalation_policy.foo", "name", escalationPolicyUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_escalation_policy.foo", "description", "bar"),
 					resource.TestCheckResourceAttr(
@@ -54,17 +61,23 @@ func TestAccPagerDutyEscalationPolicy_Basic(t *testing.T) {
 }
 
 func TestAccPagerDutyEscalationPolicyWithTeams_Basic(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	team := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	escalationPolicy := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	escalationPolicyUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyEscalationPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyEscalationPolicyWithTeamsConfig,
+			{
+				Config: testAccCheckPagerDutyEscalationPolicyWithTeamsConfig(username, email, team, escalationPolicy),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyEscalationPolicyExists("pagerduty_escalation_policy.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_escalation_policy.foo", "name", "foo"),
+						"pagerduty_escalation_policy.foo", "name", escalationPolicy),
 					resource.TestCheckResourceAttr(
 						"pagerduty_escalation_policy.foo", "description", "foo"),
 					resource.TestCheckResourceAttr(
@@ -77,12 +90,12 @@ func TestAccPagerDutyEscalationPolicyWithTeams_Basic(t *testing.T) {
 						"pagerduty_escalation_policy.foo", "teams.#", "1"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyEscalationPolicyWithTeamsConfigUpdated,
+			{
+				Config: testAccCheckPagerDutyEscalationPolicyWithTeamsConfigUpdated(username, email, team, escalationPolicyUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyEscalationPolicyExists("pagerduty_escalation_policy.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_escalation_policy.foo", "name", "bar"),
+						"pagerduty_escalation_policy.foo", "name", escalationPolicyUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_escalation_policy.foo", "description", "bar"),
 					resource.TestCheckResourceAttr(
@@ -143,10 +156,11 @@ func testAccCheckPagerDutyEscalationPolicyExists(n string) resource.TestCheckFun
 	}
 }
 
-const testAccCheckPagerDutyEscalationPolicyConfig = `
+func testAccCheckPagerDutyEscalationPolicyConfig(name, email, escalationPolicy string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
   color       = "green"
   role        = "user"
   job_title   = "foo"
@@ -154,7 +168,7 @@ resource "pagerduty_user" "foo" {
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-  name        = "foo"
+  name        = "%s"
   description = "foo"
   num_loops   = 1
 
@@ -167,12 +181,14 @@ resource "pagerduty_escalation_policy" "foo" {
     }
   }
 }
-`
+`, name, email, escalationPolicy)
+}
 
-const testAccCheckPagerDutyEscalationPolicyConfigUpdated = `
+func testAccCheckPagerDutyEscalationPolicyConfigUpdated(name, email, escalationPolicy string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
   color       = "green"
   role        = "user"
   job_title   = "foo"
@@ -180,7 +196,7 @@ resource "pagerduty_user" "foo" {
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-  name        = "bar"
+  name        = "%s"
   description = "bar"
   num_loops   = 2
 
@@ -202,12 +218,14 @@ resource "pagerduty_escalation_policy" "foo" {
     }
   }
 }
-`
+`, name, email, escalationPolicy)
+}
 
-const testAccCheckPagerDutyEscalationPolicyWithTeamsConfig = `
+func testAccCheckPagerDutyEscalationPolicyWithTeamsConfig(name, email, team, escalationPolicy string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
   color       = "green"
   role        = "user"
   job_title   = "foo"
@@ -215,12 +233,12 @@ resource "pagerduty_user" "foo" {
 }
 
 resource "pagerduty_team" "foo" {
-  name        = "foo"
+  name        = "%s"
   description = "foo"
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-  name        = "foo"
+  name        = "%s"
   description = "foo"
   num_loops   = 1
 	teams       = ["${pagerduty_team.foo.id}"]
@@ -234,12 +252,14 @@ resource "pagerduty_escalation_policy" "foo" {
     }
   }
 }
-`
+`, name, email, team, escalationPolicy)
+}
 
-const testAccCheckPagerDutyEscalationPolicyWithTeamsConfigUpdated = `
+func testAccCheckPagerDutyEscalationPolicyWithTeamsConfigUpdated(name, email, team, escalationPolicy string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
   color       = "green"
   role        = "user"
   job_title   = "foo"
@@ -247,12 +267,12 @@ resource "pagerduty_user" "foo" {
 }
 
 resource "pagerduty_team" "foo" {
-  name        = "foo"
+  name        = "%s"
   description = "foo"
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-  name        = "bar"
+  name        = "%s"
   description = "bar"
   num_loops   = 2
 
@@ -274,4 +294,5 @@ resource "pagerduty_escalation_policy" "foo" {
     }
   }
 }
-`
+`, name, email, team, escalationPolicy)
+}

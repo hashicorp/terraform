@@ -224,7 +224,8 @@ func resourceArmContainerServiceCreate(d *schema.ResourceData, meta interface{})
 		parameters.ServicePrincipalProfile = servicePrincipalProfile
 	}
 
-	_, err := containerServiceClient.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
+	_, error := containerServiceClient.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -315,7 +316,9 @@ func resourceArmContainerServiceDelete(d *schema.ResourceData, meta interface{})
 	resGroup := id.ResourceGroup
 	name := id.Path["containerServices"]
 
-	resp, err := containerServiceClient.Delete(resGroup, name, make(chan struct{}))
+	delResp, error := containerServiceClient.Delete(resGroup, name, make(chan struct{}))
+	resp := <-delResp
+	err = <-error
 	if err != nil {
 		return err
 	}

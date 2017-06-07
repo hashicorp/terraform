@@ -177,32 +177,26 @@ description: |-
         <h2>Latest News</h2>
       </div>
       <div class="col-md-5 col-sm-12">
+        <% feature = data.news.featured_post %>
         <div class="latest-item">
-          <h3>Coming Soon!</h3>
-          <p>
-            We have some exciting new announcements planned for Terraform. Check
-            back soon to learn more.
-          </p>
-          <p>
+          <%= feature.media_html %>
+          <h3><%= feature.title %></h3>
+          <%= simple_format feature.body %>
+          <% if feature.link_url %>
+            <a class="button" href="<%= feature.link_url %>" target="_blank"><%= feature.link_text || data.news.default_link_text %></a>
+          <% end %>
         </div>
       </div>
       <div class="col-md-offset-1 col-md-6 col-sm-12">
-        <div class="latest-item">
-          <h3>Terraform 0.9 Released</h3>
-          <p>
-            Terraform 0.9 adds major new functionality to Terraform. Read the
-            highlights from the 0.9 release
-          </p>
-          <a class="button" href="https://www.hashicorp.com/blog/terraform-0-9/">Read more</a>
-        </div>
-        <div class="latest-item">
-          <h3>Applying Graph Theory to Infrastructure As Code</h3>
-          <p>
-            Watch this talk from HashiConf 2016 where we explore the graph
-            theory at the heart of Terraform's orchestration engine.
-          </p>
-          <a class="button" href="https://www.youtube.com/watch?v=4Pd9NrZSbGU">Watch Video</a>
-        </div>
+        <% data.news.additional_posts.each do |post| %>
+          <div class="latest-item">
+            <h3><%= post.title %></h3>
+            <%= simple_format post.body %>
+            <% if post.link_url %>
+              <a class="button" href="<%= post.link_url %>" target="_blank"><%= post.link_text || data.news.default_link_text %></a>
+            <% end %>
+          </div>
+        <% end %>
       </div>
     </div>
   </div>

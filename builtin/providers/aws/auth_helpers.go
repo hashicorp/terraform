@@ -54,7 +54,7 @@ func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string)
 	awsErr, ok := err.(awserr.Error)
 	// AccessDenied and ValidationError can be raised
 	// if credentials belong to federated profile, so we ignore these
-	if !ok || (awsErr.Code() != "AccessDenied" && awsErr.Code() != "ValidationError") {
+	if !ok || (awsErr.Code() != "AccessDenied" && awsErr.Code() != "ValidationError" && awsErr.Code() != "InvalidClientTokenId") {
 		return "", "", fmt.Errorf("Failed getting account ID via 'iam:GetUser': %s", err)
 	}
 	log.Printf("[DEBUG] Getting account ID via iam:GetUser failed: %s", err)

@@ -38,10 +38,10 @@ resource "aws_db_option_group" "bar" {
 
 The following arguments are supported:
 
-* `name` - (Optional, Forces new resource) The name of the option group. If omitted, Terraform will assign a random, unique name.
-* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
+* `name` - (Optional, Forces new resource) The name of the option group. If omitted, Terraform will assign a random, unique name. Must be lowercase, to match as it is stored in AWS.
+* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`. Must be lowercase, to match as it is stored in AWS.
 * `option_group_description` - (Optional) The description of the option group. Defaults to "Managed by Terraform".
-* `engine_name` - (Required) Specifies the name of the engine that this option group should be associated with..
+* `engine_name` - (Required) Specifies the name of the engine that this option group should be associated with.
 * `major_engine_version` - (Required) Specifies the major version of the engine that this option group should be associated with.
 * `option` - (Optional) A list of Options to apply.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
@@ -64,6 +64,14 @@ Option Settings blocks support the following:
 The following attributes are exported:
 
 * `arn` - The ARN of the db option group.
+
+<a id="timeouts"></a>
+## Timeouts
+
+`aws_db_option_group` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `delete` - (Default `15 minutes`)
 
 ## Import
 

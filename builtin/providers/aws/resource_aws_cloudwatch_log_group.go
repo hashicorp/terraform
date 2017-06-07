@@ -109,11 +109,13 @@ func resourceAwsCloudWatchLogGroupRead(d *schema.ResourceData, meta interface{})
 		d.Set("retention_in_days", lg.RetentionInDays)
 	}
 
-	tags, err := flattenCloudWatchTags(d, conn)
-	if err != nil {
-		return err
+	if !meta.(*AWSClient).IsChinaCloud() && !meta.(*AWSClient).IsGovCloud() {
+		tags, err := flattenCloudWatchTags(d, conn)
+		if err != nil {
+			return err
+		}
+		d.Set("tags", tags)
 	}
-	d.Set("tags", tags)
 
 	return nil
 }
@@ -170,7 +172,9 @@ func resourceAwsCloudWatchLogGroupUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	if d.HasChange("tags") {
+	restricted := meta.(*AWSClient).IsChinaCloud() || meta.(*AWSClient).IsGovCloud()
+
+	if !restricted && d.HasChange("tags") {
 		oraw, nraw := d.GetChange("tags")
 		o := oraw.(map[string]interface{})
 		n := nraw.(map[string]interface{})
@@ -209,10 +213,10 @@ func diffCloudWatchTags(oldTags map[string]interface{}, newTags map[string]inter
 	}
 
 	var remove []*string
-	for _, t := range oldTags {
-		old, ok := create[t.(string)]
-		if !ok || *old != t.(string) {
-			remove = append(remove, aws.String(t.(string)))
+	for t, _ := range oldTags {
+		_, ok := create[t]
+		if !ok {
+			remove = append(remove, aws.String(t))
 		}
 	}
 

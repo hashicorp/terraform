@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeBackendService() *schema.Resource {
@@ -121,7 +120,7 @@ func resourceComputeBackendService() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-				Removed:  "region has been removed as it was never used",
+				Removed:  "region has been removed as it was never used. For internal load balancing, use google_compute_region_backend_service",
 			},
 
 			"self_link": &schema.Schema{
@@ -200,11 +199,15 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] Waiting for new backend service, operation: %#v", op)
 
+	// Store the ID now
 	d.SetId(service.Name)
 
-	err = computeOperationWaitGlobal(config, op, project, "Creating Backend Service")
-	if err != nil {
-		return err
+	// Wait for the operation to complete
+	waitErr := computeOperationWaitGlobal(config, op, project, "Creating Backend Service")
+	if waitErr != nil {
+		// The resource didn't actually create
+		d.SetId("")
+		return waitErr
 	}
 
 	return resourceComputeBackendServiceRead(d, meta)
@@ -221,15 +224,7 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	service, err := config.clientCompute.BackendServices.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			// The resource doesn't exist anymore
-			log.Printf("[WARN] Removing Backend Service %q because it's gone", d.Get("name").(string))
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading service: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Backend Service %q", d.Get("name").(string)))
 	}
 
 	d.Set("description", service.Description)

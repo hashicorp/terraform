@@ -48,11 +48,20 @@ when creating a Kinesis stream. See [Amazon Kinesis Streams][2] for more.
 ## Attributes Reference
 
 * `id` - The unique Stream id
-* `name` - The unique Stream name (same as `id`)
+* `name` - The unique Stream name
 * `shard_count` - The count of Shards for this Stream
-* `arn` - The Amazon Resource Name (ARN) specifying the Stream
+* `arn` - The Amazon Resource Name (ARN) specifying the Stream (same as `id`)
 
+
+## Import
+
+Kinesis Streams can be imported using the `name`, e.g.
+
+```
+$ terraform import aws_kinesis_stream.test_stream terraform-kinesis-test
+```
 
 [1]: https://aws.amazon.com/documentation/kinesis/
 [2]: https://docs.aws.amazon.com/kinesis/latest/dev/amazon-kinesis-streams.html
 [3]: https://docs.aws.amazon.com/streams/latest/dev/monitoring-with-cloudwatch.html
+

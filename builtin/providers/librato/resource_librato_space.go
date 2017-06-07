@@ -19,12 +19,12 @@ func resourceLibratoSpace() *schema.Resource {
 		Delete: resourceLibratoSpaceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
@@ -97,7 +97,7 @@ func resourceLibratoSpaceUpdate(d *schema.ResourceData, meta interface{}) error 
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		log.Printf("[INFO] Modifying name space attribute for %d: %#v", id, newName)
-		if _, err = client.Spaces.Edit(uint(id), &librato.Space{Name: &newName}); err != nil {
+		if _, err = client.Spaces.Update(uint(id), &librato.Space{Name: &newName}); err != nil {
 			return err
 		}
 	}

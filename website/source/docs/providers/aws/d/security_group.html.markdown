@@ -65,6 +65,10 @@ All of the argument attributes except `filter` blocks are also exported as
 result attributes. This data source will complete the data by populating
 any fields that are not included in the configuration with the data for
 the selected Security Group.
-Additionally, the `description` attribute is exported.
+
+The following fields are also exported:
+
+* `description` - The description of the security group.
+* `arn` - The computed ARN of the security group.
 
 ~> **Note:** The [default security group for a VPC](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_SecurityGroups.html#DefaultSecurityGroup) has the name `default`.
