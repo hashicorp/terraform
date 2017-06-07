@@ -294,9 +294,9 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 		service.TimeoutSec = int64(v.(int))
 	}
 
-	if v, ok := d.GetOk("connection_draining_timeout_sec"); ok {
+	if d.HasChange("connection_draining_timeout_sec") {
 		connectionDraining := &compute.ConnectionDraining{
-			DrainingTimeoutSec: int64(v.(int)),
+			DrainingTimeoutSec: int64(d.Get("connection_draining_timeout_sec").(int)),
 		}
 
 		service.ConnectionDraining = connectionDraining

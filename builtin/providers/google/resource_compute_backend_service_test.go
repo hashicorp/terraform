@@ -139,6 +139,38 @@ func TestAccComputeBackendService_withConnectionDraining(t *testing.T) {
 	}
 }
 
+func TestAccComputeBackendService_withConnectionDrainingAndUpdate(t *testing.T) {
+	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	var svc compute.BackendService
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeBackendService_withConnectionDraining(serviceName, checkName, 10),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeBackendServiceExists(
+						"google_compute_backend_service.foobar", &svc),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeBackendService_basic(serviceName, checkName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeBackendServiceExists(
+						"google_compute_backend_service.foobar", &svc),
+				),
+			},
+		},
+	})
+
+	if svc.ConnectionDraining.DrainingTimeoutSec != 0 {
+		t.Errorf("Expected ConnectionDraining.DrainingTimeoutSec == 0, got %d", svc.ConnectionDraining.DrainingTimeoutSec)
+	}
+}
+
 func testAccCheckComputeBackendServiceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
