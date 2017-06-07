@@ -140,6 +140,17 @@ To make a resource importable, please see the
 
 * fastly_service_v1
 
+### Github
+
+* github_branch_protection
+* github_issue_label
+* github_membership
+* github_repository
+* github_repository_collaborator
+* github_team
+* github_team_membership
+* github_team_repository
+
 ### Google
 
 * google_bigquery_dataset
