@@ -43,3 +43,12 @@ The following arguments are supported:
 * `username` - (Required) The user to add to the repository as a collaborator.
 * `permission` - (Optional) The permission of the outside collaborator for the repository.
             Must be one of `pull`, `push`, or `admin`. Defaults to `push`.
+
+
+## Import
+
+Github Repository Collaborators can be imported using an id made up of `repository:username`, e.g.
+
+```
+$ terraform import github_repository_collaborator.collaborator terraform:someuser
+```
