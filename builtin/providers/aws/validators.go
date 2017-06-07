@@ -398,8 +398,7 @@ func validateCIDRNetworkAddress(v interface{}, k string) (ws []string, errors []
 
 	if ipnet == nil || value != ipnet.String() {
 		errors = append(errors, fmt.Errorf(
-			"%q must contain a valid network CIDR, expected %q, got %q",
-			k, ipnet, value))
+			"%q must contain a valid network CIDR, got %q", k, value))
 	}
 
 	return
