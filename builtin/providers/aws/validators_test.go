@@ -2291,3 +2291,29 @@ func TestValidateIamRoleDescription(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateSsmParameterType(t *testing.T) {
+	validTypes := []string{
+		"String",
+		"StringList",
+		"SecureString",
+	}
+	for _, v := range validTypes {
+		_, errors := validateSsmParameterType(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid SSM parameter type: %q", v, errors)
+		}
+	}
+
+	invalidTypes := []string{
+		"foo",
+		"string",
+		"Securestring",
+	}
+	for _, v := range invalidTypes {
+		_, errors := validateSsmParameterType(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SSM parameter type", v)
+		}
+	}
+}

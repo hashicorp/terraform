@@ -70,6 +70,7 @@ func resourceAliyunNatGateway() *schema.Resource {
 						"zone": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 						"public_ip_addresses": &schema.Schema{
 							Type:     schema.TypeString,

@@ -10,7 +10,7 @@ description: |-
 
 The `terraform state rm` command is used to remove items from the
 [Terraform state](/docs/state/index.html). This command can remove
-single resources, since instances of a resource, entire modules,
+single resources, single instances of a resource, entire modules,
 and more.
 
 ## Usage

@@ -83,10 +83,10 @@ func (a *AlertsService) Create(alert *Alert) (*Alert, *http.Response, error) {
 	return al, resp, err
 }
 
-// Edit an alert.
+// Update an alert.
 //
 // Librato API docs: https://www.librato.com/docs/api/?shell#update-alert
-func (a *AlertsService) Edit(alertID uint, alert *Alert) (*http.Response, error) {
+func (a *AlertsService) Update(alertID uint, alert *Alert) (*http.Response, error) {
 	u := fmt.Sprintf("alerts/%d", alertID)
 	req, err := a.client.NewRequest("PUT", u, alert)
 	if err != nil {

@@ -1010,6 +1010,26 @@ func TestAccAWSSecurityGroup_egressWithPrefixList(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroup_ipv4andipv6Egress(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSSecurityGroupConfigIpv4andIpv6Egress,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.egress", &group),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.egress", "egress.#", "2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSSecurityGroupSGandCidrAttributes(group *ec2.SecurityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *group.GroupName != "terraform_acceptance_test_example" {
@@ -2077,6 +2097,40 @@ resource "aws_security_group_rule" "allow_ipv6_cidr_block" {
 
   ipv6_cidr_blocks = ["::/0"]
   security_group_id = "${aws_security_group.test_group_1.id}"
+}
+`
+
+const testAccAWSSecurityGroupConfigIpv4andIpv6Egress = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+  assign_generated_ipv6_cidr_block = true
+  tags {
+      Name = "tf_sg_ipv4_and_ipv6_acc_test"
+  }
+}
+
+resource "aws_security_group" "egress" {
+  name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
+  ingress {
+      from_port = 22
+      to_port = 22
+      protocol = "6"
+      cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks  = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    ipv6_cidr_blocks  = ["::/0"]
+  }
 }
 `
 

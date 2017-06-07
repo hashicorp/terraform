@@ -1,6 +1,7 @@
 package opc
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/url"
@@ -13,16 +14,17 @@ import (
 )
 
 type Config struct {
-	User            string
-	Password        string
-	IdentityDomain  string
-	Endpoint        string
-	MaxRetryTimeout int
+	User           string
+	Password       string
+	IdentityDomain string
+	Endpoint       string
+	MaxRetries     int
+	Insecure       bool
 }
 
 type OPCClient struct {
-	Client          *compute.Client
-	MaxRetryTimeout int
+	Client     *compute.Client
+	MaxRetries int
 }
 
 func (c *Config) Client() (*compute.Client, error) {
@@ -36,13 +38,25 @@ func (c *Config) Client() (*compute.Client, error) {
 		Username:       &c.User,
 		Password:       &c.Password,
 		APIEndpoint:    u,
-		HTTPClient:     cleanhttp.DefaultClient(),
+		MaxRetries:     &c.MaxRetries,
 	}
 
 	if logging.IsDebugOrHigher() {
 		config.LogLevel = opc.LogDebug
 		config.Logger = opcLogger{}
 	}
+
+	// Setup HTTP Client based on insecure
+	httpClient := cleanhttp.DefaultClient()
+	if c.Insecure {
+		transport := cleanhttp.DefaultTransport()
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		httpClient.Transport = transport
+	}
+
+	config.HTTPClient = httpClient
 
 	return compute.NewComputeClient(&config)
 }

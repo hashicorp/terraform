@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -28,7 +29,10 @@ func TestAccKubernetesPersistentVolumeClaim_basic(t *testing.T) {
 					testAccCheckKubernetesPersistentVolumeClaimExists("kubernetes_persistent_volume_claim.test", &conf),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.%", "1"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.TestAnnotationOne", "one"),
-					testAccCheckMetaAnnotations(&conf.ObjectMeta, map[string]string{"TestAnnotationOne": "one"}),
+					testAccCheckMetaAnnotations(&conf.ObjectMeta, map[string]string{
+						"TestAnnotationOne":                             "one",
+						"volume.beta.kubernetes.io/storage-provisioner": "kubernetes.io/gce-pd",
+					}),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.labels.%", "3"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.labels.TestLabelOne", "one"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.labels.TestLabelThree", "three"),
@@ -53,7 +57,11 @@ func TestAccKubernetesPersistentVolumeClaim_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.%", "2"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.TestAnnotationOne", "one"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.TestAnnotationTwo", "two"),
-					testAccCheckMetaAnnotations(&conf.ObjectMeta, map[string]string{"TestAnnotationOne": "one", "TestAnnotationTwo": "two"}),
+					testAccCheckMetaAnnotations(&conf.ObjectMeta, map[string]string{
+						"TestAnnotationOne":                             "one",
+						"TestAnnotationTwo":                             "two",
+						"volume.beta.kubernetes.io/storage-provisioner": "kubernetes.io/gce-pd",
+					}),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.labels.%", "3"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.labels.TestLabelOne", "one"),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.labels.TestLabelTwo", "two"),
@@ -79,6 +87,8 @@ func TestAccKubernetesPersistentVolumeClaim_importBasic(t *testing.T) {
 	resourceName := "kubernetes_persistent_volume_claim.test"
 	volumeName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
 	claimName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
+	diskName := fmt.Sprintf("tf-acc-test-disk-%s", acctest.RandString(10))
+	zone := os.Getenv("GOOGLE_ZONE")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -86,7 +96,7 @@ func TestAccKubernetesPersistentVolumeClaim_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckKubernetesPersistentVolumeClaimDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccKubernetesPersistentVolumeClaimConfig_import(volumeName, claimName),
+				Config: testAccKubernetesPersistentVolumeClaimConfig_import(volumeName, claimName, diskName, zone),
 			},
 			{
 				ResourceName:      resourceName,
@@ -104,6 +114,8 @@ func TestAccKubernetesPersistentVolumeClaim_volumeMatch(t *testing.T) {
 	claimName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
 	volumeName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
 	volumeNameModified := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
+	diskName := fmt.Sprintf("tf-acc-test-disk-%s", acctest.RandString(10))
+	zone := os.Getenv("GOOGLE_ZONE")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -112,7 +124,7 @@ func TestAccKubernetesPersistentVolumeClaim_volumeMatch(t *testing.T) {
 		CheckDestroy:  testAccCheckKubernetesPersistentVolumeClaimDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccKubernetesPersistentVolumeClaimConfig_volumeMatch(volumeName, claimName),
+				Config: testAccKubernetesPersistentVolumeClaimConfig_volumeMatch(volumeName, claimName, diskName, zone),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckKubernetesPersistentVolumeClaimExists("kubernetes_persistent_volume_claim.test", &pvcConf),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.%", "0"),
@@ -135,7 +147,7 @@ func TestAccKubernetesPersistentVolumeClaim_volumeMatch(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccKubernetesPersistentVolumeClaimConfig_volumeMatch_modified(volumeNameModified, claimName),
+				Config: testAccKubernetesPersistentVolumeClaimConfig_volumeMatch_modified(volumeNameModified, claimName, diskName, zone),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckKubernetesPersistentVolumeClaimExists("kubernetes_persistent_volume_claim.test", &pvcConf),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.%", "0"),
@@ -161,86 +173,89 @@ func TestAccKubernetesPersistentVolumeClaim_volumeMatch(t *testing.T) {
 	})
 }
 
-func TestAccKubernetesPersistentVolumeClaim_labelsMatch(t *testing.T) {
-	var conf api.PersistentVolumeClaim
-	claimName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
-	volumeName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
+// Label matching isn't supported on GCE
+// TODO: Re-enable when we build test env for K8S that supports it
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:      func() { testAccPreCheck(t) },
-		IDRefreshName: "kubernetes_persistent_volume_claim.test",
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckKubernetesPersistentVolumeClaimDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccKubernetesPersistentVolumeClaimConfig_labelsMatch(volumeName, claimName),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckKubernetesPersistentVolumeClaimExists("kubernetes_persistent_volume_claim.test", &conf),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.%", "0"),
-					testAccCheckMetaAnnotations(&conf.ObjectMeta, map[string]string{"pv.kubernetes.io/bind-completed": "yes", "pv.kubernetes.io/bound-by-controller": "yes"}),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.labels.%", "0"),
-					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{}),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.name", claimName),
-					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.generation"),
-					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.resource_version"),
-					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.self_link"),
-					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.uid"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.access_modes.#", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.access_modes.1254135962", "ReadWriteMany"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.#", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.0.requests.%", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.0.requests.storage", "5Gi"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.#", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_labels.%", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_labels.TfAccTestEnvironment", "blablah"),
-				),
-			},
-		},
-	})
-}
+// func TestAccKubernetesPersistentVolumeClaim_labelsMatch(t *testing.T) {
+// 	var conf api.PersistentVolumeClaim
+// 	claimName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
+// 	volumeName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
 
-func TestAccKubernetesPersistentVolumeClaim_labelsMatchExpression(t *testing.T) {
-	var conf api.PersistentVolumeClaim
-	claimName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
-	volumeName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
+// 	resource.Test(t, resource.TestCase{
+// 		PreCheck:      func() { testAccPreCheck(t) },
+// 		IDRefreshName: "kubernetes_persistent_volume_claim.test",
+// 		Providers:     testAccProviders,
+// 		CheckDestroy:  testAccCheckKubernetesPersistentVolumeClaimDestroy,
+// 		Steps: []resource.TestStep{
+// 			{
+// 				Config: testAccKubernetesPersistentVolumeClaimConfig_labelsMatch(volumeName, claimName),
+// 				Check: resource.ComposeAggregateTestCheckFunc(
+// 					testAccCheckKubernetesPersistentVolumeClaimExists("kubernetes_persistent_volume_claim.test", &conf),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.%", "0"),
+// 					testAccCheckMetaAnnotations(&conf.ObjectMeta, map[string]string{"pv.kubernetes.io/bind-completed": "yes", "pv.kubernetes.io/bound-by-controller": "yes"}),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.labels.%", "0"),
+// 					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{}),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.name", claimName),
+// 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.generation"),
+// 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.resource_version"),
+// 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.self_link"),
+// 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.uid"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.access_modes.#", "1"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.access_modes.1254135962", "ReadWriteMany"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.#", "1"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.0.requests.%", "1"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.0.requests.storage", "5Gi"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.#", "1"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_labels.%", "1"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_labels.TfAccTestEnvironment", "blablah"),
+// 				),
+// 			},
+// 		},
+// 	})
+// }
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:      func() { testAccPreCheck(t) },
-		IDRefreshName: "kubernetes_persistent_volume_claim.test",
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckKubernetesPersistentVolumeClaimDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccKubernetesPersistentVolumeClaimConfig_labelsMatchExpression(volumeName, claimName),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckKubernetesPersistentVolumeClaimExists("kubernetes_persistent_volume_claim.test", &conf),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.%", "0"),
-					testAccCheckMetaAnnotations(&conf.ObjectMeta, map[string]string{"pv.kubernetes.io/bind-completed": "yes", "pv.kubernetes.io/bound-by-controller": "yes"}),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.labels.%", "0"),
-					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{}),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.name", claimName),
-					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.generation"),
-					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.resource_version"),
-					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.self_link"),
-					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.uid"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.access_modes.#", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.access_modes.1254135962", "ReadWriteMany"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.#", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.0.requests.%", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.0.requests.storage", "5Gi"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.#", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.#", "1"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.key", "TfAccTestEnvironment"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.operator", "In"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.values.#", "3"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.values.1187371253", "three"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.values.2053932785", "one"),
-					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.values.298486374", "two"),
-				),
-			},
-		},
-	})
-}
+// func TestAccKubernetesPersistentVolumeClaim_labelsMatchExpression(t *testing.T) {
+// 	var conf api.PersistentVolumeClaim
+// 	claimName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
+// 	volumeName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
+
+// 	resource.Test(t, resource.TestCase{
+// 		PreCheck:      func() { testAccPreCheck(t) },
+// 		IDRefreshName: "kubernetes_persistent_volume_claim.test",
+// 		Providers:     testAccProviders,
+// 		CheckDestroy:  testAccCheckKubernetesPersistentVolumeClaimDestroy,
+// 		Steps: []resource.TestStep{
+// 			{
+// 				Config: testAccKubernetesPersistentVolumeClaimConfig_labelsMatchExpression(volumeName, claimName),
+// 				Check: resource.ComposeAggregateTestCheckFunc(
+// 					testAccCheckKubernetesPersistentVolumeClaimExists("kubernetes_persistent_volume_claim.test", &conf),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.%", "0"),
+// 					testAccCheckMetaAnnotations(&conf.ObjectMeta, map[string]string{"pv.kubernetes.io/bind-completed": "yes", "pv.kubernetes.io/bound-by-controller": "yes"}),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.labels.%", "0"),
+// 					testAccCheckMetaLabels(&conf.ObjectMeta, map[string]string{}),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.name", claimName),
+// 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.generation"),
+// 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.resource_version"),
+// 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.self_link"),
+// 					resource.TestCheckResourceAttrSet("kubernetes_persistent_volume_claim.test", "metadata.0.uid"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.access_modes.#", "1"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.access_modes.1254135962", "ReadWriteMany"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.#", "1"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.0.requests.%", "1"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.resources.0.requests.storage", "5Gi"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.#", "1"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.#", "1"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.key", "TfAccTestEnvironment"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.operator", "In"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.values.#", "3"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.values.1187371253", "three"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.values.2053932785", "one"),
+// 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "spec.0.selector.0.match_expressions.0.values.298486374", "two"),
+// 				),
+// 			},
+// 		},
+// 	})
+// }
 
 func TestAccKubernetesPersistentVolumeClaim_volumeUpdate(t *testing.T) {
 	var pvcConf api.PersistentVolumeClaim
@@ -248,6 +263,8 @@ func TestAccKubernetesPersistentVolumeClaim_volumeUpdate(t *testing.T) {
 
 	claimName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
 	volumeName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(10))
+	diskName := fmt.Sprintf("tf-acc-test-disk-%s", acctest.RandString(10))
+	zone := os.Getenv("GOOGLE_ZONE")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -256,7 +273,7 @@ func TestAccKubernetesPersistentVolumeClaim_volumeUpdate(t *testing.T) {
 		CheckDestroy:  testAccCheckKubernetesPersistentVolumeClaimDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccKubernetesPersistentVolumeClaimConfig_volumeUpdate(volumeName, claimName, "5Gi"),
+				Config: testAccKubernetesPersistentVolumeClaimConfig_volumeUpdate(volumeName, claimName, "5Gi", diskName, zone),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckKubernetesPersistentVolumeClaimExists("kubernetes_persistent_volume_claim.test", &pvcConf),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.%", "0"),
@@ -280,7 +297,7 @@ func TestAccKubernetesPersistentVolumeClaim_volumeUpdate(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccKubernetesPersistentVolumeClaimConfig_volumeUpdate(volumeName, claimName, "10Gi"),
+				Config: testAccKubernetesPersistentVolumeClaimConfig_volumeUpdate(volumeName, claimName, "10Gi", diskName, zone),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckKubernetesPersistentVolumeClaimExists("kubernetes_persistent_volume_claim.test", &pvcConf),
 					resource.TestCheckResourceAttr("kubernetes_persistent_volume_claim.test", "metadata.0.annotations.%", "0"),
@@ -435,7 +452,7 @@ resource "kubernetes_persistent_volume_claim" "test" {
 `, name)
 }
 
-func testAccKubernetesPersistentVolumeClaimConfig_import(volumeName, claimName string) string {
+func testAccKubernetesPersistentVolumeClaimConfig_import(volumeName, claimName, diskName, zone string) string {
 	return fmt.Sprintf(`
 resource "kubernetes_persistent_volume" "test" {
 	metadata {
@@ -448,10 +465,18 @@ resource "kubernetes_persistent_volume" "test" {
 		access_modes = ["ReadWriteMany"]
 		persistent_volume_source {
 			gce_persistent_disk {
-				pd_name = "test123"
+				pd_name = "${google_compute_disk.test.name}"
 			}
 		}
 	}
+}
+
+resource "google_compute_disk" "test" {
+  name  = "%s"
+  type  = "pd-ssd"
+  zone  = "%s"
+  image = "debian-8-jessie-v20170523"
+  size = 10
 }
 
 resource "kubernetes_persistent_volume_claim" "test" {
@@ -468,10 +493,10 @@ resource "kubernetes_persistent_volume_claim" "test" {
 		volume_name = "${kubernetes_persistent_volume.test.metadata.0.name}"
 	}
 }
-`, volumeName, claimName)
+`, volumeName, diskName, zone, claimName)
 }
 
-func testAccKubernetesPersistentVolumeClaimConfig_volumeMatch(volumeName, claimName string) string {
+func testAccKubernetesPersistentVolumeClaimConfig_volumeMatch(volumeName, claimName, diskName, zone string) string {
 	return fmt.Sprintf(`
 resource "kubernetes_persistent_volume" "test" {
 	metadata {
@@ -484,10 +509,18 @@ resource "kubernetes_persistent_volume" "test" {
 		access_modes = ["ReadWriteMany"]
 		persistent_volume_source {
 			gce_persistent_disk {
-				pd_name = "test123"
+				pd_name = "${google_compute_disk.test.name}"
 			}
 		}
 	}
+}
+
+resource "google_compute_disk" "test" {
+  name  = "%s"
+  type  = "pd-ssd"
+  zone  = "%s"
+  image = "debian-8-jessie-v20170523"
+  size = 10
 }
 
 resource "kubernetes_persistent_volume_claim" "test" {
@@ -504,10 +537,10 @@ resource "kubernetes_persistent_volume_claim" "test" {
 		volume_name = "${kubernetes_persistent_volume.test.metadata.0.name}"
 	}
 }
-`, volumeName, claimName)
+`, volumeName, diskName, zone, claimName)
 }
 
-func testAccKubernetesPersistentVolumeClaimConfig_volumeMatch_modified(volumeName, claimName string) string {
+func testAccKubernetesPersistentVolumeClaimConfig_volumeMatch_modified(volumeName, claimName, diskName, zone string) string {
 	return fmt.Sprintf(`
 resource "kubernetes_persistent_volume" "test2" {
 	metadata {
@@ -520,10 +553,18 @@ resource "kubernetes_persistent_volume" "test2" {
 		access_modes = ["ReadWriteMany"]
 		persistent_volume_source {
 			gce_persistent_disk {
-				pd_name = "test123"
+				pd_name = "${google_compute_disk.test.name}"
 			}
 		}
 	}
+}
+
+resource "google_compute_disk" "test" {
+  name  = "%s"
+  type  = "pd-ssd"
+  zone  = "%s"
+  image = "debian-8-jessie-v20170523"
+  size = 10
 }
 
 resource "kubernetes_persistent_volume_claim" "test" {
@@ -540,98 +581,98 @@ resource "kubernetes_persistent_volume_claim" "test" {
 		volume_name = "${kubernetes_persistent_volume.test2.metadata.0.name}"
 	}
 }
-`, volumeName, claimName)
+`, volumeName, diskName, zone, claimName)
 }
 
-func testAccKubernetesPersistentVolumeClaimConfig_labelsMatch(volumeName, claimName string) string {
-	return fmt.Sprintf(`
-resource "kubernetes_persistent_volume" "test" {
-	metadata {
-		labels {
-			TfAccTestEnvironment = "blablah"
-		}
-		name = "%s"
-	}
-	spec {
-		capacity {
-			storage = "10Gi"
-		}
-		access_modes = ["ReadWriteMany"]
-		persistent_volume_source {
-			gce_persistent_disk {
-				pd_name = "test123"
-			}
-		}
-	}
-}
+// func testAccKubernetesPersistentVolumeClaimConfig_labelsMatch(volumeName, claimName string) string {
+// 	return fmt.Sprintf(`
+// resource "kubernetes_persistent_volume" "test" {
+// 	metadata {
+// 		labels {
+// 			TfAccTestEnvironment = "blablah"
+// 		}
+// 		name = "%s"
+// 	}
+// 	spec {
+// 		capacity {
+// 			storage = "10Gi"
+// 		}
+// 		access_modes = ["ReadWriteMany"]
+// 		persistent_volume_source {
+// 			gce_persistent_disk {
+// 				pd_name = "test123"
+// 			}
+// 		}
+// 	}
+// }
 
-resource "kubernetes_persistent_volume_claim" "test" {
-	metadata {
-		name = "%s"
-	}
-	spec {
-		access_modes = ["ReadWriteMany"]
-		resources {
-			requests {
-				storage = "5Gi"
-			}
-		}
-		selector {
-			match_labels {
-				TfAccTestEnvironment = "blablah"
-			}
-		}
-	}
-}
-`, volumeName, claimName)
-}
+// resource "kubernetes_persistent_volume_claim" "test" {
+// 	metadata {
+// 		name = "%s"
+// 	}
+// 	spec {
+// 		access_modes = ["ReadWriteMany"]
+// 		resources {
+// 			requests {
+// 				storage = "5Gi"
+// 			}
+// 		}
+// 		selector {
+// 			match_labels {
+// 				TfAccTestEnvironment = "blablah"
+// 			}
+// 		}
+// 	}
+// }
+// `, volumeName, claimName)
+// }
 
-func testAccKubernetesPersistentVolumeClaimConfig_labelsMatchExpression(volumeName, claimName string) string {
-	return fmt.Sprintf(`
-resource "kubernetes_persistent_volume" "test" {
-	metadata {
-		labels {
-			TfAccTestEnvironment = "two"
-		}
-		name = "%s"
-	}
-	spec {
-		capacity {
-			storage = "10Gi"
-		}
-		access_modes = ["ReadWriteMany"]
-		persistent_volume_source {
-			gce_persistent_disk {
-				pd_name = "test123"
-			}
-		}
-	}
-}
+// func testAccKubernetesPersistentVolumeClaimConfig_labelsMatchExpression(volumeName, claimName string) string {
+// 	return fmt.Sprintf(`
+// resource "kubernetes_persistent_volume" "test" {
+// 	metadata {
+// 		labels {
+// 			TfAccTestEnvironment = "two"
+// 		}
+// 		name = "%s"
+// 	}
+// 	spec {
+// 		capacity {
+// 			storage = "10Gi"
+// 		}
+// 		access_modes = ["ReadWriteMany"]
+// 		persistent_volume_source {
+// 			gce_persistent_disk {
+// 				pd_name = "test123"
+// 			}
+// 		}
+// 	}
+// }
 
-resource "kubernetes_persistent_volume_claim" "test" {
-	metadata {
-		name = "%s"
-	}
-	spec {
-		access_modes = ["ReadWriteMany"]
-		resources {
-			requests {
-				storage = "5Gi"
-			}
-		}
-		selector {
-			match_expressions {
-				key = "TfAccTestEnvironment"
-				operator = "In"
-				values = ["one", "three", "two"]
-			}
-		}
-	}
-}
-`, volumeName, claimName)
-}
+// resource "kubernetes_persistent_volume_claim" "test" {
+// 	metadata {
+// 		name = "%s"
+// 	}
+// 	spec {
+// 		access_modes = ["ReadWriteMany"]
+// 		resources {
+// 			requests {
+// 				storage = "5Gi"
+// 			}
+// 		}
+// 		selector {
+// 			match_expressions {
+// 				key = "TfAccTestEnvironment"
+// 				operator = "In"
+// 				values = ["one", "three", "two"]
+// 			}
+// 		}
+// 	}
+// }
+// `, volumeName, claimName)
+// }
 
-func testAccKubernetesPersistentVolumeClaimConfig_volumeUpdate(volumeName, claimName, storage string) string {
+func testAccKubernetesPersistentVolumeClaimConfig_volumeUpdate(volumeName, claimName, storage, diskName, zone string) string {
 	return fmt.Sprintf(`
 resource "kubernetes_persistent_volume" "test" {
 	metadata {
@@ -644,10 +685,18 @@ resource "kubernetes_persistent_volume" "test" {
 		access_modes = ["ReadWriteMany"]
 		persistent_volume_source {
 			gce_persistent_disk {
-				pd_name = "test123"
+				pd_name = "${google_compute_disk.test.name}"
 			}
 		}
 	}
+}
+
+resource "google_compute_disk" "test" {
+  name  = "%s"
+  type  = "pd-ssd"
+  zone  = "%s"
+  image = "debian-8-jessie-v20170523"
+  size = 10
 }
 
 resource "kubernetes_persistent_volume_claim" "test" {
@@ -664,5 +713,5 @@ resource "kubernetes_persistent_volume_claim" "test" {
 		volume_name = "${kubernetes_persistent_volume.test.metadata.0.name}"
 	}
 }
-`, volumeName, storage, claimName)
+`, volumeName, storage, diskName, zone, claimName)
 }

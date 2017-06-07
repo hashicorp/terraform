@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"sort"
 	"strings"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
@@ -48,9 +47,10 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 
 	if lrt.OsDebug {
 		log.Printf("[DEBUG] OpenStack Request URL: %s %s", request.Method, request.URL)
+		log.Printf("[DEBUG] Openstack Request Headers:\n%s", FormatHeaders(request.Header, "\n"))
 
 		if request.Body != nil {
-			request.Body, err = lrt.logRequest(request.Body, request.Header)
+			request.Body, err = lrt.logRequest(request.Body, request.Header.Get("Content-Type"))
 			if err != nil {
 				return nil, err
 			}
@@ -63,7 +63,10 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	}
 
 	if lrt.OsDebug {
-		response.Body, err = lrt.logResponse(response.Body, response.Header)
+		log.Printf("[DEBUG] Openstack Response Code: %d", response.StatusCode)
+		log.Printf("[DEBUG] Openstack Response Headers:\n%s", FormatHeaders(response.Header, "\n"))
+
+		response.Body, err = lrt.logResponse(response.Body, response.Header.Get("Content-Type"))
 	}
 
 	return response, err
@@ -71,7 +74,7 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 
 // logRequest will log the HTTP Request details.
 // If the body is JSON, it will attempt to be pretty-formatted.
-func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
+func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, contentType string) (io.ReadCloser, error) {
 	defer original.Close()
 
 	var bs bytes.Buffer
@@ -80,14 +83,7 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Head
 		return nil, err
 	}
 
-	// Sort the headers for consistency
-	redactedHeaders := RedactHeaders(headers)
-	sort.Strings(redactedHeaders)
-
-	log.Printf("[DEBUG] Openstack Request headers:\n%s", strings.Join(redactedHeaders, "\n"))
-
 	// Handle request contentType
-	contentType := headers.Get("Content-Type")
 	if strings.HasPrefix(contentType, "application/json") {
 		debugInfo := lrt.formatJSON(bs.Bytes())
 		log.Printf("[DEBUG] OpenStack Request Body: %s", debugInfo)
@@ -100,14 +96,7 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Head
 
 // logResponse will log the HTTP Response details.
 // If the body is JSON, it will attempt to be pretty-formatted.
-func (lrt *LogRoundTripper) logResponse(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
-	// Sort the headers for consistency
-	redactedHeaders := RedactHeaders(headers)
-	sort.Strings(redactedHeaders)
-
-	log.Printf("[DEBUG] Openstack Response headers:\n%s", strings.Join(redactedHeaders, "\n"))
-
-	contentType := headers.Get("Content-Type")
+func (lrt *LogRoundTripper) logResponse(original io.ReadCloser, contentType string) (io.ReadCloser, error) {
 	if strings.HasPrefix(contentType, "application/json") {
 		var bs bytes.Buffer
 		defer original.Close()

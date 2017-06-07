@@ -97,6 +97,18 @@ func resourceRancherHostRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if host == nil {
+		log.Printf("[INFO] Host %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	if removed(host.State) {
+		log.Printf("[INFO] Host %s was removed on %v", d.Id(), host.Removed)
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] Host Name: %s", host.Name)
 
 	d.Set("description", host.Description)

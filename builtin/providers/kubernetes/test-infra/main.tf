@@ -38,6 +38,10 @@ resource "google_container_cluster" "primary" {
   }
 }
 
+output "zone" {
+  value = "${data.google_compute_zones.available.names[0]}"
+}
+
 output "endpoint" {
   value = "${google_container_cluster.primary.endpoint}"
 }

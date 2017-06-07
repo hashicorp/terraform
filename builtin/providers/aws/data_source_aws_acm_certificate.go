@@ -27,6 +27,11 @@ func dataSourceAwsAcmCertificate() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"types": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -57,6 +62,31 @@ func dataSourceAwsAcmCertificateRead(d *schema.ResourceData, meta interface{}) e
 	})
 	if err != nil {
 		return errwrap.Wrapf("Error describing certificates: {{err}}", err)
+	}
+
+	// filter based on certificate type (imported or aws-issued)
+	types, ok := d.GetOk("types")
+	if ok {
+		typesStrings := expandStringList(types.([]interface{}))
+		var matchedArns []string
+		for _, arn := range arns {
+			params := &acm.DescribeCertificateInput{}
+			params.CertificateArn = &arn
+
+			description, err := conn.DescribeCertificate(params)
+			if err != nil {
+				return errwrap.Wrapf("Error describing certificates: {{err}}", err)
+			}
+
+			for _, certType := range typesStrings {
+				if *description.Certificate.Type == *certType {
+					matchedArns = append(matchedArns, arn)
+					break
+				}
+			}
+		}
+
+		arns = matchedArns
 	}
 
 	if len(arns) == 0 {

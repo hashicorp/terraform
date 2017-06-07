@@ -8,6 +8,8 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 	riviera "github.com/jen20/riviera/azure"
 )
@@ -68,7 +70,7 @@ func getStorageAccountAccessKey(conf map[string]string, resourceGroupName, stora
 		return "", err
 	}
 
-	oauthConfig, err := env.OAuthConfigForTenant(creds.TenantID)
+	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, creds.TenantID)
 	if err != nil {
 		return "", err
 	}
@@ -76,13 +78,13 @@ func getStorageAccountAccessKey(conf map[string]string, resourceGroupName, stora
 		return "", fmt.Errorf("Unable to configure OAuthConfig for tenant %s", creds.TenantID)
 	}
 
-	spt, err := azure.NewServicePrincipalToken(*oauthConfig, creds.ClientID, creds.ClientSecret, env.ResourceManagerEndpoint)
+	spt, err := adal.NewServicePrincipalToken(*oauthConfig, creds.ClientID, creds.ClientSecret, env.ResourceManagerEndpoint)
 	if err != nil {
 		return "", err
 	}
 
 	accountsClient := storage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, creds.SubscriptionID)
-	accountsClient.Authorizer = spt
+	accountsClient.Authorizer = autorest.NewBearerAuthorizer(spt)
 
 	keys, err := accountsClient.ListKeys(resourceGroupName, storageAccountName)
 	if err != nil {

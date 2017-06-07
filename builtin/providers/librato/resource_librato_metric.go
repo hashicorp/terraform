@@ -151,7 +151,7 @@ func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error
 		metric.Attributes = attributes
 	}
 
-	_, err := client.Metrics.Edit(&metric)
+	_, err := client.Metrics.Update(&metric)
 	if err != nil {
 		log.Printf("[INFO] ERROR creating Metric: %s", err)
 		return fmt.Errorf("Error creating Librato metric: %s", err)
@@ -280,7 +280,7 @@ func resourceLibratoMetricUpdate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[INFO] Updating Librato metric: %v", structToString(metric))
 
-	_, err := client.Metrics.Edit(metric)
+	_, err := client.Metrics.Update(metric)
 	if err != nil {
 		return fmt.Errorf("Error updating Librato metric: %s", err)
 	}

@@ -25,12 +25,16 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Delete: schema.DefaultTimeout(15 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -38,66 +42,66 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc:  validateDbOptionGroupName,
 			},
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateDbOptionGroupNamePrefix,
 			},
-			"engine_name": &schema.Schema{
+			"engine_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"major_engine_version": &schema.Schema{
+			"major_engine_version": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"option_group_description": &schema.Schema{
+			"option_group_description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Default:  "Managed by Terraform",
 			},
 
-			"option": &schema.Schema{
+			"option": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"option_name": &schema.Schema{
+						"option_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"option_settings": &schema.Schema{
+						"option_settings": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"name": &schema.Schema{
+									"name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"value": &schema.Schema{
+									"value": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
 								},
 							},
 						},
-						"port": &schema.Schema{
+						"port": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"db_security_group_memberships": &schema.Schema{
+						"db_security_group_memberships": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
-						"vpc_security_group_memberships": &schema.Schema{
+						"vpc_security_group_memberships": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
@@ -299,7 +303,7 @@ func resourceAwsDbOptionGroupDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	log.Printf("[DEBUG] Delete DB Option Group: %#v", deleteOpts)
-	ret := resource.Retry(5*time.Minute, func() *resource.RetryError {
+	ret := resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		_, err := rdsconn.DeleteOptionGroup(deleteOpts)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
