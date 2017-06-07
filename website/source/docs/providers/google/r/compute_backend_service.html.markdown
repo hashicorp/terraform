@@ -8,7 +8,9 @@ description: |-
 
 # google\_compute\_backend\_service
 
-A Backend Service defines a group of virtual machines that will serve traffic for load balancing.
+A Backend Service defines a group of virtual machines that will serve traffic for load balancing. For more information 
+see [the official documentation](https://cloud.google.com/compute/docs/load-balancing/http/backend-service)
+and the [API](https://cloud.google.com/compute/docs/reference/latest/backendServices).
 
 For internal load balancing, use a [google_compute_region_backend_service](/docs/providers/google/r/compute_region_backend_service.html).
 
@@ -72,8 +74,7 @@ The following arguments are supported:
 
 - - -
 
-* `backend` - (Optional) The list of backends that serve this BackendService.
-    See *Backend* below.
+* `backend` - (Optional) The list of backends that serve this BackendService. Structure is documented below.
 
 * `description` - (Optional) The textual description for the backend service.
 
@@ -94,8 +95,11 @@ The following arguments are supported:
 
 * `timeout_sec` - (Optional) The number of secs to wait for a backend to respond
     to a request before considering the request failed. Defaults to `30`.
+    
+* `connection_draining_timeout_sec` - (Optional) Time for which instance will be drained (not accept new connections, 
+but still work to finish started ones). Defaults to `0`.
 
-**Backend** supports the following attributes:
+The `backend` block supports:
 
 * `group` - (Required) The name or URI of a Compute Engine instance group
     (`google_compute_instance_group_manager.xyz.instance_group`) that can
