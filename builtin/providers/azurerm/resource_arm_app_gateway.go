@@ -30,7 +30,6 @@ func resourceArmAppGateway() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"location": {
@@ -53,8 +52,9 @@ func resourceArmAppGateway() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.StandardSmall),
 								string(network.StandardMedium),
@@ -65,13 +65,13 @@ func resourceArmAppGateway() *schema.Resource {
 						},
 
 						"tier": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.Standard),
 								string(network.WAF),
 							}, true),
-							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"capacity": {
@@ -88,13 +88,13 @@ func resourceArmAppGateway() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
-					Type: schema.TypeString,
+					Type:             schema.TypeString,
+					DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 					ValidateFunc: validation.StringInSlice([]string{
 						string(network.TLSv10),
 						string(network.TLSv11),
 						string(network.TLSv12),
 					}, true),
-					DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 				},
 			},
 
@@ -110,13 +110,13 @@ func resourceArmAppGateway() *schema.Resource {
 						},
 
 						"firewall_mode": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.Detection),
 								string(network.Prevention),
 							}, true),
-							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 					},
 				},
@@ -206,14 +206,14 @@ func resourceArmAppGateway() *schema.Resource {
 						},
 
 						"private_ip_address_allocation": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.Dynamic),
 								string(network.Static),
 							}, true),
-							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 					},
 				},
@@ -278,23 +278,23 @@ func resourceArmAppGateway() *schema.Resource {
 						},
 
 						"protocol": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.HTTP),
 								string(network.HTTPS),
 							}, true),
-							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"cookie_based_affinity": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.Enabled),
 								string(network.Disabled),
 							}, true),
-							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"request_timeout": {
@@ -369,13 +369,13 @@ func resourceArmAppGateway() *schema.Resource {
 						},
 
 						"protocol": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.HTTP),
 								string(network.HTTPS),
 							}, true),
-							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"host_name": {
@@ -417,13 +417,13 @@ func resourceArmAppGateway() *schema.Resource {
 						},
 
 						"protocol": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.HTTP),
 								string(network.HTTPS),
 							}, true),
-							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"path": {
@@ -471,13 +471,13 @@ func resourceArmAppGateway() *schema.Resource {
 						},
 
 						"rule_type": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.Basic),
 								string(network.PathBasedRouting),
 							}, true),
-							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"http_listener_name": {
