@@ -714,7 +714,7 @@ func resourceArmAppGatewayCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	_, errChan := client.CreateOrUpdate(resGroup, name, gateway, make(chan struct{}))
-	if errChan != nil {
+	if <-errChan != nil {
 		return errwrap.Wrapf("Error Creating/Updating AppGateway {{err}}", <-errChan)
 	}
 
@@ -796,7 +796,7 @@ func resourceArmAppGatewayDelete(d *schema.ResourceData, meta interface{}) error
 	name := id.Path["applicationGateways"]
 
 	_, errChan := client.Delete(resGroup, name, make(chan struct{}))
-	if errChan != nil {
+	if <-errChan != nil {
 		return errwrap.Wrapf("Error Deleting AppGateway {{err}}", <-errChan)
 	}
 
