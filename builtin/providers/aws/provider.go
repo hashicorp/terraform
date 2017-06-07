@@ -462,6 +462,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpn_connection_route":                     resourceAwsVpnConnectionRoute(),
 			"aws_vpn_gateway":                              resourceAwsVpnGateway(),
 			"aws_vpn_gateway_attachment":                   resourceAwsVpnGatewayAttachment(),
+			"aws_vpn_gateway_route_propagation":            resourceAwsVpnGatewayRoutePropagation(),
 			"aws_waf_byte_match_set":                       resourceAwsWafByteMatchSet(),
 			"aws_waf_ipset":                                resourceAwsWafIPSet(),
 			"aws_waf_rule":                                 resourceAwsWafRule(),

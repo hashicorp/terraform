@@ -22,6 +22,13 @@ This _will_ lead to a permanent diff between your configuration and statefile, a
 parameters in the returned route table. If you're experiencing constant diffs in your `aws_route_table` resources,
 the first thing to check is whether or not you're specifying a NAT ID instead of a Gateway ID, or vice-versa.
 
+~> **NOTE on `propagating_vgws` and the `aws_vpn_gateway_route_propagation` resource:**
+If the `propagating_vgws` argument is present, it's not supported to _also_
+define route propagations using `aws_vpn_gateway_route_propagation`, since
+this resource will delete any propagating gateways not explicitly listed in
+`propagating_vgws`. Omit this argument when defining route propagation using
+the separate resource.
+
 ## Example usage with tags:
 
 ```hcl
