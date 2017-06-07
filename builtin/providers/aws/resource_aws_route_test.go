@@ -106,6 +106,26 @@ func TestAccAWSRoute_ipv6ToInternetGateway(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute_ipv6ToPeeringConnection(t *testing.T) {
+	var route ec2.Route
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRouteDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSRouteConfigIpv6PeeringConnection,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRouteExists("aws_route.pc", &route),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRoute_changeCidr(t *testing.T) {
 	var route ec2.Route
 	var routeTable ec2.RouteTable
@@ -330,6 +350,35 @@ resource "aws_route" "igw" {
   route_table_id = "${aws_route_table.external.id}"
   destination_ipv6_cidr_block = "::/0"
   gateway_id = "${aws_internet_gateway.foo.id}"
+}
+
+`)
+
+var testAccAWSRouteConfigIpv6PeeringConnection = fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+	cidr_block = "10.0.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+}
+
+resource "aws_vpc" "bar" {
+	cidr_block = "10.1.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+}
+
+resource "aws_vpc_peering_connection" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+	peer_vpc_id = "${aws_vpc.bar.id}"
+	auto_accept = true
+}
+
+resource "aws_route_table" "peering" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route" "pc" {
+  route_table_id = "${aws_route_table.peering.id}"
+  destination_ipv6_cidr_block = "${aws_vpc.bar.ipv6_cidr_block}"
+  vpc_peering_connection_id = "${aws_vpc_peering_connection.foo.id}"
 }
 
 `)
