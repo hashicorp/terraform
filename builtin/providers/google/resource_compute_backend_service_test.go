@@ -73,6 +73,27 @@ func TestAccComputeBackendService_withBackend(t *testing.T) {
 	}
 }
 
+func TestAccComputeBackendService_withBackendGroups(t *testing.T) {
+	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	igName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeBackendService_withBackendGroups(
+					serviceName, igName, checkName, 10),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeBackendServiceExistsWithGroups(
+						"google_compute_backend_service.groups_test"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeBackendService_withBackendAndUpdate(t *testing.T) {
 	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	igName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
@@ -156,6 +177,37 @@ func testAccCheckComputeBackendServiceExists(n string, svc *compute.BackendServi
 		}
 
 		*svc = *found
+
+		return nil
+	}
+}
+
+func testAccCheckComputeBackendServiceExistsWithGroups(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		config := testAccProvider.Meta().(*Config)
+
+		found, err := config.clientCompute.BackendServices.Get(
+			config.Project, rs.Primary.ID).Do()
+		if err != nil {
+			return err
+		}
+
+		if found.Name != rs.Primary.ID {
+			return fmt.Errorf("Backend service not found")
+		}
+
+		if len(found.Backends) != 3 {
+			return fmt.Errorf("Invalid number of backends on backend service: %d", len(found.Backends))
+		}
 
 		return nil
 	}
@@ -324,6 +376,41 @@ resource "google_compute_http_health_check" "default" {
   timeout_sec        = 1
 }
 `, serviceName, timeout, igName, itName, checkName)
+}
+
+func testAccComputeBackendService_withBackendGroups(
+	serviceName, igName, checkName string, timeout int64) string {
+	return fmt.Sprintf(`
+variable "zones" {
+	default = ["us-central1-a", "us-central1-b", "us-central1-c"]
+}
+
+resource "google_compute_backend_service" "groups_test" {
+  name        = "%s"
+  description = "Backend Groups Test Service"
+  port_name   = "http"
+  protocol    = "HTTP"
+  timeout_sec = %v
+
+  backend {
+    groups = ["${google_compute_instance_group.test_ig.*.self_link}"]
+  }
+
+  health_checks = ["${google_compute_http_health_check.groups.self_link}"]
+}
+
+resource "google_compute_instance_group" "test_ig" {
+	name = "%s"
+	count = 3
+	zone = "${element(var.zones, count.index)}"
+}
+
+resource "google_compute_http_health_check" "groups" {
+  name               = "%s"
+  request_path       = "/"
+  check_interval_sec = 1
+  timeout_sec        = 1
+}`, serviceName, timeout, igName, checkName)
 }
 
 func testAccComputeBackendService_withSessionAffinity(serviceName, checkName, affinityName string) string {

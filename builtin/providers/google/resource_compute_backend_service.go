@@ -49,6 +49,11 @@ func resourceComputeBackendService() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"groups": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
 						"balancing_mode": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -236,7 +241,7 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	d.Set("fingerprint", service.Fingerprint)
 	d.Set("self_link", service.SelfLink)
 
-	d.Set("backend", flattenBackends(service.Backends))
+	d.Set("backend", service.Backends)
 	d.Set("health_checks", service.HealthChecks)
 
 	return nil
@@ -329,14 +334,12 @@ func resourceComputeBackendServiceDelete(d *schema.ResourceData, meta interface{
 }
 
 func expandBackends(configured []interface{}) []*compute.Backend {
-	backends := make([]*compute.Backend, 0, len(configured))
+	var backends []*compute.Backend
 
 	for _, raw := range configured {
 		data := raw.(map[string]interface{})
 
-		b := compute.Backend{
-			Group: data["group"].(string),
-		}
+		var b compute.Backend
 
 		if v, ok := data["balancing_mode"]; ok {
 			b.BalancingMode = v.(string)
@@ -357,30 +360,24 @@ func expandBackends(configured []interface{}) []*compute.Backend {
 			b.MaxUtilization = v.(float64)
 		}
 
-		backends = append(backends, &b)
+		if v, ok := data["group"]; ok {
+			b.Group = v.(string)
+
+			if b.Group != "" {
+				backends = append(backends, &b)
+			}
+		}
+
+		if v, ok := data["groups"]; ok {
+			for _, group := range v.([]interface{}) {
+				gb := b
+				gb.Group = group.(string)
+				backends = append(backends, &gb)
+			}
+		}
 	}
 
 	return backends
-}
-
-func flattenBackends(backends []*compute.Backend) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(backends))
-
-	for _, b := range backends {
-		data := make(map[string]interface{})
-
-		data["balancing_mode"] = b.BalancingMode
-		data["capacity_scaler"] = b.CapacityScaler
-		data["description"] = b.Description
-		data["group"] = b.Group
-		data["max_rate"] = b.MaxRate
-		data["max_rate_per_instance"] = b.MaxRatePerInstance
-		data["max_utilization"] = b.MaxUtilization
-
-		result = append(result, data)
-	}
-
-	return result
 }
 
 func resourceGoogleComputeBackendServiceBackendHash(v interface{}) int {
@@ -391,7 +388,15 @@ func resourceGoogleComputeBackendServiceBackendHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	buf.WriteString(fmt.Sprintf("%s-", m["group"].(string)))
+	if m["group"].(string) != "" {
+		buf.WriteString(fmt.Sprintf("%s-", m["group"].(string)))
+	}
+
+	if v, ok := m["groups"]; ok {
+		for _, group := range v.([]interface{}) {
+			buf.WriteString(fmt.Sprintf("%s-", group.(string)))
+		}
+	}
 
 	if v, ok := m["balancing_mode"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
