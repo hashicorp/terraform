@@ -1,6 +1,5 @@
 # Deploys a WordPress web site backed by MySQL master-slave replication
 
-
 This Terraform template was based on [this](https://github.com/Azure/azure-quickstart-templates/tree/master/wordpress-mysql-replication) Azure Quickstart Template. Changes to the ARM template that may have occurred since the creation of this example may not be reflected here.
 
 This template deploys a WordPress site in Azure backed by MySQL replication with one master and one slave server.  It has the following capabilities:
@@ -12,6 +11,12 @@ This template deploys a WordPress site in Azure backed by MySQL replication with
 - Configures an http based health probe for each MySQL instance that can be used to monitor MySQL health.
 - WordPress deployment starts immediately after MySQL deployment finishes.
 - Details about MySQL management, including failover, can be found [here](https://github.com/Azure/azure-quickstart-templates/tree/master/mysql-replication).
+
+If you would like to leverage an existing VNET, then please see the [documentation here](https://www.terraform.io/docs/import/index.html) to learn about importing existing resources into Terraform and bringing them under state management by this template. To import your existing VNET, you may use this command.
+
+```
+terraform import azurerm_virtual_network.testNetwork /subscriptions/<YOUR-SUB-ID-HERE>/resourceGroups/<existing-resource-group-name>/providers/Microsoft.Network/virtualNetworks/<existing-vnet-name>
+```
 
 ## main.tf
 The `main.tf` file contains the actual resources that will be deployed. It also contains the Azure Resource Group definition and any defined variables.
@@ -29,5 +34,3 @@ If you are committing this template to source control, please insure that you ad
 
 ## variables.tf
 The `variables.tf` file contains all of the input parameters that the user can specify when deploying this Terraform template.
-
-![`terraform graph`](/examples/azure-wordpress-mysql-replication/graph.png)

@@ -16,6 +16,12 @@ docker run --rm -it \
       /bin/terraform plan -out=out.tfplan \
         -var resource_group=$KEY \
         -var unique_prefix=$KEY \
+        -var site_name=$KEY \
+        -var dns_name=$KEY \
+        -var hosting_plan_name=$KEY \
+        -var mysql_root_password=$PASSWORD \
+        -var mysql_replication_password=$PASSWORD \
+        -var mysql_probe_password=$PASSWORD \
         -var vm_admin_username=$KEY \
         -var vm_admin_password=$PASSWORD; \
       /bin/terraform apply out.tfplan"
@@ -37,7 +43,13 @@ docker run --rm -it \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
   -c "/bin/terraform destroy -force \
-     -var resource_group=$KEY \
-     -var unique_prefix=$KEY \
-     -var vm_admin_username=$KEY \
-     -var vm_admin_password=$PASSWORD;"
+    -var resource_group=$KEY \
+    -var unique_prefix=$KEY \
+    -var site_name=$KEY \
+    -var dns_name=$KEY \
+    -var hosting_plan_name=$KEY \
+    -var mysql_root_password=$PASSWORD \
+    -var mysql_replication_password=$PASSWORD \
+    -var mysql_probe_password=$PASSWORD \
+    -var vm_admin_username=$KEY \
+    -var vm_admin_password=$PASSWORD;"

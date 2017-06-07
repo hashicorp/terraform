@@ -1,3 +1,8 @@
+variable "client_id" {}
+variable "client_secret" {}
+variable "tenant_id" {}
+variable "subscription_id" {}
+
 variable "resource_group" {
   description = "Resource group name into which your Spark and Cassandra deployment will go."
 }
@@ -9,41 +14,6 @@ variable "location" {
 
 variable "unique_prefix" {
   description = "This prefix is used for names which need to be globally unique."
-}
-
-variable "storage_master_type" {
-  description = "Storage type that is used for master Spark node.  This storage account is used to store VM disks. Allowed values: Standard_LRS, Standard_ZRS, Standard_GRS, Standard_RAGRS, Premium_LRS"
-  default     = "Standard_LRS"
-}
-
-variable "storage_slave_type" {
-  description = "Storage type that is used for each of the slave Spark node.  This storage account is used to store VM disks. Allowed values : Standard_LRS, Standard_ZRS, Standard_GRS, Standard_RAGRS, Premium_LRS"
-  default     = "Standard_LRS"
-}
-
-variable "storage_cassandra_type" {
-  description = "Storage type that is used for Cassandra.  This storage account is used to store VM disks. Allowed values: Standard_LRS, Standard_ZRS, Standard_GRS, Standard_RAGRS, Premium_LRS"
-  default     = "Standard_LRS"
-}
-
-variable "vm_master_vm_size" {
-  description = "VM size for master Spark node.  This VM can be sized smaller. Allowed values: Standard_D1_v2, Standard_D2_v2, Standard_D3_v2, Standard_D4_v2, Standard_D5_v2, Standard_D11_v2, Standard_D12_v2, Standard_D13_v2, Standard_D14_v2, Standard_A8, Standard_A9, Standard_A10, Standard_A11"
-  default     = "Standard_D1_v2"
-}
-
-variable "vm_number_of_slaves" {
-  description = "Number of VMs to create to support the slaves.  Each slave is created on it's own VM.  Minimum of 2 & Maximum of 200 VMs. min = 2, max = 200"
-  default     = 2
-}
-
-variable "vm_slave_vm_size" {
-  description = "VM size for slave Spark nodes.  This VM should be sized based on workloads. Allowed values: Standard_D1_v2, Standard_D2_v2, Standard_D3_v2, Standard_D4_v2, Standard_D5_v2, Standard_D11_v2, Standard_D12_v2, Standard_D13_v2, Standard_D14_v2, Standard_A8, Standard_A9, Standard_A10, Standard_A11"
-  default     = "Standard_D3_v2"
-}
-
-variable "vm_cassandra_vm_size" {
-  description = "VM size for Cassandra node.  This VM should be sized based on workloads. Allowed values: Standard_D1_v2, Standard_D2_v2, Standard_D3_v2, Standard_D4_v2, Standard_D5_v2, Standard_D11_v2, Standard_D12_v2, Standard_D13_v2, Standard_D14_v2, Standard_A8, Standard_A9, Standard_A10, Standard_A11"
-  default     = "Standard_D3_v2"
 }
 
 variable "vm_admin_username" {
@@ -75,160 +45,166 @@ variable "api_version" {
 
 variable "artifacts_location" {
   description = "The base URI where artifacts required by this template are located."
-  default     = "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/spark-and-cassandra-on-centos/CustomScripts/"
+  default     = "https://raw.githubusercontent.com/10thmagnitude/azure-quickstart-templates/wordpress-mysql-replication/wordpress-mysql-replication/"
 }
 
-variable "vnet_spark_prefix" {
-  description = "The address space that is used by the virtual network. You can supply more than one address space. Changing this forces a new resource to be created."
+variable "azuremysql_script" {
+  description = "The directory and script which will configure MySQL"
+  default     = "scripts/azuremysql.sh"
+}
+
+variable "mysql_cfg_file_path" {
+  description = "The directory and script which will be called in the extension for the MySQL config"
+  default     = "scripts/my.cnf.template"
+}
+
+variable "site_name" {
+  description = "wordpress site name"
+}
+
+variable "hosting_plan_name" {
+  description = "website host plan"
+}
+
+variable "sku" {
+  description = "Website sku. Allowed values: Basic, Standard, Premium"
+  default     = "Standard"
+}
+
+variable "worker_size" {
+  description = "Website worker size. Allowed values: 0, 1, 2"
+  default     = "1"
+}
+
+variable "dns_name" {
+  description = "Connect to your cluster using dnsName.location.cloudapp.azure.com"
+}
+
+variable "public_ip_name" {
+  description = "public IP name for MySQL loadbalancer"
+  default     = "mysqlIP01"
+}
+
+variable "mysql_root_password" {
+  description = "mysql root user password"
+}
+
+variable "mysql_replication_password" {
+  description = "mysql replication user password"
+}
+
+variable "mysql_probe_password" {
+  description = "mysql probe password"
+}
+
+variable "vm_size" {
+  description = "size for the VMs"
+  default     = "Standard_D2"
+}
+
+variable "storage_account_type" {
+  description = "Storage account type for the cluster"
+  default     = "Standard_LRS"
+}
+
+variable "virtual_network_name" {
+  description = "New or Existing Virtual network name for the cluster"
+  default     = "mysqlvnet"
+}
+
+variable "vnet_new_or_existing" {
+  description = "Identifies whether to use new or existing Virtual Network"
+  default     = "new"
+}
+
+variable "vnet_existing_resource_group_name" {
+  description = "If using existing VNet, specifies the resource group for the existing VNet"
+  default     = ""
+}
+
+variable "db_subnet_name" {
+  description = "subnet name for the MySQL nodes"
+  default     = "default"
+}
+
+variable "vnet_address_prefix" {
+  description = "IP address in CIDR for virtual network"
   default     = "10.0.0.0/16"
 }
 
-variable "vnet_spark_subnet1_name" {
-  description = "The name used for the Master subnet."
-  default     = "Subnet-Master"
-}
-
-variable "vnet_spark_subnet1_prefix" {
-  description = "The address prefix to use for the Master subnet."
-  default     = "10.0.0.0/24"
-}
-
-variable "vnet_spark_subnet2_name" {
-  description = "The name used for the slave/agent subnet."
-  default     = "Subnet-Slave"
-}
-
-variable "vnet_spark_subnet2_prefix" {
-  description = "The address prefix to use for the slave/agent subnet."
+variable "db_subnet_address_prefix" {
+  description = "IP address in CIDR for db subnet"
   default     = "10.0.1.0/24"
 }
 
-variable "vnet_spark_subnet3_name" {
-  description = "The name used for the subnet used by Cassandra."
-  default     = "Subnet-Cassandra"
+variable "db_subnet_start_address" {
+  description = "Start IP address for the VMs in db subnet"
+  default     = "10.0.1.4"
 }
 
-variable "vnet_spark_subnet3_prefix" {
-  description = "The address prefix to use for the subnet used by Cassandra."
-  default     = "10.0.2.0/24"
+variable "image_publisher" {
+  description = "publisher for the VM OS image"
+  default     = "OpenLogic"
 }
 
-variable "nsg_spark_master_name" {
-  description = "The name of the network security group for Spark's Master"
-  default     = "nsg-spark-master"
+variable "image_offer" {
+  description = "VM OS name"
+  default     = "CentOS"
 }
 
-variable "nsg_spark_slave_name" {
-  description = "The name of the network security group for Spark's slave/agent nodes"
-  default     = "nsg-spark-slave"
+variable "image_sku" {
+  description = "VM OS version. Allowed values: 6.5, 6.6"
+  default     = "6.6"
 }
 
-variable "nsg_cassandra_name" {
-  description = "The name of the network security group for Cassandra"
-  default     = "nsg-cassandra"
+variable "mysql_front_end_port_0" {
+  description = "MySQL public port"
+  default     = "3306"
 }
 
-variable "nic_master_name" {
-  description = "The name of the network interface card for Master"
-  default     = "nic-master"
+variable "mysql_front_end_port_1" {
+  description = "MySQL public port"
+  default     = "3307"
 }
 
-variable "nic_master_node_ip" {
-  description = "The private IP address used by the Master's network interface card"
-  default     = "10.0.0.5"
+variable "ssh_nat_rule_front_end_port_0" {
+  description = "public ssh port for VM1"
+  default     = "64001"
 }
 
-variable "nic_cassandra_name" {
-  description = "The name of the network interface card used by Cassandra"
-  default     = "nic-cassandra"
+variable "ssh_nat_rule_front_end_port_1" {
+  description = "public ssh port for VM2"
+  default     = "64002"
 }
 
-variable "nic_cassandra_node_ip" {
-  description = "The private IP address of Cassandra's network interface card"
-  default     = "10.0.2.5"
+variable "mysql_probe_port_0" {
+  description = "MySQL public port master"
+  default     = "9200"
 }
 
-variable "nic_slave_name_prefix" {
-  description = "The prefix used to constitute the slave/agents' names"
-  default     = "nic-slave-"
+variable "mysql_probe_port_1" {
+  description = "MySQL public port slave"
+  default     = "9201"
 }
 
-variable "nic_slave_node_ip_prefix" {
-  description = "The prefix of the private IP address used by the network interface card of the slave/agent nodes"
-  default     = "10.0.1."
+variable "storage_account_name" {
+  description = "Name of the Storage Account"
+  default     = "storagesa"
 }
 
-variable "public_ip_master_name" {
-  description = "The name of the master node's public IP address"
-  default     = "public-ip-master"
+variable "template_api_version" {
+  default = "2015-01-01"
 }
 
-variable "public_ip_slave_name_prefix" {
-  description = "The prefix to the slave/agent nodes' IP address names"
-  default     = "public-ip-slave-"
+variable "wpdbname" {
+  default = "wordpress"
 }
 
-variable "public_ip_cassandra_name" {
-  description = "The name of Cassandra's node's public IP address"
-  default     = "public-ip-cassandra"
+variable "node_count" {
+  default = 2
 }
 
-variable "vm_master_name" {
-  description = "The name of Spark's Master virtual machine"
-  default     = "spark-master"
-}
-
-variable "vm_master_os_disk_name" {
-  description = "The name of the os disk used by Spark's Master virtual machine"
-  default     = "vmMasterOSDisk"
-}
-
-variable "vm_master_storage_account_container_name" {
-  description = "The name of the storage account container used by Spark's master"
-  default     = "vhds"
-}
-
-variable "vm_slave_name_prefix" {
-  description = "The name prefix used by Spark's slave/agent nodes"
-  default     = "spark-slave-"
-}
-
-variable "vm_slave_os_disk_name_prefix" {
-  description = "The prefix used to constitute the names of the os disks used by the slave/agent nodes"
-  default     = "vmSlaveOSDisk-"
-}
-
-variable "vm_slave_storage_account_container_name" {
-  description = "The name of the storage account container used by the slave/agent nodes"
-  default     = "vhds"
-}
-
-variable "vm_cassandra_name" {
-  description = "The name of the virtual machine used by Cassandra"
-  default     = "cassandra"
-}
-
-variable "vm_cassandra_os_disk_name" {
-  description = "The name of the os disk used by the Cassandra virtual machine"
-  default     = "vmCassandraOSDisk"
-}
-
-variable "vm_cassandra_storage_account_container_name" {
-  description = "The name of the storage account container used by the Cassandra node"
-  default     = "vhds"
-}
-
-variable "availability_slave_name" {
-  description = "The name of the availability set for the slave/agent machines"
-  default     = "availability-slave"
-}
-
-variable "script_spark_provisioner_script_file_name" {
-  description = "The name of the script kept in version control which will provision Spark"
-  default     = "scriptSparkProvisioner.sh"
-}
-
-variable "script_cassandra_provisioner_script_file_name" {
-  description = "The name of the script kept in version control which will provision Cassandra"
-  default     = "scriptCassandraProvisioner.sh"
+variable "nic_name" {
+  description = "Name of the Network Interface"
+  default     = "nic"
 }
