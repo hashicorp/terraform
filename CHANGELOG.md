@@ -4,6 +4,7 @@
 IMPROVEMENTS:
 
 * provider/google: `network` argument in `google_compute_instance_group` is now optional [GH-13493]
+* provider/google: Add support for `draining_timeout_sec` to `google_compute_backend_service`. [GH-14559]
 
 BUG FIXES:
 
