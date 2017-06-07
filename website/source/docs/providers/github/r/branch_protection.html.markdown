@@ -70,3 +70,11 @@ The following arguments are supported:
 * `teams`: (Optional) The list of team slugs with push access.
 
 `restrictions` is only available for organization-owned repositories.
+
+## Import
+
+Github Branch Protection can be imported using an id made up of `repository:branch`, e.g.
+
+```
+$ terraform import github_branch_protection.terraform terraform:master
+```
