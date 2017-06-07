@@ -8,21 +8,6 @@ import (
 	"log"
 )
 
-func getSinglePool(poolName string, vtmClient *brocadevtm.VTMClient) (*pool.Pool, error) {
-
-	getSinglePoolAPI := pool.NewGetSingle(poolName)
-	getSinglePoolErr := vtmClient.Do(getSinglePoolAPI)
-	if getSinglePoolErr != nil {
-		return nil, getSinglePoolErr
-	}
-
-	if getSinglePoolAPI.StatusCode() != 200 {
-		return nil, fmt.Errorf("Status code : %d , Response: %s ", getSinglePoolAPI.StatusCode(), getSinglePoolAPI.GetResponse())
-	}
-	thisPool := getSinglePoolAPI.GetResponse()
-
-	return thisPool, nil
-}
 
 func resourcePool() *schema.Resource {
 	return &schema.Resource{
