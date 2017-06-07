@@ -76,6 +76,7 @@ BUG FIXES:
 * provider/aws: Guard against panic if no NodeGroupMembers returned in `elasticache_replication_group` [GH-13488]
 * provider/aws: Revoke default ipv6 egress rule for aws_security_group [GH-15075]
 * provider/aws: Lambda ENI deletion fails on destroy [GH-11849]
+* provider/aws: Add gov and cn hosted zone Ids to aws_elb_hosted_zone data source [GH-15149]
 * provider/azurerm: VM - making `os_profile` optional [GH-14176]
 * provider/azurerm: Preserve the Subnet properties on Update [GH-13877]
 * provider/datadog: make datadog_user verified a computed attribute [GH-15034]
