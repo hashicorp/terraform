@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/Unknwon/com"
 	"github.com/gophercloud/gophercloud"
@@ -87,4 +89,12 @@ func RedactHeaders(headers http.Header) (processedHeaders []string) {
 		}
 	}
 	return
+}
+
+// FormatHeaders processes a headers object plus a deliminator, returning a string
+func FormatHeaders(headers http.Header, seperator string) string {
+	redactedHeaders := RedactHeaders(headers)
+	sort.Strings(redactedHeaders)
+
+	return strings.Join(redactedHeaders, seperator)
 }
