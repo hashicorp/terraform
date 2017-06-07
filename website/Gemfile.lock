@@ -156,4 +156,4 @@ DEPENDENCIES
   middleman-hashicorp (= 0.3.26)
 
 BUNDLED WITH
-   1.14.6
+   1.15.1
