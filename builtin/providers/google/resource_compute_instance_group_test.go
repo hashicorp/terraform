@@ -227,32 +227,32 @@ func testAccComputeInstanceGroup_named_ports(n string, np map[string]int64, inst
 	}
 }
 
-func testAccComputeInstanceGroup_hasCorrectNetwork(n_ig string, n_nw string, instanceGroup *compute.InstanceGroup) resource.TestCheckFunc {
+func testAccComputeInstanceGroup_hasCorrectNetwork(nInstanceGroup string, nNetwork string, instanceGroup *compute.InstanceGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		config := testAccProvider.Meta().(*Config)
 
-		rs_ig, ok := s.RootModule().Resources[n_ig]
+		rsInstanceGroup, ok := s.RootModule().Resources[nInstanceGroup]
 		if !ok {
-			return fmt.Errorf("Not found: %s", n_ig)
+			return fmt.Errorf("Not found: %s", nInstanceGroup)
 		}
-		if rs_ig.Primary.ID == "" {
+		if rsInstanceGroup.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
 		instanceGroup, err := config.clientCompute.InstanceGroups.Get(
-			config.Project, rs_ig.Primary.Attributes["zone"], rs_ig.Primary.ID).Do()
+			config.Project, rsInstanceGroup.Primary.Attributes["zone"], rsInstanceGroup.Primary.ID).Do()
 		if err != nil {
 			return err
 		}
 
-		rs_nw, ok := s.RootModule().Resources[n_nw]
+		rsNetwork, ok := s.RootModule().Resources[nNetwork]
 		if !ok {
-			return fmt.Errorf("Not found: %s", n_nw)
+			return fmt.Errorf("Not found: %s", nNetwork)
 		}
-		if rs_nw.Primary.ID == "" {
+		if rsNetwork.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
 		network, err := config.clientCompute.Networks.Get(
-			config.Project, rs_nw.Primary.ID).Do()
+			config.Project, rsNetwork.Primary.ID).Do()
 		if err != nil {
 			return err
 		}
