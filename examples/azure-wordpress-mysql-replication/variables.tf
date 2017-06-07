@@ -1,7 +1,7 @@
-variable "client_id" {}
-variable "client_secret" {}
-variable "tenant_id" {}
-variable "subscription_id" {}
+# variable "client_id" {}
+# variable "client_secret" {}
+# variable "tenant_id" {}
+# variable "subscription_id" {}
 
 variable "resource_group" {
   description = "Resource group name into which your Spark and Cassandra deployment will go."
