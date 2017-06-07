@@ -71,7 +71,7 @@ func fetchNetworkInterface(conn *ec2.EC2, ifaceID string) (*ec2.NetworkInterface
 }
 
 func addSGToENI(conn *ec2.EC2, sgID string, iface *ec2.NetworkInterface) error {
-	if sgExistsInENI(conn, sgID, iface) {
+	if sgExistsInENI(sgID, iface) {
 		return fmt.Errorf("security group %s already attached to interface ID %s", sgID, *iface.NetworkInterfaceId)
 	}
 	var groupIDs []string
@@ -88,7 +88,7 @@ func addSGToENI(conn *ec2.EC2, sgID string, iface *ec2.NetworkInterface) error {
 	return err
 }
 
-func sgExistsInENI(conn *ec2.EC2, sgID string, iface *ec2.NetworkInterface) bool {
+func sgExistsInENI(sgID string, iface *ec2.NetworkInterface) bool {
 	for _, v := range iface.Groups {
 		if *v.GroupId == sgID {
 			return true
@@ -114,7 +114,7 @@ func refreshSecurityGroupWithInterface(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	if sgExistsInENI(conn, sgID, iface) {
+	if sgExistsInENI(sgID, iface) {
 		d.SetId(fmt.Sprintf("%s_%s", sgID, interfaceID))
 	} else {
 		// The assocation does not exist when it should, taint this resource.
