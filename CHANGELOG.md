@@ -1,6 +1,10 @@
 
 ## Unreleased
 
+NOTE:
+
+* The 0.9.7 release had a bug with its new feature of periodically persisting state to the backend during an apply, as part of [GH-14834]. This change has been reverted in this release and will be re-introduced at a later time once it has been made to work properly.
+
 IMPROVEMENTS:
 
 * provider/google: `network` argument in `google_compute_instance_group` is now optional [GH-13493]
