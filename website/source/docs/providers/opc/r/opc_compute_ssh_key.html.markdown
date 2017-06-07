@@ -13,7 +13,7 @@ The ``opc_compute_ssh_key`` resource creates and manages an SSH key in an OPC id
 ## Example Usage
 
 ```hcl
-resource "opc_compute_ssh_key" "%s" {
+resource "opc_compute_ssh_key" "test" {
   name    = "test-key"
   key     = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqw6JwbjIk..."
   enabled = true

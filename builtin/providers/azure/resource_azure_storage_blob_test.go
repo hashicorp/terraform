@@ -72,8 +72,10 @@ func testAccCheckAzureStorageBlobExists(name, typ string) resource.TestCheckFunc
 			return err
 		}
 
-		exists, err := blobClient.BlobExists(fmt.Sprintf("%s-%s", testAccStorageContainerName, typ),
-			resource.Primary.ID)
+		containerName := fmt.Sprintf("%s-%s", testAccStorageContainerName, typ)
+		container := blobClient.GetContainerReference(containerName)
+		blob := container.GetBlobReference(resource.Primary.ID)
+		exists, err := blob.Exists()
 		if err != nil {
 			return err
 		}
@@ -98,8 +100,10 @@ func testAccCheckAzureStorageBlobDeleted(typ string) resource.TestCheckFunc {
 				return err
 			}
 
-			exists, err := blobClient.BlobExists(fmt.Sprintf("%s-%s", testAccStorageContainerName,
-				typ), resource.Primary.ID)
+			containerName := fmt.Sprintf("%s-%s", testAccStorageContainerName, typ)
+			container := blobClient.GetContainerReference(containerName)
+			blob := container.GetBlobReference(resource.Primary.ID)
+			exists, err := blob.Exists()
 			if err != nil {
 				return err
 			}

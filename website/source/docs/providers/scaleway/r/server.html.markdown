@@ -46,6 +46,9 @@ Field `name`, `type`, `tags`, `dynamic_ip_required`, `security_group` are editab
 You can attach additional volumes to your instance, which will share the lifetime
 of your `scaleway_server` resource.
 
+**Warning:** Using the `volume` attribute does not modify the System Volume provided default with every `scaleway_server` instance.
+Instead it adds additional volumes to the server instance.
+
 The `volume` mapping supports the following:
 
 * `type` - (Required) The type of volume. Can be `"l_ssd"`

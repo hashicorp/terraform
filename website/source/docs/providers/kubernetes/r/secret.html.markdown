@@ -33,6 +33,22 @@ resource "kubernetes_secret" "example" {
 }
 ```
 
+## Example Usage (Docker config)
+
+```hcl
+resource "kubernetes_secret" "example" {
+  metadata {
+    name = "docker-cfg"
+  }
+
+  data {
+    ".dockercfg" = "${file("${path.module}/.docker/config.json")}"
+  }
+
+  type = "kubernetes.io/dockercfg"
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -62,8 +78,8 @@ The following arguments are supported:
 
 ## Import
 
-Secret can be imported using its name, e.g.
+Secret can be imported using its namespace and name, e.g.
 
 ```
-$ terraform import kubernetes_secret.example my-secret
+$ terraform import kubernetes_secret.example default/my-secret
 ```

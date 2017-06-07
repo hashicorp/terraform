@@ -45,7 +45,9 @@ The following arguments are supported:
 
 * `endpoint` - (Optional) The API endpoint to use, associated with your Oracle Public Cloud account. This is known as the `REST Endpoint` within the Oracle portal. It can also be sourced from the `OPC_ENDPOINT` environment variable.
 
-* `max_retry_timeout` - (Optional) The maximum number of seconds to wait for a successful response when operating on resources within Oracle Public Cloud. It can also be sourced from the `OPC_MAX_RETRY_TIMEOUT` environment variable. Defaults to 3000 seconds.
+* `max_retries` - (Optional) The maximum number of tries to make for a successful response when operating on resources within Oracle Public Cloud. It can also be sourced from the `OPC_MAX_RETRIES` environment variable. Defaults to 1.
+
+* `insecure` - (Optional) Skips TLS Verification for using self-signed certificates. Should only be used if absolutely needed. Can also via setting the `OPC_INSECURE` environment variable to `true`.
 
 ## Testing
 

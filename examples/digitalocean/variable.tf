@@ -1,8 +1,8 @@
 # ####
 
-# Current Availiable Datacenter Regions
+# Current Available Datacenter Regions
 
-# As of 05-07-2016
+# As of 28-05-2017
 
 #
 
@@ -14,6 +14,11 @@ variable "do_ams2" {
 variable "do_ams3" {
   description = "Digital Ocean Amsterdam Data Center 3"
   default     = "ams3"
+}
+
+variable "do_blr1" {
+  description = "Digital Ocean Bangalore Data Center 1"
+  default     = "blr1"
 }
 
 variable "do_fra1" {
@@ -60,7 +65,7 @@ variable "do_tor1" {
 
 variable "ubuntu" {
   description = "Default LTS"
-  default     = "ubuntu-14-04-x64"
+  default     = "ubuntu-16-04-x64"
 }
 
 variable "centos" {

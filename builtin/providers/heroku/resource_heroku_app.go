@@ -100,6 +100,10 @@ func resourceHerokuApp() *schema.Resource {
 		Update: resourceHerokuAppUpdate,
 		Delete: resourceHerokuAppDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: resourceHerokuAppImport,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -193,6 +197,24 @@ func isOrganizationApp(d *schema.ResourceData) bool {
 	return len(v) > 0 && v[0] != nil
 }
 
+func resourceHerokuAppImport(d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+	client := m.(*heroku.Service)
+
+	app, err := client.AppInfo(context.TODO(), d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	// Flag organization apps by setting the organization name
+	if app.Organization != nil {
+		d.Set("organization", []map[string]interface{}{
+			{"name": app.Organization.Name},
+		})
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
 func switchHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 	if isOrganizationApp(d) {
 		return resourceHerokuOrgAppCreate(d, meta)
@@ -232,15 +254,8 @@ func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(a.Name)
 	log.Printf("[INFO] App ID: %s", d.Id())
 
-	if v, ok := d.GetOk("config_vars"); ok {
-		err = updateConfigVars(d.Id(), client, nil, v.([]interface{}))
-		if err != nil {
-			return err
-		}
-	}
-
-	if v, ok := d.GetOk("buildpacks"); ok {
-		err = updateBuildpacks(d.Id(), client, v.([]interface{}))
+	if err := performAppPostCreateTasks(d, client); err != nil {
+		return err
 	}
 
 	return resourceHerokuAppRead(d, meta)
@@ -305,11 +320,8 @@ func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error 
 	d.SetId(a.Name)
 	log.Printf("[INFO] App ID: %s", d.Id())
 
-	if v, ok := d.GetOk("config_vars"); ok {
-		err = updateConfigVars(d.Id(), client, nil, v.([]interface{}))
-		if err != nil {
-			return err
-		}
+	if err := performAppPostCreateTasks(d, client); err != nil {
+		return err
 	}
 
 	return resourceHerokuAppRead(d, meta)
@@ -530,6 +542,23 @@ func updateBuildpacks(id string, client *heroku.Service, v []interface{}) error 
 
 	if _, err := client.BuildpackInstallationUpdate(context.TODO(), id, opts); err != nil {
 		return fmt.Errorf("Error updating buildpacks: %s", err)
+	}
+
+	return nil
+}
+
+// performAppPostCreateTasks performs post-create tasks common to both org and non-org apps.
+func performAppPostCreateTasks(d *schema.ResourceData, client *heroku.Service) error {
+	if v, ok := d.GetOk("config_vars"); ok {
+		if err := updateConfigVars(d.Id(), client, nil, v.([]interface{})); err != nil {
+			return err
+		}
+	}
+
+	if v, ok := d.GetOk("buildpacks"); ok {
+		if err := updateBuildpacks(d.Id(), client, v.([]interface{})); err != nil {
+			return err
+		}
 	}
 
 	return nil

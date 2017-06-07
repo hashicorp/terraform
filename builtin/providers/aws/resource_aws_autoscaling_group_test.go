@@ -3,11 +3,13 @@ package aws
 import (
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"regexp"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -17,6 +19,72 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func init() {
+	resource.AddTestSweepers("aws_autoscaling_group", &resource.Sweeper{
+		Name: "aws_autoscaling_group",
+		F:    testSweepAutoscalingGroups,
+	})
+}
+
+func testSweepAutoscalingGroups(region string) error {
+	client, err := sharedClientForRegion(region)
+	if err != nil {
+		return fmt.Errorf("error getting client: %s", err)
+	}
+	conn := client.(*AWSClient).autoscalingconn
+
+	resp, err := conn.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{})
+	if err != nil {
+		return fmt.Errorf("Error retrieving launch configuration: %s", err)
+	}
+
+	if len(resp.AutoScalingGroups) == 0 {
+		log.Print("[DEBUG] No aws autoscaling groups to sweep")
+		return nil
+	}
+
+	for _, asg := range resp.AutoScalingGroups {
+		var testOptGroup bool
+		for _, testName := range []string{"foobar", "terraform-"} {
+			if strings.HasPrefix(*asg.AutoScalingGroupName, testName) {
+				testOptGroup = true
+			}
+		}
+
+		if !testOptGroup {
+			continue
+		}
+
+		deleteopts := autoscaling.DeleteAutoScalingGroupInput{
+			AutoScalingGroupName: asg.AutoScalingGroupName,
+			ForceDelete:          aws.Bool(true),
+		}
+
+		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+			if _, err := conn.DeleteAutoScalingGroup(&deleteopts); err != nil {
+				if awserr, ok := err.(awserr.Error); ok {
+					switch awserr.Code() {
+					case "InvalidGroup.NotFound":
+						return nil
+					case "ResourceInUse", "ScalingActivityInProgress":
+						return resource.RetryableError(awserr)
+					}
+				}
+
+				// Didn't recognize the error, so shouldn't retry.
+				return resource.NonRetryableError(err)
+			}
+			// Successful delete
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 	var group autoscaling.Group
@@ -74,8 +142,16 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "protect_from_scale_in", "true"),
 					testLaunchConfigurationName("aws_autoscaling_group.bar", &lc),
-					testAccCheckAutoscalingTags(&group.Tags, "Bar", map[string]interface{}{
-						"value":               "bar-foo",
+					testAccCheckAutoscalingTags(&group.Tags, "FromTags1Changed", map[string]interface{}{
+						"value":               "value1changed",
+						"propagate_at_launch": true,
+					}),
+					testAccCheckAutoscalingTags(&group.Tags, "FromTags2", map[string]interface{}{
+						"value":               "value2changed",
+						"propagate_at_launch": true,
+					}),
+					testAccCheckAutoscalingTags(&group.Tags, "FromTags3", map[string]interface{}{
+						"value":               "value3",
 						"propagate_at_launch": true,
 					}),
 				),
@@ -185,8 +261,16 @@ func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
 				Config: testAccAWSAutoScalingGroupConfig(randName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
-					testAccCheckAutoscalingTags(&group.Tags, "Foo", map[string]interface{}{
-						"value":               "foo-bar",
+					testAccCheckAutoscalingTags(&group.Tags, "FromTags1", map[string]interface{}{
+						"value":               "value1",
+						"propagate_at_launch": true,
+					}),
+					testAccCheckAutoscalingTags(&group.Tags, "FromTags2", map[string]interface{}{
+						"value":               "value2",
+						"propagate_at_launch": true,
+					}),
+					testAccCheckAutoscalingTags(&group.Tags, "FromTags3", map[string]interface{}{
+						"value":               "value3",
 						"propagate_at_launch": true,
 					}),
 				),
@@ -197,8 +281,16 @@ func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAutoscalingTagNotExists(&group.Tags, "Foo"),
-					testAccCheckAutoscalingTags(&group.Tags, "Bar", map[string]interface{}{
-						"value":               "bar-foo",
+					testAccCheckAutoscalingTags(&group.Tags, "FromTags1Changed", map[string]interface{}{
+						"value":               "value1changed",
+						"propagate_at_launch": true,
+					}),
+					testAccCheckAutoscalingTags(&group.Tags, "FromTags2", map[string]interface{}{
+						"value":               "value2changed",
+						"propagate_at_launch": true,
+					}),
+					testAccCheckAutoscalingTags(&group.Tags, "FromTags3", map[string]interface{}{
+						"value":               "value3",
 						"propagate_at_launch": true,
 					}),
 				),
@@ -572,8 +664,8 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.Group, name st
 		}
 
 		t := &autoscaling.TagDescription{
-			Key:               aws.String("Foo"),
-			Value:             aws.String("foo-bar"),
+			Key:               aws.String("FromTags1"),
+			Value:             aws.String("value1"),
 			PropagateAtLaunch: aws.Bool(true),
 			ResourceType:      aws.String("auto-scaling-group"),
 			ResourceId:        group.AutoScalingGroupName,
@@ -850,11 +942,23 @@ resource "aws_autoscaling_group" "bar" {
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
 
-  tag {
-    key = "Foo"
-    value = "foo-bar"
-    propagate_at_launch = true
-  }
+  tags = [
+    {
+      key = "FromTags1"
+      value = "value1"
+      propagate_at_launch = true
+    },
+    {
+      key = "FromTags2"
+      value = "value2"
+      propagate_at_launch = true
+    },
+    {
+      key = "FromTags3"
+      value = "value3"
+      propagate_at_launch = true
+    },
+  ]
 }
 `, name, name)
 }
@@ -885,13 +989,70 @@ resource "aws_autoscaling_group" "bar" {
 
   launch_configuration = "${aws_launch_configuration.new.name}"
 
+  tags = [
+    {
+      key = "FromTags1Changed"
+      value = "value1changed"
+      propagate_at_launch = true
+    },
+    {
+      key = "FromTags2"
+      value = "value2changed"
+      propagate_at_launch = true
+    },
+    {
+      key = "FromTags3"
+      value = "value3"
+      propagate_at_launch = true
+    },
+  ]
+}
+`, name)
+}
+
+func testAccAWSAutoScalingGroupImport(name string) string {
+	return fmt.Sprintf(`
+resource "aws_launch_configuration" "foobar" {
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_placement_group" "test" {
+  name = "asg_pg_%s"
+  strategy = "cluster"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  name = "%s"
+  max_size = 5
+  min_size = 2
+  health_check_type = "ELB"
+  desired_capacity = 4
+  force_delete = true
+  termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
+
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+
   tag {
-    key = "Bar"
-    value = "bar-foo"
+    key = "FromTags1"
+    value = "value1"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key = "FromTags2"
+    value = "value2"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key = "FromTags3"
+    value = "value3"
     propagate_at_launch = true
   }
 }
-`, name)
+`, name, name)
 }
 
 const testAccAWSAutoScalingGroupConfigWithLoadBalancer = `

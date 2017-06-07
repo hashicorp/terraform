@@ -841,7 +841,7 @@ func TestApply_planVars(t *testing.T) {
 
 // we should be able to apply a plan file with no other file dependencies
 func TestApply_planNoModuleFiles(t *testing.T) {
-	// temprary data directory which we can remove between commands
+	// temporary data directory which we can remove between commands
 	td, err := ioutil.TempDir("", "tf")
 	if err != nil {
 		t.Fatal(err)

@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -41,16 +42,31 @@ func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "user_data", "foobar"),
 				),
-				Destroy: false,
-			},
-			{
-				Config:   testAccCheckDigitalOceanDropletConfig_basic(rInt),
-				PlanOnly: true,
 			},
 		},
 	})
 }
 
+func TestAccDigitalOceanDroplet_WithID(t *testing.T) {
+	var droplet godo.Droplet
+	rInt := acctest.RandInt()
+	// TODO: not hardcode this as it will change over time
+	centosID := 22995941
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckDigitalOceanDropletConfig_withID(centosID, rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+				),
+			},
+		},
+	})
+}
 func TestAccDigitalOceanDroplet_withSSH(t *testing.T) {
 	var droplet godo.Droplet
 	rInt := acctest.RandInt()
@@ -317,7 +333,7 @@ func testAccCheckDigitalOceanDropletDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the Droplet
-		_, _, err = client.Droplets.Get(id)
+		_, _, err = client.Droplets.Get(context.Background(), id)
 
 		// Wait
 
@@ -467,7 +483,7 @@ func testAccCheckDigitalOceanDropletExists(n string, droplet *godo.Droplet) reso
 		}
 
 		// Try to find the Droplet
-		retrieveDroplet, _, err := client.Droplets.Get(id)
+		retrieveDroplet, _, err := client.Droplets.Get(context.Background(), id)
 
 		if err != nil {
 			return err
@@ -502,6 +518,17 @@ resource "digitalocean_droplet" "foobar" {
   region    = "nyc3"
   user_data = "foobar"
 }`, rInt)
+}
+
+func testAccCheckDigitalOceanDropletConfig_withID(imageID, rInt int) string {
+	return fmt.Sprintf(`
+resource "digitalocean_droplet" "foobar" {
+  name      = "foo-%d"
+  size      = "512mb"
+  image     = "%d"
+  region    = "nyc3"
+  user_data = "foobar"
+}`, rInt, imageID)
 }
 
 func testAccCheckDigitalOceanDropletConfig_withSSH(rInt int) string {

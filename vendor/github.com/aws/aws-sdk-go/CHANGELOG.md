@@ -1,3 +1,264 @@
+Release v1.8.34 (2017-06-02)
+===
+
+### Service Client Updates
+* `service/kinesisanalytics`: Updates service API, documentation, and paginators
+  * Kinesis Analytics publishes error messages CloudWatch logs in case of application misconfigurations
+* `service/workdocs`: Updates service API and documentation
+  * This release includes new APIs to manage tags and custom metadata on resources and also new APIs to add and retrieve comments at the document level.
+
+Release v1.8.33 (2017-06-01)
+===
+
+### Service Client Updates
+* `service/codedeploy`: Updates service API and documentation
+  * AWS CodeDeploy has improved how it manages connections to GitHub accounts and repositories. You can now create and store up to 25 connections to GitHub accounts in order to associate AWS CodeDeploy applications with GitHub repositories. Each connection can support multiple repositories. You can create connections to up to 25 different GitHub accounts, or create more than one connection to a single account. The ListGitHubAccountTokenNames command has been introduced to retrieve the names of stored connections to GitHub accounts that you have created. The name of the connection to GitHub used for an AWS CodeDeploy application is also included in the ApplicationInfo structure.  Two new fields, lastAttemptedDeployment and lastSuccessfulDeployment, have been added to DeploymentGroupInfo to improve the handling of deployment group information in the AWS CodeDeploy console. Information about these latest deployments can also be retrieved using the GetDeploymentGroup and BatchGetDeployment group requests. Also includes a region update  (us-gov-west-1).
+* `service/cognitoidentityprovider`: Updates service API, documentation, and paginators
+* `service/elbv2`: Updates service API and documentation
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/lexmodelbuildingservice`: Updates service documentation and examples
+
+### SDK Enhancements
+* `aws/defaults`: Exports shared credentials and config default filenames used by the SDK. [#1308](https://github.com/aws/aws-sdk-go/pull/1308)
+  * Adds SharedCredentialsFilename and SharedConfigFilename functions to defaults package.
+
+### SDK Bugs
+* `aws/credentials`: Fixes shared credential provider's default filename on Windows. [#1308](https://github.com/aws/aws-sdk-go/pull/1308)
+  * The shared credentials provider would attempt to use the wrong filename on Windows if the `HOME` environment variable was defined.
+* `service/s3/s3manager`: service/s3/s3manager: Fix Downloader ignoring Range get parameter [#1311](https://github.com/aws/aws-sdk-go/pull/1311)
+  * Fixes the S3 Download Manager ignoring the GetObjectInput's Range parameter. If this parameter is provided it will force the downloader to fallback to a single GetObject request disabling concurrency and automatic part size gets.
+  * Fixes [#1296](https://github.com/aws/aws-sdk-go/issues/1296)
+Release v1.8.32 (2017-05-31)
+===
+
+### Service Client Updates
+* `service/rds`: Updates service API and documentation
+  * Amazon RDS customers can now easily and quickly stop and start their DB instances.
+
+Release v1.8.31 (2017-05-30)
+===
+
+### Service Client Updates
+* `service/clouddirectory`: Updates service API, documentation, and paginators
+  * Cloud Directory has launched support for Typed Links, enabling customers to create object-to-object relationships that are not hierarchical in nature. Typed Links enable customers to quickly query for data along these relationships. Customers can also enforce referential integrity using Typed Links, ensuring data in use is not inadvertently deleted.
+* `service/s3`: Updates service paginators and examples
+  * New example snippets for Amazon S3.
+
+Release v1.8.30 (2017-05-25)
+===
+
+### Service Client Updates
+* `service/appstream`: Updates service API and documentation
+  * Support added for persistent user storage, backed by S3.
+* `service/rekognition`: Updates service API and documentation
+  * Updated the CompareFaces API response to include orientation information, unmatched faces, landmarks, pose, and quality of the compared faces.
+
+Release v1.8.29 (2017-05-24)
+===
+
+### Service Client Updates
+* `service/iam`: Updates service API
+  * The unique ID and access key lengths were extended from 32 to 128
+* `service/storagegateway`: Updates service API and documentation
+  * Two Storage Gateway data types, Tape and TapeArchive, each have a new response element, TapeUsedInBytes. This element helps you manage your virtual tapes. By using TapeUsedInBytes, you can see the amount of data written to each virtual tape.
+* `service/sts`: Updates service API, documentation, and paginators
+  * The unique ID and access key lengths were extended from 32 to 128.
+
+Release v1.8.28 (2017-05-23)
+===
+
+### Service Client Updates
+* `service/databasemigrationservice`: Updates service API, documentation, paginators, and examples
+  * This release adds support for using Amazon S3 and Amazon DynamoDB as targets for database migration, and using MongoDB as a source for database migration. For more information, see the AWS Database Migration Service documentation.
+
+Release v1.8.27 (2017-05-22)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/resourcegroupstaggingapi`: Updates service API, documentation, and paginators
+  * You can now specify the number of resources returned per page in GetResources operation, as an optional parameter, to easily manage the list of resources returned by your queries.
+
+### SDK Bugs
+* `aws/request`: Add support for PUT temporary redirects (307) [#1283](https://github.com/aws/aws-sdk-go/issues/1283)
+  * Adds support for Go 1.8's GetBody function allowing the SDK's http request using PUT and POST methods to be redirected with temporary redirects with 307 status code.
+  * Fixes: [#1267](https://github.com/aws/aws-sdk-go/issues/1267)
+* `aws/request`: Add handling for retrying temporary errors during unmarshal [#1289](https://github.com/aws/aws-sdk-go/issues/1289)
+  * Adds support for retrying temporary errors that occur during unmarshaling of a request's response body.
+  * Fixes: [#1275](https://github.com/aws/aws-sdk-go/issues/1275)
+Release v1.8.26 (2017-05-18)
+===
+
+### Service Client Updates
+* `service/athena`: Adds new service
+  * This release adds support for Amazon Athena. Amazon Athena is an interactive query service that makes it easy to analyze data in Amazon S3 using standard SQL. Athena is serverless, so there is no infrastructure to manage, and you pay only for the queries that you run.
+* `service/lightsail`: Updates service API, documentation, and paginators
+  * This release adds new APIs that make it easier to set network port configurations on Lightsail instances. Developers can now make a single request to both open and close public ports on an instance using the PutInstancePublicPorts operation.
+
+### SDK Bugs
+* `aws/request`: Fix logging from reporting wrong retry request errors #1281
+  * Fixes the SDK's retry request logging to report the the actual error that occurred, not a stubbed Unknown error message.
+  * Fixes the SDK's response logger to not output the response log multiple times per retry.
+Release v1.8.25 (2017-05-17)
+===
+
+### Service Client Updates
+* `service/autoscaling`: Updates service documentation, paginators, and examples
+  * Various Auto Scaling documentation updates
+* `service/cloudwatchevents`: Updates service documentation
+  * Various CloudWatch Events documentation updates.
+* `service/cloudwatchlogs`: Updates service documentation and paginators
+  * Various CloudWatch Logs documentation updates.
+* `service/polly`: Updates service API
+  * Amazon Polly adds new German voice "Vicki"
+
+Release v1.8.24 (2017-05-16)
+===
+
+### Service Client Updates
+* `service/codedeploy`: Updates service API and documentation
+  * This release introduces the previousRevision field in the responses to the GetDeployment and BatchGetDeployments actions. previousRevision provides information about the application revision that was deployed to the deployment group before the most recent successful deployment.  Also, the fileExistsBehavior parameter has been added for CreateDeployment action requests. In the past, if the AWS CodeDeploy agent detected files in a target location that weren't part of the application revision from the most recent successful deployment, it would fail the current deployment by default. This new parameter provides options for how the agent handles these files: fail the deployment, retain the content, or overwrite the content.
+* `service/gamelift`: Updates service API and documentation
+  * Allow developers to specify how metrics are grouped in CloudWatch for their GameLift fleets. Developers can also specify how many concurrent game sessions activate on a per-instance basis.
+* `service/inspector`: Updates service API, documentation, paginators, and examples
+  * Adds ability to produce an assessment report that includes detailed and comprehensive results of a specified assessment run.
+* `service/kms`: Updates service documentation
+  * Update documentation for KMS.
+
+Release v1.8.23 (2017-05-15)
+===
+
+### Service Client Updates
+* `service/ssm`: Updates service API and documentation
+  * UpdateAssociation API now supports updating document name and targets of an association. GetAutomationExecution API can return FailureDetails as an optional field to the StepExecution Object, which contains failure type, failure stage as well as other failure related information for a failed step.
+
+### SDK Enhancements
+* `aws/session`: SDK should be able to load multiple custom shared config files. [#1258](https://github.com/aws/aws-sdk-go/issues/1258)
+  * This change adds a `SharedConfigFiles` field to the `session.Options` type that allows you to specify the files, and their order, the SDK will use for loading shared configuration and credentials from when the `Session` is created. Use the `NewSessionWithOptions` Session constructor to specify these options. You'll also most likely want to enable support for the shared configuration file's additional attributes by setting `session.Option`'s `SharedConfigState` to `session.SharedConfigEnabled`. 
+
+Release v1.8.22 (2017-05-11)
+===
+
+### Service Client Updates
+* `service/elb`: Updates service API, documentation, and paginators
+* `service/elbv2`: Updates service API and documentation
+* `service/lexmodelbuildingservice`: Updates service API and documentation
+* `service/organizations`: Updates service API, documentation, paginators, and examples
+  * AWS Organizations APIs that return an Account object now include the email address associated with the account’s root user.
+
+Release v1.8.21 (2017-05-09)
+===
+
+### Service Client Updates
+* `service/codestar`: Updates service documentation
+  * Updated documentation for AWS CodeStar.
+* `service/workspaces`: Updates service API, documentation, and paginators
+  * Doc-only Update for WorkSpaces
+
+Release v1.8.20 (2017-05-04)
+===
+
+### Service Client Updates
+* `service/ecs`: Updates service API, documentation, and paginators
+  * Exposes container instance registration time in ECS:DescribeContainerInstances.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/marketplaceentitlementservice`: Adds new service
+* `service/lambda`: Updates service API and documentation
+  * Support for UpdateFunctionCode DryRun option
+
+Release v1.8.19 (2017-04-28)
+===
+
+### Service Client Updates
+* `service/cloudformation`: Updates service waiters and paginators
+  * Adding back the removed waiters and paginators.
+
+Release v1.8.18 (2017-04-28)
+===
+
+### Service Client Updates
+* `service/cloudformation`: Updates service API, documentation, waiters, paginators, and examples
+  * API update for CloudFormation: New optional parameter ClientRequestToken which can be used as an idempotency token to safely retry certain operations as well as tagging StackEvents.
+* `service/rds`: Updates service API, documentation, and examples
+  * The DescribeDBClusterSnapshots API now returns a SourceDBClusterSnapshotArn field which identifies the source DB cluster snapshot of a copied snapshot.
+* `service/rekognition`: Updates service API
+  * Fix for missing file type check
+* `service/snowball`: Updates service API, documentation, and paginators
+  * The Snowball API has a new exception that can be thrown for list operation requests.
+* `service/sqs`: Updates service API, documentation, and paginators
+  * Adding server-side encryption (SSE) support to SQS by integrating with AWS KMS; adding new queue attributes to SQS CreateQueue, SetQueueAttributes and GetQueueAttributes APIs to support SSE.
+
+Release v1.8.17 (2017-04-26)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/rds`: Updates service API and documentation
+  * With Amazon Relational Database Service (Amazon RDS) running MySQL or Amazon Aurora, you can now authenticate to your DB instance using IAM database authentication.
+
+Release v1.8.16 (2017-04-21)
+===
+
+### Service Client Updates
+* `service/appstream`: Updates service API, documentation, and paginators
+  * The new feature named "Default Internet Access" will enable Internet access from AppStream 2.0 instances - image builders and fleet instances. Admins will check a flag either through AWS management console for AppStream 2.0 or through API while creating an image builder or while creating/updating a fleet.
+* `service/kinesis`: Updates service API, documentation, waiters, and paginators
+  * Adds a new waiter, StreamNotExists, to Kinesis.
+
+### SDK Enhancements
+* `aws/endpoints`: Add utilities improving endpoints lookup (#1218)
+  * Adds several utilities to the endpoints packages to make looking up partitions, regions, and services easier.
+  * Fixes #994
+
+### SDK Bugs
+* `private/protocol/xml/xmlutil`: Fix unmarshaling dropping errors (#1219)
+  * The XML unmarshaler would drop any serialization or body read error that occurred on the floor effectively hiding any errors that would occur.
+  * Fixes #1205
+Release v1.8.15 (2017-04-20)
+===
+
+### Service Client Updates
+* `service/devicefarm`: Updates service API and documentation
+  * API Update for AWS Device Farm: Support for Deals and Promotions
+* `service/directconnect`: Updates service documentation
+  * Documentation updates for AWS Direct Connect.
+* `service/elbv2`: Updates service waiters
+* `service/kms`: Updates service documentation and examples
+  * Doc-only update for Key Management Service (KMS): Update docs for GrantConstraints and GenerateRandom
+* `service/route53`: Updates service documentation
+  * Release notes: SDK documentation now includes examples for ChangeResourceRecordSets for all types of resource record set, such as weighted, alias, and failover.
+* `service/route53domains`: Updates service API, documentation, and paginators
+  * Adding examples and other documentation updates.
+
+### SDK Enhancements
+* `service/s3`: Add utilities to make getting a bucket's region easier (#1207)
+  * Adds two features which make it easier to get a bucket's region, `s3.NormalizeBucketLocation` and `s3manager.GetBucketRegion`.
+
+### SDK Bugs
+* `service/s3`: Fix HeadObject's incorrect documented error codes (#1213)
+  * The HeadObject's model incorrectly states that the operation can return the NoSuchKey error code.
+  * Fixes #1208
+
+Release v1.8.14 (2017-04-19)
+===
+
+### Service Client Updates
+* `service/apigateway`: Updates service API and documentation
+  * Add support for "embed" property.
+* `service/codestar`: Adds new service
+  * AWS CodeStar is a cloud-based service for creating, managing, and working with software development projects on AWS. An AWS CodeStar project creates and integrates AWS services for your project development toolchain. AWS CodeStar also manages the permissions required for project users.
+* `service/ec2`: Updates service API and documentation
+  * Adds support for creating an Amazon FPGA Image (AFI) from a specified design checkpoint (DCP).
+* `service/iam`: Updates service API and documentation
+  * This changes introduces a new IAM role type, Service Linked Role, which works like a normal role but must be managed via services' control.
+* `service/lambda`: Updates service API and documentation
+  * Lambda integration with CloudDebugger service to enable customers to enable tracing for the Lambda functions and send trace information to the CloudDebugger service.
+* `service/lexmodelbuildingservice`: Adds new service
+* `service/polly`: Updates service API, documentation, and paginators
+  * API Update for Amazon Polly: Add support for speech marks
+* `service/rekognition`: Updates service API and documentation
+  * Given an image, the API detects explicit or suggestive adult content in the image and returns a list of corresponding labels with confidence scores, as well as a taxonomy (parent-child relation) for each label.
+
 Release v1.8.13 (2017-04-18)
 ===
 

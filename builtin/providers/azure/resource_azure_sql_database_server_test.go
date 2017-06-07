@@ -29,7 +29,7 @@ func TestAccAzureSqlDatabaseServer(t *testing.T) {
 					resource.TestCheckResourceAttrPtr(name, "name", testAccAzureSqlServerName),
 					resource.TestCheckResourceAttr(name, "username", "SuperUser"),
 					resource.TestCheckResourceAttr(name, "password", "SuperSEKR3T"),
-					resource.TestCheckResourceAttr(name, "version", "2.0"),
+					resource.TestCheckResourceAttr(name, "version", "12.0"),
 				),
 			},
 		},
@@ -153,6 +153,6 @@ resource "azure_sql_database_server" "foo" {
     location = "West US"
     username = "SuperUser"
     password = "SuperSEKR3T"
-    version = "2.0"
+    version = "12.0"
 }
 `

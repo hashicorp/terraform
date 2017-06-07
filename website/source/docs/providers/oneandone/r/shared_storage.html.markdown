@@ -35,9 +35,9 @@ resource "oneandone_shared_storage" "storage" {
 
 The following arguments are supported:
 
-* `datacenter` - (Optional)[string] Location of desired 1and1 datacenter ["DE", "GB", "US", "ES" ]
-* `description` - (Optional)[string] Description for the shared storage
-* `size` - (Required)[string] Size of the shared storage
-* `storage_servers`  (Optional)[Collection] List of servers that will have access to the stored storage
-    * `id` - (Required) [string] ID of the server
-    * `rights` - (Required)[string] Access rights to be assigned to the server ["RW","R"]
+* `datacenter` - (Optional) Location of desired 1and1 datacenter. Can be `DE`, `GB`, `US` or `ES`
+* `description` - (Optional) Description for the shared storage
+* `size` - (Required) Size of the shared storage
+* `storage_servers`  (Optional) List of servers that will have access to the stored storage
+    * `id` - (Required) ID of the server
+    * `rights` - (Required) Access rights to be assigned to the server. Can be `RW` or `R`

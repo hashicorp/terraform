@@ -34,6 +34,8 @@ func TestAccDatadogMonitor_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "new_host_delay", "600"),
 					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "evaluation_delay", "700"),
+					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "renotify_interval", "60"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "thresholds.warning", "1.0"),
@@ -114,6 +116,8 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "new_host_delay", "600"),
 					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "evaluation_delay", "700"),
+					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "renotify_interval", "60"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "thresholds.warning", "1.0"),
@@ -153,6 +157,8 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 						"datadog_monitor.foo", "notify_no_data", "true"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "new_host_delay", "900"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "evaluation_delay", "800"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "no_data_timeframe", "20"),
 					resource.TestCheckResourceAttr(
@@ -288,6 +294,7 @@ resource "datadog_monitor" "foo" {
   notify_audit = false
   timeout_h = 60
   new_host_delay = 600
+  evaluation_delay = 700
   include_tags = true
   require_full_window = true
   locked = false
@@ -386,6 +393,7 @@ resource "datadog_monitor" "foo" {
 
   notify_no_data = true
   new_host_delay = 900
+  evaluation_delay = 800
   no_data_timeframe = 20
   renotify_interval = 40
   escalation_message = "the situation has escalated! @pagerduty"

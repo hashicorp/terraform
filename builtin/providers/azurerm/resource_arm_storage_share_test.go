@@ -132,9 +132,10 @@ func testAccARMStorageShareDisappears(name string, sS *storage.Share) resource.T
 		}
 
 		reference := fileClient.GetShareReference(sS.Name)
-		err = reference.Create()
+		options := &storage.FileRequestOptions{}
+		err = reference.Create(options)
 
-		if _, err = reference.DeleteIfExists(); err != nil {
+		if _, err = reference.DeleteIfExists(options); err != nil {
 			return fmt.Errorf("Error deleting storage file %q: %s", name, err)
 		}
 

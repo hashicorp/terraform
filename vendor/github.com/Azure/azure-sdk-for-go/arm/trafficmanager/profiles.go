@@ -49,13 +49,15 @@ func NewProfilesClientWithBaseURI(baseURI string, subscriptionID string) Profile
 func (client ProfilesClient) CheckTrafficManagerRelativeDNSNameAvailability(parameters CheckTrafficManagerRelativeDNSNameAvailabilityParameters) (result NameAvailability, err error) {
 	req, err := client.CheckTrafficManagerRelativeDNSNameAvailabilityPreparer(parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "CheckTrafficManagerRelativeDNSNameAvailability", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "CheckTrafficManagerRelativeDNSNameAvailability", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CheckTrafficManagerRelativeDNSNameAvailabilitySender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "CheckTrafficManagerRelativeDNSNameAvailability", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "CheckTrafficManagerRelativeDNSNameAvailability", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CheckTrafficManagerRelativeDNSNameAvailabilityResponder(resp)
@@ -72,8 +74,9 @@ func (client ProfilesClient) CheckTrafficManagerRelativeDNSNameAvailabilityPrepa
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -114,13 +117,15 @@ func (client ProfilesClient) CheckTrafficManagerRelativeDNSNameAvailabilityRespo
 func (client ProfilesClient) CreateOrUpdate(resourceGroupName string, profileName string, parameters Profile) (result Profile, err error) {
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, profileName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "CreateOrUpdate", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "CreateOrUpdate", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CreateOrUpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "CreateOrUpdate", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "CreateOrUpdate", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CreateOrUpdateResponder(resp)
@@ -139,8 +144,9 @@ func (client ProfilesClient) CreateOrUpdatePreparer(resourceGroupName string, pr
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -180,13 +186,15 @@ func (client ProfilesClient) CreateOrUpdateResponder(resp *http.Response) (resul
 func (client ProfilesClient) Delete(resourceGroupName string, profileName string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, profileName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Delete", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Delete", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.DeleteSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Delete", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Delete", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.DeleteResponder(resp)
@@ -205,8 +213,9 @@ func (client ProfilesClient) DeletePreparer(resourceGroupName string, profileNam
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -242,13 +251,15 @@ func (client ProfilesClient) DeleteResponder(resp *http.Response) (result autore
 func (client ProfilesClient) Get(resourceGroupName string, profileName string) (result Profile, err error) {
 	req, err := client.GetPreparer(resourceGroupName, profileName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -267,8 +278,9 @@ func (client ProfilesClient) GetPreparer(resourceGroupName string, profileName s
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -302,13 +314,15 @@ func (client ProfilesClient) GetResponder(resp *http.Response) (result Profile, 
 func (client ProfilesClient) ListAll() (result ProfileListResult, err error) {
 	req, err := client.ListAllPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "ListAll", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "ListAll", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "ListAll", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "ListAll", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListAllResponder(resp)
@@ -325,8 +339,9 @@ func (client ProfilesClient) ListAllPreparer() (*http.Request, error) {
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -364,13 +379,15 @@ func (client ProfilesClient) ListAllResponder(resp *http.Response) (result Profi
 func (client ProfilesClient) ListAllInResourceGroup(resourceGroupName string) (result ProfileListResult, err error) {
 	req, err := client.ListAllInResourceGroupPreparer(resourceGroupName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "ListAllInResourceGroup", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "ListAllInResourceGroup", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListAllInResourceGroupSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "ListAllInResourceGroup", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "ListAllInResourceGroup", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListAllInResourceGroupResponder(resp)
@@ -388,8 +405,9 @@ func (client ProfilesClient) ListAllInResourceGroupPreparer(resourceGroupName st
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -428,13 +446,15 @@ func (client ProfilesClient) ListAllInResourceGroupResponder(resp *http.Response
 func (client ProfilesClient) Update(resourceGroupName string, profileName string, parameters Profile) (result Profile, err error) {
 	req, err := client.UpdatePreparer(resourceGroupName, profileName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Update", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Update", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.UpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Update", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "trafficmanager.ProfilesClient", "Update", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.UpdateResponder(resp)
@@ -453,8 +473,9 @@ func (client ProfilesClient) UpdatePreparer(resourceGroupName string, profileNam
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(

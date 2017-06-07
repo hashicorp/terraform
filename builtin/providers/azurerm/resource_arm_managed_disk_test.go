@@ -126,6 +126,30 @@ func TestAccAzureRMManagedDisk_update(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMManagedDisk_NonStandardCasing(t *testing.T) {
+	var d disk.Model
+	ri := acctest.RandInt()
+	config := testAccAzureRMManagedDiskNonStandardCasing(ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMManagedDiskDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d, true),
+				),
+			},
+			resource.TestStep{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMManagedDiskExists(name string, d *disk.Model, shouldExist bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
@@ -199,7 +223,8 @@ func testDeleteAzureRMVirtualMachine(name string) resource.TestCheckFunc {
 
 		conn := testAccProvider.Meta().(*ArmClient).vmClient
 
-		_, err := conn.Delete(resourceGroup, vmName, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, vmName, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on vmClient: %s", err)
 		}
@@ -319,3 +344,23 @@ resource "azurerm_managed_disk" "test" {
         environment = "acctest"
     }
 }`
+
+func testAccAzureRMManagedDiskNonStandardCasing(ri int) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US 2"
+}
+resource "azurerm_managed_disk" "test" {
+    name = "acctestd-%d"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_type = "standard_lrs"
+    create_option = "Empty"
+    disk_size_gb = "1"
+    tags {
+        environment = "acctest"
+        cost-center = "ops"
+    }
+}`, ri, ri)
+}

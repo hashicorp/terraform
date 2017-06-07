@@ -69,8 +69,8 @@ func resourceArmEventHubCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] preparing arguments for Azure ARM EventHub creation.")
 
 	name := d.Get("name").(string)
-	namespaceName := d.Get("namespace_name").(string)
 	location := d.Get("location").(string)
+	namespaceName := d.Get("namespace_name").(string)
 	resGroup := d.Get("resource_group_name").(string)
 	partitionCount := int64(d.Get("partition_count").(int))
 	messageRetention := int64(d.Get("message_retention").(int))
@@ -123,9 +123,9 @@ func resourceArmEventHubRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("name", resp.Name)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("namespace_name", namespaceName)
 	d.Set("resource_group_name", resGroup)
-	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
 	d.Set("partition_count", resp.Properties.PartitionCount)
 	d.Set("message_retention", resp.Properties.MessageRetentionInDays)

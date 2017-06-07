@@ -127,7 +127,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	log.Printf("[DEBUG] read github repository %s/%s", meta.(*Organization).name, repoName)
 	repo, resp, err := client.Repositories.Get(context.TODO(), meta.(*Organization).name, repoName)
 	if err != nil {
-		if resp.StatusCode == 404 {
+		if resp != nil && resp.StatusCode == 404 {
 			log.Printf(
 				"[WARN] removing %s/%s from state because it no longer exists in github",
 				meta.(*Organization).name,

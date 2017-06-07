@@ -119,7 +119,8 @@ func testCheckAzureRMNetworkSecurityRuleDisappears(name string) resource.TestChe
 
 		conn := testAccProvider.Meta().(*ArmClient).secRuleClient
 
-		_, err := conn.Delete(resourceGroup, sgName, sgrName, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, sgName, sgrName, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on secRuleClient: %s", err)
 		}

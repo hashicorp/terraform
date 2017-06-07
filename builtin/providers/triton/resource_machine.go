@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"time"
@@ -23,6 +24,7 @@ var (
 		"user_script":          "user-script",
 		"user_data":            "user-data",
 		"administrator_pw":     "administrator-pw",
+		"cloud_config":         "cloud-init:user-data",
 	}
 )
 
@@ -182,6 +184,12 @@ func resourceMachine() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 			},
+			"cloud_config": {
+				Description: "copied to machine on boot",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+			},
 			"user_data": {
 				Description: "Data copied to machine on boot",
 				Type:        schema.TypeString,
@@ -235,7 +243,7 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 		tags[k] = v.(string)
 	}
 
-	machine, err := client.Machines().CreateMachine(&triton.CreateMachineInput{
+	machine, err := client.Machines().CreateMachine(context.Background(), &triton.CreateMachineInput{
 		Name:            d.Get("name").(string),
 		Package:         d.Get("package").(string),
 		Image:           d.Get("image").(string),
@@ -252,7 +260,7 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Target: []string{fmt.Sprintf(machineStateRunning)},
 		Refresh: func() (interface{}, string, error) {
-			getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+			getResp, err := client.Machines().GetMachine(context.Background(), &triton.GetMachineInput{
 				ID: d.Id(),
 			})
 			if err != nil {
@@ -279,7 +287,7 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceMachineExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*triton.Client)
 
-	return resourceExists(client.Machines().GetMachine(&triton.GetMachineInput{
+	return resourceExists(client.Machines().GetMachine(context.Background(), &triton.GetMachineInput{
 		ID: d.Id(),
 	}))
 }
@@ -287,14 +295,14 @@ func resourceMachineExists(d *schema.ResourceData, meta interface{}) (bool, erro
 func resourceMachineRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*triton.Client)
 
-	machine, err := client.Machines().GetMachine(&triton.GetMachineInput{
+	machine, err := client.Machines().GetMachine(context.Background(), &triton.GetMachineInput{
 		ID: d.Id(),
 	})
 	if err != nil {
 		return err
 	}
 
-	nics, err := client.Machines().ListNICs(&triton.ListNICsInput{
+	nics, err := client.Machines().ListNICs(context.Background(), &triton.ListNICsInput{
 		MachineID: d.Id(),
 	})
 	if err != nil {
@@ -359,7 +367,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		oldName := oldNameInterface.(string)
 		newName := newNameInterface.(string)
 
-		err := client.Machines().RenameMachine(&triton.RenameMachineInput{
+		err := client.Machines().RenameMachine(context.Background(), &triton.RenameMachineInput{
 			ID:   d.Id(),
 			Name: newName,
 		})
@@ -371,7 +379,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 			Pending: []string{oldName},
 			Target:  []string{newName},
 			Refresh: func() (interface{}, string, error) {
-				getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+				getResp, err := client.Machines().GetMachine(context.Background(), &triton.GetMachineInput{
 					ID: d.Id(),
 				})
 				if err != nil {
@@ -399,11 +407,11 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		var err error
 		if len(tags) == 0 {
-			err = client.Machines().DeleteMachineTags(&triton.DeleteMachineTagsInput{
+			err = client.Machines().DeleteMachineTags(context.Background(), &triton.DeleteMachineTagsInput{
 				ID: d.Id(),
 			})
 		} else {
-			err = client.Machines().ReplaceMachineTags(&triton.ReplaceMachineTagsInput{
+			err = client.Machines().ReplaceMachineTags(context.Background(), &triton.ReplaceMachineTagsInput{
 				ID:   d.Id(),
 				Tags: tags,
 			})
@@ -416,7 +424,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		stateConf := &resource.StateChangeConf{
 			Target: []string{expectedTagsMD5},
 			Refresh: func() (interface{}, string, error) {
-				getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+				getResp, err := client.Machines().GetMachine(context.Background(), &triton.GetMachineInput{
 					ID: d.Id(),
 				})
 				if err != nil {
@@ -439,7 +447,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 	if d.HasChange("package") {
 		newPackage := d.Get("package").(string)
 
-		err := client.Machines().ResizeMachine(&triton.ResizeMachineInput{
+		err := client.Machines().ResizeMachine(context.Background(), &triton.ResizeMachineInput{
 			ID:      d.Id(),
 			Package: newPackage,
 		})
@@ -450,7 +458,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		stateConf := &resource.StateChangeConf{
 			Target: []string{fmt.Sprintf("%s@%s", newPackage, "running")},
 			Refresh: func() (interface{}, string, error) {
-				getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+				getResp, err := client.Machines().GetMachine(context.Background(), &triton.GetMachineInput{
 					ID: d.Id(),
 				})
 				if err != nil {
@@ -475,11 +483,11 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		var err error
 		if enable {
-			err = client.Machines().EnableMachineFirewall(&triton.EnableMachineFirewallInput{
+			err = client.Machines().EnableMachineFirewall(context.Background(), &triton.EnableMachineFirewallInput{
 				ID: d.Id(),
 			})
 		} else {
-			err = client.Machines().DisableMachineFirewall(&triton.DisableMachineFirewallInput{
+			err = client.Machines().DisableMachineFirewall(context.Background(), &triton.DisableMachineFirewallInput{
 				ID: d.Id(),
 			})
 		}
@@ -490,7 +498,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		stateConf := &resource.StateChangeConf{
 			Target: []string{fmt.Sprintf("%t", enable)},
 			Refresh: func() (interface{}, string, error) {
-				getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+				getResp, err := client.Machines().GetMachine(context.Background(), &triton.GetMachineInput{
 					ID: d.Id(),
 				})
 				if err != nil {
@@ -524,7 +532,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		for _, nicI := range newNICs.Difference(oldNICs).List() {
 			nic := nicI.(map[string]interface{})
-			if _, err := client.Machines().AddNIC(&triton.AddNICInput{
+			if _, err := client.Machines().AddNIC(context.Background(), &triton.AddNICInput{
 				MachineID: d.Id(),
 				Network:   nic["network"].(string),
 			}); err != nil {
@@ -534,7 +542,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		for _, nicI := range oldNICs.Difference(newNICs).List() {
 			nic := nicI.(map[string]interface{})
-			if err := client.Machines().RemoveNIC(&triton.RemoveNICInput{
+			if err := client.Machines().RemoveNIC(context.Background(), &triton.RemoveNICInput{
 				MachineID: d.Id(),
 				MAC:       nic["mac"].(string),
 			}); err != nil {
@@ -552,7 +560,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	if len(metadata) > 0 {
-		if _, err := client.Machines().UpdateMachineMetadata(&triton.UpdateMachineMetadataInput{
+		if _, err := client.Machines().UpdateMachineMetadata(context.Background(), &triton.UpdateMachineMetadataInput{
 			ID:       d.Id(),
 			Metadata: metadata,
 		}); err != nil {
@@ -562,7 +570,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		stateConf := &resource.StateChangeConf{
 			Target: []string{"converged"},
 			Refresh: func() (interface{}, string, error) {
-				getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+				getResp, err := client.Machines().GetMachine(context.Background(), &triton.GetMachineInput{
 					ID: d.Id(),
 				})
 				if err != nil {
@@ -600,7 +608,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceMachineDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*triton.Client)
 
-	err := client.Machines().DeleteMachine(&triton.DeleteMachineInput{
+	err := client.Machines().DeleteMachine(context.Background(), &triton.DeleteMachineInput{
 		ID: d.Id(),
 	})
 	if err != nil {
@@ -610,12 +618,12 @@ func resourceMachineDelete(d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Target: []string{machineStateDeleted},
 		Refresh: func() (interface{}, string, error) {
-			getResp, err := client.Machines().GetMachine(&triton.GetMachineInput{
+			getResp, err := client.Machines().GetMachine(context.Background(), &triton.GetMachineInput{
 				ID: d.Id(),
 			})
 			if err != nil {
 				if triton.IsResourceNotFound(err) {
-					return nil, "deleted", nil
+					return getResp, "deleted", nil
 				}
 				return nil, "", err
 			}

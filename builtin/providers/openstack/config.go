@@ -11,6 +11,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/swauth"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type Config struct {
@@ -68,6 +69,9 @@ func (c *Config) loadAndValidate() error {
 	if err != nil {
 		return err
 	}
+
+	// Set UserAgent
+	client.UserAgent.Prepend(terraform.UserAgentString())
 
 	config := &tls.Config{}
 	if c.CACertFile != "" {
@@ -147,6 +151,13 @@ func (c *Config) blockStorageV2Client(region string) (*gophercloud.ServiceClient
 
 func (c *Config) computeV2Client(region string) (*gophercloud.ServiceClient, error) {
 	return openstack.NewComputeV2(c.osClient, gophercloud.EndpointOpts{
+		Region:       region,
+		Availability: c.getEndpointType(),
+	})
+}
+
+func (c *Config) dnsV2Client(region string) (*gophercloud.ServiceClient, error) {
+	return openstack.NewDNSV2(c.osClient, gophercloud.EndpointOpts{
 		Region:       region,
 		Availability: c.getEndpointType(),
 	})

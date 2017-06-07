@@ -147,6 +147,7 @@ func (s *SecurityGroupService) CreateSecurityGroup(p *CreateSecurityGroupParams)
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -307,6 +308,7 @@ func (s *SecurityGroupService) DeleteSecurityGroup(p *DeleteSecurityGroupParams)
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -513,6 +515,7 @@ func (s *SecurityGroupService) AuthorizeSecurityGroupIngress(p *AuthorizeSecurit
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -599,6 +602,7 @@ func (s *SecurityGroupService) RevokeSecurityGroupIngress(p *RevokeSecurityGroup
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -806,6 +810,7 @@ func (s *SecurityGroupService) AuthorizeSecurityGroupEgress(p *AuthorizeSecurity
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -892,6 +897,7 @@ func (s *SecurityGroupService) RevokeSecurityGroupEgress(p *RevokeSecurityGroupE
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1156,6 +1162,7 @@ func (s *SecurityGroupService) ListSecurityGroups(p *ListSecurityGroupsParams) (
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

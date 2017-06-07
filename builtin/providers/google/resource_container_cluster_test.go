@@ -28,6 +28,23 @@ func TestAccContainerCluster_basic(t *testing.T) {
 	})
 }
 
+func TestAccContainerCluster_withMasterAuth(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withMasterAuth,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerCluster(
+						"google_container_cluster.with_master_auth"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContainerCluster_withAdditionalZones(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -375,6 +392,13 @@ resource "google_container_cluster" "primary" {
 	name = "cluster-test-%s"
 	zone = "us-central1-a"
 	initial_node_count = 3
+}`, acctest.RandString(10))
+
+var testAccContainerCluster_withMasterAuth = fmt.Sprintf(`
+resource "google_container_cluster" "with_master_auth" {
+	name = "cluster-test-%s"
+	zone = "us-central1-a"
+	initial_node_count = 3
 
 	master_auth {
 		username = "mr.yoda"
@@ -400,10 +424,14 @@ resource "google_container_cluster" "with_additional_zones" {
 }`, acctest.RandString(10))
 
 var testAccContainerCluster_withVersion = fmt.Sprintf(`
+data "google_container_engine_versions" "central1a" {
+	zone = "us-central1-a"
+}
+
 resource "google_container_cluster" "with_version" {
 	name = "cluster-test-%s"
 	zone = "us-central1-a"
-	node_version = "1.6.0"
+	node_version = "${data.google_container_engine_versions.central1a.latest_node_version}"
 	initial_node_count = 1
 
 	master_auth {

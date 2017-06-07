@@ -3,16 +3,21 @@ package openstack
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/servergroups"
+	"github.com/gophercloud/gophercloud/openstack/dns/v2/recordsets"
+	"github.com/gophercloud/gophercloud/openstack/dns/v2/zones"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/routerinsertion"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
@@ -75,7 +80,11 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Head
 		return nil, err
 	}
 
-	log.Printf("[DEBUG] Openstack Request headers:\n%s", strings.Join(RedactHeaders(headers), "\n"))
+	// Sort the headers for consistency
+	redactedHeaders := RedactHeaders(headers)
+	sort.Strings(redactedHeaders)
+
+	log.Printf("[DEBUG] Openstack Request headers:\n%s", strings.Join(redactedHeaders, "\n"))
 
 	// Handle request contentType
 	contentType := headers.Get("Content-Type")
@@ -92,7 +101,11 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Head
 // logResponse will log the HTTP Response details.
 // If the body is JSON, it will attempt to be pretty-formatted.
 func (lrt *LogRoundTripper) logResponse(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
-	log.Printf("[DEBUG] Openstack Response headers:\n%s", strings.Join(RedactHeaders(headers), "\n"))
+	// Sort the headers for consistency
+	redactedHeaders := RedactHeaders(headers)
+	sort.Strings(redactedHeaders)
+
+	log.Printf("[DEBUG] Openstack Response headers:\n%s", strings.Join(redactedHeaders, "\n"))
 
 	contentType := headers.Get("Content-Type")
 	if strings.HasPrefix(contentType, "application/json") {
@@ -151,15 +164,35 @@ func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
 	return string(pretty)
 }
 
+// Firewall is an OpenStack firewall.
+type Firewall struct {
+	firewalls.Firewall
+	routerinsertion.FirewallExt
+}
+
 // FirewallCreateOpts represents the attributes used when creating a new firewall.
 type FirewallCreateOpts struct {
-	firewalls.CreateOpts
+	firewalls.CreateOptsBuilder
 	ValueSpecs map[string]string `json:"value_specs,omitempty"`
 }
 
-// ToFirewallCreateMap casts a CreateOpts struct to a map.
+// ToFirewallCreateMap casts a CreateOptsExt struct to a map.
 // It overrides firewalls.ToFirewallCreateMap to add the ValueSpecs field.
 func (opts FirewallCreateOpts) ToFirewallCreateMap() (map[string]interface{}, error) {
+	body, err := opts.CreateOptsBuilder.ToFirewallCreateMap()
+	if err != nil {
+		return nil, err
+	}
+
+	return AddValueSpecs(body), nil
+}
+
+//FirewallUpdateOpts
+type FirewallUpdateOpts struct {
+	firewalls.UpdateOptsBuilder
+}
+
+func (opts FirewallUpdateOpts) ToFirewallUpdateMap() (map[string]interface{}, error) {
 	return BuildRequest(opts, "firewall")
 }
 
@@ -221,6 +254,27 @@ type PortCreateOpts struct {
 // It overrides ports.ToPortCreateMap to add the ValueSpecs field.
 func (opts PortCreateOpts) ToPortCreateMap() (map[string]interface{}, error) {
 	return BuildRequest(opts, "port")
+}
+
+// RecordSetCreateOpts represents the attributes used when creating a new DNS record set.
+type RecordSetCreateOpts struct {
+	recordsets.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToRecordSetCreateMap casts a CreateOpts struct to a map.
+// It overrides recordsets.ToRecordSetCreateMap to add the ValueSpecs field.
+func (opts RecordSetCreateOpts) ToRecordSetCreateMap() (map[string]interface{}, error) {
+	b, err := BuildRequest(opts, "")
+	if err != nil {
+		return nil, err
+	}
+
+	if m, ok := b[""].(map[string]interface{}); ok {
+		return m, nil
+	}
+
+	return nil, fmt.Errorf("Expected map but got %T", b[""])
 }
 
 // RouterCreateOpts represents the attributes used when creating a new router.
@@ -287,4 +341,29 @@ func (opts SubnetCreateOpts) ToSubnetCreateMap() (map[string]interface{}, error)
 	}
 
 	return b, nil
+}
+
+// ZoneCreateOpts represents the attributes used when creating a new DNS zone.
+type ZoneCreateOpts struct {
+	zones.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToZoneCreateMap casts a CreateOpts struct to a map.
+// It overrides zones.ToZoneCreateMap to add the ValueSpecs field.
+func (opts ZoneCreateOpts) ToZoneCreateMap() (map[string]interface{}, error) {
+	b, err := BuildRequest(opts, "")
+	if err != nil {
+		return nil, err
+	}
+
+	if m, ok := b[""].(map[string]interface{}); ok {
+		if opts.TTL > 0 {
+			m["ttl"] = opts.TTL
+		}
+
+		return m, nil
+	}
+
+	return nil, fmt.Errorf("Expected map but got %T", b[""])
 }

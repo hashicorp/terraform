@@ -42,12 +42,11 @@ resource "vsphere_virtual_machine" "lb" {
   cluster       = "Production Cluster"
   resource_pool = "Production Cluster/Resources/Production Servers"
 
-  gateway = "10.20.30.254"
-
   network_interface {
     label              = "10_20_30_VMNet"
     ipv4_address       = "10.20.30.40"
     ipv4_prefix_length = "24"
+    ipv4_gateway       = "10.20.30.254"
   }
 
   disk {
@@ -138,6 +137,7 @@ The following attributes are exported:
 
 * `id` - The instance ID.
 * `uuid` - The instance UUID.
+* `moid` - The instance MOID (Managed Object Reference ID).
 * `name` - See Argument Reference above.
 * `vcpu` - See Argument Reference above.
 * `memory` - See Argument Reference above.

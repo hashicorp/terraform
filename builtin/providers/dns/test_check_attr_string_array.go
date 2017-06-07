@@ -27,24 +27,27 @@ func testCheckAttrStringArray(name, key string, value []string) r.TestCheckFunc 
 			return fmt.Errorf("Attributes not found for %s", attrKey)
 		}
 
-		got, _ := strconv.Atoi(count)
-		if got != len(value) {
+		gotCount, _ := strconv.Atoi(count)
+		if gotCount != len(value) {
 			return fmt.Errorf("Mismatch array count for %s: got %s, wanted %d", key, count, len(value))
 		}
 
-		for i, want := range value {
+	Next:
+		for i := 0; i < gotCount; i++ {
 			attrKey = fmt.Sprintf("%s.%d", key, i)
 			got, ok := is.Attributes[attrKey]
 			if !ok {
 				return fmt.Errorf("Missing array item for %s", attrKey)
 			}
-			if got != want {
-				return fmt.Errorf(
-					"Mismatched array item for %s: got %s, want %s",
-					attrKey,
-					got,
-					want)
+			for _, want := range value {
+				if got == want {
+					continue Next
+				}
 			}
+			return fmt.Errorf(
+				"Unexpected array item for %s: got %s",
+				attrKey,
+				got)
 		}
 
 		return nil

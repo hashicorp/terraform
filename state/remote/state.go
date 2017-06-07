@@ -2,6 +2,7 @@ package remote
 
 import (
 	"bytes"
+	"sync"
 
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -12,6 +13,8 @@ import (
 // local caching so every persist will go to the remote storage and local
 // writes will go to memory.
 type State struct {
+	mu sync.Mutex
+
 	Client Client
 
 	state, readState *terraform.State
@@ -19,17 +22,26 @@ type State struct {
 
 // StateReader impl.
 func (s *State) State() *terraform.State {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	return s.state.DeepCopy()
 }
 
 // StateWriter impl.
 func (s *State) WriteState(state *terraform.State) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.state = state
 	return nil
 }
 
 // StateRefresher impl.
 func (s *State) RefreshState() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	payload, err := s.Client.Get()
 	if err != nil {
 		return err
@@ -52,6 +64,9 @@ func (s *State) RefreshState() error {
 
 // StatePersister impl.
 func (s *State) PersistState() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.state.IncrementSerialMaybe(s.readState)
 
 	var buf bytes.Buffer
@@ -64,6 +79,9 @@ func (s *State) PersistState() error {
 
 // Lock calls the Client's Lock method if it's implemented.
 func (s *State) Lock(info *state.LockInfo) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if c, ok := s.Client.(ClientLocker); ok {
 		return c.Lock(info)
 	}
@@ -72,6 +90,9 @@ func (s *State) Lock(info *state.LockInfo) (string, error) {
 
 // Unlock calls the Client's Unlock method if it's implemented.
 func (s *State) Unlock(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if c, ok := s.Client.(ClientLocker); ok {
 		return c.Unlock(id)
 	}

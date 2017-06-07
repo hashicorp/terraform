@@ -63,6 +63,7 @@ func (s *APIDiscoveryService) ListApis(p *ListApisParams) (*ListApisResponse, er
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

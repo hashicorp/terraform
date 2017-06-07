@@ -122,7 +122,8 @@ func resourceArmVirtualMachineExtensionsCreate(d *schema.ResourceData, meta inte
 		extension.VirtualMachineExtensionProperties.ProtectedSettings = &protectedSettings
 	}
 
-	_, err := client.CreateOrUpdate(resGroup, vmName, name, extension, make(chan struct{}))
+	_, error := client.CreateOrUpdate(resGroup, vmName, name, extension, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -195,7 +196,8 @@ func resourceArmVirtualMachineExtensionsDelete(d *schema.ResourceData, meta inte
 	name := id.Path["extensions"]
 	vmName := id.Path["virtualMachines"]
 
-	_, err = client.Delete(resGroup, vmName, name, make(chan struct{}))
+	_, error := client.Delete(resGroup, vmName, name, make(chan struct{}))
+	err = <-error
 
-	return nil
+	return err
 }

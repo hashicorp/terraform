@@ -13,13 +13,15 @@ import (
 func TestAccComputeHttpHealthCheck_basic(t *testing.T) {
 	var healthCheck compute.HttpHealthCheck
 
+	hhckName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeHttpHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeHttpHealthCheck_basic,
+				Config: testAccComputeHttpHealthCheck_basic(hhckName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHttpHealthCheckExists(
 						"google_compute_http_health_check.foobar", &healthCheck),
@@ -36,13 +38,15 @@ func TestAccComputeHttpHealthCheck_basic(t *testing.T) {
 func TestAccComputeHttpHealthCheck_update(t *testing.T) {
 	var healthCheck compute.HttpHealthCheck
 
+	hhckName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeHttpHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeHttpHealthCheck_update1,
+				Config: testAccComputeHttpHealthCheck_update1(hhckName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHttpHealthCheckExists(
 						"google_compute_http_health_check.foobar", &healthCheck),
@@ -53,7 +57,7 @@ func TestAccComputeHttpHealthCheck_update(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccComputeHttpHealthCheck_update2,
+				Config: testAccComputeHttpHealthCheck_update2(hhckName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHttpHealthCheckExists(
 						"google_compute_http_health_check.foobar", &healthCheck),
@@ -138,35 +142,39 @@ func testAccCheckComputeHttpHealthCheckThresholds(healthy, unhealthy int64, heal
 	}
 }
 
-var testAccComputeHttpHealthCheck_basic = fmt.Sprintf(`
+func testAccComputeHttpHealthCheck_basic(hhckName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_http_health_check" "foobar" {
+	name = "%s"
 	check_interval_sec = 3
 	description = "Resource created for Terraform acceptance testing"
 	healthy_threshold = 3
 	host = "foobar"
-	name = "httphealth-test-%s"
 	port = "80"
 	request_path = "/health_check"
 	timeout_sec = 2
 	unhealthy_threshold = 3
 }
-`, acctest.RandString(10))
+`, hhckName)
+}
 
-var testAccComputeHttpHealthCheck_update1 = fmt.Sprintf(`
+func testAccComputeHttpHealthCheck_update1(hhckName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_http_health_check" "foobar" {
-	name = "httphealth-test-%s"
+	name = "%s"
 	description = "Resource created for Terraform acceptance testing"
 	request_path = "/not_default"
 }
-`, acctest.RandString(10))
+`, hhckName)
+}
 
-/* Change description, restore request_path to default, and change
-* thresholds from defaults */
-var testAccComputeHttpHealthCheck_update2 = fmt.Sprintf(`
+func testAccComputeHttpHealthCheck_update2(hhckName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_http_health_check" "foobar" {
-	name = "httphealth-test-%s"
+	name = "%s"
 	description = "Resource updated for Terraform acceptance testing"
 	healthy_threshold = 10
 	unhealthy_threshold = 10
 }
-`, acctest.RandString(10))
+`, hhckName)
+}

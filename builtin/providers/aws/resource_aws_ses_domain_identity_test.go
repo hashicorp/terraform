@@ -12,6 +12,10 @@ import (
 )
 
 func TestAccAwsSESDomainIdentity_basic(t *testing.T) {
+	domain := fmt.Sprintf(
+		"%s.terraformtesting.com",
+		acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -19,13 +23,11 @@ func TestAccAwsSESDomainIdentity_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsSESDomainIdentityDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: fmt.Sprintf(
-					testAccAwsSESDomainIdentityConfig,
-					acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum),
-				),
+			{
+				Config: fmt.Sprintf(testAccAwsSESDomainIdentityConfig, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsSESDomainIdentityExists("aws_ses_domain_identity.test"),
+					testAccCheckAwsSESDomainIdentityArn("aws_ses_domain_identity.test", domain),
 				),
 			},
 		},
@@ -93,8 +95,27 @@ func testAccCheckAwsSESDomainIdentityExists(n string) resource.TestCheckFunc {
 	}
 }
 
+func testAccCheckAwsSESDomainIdentityArn(n string, domain string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+
+		expected := fmt.Sprintf(
+			"arn:%s:ses:%s:%s:identity/%s",
+			testAccProvider.Meta().(*AWSClient).partition,
+			testAccProvider.Meta().(*AWSClient).region,
+			testAccProvider.Meta().(*AWSClient).accountid,
+			domain)
+
+		if rs.Primary.Attributes["arn"] != expected {
+			return fmt.Errorf("Incorrect ARN: expected %q, got %q", expected, rs.Primary.Attributes["arn"])
+		}
+
+		return nil
+	}
+}
+
 const testAccAwsSESDomainIdentityConfig = `
 resource "aws_ses_domain_identity" "test" {
-	domain = "%s.terraformtesting.com"
+	domain = "%s"
 }
 `

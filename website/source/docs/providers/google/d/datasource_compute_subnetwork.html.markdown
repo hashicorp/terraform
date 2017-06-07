@@ -38,7 +38,7 @@ The following arguments are supported:
 In addition to the arguments listed above, the following attributes are exported:
 
 * `network` - The network name or resource link to the parent
-    network of this subnetwork. 
+    network of this subnetwork.
 
 * `description` - Description of this subnetwork.
 
@@ -46,5 +46,9 @@ In addition to the arguments listed above, the following attributes are exported
     network are assigned to, represented as a CIDR block.
 
 * `gateway_address` - The IP address of the gateway.
+
+* `private_ip_google_access` - Whether the VMs in this subnet
+    can access Google services without assigned external IP
+    addresses.
 
 * `self_link` - The URI of the created resource.

@@ -197,7 +197,8 @@ func testCheckAzureRMLoadBalancerNatPoolDisappears(natPoolName string, lb *netwo
 			return err
 		}
 
-		_, err = conn.CreateOrUpdate(id.ResourceGroup, *lb.Name, *lb, make(chan struct{}))
+		_, error := conn.CreateOrUpdate(id.ResourceGroup, *lb.Name, *lb, make(chan struct{}))
+		err = <-error
 		if err != nil {
 			return fmt.Errorf("Error Creating/Updating LoadBalancer %s", err)
 		}

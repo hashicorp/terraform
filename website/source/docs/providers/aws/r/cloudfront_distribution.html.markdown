@@ -316,6 +316,10 @@ argument is not required.
     CloudFront to use when communicating with your origin over HTTPS. A list of
     one or more of `SSLv3`, `TLSv1`, `TLSv1.1`, and `TLSv1.2`.
 
+  * `origin_keepalive_timeout` - (Optional) The Custom KeepAlive timeout, in seconds. Value must be between `1` and `60`.
+
+  * `origin_read_timeout` - (Optional) The Custom Read timeout, in seconds. Value must be between `4` and `60`.
+
 ##### S3 Origin Config Arguments
 
 * `origin_access_identity` (Optional) - The [CloudFront origin access

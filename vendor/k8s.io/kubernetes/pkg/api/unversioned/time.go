@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"k8s.io/kubernetes/pkg/genericapiserver/openapi/common"
+	"k8s.io/apimachinery/pkg/openapi"
 
 	"github.com/go-openapi/spec"
 	"github.com/google/gofuzz"
@@ -29,10 +29,6 @@ import (
 // Time is a wrapper around time.Time which supports correct
 // marshaling to YAML and JSON.  Wrappers are provided for many
 // of the factory methods that the time package offers.
-//
-// +protobuf.options.marshal=false
-// +protobuf.as=Timestamp
-// +protobuf.options.(gogoproto.goproto_stringer)=false
 type Time struct {
 	time.Time `protobuf:"-"`
 }
@@ -145,8 +141,8 @@ func (t Time) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.UTC().Format(time.RFC3339))
 }
 
-func (_ Time) OpenAPIDefinition() common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
+func (_ Time) OpenAPIDefinition() openapi.OpenAPIDefinition {
+	return openapi.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Type:   []string{"string"},
