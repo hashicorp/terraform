@@ -139,6 +139,12 @@ func resourceComputeBackendService() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			"connection_draining_timeout_sec": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  0,
+			},
 		},
 	}
 }
@@ -183,6 +189,14 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("enable_cdn"); ok {
 		service.EnableCDN = v.(bool)
+	}
+
+	if v, ok := d.GetOk("connection_draining_timeout_sec"); ok {
+		connectionDraining := &compute.ConnectionDraining{
+			DrainingTimeoutSec: int64(v.(int)),
+		}
+
+		service.ConnectionDraining = connectionDraining
 	}
 
 	project, err := getProject(d, config)
@@ -235,8 +249,9 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	d.Set("timeout_sec", service.TimeoutSec)
 	d.Set("fingerprint", service.Fingerprint)
 	d.Set("self_link", service.SelfLink)
-
 	d.Set("backend", flattenBackends(service.Backends))
+	d.Set("connection_draining_timeout_sec", service.ConnectionDraining.DrainingTimeoutSec)
+
 	d.Set("health_checks", service.HealthChecks)
 
 	return nil
@@ -277,6 +292,14 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 	}
 	if v, ok := d.GetOk("timeout_sec"); ok {
 		service.TimeoutSec = int64(v.(int))
+	}
+
+	if d.HasChange("connection_draining_timeout_sec") {
+		connectionDraining := &compute.ConnectionDraining{
+			DrainingTimeoutSec: int64(d.Get("connection_draining_timeout_sec").(int)),
+		}
+
+		service.ConnectionDraining = connectionDraining
 	}
 
 	if d.HasChange("session_affinity") {
