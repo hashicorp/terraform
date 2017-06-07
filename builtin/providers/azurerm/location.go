@@ -18,11 +18,8 @@ func locationSchema() *schema.Schema {
 
 func locationForDataSourceSchema() *schema.Schema {
 	return &schema.Schema{
-		Type:             schema.TypeString,
-		Optional:         true,
-		Computed:         true,
-		StateFunc:        azureRMNormalizeLocation,
-		DiffSuppressFunc: azureRMSuppressLocationDiff,
+		Type:     schema.TypeString,
+		Computed: true,
 	}
 }
 

@@ -1,8 +1,6 @@
 package azurerm
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -26,30 +24,20 @@ func dataSourceArmResourceGroupRead(d *schema.ResourceData, meta interface{}) er
 	armClient := meta.(*ArmClient)
 
 	resourceGroupName := d.Get("name").(string)
-	location, getLocationOk := d.GetOk("location")
 	resourceId := &ResourceID{
 		SubscriptionID: armClient.subscriptionId,
 		ResourceGroup:  resourceGroupName,
 	}
+	resourceIdString, err := composeAzureResourceID(resourceId)
 
-	if resourceIdString, err := composeAzureResourceID(resourceId); err == nil {
-		d.SetId(resourceIdString)
-	} else {
+	if err != nil {
 		return err
 	}
+
+	d.SetId(resourceIdString)
 
 	if err := resourceArmResourceGroupRead(d, meta); err != nil {
 		return err
-	}
-
-	if getLocationOk {
-		actualLocation := azureRMNormalizeLocation(d.Get("location").(string))
-		location := azureRMNormalizeLocation(location)
-
-		if location != actualLocation {
-			return fmt.Errorf(`The location specified in Data Source (%s) doesn't match the actual location of the Resource Group "%s (%s)"`,
-				location, resourceGroupName, actualLocation)
-		}
 	}
 
 	return nil

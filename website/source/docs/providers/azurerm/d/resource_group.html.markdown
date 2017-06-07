@@ -30,10 +30,10 @@ resource "azurerm_managed_disk" "test" {
 ## Argument Reference
 
 * `name` - (Required) Specifies the name of the resource group.
-* `location` - (Optional) Specifies the location of the resource group.
 
 ~> **NOTE:** If the specified location doesn't match the actual resource group location, an error message with the actual location value will be shown.
 
 ## Attributes Reference
 
+* `location` - The location of the resource group.
 * `tags` - A mapping of tags assigned to the resource group.
