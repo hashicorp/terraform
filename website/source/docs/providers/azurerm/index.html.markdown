@@ -96,11 +96,20 @@ It's possible to complete this task in either the [Azure CLI](#creating-credenti
 
 ### Creating Credentials using the Azure CLI
 
+~> **Note**: if you're using the **China**, **German** or **Government** Azure Clouds - you'll need to first configure the Azure CLI to work with that Cloud.  You can do this by running:
+
+```
+$ az cloud set --name AzureChinaCloud|AzureGermanCloud|AzureUSGovernment
+```
+
+---
+
 Firstly, login to the Azure CLI using:
 
 ```shell
 $ az login
 ```
+
 
 Once logged in - it's possible to list the Subscriptions associated with the account via:
 
@@ -165,10 +174,16 @@ Finally - it's possible to test these values work as expected by first logging i
 $ az login --service-principal -u CLIENT_ID -p CLIENT_SECRET --tenant TENANT_ID
 ```
 
-Once logged in as the Service Principal - we should be able to list the VM Sizes in the `West US` region:
+Once logged in as the Service Principal - we should be able to list the VM Sizes by specifying an Azure region, for example here we use the `West US` region:
 
 ```shell
 $ az vm list-sizes --location westus
+```
+
+~> **Note**: If you're using the **China**, **German** or **Government** Azure Clouds - you will need to switch `westus` out for another region. You can find which regions are available by running:
+
+```
+$ az account list-locations
 ```
 
 ### Creating Credentials in the Azure Portal
