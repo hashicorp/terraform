@@ -13,7 +13,7 @@ func getSinglePool(poolName string, vtmClient *brocadevtm.VTMClient) (*pool.Pool
 	getSinglePoolAPI := pool.NewGetSingle(poolName)
 	getSinglePoolErr := vtmClient.Do(getSinglePoolAPI)
 	if getSinglePoolErr != nil {
-		return getSinglePoolErr
+		return nil, getSinglePoolErr
 	}
 
 	if getSinglePoolAPI.StatusCode() != 200 {
@@ -33,21 +33,46 @@ func resourcePool() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     *schema.TypeString,
+				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"nodelist": {
-				Type:     schema.TypeList,
+			"node": &schema.Schema{
+				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: false,
-				Elem:     *schema.TypeString,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"node": &schema.Schema {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"priority": &schema.Schema {
+							Type: schema.TypeInt,
+							Required: true,
+						},
+						"state": &schema.Schema{
+							Type: schema.TypeString,
+							Required: true,
+						},
+						"weight": &schema.Schema{
+							Type: schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
 			},
 			"monitorlist": {
 				Type:     schema.TypeList,
 				Required: true,
 				ForceNew: false,
-				Elem:     *schema.TypeString,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"max_connection_attempts": {
+				Type: 	  schema.TypeInt,
+				Optional: true,
+				ForceNew: false,
+
 			},
 		},
 	}
@@ -65,8 +90,30 @@ func resourcePoolCreate(d *schema.ResourceData, m interface{}) error {
 	} else {
 		return fmt.Errorf("Pool name argument required")
 	}
-	if v, ok := d.GetOk("nodelist"); ok {
-		createPool.Properties.Basic.NodesTable = v.([]interface{})
+	if v, ok := d.GetOk("node"); ok {
+		if nodes,ok := v.(*schema.Set); ok {
+			nodeList := []pool.MemberNode{}
+			for _, value := range nodes.List() {
+				nodeObject := value.(map[string]interface{})
+				newNode := pool.MemberNode{}
+				if nodeValue,ok := nodeObject["node"].(string); ok {
+					newNode.Node = nodeValue
+				}
+				if priorityValue, ok := nodeObject["priority"].(int); ok {
+					newNode.Priority = priorityValue
+				}
+				if stateValue, ok := nodeObject["state"].(string); ok {
+					newNode.State = stateValue
+				}
+				if weightValue, ok := nodeObject["weight"].(int); ok {
+					newNode.Weight = weightValue
+				}
+				nodeList = append(nodeList,newNode)
+
+			}
+			createPool.Properties.Basic.NodesTable = nodeList
+		}
+
 	}
 	if v, ok := d.GetOk("max_connection_attempts"); ok {
 		createPool.Properties.Basic.MaxConnectionAttempts = v.(int)
@@ -78,7 +125,12 @@ func resourcePoolCreate(d *schema.ResourceData, m interface{}) error {
 		createPool.Properties.Basic.MaxTimeoutConnectionAttempts = v.(int)
 	}
 	if v, ok := d.GetOk("monitorlist"); ok {
-		createPool.Properties.Basic.Monitors = v.([]interface{})
+		originalMonitors := v.([]interface{})
+		monitors := make([]string, len(originalMonitors))
+		for i, monitor  := range originalMonitors {
+			monitors[i] = monitor.(string)
+		}
+		createPool.Properties.Basic.Monitors = monitors
 	}
 	if v, ok := d.GetOk("node_close_with_rst"); ok {
 		createPool.Properties.Basic.NodeCloseWithReset = v.(*bool)
@@ -105,14 +157,13 @@ func resourcePoolCreate(d *schema.ResourceData, m interface{}) error {
 		createPool.Properties.HTTP.HTTPKeepAliveNonIdempotent = v.(*bool)
 	}
 	if v, ok := d.GetOk("load_balancing_priority_enabled"); ok {
-		1
 		createPool.Properties.LoadBalancing.PriorityEnabled = v.(*bool)
 	}
 	if v, ok := d.GetOk("load_balancing_priority_nodes"); ok {
 		createPool.Properties.LoadBalancing.PriorityNodes = v.(int)
 	}
 	if v, ok := d.GetOk("tcp_nagle"); ok {
-		createPool.Properties.TCP.Nagle = v.(bool)
+		createPool.Properties.TCP.Nagle = v.(*bool)
 	}
 
 	createAPI := pool.NewCreate(poolName, createPool)
@@ -145,6 +196,7 @@ func resourcePoolRead(d *schema.ResourceData, m interface{}) error {
 	if v, ok := d.GetOk("monitorlist"); ok {
 		readPool.Properties.Basic.Monitors = v.([]interface{)
 	}*/
+	return nil
 
 }
 
@@ -164,10 +216,9 @@ func resourcePoolDelete(d *schema.ResourceData, m interface{}) error {
 	}
 	d.SetId("")
 	return nil
-
 }
 
 // resourcePoolUpdate - Updates an existing pool resource
 func resourcePoolUpdate(d *schema.ResourceData, m interface{}) error {
-
+	return nil
 }

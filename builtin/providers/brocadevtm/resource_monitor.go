@@ -10,7 +10,7 @@ import (
 func resourceMonitor() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceMonitorCreate,
-		Read: 	resourceMonitorRead,
+		Read:   resourceMonitorRead,
 		//Update: resourceMonitorUpdate,
 		Delete: resourceMonitorDelete,
 
@@ -91,10 +91,10 @@ func resourceMonitorCreate(d *schema.ResourceData, m interface{}) error {
 		createMonitor.Properties.Basic.Failures = v.(int)
 	}
 	if v, ok := d.GetOk("verbose"); ok {
-		createMonitor.Properties.Basic.Verbose = v.(bool)
+		createMonitor.Properties.Basic.Verbose = v.(*bool)
 	}
 	if v, ok := d.GetOk("use_ssl"); ok {
-		createMonitor.Properties.Basic.UseSSL = v.(bool)
+		createMonitor.Properties.Basic.UseSSL = v.(*bool)
 	}
 	if v, ok := d.GetOk("http_host_header"); ok {
 		createMonitor.Properties.HTTP.HostHeader = v.(string)
@@ -116,7 +116,7 @@ func resourceMonitorCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Error: %+v", err)
 	}
 
-	if createAPI.StatusCode() != 201 && createAPI.StatusCode() != 200  {
+	if createAPI.StatusCode() != 201 && createAPI.StatusCode() != 200 {
 		return fmt.Errorf("Invalid HTTP response code %+v returned. Response object was %+v", createAPI.StatusCode(), createAPI.ResponseObject())
 	}
 
@@ -146,10 +146,10 @@ func resourceMonitorRead(d *schema.ResourceData, m interface{}) error {
 		readMonitor.Properties.Basic.Failures = v.(int)
 	}
 	if v, ok := d.GetOk("verbose"); ok {
-		readMonitor.Properties.Basic.Verbose = v.(bool)
+		readMonitor.Properties.Basic.Verbose = v.(*bool)
 	}
 	if v, ok := d.GetOk("use_ssl"); ok {
-		readMonitor.Properties.Basic.UseSSL = v.(bool)
+		readMonitor.Properties.Basic.UseSSL = v.(*bool)
 	}
 	if v, ok := d.GetOk("http_host_header"); ok {
 		readMonitor.Properties.HTTP.HostHeader = v.(string)

@@ -1,15 +1,15 @@
 package brocadevtm
 
-import("testing"
+import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-
+	"testing"
 )
 
-func setupPool(){
+func setupPool() {
 
 }
 
-func testGetSinglePool(t *testing.T){
+func testGetSinglePool(t *testing.T) {
 
 }
