@@ -22,6 +22,7 @@ resource "google_compute_instance_group" "test" {
   name        = "terraform-test"
   description = "Terraform test instance group"
   zone        = "us-central1-a"
+  network     = "${google_compute_network.default.self_link}"
 }
 ```
 
@@ -77,6 +78,11 @@ The following arguments are supported:
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.
 
+* `network` - (Optional) The URL of the network the instance group is in. If
+    this is different from the network where the instances are in, the creation
+    fails. Defaults to the network where the instances are in (if neither
+    `network` nor `instances` is specified, this field will be blank).
+
 The `named_port` block supports:
 
 * `name` - (Required) The name which the port will be mapped to.
@@ -87,8 +93,6 @@ The `named_port` block supports:
 
 In addition to the arguments listed above, the following computed attributes are
 exported:
-
-* `network` - The network the instance group is in.
 
 * `self_link` - The URI of the created resource.
 
