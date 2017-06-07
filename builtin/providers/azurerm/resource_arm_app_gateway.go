@@ -713,9 +713,9 @@ func resourceArmAppGatewayCreate(d *schema.ResourceData, meta interface{}) error
 		ApplicationGatewayPropertiesFormat: &properties,
 	}
 
-	_, err := client.CreateOrUpdate(resGroup, name, gateway, make(chan struct{}))
-	if err != nil {
-		return errwrap.Wrapf("Error Creating/Updating AppGateway {{err}}", err)
+	_, errChan := client.CreateOrUpdate(resGroup, name, gateway, make(chan struct{}))
+	if errChan != nil {
+		return errwrap.Wrapf("Error Creating/Updating AppGateway {{err}}", <-errChan)
 	}
 
 	read, err := client.Get(resGroup, name)
@@ -795,9 +795,9 @@ func resourceArmAppGatewayDelete(d *schema.ResourceData, meta interface{}) error
 	resGroup := id.ResourceGroup
 	name := id.Path["applicationGateways"]
 
-	_, err = client.Delete(resGroup, name, make(chan struct{}))
-	if err != nil {
-		return errwrap.Wrapf("Error Deleting AppGateway {{err}}", err)
+	_, errChan := client.Delete(resGroup, name, make(chan struct{}))
+	if errChan != nil {
+		return errwrap.Wrapf("Error Deleting AppGateway {{err}}", <-errChan)
 	}
 
 	d.SetId("")
