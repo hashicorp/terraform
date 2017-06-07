@@ -30,6 +30,7 @@ func resourceArmAppGateway() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"location": {
@@ -69,7 +70,8 @@ func resourceArmAppGateway() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.Standard),
 								string(network.WAF),
-							}, false),
+							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"capacity": {
@@ -91,7 +93,8 @@ func resourceArmAppGateway() *schema.Resource {
 						string(network.TLSv10),
 						string(network.TLSv11),
 						string(network.TLSv12),
-					}, false),
+					}, true),
+					DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 				},
 			},
 
@@ -112,7 +115,8 @@ func resourceArmAppGateway() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.Detection),
 								string(network.Prevention),
-							}, false),
+							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 					},
 				},
@@ -208,7 +212,8 @@ func resourceArmAppGateway() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.Dynamic),
 								string(network.Static),
-							}, false),
+							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 					},
 				},
@@ -278,7 +283,8 @@ func resourceArmAppGateway() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.HTTP),
 								string(network.HTTPS),
-							}, false),
+							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"cookie_based_affinity": {
@@ -287,7 +293,8 @@ func resourceArmAppGateway() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.Enabled),
 								string(network.Disabled),
-							}, false),
+							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"request_timeout": {
@@ -367,7 +374,8 @@ func resourceArmAppGateway() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.HTTP),
 								string(network.HTTPS),
-							}, false),
+							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"host_name": {
@@ -414,7 +422,8 @@ func resourceArmAppGateway() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.HTTP),
 								string(network.HTTPS),
-							}, false),
+							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"path": {
@@ -467,7 +476,8 @@ func resourceArmAppGateway() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.Basic),
 								string(network.PathBasedRouting),
-							}, false),
+							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"http_listener_name": {
@@ -551,7 +561,6 @@ func resourceArmAppGateway() *schema.Resource {
 						"path_rule": {
 							Type:     schema.TypeList,
 							Required: true,
-							MinItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"id": {
@@ -567,7 +576,6 @@ func resourceArmAppGateway() *schema.Resource {
 									"paths": {
 										Type:     schema.TypeList,
 										Required: true,
-										MinItems: 1,
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
@@ -712,7 +720,7 @@ func resourceArmAppGatewayCreate(d *schema.ResourceData, meta interface{}) error
 
 	read, err := client.Get(resGroup, name)
 	if err != nil {
-		return errwrap.Wrapf("Error Getting AppGateway {{err}", err)
+		return errwrap.Wrapf("Error Getting AppGateway {{err}}", err)
 	}
 	if read.ID == nil {
 		return fmt.Errorf("Cannot read AppGateway %s (resource group %s) ID", name, resGroup)
