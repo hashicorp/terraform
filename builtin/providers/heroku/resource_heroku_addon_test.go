@@ -73,6 +73,54 @@ func TestAccHerokuAddon_noPlan(t *testing.T) {
 	})
 }
 
+func TestAccHerokuAddon_attachAs(t *testing.T) {
+	var addon heroku.AddOn
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckHerokuAddonDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckHerokuAddonConfig_no_plan(appName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
+					testAccCheckHerokuAddonAttributes(&addon, "memcachier:dev"),
+					resource.TestCheckResourceAttr(
+						"heroku_addon.foobar", "app", appName),
+					resource.TestCheckResourceAttr(
+						"heroku_addon.foobar", "plan", "memcachier"),
+				),
+			},
+			{
+				Config: testAccCheckHerokuAddonConfig_no_plan(appName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
+					testAccCheckHerokuAddonAttributes(&addon, "memcachier:dev"),
+					resource.TestCheckResourceAttr(
+						"heroku_addon.foobar", "app", appName),
+					resource.TestCheckResourceAttr(
+						"heroku_addon.foobar", "plan", "memcachier"),
+				),
+			},
+			{
+				Config: testAccCheckHerokuAddonConfig_attach_as(appName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
+					testAccCheckHerokuAddonAttributes(&addon, "memcachier:dev"),
+					resource.TestCheckResourceAttr(
+						"heroku_addon.foobar", "app", appName),
+					resource.TestCheckResourceAttr(
+						"heroku_addon.foobar", "plan", "memcachier"),
+					resource.TestCheckResourceAttr(
+						"heroku_addon.foobar", "attach_as", "test"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckHerokuAddonDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*heroku.Service)
 
@@ -158,5 +206,19 @@ resource "heroku_app" "foobar" {
 resource "heroku_addon" "foobar" {
     app = "${heroku_app.foobar.name}"
     plan = "memcachier"
+}`, appName)
+}
+
+func testAccCheckHerokuAddonConfig_attach_as(appName string) string {
+	return fmt.Sprintf(`
+resource "heroku_app" "foobar" {
+    name = "%s"
+    region = "us"
+}
+
+resource "heroku_addon" "foobar" {
+    app = "${heroku_app.foobar.name}"
+    plan = "memcachier"
+    attach_as = "test"
 }`, appName)
 }
