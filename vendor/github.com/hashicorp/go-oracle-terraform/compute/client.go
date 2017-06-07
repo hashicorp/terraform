@@ -16,6 +16,7 @@ import (
 
 const CMP_USERNAME = "/Compute-%s/%s"
 const CMP_QUALIFIED_NAME = "%s/%s"
+const DEFAULT_MAX_RETRIES = 1
 
 // Client represents an authenticated compute client, with compute credentials and an api client.
 type Client struct {
@@ -26,6 +27,7 @@ type Client struct {
 	httpClient     *http.Client
 	authCookie     *http.Cookie
 	cookieIssued   time.Time
+	maxRetries     *int
 	logger         opc.Logger
 	loglevel       opc.LogLevelType
 }
@@ -38,6 +40,7 @@ func NewComputeClient(c *opc.Config) (*Client, error) {
 		password:       c.Password,
 		apiEndpoint:    c.APIEndpoint,
 		httpClient:     c.HTTPClient,
+		maxRetries:     c.MaxRetries,
 		loglevel:       c.LogLevel,
 	}
 
@@ -56,6 +59,16 @@ func NewComputeClient(c *opc.Config) (*Client, error) {
 
 	if err := client.getAuthenticationCookie(); err != nil {
 		return nil, err
+	}
+
+	// Default max retries if unset
+	if c.MaxRetries == nil {
+		client.maxRetries = opc.Int(DEFAULT_MAX_RETRIES)
+	}
+
+	// Protect against any nil http client
+	if c.HTTPClient == nil {
+		return nil, fmt.Errorf("No HTTP client specified in config")
 	}
 
 	return client, nil
@@ -108,7 +121,8 @@ func (c *Client) executeRequest(method, path string, body interface{}) (*http.Re
 	}
 
 	// Execute request with supplied client
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.retryRequest(req)
+	//resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -130,6 +144,47 @@ func (c *Client) executeRequest(method, path string, body interface{}) (*http.Re
 		oracleErr.Message = buf.String()
 	}
 
+	return nil, oracleErr
+}
+
+// Allow retrying the request until it either returns no error,
+// or we exceed the number of max retries
+func (c *Client) retryRequest(req *http.Request) (*http.Response, error) {
+	// Double check maxRetries is not nil
+	var retries int
+	if c.maxRetries == nil {
+		retries = DEFAULT_MAX_RETRIES
+	} else {
+		retries = *c.maxRetries
+	}
+
+	var statusCode int
+	var errMessage string
+
+	for i := 0; i < retries; i++ {
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
+			return resp, nil
+		}
+
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(resp.Body)
+		errMessage = buf.String()
+		statusCode = resp.StatusCode
+		c.debugLogString(fmt.Sprintf("Encountered HTTP (%d) Error: %s", statusCode, errMessage))
+		c.debugLogString(fmt.Sprintf("%d/%d retries left", i+1, retries))
+	}
+
+	oracleErr := &opc.OracleError{
+		StatusCode: statusCode,
+		Message:    errMessage,
+	}
+
+	// We ran out of retries to make, return the error and response
 	return nil, oracleErr
 }
 
