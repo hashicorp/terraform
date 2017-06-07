@@ -1368,7 +1368,7 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 			data_disk.Caching = compute.CachingTypes(v)
 		}
 
-		if v := config["disk_size_gb"]; v != "" {
+		if v := config["disk_size_gb"]; v != nil {
 			diskSize := int32(config["disk_size_gb"].(int))
 			data_disk.DiskSizeGB = &diskSize
 		}
