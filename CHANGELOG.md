@@ -5,6 +5,9 @@ IMPROVEMENTS:
 
 * provider/google: `network` argument in `google_compute_instance_group` is now optional [GH-13493]
 
+BUG FIXES:
+
+* provider/aws: fixed reading network configurations for `spot_fleet_request` [GH-13748]
 
 ## 0.9.7 (June 7, 2017)
 
