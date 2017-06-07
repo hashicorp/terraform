@@ -373,10 +373,7 @@ func testAccComputeBackendService_withConnectionDraining(serviceName, checkName 
 resource "google_compute_backend_service" "foobar" {
   name          = "%s"
   health_checks = ["${google_compute_http_health_check.zero.self_link}"]
-
-  connection_draining {
-  	draining_timeout_sec = %v
-  }
+  connection_draining_timeout_sec = %v
 }
 
 resource "google_compute_http_health_check" "zero" {

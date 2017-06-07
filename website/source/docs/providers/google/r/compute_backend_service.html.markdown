@@ -96,7 +96,8 @@ The following arguments are supported:
 * `timeout_sec` - (Optional) The number of secs to wait for a backend to respond
     to a request before considering the request failed. Defaults to `30`.
     
-* `connection_draining` - (Optional) Settings to do with connection draining. Structure is documented below.
+* `connection_draining_timeout_sec` - (Optional) Time for which instance will be drained (not accept new connections, 
+but still work to finish started ones). Defaults to `0`.
 
 The `backend` block supports:
 
@@ -123,11 +124,6 @@ The `backend` block supports:
 * `max_utilization` - (Optional) The target CPU utilization for the group as a
     float in the range [0.0, 1.0]. This flag can only be provided when the
     balancing mode is `UTILIZATION`. Defaults to `0.8`.
-
-The `connection_draining` block supports:
-
-* `draining_timeout_sec` - (Optional) Time for which instance will be drained (not accept new connections, but still
- work to finish started). Defaults to `0`.
 
 ## Attributes Reference
 
