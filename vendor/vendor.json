@@ -2263,10 +2263,12 @@
 			"revisionTime": "2017-03-08T19:39:51Z"
 		},
 		{
-			"checksumSHA1": "NWP140S/k5J2L9nLVVgrt9rEh1g=",
+			"checksumSHA1": "zYSPNTuMDAnTygPEmi8gNeBP/40=",
 			"path": "github.com/hashicorp/terraform-provider-opc/opc",
-			"revision": "bf837a8edaadefbac871feb8560faa60f811c8d9",
-			"revisionTime": "2017-05-23T21:46:41Z"
+			"revision": "291363639bb9403d0c76a6515f04e4b1b680b07f",
+			"revisionTime": "2017-06-07T13:48:21Z",
+			"version": "v0.1.3",
+			"versionExact": "v0.1.3"
 		},
 		{
 			"checksumSHA1": "2fkVZIzvxIGBLhSiVnkTgGiqpQ4=",
