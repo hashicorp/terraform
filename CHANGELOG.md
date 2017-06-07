@@ -48,6 +48,7 @@ IMPROVEMENTS:
 * provider/openstack: Sort request/response headers in debug output [GH-14956]
 * provider/openstack: Add support for FWaaS routerinsertion extension [GH-12589]
 * provider/openstack: Add Terraform version to UserAgent string [GH-14955]
+* provider/openstack: Optimize the printing of debug output [GH-15086]
 * provisioner/chef: Use `helpers.shema.Provisoner` in Chef provisioner V2 [GH-14681]
 
 BUG FIXES:
