@@ -1,6 +1,10 @@
 
 ## Unreleased
 
+IMPROVEMENTS:
+
+* provider/google: `network` argument in `google_compute_instance_group` is now optional [GH-13493]
+
 
 ## 0.9.7 (June 7, 2017)
 
