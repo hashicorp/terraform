@@ -20,6 +20,10 @@ import "reflect"
 
 var t = map[string]reflect.Type{}
 
+func Add(name string, kind reflect.Type) {
+	t[name] = kind
+}
+
 type Func func(string) (reflect.Type, bool)
 
 func TypeFunc() Func {
