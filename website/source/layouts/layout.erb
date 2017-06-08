@@ -32,7 +32,12 @@
     <!--[if lt IE 9]>
       <%= javascript_include_tag "ie-compat" %>
     <![endif]-->
-    <%= javascript_include_tag "application" %>
+
+    <% if local_build? %>
+      <%= javascript_include_tag "local_application" %>
+    <% else %>
+      <%= javascript_include_tag "application" %>
+    <% end %>
 
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -58,9 +63,7 @@
           <div class="col-xs-12">
             <div class="navbar-header">
               <div class="navbar-brand">
-                <a href="/">
-                  <%= inline_svg "logo-text.svg", height: 50, class: "logo" %>
-                </a>
+                <%= link_to "#{inline_svg 'logo-text.svg', height: 50, class: 'logo'}", path_to_root %>
               </div>
               <button class="navbar-toggle" type="button">
                 <span class="sr-only">Toggle navigation</span>
@@ -78,9 +81,7 @@
                   <li><a href="/community.html">Community</a></li>
                   <li><a href="https://www.hashicorp.com/products/terraform/?utm_source=oss&utm_medium=header-nav&utm_campaign=terraform">Enterprise</a></li>
                   <li>
-                    <a href="/downloads.html">
-                      <%= inline_svg "download.svg" %> Download
-                    </a>
+                    <%= link_to "#{inline_svg 'download.svg'} Download", "/downloads.html" %>
                   </li>
                   <li>
                     <a href="https://github.com/hashicorp/terraform">
@@ -118,16 +119,19 @@
       </div>
     </div>
 
-    <script>
-      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+    <% if not local_build? %>
+      <script>
+       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+         (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+       })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-      ga('create', 'UA-53231375-1', 'terraform.io');
-      ga('require', 'linkid');
-      ga('send', 'pageview', location.pathname);
-    </script>
+       ga('create', 'UA-53231375-1', 'terraform.io');
+       ga('require', 'linkid');
+       ga('send', 'pageview', location.pathname);
+      </script>
+    <% end %>
+
 
     <script type="application/ld+json">
       {

@@ -1,14 +1,24 @@
 VERSION?="0.3.26"
 
 build:
+ifeq ($(MM_ENV),local_build)
+	@echo "==> modifying source/ for local build"
+	@./scripts/prepare-local-build.sh
+endif
 	@echo "==> Starting build in Docker..."
 	@docker run \
 		--interactive \
 		--rm \
 		--tty \
 		--volume "$(shell pwd):/website" \
+		-e MM_ENV=$(MM_ENV) \
 		hashicorp/middleman-hashicorp:${VERSION} \
 		bundle exec middleman build --verbose --clean
+ifeq ($(MM_ENV),local_build)
+	@echo "==> removing changes to source/"
+	@git checkout source
+endif
+
 
 website:
 	@echo "==> Starting website in Docker..."

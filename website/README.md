@@ -22,3 +22,17 @@ Then open up `http://localhost:4567`. Note that some URLs you may need to append
 
 [middleman]: https://www.middlemanapp.com
 [terraform]: https://www.terraform.io
+
+## Building a Local Copy
+
+Building a local copy (which can be read off the filesystem, rather
+than served by a local web server) is somewhat more complicated.
+
+1. Install [Docker](https://docs.docker.com/engine/installation/)
+2. Clone this repo
+3. run `MM_ENV=local_build make build`
+
+WARNING: In order to avoid accidentally committing huge quantities of
+changes, setting `MM_ENV=local_build` will wipe out all changes to
+source/ after building, so make sure anything you want to save is
+committed.
