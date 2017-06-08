@@ -19,14 +19,15 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var flagBackend, flagGet bool
+	var flagBackend, flagGet, flagGetUpdate bool
 	var flagConfigExtra map[string]interface{}
 
 	args = c.Meta.process(args, false)
 	cmdFlags := c.flagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
 	cmdFlags.Var((*variables.FlagAny)(&flagConfigExtra), "backend-config", "")
-	cmdFlags.BoolVar(&flagGet, "get", true, "")
+	cmdFlags.BoolVar(&flagGet, "get", true, "get modules")
+	cmdFlags.BoolVar(&flagGetUpdate, "update-modules", false, "update modules")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
@@ -121,10 +122,15 @@ func (c *InitCommand) Run(args []string) int {
 		if flagGet && len(conf.Modules) > 0 {
 			header = true
 
+			mode := module.GetModeGet
+			if flagGetUpdate {
+				mode = module.GetModeUpdate
+			}
+
 			c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
 				"[reset][bold]" +
 					"Downloading modules (if any)...")))
-			if err := getModules(&c.Meta, path, module.GetModeGet); err != nil {
+			if err := getModules(&c.Meta, path, mode); err != nil {
 				c.Ui.Error(fmt.Sprintf(
 					"Error downloading modules: %s", err))
 				return 1
@@ -215,31 +221,34 @@ Usage: terraform init [options] [SOURCE] [PATH]
 
 Options:
 
-  -backend=true        Configure the backend for this environment.
+  -backend=true         Configure the backend for this environment.
 
-  -backend-config=path This can be either a path to an HCL file with key/value
-                       assignments (same format as terraform.tfvars) or a
-                       'key=value' format. This is merged with what is in the
-                       configuration file. This can be specified multiple
-                       times. The backend type must be in the configuration
-                       itself.
+  -backend-config=path  This can be either a path to an HCL file with key/value
+                        assignments (same format as terraform.tfvars) or a
+                        'key=value' format. This is merged with what is in the
+                        configuration file. This can be specified multiple
+                        times. The backend type must be in the configuration
+                        itself.
 
-  -force-copy          Suppress prompts about copying state data. This is
-                       equivalent to providing a "yes" to all confirmation
-                       prompts.
+  -force-copy           Suppress prompts about copying state data. This is
+                        equivalent to providing a "yes" to all confirmation
+                        prompts.
 
-  -get=true            Download any modules for this configuration.
+  -get=true             Download any modules for this configuration.
 
-  -input=true          Ask for input if necessary. If false, will error if
-                       input was required.
+  -input=true           Ask for input if necessary. If false, will error if
+                        input was required.
 
-  -lock=true           Lock the state file when locking is supported.
+  -lock=true            Lock the state file when locking is supported.
 
-  -lock-timeout=0s     Duration to retry a state lock.
+  -lock-timeout=0s      Duration to retry a state lock.
 
-  -no-color            If specified, output won't contain any color.
+  -no-color             If specified, output won't contain any color.
 
   -reconfigure          Reconfigure the backend, ignoring any saved configuration.
+
+  -update-modules=false If true, modules already downloaded will be checked
+                        for updates and updated if necessary.
 `
 	return strings.TrimSpace(helpText)
 }
