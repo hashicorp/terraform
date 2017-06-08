@@ -117,7 +117,7 @@ func TestDiffStringMap(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			ops := diffStringMap(tc.Path, tc.Old, tc.New)
-			if !tc.ExpectedOps.Equal(ops) {
+			if !ops.Equal(tc.ExpectedOps) {
 				t.Fatalf("Operations don't match.\nExpected: %v\nGiven:    %v\n", tc.ExpectedOps, ops)
 			}
 		})
