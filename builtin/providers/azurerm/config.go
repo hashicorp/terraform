@@ -460,8 +460,8 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	client.serviceBusTopicsClient = sbtc
 
 	sbqc := servicebus.NewQueuesClientWithBaseURI(endpoint, c.SubscriptionID)
-	setUserAgent(&sbtc.Client)
-	sbqc.Authorizer = spt
+	setUserAgent(&sbqc.Client)
+	sbqc.Authorizer = auth
 	sbqc.Sender = autorest.CreateSender(withRequestLogging())
 	client.serviceBusQueuesClient = sbqc
 
