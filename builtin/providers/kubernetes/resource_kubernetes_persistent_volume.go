@@ -26,7 +26,7 @@ func resourceKubernetesPersistentVolume() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"metadata": metadataSchema("persistent volume", false),
+			"metadata": namespacedMetadataSchema("persistent volume", false),
 			"spec": {
 				Type:        schema.TypeList,
 				Description: "Spec of the persistent volume owned by the cluster",
