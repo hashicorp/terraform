@@ -45,7 +45,7 @@ variable "api_version" {
 
 variable "artifacts_location" {
   description = "The base URI where artifacts required by this template are located."
-  default     = "https://raw.githubusercontent.com/10thmagnitude/azure-quickstart-templates/wordpress-mysql-replication/wordpress-mysql-replication/"
+  default     = "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/wordpress-mysql-replication/"
 }
 
 variable "azuremysql_script" {

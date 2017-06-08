@@ -1,9 +1,9 @@
 # ********************** WEBSITE DEPLOYMENT TEMPLATE ********************** #
 
-
 resource "azurerm_template_deployment" "website" {
   name                = "website"
   resource_group_name = "${azurerm_resource_group.rg.name}"
+  depends_on          = ["azurerm_virtual_machine_extension.setup_mysql"]
 
   template_body = <<DEPLOY
 {  

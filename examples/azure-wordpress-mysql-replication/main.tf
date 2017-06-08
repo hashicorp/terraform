@@ -25,7 +25,7 @@ resource "azurerm_subnet" "db_subnet" {
   virtual_network_name = "${azurerm_virtual_network.vnet.name}"
   resource_group_name  = "${azurerm_resource_group.rg.name}"
   address_prefix       = "${var.db_subnet_address_prefix}"
-  depends_on = ["azurerm_virtual_network.vnet"]
+  depends_on           = ["azurerm_virtual_network.vnet"]
 }
 
 # **********************  STORAGE ACCOUNTS ********************** #
@@ -104,6 +104,7 @@ resource "azurerm_lb_nat_rule" "NatRule0" {
   backend_port                   = 22
   frontend_ip_configuration_name = "${var.dns_name}-sshIPCfg"
   count                          = "${var.node_count}"
+  depends_on                     = ["azurerm_lb.lb"]
 }
 
 resource "azurerm_lb_nat_rule" "MySQLNatRule0" {
@@ -115,6 +116,7 @@ resource "azurerm_lb_nat_rule" "MySQLNatRule0" {
   backend_port                   = 3306
   frontend_ip_configuration_name = "${var.dns_name}-sshIPCfg"
   count                          = "${var.node_count}"
+  depends_on                     = ["azurerm_lb.lb"]
 }
 
 resource "azurerm_lb_nat_rule" "ProbeNatRule0" {
@@ -126,6 +128,7 @@ resource "azurerm_lb_nat_rule" "ProbeNatRule0" {
   backend_port                   = 9200
   frontend_ip_configuration_name = "${var.dns_name}-sshIPCfg"
   count                          = "${var.node_count}"
+  depends_on                     = ["azurerm_lb.lb"]
 }
 
 # ********************** VIRTUAL MACHINES ********************** #
@@ -180,27 +183,27 @@ resource "azurerm_virtual_machine" "vm" {
   }
 }
 
-# resource "azurerm_virtual_machine_extension" "setup_mysql" {
-#   name                       = "${var.dns_name}-${count.index}-setupMySQL"
-#   resource_group_name        = "${azurerm_resource_group.rg.name}"
-#   location                   = "${azurerm_resource_group.rg.location}"
-#   virtual_machine_name       = "${element(azurerm_virtual_machine.vm.*.name, count.index)}"
-#   publisher                  = "Microsoft.Azure.Extensions"
-#   type                       = "CustomScript"
-#   type_handler_version       = "2.0"
-#   auto_upgrade_minor_version = true
-#   count                      = "${var.node_count}"
-#   depends_on                 = ["azurerm_virtual_machine.vm"]
+resource "azurerm_virtual_machine_extension" "setup_mysql" {
+  name                       = "${var.dns_name}-${count.index}-setupMySQL"
+  resource_group_name        = "${azurerm_resource_group.rg.name}"
+  location                   = "${azurerm_resource_group.rg.location}"
+  virtual_machine_name       = "${element(azurerm_virtual_machine.vm.*.name, count.index)}"
+  publisher                  = "Microsoft.Azure.Extensions"
+  type                       = "CustomScript"
+  type_handler_version       = "2.0"
+  auto_upgrade_minor_version = true
+  count                      = "${var.node_count}"
+  depends_on                 = ["azurerm_virtual_machine.vm"]
 
-#   settings = <<SETTINGS
-# {
-#   "fileUris": ["${var.artifacts_location}${var.azuremysql_script}"]
-# }
-# SETTINGS
+  settings = <<SETTINGS
+{
+  "fileUris": ["${var.artifacts_location}${var.azuremysql_script}"]
+}
+SETTINGS
 
-#   protected_settings = <<SETTINGS
-#  {
-#    "commandToExecute": "sh azuremysql.sh ${count.index} 10.0.1.${count.index + 5} ${var.artifacts_location}${var.mysql_cfg_file_path} '${var.mysql_replication_password}' '${var.mysql_root_password}' '${var.mysql_probe_password}' '${var.db_subnet_start_address}' '${var.unique_prefix}wordpress'"
-#  }
-# SETTINGS
-# }
+  protected_settings = <<SETTINGS
+ {
+   "commandToExecute": "sh azuremysql.sh ${count.index + 1} 10.0.1.${count.index + 5} ${var.artifacts_location}${var.mysql_cfg_file_path} '${var.mysql_replication_password}' '${var.mysql_root_password}' '${var.mysql_probe_password}' '${var.db_subnet_start_address}' '${var.unique_prefix}wordpress'"
+ }
+SETTINGS
+}
