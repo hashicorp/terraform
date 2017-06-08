@@ -207,8 +207,8 @@ func TestAccHerokuApp_Organization(t *testing.T) {
 func TestAccHerokuApp_Space(t *testing.T) {
 	var app heroku.OrganizationApp
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
-	org := os.Getenv("HEROKU_ORGANIZATION")
-	space := os.Getenv("HEROKU_SPACE")
+	org := os.Getenv("HEROKU_SPACES_ORGANIZATION")
+	spaceName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -216,18 +216,15 @@ func TestAccHerokuApp_Space(t *testing.T) {
 			if org == "" {
 				t.Skip("HEROKU_ORGANIZATION is not set; skipping test.")
 			}
-			if space == "" {
-				t.Skip("HEROKU_SPACE is not set; skipping test.")
-			}
 		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuAppDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckHerokuAppConfig_space(appName, space, org),
+				Config: testAccCheckHerokuAppConfig_space(appName, spaceName, org),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExistsOrg("heroku_app.foobar", &app),
-					testAccCheckHerokuAppAttributesOrg(&app, appName, space, org),
+					testAccCheckHerokuAppAttributesOrg(&app, appName, spaceName, org),
 				),
 			},
 		},
@@ -260,7 +257,7 @@ func testAccCheckHerokuAppAttributes(app *heroku.App, appName string) resource.T
 			return fmt.Errorf("Bad region: %s", app.Region.Name)
 		}
 
-		if app.Stack.Name != "cedar-14" {
+		if app.Stack.Name != "heroku-16" {
 			return fmt.Errorf("Bad stack: %s", app.Stack.Name)
 		}
 
@@ -399,7 +396,7 @@ func testAccCheckHerokuAppAttributesOrg(app *heroku.OrganizationApp, appName, sp
 			return fmt.Errorf("Bad space: %s", appSpace)
 		}
 
-		if app.Stack.Name != "cedar-14" {
+		if app.Stack.Name != "heroku-16" {
 			return fmt.Errorf("Bad stack: %s", app.Stack.Name)
 		}
 
@@ -575,11 +572,16 @@ resource "heroku_app" "foobar" {
 }`, appName, org)
 }
 
-func testAccCheckHerokuAppConfig_space(appName, space, org string) string {
+func testAccCheckHerokuAppConfig_space(appName, spaceName, org string) string {
 	return fmt.Sprintf(`
+resource "heroku_space" "foobar" {
+  name = "%s"
+	organization = "%s"
+	region = "virginia"
+}
 resource "heroku_app" "foobar" {
   name   = "%s"
-  space  = "%s"
+  space  = "${heroku_space.foobar.name}"
   region = "virginia"
 
   organization {
@@ -589,5 +591,5 @@ resource "heroku_app" "foobar" {
   config_vars {
     FOO = "bar"
   }
-}`, appName, space, org)
+}`, spaceName, org, appName, org)
 }
