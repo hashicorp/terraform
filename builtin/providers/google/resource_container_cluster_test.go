@@ -150,13 +150,15 @@ func TestAccContainerCluster_backend(t *testing.T) {
 }
 
 func TestAccContainerCluster_withNodePoolBasic(t *testing.T) {
+	cluster := acctest.RandString(10)
+	np := acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckContainerClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainerCluster_withNodePoolBasic,
+				Config: testAccContainerCluster_withNodePoolBasic(cluster, np),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckContainerCluster(
 						"google_container_cluster.with_node_pool"),
@@ -184,16 +186,53 @@ func TestAccContainerCluster_withNodePoolNamePrefix(t *testing.T) {
 }
 
 func TestAccContainerCluster_withNodePoolMultiple(t *testing.T) {
+	cluster := acctest.RandString(10)
+	np1 := acctest.RandString(10)
+	np2 := acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckContainerClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccContainerCluster_withNodePoolMultiple,
+				Config: testAccContainerCluster_withNodePoolMultiple(cluster, np1, np2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckContainerCluster(
-						"google_container_cluster.with_node_pool_multiple"),
+						"google_container_cluster.with_node_pool"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainerCluster_updateNodePools(t *testing.T) {
+	cluster := acctest.RandString(10)
+	np1 := acctest.RandString(10)
+	np2 := acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withNodePoolBasic(cluster, np1),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerCluster(
+						"google_container_cluster.with_node_pool"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccContainerCluster_withNodePoolMultiple(cluster, np1, np2),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerCluster(
+						"google_container_cluster.with_node_pool"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccContainerCluster_withNodePoolBasic(cluster, np1),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerCluster(
+						"google_container_cluster.with_node_pool"),
 				),
 			},
 		},
@@ -565,7 +604,8 @@ resource "google_container_cluster" "primary" {
 }
 `, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-var testAccContainerCluster_withNodePoolBasic = fmt.Sprintf(`
+func testAccContainerCluster_withNodePoolBasic(cluster, np string) string {
+	return fmt.Sprintf(`
 resource "google_container_cluster" "with_node_pool" {
 	name = "tf-cluster-nodepool-test-%s"
 	zone = "us-central1-a"
@@ -579,7 +619,8 @@ resource "google_container_cluster" "with_node_pool" {
 		name               = "tf-cluster-nodepool-test-%s"
 		initial_node_count = 2
 	}
-}`, acctest.RandString(10), acctest.RandString(10))
+}`, cluster, np)
+}
 
 var testAccContainerCluster_withNodePoolNamePrefix = fmt.Sprintf(`
 resource "google_container_cluster" "with_node_pool_name_prefix" {
@@ -597,8 +638,9 @@ resource "google_container_cluster" "with_node_pool_name_prefix" {
 	}
 }`, acctest.RandString(10))
 
-var testAccContainerCluster_withNodePoolMultiple = fmt.Sprintf(`
-resource "google_container_cluster" "with_node_pool_multiple" {
+func testAccContainerCluster_withNodePoolMultiple(cluster, np1, np2 string) string {
+	return fmt.Sprintf(`
+resource "google_container_cluster" "with_node_pool" {
 	name = "tf-cluster-nodepool-test-%s"
 	zone = "us-central1-a"
 
@@ -616,4 +658,5 @@ resource "google_container_cluster" "with_node_pool_multiple" {
 		name               = "tf-cluster-nodepool-test-%s"
 		initial_node_count = 3
 	}
-}`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
+}`, cluster, np1, np2)
+}
