@@ -1,6 +1,6 @@
 ---
 layout: "vault"
-page_title: "Provider: Vault"
+page_title: "Provider: HashiCorp Vault"
 sidebar_current: "docs-vault-index"
 description: |-
   The HashiCorp Vault provider allows Terraform to read from, write to, and configure Hashicorp Vault.

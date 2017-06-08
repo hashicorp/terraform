@@ -1,6 +1,6 @@
 ---
 layout: "terraform"
-page_title: "Provider: Terraform"
+page_title: "Provider: HashiCorp Terraform"
 sidebar_current: "docs-terraform-index"
 description: |-
   The HashiCorp Terraform provider is used to access meta data from shared infrastructure.

@@ -1,9 +1,9 @@
 ---
 layout: "terraform-enterprise"
-page_title: "Provider: Terraform Enterprise"
+page_title: "Provider: HashiCorp Terraform Enterprise"
 sidebar_current: "docs-terraform-enterprise-index"
 description: |-
-  The Terraform Enterprise provider is used to interact with configuration,
+  The HashiCorp Terraform Enterprise provider is used to interact with configuration,
   artifacts, and metadata managed by the Terraform Enterprise service.
 ---
 
