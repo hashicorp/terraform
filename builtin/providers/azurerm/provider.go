@@ -89,6 +89,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_lb_rule":                 resourceArmLoadBalancerRule(),
 
 			"azurerm_managed_disk": resourceArmManagedDisk(),
+			"azurerm_image":        resourceArmImage(),
 
 			"azurerm_key_vault":                 resourceArmKeyVault(),
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),

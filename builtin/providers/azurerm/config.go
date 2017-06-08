@@ -49,6 +49,7 @@ type ArmClient struct {
 	vmScaleSetClient       compute.VirtualMachineScaleSetsClient
 	vmImageClient          compute.VirtualMachineImagesClient
 	vmClient               compute.VirtualMachinesClient
+	imageClient            compute.ImagesClient
 
 	diskClient disk.DisksClient
 
@@ -259,6 +260,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	dkc.Authorizer = auth
 	dkc.Sender = autorest.CreateSender(withRequestLogging())
 	client.diskClient = dkc
+
+	img := compute.NewImagesClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&img.Client)
+	img.Authorizer = auth
+	img.Sender = autorest.CreateSender(withRequestLogging())
+	client.imageClient = img
 
 	ehc := eventhub.NewEventHubsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ehc.Client)
