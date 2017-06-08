@@ -227,6 +227,11 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Optional: true,
 			},
 
+			"cluster_resource_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -308,7 +313,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			log.Println("[INFO] Waiting for RDS Cluster to be available")
 
 			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"creating", "backing-up", "modifying", "preparing-data-migration"},
+				Pending:    []string{"creating", "backing-up", "modifying", "preparing-data-migration", "migrating"},
 				Target:     []string{"available"},
 				Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 				Timeout:    d.Timeout(schema.TimeoutCreate),
@@ -523,6 +528,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("cluster_identifier", dbc.DBClusterIdentifier)
+	d.Set("cluster_resource_id", dbc.DbClusterResourceId)
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
 	d.Set("db_cluster_parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("endpoint", dbc.Endpoint)

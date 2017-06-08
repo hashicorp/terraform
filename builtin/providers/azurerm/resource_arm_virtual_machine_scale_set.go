@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -50,9 +51,10 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						},
 
 						"tier": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							Computed:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"capacity": {
@@ -543,7 +545,8 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 		Sku:      sku,
 		VirtualMachineScaleSetProperties: &scaleSetProps,
 	}
-	_, vmErr := vmScaleSetClient.CreateOrUpdate(resGroup, name, scaleSetParams, make(chan struct{}))
+	_, vmError := vmScaleSetClient.CreateOrUpdate(resGroup, name, scaleSetParams, make(chan struct{}))
+	vmErr := <-vmError
 	if vmErr != nil {
 		return vmErr
 	}
@@ -665,7 +668,8 @@ func resourceArmVirtualMachineScaleSetDelete(d *schema.ResourceData, meta interf
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualMachineScaleSets"]
 
-	_, err = vmScaleSetClient.Delete(resGroup, name, make(chan struct{}))
+	_, error := vmScaleSetClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
 
 	return err
 }
@@ -949,7 +953,7 @@ func resourceArmVirtualMachineScaleSetSkuHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	if m["tier"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["tier"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(m["tier"].(string))))
 	}
 	buf.WriteString(fmt.Sprintf("%d-", m["capacity"].(int)))
 

@@ -3,6 +3,7 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -229,6 +230,8 @@ func resourceNetworkingSecGroupRuleV2DetermineEtherType(v string) rules.RuleEthe
 
 func resourceNetworkingSecGroupRuleV2DetermineProtocol(v string) rules.RuleProtocol {
 	var protocol rules.RuleProtocol
+
+	// Check and see if the requested protocol matched a list of known protocol names.
 	switch v {
 	case "tcp":
 		protocol = rules.ProtocolTCP
@@ -272,6 +275,14 @@ func resourceNetworkingSecGroupRuleV2DetermineProtocol(v string) rules.RuleProto
 		protocol = rules.ProtocolUDPLite
 	case "vrrp":
 		protocol = rules.ProtocolVRRP
+	}
+
+	// If the protocol wasn't matched above, see if it's an integer.
+	if protocol == "" {
+		_, err := strconv.Atoi(v)
+		if err == nil {
+			protocol = rules.RuleProtocol(v)
+		}
 	}
 
 	return protocol

@@ -20,7 +20,7 @@ func TestAccComputeInstanceGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccComputeInstanceGroup_destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeInstanceGroup_basic(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccComputeInstanceGroup_exists(
@@ -42,7 +42,7 @@ func TestAccComputeInstanceGroup_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccComputeInstanceGroup_destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeInstanceGroup_update(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccComputeInstanceGroup_exists(
@@ -53,7 +53,7 @@ func TestAccComputeInstanceGroup_update(t *testing.T) {
 						&instanceGroup),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccComputeInstanceGroup_update2(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccComputeInstanceGroup_exists(
@@ -79,11 +79,37 @@ func TestAccComputeInstanceGroup_outOfOrderInstances(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccComputeInstanceGroup_destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeInstanceGroup_outOfOrderInstances(instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccComputeInstanceGroup_exists(
 						"google_compute_instance_group.group", &instanceGroup),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstanceGroup_network(t *testing.T) {
+	var instanceGroup compute.InstanceGroup
+	var instanceName = fmt.Sprintf("instancegroup-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccComputeInstanceGroup_destroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstanceGroup_network(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccComputeInstanceGroup_exists(
+						"google_compute_instance_group.with_instance", &instanceGroup),
+					testAccComputeInstanceGroup_hasCorrectNetwork(
+						"google_compute_instance_group.with_instance", "google_compute_network.ig_network", &instanceGroup),
+					testAccComputeInstanceGroup_exists(
+						"google_compute_instance_group.without_instance", &instanceGroup),
+					testAccComputeInstanceGroup_hasCorrectNetwork(
+						"google_compute_instance_group.without_instance", "google_compute_network.ig_network", &instanceGroup),
 				),
 			},
 		},
@@ -201,6 +227,44 @@ func testAccComputeInstanceGroup_named_ports(n string, np map[string]int64, inst
 	}
 }
 
+func testAccComputeInstanceGroup_hasCorrectNetwork(nInstanceGroup string, nNetwork string, instanceGroup *compute.InstanceGroup) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		config := testAccProvider.Meta().(*Config)
+
+		rsInstanceGroup, ok := s.RootModule().Resources[nInstanceGroup]
+		if !ok {
+			return fmt.Errorf("Not found: %s", nInstanceGroup)
+		}
+		if rsInstanceGroup.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+		instanceGroup, err := config.clientCompute.InstanceGroups.Get(
+			config.Project, rsInstanceGroup.Primary.Attributes["zone"], rsInstanceGroup.Primary.ID).Do()
+		if err != nil {
+			return err
+		}
+
+		rsNetwork, ok := s.RootModule().Resources[nNetwork]
+		if !ok {
+			return fmt.Errorf("Not found: %s", nNetwork)
+		}
+		if rsNetwork.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+		network, err := config.clientCompute.Networks.Get(
+			config.Project, rsNetwork.Primary.ID).Do()
+		if err != nil {
+			return err
+		}
+
+		if instanceGroup.Network != network.SelfLink {
+			return fmt.Errorf("network incorrect: actual=%s vs expected=%s", instanceGroup.Network, network.SelfLink)
+		}
+
+		return nil
+	}
+}
+
 func testAccComputeInstanceGroup_basic(instance string) string {
 	return fmt.Sprintf(`
 	resource "google_compute_instance" "ig_instance" {
@@ -237,7 +301,7 @@ func testAccComputeInstanceGroup_basic(instance string) string {
 		description = "Terraform test instance group empty"
 		name = "%s-empty"
 		zone = "us-central1-c"
-			named_port {
+		named_port {
 			name = "http"
 			port = "8080"
 		}
@@ -364,4 +428,41 @@ func testAccComputeInstanceGroup_outOfOrderInstances(instance string) string {
 			port = "8443"
 		}
 	}`, instance, instance, instance)
+}
+
+func testAccComputeInstanceGroup_network(instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "ig_network" {
+		name = "%[1]s"
+		auto_create_subnetworks = true
+	}
+
+	resource "google_compute_instance" "ig_instance" {
+		name = "%[1]s"
+		machine_type = "n1-standard-1"
+		can_ip_forward = false
+		zone = "us-central1-c"
+
+		disk {
+			image = "debian-8-jessie-v20160803"
+		}
+
+		network_interface {
+			network = "${google_compute_network.ig_network.name}"
+		}
+	}
+
+	resource "google_compute_instance_group" "with_instance" {
+		description = "Terraform test instance group"
+		name = "%[1]s-with-instance"
+		zone = "us-central1-c"
+		instances = [ "${google_compute_instance.ig_instance.self_link}" ]
+	}
+
+	resource "google_compute_instance_group" "without_instance" {
+		description = "Terraform test instance group"
+		name = "%[1]s-without-instance"
+		zone = "us-central1-c"
+		network = "${google_compute_network.ig_network.self_link}"
+	}`, instance)
 }

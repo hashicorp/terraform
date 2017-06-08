@@ -1,3 +1,104 @@
+Release v1.8.34 (2017-06-02)
+===
+
+### Service Client Updates
+* `service/kinesisanalytics`: Updates service API, documentation, and paginators
+  * Kinesis Analytics publishes error messages CloudWatch logs in case of application misconfigurations
+* `service/workdocs`: Updates service API and documentation
+  * This release includes new APIs to manage tags and custom metadata on resources and also new APIs to add and retrieve comments at the document level.
+
+Release v1.8.33 (2017-06-01)
+===
+
+### Service Client Updates
+* `service/codedeploy`: Updates service API and documentation
+  * AWS CodeDeploy has improved how it manages connections to GitHub accounts and repositories. You can now create and store up to 25 connections to GitHub accounts in order to associate AWS CodeDeploy applications with GitHub repositories. Each connection can support multiple repositories. You can create connections to up to 25 different GitHub accounts, or create more than one connection to a single account. The ListGitHubAccountTokenNames command has been introduced to retrieve the names of stored connections to GitHub accounts that you have created. The name of the connection to GitHub used for an AWS CodeDeploy application is also included in the ApplicationInfo structure.  Two new fields, lastAttemptedDeployment and lastSuccessfulDeployment, have been added to DeploymentGroupInfo to improve the handling of deployment group information in the AWS CodeDeploy console. Information about these latest deployments can also be retrieved using the GetDeploymentGroup and BatchGetDeployment group requests. Also includes a region update  (us-gov-west-1).
+* `service/cognitoidentityprovider`: Updates service API, documentation, and paginators
+* `service/elbv2`: Updates service API and documentation
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/lexmodelbuildingservice`: Updates service documentation and examples
+
+### SDK Enhancements
+* `aws/defaults`: Exports shared credentials and config default filenames used by the SDK. [#1308](https://github.com/aws/aws-sdk-go/pull/1308)
+  * Adds SharedCredentialsFilename and SharedConfigFilename functions to defaults package.
+
+### SDK Bugs
+* `aws/credentials`: Fixes shared credential provider's default filename on Windows. [#1308](https://github.com/aws/aws-sdk-go/pull/1308)
+  * The shared credentials provider would attempt to use the wrong filename on Windows if the `HOME` environment variable was defined.
+* `service/s3/s3manager`: service/s3/s3manager: Fix Downloader ignoring Range get parameter [#1311](https://github.com/aws/aws-sdk-go/pull/1311)
+  * Fixes the S3 Download Manager ignoring the GetObjectInput's Range parameter. If this parameter is provided it will force the downloader to fallback to a single GetObject request disabling concurrency and automatic part size gets.
+  * Fixes [#1296](https://github.com/aws/aws-sdk-go/issues/1296)
+Release v1.8.32 (2017-05-31)
+===
+
+### Service Client Updates
+* `service/rds`: Updates service API and documentation
+  * Amazon RDS customers can now easily and quickly stop and start their DB instances.
+
+Release v1.8.31 (2017-05-30)
+===
+
+### Service Client Updates
+* `service/clouddirectory`: Updates service API, documentation, and paginators
+  * Cloud Directory has launched support for Typed Links, enabling customers to create object-to-object relationships that are not hierarchical in nature. Typed Links enable customers to quickly query for data along these relationships. Customers can also enforce referential integrity using Typed Links, ensuring data in use is not inadvertently deleted.
+* `service/s3`: Updates service paginators and examples
+  * New example snippets for Amazon S3.
+
+Release v1.8.30 (2017-05-25)
+===
+
+### Service Client Updates
+* `service/appstream`: Updates service API and documentation
+  * Support added for persistent user storage, backed by S3.
+* `service/rekognition`: Updates service API and documentation
+  * Updated the CompareFaces API response to include orientation information, unmatched faces, landmarks, pose, and quality of the compared faces.
+
+Release v1.8.29 (2017-05-24)
+===
+
+### Service Client Updates
+* `service/iam`: Updates service API
+  * The unique ID and access key lengths were extended from 32 to 128
+* `service/storagegateway`: Updates service API and documentation
+  * Two Storage Gateway data types, Tape and TapeArchive, each have a new response element, TapeUsedInBytes. This element helps you manage your virtual tapes. By using TapeUsedInBytes, you can see the amount of data written to each virtual tape.
+* `service/sts`: Updates service API, documentation, and paginators
+  * The unique ID and access key lengths were extended from 32 to 128.
+
+Release v1.8.28 (2017-05-23)
+===
+
+### Service Client Updates
+* `service/databasemigrationservice`: Updates service API, documentation, paginators, and examples
+  * This release adds support for using Amazon S3 and Amazon DynamoDB as targets for database migration, and using MongoDB as a source for database migration. For more information, see the AWS Database Migration Service documentation.
+
+Release v1.8.27 (2017-05-22)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/resourcegroupstaggingapi`: Updates service API, documentation, and paginators
+  * You can now specify the number of resources returned per page in GetResources operation, as an optional parameter, to easily manage the list of resources returned by your queries.
+
+### SDK Bugs
+* `aws/request`: Add support for PUT temporary redirects (307) [#1283](https://github.com/aws/aws-sdk-go/issues/1283)
+  * Adds support for Go 1.8's GetBody function allowing the SDK's http request using PUT and POST methods to be redirected with temporary redirects with 307 status code.
+  * Fixes: [#1267](https://github.com/aws/aws-sdk-go/issues/1267)
+* `aws/request`: Add handling for retrying temporary errors during unmarshal [#1289](https://github.com/aws/aws-sdk-go/issues/1289)
+  * Adds support for retrying temporary errors that occur during unmarshaling of a request's response body.
+  * Fixes: [#1275](https://github.com/aws/aws-sdk-go/issues/1275)
+Release v1.8.26 (2017-05-18)
+===
+
+### Service Client Updates
+* `service/athena`: Adds new service
+  * This release adds support for Amazon Athena. Amazon Athena is an interactive query service that makes it easy to analyze data in Amazon S3 using standard SQL. Athena is serverless, so there is no infrastructure to manage, and you pay only for the queries that you run.
+* `service/lightsail`: Updates service API, documentation, and paginators
+  * This release adds new APIs that make it easier to set network port configurations on Lightsail instances. Developers can now make a single request to both open and close public ports on an instance using the PutInstancePublicPorts operation.
+
+### SDK Bugs
+* `aws/request`: Fix logging from reporting wrong retry request errors #1281
+  * Fixes the SDK's retry request logging to report the the actual error that occurred, not a stubbed Unknown error message.
+  * Fixes the SDK's response logger to not output the response log multiple times per retry.
 Release v1.8.25 (2017-05-17)
 ===
 

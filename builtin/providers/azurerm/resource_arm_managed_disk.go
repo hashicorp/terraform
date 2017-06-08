@@ -2,12 +2,13 @@ package azurerm
 
 import (
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/arm/disk"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/Azure/azure-sdk-for-go/arm/disk"
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceArmManagedDisk() *schema.Resource {
@@ -42,6 +43,7 @@ func resourceArmManagedDisk() *schema.Resource {
 					string(disk.PremiumLRS),
 					string(disk.StandardLRS),
 				}, true),
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"create_option": {
@@ -90,9 +92,9 @@ func resourceArmManagedDisk() *schema.Resource {
 
 func validateDiskSizeGB(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(int)
-	if value < 1 || value > 1023 {
+	if value < 1 || value > 4095 {
 		errors = append(errors, fmt.Errorf(
-			"The `disk_size_gb` can only be between 1 and 1023"))
+			"The `disk_size_gb` can only be between 1 and 4095"))
 	}
 	return
 }
@@ -150,8 +152,9 @@ func resourceArmManagedDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	createDisk.CreationData = creationData
 
 	_, diskErr := diskClient.CreateOrUpdate(resGroup, name, createDisk, make(chan struct{}))
-	if diskErr != nil {
-		return diskErr
+	err := <-diskErr
+	if err != nil {
+		return err
 	}
 
 	read, err := diskClient.Get(resGroup, name)
@@ -213,7 +216,9 @@ func resourceArmManagedDiskDelete(d *schema.ResourceData, meta interface{}) erro
 	resGroup := id.ResourceGroup
 	name := id.Path["disks"]
 
-	if _, err = diskClient.Delete(resGroup, name, make(chan struct{})); err != nil {
+	_, error := diskClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
+	if err != nil {
 		return err
 	}
 

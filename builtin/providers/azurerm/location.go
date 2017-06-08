@@ -16,6 +16,17 @@ func locationSchema() *schema.Schema {
 	}
 }
 
+func deprecatedLocationSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:             schema.TypeString,
+		ForceNew:         true,
+		Optional:         true,
+		StateFunc:        azureRMNormalizeLocation,
+		DiffSuppressFunc: azureRMSuppressLocationDiff,
+		Deprecated:       "location is no longer used",
+	}
+}
+
 // azureRMNormalizeLocation is a function which normalises human-readable region/location
 // names (e.g. "West US") to the values used and returned by the Azure API (e.g. "westus").
 // In state we track the API internal version as it is easier to go from the human form

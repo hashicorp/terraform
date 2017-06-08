@@ -14,6 +14,7 @@ func resourceComputeSubnetwork() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceComputeSubnetworkCreate,
 		Read:   resourceComputeSubnetworkRead,
+		Update: resourceComputeSubnetworkUpdate,
 		Delete: resourceComputeSubnetworkDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -58,6 +59,11 @@ func resourceComputeSubnetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"private_ip_google_access": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -97,10 +103,11 @@ func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) e
 
 	// Build the subnetwork parameters
 	subnetwork := &compute.Subnetwork{
-		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
-		IpCidrRange: d.Get("ip_cidr_range").(string),
-		Network:     network,
+		Name:                  d.Get("name").(string),
+		Description:           d.Get("description").(string),
+		IpCidrRange:           d.Get("ip_cidr_range").(string),
+		PrivateIpGoogleAccess: d.Get("private_ip_google_access").(bool),
+		Network:               network,
 	}
 
 	log.Printf("[DEBUG] Subnetwork insert request: %#v", subnetwork)
@@ -152,6 +159,46 @@ func resourceComputeSubnetworkRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("self_link", subnetwork.SelfLink)
 
 	return nil
+}
+
+func resourceComputeSubnetworkUpdate(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
+	d.Partial(true)
+
+	if d.HasChange("private_ip_google_access") {
+		subnetworksSetPrivateIpGoogleAccessRequest := &compute.SubnetworksSetPrivateIpGoogleAccessRequest{
+			PrivateIpGoogleAccess: d.Get("private_ip_google_access").(bool),
+		}
+
+		log.Printf("[DEBUG] Updating Subnetwork PrivateIpGoogleAccess %q: %#v", d.Id(), subnetworksSetPrivateIpGoogleAccessRequest)
+		op, err := config.clientCompute.Subnetworks.SetPrivateIpGoogleAccess(
+			project, region, d.Get("name").(string), subnetworksSetPrivateIpGoogleAccessRequest).Do()
+		if err != nil {
+			return fmt.Errorf("Error updating subnetwork PrivateIpGoogleAccess: %s", err)
+		}
+
+		err = computeOperationWaitRegion(config, op, project, region, "Updating Subnetwork PrivateIpGoogleAccess")
+		if err != nil {
+			return err
+		}
+
+		d.SetPartial("private_ip_google_access")
+	}
+
+	d.Partial(false)
+
+	return resourceComputeSubnetworkRead(d, meta)
 }
 
 func resourceComputeSubnetworkDelete(d *schema.ResourceData, meta interface{}) error {

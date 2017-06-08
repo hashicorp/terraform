@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccHerokuAppFeature(t *testing.T) {
-	var feature heroku.AppFeatureInfoResult
+	var feature heroku.AppFeature
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
@@ -62,7 +62,7 @@ func testAccCheckHerokuFeatureDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckHerokuFeatureExists(n string, feature *heroku.AppFeatureInfoResult) resource.TestCheckFunc {
+func testAccCheckHerokuFeatureExists(n string, feature *heroku.AppFeature) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -95,7 +95,7 @@ func testAccCheckHerokuFeatureExists(n string, feature *heroku.AppFeatureInfoRes
 	}
 }
 
-func testAccCheckHerokuFeatureEnabled(feature *heroku.AppFeatureInfoResult, enabled bool) resource.TestCheckFunc {
+func testAccCheckHerokuFeatureEnabled(feature *heroku.AppFeature, enabled bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if feature.Enabled != enabled {
 			return fmt.Errorf("Bad enabled: %v", feature.Enabled)

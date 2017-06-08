@@ -8,7 +8,10 @@ description: |-
 
 # google\_storage\_object\_acl
 
-Creates a new object ACL in Google cloud storage service (GCS)
+Creates a new object ACL in Google cloud storage service (GCS). For more information see 
+[the official documentation](https://cloud.google.com/storage/docs/access-control/lists) 
+and 
+[API](https://cloud.google.com/storage/docs/json_api/v1/objectAccessControls).
 
 ## Example Usage
 

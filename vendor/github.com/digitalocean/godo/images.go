@@ -1,6 +1,10 @@
 package godo
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/digitalocean/godo/context"
+)
 
 const imageBasePath = "v2/images"
 
@@ -8,14 +12,14 @@ const imageBasePath = "v2/images"
 // endpoints of the DigitalOcean API
 // See: https://developers.digitalocean.com/documentation/v2#images
 type ImagesService interface {
-	List(*ListOptions) ([]Image, *Response, error)
-	ListDistribution(opt *ListOptions) ([]Image, *Response, error)
-	ListApplication(opt *ListOptions) ([]Image, *Response, error)
-	ListUser(opt *ListOptions) ([]Image, *Response, error)
-	GetByID(int) (*Image, *Response, error)
-	GetBySlug(string) (*Image, *Response, error)
-	Update(int, *ImageUpdateRequest) (*Image, *Response, error)
-	Delete(int) (*Response, error)
+	List(context.Context, *ListOptions) ([]Image, *Response, error)
+	ListDistribution(ctx context.Context, opt *ListOptions) ([]Image, *Response, error)
+	ListApplication(ctx context.Context, opt *ListOptions) ([]Image, *Response, error)
+	ListUser(ctx context.Context, opt *ListOptions) ([]Image, *Response, error)
+	GetByID(context.Context, int) (*Image, *Response, error)
+	GetBySlug(context.Context, string) (*Image, *Response, error)
+	Update(context.Context, int, *ImageUpdateRequest) (*Image, *Response, error)
+	Delete(context.Context, int) (*Response, error)
 }
 
 // ImagesServiceOp handles communication with the image related methods of the
@@ -63,48 +67,48 @@ func (i Image) String() string {
 }
 
 // List lists all the images available.
-func (s *ImagesServiceOp) List(opt *ListOptions) ([]Image, *Response, error) {
-	return s.list(opt, nil)
+func (s *ImagesServiceOp) List(ctx context.Context, opt *ListOptions) ([]Image, *Response, error) {
+	return s.list(ctx, opt, nil)
 }
 
 // ListDistribution lists all the distribution images.
-func (s *ImagesServiceOp) ListDistribution(opt *ListOptions) ([]Image, *Response, error) {
+func (s *ImagesServiceOp) ListDistribution(ctx context.Context, opt *ListOptions) ([]Image, *Response, error) {
 	listOpt := listImageOptions{Type: "distribution"}
-	return s.list(opt, &listOpt)
+	return s.list(ctx, opt, &listOpt)
 }
 
 // ListApplication lists all the application images.
-func (s *ImagesServiceOp) ListApplication(opt *ListOptions) ([]Image, *Response, error) {
+func (s *ImagesServiceOp) ListApplication(ctx context.Context, opt *ListOptions) ([]Image, *Response, error) {
 	listOpt := listImageOptions{Type: "application"}
-	return s.list(opt, &listOpt)
+	return s.list(ctx, opt, &listOpt)
 }
 
 // ListUser lists all the user images.
-func (s *ImagesServiceOp) ListUser(opt *ListOptions) ([]Image, *Response, error) {
+func (s *ImagesServiceOp) ListUser(ctx context.Context, opt *ListOptions) ([]Image, *Response, error) {
 	listOpt := listImageOptions{Private: true}
-	return s.list(opt, &listOpt)
+	return s.list(ctx, opt, &listOpt)
 }
 
 // GetByID retrieves an image by id.
-func (s *ImagesServiceOp) GetByID(imageID int) (*Image, *Response, error) {
+func (s *ImagesServiceOp) GetByID(ctx context.Context, imageID int) (*Image, *Response, error) {
 	if imageID < 1 {
 		return nil, nil, NewArgError("imageID", "cannot be less than 1")
 	}
 
-	return s.get(interface{}(imageID))
+	return s.get(ctx, interface{}(imageID))
 }
 
 // GetBySlug retrieves an image by slug.
-func (s *ImagesServiceOp) GetBySlug(slug string) (*Image, *Response, error) {
+func (s *ImagesServiceOp) GetBySlug(ctx context.Context, slug string) (*Image, *Response, error) {
 	if len(slug) < 1 {
 		return nil, nil, NewArgError("slug", "cannot be blank")
 	}
 
-	return s.get(interface{}(slug))
+	return s.get(ctx, interface{}(slug))
 }
 
 // Update an image name.
-func (s *ImagesServiceOp) Update(imageID int, updateRequest *ImageUpdateRequest) (*Image, *Response, error) {
+func (s *ImagesServiceOp) Update(ctx context.Context, imageID int, updateRequest *ImageUpdateRequest) (*Image, *Response, error) {
 	if imageID < 1 {
 		return nil, nil, NewArgError("imageID", "cannot be less than 1")
 	}
@@ -114,13 +118,13 @@ func (s *ImagesServiceOp) Update(imageID int, updateRequest *ImageUpdateRequest)
 	}
 
 	path := fmt.Sprintf("%s/%d", imageBasePath, imageID)
-	req, err := s.client.NewRequest("PUT", path, updateRequest)
+	req, err := s.client.NewRequest(ctx, "PUT", path, updateRequest)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	root := new(imageRoot)
-	resp, err := s.client.Do(req, root)
+	resp, err := s.client.Do(ctx, req, root)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -129,34 +133,34 @@ func (s *ImagesServiceOp) Update(imageID int, updateRequest *ImageUpdateRequest)
 }
 
 // Delete an image.
-func (s *ImagesServiceOp) Delete(imageID int) (*Response, error) {
+func (s *ImagesServiceOp) Delete(ctx context.Context, imageID int) (*Response, error) {
 	if imageID < 1 {
 		return nil, NewArgError("imageID", "cannot be less than 1")
 	}
 
 	path := fmt.Sprintf("%s/%d", imageBasePath, imageID)
 
-	req, err := s.client.NewRequest("DELETE", path, nil)
+	req, err := s.client.NewRequest(ctx, "DELETE", path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := s.client.Do(req, nil)
+	resp, err := s.client.Do(ctx, req, nil)
 
 	return resp, err
 }
 
 // Helper method for getting an individual image
-func (s *ImagesServiceOp) get(ID interface{}) (*Image, *Response, error) {
+func (s *ImagesServiceOp) get(ctx context.Context, ID interface{}) (*Image, *Response, error) {
 	path := fmt.Sprintf("%s/%v", imageBasePath, ID)
 
-	req, err := s.client.NewRequest("GET", path, nil)
+	req, err := s.client.NewRequest(ctx, "GET", path, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	root := new(imageRoot)
-	resp, err := s.client.Do(req, root)
+	resp, err := s.client.Do(ctx, req, root)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -165,7 +169,7 @@ func (s *ImagesServiceOp) get(ID interface{}) (*Image, *Response, error) {
 }
 
 // Helper method for listing images
-func (s *ImagesServiceOp) list(opt *ListOptions, listOpt *listImageOptions) ([]Image, *Response, error) {
+func (s *ImagesServiceOp) list(ctx context.Context, opt *ListOptions, listOpt *listImageOptions) ([]Image, *Response, error) {
 	path := imageBasePath
 	path, err := addOptions(path, opt)
 	if err != nil {
@@ -176,13 +180,13 @@ func (s *ImagesServiceOp) list(opt *ListOptions, listOpt *listImageOptions) ([]I
 		return nil, nil, err
 	}
 
-	req, err := s.client.NewRequest("GET", path, nil)
+	req, err := s.client.NewRequest(ctx, "GET", path, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	root := new(imagesRoot)
-	resp, err := s.client.Do(req, root)
+	resp, err := s.client.Do(ctx, req, root)
 	if err != nil {
 		return nil, resp, err
 	}

@@ -4,14 +4,19 @@ package management
 
 import (
 	"errors"
+	"fmt"
+	"runtime"
 	"time"
+)
+
+var (
+	DefaultUserAgent = userAgent()
 )
 
 const (
 	DefaultAzureManagementURL    = "https://management.core.windows.net"
 	DefaultOperationPollInterval = time.Second * 30
 	DefaultAPIVersion            = "2014-10-01"
-	DefaultUserAgent             = "azure-sdk-for-go"
 
 	errPublishSettingsConfiguration       = "PublishSettingsFilePath is set. Consequently ManagementCertificatePath and SubscriptionId must not be set."
 	errManagementCertificateConfiguration = "Both ManagementCertificatePath and SubscriptionId should be set, and PublishSettingsFilePath must not be set."
@@ -135,4 +140,13 @@ func makeClient(subscriptionID string, managementCert []byte, config ClientConfi
 		publishSettings: publishSettings,
 		config:          config,
 	}, nil
+}
+
+func userAgent() string {
+	return fmt.Sprintf("Go/%s (%s-%s) Azure-SDK-For-Go/%s asm/%s",
+		runtime.Version(),
+		runtime.GOARCH,
+		runtime.GOOS,
+		sdkVersion,
+		DefaultAPIVersion)
 }

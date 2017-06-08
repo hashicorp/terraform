@@ -101,7 +101,8 @@ func resourceArmSqlElasticPoolCreate(d *schema.ResourceData, meta interface{}) e
 		Tags: expandTags(tags),
 	}
 
-	_, err := elasticPoolsClient.CreateOrUpdate(resGroup, serverName, name, elasticPool, make(chan struct{}))
+	_, error := elasticPoolsClient.CreateOrUpdate(resGroup, serverName, name, elasticPool, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -176,7 +177,7 @@ func resourceArmSqlElasticPoolDelete(d *schema.ResourceData, meta interface{}) e
 }
 
 func getArmSqlElasticPoolProperties(d *schema.ResourceData) *sql.ElasticPoolProperties {
-	edition := sql.ElasticPoolEditions(d.Get("edition").(string))
+	edition := sql.ElasticPoolEdition(d.Get("edition").(string))
 	dtu := int32(d.Get("dtu").(int))
 
 	props := &sql.ElasticPoolProperties{
@@ -213,8 +214,8 @@ func parseArmSqlElasticPoolId(sqlElasticPoolId string) (string, string, string, 
 
 func validateSqlElasticPoolEdition() schema.SchemaValidateFunc {
 	return validation.StringInSlice([]string{
-		string(sql.ElasticPoolEditionsBasic),
-		string(sql.ElasticPoolEditionsStandard),
-		string(sql.ElasticPoolEditionsPremium),
+		string(sql.ElasticPoolEditionBasic),
+		string(sql.ElasticPoolEditionStandard),
+		string(sql.ElasticPoolEditionPremium),
 	}, false)
 }

@@ -120,7 +120,7 @@ func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 		Pending: []string{"pending"},
 		Target:  []string{"ready"},
 		Refresh: resourceAwsRouteTableStateRefreshFunc(conn, d.Id()),
-		Timeout: 5 * time.Minute,
+		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(

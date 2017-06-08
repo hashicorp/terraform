@@ -56,9 +56,21 @@ func resourceAliyunSwitchCreate(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	vswitchID, err := conn.CreateVSwitch(args)
+	var vswitchID string
+	err = resource.Retry(3*time.Minute, func() *resource.RetryError {
+		vswId, err := conn.CreateVSwitch(args)
+		if err != nil {
+			if e, ok := err.(*common.Error); ok && (e.StatusCode == 400 || e.Code == UnknownError) {
+				return resource.RetryableError(fmt.Errorf("Vswitch is still creating result from some unknown error -- try again"))
+			}
+			return resource.NonRetryableError(err)
+		}
+		vswitchID = vswId
+		return nil
+	})
+
 	if err != nil {
-		return fmt.Errorf("Create subnet got a error :%s", err)
+		return fmt.Errorf("Create subnet got an error :%s", err)
 	}
 
 	d.SetId(vswitchID)

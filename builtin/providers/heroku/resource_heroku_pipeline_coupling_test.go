@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccHerokuPipelineCoupling_Basic(t *testing.T) {
-	var coupling heroku.PipelineCouplingInfoResult
+	var coupling heroku.PipelineCoupling
 
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 	pipelineName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
@@ -57,7 +57,7 @@ resource "heroku_pipeline_coupling" "default" {
 `, appName, pipelineName, stageName)
 }
 
-func testAccCheckHerokuPipelineCouplingExists(n string, pipeline *heroku.PipelineCouplingInfoResult) resource.TestCheckFunc {
+func testAccCheckHerokuPipelineCouplingExists(n string, pipeline *heroku.PipelineCoupling) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -86,7 +86,7 @@ func testAccCheckHerokuPipelineCouplingExists(n string, pipeline *heroku.Pipelin
 	}
 }
 
-func testAccCheckHerokuPipelineCouplingAttributes(coupling *heroku.PipelineCouplingInfoResult, pipelineResource, stageName string) resource.TestCheckFunc {
+func testAccCheckHerokuPipelineCouplingAttributes(coupling *heroku.PipelineCoupling, pipelineResource, stageName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		pipeline, ok := s.RootModule().Resources[pipelineResource]
 		if !ok {

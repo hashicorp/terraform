@@ -29,6 +29,8 @@ func TestAccNetworkingV2SecGroup_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2SecGroup_update,
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPtr(
+						"openstack_networking_secgroup_v2.secgroup_1", "id", &security_group.ID),
 					resource.TestCheckResourceAttr(
 						"openstack_networking_secgroup_v2.secgroup_1", "name", "security_group_2"),
 				),

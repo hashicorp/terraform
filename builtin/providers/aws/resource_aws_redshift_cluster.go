@@ -777,7 +777,16 @@ func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] Redshift Cluster delete options: %s", deleteOpts)
-	_, err := conn.DeleteCluster(&deleteOpts)
+	err := resource.Retry(15*time.Minute, func() *resource.RetryError {
+		_, err := conn.DeleteCluster(&deleteOpts)
+		awsErr, ok := err.(awserr.Error)
+		if ok && awsErr.Code() == "InvalidClusterState" {
+			return resource.RetryableError(err)
+		}
+
+		return resource.NonRetryableError(err)
+	})
+
 	if err != nil {
 		return fmt.Errorf("[ERROR] Error deleting Redshift Cluster (%s): %s", d.Id(), err)
 	}

@@ -8,12 +8,3 @@ The client currently supports authentication to the Service Management
 API with certificates or Azure `.publishSettings` file. You can 
 download the `.publishSettings` file for your subscriptions
 [here](https://manage.windowsazure.com/publishsettings).
-
-### Example: Creating a Linux Virtual Machine
-
-Complete source code for this example can be found in [example.go](/management/examples/example.go).To try this example, [download your .publishSettings](https://manage.windowsazure.com/publishsettings) and add its path in the first line of the main function. Run the example with commands:
-
-```
-$ cd management/examples
-$ go run example.go
-```

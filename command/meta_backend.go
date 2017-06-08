@@ -1746,7 +1746,7 @@ process.
 
 const successBackendLegacyUnset = `
 Terraform has successfully migrated from legacy remote state to your
-configured remote state.
+configured backend (%q).
 `
 
 const successBackendReconfigureWithLegacy = `

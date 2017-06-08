@@ -267,6 +267,10 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 	d.Set("replication_group_id", rgp.ReplicationGroupId)
 
 	if rgp.NodeGroups != nil {
+		if len(rgp.NodeGroups[0].NodeGroupMembers) == 0 {
+			return nil
+		}
+
 		cacheCluster := *rgp.NodeGroups[0].NodeGroupMembers[0]
 
 		res, err := conn.DescribeCacheClusters(&elasticache.DescribeCacheClustersInput{
@@ -370,6 +374,12 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 	}
 
 	if d.HasChange("snapshot_retention_limit") {
+		// This is a real hack to set the Snapshotting Cluster ID to be the first Cluster in the RG
+		o, _ := d.GetChange("snapshot_retention_limit")
+		if o.(int) == 0 {
+			params.SnapshottingClusterId = aws.String(fmt.Sprintf("%s-001", d.Id()))
+		}
+
 		params.SnapshotRetentionLimit = aws.Int64(int64(d.Get("snapshot_retention_limit").(int)))
 		requestUpdate = true
 	}

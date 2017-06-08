@@ -108,6 +108,7 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 
 The following attributes are exported:
 
+* `id` - ID of the Elastic Beanstalk Environment.
 * `name` - Name of the Elastic Beanstalk Environment.
 * `description` - Description of the Elastic Beanstalk Environment.
 * `tier` - The environment tier specified.

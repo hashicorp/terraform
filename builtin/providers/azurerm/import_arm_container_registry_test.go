@@ -1,7 +1,6 @@
 package azurerm
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -13,7 +12,7 @@ func TestAccAzureRMContainerRegistry_importBasic(t *testing.T) {
 
 	ri := acctest.RandInt()
 	rs := acctest.RandString(4)
-	config := fmt.Sprintf(testAccAzureRMContainerRegistry_basic, ri, rs, ri)
+	config := testAccAzureRMContainerRegistry_basic(ri, rs)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -39,7 +38,7 @@ func TestAccAzureRMContainerRegistry_importComplete(t *testing.T) {
 
 	ri := acctest.RandInt()
 	rs := acctest.RandString(4)
-	config := fmt.Sprintf(testAccAzureRMContainerRegistry_complete, ri, rs, ri)
+	config := testAccAzureRMContainerRegistry_complete(ri, rs)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

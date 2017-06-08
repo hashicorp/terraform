@@ -799,6 +799,65 @@ func TestValidateJsonString(t *testing.T) {
 	}
 }
 
+func TestValidateIAMPolicyJsonString(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    `{0:"1"}`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `{'abc':1}`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `{"def":}`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `{"xyz":[}}`,
+			ErrCount: 1,
+		},
+		{
+			Value:    ``,
+			ErrCount: 1,
+		},
+		{
+			Value:    `    {"xyz": "foo"}`,
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateIAMPolicyJson(tc.Value, "json")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    `{}`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `{"abc":["1","2"]}`,
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateIAMPolicyJson(tc.Value, "json")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
 func TestValidateCloudFormationTemplate(t *testing.T) {
 	type testCases struct {
 		Value    string
@@ -2229,6 +2288,32 @@ func TestValidateIamRoleDescription(t *testing.T) {
 		_, errors := validateIamRoleDescription(v, "description")
 		if len(errors) == 0 {
 			t.Fatalf("%q should be an invalid IAM Role Description", v)
+		}
+	}
+}
+
+func TestValidateSsmParameterType(t *testing.T) {
+	validTypes := []string{
+		"String",
+		"StringList",
+		"SecureString",
+	}
+	for _, v := range validTypes {
+		_, errors := validateSsmParameterType(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid SSM parameter type: %q", v, errors)
+		}
+	}
+
+	invalidTypes := []string{
+		"foo",
+		"string",
+		"Securestring",
+	}
+	for _, v := range invalidTypes {
+		_, errors := validateSsmParameterType(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SSM parameter type", v)
 		}
 	}
 }

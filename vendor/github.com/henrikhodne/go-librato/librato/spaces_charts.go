@@ -91,10 +91,10 @@ func (s *SpacesService) GetChart(spaceID, chartID uint) (*SpaceChart, *http.Resp
 	return c, resp, err
 }
 
-// EditChart edits a chart.
+// UpdateChart updates a chart.
 //
 // Librato API docs: http://dev.librato.com/v1/put/spaces/:id/charts/:id
-func (s *SpacesService) EditChart(spaceID, chartID uint, chart *SpaceChart) (*http.Response, error) {
+func (s *SpacesService) UpdateChart(spaceID, chartID uint, chart *SpaceChart) (*http.Response, error) {
 	u := fmt.Sprintf("spaces/%d/charts/%d", spaceID, chartID)
 	req, err := s.client.NewRequest("PUT", u, chart)
 	if err != nil {

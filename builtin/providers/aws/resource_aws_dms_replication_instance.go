@@ -19,6 +19,12 @@ func resourceAwsDmsReplicationInstance() *schema.Resource {
 		Update: resourceAwsDmsReplicationInstanceUpdate,
 		Delete: resourceAwsDmsReplicationInstanceDelete,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(30 * time.Minute),
+			Update: schema.DefaultTimeout(30 * time.Minute),
+			Delete: schema.DefaultTimeout(30 * time.Minute),
+		},
+
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -304,7 +310,7 @@ func resourceAwsDmsReplicationInstanceUpdate(d *schema.ResourceData, meta interf
 			Pending:    []string{"modifying"},
 			Target:     []string{"available"},
 			Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(d, meta),
-			Timeout:    d.Timeout(schema.TimeoutCreate),
+			Timeout:    d.Timeout(schema.TimeoutUpdate),
 			MinTimeout: 10 * time.Second,
 			Delay:      30 * time.Second, // Wait 30 secs before starting
 		}
@@ -339,7 +345,7 @@ func resourceAwsDmsReplicationInstanceDelete(d *schema.ResourceData, meta interf
 		Pending:    []string{"deleting"},
 		Target:     []string{},
 		Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(d, meta),
-		Timeout:    d.Timeout(schema.TimeoutCreate),
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}

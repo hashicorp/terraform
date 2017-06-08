@@ -25,14 +25,16 @@ import (
 // ServicesService handles communication with the services related methods of
 // the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/services.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md
 type ServicesService struct {
 	client *Client
 }
 
 // Service represents a GitLab service.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/services.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md
 type Service struct {
 	ID                  *int       `json:"id"`
 	Title               *string    `json:"title"`
@@ -50,7 +52,7 @@ type Service struct {
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#edit-gitlab-ci-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#edit-gitlab-ci-service
 type SetGitLabCIServiceOptions struct {
 	Token      *string `url:"token,omitempty" json:"token,omitempty"`
 	ProjectURL *string `url:"project_url,omitempty" json:"project_url,omitempty"`
@@ -59,7 +61,7 @@ type SetGitLabCIServiceOptions struct {
 // SetGitLabCIService sets GitLab CI service for a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#edit-gitlab-ci-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#edit-gitlab-ci-service
 func (s *ServicesService) SetGitLabCIService(pid interface{}, opt *SetGitLabCIServiceOptions, options ...OptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -78,7 +80,7 @@ func (s *ServicesService) SetGitLabCIService(pid interface{}, opt *SetGitLabCISe
 // DeleteGitLabCIService deletes GitLab CI service settings for a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#delete-gitlab-ci-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#delete-gitlab-ci-service
 func (s *ServicesService) DeleteGitLabCIService(pid interface{}, options ...OptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -98,7 +100,7 @@ func (s *ServicesService) DeleteGitLabCIService(pid interface{}, options ...Opti
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#edit-hipchat-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#edit-hipchat-service
 type SetHipChatServiceOptions struct {
 	Token *string `url:"token,omitempty" json:"token,omitempty" `
 	Room  *string `url:"room,omitempty" json:"room,omitempty"`
@@ -107,7 +109,7 @@ type SetHipChatServiceOptions struct {
 // SetHipChatService sets HipChat service for a project
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#edit-hipchat-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#edit-hipchat-service
 func (s *ServicesService) SetHipChatService(pid interface{}, opt *SetHipChatServiceOptions, options ...OptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -126,7 +128,7 @@ func (s *ServicesService) SetHipChatService(pid interface{}, opt *SetHipChatServ
 // DeleteHipChatService deletes HipChat service for project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#delete-hipchat-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#delete-hipchat-service
 func (s *ServicesService) DeleteHipChatService(pid interface{}, options ...OptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -146,7 +148,7 @@ func (s *ServicesService) DeleteHipChatService(pid interface{}, options ...Optio
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#createedit-drone-ci-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#createedit-drone-ci-service
 type SetDroneCIServiceOptions struct {
 	Token                 *string `url:"token" json:"token" `
 	DroneURL              *string `url:"drone_url" json:"drone_url"`
@@ -156,7 +158,7 @@ type SetDroneCIServiceOptions struct {
 // SetDroneCIService sets Drone CI service for a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#createedit-drone-ci-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#createedit-drone-ci-service
 func (s *ServicesService) SetDroneCIService(pid interface{}, opt *SetDroneCIServiceOptions, options ...OptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -175,7 +177,7 @@ func (s *ServicesService) SetDroneCIService(pid interface{}, opt *SetDroneCIServ
 // DeleteDroneCIService deletes Drone CI service settings for a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#delete-drone-ci-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#delete-drone-ci-service
 func (s *ServicesService) DeleteDroneCIService(pid interface{}, options ...OptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -207,7 +209,7 @@ type DroneCIService struct {
 // GetDroneCIService gets Drone CI service settings for a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#get-drone-ci-service-settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#get-drone-ci-service-settings
 func (s *ServicesService) GetDroneCIService(pid interface{}, options ...OptionFunc) (*DroneCIService, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -233,7 +235,7 @@ func (s *ServicesService) GetDroneCIService(pid interface{}, options ...OptionFu
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#edit-slack-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#edit-slack-service
 type SetSlackServiceOptions struct {
 	WebHook  *string `url:"webhook,omitempty" json:"webhook,omitempty" `
 	Username *string `url:"username,omitempty" json:"username,omitempty" `
@@ -243,7 +245,7 @@ type SetSlackServiceOptions struct {
 // SetSlackService sets Slack service for a project
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#edit-slack-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#edit-slack-service
 func (s *ServicesService) SetSlackService(pid interface{}, opt *SetSlackServiceOptions, options ...OptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -262,7 +264,7 @@ func (s *ServicesService) SetSlackService(pid interface{}, opt *SetSlackServiceO
 // DeleteSlackService deletes Slack service for project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/services.html#delete-slack-service
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/services.md#delete-slack-service
 func (s *ServicesService) DeleteSlackService(pid interface{}, options ...OptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

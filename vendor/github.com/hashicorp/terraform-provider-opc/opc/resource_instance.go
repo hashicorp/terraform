@@ -18,6 +18,7 @@ func resourceInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceInstanceCreate,
 		Read:   resourceInstanceRead,
+		Update: resourceInstanceUpdate,
 		Delete: resourceInstanceDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
@@ -82,6 +83,12 @@ func resourceInstance() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+			},
+
+			"desired_state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  compute.InstanceDesiredRunning,
 			},
 
 			"networking_info": {
@@ -213,6 +220,14 @@ func resourceInstance() *schema.Resource {
 			"storage": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					desired := compute.InstanceDesiredState(d.Get("desired_state").(string))
+					state := compute.InstanceState(d.Get("state").(string))
+					if desired == compute.InstanceDesiredShutdown || state == compute.InstanceShutdown {
+						return true
+					}
+					return false
+				},
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -261,6 +276,11 @@ func resourceInstance() *schema.Resource {
 			},
 
 			"fingerprint": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"fqdn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -456,7 +476,13 @@ func updateInstanceAttributes(d *schema.ResourceData, instance *compute.Instance
 	if err := setIntList(d, "boot_order", instance.BootOrder); err != nil {
 		return err
 	}
-	d.Set("hostname", instance.Hostname)
+
+	split_hostname := strings.Split(instance.Hostname, ".")
+	if len(split_hostname) == 0 {
+		return fmt.Errorf("Unable to parse hostname: %s", instance.Hostname)
+	}
+	d.Set("hostname", split_hostname[0])
+	d.Set("fqdn", instance.Hostname)
 	d.Set("image_list", instance.ImageList)
 	d.Set("label", instance.Label)
 
@@ -482,6 +508,7 @@ func updateInstanceAttributes(d *schema.ResourceData, instance *compute.Instance
 	d.Set("fingerprint", instance.Fingerprint)
 	d.Set("image_format", instance.ImageFormat)
 	d.Set("ip_address", instance.IPAddress)
+	d.Set("desired_state", instance.DesiredState)
 
 	if err := setStringList(d, "placement_requirements", instance.PlacementRequirements); err != nil {
 		return err
@@ -512,6 +539,36 @@ func updateInstanceAttributes(d *schema.ResourceData, instance *compute.Instance
 	d.Set("vnc_address", instance.VNC)
 
 	return nil
+}
+
+func resourceInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*compute.Client).Instances()
+
+	name := d.Get("name").(string)
+
+	input := &compute.UpdateInstanceInput{
+		Name: name,
+		ID:   d.Id(),
+	}
+
+	if d.HasChange("desired_state") {
+		input.DesiredState = compute.InstanceDesiredState(d.Get("desired_state").(string))
+	}
+
+	if d.HasChange("tags") {
+		tags := getStringList(d, "tags")
+		input.Tags = tags
+
+	}
+
+	result, err := client.UpdateInstance(input)
+	if err != nil {
+		return fmt.Errorf("Error updating instance %s: %s", input.Name, err)
+	}
+
+	log.Printf("[DEBUG] Updated instance %s: %#v", result.Name, result.ID)
+
+	return resourceInstanceRead(d, meta)
 }
 
 func resourceInstanceDelete(d *schema.ResourceData, meta interface{}) error {

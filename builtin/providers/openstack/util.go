@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/Unknwon/com"
 	"github.com/gophercloud/gophercloud"
@@ -18,12 +20,7 @@ func BuildRequest(opts interface{}, parent string) (map[string]interface{}, erro
 		return nil, err
 	}
 
-	if b["value_specs"] != nil {
-		for k, v := range b["value_specs"].(map[string]interface{}) {
-			b[k] = v
-		}
-		delete(b, "value_specs")
-	}
+	b = AddValueSpecs(b)
 
 	return map[string]interface{}{parent: b}, nil
 }
@@ -50,6 +47,19 @@ func GetRegion(d *schema.ResourceData) string {
 	}
 
 	return ""
+}
+
+// AddValueSpecs expands the 'value_specs' object and removes 'value_specs'
+// from the reqeust body.
+func AddValueSpecs(body map[string]interface{}) map[string]interface{} {
+	if body["value_specs"] != nil {
+		for k, v := range body["value_specs"].(map[string]interface{}) {
+			body[k] = v
+		}
+		delete(body, "value_specs")
+	}
+
+	return body
 }
 
 // MapValueSpecs converts ResourceData into a map
@@ -79,4 +89,12 @@ func RedactHeaders(headers http.Header) (processedHeaders []string) {
 		}
 	}
 	return
+}
+
+// FormatHeaders processes a headers object plus a deliminator, returning a string
+func FormatHeaders(headers http.Header, seperator string) string {
+	redactedHeaders := RedactHeaders(headers)
+	sort.Strings(redactedHeaders)
+
+	return strings.Join(redactedHeaders, seperator)
 }

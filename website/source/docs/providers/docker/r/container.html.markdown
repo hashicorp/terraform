@@ -77,6 +77,7 @@ The following arguments are supported:
   Defaults to "json-file".
 * `log_opts` - (Optional, map of strings) Key/value pairs to use as options for
   the logging driver.
+* `network_alias` - (Optional, set of strings) Network aliases of the container for user-defined networks only.
 * `network_mode` - (Optional, string) Network mode of the container.
 * `networks` - (Optional, set of strings) Id of the networks in which the
   container is.

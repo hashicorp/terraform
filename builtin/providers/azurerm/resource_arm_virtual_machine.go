@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
+	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -316,7 +317,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 
 			"os_profile": {
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -553,11 +554,13 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	osProfile, err := expandAzureRmVirtualMachineOsProfile(d)
-	if err != nil {
-		return err
+	if _, ok := d.GetOk("os_profile"); ok {
+		osProfile, err := expandAzureRmVirtualMachineOsProfile(d)
+		if err != nil {
+			return err
+		}
+		properties.OsProfile = osProfile
 	}
-	properties.OsProfile = osProfile
 
 	if v, ok := d.GetOk("availability_set_id"); ok {
 		availabilitySet := v.(string)
@@ -584,7 +587,8 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		vm.Plan = plan
 	}
 
-	_, vmErr := vmClient.CreateOrUpdate(resGroup, name, vm, make(chan struct{}))
+	_, vmError := vmClient.CreateOrUpdate(resGroup, name, vm, make(chan struct{}))
+	vmErr := <-vmError
 	if vmErr != nil {
 		return vmErr
 	}
@@ -654,25 +658,27 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	if err := d.Set("os_profile", schema.NewSet(resourceArmVirtualMachineStorageOsProfileHash, flattenAzureRmVirtualMachineOsProfile(resp.VirtualMachineProperties.OsProfile))); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile: %#v", err)
-	}
-
-	if resp.VirtualMachineProperties.OsProfile.WindowsConfiguration != nil {
-		if err := d.Set("os_profile_windows_config", flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.VirtualMachineProperties.OsProfile.WindowsConfiguration)); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Windows Configuration: %#v", err)
+	if resp.VirtualMachineProperties.OsProfile != nil {
+		if err := d.Set("os_profile", schema.NewSet(resourceArmVirtualMachineStorageOsProfileHash, flattenAzureRmVirtualMachineOsProfile(resp.VirtualMachineProperties.OsProfile))); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile: %#v", err)
 		}
-	}
 
-	if resp.VirtualMachineProperties.OsProfile.LinuxConfiguration != nil {
-		if err := d.Set("os_profile_linux_config", flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(resp.VirtualMachineProperties.OsProfile.LinuxConfiguration)); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Linux Configuration: %#v", err)
+		if resp.VirtualMachineProperties.OsProfile.WindowsConfiguration != nil {
+			if err := d.Set("os_profile_windows_config", flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.VirtualMachineProperties.OsProfile.WindowsConfiguration)); err != nil {
+				return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Windows Configuration: %#v", err)
+			}
 		}
-	}
 
-	if resp.VirtualMachineProperties.OsProfile.Secrets != nil {
-		if err := d.Set("os_profile_secrets", flattenAzureRmVirtualMachineOsProfileSecrets(resp.VirtualMachineProperties.OsProfile.Secrets)); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Secrets: %#v", err)
+		if resp.VirtualMachineProperties.OsProfile.LinuxConfiguration != nil {
+			if err := d.Set("os_profile_linux_config", flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(resp.VirtualMachineProperties.OsProfile.LinuxConfiguration)); err != nil {
+				return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Linux Configuration: %#v", err)
+			}
+		}
+
+		if resp.VirtualMachineProperties.OsProfile.Secrets != nil {
+			if err := d.Set("os_profile_secrets", flattenAzureRmVirtualMachineOsProfileSecrets(resp.VirtualMachineProperties.OsProfile.Secrets)); err != nil {
+				return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Secrets: %#v", err)
+			}
 		}
 	}
 
@@ -712,7 +718,10 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualMachines"]
 
-	if _, err = vmClient.Delete(resGroup, name, make(chan struct{})); err != nil {
+	_, error := vmClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
+
+	if err != nil {
 		return err
 	}
 
@@ -793,7 +802,10 @@ func resourceArmVirtualMachineDeleteVhd(uri string, meta interface{}) error {
 	}
 
 	log.Printf("[INFO] Deleting VHD blob %s", blobName)
-	_, err = blobClient.DeleteBlobIfExists(containerName, blobName, nil)
+	container := blobClient.GetContainerReference(containerName)
+	blob := container.GetBlobReference(blobName)
+	options := &storage.DeleteBlobOptions{}
+	err = blob.Delete(options)
 	if err != nil {
 		return fmt.Errorf("Error deleting VHD blob: %s", err)
 	}
@@ -811,7 +823,8 @@ func resourceArmVirtualMachineDeleteManagedDisk(managedDiskID string, meta inter
 	resGroup := id.ResourceGroup
 	name := id.Path["disks"]
 
-	_, err = diskClient.Delete(resGroup, name, make(chan struct{}))
+	_, error := diskClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
 	if err != nil {
 		return fmt.Errorf("Error deleting Managed Disk (%s %s) %s", name, resGroup, err)
 	}
@@ -1452,8 +1465,8 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_type` (only one or the other can be used)")
 	}
 	//END: code to be removed after GH-13016 is merged
-	if managedDiskID == "" && strings.EqualFold(string(osDisk.CreateOption), string(compute.Attach)) {
-		return nil, fmt.Errorf("[ERROR] Must specify which disk to attach")
+	if managedDiskID == "" && vhdURI == "" && strings.EqualFold(string(osDisk.CreateOption), string(compute.Attach)) {
+		return nil, fmt.Errorf("[ERROR] Must specify `vhd_uri` or `managed_disk_id` to attach")
 	}
 
 	if v := config["image_uri"].(string); v != "" {
