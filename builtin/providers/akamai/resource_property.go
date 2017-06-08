@@ -99,6 +99,19 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourcePropertyRead(d, meta)
 }
 
+func resourcePropertyRead(d *schema.ResourceData, meta interface{}) error {
+	log.Println("[DEBUG] resourcePropertyRead")
+	return nil
+}
+
+func resourcePropertyDelete(d *schema.ResourceData, meta interface{}) error {
+	return errors.New("resourcePropertyDelete")
+}
+
+func resourcePropertyExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	return false, errors.New("resourcePropertyExists")
+}
+
 func getCloneFrom(papi *edgegrid.PapiV0Service, d *schema.ResourceData) (*edgegrid.PapiClonePropertyFrom, error) {
 	log.Println("[DEBUG] Setting up clone from")
 
@@ -496,17 +509,4 @@ func activateProperty(papi *edgegrid.PapiV0Service, property *edgegrid.PapiPrope
 	}
 
 	return activation, nil
-}
-
-func resourcePropertyRead(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[DEBUG] resourcePropertyRead")
-	return nil
-}
-
-func resourcePropertyDelete(d *schema.ResourceData, meta interface{}) error {
-	return errors.New("resourcePropertyDelete")
-}
-
-func resourcePropertyExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	return false, errors.New("resourcePropertyExists")
 }
