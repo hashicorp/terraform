@@ -193,7 +193,7 @@ resource "azurerm_virtual_machine_extension" "setup_mysql" {
   type_handler_version       = "2.0"
   auto_upgrade_minor_version = true
   count                      = "${var.node_count}"
-  depends_on                 = ["azurerm_virtual_machine.vm"]
+  depends_on                 = ["azurerm_virtual_machine.vm", "azurerm_lb_nat_rule.ProbeNatRule0"]
 
   settings = <<SETTINGS
 {
@@ -203,7 +203,7 @@ SETTINGS
 
   protected_settings = <<SETTINGS
  {
-   "commandToExecute": "sh azuremysql.sh ${count.index + 1} 10.0.1.${count.index + 5} ${var.artifacts_location}${var.mysql_cfg_file_path} '${var.mysql_replication_password}' '${var.mysql_root_password}' '${var.mysql_probe_password}' '${var.db_subnet_start_address}' '${var.unique_prefix}wordpress'"
+   "commandToExecute": "bash azuremysql.sh ${count.index + 1} 10.0.1.${count.index + 6} ${var.artifacts_location}${var.mysql_cfg_file_path} '${var.mysql_replication_password}' '${var.mysql_root_password}' '${var.mysql_probe_password}' 10.0.1.5 ${var.unique_prefix}wordpress"
  }
 SETTINGS
 }

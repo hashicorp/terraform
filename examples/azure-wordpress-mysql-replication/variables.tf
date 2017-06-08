@@ -36,7 +36,7 @@ variable "os_image_offer" {
 
 variable "os_version" {
   description = "version of the image to apply (az vm image list)"
-  default     = "7.3"
+  default     = "6.5"
 }
 
 variable "api_version" {
@@ -154,7 +154,7 @@ variable "image_offer" {
 
 variable "image_sku" {
   description = "VM OS version. Allowed values: 6.5, 6.6"
-  default     = "6.6"
+  default     = "6.5"
 }
 
 variable "mysql_front_end_port_0" {
