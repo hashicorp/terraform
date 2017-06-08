@@ -248,6 +248,7 @@ func TestAccComputeInstance_attachedDisk(t *testing.T) {
 	var instance compute.Instance
 	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
 	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+	var diskName2 = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -255,7 +256,47 @@ func TestAccComputeInstance_attachedDisk(t *testing.T) {
 		CheckDestroy: testAccCheckComputeInstanceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeInstance_attachedDisk(diskName, instanceName),
+				Config: testAccComputeInstance_attachedDisk(diskName, diskName2, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, diskName, false, true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_attachedDiskUpdate(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+	var diskName2 = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_attachedDisk(diskName, diskName2, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, diskName, false, true),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeInstance_attachedDiskTwo(diskName, diskName2, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, diskName, false, true),
+					testAccCheckComputeInstanceDisk(&instance, diskName2, false, false),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeInstance_attachedDisk(diskName, diskName2, instanceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceExists(
 						"google_compute_instance.foobar", &instance),
@@ -1159,12 +1200,19 @@ func testAccComputeInstance_disks_encryption(disk, instance string) string {
 	}`, disk, instance)
 }
 
-func testAccComputeInstance_attachedDisk(disk, instance string) string {
+func testAccComputeInstance_attachedDisk(disk, disk2, instance string) string {
 	return fmt.Sprintf(`
 	resource "google_compute_disk" "foobar" {
 		name = "%s"
 		size = 10
 		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_disk" "foobar2" {
+		name = "%s"
+		size = 15
+		type = "pd-standard"
 		zone = "us-central1-a"
 	}
 
@@ -1175,6 +1223,7 @@ func testAccComputeInstance_attachedDisk(disk, instance string) string {
 
 		attached_disk {
 			source = "${google_compute_disk.foobar.self_link}"
+			boot = true
 		}
 
 		network_interface {
@@ -1184,7 +1233,47 @@ func testAccComputeInstance_attachedDisk(disk, instance string) string {
 		metadata {
 			foo = "bar"
 		}
-	}`, disk, instance)
+	}`, disk, disk2, instance)
+}
+
+func testAccComputeInstance_attachedDiskTwo(disk, disk2, instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_disk" "foobar" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_disk" "foobar2" {
+		name = "%s"
+		size = 15
+		type = "pd-standard"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		attached_disk {
+			source = "${google_compute_disk.foobar.self_link}"
+			boot = true
+		}
+
+		attached_disk {
+			source = "${google_compute_disk.foobar2.self_link}"
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, disk, disk2, instance)
 }
 
 func testAccComputeInstance_noDisk(instance string) string {
