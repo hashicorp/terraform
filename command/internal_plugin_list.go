@@ -36,6 +36,7 @@ import (
 	grafanaprovider "github.com/hashicorp/terraform/builtin/providers/grafana"
 	herokuprovider "github.com/hashicorp/terraform/builtin/providers/heroku"
 	httpprovider "github.com/hashicorp/terraform/builtin/providers/http"
+	icanhazipprovider "github.com/hashicorp/terraform/builtin/providers/icanhazip"
 	icinga2provider "github.com/hashicorp/terraform/builtin/providers/icinga2"
 	ignitionprovider "github.com/hashicorp/terraform/builtin/providers/ignition"
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
@@ -118,6 +119,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"grafana":      grafanaprovider.Provider,
 	"heroku":       herokuprovider.Provider,
 	"http":         httpprovider.Provider,
+	"icanhazip":    icanhazipprovider.Provider,
 	"icinga2":      icinga2provider.Provider,
 	"ignition":     ignitionprovider.Provider,
 	"influxdb":     influxdbprovider.Provider,
