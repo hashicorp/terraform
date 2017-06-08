@@ -6,6 +6,7 @@
 package command
 
 import (
+	akamaiprovider "github.com/hashicorp/terraform/builtin/providers/akamai"
 	alicloudprovider "github.com/hashicorp/terraform/builtin/providers/alicloud"
 	archiveprovider "github.com/hashicorp/terraform/builtin/providers/archive"
 	arukasprovider "github.com/hashicorp/terraform/builtin/providers/arukas"
@@ -88,6 +89,7 @@ import (
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
+	"akamai":       akamaiprovider.Provider,
 	"alicloud":     alicloudprovider.Provider,
 	"archive":      archiveprovider.Provider,
 	"arukas":       arukasprovider.Provider,

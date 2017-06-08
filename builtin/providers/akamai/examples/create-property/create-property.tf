@@ -1,16 +1,20 @@
 provider "akamai" {
   edgerc = "/Users/dshafik/.edgerc"
-  papi_section = "default"
+  papi_section = "global"
 }
 
 resource "akamai_property" "daveyshafikcom" {
   group = "Davey Shafik"
-  hostname = ["www.daveyshafik.com"]
-  cpcode = 40455
+  contract = "ctr_C-1FRYVV3"
+  contact = ["dshafik@akamai.com"]
+
+  hostname = ["test95.randomnoise.us"]
+
+  cpcode = "409449"
 
   origin {
-    is_secure = true
-    hostname = "origin.daveyshafik.com"
+    is_secure = false
+    hostname = "www.randomnoise.us"
   }
 
   compress {
@@ -29,19 +33,133 @@ resource "akamai_property" "daveyshafikcom" {
     query_params_sort = true
   }
 
-  cache {
-    match {
-      extensions = ["jpg", "jpeg", "png", "gif", "svg", "webp", "jp2", "jxr"]
-    }
-    max_age = "365d"
-    prefreshing = true
-    prefetch = true
-  }
+  rule {
+    name = "Testing"
 
-  cache {
-    match {
-      path = ["/admin", "/admin/*"]
+    criteria {
+      name = "hostname"
+      option {
+        name = "matchOperator"
+        value = "IS_ONE_OF"
+      }
+      option {
+        name = "values"
+        values = ["custom.example.com"]
+      }
     }
-    cache = false
+
+    behavior {
+      name = "foo"
+      option {
+        name = "bar"
+        value = "test"
+      }
+    }
+
+    comment = "A random comment"
+
+    rule {
+      name = "Testing"
+
+      criteria {
+        name = "hostname"
+        option {
+          name = "matchOperator"
+          value = "IS_ONE_OF"
+        }
+        option {
+          name = "values"
+          values = ["custom.example.com"]
+        }
+      }
+
+      behavior {
+        name = "foo"
+        option {
+          name = "bar"
+          value = "test"
+        }
+      }
+
+      comment = "A random comment"
+
+      rule {
+        name = "Testing"
+
+        criteria {
+          name = "hostname"
+          option {
+            name = "matchOperator"
+            value = "IS_ONE_OF"
+          }
+          option {
+            name = "values"
+            values = ["custom.example.com"]
+          }
+        }
+
+        behavior {
+          name = "foo"
+          option {
+            name = "bar"
+            value = "test"
+          }
+        }
+
+        comment = "A random comment"
+
+        rule {
+          name = "Testing"
+
+          criteria {
+            name = "hostname"
+            option {
+              name = "matchOperator"
+              value = "IS_ONE_OF"
+            }
+            option {
+              name = "values"
+              values = ["custom.example.com"]
+            }
+          }
+
+          behavior {
+            name = "foo"
+            option {
+              name = "bar"
+              value = "test"
+            }
+          }
+
+          comment = "A random comment"
+
+          rule {
+            name = "Testing"
+
+            criteria {
+              name = "hostname"
+              option {
+                name = "matchOperator"
+                value = "IS_ONE_OF"
+              }
+              option {
+                name = "values"
+                values = ["custom.example.com"]
+              }
+            }
+
+            behavior {
+              name = "foo"
+              option {
+                name = "bar"
+                value = "test"
+              }
+            }
+
+            comment = "A random comment"
+          }
+        }
+      }
+    }
   }
 }
