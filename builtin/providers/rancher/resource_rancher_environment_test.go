@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	rancherClient "github.com/rancher/go-rancher/client"
+	rancherClient "github.com/rancher/go-rancher/v2"
 )
 
 func TestAccRancherEnvironment_basic(t *testing.T) {
@@ -191,7 +191,6 @@ resource "rancher_environment" "foo" {
 	orchestration = "swarm"
 }
 `
-
 const testAccRancherEnvironmentMembersConfig = `
 resource "rancher_environment" "foo" {
 	name = "foo"
@@ -223,5 +222,13 @@ resource "rancher_environment" "foo" {
 		external_id_type = "github_user"
 		role = "owner"
 	}
+`
+
+const testAccRancherInvalidEnvironmentConfig = `
+resource "rancher_environment_invalid_config" "bar" {
+	name = "bar"
+	description = "Terraform acc test group - failure"
+	orchestration = "cattle"
+	project_template_id = "1pt1"
 }
 `

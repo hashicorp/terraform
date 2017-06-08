@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	rancherClient "github.com/rancher/go-rancher/client"
+	rancherClient "github.com/rancher/go-rancher/v2"
 )
 
 func resourceRancherRegistryCredential() *schema.Resource {
@@ -64,7 +64,6 @@ func resourceRancherRegistryCredentialCreate(d *schema.ResourceData, meta interf
 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
-	email := d.Get("email").(string)
 	publicValue := d.Get("public_value").(string)
 	secretValue := d.Get("secret_value").(string)
 	registryID := d.Get("registry_id").(string)
@@ -72,7 +71,6 @@ func resourceRancherRegistryCredentialCreate(d *schema.ResourceData, meta interf
 	registryCred := rancherClient.RegistryCredential{
 		Name:        name,
 		Description: description,
-		Email:       email,
 		PublicValue: publicValue,
 		SecretValue: secretValue,
 		RegistryId:  registryID,
@@ -130,7 +128,6 @@ func resourceRancherRegistryCredentialRead(d *schema.ResourceData, meta interfac
 
 	d.Set("description", registryCred.Description)
 	d.Set("name", registryCred.Name)
-	d.Set("email", registryCred.Email)
 	d.Set("public_value", registryCred.PublicValue)
 	d.Set("registry_id", registryCred.RegistryId)
 
@@ -151,13 +148,11 @@ func resourceRancherRegistryCredentialUpdate(d *schema.ResourceData, meta interf
 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
-	email := d.Get("email").(string)
 	publicValue := d.Get("public_value").(string)
 	secretValue := d.Get("secret_value").(string)
 
 	registryCred.Name = name
 	registryCred.Description = description
-	registryCred.Email = email
 	registryCred.PublicValue = publicValue
 	registryCred.SecretValue = secretValue
 	client.RegistryCredential.Update(registryCred, &registryCred)

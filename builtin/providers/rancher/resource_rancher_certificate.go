@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	rancher "github.com/rancher/go-rancher/client"
+	rancher "github.com/rancher/go-rancher/v2"
 )
 
 func resourceRancherCertificate() *schema.Resource {
@@ -253,7 +253,7 @@ func resourceRancherCertificateImport(d *schema.ResourceData, meta interface{}) 
 		if err != nil {
 			return []*schema.ResourceData{}, err
 		}
-		stack, err := client.Environment.ById(d.Id())
+		stack, err := client.Stack.ById(d.Id())
 		if err != nil {
 			return []*schema.ResourceData{}, err
 		}

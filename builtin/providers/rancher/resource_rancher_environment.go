@@ -3,13 +3,22 @@ package rancher
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
-	rancherClient "github.com/rancher/go-rancher/client"
+	rancherClient "github.com/rancher/go-rancher/v2"
+)
+
+var (
+	defaultProjectTemplates = map[string]string{
+		"mesos":      "",
+		"kubernetes": "",
+		"windows":    "",
+		"swarm":      "",
+		"cattle":     "",
+	}
 )
 
 func resourceRancherEnvironment() *schema.Resource {
@@ -32,10 +41,17 @@ func resourceRancherEnvironment() *schema.Resource {
 				Required: true,
 			},
 			"orchestration": &schema.Schema{
-				Type:         schema.TypeString,
-				Default:      "cattle",
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"cattle", "kubernetes", "mesos", "swarm"}, true),
+				Type:          schema.TypeString,
+				Optional:      true,
+				ValidateFunc:  validation.StringInSlice([]string{"cattle", "kubernetes", "mesos", "swarm", "windows"}, true),
+				Computed:      true,
+				ConflictsWith: []string{"project_template_id"},
+			},
+			"project_template_id": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"orchestration"},
 			},
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
@@ -68,6 +84,8 @@ func resourceRancherEnvironment() *schema.Resource {
 
 func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Creating Environment: %s", d.Id())
+	populateProjectTemplateIDs(meta.(*Config))
+
 	client, err := meta.(*Config).GlobalClient()
 	if err != nil {
 		return err
@@ -76,13 +94,18 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
 	orchestration := d.Get("orchestration").(string)
+	projectTemplateID := d.Get("project_template_id").(string)
 
-	data := map[string]interface{}{
-		"name":        &name,
-		"description": &description,
+	projectTemplateID, err = getProjectTemplateID(orchestration, projectTemplateID)
+	if err != nil {
+		return err
 	}
 
-	setOrchestrationFields(orchestration, data)
+	data := map[string]interface{}{
+		"name":              &name,
+		"description":       &description,
+		"projectTemplateId": &projectTemplateID,
+	}
 
 	var newEnv rancherClient.Project
 	if err := client.Create("project", data, &newEnv); err != nil {
@@ -112,7 +135,7 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 		if err != nil {
 			return err
 		}
-		members := v.([]interface{})
+		members := makeProjectMembers(v.([]interface{}))
 		_, err = envClient.Project.ActionSetmembers(&newEnv, &rancherClient.SetProjectMembersInput{
 			Members: members,
 		})
@@ -153,6 +176,7 @@ func resourceRancherEnvironmentRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("description", env.Description)
 	d.Set("name", env.Name)
 	d.Set("orchestration", getActiveOrchestration(env))
+	d.Set("project_template_id", env.ProjectTemplateId)
 
 	envClient, err := meta.(*Config).EnvironmentClient(d.Id())
 	if err != nil {
@@ -166,6 +190,8 @@ func resourceRancherEnvironmentRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceRancherEnvironmentUpdate(d *schema.ResourceData, meta interface{}) error {
+	populateProjectTemplateIDs(meta.(*Config))
+
 	client, err := meta.(*Config).GlobalClient()
 	if err != nil {
 		return err
@@ -174,13 +200,18 @@ func resourceRancherEnvironmentUpdate(d *schema.ResourceData, meta interface{}) 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
 	orchestration := d.Get("orchestration").(string)
+	projectTemplateID := d.Get("project_template_id").(string)
 
-	data := map[string]interface{}{
-		"name":        &name,
-		"description": &description,
+	projectTemplateID, err = getProjectTemplateID(orchestration, projectTemplateID)
+	if err != nil {
+		return err
 	}
 
-	setOrchestrationFields(orchestration, data)
+	data := map[string]interface{}{
+		"name":                &name,
+		"description":         &description,
+		"project_template_id": &projectTemplateID,
+	}
 
 	var newEnv rancherClient.Project
 	env, err := client.Project.ById(d.Id())
@@ -246,18 +277,21 @@ func resourceRancherEnvironmentDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func setOrchestrationFields(orchestration string, data map[string]interface{}) {
-	orch := strings.ToLower(orchestration)
-
-	data["swarm"] = false
-	data["kubernetes"] = false
-	data["mesos"] = false
-
-	if orch == "k8s" {
-		orch = "kubernetes"
+func getProjectTemplateID(orchestration, templateID string) (string, error) {
+	id := templateID
+	if templateID == "" && orchestration == "" {
+		return "", fmt.Errorf("Need either 'orchestration' or 'project_template_id'")
 	}
 
-	data[orch] = true
+	if templateID == "" && orchestration != "" {
+		ok := false
+		id, ok = defaultProjectTemplates[orchestration]
+		if !ok {
+			return "", fmt.Errorf("Invalid orchestration: %s", orchestration)
+		}
+	}
+
+	return id, nil
 }
 
 func normalizeMembers(in []rancherClient.ProjectMember) (out []interface{}) {
@@ -272,7 +306,7 @@ func normalizeMembers(in []rancherClient.ProjectMember) (out []interface{}) {
 	return
 }
 
-func makeProjectMembers(in []interface{}) (out []interface{}) {
+func makeProjectMembers(in []interface{}) (out []rancherClient.ProjectMember) {
 	for _, m := range in {
 		mMap := m.(map[string]interface{})
 		mm := rancherClient.ProjectMember{
@@ -293,6 +327,14 @@ func EnvironmentStateRefreshFunc(client *rancherClient.RancherClient, environmen
 
 		if err != nil {
 			return nil, "", err
+		}
+
+		// Env not returned, or State not set...
+		if env == nil || env.State == "" {
+			// This makes it so user level API keys can be used instead of just admin
+			env = &rancherClient.Project{
+				State: "removed",
+			}
 		}
 
 		return env, env.State, nil

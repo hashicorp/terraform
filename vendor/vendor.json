@@ -2943,16 +2943,22 @@
 			"revisionTime": "2015-09-07T02:38:54Z"
 		},
 		{
-			"checksumSHA1": "qn7N2kqSpKKi3YglZNyoQxp4aKs=",
-			"path": "github.com/rancher/go-rancher/client",
-			"revision": "bdb84801f2cf82be73e210ff586c531b07c83c42",
-			"revisionTime": "2016-07-27T23:27:26Z"
+			"checksumSHA1": "u5s2PZ7fzCOqQX7bVPf9IJ+qNLQ=",
+			"path": "github.com/rancher/go-rancher",
+			"revision": "ec24b7f12fca9f78fbfcd62a0ea8bce14ade8792",
+			"revisionTime": "2017-04-07T04:09:43Z"
 		},
 		{
-			"checksumSHA1": "3GxN1UayE1AG4mG+Cg+MlzqoWT8=",
-			"path": "github.com/raphink/go-rancher/catalog",
-			"revision": "49b8414f0a18a3a8054adda704eddddbbfd6fbe2",
-			"revisionTime": "2016-09-28T08:39:49Z"
+			"checksumSHA1": "zFX23H7shZIjpSPGpJv0srbLFVY=",
+			"path": "github.com/rancher/go-rancher/catalog",
+			"revision": "cc9af4572762fc6ae01f5f9bebbc359506c2f6dd",
+			"revisionTime": "2017-05-18T16:57:05Z"
+		},
+		{
+			"checksumSHA1": "PDlJwzfadZAKtXoAp/BEZCmj6Dg=",
+			"path": "github.com/rancher/go-rancher/v2",
+			"revision": "ec24b7f12fca9f78fbfcd62a0ea8bce14ade8792",
+			"revisionTime": "2017-04-07T04:09:43Z"
 		},
 		{
 			"checksumSHA1": "Yqr9OQ7AuIB1N0HMbSxqEoVQG+k=",
