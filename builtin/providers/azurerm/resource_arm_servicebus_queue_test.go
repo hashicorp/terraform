@@ -23,6 +23,12 @@ func TestAccAzureRMServiceBusQueue_basic(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMServiceBusQueueExists("azurerm_servicebus_queue.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_queue.test", "enable_batched_operations", "false"),
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_queue.test", "enable_express", "false"),
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_queue.test", "enable_partitioning", "false"),
 				),
 			},
 		},
@@ -43,6 +49,10 @@ func TestAccAzureRMServiceBusQueue_update(t *testing.T) {
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMServiceBusQueueExists("azurerm_servicebus_queue.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_queue.test", "enable_batched_operations", "false"),
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_queue.test", "enable_express", "false"),
 				),
 			},
 			resource.TestStep{
@@ -52,6 +62,8 @@ func TestAccAzureRMServiceBusQueue_update(t *testing.T) {
 						"azurerm_servicebus_queue.test", "enable_batched_operations", "true"),
 					resource.TestCheckResourceAttr(
 						"azurerm_servicebus_queue.test", "enable_express", "true"),
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_queue.test", "max_size_in_megabytes", "2048"),
 				),
 			},
 		},
@@ -72,6 +84,8 @@ func TestAccAzureRMServiceBusQueue_enablePartitioningStandard(t *testing.T) {
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMServiceBusQueueExists("azurerm_servicebus_queue.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_queue.test", "enable_partitioning", "false"),
 				),
 			},
 			resource.TestStep{
@@ -88,10 +102,9 @@ func TestAccAzureRMServiceBusQueue_enablePartitioningStandard(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMServiceBusQueue_enablePartitioningPremium(t *testing.T) {
+func TestAccAzureRMServiceBusQueue_defaultEnablePartitioningPremium(t *testing.T) {
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureRMServiceBusQueue_basic, ri, ri, ri)
-	postConfig := fmt.Sprintf(testAccAzureRMServiceBusQueue_enablePartitioningPremium, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMServiceBusQueue_Premium, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -99,18 +112,13 @@ func TestAccAzureRMServiceBusQueue_enablePartitioningPremium(t *testing.T) {
 		CheckDestroy: testCheckAzureRMServiceBusQueueDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: preConfig,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMServiceBusQueueExists("azurerm_servicebus_queue.test"),
-				),
-			},
-			resource.TestStep{
-				Config: postConfig,
-				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"azurerm_servicebus_queue.test", "enable_partitioning", "true"),
 					resource.TestCheckResourceAttr(
-						"azurerm_servicebus_queue.test", "max_size_in_megabytes", "81920"),
+						"azurerm_servicebus_queue.test", "enable_express", "false"),
 				),
 			},
 		},
@@ -131,6 +139,8 @@ func TestAccAzureRMServiceBusQueue_enableDuplicateDetection(t *testing.T) {
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMServiceBusQueueExists("azurerm_servicebus_queue.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_queue.test", "requires_duplicate_detection", "false"),
 				),
 			},
 			resource.TestStep{
@@ -223,7 +233,7 @@ resource "azurerm_servicebus_queue" "test" {
 }
 `
 
-var testAccAzureRMServiceBusQueue_basicPremium = `
+var testAccAzureRMServiceBusQueue_Premium = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
     location = "West US"
@@ -241,6 +251,8 @@ resource "azurerm_servicebus_queue" "test" {
     location = "West US"
     namespace_name = "${azurerm_servicebus_namespace.test.name}"
     resource_group_name = "${azurerm_resource_group.test.name}"
+    enable_partitioning = true
+    enable_express = false
 }
 `
 
@@ -264,6 +276,7 @@ resource "azurerm_servicebus_queue" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     enable_batched_operations = true
     enable_express = true
+    max_size_in_megabytes = 2048
 }
 `
 
@@ -308,8 +321,7 @@ resource "azurerm_servicebus_queue" "test" {
     location = "West US"
     namespace_name = "${azurerm_servicebus_namespace.test.name}"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    enable_partitioning = true
-	max_size_in_megabytes = 81920
+    enable_partitioning = false
 }
 `
 

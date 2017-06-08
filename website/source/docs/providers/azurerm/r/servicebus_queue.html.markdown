@@ -8,7 +8,7 @@ description: |-
 
 # azurerm\_servicebus\_queue
 
-Create a ServiceBus Queue.
+Create and manage a ServiceBus Queue.
 
 ## Example Usage
 
@@ -67,26 +67,32 @@ The following arguments are supported:
     duplicates can be detected. Default value is 10 minutes. Provided in the [TimeSpan](#timespan-format) format.
 
 * `enable_batched_operations` - (Optional) Boolean flag which controls if server-side
-    batched operations are enabled. Defaults to false.
+    batched operations are enabled. Defaults to `false`.
 
 * `enable_express` - (Optional) Boolean flag which controls whether Express Entities
     are enabled. An express queue holds a message in memory temporarily before writing
-    it to persistent storage. Defaults to false.
+    it to persistent storage. Defaults to `false` for Basic and Standard. For Premium, it MUST
+    be set to `false`.
+
+~> **NOTE:** Service Bus Premium namespaces do not support Express Entities, so `enable_express` MUST be set to `false`.
 
 * `enable_partitioning` - (Optional) Boolean flag which controls whether to enable
-    the queue to be partitioned across multiple message brokers. Defaults to false.
-    Changing this forces a new resource to be created.
+    the queue to be partitioned across multiple message brokers. Changing this forces
+    a new resource to be created. Defaults to `false` for Basic and Standard. For Premium, it MUST
+    be set to `true`.
+
+~> **NOTE:** Service Bus Premium namespaces are always partitioned, so `enable_partitioning` MUST be set to `true`.
 
 * `max_size_in_megabytes` - (Optional) Integer value which controls the size of
     memory allocated for the queue. For supported values see the "Queue/topic size"
     section of [this document](https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quotas).
 
 * `requires_duplicate_detection` - (Optional) Boolean flag which controls whether
-    the Queue requires duplicate detection. Defaults to false. Changing this forces
-    a new resource to be created.
+    the Queue requires duplicate detection. Changing this forces
+    a new resource to be created. Defaults to `false`.
 
 * `support_ordering` - (Optional) Boolean flag which controls whether the Queue
-    supports ordering. Defaults to false.
+    supports ordering. Defaults to `false`.
 
 ### TimeSpan Format
 
