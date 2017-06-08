@@ -11,10 +11,12 @@ import (
 func TestAccInstanceGroupManager_importBasic(t *testing.T) {
 	resourceName1 := "google_compute_instance_group_manager.igm-basic"
 	resourceName2 := "google_compute_instance_group_manager.igm-no-tp"
+	resourceName3 := "google_compute_instance_group_manager.igm-size-zero"
 	template := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
 	target := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
 	igm1 := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
 	igm2 := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
+	igm3 := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,7 +24,7 @@ func TestAccInstanceGroupManager_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckInstanceGroupManagerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccInstanceGroupManager_basic(template, target, igm1, igm2),
+				Config: testAccInstanceGroupManager_basic(template, target, igm1, igm2, igm3),
 			},
 
 			resource.TestStep{
@@ -33,6 +35,12 @@ func TestAccInstanceGroupManager_importBasic(t *testing.T) {
 
 			resource.TestStep{
 				ResourceName:      resourceName2,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+
+			resource.TestStep{
+				ResourceName:      resourceName3,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
