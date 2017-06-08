@@ -1,5 +1,9 @@
 ## 0.10.0-beta1 (Unreleased)
 
+FEATURES:
+
+* **New Resource:** `kubernetes_pod` [GH-13571]
+
 IMPROVEMENTS:
 
 * provider/rancher: Move to Rancher V2 API [GH-13908]
