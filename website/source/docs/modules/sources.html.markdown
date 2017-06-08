@@ -160,6 +160,16 @@ module "consul" {
 }
 ```
 
+Subdirectories within the repository can also be referenced:
+
+```hcl
+module "consul" {
+  source = "git::https://hashicorp.com/consul.git//subdir"
+}
+```
+
+**Note:** The double-slash, `//`, is important. It is what tells Terraform that this is the separator for a subdirectory, and not part of the repository itself.
+
 Terraform will cache the module locally by default `terraform get` is run, so successive updates to master or a specified branch will not be factored into future plans. Run `terraform get -update=true` to get the latest version of the branch. This is handy in development, but potentially bothersome in production if you don't have control of the repository.
 
 ## Generic Mercurial Repository
