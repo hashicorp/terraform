@@ -21,11 +21,12 @@ resource "azurerm_virtual_network" "vnet" {
 }
 
 resource "azurerm_subnet" "db_subnet" {
-  name                 = "${var.db_subnet_name}"
-  virtual_network_name = "${azurerm_virtual_network.vnet.name}"
-  resource_group_name  = "${azurerm_resource_group.rg.name}"
-  address_prefix       = "${var.db_subnet_address_prefix}"
-  depends_on           = ["azurerm_virtual_network.vnet"]
+  name                      = "${var.db_subnet_name}"
+  virtual_network_name      = "${azurerm_virtual_network.vnet.name}"
+  resource_group_name       = "${azurerm_resource_group.rg.name}"
+  network_security_group_id = "${azurerm_network_security_group.nsg.id}"
+  address_prefix            = "${var.db_subnet_address_prefix}"
+  depends_on                = ["azurerm_virtual_network.vnet"]
 }
 
 # **********************  STORAGE ACCOUNTS ********************** #
@@ -34,6 +35,39 @@ resource "azurerm_storage_account" "stor" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
   account_type        = "${var.storage_account_type}"
+}
+
+# **********************  NETWORK SECURITY GROUP ********************** #
+resource "azurerm_network_security_group" "nsg" {
+  name                = "${var.unique_prefix}-nsg"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+
+  security_rule {
+    name                       = "allow-ssh"
+    description                = "Allow SSH"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "Internet"
+    destination_address_prefix = "*"
+  }
+
+ security_rule {
+    name                       = "MySQL"
+    description                = "MySQL"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3306"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
 }
 
 # **********************  PUBLIC IP ADDRESSES ********************** #
@@ -54,11 +88,12 @@ resource "azurerm_availability_set" "availability_set" {
 
 # **********************  NETWORK INTERFACES ********************** #
 resource "azurerm_network_interface" "nic" {
-  name                = "${var.nic_name}${count.index}"
-  location            = "${azurerm_resource_group.rg.location}"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  count               = "${var.node_count}"
-  depends_on          = ["azurerm_virtual_network.vnet", "azurerm_public_ip.pip", "azurerm_lb.lb"]
+  name                      = "${var.nic_name}${count.index}"
+  location                  = "${azurerm_resource_group.rg.location}"
+  resource_group_name       = "${azurerm_resource_group.rg.name}"
+  network_security_group_id = "${azurerm_network_security_group.nsg.id}"
+  count                     = "${var.node_count}"
+  depends_on                = ["azurerm_virtual_network.vnet", "azurerm_public_ip.pip", "azurerm_lb.lb"]
 
   ip_configuration {
     name                                    = "ipconfig${count.index}"

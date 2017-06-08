@@ -13,7 +13,7 @@ git:
 env:
   - TEST_DIR=examples/azure-wordpress-mysql-replication
   # - TEST_DIR=examples/azure-2-vms-loadbalancer-lbrules
-  # - TEST_DIR=examples/azure-encrypt-running-linux-vm
+  - TEST_DIR=examples/azure-encrypt-running-linux-vm
   # - TEST_DIR=examples/azure-servicebus-create-topic-and-subscription
   # - TEST_DIR=examples/azure-search-create
   # - TEST_DIR=examples/azure-vnet-to-vnet-peering
@@ -40,6 +40,7 @@ before_deploy:
   - export EXISTING_IMAGE_URI=https://permanentstor.blob.core.windows.net/permanent-vhds/permanent-osdisk1.vhd
   - export EXISTING_STORAGE_ACCOUNT_NAME=permanentstor
   - export EXISTING_RESOURCE_GROUP=permanent
+  - export KEY_VAULT_NAME=TerraformVault
 
 # terraform deploy + script
 deploy:
