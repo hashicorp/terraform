@@ -89,7 +89,7 @@ func resourceRancherStack() *schema.Resource {
 
 func resourceRancherStackCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Creating Stack: %s", d.Id())
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func resourceRancherStackCreate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Stack: %s", d.Id())
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceRancherStackUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Updating Stack: %s", d.Id())
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -306,7 +306,7 @@ func resourceRancherStackUpdate(d *schema.ResourceData, meta interface{}) error 
 func resourceRancherStackDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Stack: %s", d.Id())
 	id := d.Id()
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -347,7 +347,7 @@ func resourceRancherStackImport(d *schema.ResourceData, meta interface{}) ([]*sc
 	if envID != "" {
 		d.Set("environment_id", envID)
 	} else {
-		client, err := meta.(*Config).GlobalClient()
+		client, err := getConfig(d, meta).GlobalClient()
 		if err != nil {
 			return []*schema.ResourceData{}, err
 		}
@@ -397,7 +397,7 @@ func makeStackData(d *schema.ResourceData, meta interface{}) (data map[string]in
 		catalogID := c.(string)
 		externalID += "catalog://" + catalogID
 
-		catalogClient, err := meta.(*Config).CatalogClient()
+		catalogClient, err := getConfig(d, meta).CatalogClient()
 		if err != nil {
 			return data, err
 		}

@@ -3,6 +3,9 @@ package rancher
 import (
 	"log"
 
+	"time"
+
+	"github.com/hashicorp/terraform/helper/schema"
 	rancherClient "github.com/rancher/go-rancher/client"
 	"github.com/raphink/go-rancher/catalog"
 )
@@ -12,6 +15,14 @@ type Config struct {
 	APIURL    string
 	AccessKey string
 	SecretKey string
+	Timeout   time.Duration
+}
+
+func getConfig(d *schema.ResourceData, meta interface{}) *Config {
+	cfg := meta.(*Config)
+	cfg.Timeout = d.Timeout("default")
+	schema.EnvDefaultFunc("RANCHER_CLIENT_TIMEOUT", "10s")
+	return cfg
 }
 
 // GlobalClient creates a Rancher client scoped to the global API
@@ -20,6 +31,7 @@ func (c *Config) GlobalClient() (*rancherClient.RancherClient, error) {
 		Url:       c.APIURL,
 		AccessKey: c.AccessKey,
 		SecretKey: c.SecretKey,
+		Timeout:   c.timeout(),
 	})
 	if err != nil {
 		return nil, err
@@ -34,10 +46,12 @@ func (c *Config) GlobalClient() (*rancherClient.RancherClient, error) {
 func (c *Config) EnvironmentClient(env string) (*rancherClient.RancherClient, error) {
 
 	url := c.APIURL + "/projects/" + env + "/schemas"
+
 	client, err := rancherClient.NewRancherClient(&rancherClient.ClientOpts{
 		Url:       url,
 		AccessKey: c.AccessKey,
 		SecretKey: c.SecretKey,
+		Timeout:   c.timeout(),
 	})
 	if err != nil {
 		return nil, err
@@ -70,6 +84,7 @@ func (c *Config) CatalogClient() (*catalog.RancherClient, error) {
 		Url:       url,
 		AccessKey: c.AccessKey,
 		SecretKey: c.SecretKey,
+		Timeout:   c.timeout(),
 	})
 	if err != nil {
 		return nil, err
@@ -78,4 +93,11 @@ func (c *Config) CatalogClient() (*catalog.RancherClient, error) {
 	log.Printf("[INFO] Rancher Catalog Client configured for url: %s", url)
 
 	return client, nil
+}
+
+func (c *Config) timeout() time.Duration {
+	if c.Timeout == 0 {
+		return time.Duration(60 * time.Second)
+	}
+	return c.Timeout
 }

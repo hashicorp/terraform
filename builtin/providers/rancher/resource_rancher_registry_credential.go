@@ -57,7 +57,7 @@ func resourceRancherRegistryCredential() *schema.Resource {
 
 func resourceRancherRegistryCredentialCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Creating RegistryCredential: %s", d.Id())
-	client, err := meta.(*Config).RegistryClient(d.Get("registry_id").(string))
+	client, err := getConfig(d, meta).RegistryClient(d.Get("registry_id").(string))
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func resourceRancherRegistryCredentialCreate(d *schema.ResourceData, meta interf
 
 func resourceRancherRegistryCredentialRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing RegistryCredential: %s", d.Id())
-	client, err := meta.(*Config).RegistryClient(d.Get("registry_id").(string))
+	client, err := getConfig(d, meta).RegistryClient(d.Get("registry_id").(string))
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func resourceRancherRegistryCredentialRead(d *schema.ResourceData, meta interfac
 
 func resourceRancherRegistryCredentialUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Updating RegistryCredential: %s", d.Id())
-	client, err := meta.(*Config).RegistryClient(d.Get("registry_id").(string))
+	client, err := getConfig(d, meta).RegistryClient(d.Get("registry_id").(string))
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func resourceRancherRegistryCredentialUpdate(d *schema.ResourceData, meta interf
 func resourceRancherRegistryCredentialDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting RegistryCredential: %s", d.Id())
 	id := d.Id()
-	client, err := meta.(*Config).RegistryClient(d.Get("registry_id").(string))
+	client, err := getConfig(d, meta).RegistryClient(d.Get("registry_id").(string))
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func resourceRancherRegistryCredentialImport(d *schema.ResourceData, meta interf
 	if regID != "" {
 		d.Set("registry_id", regID)
 	} else {
-		client, err := meta.(*Config).GlobalClient()
+		client, err := getConfig(d, meta).GlobalClient()
 		if err != nil {
 			return []*schema.ResourceData{}, err
 		}

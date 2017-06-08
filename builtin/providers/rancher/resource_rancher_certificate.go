@@ -96,7 +96,7 @@ func resourceRancherCertificate() *schema.Resource {
 
 func resourceRancherCertificateCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO][rancher] Creating Certificate: %s", d.Id())
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func resourceRancherCertificateCreate(d *schema.ResourceData, meta interface{}) 
 
 func resourceRancherCertificateRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Certificate: %s", d.Id())
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func resourceRancherCertificateRead(d *schema.ResourceData, meta interface{}) er
 
 func resourceRancherCertificateUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Updating Certificate: %s", d.Id())
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func resourceRancherCertificateUpdate(d *schema.ResourceData, meta interface{}) 
 func resourceRancherCertificateDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Certificate: %s", d.Id())
 	id := d.Id()
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func resourceRancherCertificateImport(d *schema.ResourceData, meta interface{}) 
 	if envID != "" {
 		d.Set("environment_id", envID)
 	} else {
-		client, err := meta.(*Config).GlobalClient()
+		client, err := getConfig(d, meta).GlobalClient()
 		if err != nil {
 			return []*schema.ResourceData{}, err
 		}

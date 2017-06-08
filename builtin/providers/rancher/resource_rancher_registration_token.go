@@ -61,7 +61,7 @@ func resourceRancherRegistrationToken() *schema.Resource {
 
 func resourceRancherRegistrationTokenCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Creating RegistrationToken: %s", d.Id())
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -101,11 +101,11 @@ func resourceRancherRegistrationTokenCreate(d *schema.ResourceData, meta interfa
 
 func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing RegistrationToken: %s", d.Id())
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
-	// client := meta.(*Config)
+	// client := getConfig(d, meta)
 
 	regT, err := client.RegistrationToken.ById(d.Id())
 	if err != nil {
@@ -140,7 +140,7 @@ func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface
 func resourceRancherRegistrationTokenDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting RegistrationToken: %s", d.Id())
 	id := d.Id()
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -210,7 +210,7 @@ func resourceRancherRegistrationTokenImport(d *schema.ResourceData, meta interfa
 	if envID != "" {
 		d.Set("environment_id", envID)
 	} else {
-		client, err := meta.(*Config).GlobalClient()
+		client, err := getConfig(d, meta).GlobalClient()
 		if err != nil {
 			return []*schema.ResourceData{}, err
 		}

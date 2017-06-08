@@ -63,12 +63,15 @@ func resourceRancherEnvironment() *schema.Resource {
 				},
 			},
 		},
+		Timeouts: &schema.ResourceTimeout{
+			Default: schema.DefaultTimeout(30 * time.Second),
+		},
 	}
 }
 
 func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Creating Environment: %s", d.Id())
-	client, err := meta.(*Config).GlobalClient()
+	client, err := getConfig(d, meta).GlobalClient()
 	if err != nil {
 		return err
 	}
@@ -126,7 +129,7 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 
 func resourceRancherEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Environment: %s", d.Id())
-	client, err := meta.(*Config).GlobalClient()
+	client, err := getConfig(d, meta).GlobalClient()
 	if err != nil {
 		return err
 	}
@@ -166,7 +169,7 @@ func resourceRancherEnvironmentRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceRancherEnvironmentUpdate(d *schema.ResourceData, meta interface{}) error {
-	client, err := meta.(*Config).GlobalClient()
+	client, err := getConfig(d, meta).GlobalClient()
 	if err != nil {
 		return err
 	}
@@ -211,7 +214,7 @@ func resourceRancherEnvironmentUpdate(d *schema.ResourceData, meta interface{}) 
 func resourceRancherEnvironmentDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Environment: %s", d.Id())
 	id := d.Id()
-	client, err := meta.(*Config).GlobalClient()
+	client, err := getConfig(d, meta).GlobalClient()
 	if err != nil {
 		return err
 	}
