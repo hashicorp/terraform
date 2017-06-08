@@ -1,5 +1,9 @@
 ## 0.10.0-beta1 (Unreleased)
 
+IMPROVEMENTS:
+
+* provider/rancher: Move to Rancher V2 API [GH-13908]
+
 
 
 ## 0.9.8 (June 7, 2017)
