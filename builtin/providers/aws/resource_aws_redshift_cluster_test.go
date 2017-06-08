@@ -844,6 +844,8 @@ func testAccAWSRedshiftClusterConfig_notPubliclyAccessible(rInt int) string {
 		cluster_subnet_group_name = "${aws_redshift_subnet_group.foo.name}"
 		publicly_accessible = false
 		skip_final_snapshot = true
+
+		depends_on = ["aws_internet_gateway.foo"]
 	}`, rInt, rInt)
 }
 
@@ -902,6 +904,8 @@ func testAccAWSRedshiftClusterConfig_updatePubliclyAccessible(rInt int) string {
 		cluster_subnet_group_name = "${aws_redshift_subnet_group.foo.name}"
 		publicly_accessible = true
 		skip_final_snapshot = true
+
+		depends_on = ["aws_internet_gateway.foo"]
 	}`, rInt, rInt)
 }
 
