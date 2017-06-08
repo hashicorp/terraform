@@ -7,9 +7,9 @@ description: |-
   artifacts, and metadata managed by the Terraform Enterprise service.
 ---
 
-# Terraform Enterprise Provider
+# HashiCorp Terraform Enterprise Provider
 
-The Terraform Enterprise provider is used to interact with resources,
+The HashiCorp Terraform Enterprise provider is used to interact with resources,
 configuration, artifacts, and metadata managed by
 [Terraform Enterprise](https://www.terraform.io/docs/providers/index.html).
 The provider needs to be configured with the proper credentials before it can
