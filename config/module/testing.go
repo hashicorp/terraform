@@ -19,7 +19,7 @@ func TestTree(t *testing.T, path string) (*Tree, func()) {
 	}
 
 	// Load the module
-	mod, err := NewTreeModule("", path)
+	mod, err := NewTreeModule("", path, 1)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 		return nil, nil

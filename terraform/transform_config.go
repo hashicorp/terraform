@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
@@ -97,38 +98,51 @@ func (t *ConfigTransformer) transformSingle(g *Graph, m *module.Tree) error {
 	// Get the configuration for this module
 	conf := m.Config()
 
-	// Build the path we're at
-	path := m.Path()
-
-	// Write all the resources out
-	for _, r := range conf.Resources {
-		// Build the resource address
-		addr, err := parseResourceAddressConfig(r)
-		if err != nil {
-			panic(fmt.Sprintf(
-				"Error parsing config address, this is a bug: %#v", r))
+	for i := 0; i < m.Count(); i++ {
+		// Build the path we're at
+		var path []string
+		if len(m.Path()) > 0 && m.Count() > 1 {
+			// In that case path will be transformed to module.foo.0
+			path = make([]string, len(m.Path())+1)
+			for j := 0; j < len(m.Path()); j++ {
+				path[j] = m.Path()[j]
+			}
+			path[len(path)-1] = strconv.Itoa(m.Count())
 		}
-		addr.Path = path
-
-		// If this is already in our uniqueness map, don't add it again
-		if _, ok := t.uniqueMap[addr.String()]; ok {
-			continue
+		if path == nil {
+			path = m.Path()
 		}
 
-		// Remove non-matching modes
-		if t.ModeFilter && addr.Mode != t.Mode {
-			continue
-		}
+		// Write all the resources out
+		for _, r := range conf.Resources {
+			// Build the resource address
+			addr, err := parseResourceAddressConfig(r)
+			if err != nil {
+				panic(fmt.Sprintf(
+					"Error parsing config address, this is a bug: %#v", r))
+			}
+			addr.Path = path
 
-		// Build the abstract node and the concrete one
-		abstract := &NodeAbstractResource{Addr: addr}
-		var node dag.Vertex = abstract
-		if f := t.Concrete; f != nil {
-			node = f(abstract)
-		}
+			// If this is already in our uniqueness map, don't add it again
+			if _, ok := t.uniqueMap[addr.String()]; ok {
+				continue
+			}
 
-		// Add it to the graph
-		g.Add(node)
+			// Remove non-matching modes
+			if t.ModeFilter && addr.Mode != t.Mode {
+				continue
+			}
+
+			// Build the abstract node and the concrete one
+			abstract := &NodeAbstractResource{Addr: addr}
+			var node dag.Vertex = abstract
+			if f := t.Concrete; f != nil {
+				node = f(abstract)
+			}
+
+			// Add it to the graph
+			g.Add(node)
+		}
 	}
 
 	return nil

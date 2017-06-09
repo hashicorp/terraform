@@ -33,7 +33,7 @@ func (m *Meta) Input() bool {
 // It expects the modules to already be downloaded. This will never
 // download any modules.
 func (m *Meta) Module(path string) (*module.Tree, error) {
-	mod, err := module.NewTreeModule("", path)
+	mod, err := module.NewTreeModule("", path, 1)
 	if err != nil {
 		// Check for the error where we have no config files
 		if errwrap.ContainsType(err, new(config.ErrNoConfigsFound)) {

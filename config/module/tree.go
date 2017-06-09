@@ -26,11 +26,15 @@ type Tree struct {
 	children map[string]*Tree
 	path     []string
 	lock     sync.RWMutex
+	count    int
 }
 
 // NewTree returns a new Tree for the given config structure.
-func NewTree(name string, c *config.Config) *Tree {
-	return &Tree{config: c, name: name}
+func NewTree(name string, c *config.Config, count int) *Tree {
+	if count == 0 {
+		count = 1
+	}
+	return &Tree{config: c, name: name, count: count}
 }
 
 // NewEmptyTree returns a new tree that is empty (contains no configuration).
@@ -50,18 +54,22 @@ func NewEmptyTree() *Tree {
 // NewTreeModule is like NewTree except it parses the configuration in
 // the directory and gives it a specific name. Use a blank name "" to specify
 // the root module.
-func NewTreeModule(name, dir string) (*Tree, error) {
+func NewTreeModule(name, dir string, count int) (*Tree, error) {
 	c, err := config.LoadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewTree(name, c), nil
+	return NewTree(name, c, count), nil
 }
 
 // Config returns the configuration for this module.
 func (t *Tree) Config() *config.Config {
 	return t.config
+}
+
+func (t *Tree) Count() int {
+	return t.count
 }
 
 // Child returns the child with the given path (by name).
@@ -104,11 +112,14 @@ func (t *Tree) Loaded() bool {
 // This is only the imports of _this_ level of the tree. To retrieve the
 // full nested imports, you'll have to traverse the tree.
 func (t *Tree) Modules() []*Module {
-	result := make([]*Module, len(t.config.Modules))
-	for i, m := range t.config.Modules {
-		result[i] = &Module{
-			Name:   m.Name,
-			Source: m.Source,
+	result := make([]*Module, 0, len(t.config.Modules))
+	for _, m := range t.config.Modules {
+		if count, _ := m.Count(); count > 0 {
+			result = append(result, &Module{
+				Name:   m.Name,
+				Source: m.Source,
+				Count:  count,
+			})
 		}
 	}
 
@@ -150,7 +161,7 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 	for _, m := range modules {
 		if _, ok := children[m.Name]; ok {
 			return fmt.Errorf(
-				"module %s: duplicated. module names must be unique", m.Name)
+				"module %s: duplicated. module m.Names must be unique", m.Name)
 		}
 
 		// Determine the path to this child
@@ -190,7 +201,7 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		}
 
 		// Load the configurations.Dir(source)
-		children[m.Name], err = NewTreeModule(m.Name, dir)
+		children[m.Name], err = NewTreeModule(m.Name, dir, m.Count)
 		if err != nil {
 			return fmt.Errorf(
 				"module %s: %s", m.Name, err)
@@ -306,6 +317,13 @@ func (t *Tree) Validate() error {
 	// Go over all the modules and verify that any parameters are valid
 	// variables into the module in question.
 	for _, m := range t.config.Modules {
+		count, _ := m.Count()
+		if count != 1 {
+			// Continue if count = 0 or if the module is a parent module
+			continue
+		}
+
+		//name = m.Name
 		tree, ok := children[m.Name]
 		if !ok {
 			// This should never happen because Load watches us

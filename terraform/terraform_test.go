@@ -84,7 +84,7 @@ func testConfig(t *testing.T, name string) *config.Config {
 }
 
 func testModule(t *testing.T, name string) *module.Tree {
-	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name))
+	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name), 1)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -128,7 +128,7 @@ func testModuleInline(t *testing.T, config map[string]string) *module.Tree {
 	}
 
 	// Parse the configuration
-	mod, err := module.NewTreeModule("", cfgPath)
+	mod, err := module.NewTreeModule("", cfgPath, 1)
 	if err != nil {
 		t.Fatalf("Error loading configuration: %s", err)
 	}

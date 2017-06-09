@@ -54,6 +54,7 @@ type AtlasConfig struct {
 type Module struct {
 	Name      string
 	Source    string
+	RawCount  *RawConfig
 	RawConfig *RawConfig
 }
 
@@ -207,6 +208,23 @@ func ProviderConfigName(t string, pcs []*ProviderConfig) string {
 // A unique identifier for this module.
 func (r *Module) Id() string {
 	return fmt.Sprintf("%s", r.Name)
+}
+
+// Count returns the count of this module.
+func (r *Module) Count() (int, error) {
+	raw := r.RawCount.Value()
+	count, ok := r.RawCount.Value().(string)
+	if !ok {
+		return 0, fmt.Errorf(
+			"expected count to be a string or int, got %T", raw)
+	}
+
+	v, err := strconv.ParseInt(count, 0, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(v), nil
 }
 
 // Count returns the count of this resource.
@@ -380,6 +398,55 @@ func (c *Config) Validate() error {
 			// Already seen this module, just skip it
 			continue
 		}
+
+		// Verify count variables
+		for _, v := range m.RawCount.Variables {
+			switch v.(type) {
+			case *CountVariable:
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference count variable: %s",
+					m.Id(),
+					v.FullKey()))
+			case *SimpleVariable:
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference variable: %s",
+					m.Id(),
+					v.FullKey()))
+
+			// Good
+			case *ModuleVariable:
+			case *ResourceVariable:
+			case *TerraformVariable:
+			case *UserVariable:
+
+			default:
+				errs = append(errs, fmt.Errorf(
+					"Internal error. Unknown type in count var in %s: %T",
+					m.Id(), v))
+			}
+		}
+
+		// Interpolate with a fixed number to verify that its a number.
+		m.RawCount.interpolate(func(root ast.Node) (interface{}, error) {
+			// Execute the node but transform the AST so that it returns
+			// a fixed value of "5" for all interpolations.
+			result, err := hil.Eval(
+				hil.FixedValueTransform(
+					root, &ast.LiteralNode{Value: "5", Typex: ast.TypeString}),
+				nil)
+			if err != nil {
+				return "", err
+			}
+
+			return result.Value, nil
+		})
+		_, err := strconv.ParseInt(m.RawCount.Value().(string), 0, 0)
+		if err != nil {
+			errs = append(errs, fmt.Errorf(
+				"%s: resource count must be an integer",
+				m.Id()))
+		}
+		m.RawCount.init()
 
 		modules[m.Id()] = m
 
@@ -747,7 +814,8 @@ func (c *Config) rawConfigs() map[string]*RawConfig {
 	result := make(map[string]*RawConfig)
 	for _, m := range c.Modules {
 		source := fmt.Sprintf("module '%s'", m.Name)
-		result[source] = m.RawConfig
+		result[source+" count"] = m.RawCount
+		result[source+" config"] = m.RawConfig
 	}
 
 	for _, pc := range c.ProviderConfigs {
@@ -772,7 +840,6 @@ func (c *Config) rawConfigs() map[string]*RawConfig {
 		source := fmt.Sprintf("output '%s'", o.Name)
 		result[source] = o.RawConfig
 	}
-
 	return result
 }
 
@@ -818,6 +885,16 @@ func (c *Config) validateDependsOn(
 	return errs
 }
 
+// Retrieve a module based on its name
+func (c *Config) GetModule(name string) *Module {
+	for _, m := range c.Modules {
+		if m.Name == name {
+			return m
+		}
+	}
+	return nil
+}
+
 func (m *Module) mergerName() string {
 	return m.Id()
 }
@@ -834,6 +911,17 @@ func (m *Module) mergerMerge(other merger) merger {
 	}
 
 	return &result
+}
+
+func (r *Module) Copy() *Module {
+	m := &Module{
+		Name:      r.Name,
+		Source:    r.Source,
+		RawCount:  r.RawCount,
+		RawConfig: r.RawConfig,
+	}
+
+	return m
 }
 
 func (o *Output) mergerName() string {

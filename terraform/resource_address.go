@@ -51,7 +51,11 @@ func (r *ResourceAddress) Copy() *ResourceAddress {
 func (r *ResourceAddress) String() string {
 	var result []string
 	for _, p := range r.Path {
-		result = append(result, "module", p)
+		if _, err := strconv.ParseInt(p, 10, 64); err == nil {
+			result = append(result, p)
+		} else {
+			result = append(result, "module", p)
+		}
 	}
 
 	switch r.Mode {
@@ -275,7 +279,8 @@ func tokenizeResourceAddress(s string) (map[string]string, error) {
 	// string "aws_instance.web.tainted[1]"
 	re := regexp.MustCompile(`\A` +
 		// "module.foo.module.bar" (optional)
-		`(?P<path>(?:module\.[^.]+\.?)*)` +
+		// `(?P<path>(?:module\.[^.]+\.?)*)` +
+		`(?P<path>(?:module\.[^.]+(?:\.\d+)*\.?)*)` +
 		// possibly "data.", if targeting is a data resource
 		`(?P<data_prefix>(?:data\.)?)` +
 		// "aws_instance.web" (optional when module path specified)

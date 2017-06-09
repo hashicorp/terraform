@@ -23,7 +23,7 @@ func TestConfigTransformer_nilModule(t *testing.T) {
 
 func TestConfigTransformer_unloadedModule(t *testing.T) {
 	mod, err := module.NewTreeModule(
-		"", filepath.Join(fixtureDir, "graph-basic"))
+		"", filepath.Join(fixtureDir, "graph-basic"), 1)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
