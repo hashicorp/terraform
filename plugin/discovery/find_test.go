@@ -19,8 +19,8 @@ func TestFindPluginPaths(t *testing.T) {
 		},
 	)
 	want := []string{
-		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar-V0.0.1"),
-		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar-V1.0.0"),
+		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v0.0.1"),
+		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v1.0.0"),
 		filepath.Join("test-fixtures", "legacy-style-plugins", "terraform-foo-bar"),
 		filepath.Join("test-fixtures", "legacy-style-plugins", "terraform-foo-baz"),
 	}
@@ -50,36 +50,42 @@ func TestFindPluginPaths(t *testing.T) {
 
 func TestResolvePluginPaths(t *testing.T) {
 	got := ResolvePluginPaths([]string{
-		"/example/mockos_mockarch/terraform-foo-bar-V0.0.1",
-		"/example/mockos_mockarch/terraform-foo-baz-V0.0.1",
-		"/example/mockos_mockarch/terraform-foo-baz-V1.0.0",
-		"/example/mockos_mockarch/terraform-foo-baz-V2.0.0-X4",
+		"/example/mockos_mockarch/terraform-foo-bar_v0.0.1",
+		"/example/mockos_mockarch/terraform-foo-baz_v0.0.1",
+		"/example/mockos_mockarch/terraform-foo-baz_v1.0.0",
+		"/example/mockos_mockarch/terraform-foo-baz_v2.0.0_x4",
+		"/example/mockos_mockarch/terraform-foo-upper_V2.0.0_X4",
 		"/example/terraform-foo-bar",
-		"/example/mockos_mockarch/terraform-foo-bar-Vbananas",
-		"/example/mockos_mockarch/terraform-foo-bar-V",
-		"/example2/mockos_mockarch/terraform-foo-bar-V0.0.1",
+		"/example/mockos_mockarch/terraform-foo-bar_vbananas",
+		"/example/mockos_mockarch/terraform-foo-bar_v",
+		"/example2/mockos_mockarch/terraform-foo-bar_v0.0.1",
 	})
 
 	want := []PluginMeta{
 		{
 			Name:    "bar",
 			Version: "0.0.1",
-			Path:    "/example/mockos_mockarch/terraform-foo-bar-V0.0.1",
+			Path:    "/example/mockos_mockarch/terraform-foo-bar_v0.0.1",
 		},
 		{
 			Name:    "baz",
 			Version: "0.0.1",
-			Path:    "/example/mockos_mockarch/terraform-foo-baz-V0.0.1",
+			Path:    "/example/mockos_mockarch/terraform-foo-baz_v0.0.1",
 		},
 		{
 			Name:    "baz",
 			Version: "1.0.0",
-			Path:    "/example/mockos_mockarch/terraform-foo-baz-V1.0.0",
+			Path:    "/example/mockos_mockarch/terraform-foo-baz_v1.0.0",
 		},
 		{
 			Name:    "baz",
 			Version: "2.0.0",
-			Path:    "/example/mockos_mockarch/terraform-foo-baz-V2.0.0-X4",
+			Path:    "/example/mockos_mockarch/terraform-foo-baz_v2.0.0_x4",
+		},
+		{
+			Name:    "upper",
+			Version: "2.0.0",
+			Path:    "/example/mockos_mockarch/terraform-foo-upper_V2.0.0_X4",
 		},
 		{
 			Name:    "bar",
@@ -89,16 +95,18 @@ func TestResolvePluginPaths(t *testing.T) {
 		{
 			Name:    "bar",
 			Version: "bananas",
-			Path:    "/example/mockos_mockarch/terraform-foo-bar-Vbananas",
+			Path:    "/example/mockos_mockarch/terraform-foo-bar_vbananas",
 		},
 		{
 			Name:    "bar",
 			Version: "",
-			Path:    "/example/mockos_mockarch/terraform-foo-bar-V",
+			Path:    "/example/mockos_mockarch/terraform-foo-bar_v",
 		},
 	}
 
-	t.Logf("got %#v", got)
+	for p := range got {
+		t.Logf("got %#v", p)
+	}
 
 	if got, want := got.Count(), len(want); got != want {
 		t.Errorf("got %d items; want %d", got, want)

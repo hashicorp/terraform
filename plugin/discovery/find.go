@@ -79,7 +79,7 @@ func findPluginPaths(kind string, machineName string, dirs []string) []string {
 					}
 
 					// New-style paths must have a version segment in filename
-					if !strings.Contains(fullName, "-V") {
+					if !strings.Contains(strings.ToLower(fullName), "_v") {
 						continue
 					}
 
@@ -131,11 +131,12 @@ func ResolvePluginPaths(paths []string) PluginMetaSet {
 	found := make(map[nameVersion]struct{})
 
 	for _, path := range paths {
-		baseName := filepath.Base(path)
+		baseName := strings.ToLower(filepath.Base(path))
 		if !strings.HasPrefix(baseName, "terraform-") {
 			// Should never happen with reasonable input
 			continue
 		}
+
 		baseName = baseName[10:]
 		firstDash := strings.Index(baseName, "-")
 		if firstDash == -1 {
@@ -149,7 +150,7 @@ func ResolvePluginPaths(paths []string) PluginMetaSet {
 			continue
 		}
 
-		parts := strings.SplitN(baseName, "-V", 2)
+		parts := strings.SplitN(baseName, "_v", 2)
 		name := parts[0]
 		version := "0.0.0"
 		if len(parts) == 2 {
@@ -158,8 +159,8 @@ func ResolvePluginPaths(paths []string) PluginMetaSet {
 
 		// Auto-installed plugins contain an extra name portion representing
 		// the expected plugin version, which we must trim off.
-		if dashX := strings.Index(version, "-X"); dashX != -1 {
-			version = version[:dashX]
+		if underX := strings.Index(version, "_x"); underX != -1 {
+			version = version[:underX]
 		}
 
 		if _, ok := found[nameVersion{name, version}]; ok {
