@@ -101,6 +101,31 @@ func parseAzureResourceID(id string) (*ResourceID, error) {
 	return idObj, nil
 }
 
+func composeAzureResourceID(idObj *ResourceID) (id string, err error) {
+	if idObj.SubscriptionID == "" || idObj.ResourceGroup == "" {
+		return "", fmt.Errorf("SubscriptionID and ResourceGroup cannot be empty")
+	}
+
+	id = fmt.Sprintf("/subscriptions/%s/resourceGroups/%s", idObj.SubscriptionID, idObj.ResourceGroup)
+
+	if idObj.Provider != "" {
+		if len(idObj.Path) < 1 {
+			return "", fmt.Errorf("ResourceID.Path should have at least one item when ResourceID.Provider is specified")
+		}
+
+		id += fmt.Sprintf("/providers/%s", idObj.Provider)
+
+		for k, v := range idObj.Path {
+			if k == "" || v == "" {
+				return "", fmt.Errorf("ResourceID.Path cannot contain empty strings")
+			}
+			id += fmt.Sprintf("/%s/%s", k, v)
+		}
+	}
+
+	return
+}
+
 func parseNetworkSecurityGroupName(networkSecurityGroupId string) (string, error) {
 	id, err := parseAzureResourceID(networkSecurityGroupId)
 	if err != nil {

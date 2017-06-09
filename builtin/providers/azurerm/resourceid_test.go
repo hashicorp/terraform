@@ -143,3 +143,88 @@ func TestParseAzureResourceID(t *testing.T) {
 		}
 	}
 }
+
+func TestComposeAzureResourceID(t *testing.T) {
+	testCases := []struct {
+		resourceID  *ResourceID
+		expectedID  string
+		expectError bool
+	}{
+		{
+			&ResourceID{
+				SubscriptionID: "00000000-0000-0000-0000-000000000000",
+				ResourceGroup:  "testGroup1",
+				Provider:       "foo.bar",
+				Path: map[string]string{
+					"k1": "v1",
+					"k2": "v2",
+					"k3": "v3",
+				},
+			},
+			"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testGroup1/providers/foo.bar/k1/v1/k2/v2/k3/v3",
+			false,
+		},
+		{
+			&ResourceID{
+				SubscriptionID: "00000000-0000-0000-0000-000000000000",
+				ResourceGroup:  "testGroup1",
+			},
+			"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testGroup1",
+			false,
+		},
+		{
+			// If Provider is specified, there must be at least one element in Path.
+			&ResourceID{
+				SubscriptionID: "00000000-0000-0000-0000-000000000000",
+				ResourceGroup:  "testGroup1",
+				Provider:       "foo.bar",
+			},
+			"",
+			true,
+		},
+		{
+			// One of the keys in Path is an empty string.
+			&ResourceID{
+				SubscriptionID: "00000000-0000-0000-0000-000000000000",
+				ResourceGroup:  "testGroup1",
+				Provider:       "foo.bar",
+				Path: map[string]string{
+					"k2": "v2",
+					"":   "v1",
+				},
+			},
+			"",
+			true,
+		},
+		{
+			// One of the values in Path is an empty string.
+			&ResourceID{
+				SubscriptionID: "00000000-0000-0000-0000-000000000000",
+				ResourceGroup:  "testGroup1",
+				Provider:       "foo.bar",
+				Path: map[string]string{
+					"k1": "v1",
+					"k2": "",
+				},
+			},
+			"",
+			true,
+		},
+	}
+
+	for _, test := range testCases {
+		idString, err := composeAzureResourceID(test.resourceID)
+
+		if test.expectError && err != nil {
+			continue
+		}
+
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+
+		if test.expectedID != idString {
+			t.Fatalf("Unexpected resource ID string:\nExpected: %s\nGot:      %s\n", test.expectedID, idString)
+		}
+	}
+}
