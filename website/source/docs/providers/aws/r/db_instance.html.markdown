@@ -76,12 +76,12 @@ the final snapshot (if `final_snapshot_identifier` is specified). Default
 * `availability_zone` - (Optional) The AZ for the RDS instance.
 * `backup_retention_period` - (Optional) The days to retain backups for. Must be
 `1` or greater to be a source for a [Read Replica][1].
-* `backup_window` - (Optional) The backup window.
+* `backup_window` - (Optional) The daily time range (in UTC) during which automated backups are created if they are enabled. Example: "09:46-10:16". Must not overlap with `maintenance_window`.
 * `iops` - (Optional) The amount of provisioned IOPS. Setting this implies a
     storage_type of "io1".
 * `maintenance_window` - (Optional) The window to perform maintenance in.
   Syntax: "ddd:hh24:mi-ddd:hh24:mi". Eg: "Mon:00:00-Mon:03:00".
-  See [RDS Maintenance Window docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html) for more.
+  See [RDS Maintenance Window docs](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html#AdjustingTheMaintenanceWindow) for more.
 * `multi_az` - (Optional) Specifies if the RDS instance is multi-AZ
 * `port` - (Optional) The port on which the DB accepts connections.
 * `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible. Defaults to `false`.

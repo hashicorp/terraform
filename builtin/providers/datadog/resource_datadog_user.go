@@ -49,7 +49,7 @@ func resourceDatadogUser() *schema.Resource {
 			},
 			"verified": {
 				Type:     schema.TypeBool,
-				Optional: true,
+				Computed: true,
 			},
 		},
 	}
@@ -96,7 +96,7 @@ func resourceDatadogUserCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(u.GetHandle())
 
-	return nil
+	return resourceDatadogUserRead(d, meta)
 }
 
 func resourceDatadogUserRead(d *schema.ResourceData, meta interface{}) error {
@@ -107,7 +107,6 @@ func resourceDatadogUserRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	log.Printf("[DEBUG] user: %v", u)
 	d.Set("disabled", u.GetDisabled())
 	d.Set("email", u.GetEmail())
 	d.Set("handle", u.GetHandle())

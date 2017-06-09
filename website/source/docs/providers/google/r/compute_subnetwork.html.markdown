@@ -8,7 +8,10 @@ description: |-
 
 # google\_compute\_subnetwork
 
-Manages a subnetwork within GCE.
+Manages a subnetwork within GCE. For more information see 
+[the official documentation](https://cloud.google.com/compute/docs/vpc/#vpc_networks_and_subnets)
+and 
+[API](https://cloud.google.com/compute/docs/reference/latest/subnetworks).
 
 ## Example Usage
 
@@ -45,7 +48,7 @@ The following arguments are supported:
 * `region` - (Optional) The region this subnetwork will be created in. If
     unspecified, this defaults to the region configured in the provider.
 
-* `private_ip_google_access` - Whether the VMs in this subnet
+* `private_ip_google_access` - (Optional) Whether the VMs in this subnet
     can access Google services without assigned external IP
     addresses.
 

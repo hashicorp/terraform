@@ -23,6 +23,7 @@ func resourceComputeDisk() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceComputeDiskCreate,
 		Read:   resourceComputeDiskRead,
+		Update: resourceComputeDiskUpdate,
 		Delete: resourceComputeDiskDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -68,7 +69,6 @@ func resourceComputeDisk() *schema.Resource {
 			"size": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"self_link": &schema.Schema{
@@ -185,6 +185,28 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceComputeDiskRead(d, meta)
 }
 
+func resourceComputeDiskUpdate(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
+	if d.HasChange("size") {
+		rb := &compute.DisksResizeRequest{
+			SizeGb: int64(d.Get("size").(int)),
+		}
+		_, err := config.clientCompute.Disks.Resize(
+			project, d.Get("zone").(string), d.Id(), rb).Do()
+		if err != nil {
+			return fmt.Errorf("Error resizing disk: %s", err)
+		}
+	}
+
+	return resourceComputeDiskRead(d, meta)
+}
+
 func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -237,10 +259,7 @@ func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 		imageUrlParts := strings.Split(disk.SourceImage, "/")
 		d.Set("image", imageUrlParts[len(imageUrlParts)-1])
 	}
-	if disk.SourceSnapshot != "" {
-		snapshotUrlParts := strings.Split(disk.SourceSnapshot, "/")
-		d.Set("snapshot", snapshotUrlParts[len(snapshotUrlParts)-1])
-	}
+	d.Set("snapshot", disk.SourceSnapshot)
 
 	return nil
 }

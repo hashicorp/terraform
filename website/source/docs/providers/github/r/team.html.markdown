@@ -38,3 +38,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the created team.
+
+## Import
+
+Github Teams can be imported using the github team Id e.g.
+
+```
+$ terraform import github_team.core 1234567
+```

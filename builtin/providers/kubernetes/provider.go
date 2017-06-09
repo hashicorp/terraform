@@ -61,9 +61,14 @@ func Provider() terraform.ResourceProvider {
 				Description: "PEM-encoded root certificates bundle for TLS authentication.",
 			},
 			"config_path": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_CONFIG", "~/.kube/config"),
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc(
+					[]string{
+						"KUBE_CONFIG",
+						"KUBECONFIG",
+					},
+					"~/.kube/config"),
 				Description: "Path to the kube config file, defaults to ~/.kube/config",
 			},
 			"config_context": {
@@ -92,6 +97,7 @@ func Provider() terraform.ResourceProvider {
 			"kubernetes_namespace":                 resourceKubernetesNamespace(),
 			"kubernetes_persistent_volume":         resourceKubernetesPersistentVolume(),
 			"kubernetes_persistent_volume_claim":   resourceKubernetesPersistentVolumeClaim(),
+			"kubernetes_pod":                       resourceKubernetesPod(),
 			"kubernetes_resource_quota":            resourceKubernetesResourceQuota(),
 			"kubernetes_secret":                    resourceKubernetesSecret(),
 			"kubernetes_service":                   resourceKubernetesService(),

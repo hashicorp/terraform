@@ -41,3 +41,11 @@ The following arguments are supported:
 * `name` - (Required) The name of the label.
 
 * `color` - (Required) A 6 character hex code, **without the leading #**, identifying the color of the label.
+
+## Import
+
+Github Issue Labels can be imported using an id made up of `repository:name`, e.g.
+
+```
+$ terraform import github_issue_label.panic_label terraform:panic
+```

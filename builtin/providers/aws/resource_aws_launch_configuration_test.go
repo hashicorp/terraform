@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"strings"
 	"testing"
@@ -15,6 +16,61 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func init() {
+	resource.AddTestSweepers("aws_launch_configuration", &resource.Sweeper{
+		Name:         "aws_launch_configuration",
+		Dependencies: []string{"aws_autoscaling_group"},
+		F:            testSweepLaunchConfigurations,
+	})
+}
+
+func testSweepLaunchConfigurations(region string) error {
+	client, err := sharedClientForRegion(region)
+	if err != nil {
+		return fmt.Errorf("error getting client: %s", err)
+	}
+	autoscalingconn := client.(*AWSClient).autoscalingconn
+
+	resp, err := autoscalingconn.DescribeLaunchConfigurations(&autoscaling.DescribeLaunchConfigurationsInput{})
+	if err != nil {
+		return fmt.Errorf("Error retrieving launch configuration: %s", err)
+	}
+
+	if len(resp.LaunchConfigurations) == 0 {
+		log.Print("[DEBUG] No aws launch configurations to sweep")
+		return nil
+	}
+
+	for _, lc := range resp.LaunchConfigurations {
+		var testOptGroup bool
+		for _, testName := range []string{"terraform-", "foobar"} {
+			if strings.HasPrefix(*lc.LaunchConfigurationName, testName) {
+				testOptGroup = true
+			}
+		}
+
+		if !testOptGroup {
+			continue
+		}
+
+		_, err := autoscalingconn.DeleteLaunchConfiguration(
+			&autoscaling.DeleteLaunchConfigurationInput{
+				LaunchConfigurationName: lc.LaunchConfigurationName,
+			})
+		if err != nil {
+			autoscalingerr, ok := err.(awserr.Error)
+			if ok && (autoscalingerr.Code() == "InvalidConfiguration.NotFound" || autoscalingerr.Code() == "ValidationError") {
+				log.Printf("[DEBUG] Launch configuration (%s) not found", *lc.LaunchConfigurationName)
+				return nil
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
 
 func TestAccAWSLaunchConfiguration_basic(t *testing.T) {
 	var conf autoscaling.LaunchConfiguration

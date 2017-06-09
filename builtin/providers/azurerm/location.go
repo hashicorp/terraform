@@ -16,6 +16,13 @@ func locationSchema() *schema.Schema {
 	}
 }
 
+func locationForDataSourceSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+	}
+}
+
 func deprecatedLocationSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:             schema.TypeString,

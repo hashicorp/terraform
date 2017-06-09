@@ -831,6 +831,13 @@ func resourceAwsEMRClusterStateRefreshFunc(d *schema.ResourceData, meta interfac
 			log.Printf("[DEBUG] EMR Cluster status (%s): %s", d.Id(), *resp.Cluster.Status)
 		}
 
-		return emrc, *emrc.Status.State, nil
+		status := emrc.Status
+		if *status.State == "TERMINATING" {
+			reason := *status.StateChangeReason
+			return emrc, *status.State, fmt.Errorf("EMR Cluster is terminating. %s: %s",
+				*reason.Code, *reason.Message)
+		}
+
+		return emrc, *status.State, nil
 	}
 }
