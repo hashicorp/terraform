@@ -545,7 +545,7 @@ func (c *Config) Validate() error {
 
 		// Verify provisioners
 		for _, p := range r.Provisioners {
-			// This validation checks that there are now splat variables
+			// This validation checks that there are no splat variables
 			// referencing ourself. This currently is not allowed.
 
 			for _, v := range p.ConnInfo.Variables {
@@ -705,17 +705,6 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Check that all variables are in the proper context
-	for source, rc := range c.rawConfigs() {
-		walker := &interpolationWalker{
-			ContextF: c.validateVarContextFn(source, &errs),
-		}
-		if err := reflectwalk.Walk(rc.Raw, walker); err != nil {
-			errs = append(errs, fmt.Errorf(
-				"%s: error reading config: %s", source, err))
-		}
-	}
-
 	// Validate the self variable
 	for source, rc := range c.rawConfigs() {
 		// Ignore provisioners. This is a pretty brittle way to do this,
@@ -785,57 +774,6 @@ func (c *Config) rawConfigs() map[string]*RawConfig {
 	}
 
 	return result
-}
-
-func (c *Config) validateVarContextFn(
-	source string, errs *[]error) interpolationWalkerContextFunc {
-	return func(loc reflectwalk.Location, node ast.Node) {
-		// If we're in a slice element, then its fine, since you can do
-		// anything in there.
-		if loc == reflectwalk.SliceElem {
-			return
-		}
-
-		// Otherwise, let's check if there is a splat resource variable
-		// at the top level in here. We do this by doing a transform that
-		// replaces everything with a noop node unless its a variable
-		// access or concat. This should turn the AST into a flat tree
-		// of Concat(Noop, ...). If there are any variables left that are
-		// multi-access, then its still broken.
-		node = node.Accept(func(n ast.Node) ast.Node {
-			// If it is a concat or variable access, we allow it.
-			switch n.(type) {
-			case *ast.Output:
-				return n
-			case *ast.VariableAccess:
-				return n
-			}
-
-			// Otherwise, noop
-			return &noopNode{}
-		})
-
-		vars, err := DetectVariables(node)
-		if err != nil {
-			// Ignore it since this will be caught during parse. This
-			// actually probably should never happen by the time this
-			// is called, but its okay.
-			return
-		}
-
-		for _, v := range vars {
-			rv, ok := v.(*ResourceVariable)
-			if !ok {
-				return
-			}
-
-			if rv.Multi && rv.Index == -1 {
-				*errs = append(*errs, fmt.Errorf(
-					"%s: use of the splat ('*') operator must be wrapped in a list declaration",
-					source))
-			}
-		}
-	}
 }
 
 func (c *Config) validateDependsOn(
