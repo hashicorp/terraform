@@ -6,10 +6,10 @@ package govcloudair
 
 import (
 	"fmt"
+	types "github.com/ukcloud/govcloudair/types/v56"
+	"log"
 	"net/url"
 	"strings"
-
-	types "github.com/ukcloud/govcloudair/types/v56"
 )
 
 type Vdc struct {
@@ -105,25 +105,24 @@ func (v *Vdc) FindVDCNetwork(network string) (OrgVDCNetwork, error) {
 	return OrgVDCNetwork{}, fmt.Errorf("can't find VDC Network: %s", network)
 }
 
-func (v *Vdc) FindStorageProfile(storage_profile string) (types.Reference, error) {
+func (v *Vdc) FindStorageProfileReference(name string) (types.Reference, error) {
 
-	for _, an := range v.Vdc.VdcStorageProfiles {
-		for _, n := range an.VdcStorageProfile {
-			if n.Name == storage_profile {
-				return *n, nil
+	for _, sps := range v.Vdc.VdcStorageProfiles {
+		for _, sp := range sps.VdcStorageProfile {
+			if sp.Name == name {
+				return types.Reference{HREF: sp.HREF, Name: sp.Name}, nil
 			}
 		}
-		return types.Reference{}, fmt.Errorf("can't find VDC Storage_profile: %s", storage_profile)
+		return types.Reference{}, fmt.Errorf("can't find VDC Storage_profile: %s", name)
 	}
 	return types.Reference{}, fmt.Errorf("can't find any VDC Storage_profiles")
 }
 
-func (v *Vdc) GetDefaultStorageProfile(storage_profiles *types.QueryResultRecordsType) (types.Reference, error) {
+func (v *Vdc) GetDefaultStorageProfileReference(storageprofiles *types.QueryResultRecordsType) (types.Reference, error) {
 
-	for _, n := range storage_profiles.OrgVdcStorageProfileRecord {
-		if n.IsDefaultStorageProfile {
-			storage_profile_reference := types.Reference{HREF: n.HREF, Name: n.Name}
-			return storage_profile_reference, nil
+	for _, spr := range storageprofiles.OrgVdcStorageProfileRecord {
+		if spr.IsDefaultStorageProfile {
+			return types.Reference{HREF: spr.HREF, Name: spr.Name}, nil
 		}
 	}
 	return types.Reference{}, fmt.Errorf("can't find Default VDC Storage_profile")
@@ -259,8 +258,15 @@ func (v *Vdc) FindVMByName(vapp VApp, vm string) (VM, error) {
 		return VM{}, fmt.Errorf("error refreshing vdc: %s", err)
 	}
 
+	err = vapp.Refresh()
+	if err != nil {
+		return VM{}, fmt.Errorf("error refreshing vapp: %s", err)
+	}
+
+	log.Printf("[TRACE] Looking for VM: %s", vm)
 	for _, child := range vapp.VApp.Children.VM {
 
+		log.Printf("[TRACE] Found: %s", child.Name)
 		if child.Name == vm {
 
 			u, err := url.ParseRequestURI(child.HREF)
@@ -291,6 +297,7 @@ func (v *Vdc) FindVMByName(vapp VApp, vm string) (VM, error) {
 		}
 
 	}
+	log.Printf("[TRACE] Couldn't find VM: %s", vm)
 	return VM{}, fmt.Errorf("can't find vm: %s", vm)
 }
 
@@ -305,13 +312,13 @@ func (v *Vdc) FindVAppByID(vappid string) (VApp, error) {
 	}
 
 	urnslice := strings.SplitAfter(vappid, ":")
-	urnid := urnslice[len(urnslice) - 1]
+	urnid := urnslice[len(urnslice)-1]
 
 	for _, resents := range v.Vdc.ResourceEntities {
 		for _, resent := range resents.ResourceEntity {
 
 			hrefslice := strings.SplitAfter(resent.HREF, "/")
-			hrefslice = strings.SplitAfter(hrefslice[len(hrefslice) - 1], "-")
+			hrefslice = strings.SplitAfter(hrefslice[len(hrefslice)-1], "-")
 			res := strings.Join(hrefslice[1:], "")
 
 			if res == urnid && resent.Type == "application/vnd.vmware.vcloud.vApp+xml" {
