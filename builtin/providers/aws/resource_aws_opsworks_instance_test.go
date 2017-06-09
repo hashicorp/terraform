@@ -389,6 +389,10 @@ resource "aws_opsworks_instance" "tf-acc" {
   state = "stopped"
   hostname = "tf-acc1"
   os = "Amazon Linux 2015.09"
+
+  timeouts {
+    update = "15s"
+  }
 }
 
 %s
