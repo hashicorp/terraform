@@ -139,7 +139,24 @@ func resourceListenerV2Create(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	listener, err := listeners.Create(networkingClient, createOpts).Extract()
+	var listener *listeners.LoadBalancerID
+	err = resource.Retry(10*time.Minute, func() *resource.RetryError {
+		var err error
+		log.Printf("[DEBUG] Attempting to create listener")
+		listener, err := listeners.Create(networkingClient, createOpts).Extract()
+		if err != nil {
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 || errCode.Actual == 500 {
+					log.Printf("[DEBUG] OpenStack listener is still creating.")
+					return resource.RetryableError(err)
+				}
+			}
+			return resource.NonRetryableError(err)
+		} else {
+			log.Printf("[INFO] created listener ID: %s", listener.ID)
+		}
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LBaaSV2 listener: %s", err)
 	}
@@ -303,7 +320,7 @@ func waitForListenerDelete(networkingClient *gophercloud.ServiceClient, listener
 			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
 				if errCode.Actual == 409 {
 					log.Printf("[DEBUG] OpenStack LBaaSV2 listener (%s) is still in use.", listenerID)
-					return listener, "ACTIVE", nil
+					return listener, "PENDING_DELETE", nil
 				}
 			}
 
