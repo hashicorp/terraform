@@ -1,6 +1,8 @@
 package discovery
 
 import (
+	"sort"
+
 	version "github.com/hashicorp/go-version"
 )
 
@@ -60,6 +62,11 @@ func (s Constraints) Append(other Constraints) Constraints {
 	// thus leaving behind only the versions not removed by either list.
 	raw = append(raw, s.raw...)
 	raw = append(raw, other.raw...)
+
+	// while the set is unordered, we sort these lexically for consistent output
+	sort.Slice(raw, func(i, j int) bool {
+		return raw[i].String() < raw[j].String()
+	})
 
 	return Constraints{raw}
 }
