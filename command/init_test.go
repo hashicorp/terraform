@@ -683,7 +683,7 @@ func TestInit_providerLockFile(t *testing.T) {
 	}
 
 	providersLockFile := fmt.Sprintf(
-		".terraform/plugins/%s_%s/providers.json",
+		".terraform/plugins/%s_%s/lock.json",
 		runtime.GOOS, runtime.GOARCH,
 	)
 	buf, err := ioutil.ReadFile(providersLockFile)
