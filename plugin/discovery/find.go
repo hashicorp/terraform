@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"io/ioutil"
+	"log"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -55,6 +56,8 @@ func findPluginPaths(kind string, machineName string, dirs []string) []string {
 			continue
 		}
 
+		log.Printf("[DEBUG] checking for plugins in %q", baseDir)
+
 		for _, item := range baseItems {
 			fullName := item.Name()
 
@@ -65,6 +68,8 @@ func findPluginPaths(kind string, machineName string, dirs []string) []string {
 				if err != nil {
 					continue
 				}
+
+				log.Printf("[DEBUG] checking for plugins in %q", machineDir)
 
 				for _, item := range machineItems {
 					fullName := item.Name()
@@ -83,6 +88,8 @@ func findPluginPaths(kind string, machineName string, dirs []string) []string {
 						continue
 					}
 
+					log.Printf("[DEBUG] found plugin %q", fullName)
+
 					ret = append(ret, filepath.Clean(absPath))
 				}
 
@@ -95,6 +102,8 @@ func findPluginPaths(kind string, machineName string, dirs []string) []string {
 				if err != nil {
 					continue
 				}
+
+				log.Printf("[DEBUG] found legacy plugin %q", fullName)
 
 				ret = append(ret, filepath.Clean(absPath))
 			}
