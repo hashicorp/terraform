@@ -1,10 +1,3 @@
-Hi there,
-
-Thank you for opening an issue. Please note that we try to keep the Terraform issue tracker reserved for bug reports and feature requests. For general usage questions, please see: https://www.terraform.io/community.html.
-
-### Terraform Version
-Run `terraform -v` to show the version. If you are not running the latest version of Terraform, please upgrade because your issue may have already been fixed.
-
 # PROVIDER ISSUES
 
 **PLEASE NOTE:** Terraform has split out the builtin Providers into their own repositories. For any Provider issues, please open all issues and pull requests in the corresponding repository. An index of supported Providers can be found here:
@@ -12,6 +5,15 @@ Run `terraform -v` to show the version. If you are not running the latest versio
 - https://github.com/terraform-providers
 
 All other issues (that appear to affect multiple or all providers) may be an issue with Terraform's core, and should be opened here. 
+
+------
+
+Hi there,
+
+Thank you for opening an issue. Please note that we try to keep the Terraform issue tracker reserved for bug reports and feature requests. For general usage questions, please see: https://www.terraform.io/community.html.
+
+### Terraform Version
+Run `terraform -v` to show the version. If you are not running the latest version of Terraform, please upgrade because your issue may have already been fixed.
 
 ### Terraform Configuration Files
 ```hcl
