@@ -19,7 +19,7 @@ func TestAccVcdVApp_PowerOff(t *testing.T) {
 		CheckDestroy: testAccCheckVcdVAppDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckVcdVApp_basic, os.Getenv("VCD_EDGE_GATWEWAY")),
+				Config: fmt.Sprintf(testAccCheckVcdVApp_basic, os.Getenv("VCD_EDGE_GATEWAY")),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVcdVAppExists("vcd_vapp.foobar", &vapp),
 					testAccCheckVcdVAppAttributes(&vapp),
@@ -32,7 +32,7 @@ func TestAccVcdVApp_PowerOff(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckVcdVApp_powerOff, os.Getenv("VCD_EDGE_GATWEWAY")),
+				Config: fmt.Sprintf(testAccCheckVcdVApp_powerOff, os.Getenv("VCD_EDGE_GATEWAY")),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVcdVAppExists("vcd_vapp.foobar", &vapp),
 					testAccCheckVcdVAppAttributes_off(&vapp),
@@ -147,8 +147,8 @@ resource "vcd_network" "foonet" {
 
 resource "vcd_vapp" "foobar" {
   name = "foobar"
-  template_name = "base-centos-7.0-x86_64_v-0.1_b-74"
-  catalog_name = "NubesLab"
+  template_name = "Skyscape_CentOS_6_4_x64_50GB_Small_v1.0.1"
+  catalog_name = "Skyscape Catalogue"
   network_name = "${vcd_network.foonet.name}"
   memory = 1024
 	cpus = 1
@@ -168,13 +168,13 @@ resource "vcd_network" "foonet" {
 }
 
 resource "vcd_vapp" "foobar" {
-  name = "foobar"
-  template_name = "base-centos-7.0-x86_64_v-0.1_b-74"
-  catalog_name = "NubesLab"
-  network_name = "${vcd_network.foonet.name}"
-  memory = 1024
-	cpus = 1
-	ip = "10.10.102.160"
-	power_on = false
+  name          = "foobar"
+  template_name = "Skyscape_CentOS_6_4_x64_50GB_Small_v1.0.1"
+  catalog_name  = "Skyscape Catalogue"
+  network_name  = "${vcd_network.foonet.name}"
+  memory        = 1024
+  cpus          = 1
+  ip            = "10.10.102.160"
+  power_on      = false
 }
 `

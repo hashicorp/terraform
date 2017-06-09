@@ -327,9 +327,15 @@ func getVAppIPAddress(d *schema.ResourceData, meta interface{}) (string, error) 
 		if err != nil {
 			return resource.RetryableError(fmt.Errorf("Unable to find vapp."))
 		}
-		ip = vapp.VApp.Children.VM[0].NetworkConnectionSection.NetworkConnection.IPAddress
+
+		// getting the IP of the specific Vm, rather than index zero.
+		// Required as once we add more VM's, index zero doesn't guarantee the
+		// 'first' one, and tests will fail sometimes (annoying huh?)
+		vm, err := vcdClient.OrgVdc.FindVMByName(vapp, d.Get("name").(string))
+
+		ip = vm.VM.NetworkConnectionSection.NetworkConnection.IPAddress
 		if ip == "" {
-			return resource.RetryableError(fmt.Errorf("Timeout: VM did not aquire IP address"))
+			return resource.RetryableError(fmt.Errorf("Timeout: VM did not acquire IP address"))
 		}
 		return nil
 	})
