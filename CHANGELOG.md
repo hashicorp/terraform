@@ -7,6 +7,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* provider/google: Add an additional delay when checking for sql operations [GH-15170]
 * provider/rancher: Move to Rancher V2 API [GH-13908]
 
 
