@@ -7,7 +7,7 @@ Run `terraform -v` to show the version. If you are not running the latest versio
 
 # PROVIDER ISSUES
 
-**PLEASE NOTE:** Terraform has split out it's builtin Providers into their own repositories. For any Provider issues, please open all issues and pull requests in the corresponding repository. An index of supported Providers can be found here:
+**PLEASE NOTE:** Terraform has split out the builtin Providers into their own repositories. For any Provider issues, please open all issues and pull requests in the corresponding repository. An index of supported Providers can be found here:
 
 - https://github.com/terraform-providers
 
