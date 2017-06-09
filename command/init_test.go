@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/mitchellh/cli"
 )
 
@@ -616,6 +617,40 @@ func TestInit_getProviderMissing(t *testing.T) {
 	}
 
 	if !strings.Contains(ui.ErrorWriter.String(), "no suitable version for provider") {
+		t.Fatalf("unexpected error output: %s", ui.ErrorWriter)
+	}
+}
+
+func TestInit_getProviderHaveLegacyVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-providers-lock"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	if err := ioutil.WriteFile("terraform-provider-test", []byte("provider bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// provider test has a version constraint in the config, which should
+	// trigger the getProvider error below.
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		getProvider: func(dst, provider string, req discovery.Constraints, protoVersion uint) error {
+			return fmt.Errorf("EXPECTED PROVIDER ERROR %s", provider)
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expceted error, got output: \n%s", ui.OutputWriter.String())
+	}
+
+	if !strings.Contains(ui.ErrorWriter.String(), "EXPECTED PROVIDER ERROR test") {
 		t.Fatalf("unexpected error output: %s", ui.ErrorWriter)
 	}
 }

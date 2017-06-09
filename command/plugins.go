@@ -108,6 +108,10 @@ func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
 	plugins := discovery.FindPlugins("provider", m.pluginDirs())
 	plugins, _ = plugins.ValidateVersions()
 
+	for p := range plugins {
+		log.Printf("[DEBUG] found valid plugin: %q", p.Name)
+	}
+
 	return plugins
 }
 
@@ -121,10 +125,14 @@ func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
 func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.PluginRequirements) discovery.PluginRequirements {
 	missing := make(discovery.PluginRequirements)
 
+	for n, r := range reqd {
+		log.Printf("[DEBUG] plugin requirements: %q=%q", n, r.Versions)
+	}
+
 	candidates := avail.ConstrainVersions(reqd)
 
 	for name, versionSet := range reqd {
-		if metas := candidates[name]; metas == nil {
+		if metas := candidates[name]; metas.Count() == 0 {
 			missing[name] = versionSet
 		}
 	}
