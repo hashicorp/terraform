@@ -7,8 +7,6 @@ docker run --rm -it \
   -e ARM_CLIENT_SECRET \
   -e ARM_SUBSCRIPTION_ID \
   -e ARM_TENANT_ID \
-  -e AAD_CLIENT_ID \
-  -e AAD_CLIENT_SECRET \
   -e KEY_ENCRYPTION_KEY_URL \
   -e KEY_VAULT_RESOURCE_ID \
   -v $(pwd):/data \
@@ -24,8 +22,8 @@ docker run --rm -it \
         -var admin_password=$PASSWORD \
         -var passphrase=$PASSWORD \
         -var key_vault_name=$KEY_VAULT_NAME \
-        -var aad_client_id=$AAD_CLIENT_ID \
-        -var aad_client_secret=$AAD_CLIENT_SECRET \
+        -var aad_client_id=$ARM_CLIENT_ID \
+        -var aad_client_secret=$ARM_CLIENT_SECRET \
         -var key_encryption_key_url=$KEY_ENCRYPTION_KEY_URL \
         -var key_vault_resource_id=$KEY_VAULT_RESOURCE_ID; \
       /bin/terraform apply out.tfplan"
@@ -54,7 +52,7 @@ docker run --rm -it \
     -var admin_password=$PASSWORD \
     -var passphrase=$PASSWORD \
     -var key_vault_name=$KEY_VAULT_NAME \
-    -var aad_client_id=$AAD_CLIENT_ID \
-    -var aad_client_secret=$AAD_CLIENT_SECRET \
+    -var aad_client_id=$ARM_CLIENT_ID \
+    -var aad_client_secret=$ARM_CLIENT_SECRET \
     -var key_encryption_key_url=$KEY_ENCRYPTION_KEY_URL \
     -var key_vault_resource_id=$KEY_VAULT_RESOURCE_ID;"
