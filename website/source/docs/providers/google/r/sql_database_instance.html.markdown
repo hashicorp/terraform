@@ -142,7 +142,7 @@ when an Instance can automatically restart to apply updates. It supports:
 
 * `hour` - (Optional) Hour of day (`0-23`), ignored if `day` not set
 
-* `update_track` - (Optional) Receive updates earlier (`canary`) or later 
+* `update_track` - (Optional) Receive updates earlier (`canary`) or later
 (`stable`)
 
 The optional `replica_configuration` block must have `master_instance_name` set
@@ -194,3 +194,11 @@ exported:
 
 * `settings.version` - Used to make sure changes to the `settings` block are
     atomic.
+
+## Import
+
+Database instances can be imported using the `name`, e.g.
+
+```
+$ terraform import google_sql_database_instance.instance instance_name
+```

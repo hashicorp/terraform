@@ -621,7 +621,7 @@ resource "google_sql_database_instance" "instance" {
 var testGoogleSqlDatabaseInstance_basic3 = `
 resource "google_sql_database_instance" "instance" {
 	name = "tf-lw-%d"
-	region = "us-central"
+	region = "us-central1"
 	settings {
 		tier = "db-f1-micro"
 	}
