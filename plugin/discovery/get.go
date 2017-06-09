@@ -19,14 +19,12 @@ import (
 // Releases are located by parsing the html listing from releases.hashicorp.com.
 //
 // The URL for releases follows the pattern:
-//    https://releases.hashicorp.com/terraform-providers/terraform-provider-name/ +
-//        terraform-provider-name_<x.y.z>/terraform-provider-name_<x.y.z>_<os>_<arch>.<ext>
+//    https://releases.hashicorp.com/terraform-provider-name/<x.y.z>/terraform-provider-name_<x.y.z>_<os>_<arch>.<ext>
 //
 // The plugin protocol version will be saved with the release and returned in
 // the header X-TERRAFORM_PROTOCOL_VERSION.
 
-const providersPath = "/terraform-providers/"
-const protocolVersionHeader = "X-TERRAFORM_PROTOCOL_VERSION"
+const protocolVersionHeader = "x-terraform-protocol-version"
 
 var releaseHost = "https://releases.hashicorp.com"
 
@@ -39,18 +37,17 @@ func providerName(name string) string {
 }
 
 // providerVersionsURL returns the path to the released versions directory for the provider:
-// https://releases.hashicorp.com/terraform-providers/terraform-provider-name/
+// https://releases.hashicorp.com/terraform-provider-name/
 func providerVersionsURL(name string) string {
-	return releaseHost + providersPath + providerName(name) + "/"
+	return releaseHost + "/" + providerName(name) + "/"
 }
 
 // providerURL returns the full path to the provider file, using the current OS
 // and ARCH:
 // .../terraform-provider-name_<x.y.z>/terraform-provider-name_<x.y.z>_<os>_<arch>.<ext>
 func providerURL(name, version string) string {
-	versionDir := fmt.Sprintf("%s_%s", providerName(name), version)
 	fileName := fmt.Sprintf("%s_%s_%s_%s.zip", providerName(name), version, runtime.GOOS, runtime.GOARCH)
-	u := fmt.Sprintf("%s%s/%s", providerVersionsURL(name), versionDir, fileName)
+	u := fmt.Sprintf("%s%s/%s", providerVersionsURL(name), version, fileName)
 	return u
 }
 
