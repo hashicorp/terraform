@@ -35,6 +35,11 @@ var DiskControllerTypes = []string{
 	"ide",
 }
 
+var DesiredPowerStates = []string{
+	"ignored",
+	string(types.VirtualMachinePowerStatePoweredOn),
+}
+
 type networkInterface struct {
 	deviceName       string
 	label            string
@@ -479,6 +484,26 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 					},
 				},
 			},
+
+			"power_state": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "ignored",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					found := false
+					for _, t := range DesiredPowerStates {
+						if t == value {
+							found = true
+						}
+					}
+					if !found {
+						errors = append(errors, fmt.Errorf(
+							"Supported values for 'power_state' are %v", strings.Join(DesiredPowerStates, ", ")))
+					}
+					return
+				},
+			},
 		},
 	}
 }
@@ -612,6 +637,14 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	changePowerStateTo := ""
+	if d.HasChange("power_state") {
+		_, powerStateChange := d.GetChange("power_state")
+		changePowerStateTo = powerStateChange.(string)
+		log.Printf("[DEBUG] power state requires change to =>: %s", changePowerStateTo)
+		hasChanges = true
+	}
+
 	// do nothing if there are no changes
 	if !hasChanges {
 		return nil
@@ -619,7 +652,8 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
-	if rebootRequired {
+	if rebootRequired && changePowerStateTo == "" {
+
 		log.Printf("[INFO] Shutting down virtual machine: %s", d.Id())
 
 		task, err := vm.PowerOff(context.TODO())
@@ -645,7 +679,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		log.Printf("[ERROR] %s", err)
 	}
 
-	if rebootRequired {
+	if rebootRequired || changePowerStateTo == string(types.VirtualMachinePowerStatePoweredOn) {
 		task, err = vm.PowerOn(context.TODO())
 		if err != nil {
 			return err
@@ -942,6 +976,18 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
+	if desiredPowerState, ok := d.GetOk("power_state"); ok {
+		if desiredPowerState.(string) == "ignored" &&
+			(state == types.VirtualMachinePowerStatePoweredOff || state == types.VirtualMachinePowerStateSuspended) {
+			return fmt.Errorf("vm is in a powered off or suspended state, and 'power_state' is 'ignored'; " +
+				"the vm must be powered on in order to read its current state")
+		}
+
+		if desiredPowerState.(string) != string(state) {
+			d.Set("power_state", string(state))
+		}
+	}
+
 	if state == types.VirtualMachinePowerStatePoweredOn {
 		// wait for interfaces to appear
 		log.Printf("[DEBUG] Waiting for interfaces to appear")
@@ -1040,73 +1086,80 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Invalid disks to set: %#v", disks)
 	}
 
-	networkInterfaces := make([]map[string]interface{}, 0)
-	for _, v := range mvm.Guest.Net {
-		if v.DeviceConfigId >= 0 {
-			log.Printf("[DEBUG] v.Network - %#v", v.Network)
-			networkInterface := make(map[string]interface{})
-			networkInterface["label"] = v.Network
-			networkInterface["mac_address"] = v.MacAddress
-			for _, ip := range v.IpConfig.IpAddress {
-				p := net.ParseIP(ip.IpAddress)
-				if p.To4() != nil {
-					log.Printf("[DEBUG] p.String - %#v", p.String())
-					log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
-					networkInterface["ipv4_address"] = p.String()
-					networkInterface["ipv4_prefix_length"] = ip.PrefixLength
-				} else if p.To16() != nil {
-					log.Printf("[DEBUG] p.String - %#v", p.String())
-					log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
-					networkInterface["ipv6_address"] = p.String()
-					networkInterface["ipv6_prefix_length"] = ip.PrefixLength
+	if state == types.VirtualMachinePowerStatePoweredOn {
+
+		networkInterfaces := make([]map[string]interface{}, 0)
+		for _, v := range mvm.Guest.Net {
+			if v.DeviceConfigId >= 0 {
+				log.Printf("[DEBUG] v.Network - %#v", v.Network)
+				networkInterface := make(map[string]interface{})
+				networkInterface["label"] = v.Network
+				networkInterface["mac_address"] = v.MacAddress
+				for _, ip := range v.IpConfig.IpAddress {
+					p := net.ParseIP(ip.IpAddress)
+					if p.To4() != nil {
+						log.Printf("[DEBUG] p.String - %#v", p.String())
+						log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
+						networkInterface["ipv4_address"] = p.String()
+						networkInterface["ipv4_prefix_length"] = ip.PrefixLength
+					} else if p.To16() != nil {
+						log.Printf("[DEBUG] p.String - %#v", p.String())
+						log.Printf("[DEBUG] ip.PrefixLength - %#v", ip.PrefixLength)
+						networkInterface["ipv6_address"] = p.String()
+						networkInterface["ipv6_prefix_length"] = ip.PrefixLength
+					}
+					log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
 				}
 				log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
+				networkInterfaces = append(networkInterfaces, networkInterface)
 			}
-			log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
-			networkInterfaces = append(networkInterfaces, networkInterface)
 		}
-	}
-	if mvm.Guest.IpStack != nil {
-		for _, v := range mvm.Guest.IpStack {
-			if v.IpRouteConfig != nil && v.IpRouteConfig.IpRoute != nil {
-				for _, route := range v.IpRouteConfig.IpRoute {
-					if route.Gateway.Device != "" {
-						gatewaySetting := ""
-						if route.Network == "::" {
-							gatewaySetting = "ipv6_gateway"
-						} else if route.Network == "0.0.0.0" {
-							gatewaySetting = "ipv4_gateway"
-						}
-						if gatewaySetting != "" {
-							deviceID, err := strconv.Atoi(route.Gateway.Device)
-							if len(networkInterfaces) == 1 {
-								deviceID = 0
+		if mvm.Guest.IpStack != nil {
+			for _, v := range mvm.Guest.IpStack {
+				if v.IpRouteConfig != nil && v.IpRouteConfig.IpRoute != nil {
+					for _, route := range v.IpRouteConfig.IpRoute {
+						if route.Gateway.Device != "" {
+							gatewaySetting := ""
+							if route.Network == "::" {
+								gatewaySetting = "ipv6_gateway"
+							} else if route.Network == "0.0.0.0" {
+								gatewaySetting = "ipv4_gateway"
 							}
-							if err != nil {
-								log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, route.Gateway.Device, err)
-							} else {
-								log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, deviceID, route.Gateway.IpAddress)
-								networkInterfaces[deviceID][gatewaySetting] = route.Gateway.IpAddress
+							if gatewaySetting != "" {
+								deviceID, err := strconv.Atoi(route.Gateway.Device)
+								if len(networkInterfaces) == 1 {
+									deviceID = 0
+								}
+								if err != nil {
+									log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, route.Gateway.Device, err)
+								} else {
+									log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, deviceID, route.Gateway.IpAddress)
+									if len(route.Gateway.IpAddress) > 0 {
+										networkInterfaces[deviceID][gatewaySetting] = route.Gateway.IpAddress
+									} else {
+										log.Printf("[WARN] error at processing %s of device id %#v: missing IpAddress", gatewaySetting, route.Gateway.Device)
+									}
+								}
 							}
 						}
 					}
 				}
 			}
 		}
-	}
-	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
-	err = d.Set("network_interface", networkInterfaces)
-	if err != nil {
-		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
-	}
+		log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
+		err = d.Set("network_interface", networkInterfaces)
+		if err != nil {
+			return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
+		}
 
-	if len(networkInterfaces) > 0 {
-		if _, ok := networkInterfaces[0]["ipv4_address"]; ok {
-			log.Printf("[DEBUG] ip address: %v", networkInterfaces[0]["ipv4_address"].(string))
-			d.SetConnInfo(map[string]string{
-				"type": "ssh",
-				"host": networkInterfaces[0]["ipv4_address"].(string),
-			})
+		if len(networkInterfaces) > 0 {
+			if _, ok := networkInterfaces[0]["ipv4_address"]; ok {
+				log.Printf("[DEBUG] ip address: %v", networkInterfaces[0]["ipv4_address"].(string))
+				d.SetConnInfo(map[string]string{
+					"type": "ssh",
+					"host": networkInterfaces[0]["ipv4_address"].(string),
+				})
+			}
 		}
 	}
 
