@@ -479,6 +479,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 					},
 				},
 			},
+
+			"assure_powered_on": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -930,6 +935,31 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
+	if assurePoweredOn, ok := d.GetOk("assure_powered_on"); ok && assurePoweredOn.(bool) {
+
+		log.Printf("[DEBUG] assure_powered_on == true; waiting for machine to power on...")
+		t, err := vm.PowerOn(context.TODO())
+		if err != nil {
+			return err
+		}
+		_, err = t.WaitForResult(context.TODO(), nil)
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] Successfully waited for machine to power on")
+
+		vm, err = finder.VirtualMachine(context.TODO(), d.Id())
+		if err != nil {
+			d.SetId("")
+			return nil
+		}
+
+	} else {
+
+		return fmt.Errorf("vm is in a powered off state, and 'assure_powered_on' is false/omitted for the resource; " +
+			"the vm must be powered on in order to read its current state")
+	}
+
 	err = d.Set("moid", vm.Reference().Value)
 	if err != nil {
 		return fmt.Errorf("Invalid moid to set: %#v", vm.Reference().Value)
@@ -952,6 +982,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		}
 
 		log.Printf("[DEBUG] Successfully waited for interfaces to appear")
+
 	}
 
 	var mvm mo.VirtualMachine
@@ -1086,7 +1117,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 								log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, route.Gateway.Device, err)
 							} else {
 								log.Printf("[DEBUG] %s of device id %d: %s", gatewaySetting, deviceID, route.Gateway.IpAddress)
-								networkInterfaces[deviceID][gatewaySetting] = route.Gateway.IpAddress
+								if len(route.Gateway.IpAddress) > 0 && len(networkInterfaces) > deviceID {
+									networkInterfaces[deviceID][gatewaySetting] = route.Gateway.IpAddress
+								} else {
+									log.Printf("[WARN] error at processing %s of device id %#v: missing IpAddress", gatewaySetting, route.Gateway.Device)
+								}
 							}
 						}
 					}
