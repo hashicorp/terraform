@@ -2,12 +2,14 @@ package command
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	getter "github.com/hashicorp/go-getter"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
@@ -194,8 +196,8 @@ func (c *InitCommand) Run(args []string) int {
 
 		err = c.getProviders(path, sMgr.State())
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error getting plugins: %s", err))
+			// this function provides its own output
+			log.Printf("[ERROR] %s", err)
 			return 1
 		}
 	}
@@ -211,14 +213,17 @@ func (c *InitCommand) Run(args []string) int {
 	return 0
 }
 
-// load the complete module tree, and fetch any missing providers
+// Load the complete module tree, and fetch any missing providers.
+// This method outputs its own Ui.
 func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 	mod, err := c.Module(path)
 	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error getting plugins: %s", err))
 		return err
 	}
 
 	if err := mod.Validate(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error getting plugins: %s", err))
 		return err
 	}
 
@@ -227,13 +232,19 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 	missing := c.missingPlugins(available, requirements)
 
 	dst := c.pluginDir()
+	var errs error
 	for provider, reqd := range missing {
 		c.Ui.Output(fmt.Sprintf("- downloading plugin for provider %q...", provider))
 		err := c.getProvider(dst, provider, reqd.Versions, plugin.Handshake.ProtocolVersion)
-		// TODO: return all errors
+
 		if err != nil {
-			return err
+			c.Ui.Error(fmt.Sprintf(errProviderNotFound, err, provider, reqd.Versions))
+			errs = multierror.Append(errs, err)
 		}
+	}
+
+	if errs != nil {
+		return errs
 	}
 
 	// With all the providers downloaded, we'll generate our lock file
@@ -246,13 +257,15 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 	for name, meta := range chosen {
 		digest, err := meta.SHA256()
 		if err != nil {
-			return fmt.Errorf("failed to read provider plugin %s: %s", meta.Path, err)
+			c.Ui.Error(fmt.Sprintf("failed to read provider plugin %s: %s", meta.Path, err))
+			return err
 		}
 		digests[name] = digest
 	}
 	err = c.providerPluginsLock().Write(digests)
 	if err != nil {
-		return fmt.Errorf("failed to save provider manifest: %s", err)
+		c.Ui.Error(fmt.Sprintf("failed to save provider manifest: %s", err))
+		return err
 	}
 
 	// If any providers have "floating" versions (completely unconstrained)
@@ -407,4 +420,16 @@ To prevent automatic upgrades to new major versions that may contain breaking
 changes, it is recommended to add version = "..." constraints to the
 corresponding provider blocks in configuration, with the constraint strings
 suggested below.
+`
+
+const errProviderNotFound = `
+[reset][red]%[1]s
+
+[reset][bold][red]Error: Satisfying %[2]q, provider not found
+
+[reset][red]A version of the %[2]q provider that satisfies all version
+constraints could not be found. The requested version
+constraints are shown below.
+
+%[2]s = %[3]q[reset]
 `
