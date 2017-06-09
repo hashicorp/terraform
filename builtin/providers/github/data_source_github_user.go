@@ -53,6 +53,14 @@ func dataSourceGithubUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"gpg_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"ssh_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"bio": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -90,8 +98,19 @@ func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Gitub User: %s", username)
 
 	client := meta.(*Organization).client
+	ctx := context.Background()
 
-	user, _, err := client.Users.Get(context.TODO(), username)
+	user, _, err := client.Users.Get(ctx, username)
+	if err != nil {
+		return err
+	}
+
+	gpg, _, err := client.Users.ListGPGKeys(ctx, username, nil)
+	if err != nil {
+		return err
+	}
+
+	ssh, _, err := client.Users.ListKeys(ctx, username, nil)
 	if err != nil {
 		return err
 	}
@@ -106,6 +125,8 @@ func dataSourceGithubUserRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("location", user.GetLocation())
 	d.Set("name", user.GetName())
 	d.Set("email", user.GetEmail())
+	d.Set("gpg_key", gpg[0].GetPublicKey())
+	d.Set("ssh_key", ssh[0].GetKey())
 	d.Set("bio", user.GetBio())
 	d.Set("public_repos", user.GetPublicRepos())
 	d.Set("public_gists", user.GetPublicGists())
