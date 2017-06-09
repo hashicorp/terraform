@@ -25,18 +25,18 @@ func testListingHandler(w http.ResponseWriter, r *http.Request) {
 // returns a 200 for a valid provider url, using the patch number for the
 // plugin protocol version.
 func testHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/terraform-providers/terraform-provider-test/" {
+	if r.URL.Path == "/terraform-provider-test/" {
 		testListingHandler(w, r)
 		return
 	}
 
 	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) != 5 {
+	if len(parts) != 4 {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
-	filename := parts[4]
+	filename := parts[3]
 
 	reg := regexp.MustCompile(`(terraform-provider-test_(\d).(\d).(\d)_([^_]+)_([^._]+)).zip`)
 
@@ -60,7 +60,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 
 func testReleaseServer() *httptest.Server {
 	handler := http.NewServeMux()
-	handler.HandleFunc("/terraform-providers/terraform-provider-test/", testHandler)
+	handler.HandleFunc("/terraform-provider-test/", testHandler)
 
 	return httptest.NewServer(handler)
 }
