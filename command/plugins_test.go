@@ -17,7 +17,7 @@ type mockGetProvider struct {
 }
 
 func (m mockGetProvider) FileName(provider, version string) string {
-	return fmt.Sprintf("terraform-provider-%s-V%s-X4", provider, version)
+	return fmt.Sprintf("terraform-provider-%s_v%s_x4", provider, version)
 }
 
 // GetProvider will check the Providers map to see if it can find a suitable
