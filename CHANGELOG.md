@@ -7,6 +7,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * provider/rancher: Move to Rancher V2 API [GH-13908]
+* provider/github: Added SSH and GPG key to user data source [GH-15211]
 
 
 
