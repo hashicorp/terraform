@@ -1,5 +1,12 @@
 ## 0.10.0-beta1 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* The `terraform env` family of commands have been renamed to `terraform workspace`, in response to feedback that the previous naming
+  was confusing due to collisions with other concepts of the same name. The commands still work the same as they did before, and
+  the `env` subcommand is still supported as an alias for backward compatibility. The `env` subcommand will be removed altogether in
+  a future release, so it's recommended to update any automation or wrapper scripts that use these commands.
+
 FEATURES:
 
 * **New Data Source:** `azurerm_resource_group` [GH-15022]
@@ -8,6 +15,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* core: `terraform env` command renamed to `terraform workspace` [GH-14952]
 * provider/google: Add an additional delay when checking for sql operations [GH-15170]
 * provider/rancher: Move to Rancher V2 API [GH-13908]
 
