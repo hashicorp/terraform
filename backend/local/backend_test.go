@@ -69,7 +69,7 @@ func TestLocal_StatePaths(t *testing.T) {
 	testEnv := "test_env"
 	path, out, back = b.StatePaths(testEnv)
 
-	expectedPath := filepath.Join(DefaultEnvDir, testEnv, DefaultStateFilename)
+	expectedPath := filepath.Join(DefaultWorkspaceDir, testEnv, DefaultStateFilename)
 	expectedOut := expectedPath
 	expectedBackup := expectedPath + DefaultBackupExtension
 
@@ -261,7 +261,7 @@ func TestLocal_remoteStateBackup(t *testing.T) {
 		t.Fatal("remote state is not backed up")
 	}
 
-	if bs.Path != filepath.Join(DefaultEnvDir, "test", DefaultStateFilename+DefaultBackupExtension) {
+	if bs.Path != filepath.Join(DefaultWorkspaceDir, "test", DefaultStateFilename+DefaultBackupExtension) {
 		t.Fatal("bad backup location:", bs.Path)
 	}
 }

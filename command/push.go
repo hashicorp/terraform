@@ -51,8 +51,8 @@ func (c *PushCommand) Run(args []string) int {
 
 	// This is a map of variables specifically from the CLI that we want to overwrite.
 	// We need this because there is a chance that the user is trying to modify
-	// a variable we don't see in our context, but which exists in this atlas
-	// environment.
+	// a variable we don't see in our context, but which exists in this Terraform
+	// Enterprise workspace.
 	cliVars := make(map[string]string)
 	for k, v := range c.variables {
 		if _, ok := overwriteMap[k]; ok {

@@ -1639,7 +1639,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Create new env
 	{
 		ui := new(cli.MockUi)
-		newCmd := &EnvNewCommand{}
+		newCmd := &WorkspaceNewCommand{}
 		newCmd.Meta = Meta{Ui: ui}
 		if code := newCmd.Run([]string{"test"}); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -1650,7 +1650,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	{
 		args := []string{"test"}
 		ui := new(cli.MockUi)
-		selCmd := &EnvSelectCommand{}
+		selCmd := &WorkspaceSelectCommand{}
 		selCmd.Meta = Meta{Ui: ui}
 		if code := selCmd.Run(args); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)

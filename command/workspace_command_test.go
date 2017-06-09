@@ -14,18 +14,18 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestEnv_createAndChange(t *testing.T) {
+func TestWorkspace_createAndChange(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	newCmd := &EnvNewCommand{}
+	newCmd := &WorkspaceNewCommand{}
 
-	current := newCmd.Env()
+	current := newCmd.Workspace()
 	if current != backend.DefaultStateName {
-		t.Fatal("current env should be 'default'")
+		t.Fatal("current workspace should be 'default'")
 	}
 
 	args := []string{"test"}
@@ -35,12 +35,12 @@ func TestEnv_createAndChange(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current = newCmd.Env()
+	current = newCmd.Workspace()
 	if current != "test" {
-		t.Fatalf("current env should be 'test', got %q", current)
+		t.Fatalf("current workspace should be 'test', got %q", current)
 	}
 
-	selCmd := &EnvSelectCommand{}
+	selCmd := &WorkspaceSelectCommand{}
 	args = []string{backend.DefaultStateName}
 	ui = new(cli.MockUi)
 	selCmd.Meta = Meta{Ui: ui}
@@ -48,16 +48,16 @@ func TestEnv_createAndChange(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current = newCmd.Env()
+	current = newCmd.Workspace()
 	if current != backend.DefaultStateName {
-		t.Fatal("current env should be 'default'")
+		t.Fatal("current workspace should be 'default'")
 	}
 
 }
 
-// Create some environments and test the list output.
+// Create some workspaces and test the list output.
 // This also ensures we switch to the correct env after each call
-func TestEnv_createAndList(t *testing.T) {
+func TestWorkspace_createAndList(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
@@ -74,11 +74,11 @@ func TestEnv_createAndList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newCmd := &EnvNewCommand{}
+	newCmd := &WorkspaceNewCommand{}
 
 	envs := []string{"test_a", "test_b", "test_c"}
 
-	// create multiple envs
+	// create multiple workspaces
 	for _, env := range envs {
 		ui := new(cli.MockUi)
 		newCmd.Meta = Meta{Ui: ui}
@@ -87,7 +87,7 @@ func TestEnv_createAndList(t *testing.T) {
 		}
 	}
 
-	listCmd := &EnvListCommand{}
+	listCmd := &WorkspaceListCommand{}
 	ui := new(cli.MockUi)
 	listCmd.Meta = Meta{Ui: ui}
 
@@ -104,18 +104,18 @@ func TestEnv_createAndList(t *testing.T) {
 }
 
 // Don't allow names that aren't URL safe
-func TestEnv_createInvalid(t *testing.T) {
+func TestWorkspace_createInvalid(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	newCmd := &EnvNewCommand{}
+	newCmd := &WorkspaceNewCommand{}
 
 	envs := []string{"test_a*", "test_b/foo", "../../../test_c", "好_d"}
 
-	// create multiple envs
+	// create multiple workspaces
 	for _, env := range envs {
 		ui := new(cli.MockUi)
 		newCmd.Meta = Meta{Ui: ui}
@@ -124,8 +124,8 @@ func TestEnv_createInvalid(t *testing.T) {
 		}
 	}
 
-	// list envs to make sure none were created
-	listCmd := &EnvListCommand{}
+	// list workspaces to make sure none were created
+	listCmd := &WorkspaceListCommand{}
 	ui := new(cli.MockUi)
 	listCmd.Meta = Meta{Ui: ui}
 
@@ -141,7 +141,7 @@ func TestEnv_createInvalid(t *testing.T) {
 	}
 }
 
-func TestEnv_createWithState(t *testing.T) {
+func TestWorkspace_createWithState(t *testing.T) {
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
 	defer os.RemoveAll(td)
@@ -171,14 +171,14 @@ func TestEnv_createWithState(t *testing.T) {
 
 	args := []string{"-state", "test.tfstate", "test"}
 	ui := new(cli.MockUi)
-	newCmd := &EnvNewCommand{
+	newCmd := &WorkspaceNewCommand{
 		Meta: Meta{Ui: ui},
 	}
 	if code := newCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	newPath := filepath.Join(local.DefaultEnvDir, "test", DefaultStateFilename)
+	newPath := filepath.Join(local.DefaultWorkspaceDir, "test", DefaultStateFilename)
 	envState := state.LocalState{Path: newPath}
 	err = envState.RefreshState()
 	if err != nil {
@@ -191,43 +191,43 @@ func TestEnv_createWithState(t *testing.T) {
 	}
 }
 
-func TestEnv_delete(t *testing.T) {
+func TestWorkspace_delete(t *testing.T) {
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// create the env directories
-	if err := os.MkdirAll(filepath.Join(local.DefaultEnvDir, "test"), 0755); err != nil {
+	// create the workspace directories
+	if err := os.MkdirAll(filepath.Join(local.DefaultWorkspaceDir, "test"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	// create the environment file
+	// create the workspace file
 	if err := os.MkdirAll(DefaultDataDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(DefaultDataDir, local.DefaultEnvFile), []byte("test"), 0644); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte("test"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	ui := new(cli.MockUi)
-	delCmd := &EnvDeleteCommand{
+	delCmd := &WorkspaceDeleteCommand{
 		Meta: Meta{Ui: ui},
 	}
 
-	current := delCmd.Env()
+	current := delCmd.Workspace()
 	if current != "test" {
-		t.Fatal("wrong env:", current)
+		t.Fatal("wrong workspace:", current)
 	}
 
-	// we can't delete out current environment
+	// we can't delete our current workspace
 	args := []string{"test"}
 	if code := delCmd.Run(args); code == 0 {
-		t.Fatal("expected error deleting current env")
+		t.Fatal("expected error deleting current workspace")
 	}
 
 	// change back to default
-	if err := delCmd.SetEnv(backend.DefaultStateName); err != nil {
+	if err := delCmd.SetWorkspace(backend.DefaultStateName); err != nil {
 		t.Fatal(err)
 	}
 
@@ -235,22 +235,22 @@ func TestEnv_delete(t *testing.T) {
 	ui = new(cli.MockUi)
 	delCmd.Meta.Ui = ui
 	if code := delCmd.Run(args); code != 0 {
-		t.Fatalf("error deleting env: %s", ui.ErrorWriter)
+		t.Fatalf("error deleting workspace: %s", ui.ErrorWriter)
 	}
 
-	current = delCmd.Env()
+	current = delCmd.Workspace()
 	if current != backend.DefaultStateName {
-		t.Fatalf("wrong env: %q", current)
+		t.Fatalf("wrong workspace: %q", current)
 	}
 }
-func TestEnv_deleteWithState(t *testing.T) {
+func TestWorkspace_deleteWithState(t *testing.T) {
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// create the env directories
-	if err := os.MkdirAll(filepath.Join(local.DefaultEnvDir, "test"), 0755); err != nil {
+	// create the workspace directories
+	if err := os.MkdirAll(filepath.Join(local.DefaultWorkspaceDir, "test"), 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -271,14 +271,14 @@ func TestEnv_deleteWithState(t *testing.T) {
 		},
 	}
 
-	envStatePath := filepath.Join(local.DefaultEnvDir, "test", DefaultStateFilename)
+	envStatePath := filepath.Join(local.DefaultWorkspaceDir, "test", DefaultStateFilename)
 	err := (&state.LocalState{Path: envStatePath}).WriteState(originalState)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ui := new(cli.MockUi)
-	delCmd := &EnvDeleteCommand{
+	delCmd := &WorkspaceDeleteCommand{
 		Meta: Meta{Ui: ui},
 	}
 	args := []string{"test"}
@@ -294,7 +294,7 @@ func TestEnv_deleteWithState(t *testing.T) {
 		t.Fatalf("failure: %s", ui.ErrorWriter)
 	}
 
-	if _, err := os.Stat(filepath.Join(local.DefaultEnvDir, "test")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(local.DefaultWorkspaceDir, "test")); !os.IsNotExist(err) {
 		t.Fatal("env 'test' still exists!")
 	}
 }
