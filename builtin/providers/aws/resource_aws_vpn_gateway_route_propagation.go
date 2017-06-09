@@ -80,7 +80,7 @@ func resourceAwsVpnGatewayRoutePropagationRead(d *schema.ResourceData, meta inte
 		return err
 	}
 	if rtRaw == nil {
-		log.Printf("[INFO] Route table %d doesn't exist, so dropping %s route propagation from state", rtID, gwID)
+		log.Printf("[INFO] Route table %q doesn't exist, so dropping %q route propagation from state", rtID, gwID)
 		d.SetId("")
 		return nil
 	}
