@@ -20,6 +20,7 @@ func TestAccAWSEBSSnapshot_basic(t *testing.T) {
 				Config: testAccAwsEbsSnapshotConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSnapshotExists("aws_ebs_snapshot.test", &v),
+					testAccCheckTags(&v.Tags, "Name", "testAccAwsEbsSnapshotConfig"),
 				),
 			},
 		},
@@ -79,6 +80,10 @@ resource "aws_ebs_volume" "test" {
 
 resource "aws_ebs_snapshot" "test" {
 	volume_id = "${aws_ebs_volume.test.id}"
+
+	tags {
+		Name = "testAccAwsEbsSnapshotConfig"
+	}
 }
 `
 
