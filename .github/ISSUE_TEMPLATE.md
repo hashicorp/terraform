@@ -11,7 +11,7 @@ Run `terraform -v` to show the version. If you are not running the latest versio
 
 - https://github.com/terraform-providers
 
-All other issues (issues that appear to affect multiple or all resources) may be an issue with Terraform's core, and should be opened here. 
+All other issues (that appear to affect multiple or all providers) may be an issue with Terraform's core, and should be opened here. 
 
 ### Terraform Configuration Files
 ```hcl
