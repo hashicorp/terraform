@@ -10,6 +10,9 @@ IMPROVEMENTS:
 * provider/google: Add an additional delay when checking for sql operations [GH-15170]
 * provider/rancher: Move to Rancher V2 API [GH-13908]
 
+BUG FIXES:
+
+* provider/aws: fix aws cidr validation error [GH-15158]
 
 
 ## 0.9.8 (June 7, 2017)
