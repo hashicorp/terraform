@@ -99,7 +99,7 @@ resource "azurerm_network_interface" "nic" {
     name                                    = "ipconfig${count.index}"
     subnet_id                               = "${azurerm_subnet.db_subnet.id}"
     private_ip_address_allocation           = "Static"
-    private_ip_address                      = "10.0.1.${count.index + 5}"
+    private_ip_address                      = "10.0.1.${count.index + 4}"
     load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.backend_pool.id}"]
 
     load_balancer_inbound_nat_rules_ids = [
@@ -147,7 +147,7 @@ resource "azurerm_lb_nat_rule" "MySQLNatRule0" {
   resource_group_name            = "${azurerm_resource_group.rg.name}"
   loadbalancer_id                = "${azurerm_lb.lb.id}"
   protocol                       = "tcp"
-  frontend_port                  = "330${count.index + 7}"
+  frontend_port                  = "330${count.index + 6}"
   backend_port                   = 3306
   frontend_ip_configuration_name = "${var.dns_name}-sshIPCfg"
   count                          = "${var.node_count}"
@@ -238,7 +238,7 @@ SETTINGS
 
   protected_settings = <<SETTINGS
  {
-   "commandToExecute": "bash azuremysql.sh ${count.index + 1} 10.0.1.${count.index + 6} ${var.artifacts_location}${var.mysql_cfg_file_path} '${var.mysql_replication_password}' '${var.mysql_root_password}' '${var.mysql_probe_password}' 10.0.1.5 ${var.unique_prefix}wordpress"
+   "commandToExecute": "bash azuremysql.sh ${count.index + 1} 10.0.1.${count.index + 4} ${var.artifacts_location}${var.mysql_cfg_file_path} '${var.mysql_replication_password}' '${var.mysql_root_password}' '${var.mysql_probe_password}' 10.0.1.4 ${var.unique_prefix}wordpress"
  }
 SETTINGS
 }

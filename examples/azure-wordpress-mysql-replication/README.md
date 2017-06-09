@@ -19,13 +19,18 @@ terraform import azurerm_virtual_network.testNetwork /subscriptions/<YOUR-SUB-ID
 ```
 
 ## main.tf
-The `main.tf` file contains the actual resources that will be deployed. It also contains the Azure Resource Group definition and any defined variables.
+The `main.tf` file contains the resources necessary for the MySql replication deployment that will be created. It also contains the Azure Resource Group definition and any defined variables.
+
+## website.tf
+The `website.tf` contains an `azurerm_template_deployment` that will deploy the Wordpress website.
 
 ## outputs.tf
 This data is outputted when `terraform apply` is called, and can be queried using the `terraform output` command.
 
 ## provider.tf
-Azure requires that an application is added to Azure Active Directory to generate the `client_id`, `client_secret`, and `tenant_id` needed by Terraform (`subscription_id` can be recovered from your Azure account details). Please go [here](https://www.terraform.io/docs/providers/azurerm/) for full instructions on how to create your `provider.tf` file.
+You may leave the provider block in the `main.tf`, as it is in this template, or you can create a file called `provider.tf` and add it to your `.gitignore` file.
+
+Azure requires that an application is added to Azure Active Directory to generate the `client_id`, `client_secret`, and `tenant_id` needed by Terraform (`subscription_id` can be recovered from your Azure account details). Please go [here](https://www.terraform.io/docs/providers/azurerm/) for full instructions on how to create this to populate your `provider.tf` file.
 
 ## terraform.tfvars
 If a `terraform.tfvars` file is present in the current directory, Terraform automatically loads it to populate variables. We don't recommend saving usernames and password to version control, but you can create a local secret variables file and use `-var-file` to load it.

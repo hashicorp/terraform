@@ -11,9 +11,9 @@ git:
 
 # establish environment variables
 env:
-  # - TEST_DIR=examples/azure-wordpress-mysql-replication
+  - TEST_DIR=examples/azure-wordpress-mysql-replication
   # - TEST_DIR=examples/azure-2-vms-loadbalancer-lbrules
-  - TEST_DIR=examples/azure-encrypt-running-linux-vm
+  # - TEST_DIR=examples/azure-encrypt-running-linux-vm
   # - TEST_DIR=examples/azure-servicebus-create-topic-and-subscription
   # - TEST_DIR=examples/azure-search-create
   # - TEST_DIR=examples/azure-vnet-to-vnet-peering
