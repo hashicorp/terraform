@@ -51,14 +51,11 @@ func resourceGithubRepositoryDeployKeyCreate(d *schema.ResourceData, meta interf
 
 	k := d.Get("key").(string)
 	t := d.Get("title").(string)
+	r := d.Get("read_only").(bool)
 	key := &github.Key{
-		Key:   &k,
-		Title: &t,
-	}
-
-	if readOnly, ok := d.GetOk("read_only"); ok {
-		pReadOnly := readOnly.(bool)
-		key.ReadOnly = &pReadOnly
+		Key:      &k,
+		Title:    &t,
+		ReadOnly: &r,
 	}
 
 	owner := meta.(*Organization).name
@@ -92,10 +89,10 @@ func resourceGithubRepositoryDeployKeyRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	d.Set("key", *key.Key)
-	d.Set("read_only", *key.ReadOnly)
+	d.Set("key", key.Key)
+	d.Set("read_only", key.ReadOnly)
 	d.Set("repository", repo)
-	d.Set("title", *key.Title)
+	d.Set("title", key.Title)
 
 	return nil
 }
