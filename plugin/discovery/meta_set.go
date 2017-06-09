@@ -115,7 +115,7 @@ func (s PluginMetaSet) Newest() PluginMeta {
 // name and an appropriate version.
 //
 // If any of the given requirements match *no* plugins then its PluginMetaSet
-// in the returned map will be nil.
+// in the returned map will be empty.
 //
 // All viable metas are returned, so the caller can apply any desired filtering
 // to reduce down to a single option. For example, calling Newest() to obtain
