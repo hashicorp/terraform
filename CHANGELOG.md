@@ -2,6 +2,9 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
+* Terraform providers are no longer distributed as part of the main Terraform distribution. Instead, they are installed automatically
+  as part of running `terraform init`. It is therefore now mandatory to run `terraform init` before any other operations that use
+  provider plugins, to ensure that the required plugins are installed and properly initialized.
 * The `terraform env` family of commands have been renamed to `terraform workspace`, in response to feedback that the previous naming
   was confusing due to collisions with other concepts of the same name. The commands still work the same as they did before, and
   the `env` subcommand is still supported as an alias for backward compatibility. The `env` subcommand will be removed altogether in
@@ -15,6 +18,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* core: Providers no longer in the main Terraform distribution; installed automatically by init instead [GH-15208]
 * core: `terraform env` command renamed to `terraform workspace` [GH-14952]
 * provider/google: Add an additional delay when checking for sql operations [GH-15170]
 * provider/rancher: Move to Rancher V2 API [GH-13908]
