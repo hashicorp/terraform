@@ -5,17 +5,13 @@ Thank you for opening an issue. Please note that we try to keep the Terraform is
 ### Terraform Version
 Run `terraform -v` to show the version. If you are not running the latest version of Terraform, please upgrade because your issue may have already been fixed.
 
-### Affected Resource(s)
+# PROVIDER ISSUES
 
-Terraform has split out it's builtin Providers into their own repositories. For any Provider issues, please open all issues and pull requests in the corresponding repository. An index of supported Providers can be found here:
+**PLEASE NOTE:** Terraform has split out it's builtin Providers into their own repositories. For any Provider issues, please open all issues and pull requests in the corresponding repository. An index of supported Providers can be found here:
 
 - https://github.com/terraform-providers
 
-Please list the resources as a list, for example:
-- aws_instance
-- dnsimple_record
-
-If this issue appears to affect multiple resources, it may be an issue with Terraform's core, so please mention this.
+All other issues (issues that appear to affect multiple or all resources) may be an issue with Terraform's core, and should be opened here. 
 
 ### Terraform Configuration Files
 ```hcl
