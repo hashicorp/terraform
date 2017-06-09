@@ -70,9 +70,6 @@ func (s *RepositoriesService) GetPermissionLevel(ctx context.Context, owner, rep
 		return nil, nil, err
 	}
 
-	// TODO: remove custom Accept header when this API fully launches.
-	req.Header.Set("Accept", mediaTypeOrgMembershipPreview)
-
 	rpl := new(RepositoryPermissionLevel)
 	resp, err := s.client.Do(ctx, req, rpl)
 	if err != nil {
