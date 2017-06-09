@@ -168,7 +168,7 @@ func (m *Meta) Operation() *backend.Operation {
 		PlanOutBackend:   m.backendState,
 		Targets:          m.targets,
 		UIIn:             m.UIInput(),
-		Environment:      m.Env(),
+		Workspace:        m.Workspace(),
 		LockState:        m.stateLock,
 		StateLockTimeout: m.stateLockTimeout,
 	}
@@ -572,7 +572,7 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 		return nil, err
 	}
 
-	env := m.Env()
+	env := m.Workspace()
 
 	// Get the state so we can determine the effect of using this plan
 	realMgr, err := b.State(env)
@@ -967,7 +967,7 @@ func (m *Meta) backend_C_r_s(
 		return nil, fmt.Errorf(errBackendLocalRead, err)
 	}
 
-	env := m.Env()
+	env := m.Workspace()
 
 	localState, err := localB.State(env)
 	if err != nil {
@@ -1341,13 +1341,17 @@ func (m *Meta) backendInitFromConfig(c *config.Backend) (backend.Backend, error)
 
 	// Validate
 	warns, errs := b.Validate(config)
+	for _, warning := range warns {
+		// We just write warnings directly to the UI. This isn't great
+		// since we're a bit deep here to be pushing stuff out into the
+		// UI, but sufficient to let us print out deprecation warnings
+		// and the like.
+		m.Ui.Warn(warning)
+	}
 	if len(errs) > 0 {
 		return nil, fmt.Errorf(
 			"Error configuring the backend %q: %s",
 			c.Type, multierror.Append(nil, errs...))
-	}
-	if len(warns) > 0 {
-		// TODO: warnings are currently ignored
 	}
 
 	// Configure

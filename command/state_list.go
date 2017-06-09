@@ -32,7 +32,7 @@ func (c *StateListCommand) Run(args []string) int {
 		return 1
 	}
 
-	env := c.Env()
+	env := c.Workspace()
 	// Get the state
 	state, err := b.State(env)
 	if err != nil {

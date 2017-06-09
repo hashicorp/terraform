@@ -63,6 +63,38 @@ func TestState_complexOutputs(t *testing.T) {
 	})
 }
 
+func TestState_workspace(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccState_workspace,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue(
+						"data.terraform_remote_state.foo", "foo", "bar"),
+				),
+			},
+		},
+	})
+}
+
+func TestState_legacyEnvironment(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccState_legacyEnvironment,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue(
+						"data.terraform_remote_state.foo", "foo", "bar"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[id]
@@ -107,5 +139,25 @@ resource "terraform_remote_state" "foo" {
 
 	config {
 		path = "./test-fixtures/complex_outputs.tfstate"
+	}
+}`
+
+const testAccState_workspace = `
+data "terraform_remote_state" "foo" {
+	backend   = "local"
+	workspace = "test"
+
+	config {
+		workspace_dir = "./test-fixtures/workspaces"
+	}
+}`
+
+const testAccState_legacyEnvironment = `
+data "terraform_remote_state" "foo" {
+	backend     = "local"
+	environment = "test" # old, deprecated name for "workspace"
+
+	config {
+		workspace_dir = "./test-fixtures/workspaces"
 	}
 }`

@@ -40,6 +40,14 @@ func dataSourceRemoteState() *schema.Resource {
 			"environment": {
 				Type:     schema.TypeString,
 				Optional: true,
+
+				ConflictsWith: []string{"workspace"},
+				Deprecated:    "use the \"workspace\" argument instead, with the same value",
+			},
+
+			"workspace": {
+				Type:     schema.TypeString,
+				Optional: true,
 				Default:  backend.DefaultStateName,
 			},
 
@@ -80,8 +88,12 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Get the state
-	env := d.Get("environment").(string)
-	state, err := b.State(env)
+	workspace := d.Get("environment").(string)
+	if workspace == "" {
+		// This is actually the main path, since "environment" is deprecated.
+		workspace = d.Get("workspace").(string)
+	}
+	state, err := b.State(workspace)
 	if err != nil {
 		return fmt.Errorf("error loading the remote state: %s", err)
 	}
