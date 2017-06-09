@@ -120,7 +120,7 @@ aren't any more complex than that. Terraform wraps this simple notion with
 a set of protections and support for remote state.
 
 For local state, Terraform stores the state environments in a folder
-`terraform.tfstate.d`. This folder should be committed to version control
+`terraform.tfstate.d`. This folder should _not_ be committed to version control
 (just like local-only `terraform.tfstate`).
 
 For [remote state](/docs/state/remote.html), the environments are stored
