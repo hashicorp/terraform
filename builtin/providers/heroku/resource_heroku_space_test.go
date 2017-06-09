@@ -18,6 +18,16 @@ func TestAccHerokuSpace_Basic(t *testing.T) {
 	spaceName2 := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 	org := os.Getenv("HEROKU_ORGANIZATION")
 
+	// HEROKU_SPACES_ORGANIZATION allows us to use a special Organization managed by Heroku for the
+	// strict purpose of testing Heroku Spaces. It has the following resource limits
+	// - 2 spaces
+	// - 2 apps per space
+	// - 2 dynos per space
+	spacesOrg := os.Getenv("HEROKU_SPACES_ORGANIZATION")
+	if spacesOrg != "" {
+		org = spacesOrg
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)

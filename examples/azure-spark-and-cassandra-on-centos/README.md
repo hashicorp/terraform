@@ -59,8 +59,6 @@ If you are committing this template to source control, please insure that you ad
 ## variables.tf
 The `variables.tf` file contains all of the input parameters that the user can specify when deploying this Terraform template.
 
-![`terraform graph`](/examples/azure-spark-and-cassandra-on-centos/graph.png)
-
 ## Post-Deployment
 
 1. All servers will have a public IP and SSH port enabled by default. These can be disabled or modified in the template or by using Azure Portal.

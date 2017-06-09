@@ -222,8 +222,7 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] Creating ECS service: %s", input)
 
-	// Retry due to AWS IAM policy eventual consistency
-	// See https://github.com/hashicorp/terraform/issues/2869
+	// Retry due to AWS IAM & ECS eventual consistency
 	var out *ecs.CreateServiceOutput
 	var err error
 	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
@@ -235,6 +234,11 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 				return resource.NonRetryableError(err)
 			}
 			if awsErr.Code() == "InvalidParameterException" {
+				log.Printf("[DEBUG] Trying to create ECS service again: %q",
+					awsErr.Message())
+				return resource.RetryableError(err)
+			}
+			if awsErr.Code() == "ClusterNotFoundException" {
 				log.Printf("[DEBUG] Trying to create ECS service again: %q",
 					awsErr.Message())
 				return resource.RetryableError(err)
@@ -400,13 +404,16 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	// Retry due to AWS IAM policy eventual consistency
-	// See https://github.com/hashicorp/terraform/issues/4375
+	// Retry due to IAM & ECS eventual consistency
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 		out, err := conn.UpdateService(&input)
 		if err != nil {
 			awsErr, ok := err.(awserr.Error)
 			if ok && awsErr.Code() == "InvalidParameterException" {
+				log.Printf("[DEBUG] Trying to update ECS service again: %#v", err)
+				return resource.RetryableError(err)
+			}
+			if ok && awsErr.Code() == "ServiceNotFoundException" {
 				log.Printf("[DEBUG] Trying to update ECS service again: %#v", err)
 				return resource.RetryableError(err)
 			}

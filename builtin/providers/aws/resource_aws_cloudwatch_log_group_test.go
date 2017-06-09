@@ -153,18 +153,42 @@ func TestAccAWSCloudWatchLogGroup_tagging(t *testing.T) {
 				Config: testAccAWSCloudWatchLogGroupConfigWithTags(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
-					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.%", "2"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.%", "3"),
 					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Environment", "Production"),
 					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Foo", "Bar"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Empty", ""),
+				),
+			},
+			{
+				Config: testAccAWSCloudWatchLogGroupConfigWithTagsAdded(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.%", "4"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Environment", "Development"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Foo", "Bar"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Empty", ""),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Bar", "baz"),
 				),
 			},
 			{
 				Config: testAccAWSCloudWatchLogGroupConfigWithTagsUpdated(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
-					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.%", "3"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.%", "4"),
 					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Environment", "Development"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Empty", "NotEmpty"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Foo", "UpdatedBar"),
 					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Bar", "baz"),
+				),
+			},
+			{
+				Config: testAccAWSCloudWatchLogGroupConfigWithTags(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.%", "3"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Environment", "Production"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Foo", "Bar"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Empty", ""),
 				),
 			},
 		},
@@ -243,6 +267,22 @@ resource "aws_cloudwatch_log_group" "foobar" {
     tags {
     	Environment = "Production"
     	Foo = "Bar"
+    	Empty = ""
+    }
+}
+`, rInt)
+}
+
+func testAccAWSCloudWatchLogGroupConfigWithTagsAdded(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_cloudwatch_log_group" "foobar" {
+    name = "foo-bar-%d"
+
+    tags {
+    	Environment = "Development"
+    	Foo = "Bar"
+    	Empty = ""
+    	Bar = "baz"
     }
 }
 `, rInt)
@@ -255,8 +295,23 @@ resource "aws_cloudwatch_log_group" "foobar" {
 
     tags {
     	Environment = "Development"
-    	Foo = "Bar"
+    	Foo = "UpdatedBar"
+    	Empty = "NotEmpty"
     	Bar = "baz"
+    }
+}
+`, rInt)
+}
+
+func testAccAWSCloudWatchLogGroupConfigWithTagsRemoval(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_cloudwatch_log_group" "foobar" {
+    name = "foo-bar-%d"
+
+    tags {
+    	Environment = "Production"
+    	Foo = "Bar"
+    	Empty = ""
     }
 }
 `, rInt)

@@ -29,6 +29,15 @@ resource "kubernetes_namespace" "example" {
 }
 ```
 
+## Kubernetes versions
+
+Both backward and forward compatibility with Kubernetes API is mostly defined
+by the [official K8S Go library](https://github.com/kubernetes/kubernetes) which we ship with Terraform.
+Below are versions of the library bundled with given versions of Terraform.
+
+* Terraform `<= 0.9.6` - Kubernetes `1.5.4`
+* Terraform `0.9.7+` - Kubernetes `1.6.1`
+
 ## Authentication
 
 There are generally two ways to configure the Kubernetes provider.
@@ -84,7 +93,7 @@ The following arguments are supported:
 * `client_certificate` - (Optional) PEM-encoded client certificate for TLS authentication. Can be sourced from `KUBE_CLIENT_CERT_DATA`.
 * `client_key` - (Optional) PEM-encoded client certificate key for TLS authentication. Can be sourced from `KUBE_CLIENT_KEY_DATA`.
 * `cluster_ca_certificate` - (Optional) PEM-encoded root certificates bundle for TLS authentication. Can be sourced from `KUBE_CLUSTER_CA_CERT_DATA`.
-* `config_path` - (Optional) Path to the kube config file. Can be sourced from `KUBE_CONFIG`. Defaults to `~/.kube/config`.
+* `config_path` - (Optional) Path to the kube config file. Can be sourced from `KUBE_CONFIG` or `KUBECONFIG`. Defaults to `~/.kube/config`.
 * `config_context` - (Optional) Context to choose from the config file. Can be sourced from `KUBE_CTX`.
 * `config_context_auth_info` - (Optional) Authentication info context of the kube config (name of the kubeconfig user, `--user` flag in `kubectl`). Can be sourced from `KUBE_CTX_AUTH_INFO`.
 * `config_context_cluster` - (Optional) Cluster context of the kube config (name of the kubeconfig cluster, `--cluster` flag in `kubectl`). Can be sourced from `KUBE_CTX_CLUSTER`.

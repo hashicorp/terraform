@@ -3,11 +3,13 @@ package aws
 import (
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"regexp"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -17,6 +19,72 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func init() {
+	resource.AddTestSweepers("aws_autoscaling_group", &resource.Sweeper{
+		Name: "aws_autoscaling_group",
+		F:    testSweepAutoscalingGroups,
+	})
+}
+
+func testSweepAutoscalingGroups(region string) error {
+	client, err := sharedClientForRegion(region)
+	if err != nil {
+		return fmt.Errorf("error getting client: %s", err)
+	}
+	conn := client.(*AWSClient).autoscalingconn
+
+	resp, err := conn.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{})
+	if err != nil {
+		return fmt.Errorf("Error retrieving launch configuration: %s", err)
+	}
+
+	if len(resp.AutoScalingGroups) == 0 {
+		log.Print("[DEBUG] No aws autoscaling groups to sweep")
+		return nil
+	}
+
+	for _, asg := range resp.AutoScalingGroups {
+		var testOptGroup bool
+		for _, testName := range []string{"foobar", "terraform-"} {
+			if strings.HasPrefix(*asg.AutoScalingGroupName, testName) {
+				testOptGroup = true
+			}
+		}
+
+		if !testOptGroup {
+			continue
+		}
+
+		deleteopts := autoscaling.DeleteAutoScalingGroupInput{
+			AutoScalingGroupName: asg.AutoScalingGroupName,
+			ForceDelete:          aws.Bool(true),
+		}
+
+		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+			if _, err := conn.DeleteAutoScalingGroup(&deleteopts); err != nil {
+				if awserr, ok := err.(awserr.Error); ok {
+					switch awserr.Code() {
+					case "InvalidGroup.NotFound":
+						return nil
+					case "ResourceInUse", "ScalingActivityInProgress":
+						return resource.RetryableError(awserr)
+					}
+				}
+
+				// Didn't recognize the error, so shouldn't retry.
+				return resource.NonRetryableError(err)
+			}
+			// Successful delete
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 	var group autoscaling.Group

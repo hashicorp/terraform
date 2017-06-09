@@ -36,6 +36,9 @@ const (
 	// ess
 	InvalidScalingGroupIdNotFound               = "InvalidScalingGroupId.NotFound"
 	IncorrectScalingConfigurationLifecycleState = "IncorrectScalingConfigurationLifecycleState"
+
+	//unknown Error
+	UnknownError = "UnknownError"
 )
 
 func GetNotFoundErrorFromString(str string) error {

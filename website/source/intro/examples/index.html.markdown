@@ -42,7 +42,7 @@ Once installed, you can use two steps to view and run the examples.
 To clone any examples, run `terraform init` with the URL to the example:
 
 ```
-$ terraform init github.com/hashicorp/terraform/examples/aws-two-tier
+$ terraform init github.com/hashicorp/terraform/tree/master/examples/aws-two-tier
 ...
 ```
 

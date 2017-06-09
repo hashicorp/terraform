@@ -398,8 +398,7 @@ func validateCIDRNetworkAddress(v interface{}, k string) (ws []string, errors []
 
 	if ipnet == nil || value != ipnet.String() {
 		errors = append(errors, fmt.Errorf(
-			"%q must contain a valid network CIDR, expected %q, got %q",
-			k, ipnet, value))
+			"%q must contain a valid network CIDR, got %q", k, value))
 	}
 
 	return
@@ -1333,6 +1332,20 @@ func validateIamRoleDescription(v interface{}, k string) (ws []string, errors []
 		errors = append(errors, fmt.Errorf(
 			"Only alphanumeric & accented characters allowed in %q: %q (Must satisfy regular expression pattern: [\\p{L}\\p{M}\\p{Z}\\p{S}\\p{N}\\p{P}]*)",
 			k, value))
+	}
+	return
+}
+
+func validateSsmParameterType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	types := map[string]bool{
+		"String":       true,
+		"StringList":   true,
+		"SecureString": true,
+	}
+
+	if !types[value] {
+		errors = append(errors, fmt.Errorf("Parameter type %s is invalid. Valid types are String, StringList or SecureString", value))
 	}
 	return
 }

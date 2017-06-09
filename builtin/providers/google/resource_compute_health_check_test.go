@@ -14,13 +14,15 @@ import (
 func TestAccComputeHealthCheck_tcp(t *testing.T) {
 	var healthCheck compute.HealthCheck
 
+	hckName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeHealthCheck_tcp,
+				Config: testAccComputeHealthCheck_tcp(hckName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHealthCheckExists(
 						"google_compute_health_check.foobar", &healthCheck),
@@ -36,13 +38,15 @@ func TestAccComputeHealthCheck_tcp(t *testing.T) {
 func TestAccComputeHealthCheck_tcp_update(t *testing.T) {
 	var healthCheck compute.HealthCheck
 
+	hckName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeHealthCheck_tcp,
+				Config: testAccComputeHealthCheck_tcp(hckName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHealthCheckExists(
 						"google_compute_health_check.foobar", &healthCheck),
@@ -52,7 +56,7 @@ func TestAccComputeHealthCheck_tcp_update(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccComputeHealthCheck_tcp_update,
+				Config: testAccComputeHealthCheck_tcp_update(hckName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHealthCheckExists(
 						"google_compute_health_check.foobar", &healthCheck),
@@ -68,13 +72,15 @@ func TestAccComputeHealthCheck_tcp_update(t *testing.T) {
 func TestAccComputeHealthCheck_ssl(t *testing.T) {
 	var healthCheck compute.HealthCheck
 
+	hckName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeHealthCheck_ssl,
+				Config: testAccComputeHealthCheck_ssl(hckName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHealthCheckExists(
 						"google_compute_health_check.foobar", &healthCheck),
@@ -89,13 +95,15 @@ func TestAccComputeHealthCheck_ssl(t *testing.T) {
 func TestAccComputeHealthCheck_http(t *testing.T) {
 	var healthCheck compute.HealthCheck
 
+	hckName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeHealthCheck_http,
+				Config: testAccComputeHealthCheck_http(hckName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHealthCheckExists(
 						"google_compute_health_check.foobar", &healthCheck),
@@ -110,13 +118,15 @@ func TestAccComputeHealthCheck_http(t *testing.T) {
 func TestAccComputeHealthCheck_https(t *testing.T) {
 	var healthCheck compute.HealthCheck
 
+	hckName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeHealthCheck_https,
+				Config: testAccComputeHealthCheck_https(hckName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHealthCheckExists(
 						"google_compute_health_check.foobar", &healthCheck),
@@ -129,13 +139,15 @@ func TestAccComputeHealthCheck_https(t *testing.T) {
 }
 
 func TestAccComputeHealthCheck_tcpAndSsl_shouldFail(t *testing.T) {
+	hckName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config:      testAccComputeHealthCheck_tcpAndSsl_shouldFail,
+				Config:      testAccComputeHealthCheck_tcpAndSsl_shouldFail(hckName),
 				ExpectError: regexp.MustCompile("conflicts with tcp_health_check"),
 			},
 		},
@@ -222,7 +234,8 @@ func testAccCheckComputeHealthCheckTcpPort(port int64, healthCheck *compute.Heal
 	}
 }
 
-var testAccComputeHealthCheck_tcp = fmt.Sprintf(`
+func testAccComputeHealthCheck_tcp(hckName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_health_check" "foobar" {
 	check_interval_sec = 3
 	description = "Resource created for Terraform acceptance testing"
@@ -233,9 +246,11 @@ resource "google_compute_health_check" "foobar" {
 	tcp_health_check {
 	}
 }
-`, acctest.RandString(10))
+`, hckName)
+}
 
-var testAccComputeHealthCheck_tcp_update = fmt.Sprintf(`
+func testAccComputeHealthCheck_tcp_update(hckName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_health_check" "foobar" {
 	check_interval_sec = 3
 	description = "Resource updated for Terraform acceptance testing"
@@ -247,9 +262,11 @@ resource "google_compute_health_check" "foobar" {
 		port = "8080"
 	}
 }
-`, acctest.RandString(10))
+`, hckName)
+}
 
-var testAccComputeHealthCheck_ssl = fmt.Sprintf(`
+func testAccComputeHealthCheck_ssl(hckName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_health_check" "foobar" {
 	check_interval_sec = 3
 	description = "Resource created for Terraform acceptance testing"
@@ -261,9 +278,11 @@ resource "google_compute_health_check" "foobar" {
 		port = "443"
 	}
 }
-`, acctest.RandString(10))
+`, hckName)
+}
 
-var testAccComputeHealthCheck_http = fmt.Sprintf(`
+func testAccComputeHealthCheck_http(hckName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_health_check" "foobar" {
 	check_interval_sec = 3
 	description = "Resource created for Terraform acceptance testing"
@@ -275,9 +294,11 @@ resource "google_compute_health_check" "foobar" {
 		port = "80"
 	}
 }
-`, acctest.RandString(10))
+`, hckName)
+}
 
-var testAccComputeHealthCheck_https = fmt.Sprintf(`
+func testAccComputeHealthCheck_https(hckName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_health_check" "foobar" {
 	check_interval_sec = 3
 	description = "Resource created for Terraform acceptance testing"
@@ -289,9 +310,11 @@ resource "google_compute_health_check" "foobar" {
 		port = "443"
 	}
 }
-`, acctest.RandString(10))
+`, hckName)
+}
 
-var testAccComputeHealthCheck_tcpAndSsl_shouldFail = fmt.Sprintf(`
+func testAccComputeHealthCheck_tcpAndSsl_shouldFail(hckName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_health_check" "foobar" {
 	check_interval_sec = 3
 	description = "Resource created for Terraform acceptance testing"
@@ -305,4 +328,5 @@ resource "google_compute_health_check" "foobar" {
 	ssl_health_check {
 	}
 }
-`, acctest.RandString(10))
+`, hckName)
+}

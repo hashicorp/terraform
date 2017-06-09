@@ -72,6 +72,7 @@ func resourceKubernetesHorizontalPodAutoscaler() *schema.Resource {
 							Type:        schema.TypeInt,
 							Description: "Target average CPU utilization (represented as a percentage of requested CPU) over all the pods. If not specified the default autoscaling policy will be used.",
 							Optional:    true,
+							Computed:    true,
 						},
 					},
 				},

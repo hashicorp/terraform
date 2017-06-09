@@ -8,7 +8,12 @@ description: |-
 
 # google\_storage\_bucket\_object
 
-Creates a new object inside an existing bucket in Google cloud storage service (GCS). Currently, it does not support creating custom ACLs. For more information see [the official documentation](https://cloud.google.com/storage/docs/overview) and [API](https://cloud.google.com/storage/docs/json_api).
+Creates a new object inside an existing bucket in Google cloud storage service (GCS). 
+[ACLs](https://cloud.google.com/storage/docs/access-control/lists) can be applied using the `google_storage_object_acl` resource.
+ For more information see 
+[the official documentation](https://cloud.google.com/storage/docs/key-terms#objects) 
+and 
+[API](https://cloud.google.com/storage/docs/json_api/v1/objects).
 
 
 ## Example Usage

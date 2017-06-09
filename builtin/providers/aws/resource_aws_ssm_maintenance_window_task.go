@@ -99,6 +99,25 @@ func resourceAwsSsmMaintenanceWindowTask() *schema.Resource {
 					},
 				},
 			},
+
+			"task_parameters": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"values": {
+							Type:     schema.TypeList,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -132,6 +151,30 @@ func flattenAwsSsmMaintenanceWindowLoggingInfo(loggingInfo *ssm.LoggingInfo) []i
 	return []interface{}{result}
 }
 
+func expandAwsSsmTaskParameters(config []interface{}) map[string]*ssm.MaintenanceWindowTaskParameterValueExpression {
+	params := make(map[string]*ssm.MaintenanceWindowTaskParameterValueExpression)
+	for _, v := range config {
+		paramConfig := v.(map[string]interface{})
+		params[paramConfig["name"].(string)] = &ssm.MaintenanceWindowTaskParameterValueExpression{
+			Values: expandStringList(paramConfig["values"].([]interface{})),
+		}
+	}
+	return params
+}
+
+func flattenAwsSsmTaskParameters(taskParameters map[string]*ssm.MaintenanceWindowTaskParameterValueExpression) []interface{} {
+	result := make([]interface{}, 0, len(taskParameters))
+	for k, v := range taskParameters {
+		taskParam := map[string]interface{}{
+			"name":   k,
+			"values": flattenStringList(v.Values),
+		}
+		result = append(result, taskParam)
+	}
+
+	return result
+}
+
 func resourceAwsSsmMaintenanceWindowTaskCreate(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
@@ -153,6 +196,10 @@ func resourceAwsSsmMaintenanceWindowTaskCreate(d *schema.ResourceData, meta inte
 
 	if v, ok := d.GetOk("logging_info"); ok {
 		params.LoggingInfo = expandAwsSsmMaintenanceWindowLoggingInfo(v.([]interface{}))
+	}
+
+	if v, ok := d.GetOk("task_parameters"); ok {
+		params.TaskParameters = expandAwsSsmTaskParameters(v.([]interface{}))
 	}
 
 	resp, err := ssmconn.RegisterTaskWithMaintenanceWindow(params)
@@ -193,6 +240,12 @@ func resourceAwsSsmMaintenanceWindowTaskRead(d *schema.ResourceData, meta interf
 			if t.LoggingInfo != nil {
 				if err := d.Set("logging_info", flattenAwsSsmMaintenanceWindowLoggingInfo(t.LoggingInfo)); err != nil {
 					return fmt.Errorf("[DEBUG] Error setting logging_info error: %#v", err)
+				}
+			}
+
+			if t.TaskParameters != nil {
+				if err := d.Set("task_parameters", flattenAwsSsmTaskParameters(t.TaskParameters)); err != nil {
+					return fmt.Errorf("[DEBUG] Error setting task_parameters error: %#v", err)
 				}
 			}
 

@@ -107,20 +107,54 @@ To make a resource importable, please see the
 * aws_vpn_connection
 * aws_vpn_gateway
 
-
 ### Azure (Resource Manager)
 
 * azurerm_availability_set
-* azurerm_express_route_circuit
+* azurerm_cdn_endpoint
+* azurerm_cdn_profile
+* azurerm_container_registry
+* azurerm_dns_a_record
+* azurerm_dns_aaaa_record
+* azurerm_dns_cname_record
+* azurerm_dns_mx_record
+* azurerm_dns_ns_record
+* azurerm_dns_srv_record
+* azurerm_dns_txt_record
 * azurerm_dns_zone
+* azurerm_eventhub
+* azurerm_eventhub_authorization_rule
+* azurerm_eventhub_consumer_group
+* azurerm_eventhub_namespace
+* azurerm_express_route_circuit
+* azurerm_loadbalancer
+* azurerm_loadbalancer_backend_address_pool
+* azurerm_loadbalancer_nat_pool
+* azurerm_loadbalancer_nat_rule
+* azurerm_loadbalancer_probe
+* azurerm_loadbalancer_rule
 * azurerm_local_network_gateway
+* azurerm_managed_disk
+* azurerm_network_interface
 * azurerm_network_security_group
 * azurerm_network_security_rule
 * azurerm_public_ip
 * azurerm_resource_group
+* azurerm_route
+* azurerm_route_table
+* azurerm_servicebus_namespace
+* azurerm_servicebus_subscription
+* azurerm_servicebus_topic
 * azurerm_sql_firewall_rule
+* azurerm_sql_server
 * azurerm_storage_account
+* azurerm_subnet
+* azurerm_traffic_manager_endpoint
+* azurerm_traffic_manager_profile
+* azurerm_virtual_machine
+* azurerm_virtual_machine_extension
+* azurerm_virtual_machine_scale_set
 * azurerm_virtual_network
+* azurerm_virtual_network_peering
 
 ### Circonus
 
@@ -140,20 +174,40 @@ To make a resource importable, please see the
 
 * fastly_service_v1
 
+### Github
+
+* github_branch_protection
+* github_issue_label
+* github_membership
+* github_repository
+* github_repository_collaborator
+* github_team
+* github_team_membership
+* github_team_repository
+
 ### Google
 
+* google_bigquery_dataset
+* google_bigquery_table
 * google_compute_address
 * google_compute_autoscaler
+* google_compute_disk
 * google_compute_firewall
 * google_compute_forwarding_rule
 * google_compute_global_address
 * google_compute_http_health_check
 * google_compute_instance_group_manager
 * google_compute_instance_template
+* google_compute_network
+* google_compute_route
+* google_compute_router_interface
+* google_compute_router_peer
+* google_compute_router
 * google_compute_target_pool
 * google_dns_managed_zone
 * google_project
 * google_sql_user
+* google_storage_bucket
 
 ### OpenStack
 

@@ -3,15 +3,13 @@ package compute
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"testing"
-
 	"time"
-
-	"log"
 
 	"github.com/hashicorp/go-oracle-terraform/opc"
 )

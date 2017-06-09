@@ -90,6 +90,7 @@ func Provider() terraform.ResourceProvider {
 			"vault_auth_backend":   authBackendResource(),
 			"vault_generic_secret": genericSecretResource(),
 			"vault_policy":         policyResource(),
+			"vault_mount":          mountResource(),
 		},
 	}
 }

@@ -1,11 +1,11 @@
 package kubernetes
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/url"
 	"strings"
 
-	"encoding/base64"
 	"github.com/hashicorp/terraform/helper/schema"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,11 +77,11 @@ func expandStringSlice(s []interface{}) []string {
 
 func flattenMetadata(meta metav1.ObjectMeta) []map[string]interface{} {
 	m := make(map[string]interface{})
-	m["annotations"] = filterAnnotations(meta.Annotations)
+	m["annotations"] = removeInternalKeys(meta.Annotations)
 	if meta.GenerateName != "" {
 		m["generate_name"] = meta.GenerateName
 	}
-	m["labels"] = meta.Labels
+	m["labels"] = removeInternalKeys(meta.Labels)
 	m["name"] = meta.Name
 	m["resource_version"] = meta.ResourceVersion
 	m["self_link"] = meta.SelfLink
@@ -95,16 +95,16 @@ func flattenMetadata(meta metav1.ObjectMeta) []map[string]interface{} {
 	return []map[string]interface{}{m}
 }
 
-func filterAnnotations(m map[string]string) map[string]string {
+func removeInternalKeys(m map[string]string) map[string]string {
 	for k, _ := range m {
-		if isInternalAnnotationKey(k) {
+		if isInternalKey(k) {
 			delete(m, k)
 		}
 	}
 	return m
 }
 
-func isInternalAnnotationKey(annotationKey string) bool {
+func isInternalKey(annotationKey string) bool {
 	u, err := url.Parse("//" + annotationKey)
 	if err == nil && strings.HasSuffix(u.Hostname(), "kubernetes.io") {
 		return true
@@ -134,6 +134,10 @@ func ptrToBool(b bool) *bool {
 }
 
 func ptrToInt32(i int32) *int32 {
+	return &i
+}
+
+func ptrToInt64(i int64) *int64 {
 	return &i
 }
 
@@ -258,6 +262,13 @@ func newStringSet(f schema.SchemaSetFunc, in []string) *schema.Set {
 	}
 	return schema.NewSet(f, out)
 }
+func newInt64Set(f schema.SchemaSetFunc, in []int64) *schema.Set {
+	var out = make([]interface{}, len(in), len(in))
+	for i, v := range in {
+		out[i] = int(v)
+	}
+	return schema.NewSet(f, out)
+}
 
 func resourceListEquals(x, y api.ResourceList) bool {
 	for k, v := range x {
@@ -373,4 +384,59 @@ func flattenLimitRangeSpec(in api.LimitRangeSpec) []interface{} {
 		"limit": limits,
 	}
 	return out
+}
+
+func schemaSetToStringArray(set *schema.Set) []string {
+	array := make([]string, 0, set.Len())
+	for _, elem := range set.List() {
+		e := elem.(string)
+		array = append(array, e)
+	}
+	return array
+}
+
+func schemaSetToInt64Array(set *schema.Set) []int64 {
+	array := make([]int64, 0, set.Len())
+	for _, elem := range set.List() {
+		e := elem.(int)
+		array = append(array, int64(e))
+	}
+	return array
+}
+func flattenLabelSelectorRequirementList(l []metav1.LabelSelectorRequirement) []interface{} {
+	att := make([]map[string]interface{}, len(l))
+	for i, v := range l {
+		m := map[string]interface{}{}
+		m["key"] = v.Key
+		m["values"] = newStringSet(schema.HashString, v.Values)
+		m["operator"] = string(v.Operator)
+		att[i] = m
+	}
+	return []interface{}{att}
+}
+
+func flattenLocalObjectReferenceArray(in []api.LocalObjectReference) []interface{} {
+	att := make([]interface{}, len(in))
+	for i, v := range in {
+		m := map[string]interface{}{}
+		if v.Name != "" {
+			m["name"] = v.Name
+		}
+		att[i] = m
+	}
+	return att
+}
+func expandLocalObjectReferenceArray(in []interface{}) []api.LocalObjectReference {
+	att := []api.LocalObjectReference{}
+	if len(in) < 1 {
+		return att
+	}
+	att = make([]api.LocalObjectReference, len(in))
+	for i, c := range in {
+		p := c.(map[string]interface{})
+		if name, ok := p["name"]; ok {
+			att[i].Name = name.(string)
+		}
+	}
+	return att
 }

@@ -16,6 +16,13 @@ func tagsSchema() *schema.Schema {
 	}
 }
 
+func tagsForDataSourceSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeMap,
+		Computed: true,
+	}
+}
+
 func tagValueToString(v interface{}) (string, error) {
 	switch value := v.(type) {
 	case string:
