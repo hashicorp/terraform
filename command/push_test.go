@@ -125,7 +125,7 @@ func TestPush_goodBackendInit(t *testing.T) {
 		".terraform/",
 		".terraform/plugins/",
 		fmt.Sprintf(".terraform/plugins/%s_%s/", runtime.GOOS, runtime.GOARCH),
-		fmt.Sprintf(".terraform/plugins/%s_%s/providers.json", runtime.GOOS, runtime.GOARCH),
+		fmt.Sprintf(".terraform/plugins/%s_%s/lock.json", runtime.GOOS, runtime.GOARCH),
 		".terraform/terraform.tfstate",
 		".terraform/terraform.tfstate",
 		"main.tf",

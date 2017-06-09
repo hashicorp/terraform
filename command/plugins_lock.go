@@ -11,7 +11,7 @@ import (
 
 func (m *Meta) providerPluginsLock() *pluginSHA256LockFile {
 	return &pluginSHA256LockFile{
-		Filename: filepath.Join(m.pluginDir(), "providers.json"),
+		Filename: filepath.Join(m.pluginDir(), "lock.json"),
 	}
 }
 
