@@ -48,3 +48,12 @@ In addition to the arguments listed above, the following computed attributes are
 exported:
 
 * `self_link` - The URI of the created resource.
+
+## Import
+
+Database resources can be imported using the `name` of the database instance
+combined with `name` of the database separated by a `:`, e.g.
+
+```
+$ terraform import google_sql_database.database instance_name:database_name
+```
