@@ -48,17 +48,17 @@ func resourceGithubRepository() *schema.Resource {
 			"allow_merge_commit": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default: true,
+				Default:  true,
 			},
 			"allow_squash_merge": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default: true,
+				Default:  true,
 			},
 			"allow_rebase_merge": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default: true,
+				Default:  true,
 			},
 			"has_downloads": {
 				Type:     schema.TypeBool,
@@ -111,17 +111,17 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	autoInit := d.Get("auto_init").(bool)
 
 	repo := &github.Repository{
-		Name:         &name,
-		Description:  &description,
-		Homepage:     &homepageUrl,
-		Private:      &private,
-		HasIssues:    &hasIssues,
-		HasWiki:      &hasWiki,
+		Name:             &name,
+		Description:      &description,
+		Homepage:         &homepageUrl,
+		Private:          &private,
+		HasIssues:        &hasIssues,
+		HasWiki:          &hasWiki,
 		AllowMergeCommit: &allowMergeCommit,
 		AllowSquashMerge: &allowSquashMerge,
 		AllowRebaseMerge: &allowRebaseMerge,
-		HasDownloads: &hasDownloads,
-		AutoInit:     &autoInit,
+		HasDownloads:     &hasDownloads,
+		AutoInit:         &autoInit,
 	}
 
 	return repo
@@ -175,7 +175,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("svn_url", repo.SVNURL)
 	d.Set("git_clone_url", repo.GitURL)
 	d.Set("http_clone_url", repo.CloneURL)
-	
+
 	return nil
 }
 

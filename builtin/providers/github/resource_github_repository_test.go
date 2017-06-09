@@ -28,16 +28,16 @@ func TestAccGithubRepository_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:          name,
-						Description:   description,
-						Homepage:      "http://example.com/",
-						HasIssues:     true,
-						HasWiki:       true,
+						Name:             name,
+						Description:      description,
+						Homepage:         "http://example.com/",
+						HasIssues:        true,
+						HasWiki:          true,
 						AllowMergeCommit: false,
 						AllowSquashMerge: false,
 						AllowRebaseMerge: false,
-						HasDownloads:  true,
-						DefaultBranch: "master",
+						HasDownloads:     true,
+						DefaultBranch:    "master",
 					}),
 				),
 			},
@@ -46,13 +46,13 @@ func TestAccGithubRepository_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:          name,
-						Description:   "Updated " + description,
-						Homepage:      "http://example.com/",
+						Name:             name,
+						Description:      "Updated " + description,
+						Homepage:         "http://example.com/",
 						AllowMergeCommit: true,
 						AllowSquashMerge: true,
 						AllowRebaseMerge: true,
-						DefaultBranch: "master",
+						DefaultBranch:    "master",
 					}),
 				),
 			},
@@ -104,16 +104,16 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 }
 
 type testAccGithubRepositoryExpectedAttributes struct {
-	Name         string
-	Description  string
-	Homepage     string
-	Private      bool
-	HasIssues    bool
-	HasWiki      bool
+	Name             string
+	Description      string
+	Homepage         string
+	Private          bool
+	HasIssues        bool
+	HasWiki          bool
 	AllowMergeCommit bool
 	AllowSquashMerge bool
 	AllowRebaseMerge bool
-	HasDownloads bool
+	HasDownloads     bool
 
 	DefaultBranch string
 }
