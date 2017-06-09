@@ -31,6 +31,12 @@ func (c *EnvSelectCommand) Run(args []string) int {
 		return 1
 	}
 
+	current, isOverridden := c.EnvOverridden()
+	if isOverridden {
+		c.Ui.Error(envIsOverriddenSelectError)
+		return 1
+	}
+
 	// Load the backend
 	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
 	if err != nil {
@@ -50,7 +56,7 @@ func (c *EnvSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	if name == c.Env() {
+	if name == current {
 		// already using this env
 		return 0
 	}

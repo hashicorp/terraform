@@ -97,4 +97,27 @@ to another environment and try again.
 The environment name %q is not allowed. The name must contain only URL safe
 characters, and no path separators.
 `
+
+	envIsOverriddenNote = `
+
+The active environment is being overridden using the TF_ENVIRONMENT environment
+variable.
+`
+
+	envIsOverriddenSelectError = `
+The environment is currently overridden using the TF_ENVIRONMENT environment
+variable.
+
+To select a new environment, either update this environment variable or unset
+it and then run this command again.
+`
+
+	envIsOverriddenNewError = `
+The environment is currently overridden using the TF_ENVIRONMENT environment
+variable.  You cannot create a different environment when using this setting.
+
+To create a new environment, either unset this environment variable or update it
+to match the environment name you are trying to create, and then run this command
+again.
+`
 )

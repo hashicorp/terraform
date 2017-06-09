@@ -40,6 +40,13 @@ func (c *EnvNewCommand) Run(args []string) int {
 		return 1
 	}
 
+	// You can't ask to create an environment when you're overriding the
+	// environment name to be something different.
+	if current, isOverridden := c.EnvOverridden(); current != newEnv && isOverridden {
+		c.Ui.Error(envIsOverriddenNewError)
+		return 1
+	}
+
 	configPath, err := ModulePath(args[1:])
 	if err != nil {
 		c.Ui.Error(err.Error())
