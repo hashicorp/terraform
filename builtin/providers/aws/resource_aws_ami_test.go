@@ -193,6 +193,10 @@ resource "aws_ebs_volume" "foo" {
 
 resource "aws_ebs_snapshot" "foo" {
   volume_id = "${aws_ebs_volume.foo.id}"
+
+	tags {
+		Name = "testAccAmiConfig_basic"
+	}
 }
 
 resource "aws_ami" "foo" {
@@ -219,6 +223,9 @@ resource "aws_ebs_volume" "foo" {
 
 resource "aws_ebs_snapshot" "foo" {
   volume_id = "${aws_ebs_volume.foo.id}"
+	tags {
+		Name = "TestAccAWSAMI_snapshotSize"
+	}
 }
 
 resource "aws_ami" "foo" {
