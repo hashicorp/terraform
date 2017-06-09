@@ -39,23 +39,19 @@ To use these examples, Terraform must first be installed on your machine.
 You can install Terraform from the [downloads page](/downloads.html).
 Once installed, you can use two steps to view and run the examples.
 
-To clone any examples, run `terraform init` with the URL to the example:
+To try these examples, first clone them with git as usual:
 
 ```
-$ terraform init github.com/hashicorp/terraform/tree/master/examples/aws-two-tier
+git clone https://github.com/hashicorp/terraform/examples/aws-two-tier
+cd aws-two-tier
+```
+
+You can then use your own editor to read and browse the configurations.
+To try out the example, initialize and then apply:
+
+```
+$ terraform init
 ...
-```
-
-This will put the example files within your working directory. You can then
-use your own editor to read and browse the configurations. This command will
-not _run_ any code.
-
-~> If you want to browse the files before downloading them, you can [view
-them on GitHub](https://github.com/hashicorp/terraform/tree/master/examples/aws-two-tier).
-
-If you want to run the example, just run `terraform apply`:
-
-```
 $ terraform apply
 ...
 ```

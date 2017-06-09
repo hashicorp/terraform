@@ -30,9 +30,10 @@ func init() {
 	}
 
 	meta := command.Meta{
-		Color:       true,
-		ContextOpts: &ContextOpts,
-		Ui:          Ui,
+		Color:            true,
+		GlobalPluginDirs: globalPluginDirs(),
+		PluginOverrides:  &PluginOverrides,
+		Ui:               Ui,
 	}
 
 	// The command list is included in the terraform -help
@@ -144,6 +145,12 @@ func init() {
 
 		"plan": func() (cli.Command, error) {
 			return &command.PlanCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"providers": func() (cli.Command, error) {
+			return &command.ProvidersCommand{
 				Meta: meta,
 			}, nil
 		},

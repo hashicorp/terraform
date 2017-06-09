@@ -24,12 +24,10 @@ The current implementation of Terraform import can only import resources
 into the [state](/docs/state). It does not generate configuration. A future
 version of Terraform will also generate configuration.
 
-Because of this, the behavior of importing resources into Terraform right now
-is that after an import, if you run a `terraform plan`, Terraform views it
-as an orphan (a resource with no configuration) and marks it for destruction.
-After importing a resource you have to manually write configuration to match
-the resource.
+Because of this, prior to running `terraform import` it is necessary to write
+manually a `resource` configuration block for the resource, to which the
+imported object will be attached.
 
 While this may seem tedious, it still gives Terraform users an avenue for
 importing existing resources. A future version of Terraform will fully generate
-configuration significantly simplifying this process.
+configuration, significantly simplifying this process.
