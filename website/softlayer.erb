@@ -1,0 +1,29 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-softlayer-index") %>>
+          <a href="/docs/providers/softlayer/index.html">Softlayer Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-softlayer-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-softlayer-resource-virtual-guest") %>>
+              <a href="/docs/providers/softlayer/r/virtual_guest.html">virtual_guest</a>
+            </li>
+            <li<%= sidebar_current("docs-softlayer-resource-ssh-key") %>>
+              <a href="/docs/providers/softlayer/r/ssh_key.html">ssh_key</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>
