@@ -619,10 +619,6 @@ func testProvider() *terraform.MockResourceProvider {
 	return mp
 }
 
-const testConfigStr = `
-resource "test_instance" "foo" {}
-`
-
 func TestTest_Main(t *testing.T) {
 	flag.Parse()
 	if *flagSweep == "" {
@@ -777,3 +773,11 @@ func TestTest_Main(t *testing.T) {
 func mockSweeperFunc(s string) error {
 	return nil
 }
+
+const testConfigStr = `
+resource "test_instance" "foo" {}
+`
+
+const testConfigStrProvider = `
+provider "test" {}
+`

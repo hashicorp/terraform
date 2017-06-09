@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 )
 
 // ResourceAddress is a way of identifying an individual resource (or,
@@ -87,6 +88,51 @@ func (r *ResourceAddress) String() string {
 	}
 
 	return strings.Join(result, ".")
+}
+
+// HasResourceSpec returns true if the address has a resource spec, as
+// defined in the documentation:
+//    https://www.terraform.io/docs/internals/resource-addressing.html
+// In particular, this returns false if the address contains only
+// a module path, thus addressing the entire module.
+func (r *ResourceAddress) HasResourceSpec() bool {
+	return r.Type != "" && r.Name != ""
+}
+
+// WholeModuleAddress returns the resource address that refers to all
+// resources in the same module as the receiver address.
+func (r *ResourceAddress) WholeModuleAddress() *ResourceAddress {
+	return &ResourceAddress{
+		Path:            r.Path,
+		Index:           -1,
+		InstanceTypeSet: false,
+	}
+}
+
+// MatchesConfig returns true if the receiver matches the given
+// configuration resource within the given configuration module.
+//
+// Since resource configuration blocks represent all of the instances of
+// a multi-instance resource, the index of the address (if any) is not
+// considered.
+func (r *ResourceAddress) MatchesConfig(mod *module.Tree, rc *config.Resource) bool {
+	if r.HasResourceSpec() {
+		if r.Mode != rc.Mode || r.Type != rc.Type || r.Name != rc.Name {
+			return false
+		}
+	}
+
+	addrPath := r.Path
+	cfgPath := mod.Path()
+
+	// normalize
+	if len(addrPath) == 0 {
+		addrPath = nil
+	}
+	if len(cfgPath) == 0 {
+		cfgPath = nil
+	}
+	return reflect.DeepEqual(addrPath, cfgPath)
 }
 
 // stateId returns the ID that this resource should be entered with
@@ -185,7 +231,10 @@ func ParseResourceAddress(s string) (*ResourceAddress, error) {
 
 	// not allowed to say "data." without a type following
 	if mode == config.DataResourceMode && matches["type"] == "" {
-		return nil, fmt.Errorf("must target specific data instance")
+		return nil, fmt.Errorf(
+			"invalid resource address %q: must target specific data instance",
+			s,
+		)
 	}
 
 	return &ResourceAddress{
@@ -289,7 +338,7 @@ func tokenizeResourceAddress(s string) (map[string]string, error) {
 	groupNames := re.SubexpNames()
 	rawMatches := re.FindAllStringSubmatch(s, -1)
 	if len(rawMatches) != 1 {
-		return nil, fmt.Errorf("Problem parsing address: %q", s)
+		return nil, fmt.Errorf("invalid resource address %q", s)
 	}
 
 	matches := make(map[string]string)
