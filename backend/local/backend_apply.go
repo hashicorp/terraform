@@ -37,12 +37,20 @@ func (b *Local) opApply(
 	// Setup our count hook that keeps track of resource changes
 	countHook := new(CountHook)
 	stateHook := new(StateHook)
+
 	if b.ContextOpts == nil {
 		b.ContextOpts = new(terraform.ContextOpts)
 	}
 	old := b.ContextOpts.Hooks
 	defer func() { b.ContextOpts.Hooks = old }()
-	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook)
+
+	var persistHook *PersistHook
+	if !op.Destroy {
+		persistHook = new(PersistHook)
+		b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook, persistHook)
+	} else {
+		b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook)
+	}
 
 	// Get our context
 	tfCtx, opState, err := b.context(op)
@@ -95,6 +103,10 @@ func (b *Local) opApply(
 
 	// Setup our hook for continuous state updates
 	stateHook.State = opState
+	if persistHook != nil {
+		persistHook.State = opState
+		persistHook.Context = tfCtx
+	}
 
 	// Start the apply in a goroutine so that we can be interrupted.
 	var applyState *terraform.State
@@ -143,6 +155,11 @@ func (b *Local) opApply(
 	if err := opState.PersistState(); err != nil {
 		runningOp.Err = fmt.Errorf("Failed to save state: %s", err)
 		return
+	}
+
+	if recoveryWriter, ok := opState.(state.RecoveryLogWriter); ok && !op.Destroy {
+		b.CLI.Output("Removing the recovery log...")
+		recoveryWriter.DeleteRecoveryLog()
 	}
 
 	if applyErr != nil {
