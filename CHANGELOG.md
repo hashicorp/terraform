@@ -10,18 +10,10 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
   the `env` subcommand is still supported as an alias for backward compatibility. The `env` subcommand will be removed altogether in
   a future release, so it's recommended to update any automation or wrapper scripts that use these commands.
 
-FEATURES:
-
-
 IMPROVEMENTS:
 
 * core: Providers no longer in the main Terraform distribution; installed automatically by init instead [GH-15208]
 * core: `terraform env` command renamed to `terraform workspace` [GH-14952]
-* provider/google: Add an additional delay when checking for sql operations [GH-15170]
-* provider/rancher: Move to Rancher V2 API [GH-13908]
-
-BUG FIXES:
-
 
 
 ## 0.9.8 (June 7, 2017)
