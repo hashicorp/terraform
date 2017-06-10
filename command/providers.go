@@ -43,6 +43,13 @@ func (c *ProvidersCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
 		return 1
 	}
+	if root == nil {
+		c.Ui.Error(fmt.Sprintf(
+			"No configuration files found in the directory: %s\n\n"+
+				"This command requires configuration to run.",
+			configPath))
+		return 1
+	}
 
 	// Validate the config (to ensure the version constraints are valid)
 	err = root.Validate()
