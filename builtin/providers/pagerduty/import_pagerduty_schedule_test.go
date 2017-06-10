@@ -12,6 +12,9 @@ func TestAccPagerDutySchedule_import(t *testing.T) {
 	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
 	email := fmt.Sprintf("%s@foo.com", username)
 	schedule := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	location := "Europe/Berlin"
+	start := "2020-05-12T20:00:00+02:00"
+	rotationVirtualStart := "2020-05-12T20:00:00+02:00"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,7 +22,7 @@ func TestAccPagerDutySchedule_import(t *testing.T) {
 		CheckDestroy: testAccCheckPagerDutyUserDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckPagerDutyScheduleConfig(username, email, schedule),
+				Config: testAccCheckPagerDutyScheduleConfig(username, email, schedule, location, start, rotationVirtualStart),
 			},
 
 			{

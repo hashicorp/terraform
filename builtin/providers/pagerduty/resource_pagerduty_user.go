@@ -5,6 +5,7 @@ import (
 
 	"github.com/PagerDuty/go-pagerduty"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourcePagerDutyUser() *schema.Resource {
@@ -34,14 +35,14 @@ func resourcePagerDutyUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "user",
-				ValidateFunc: validateValueFunc([]string{
+				ValidateFunc: validation.StringInSlice([]string{
 					"admin",
 					"limited_user",
 					"owner",
 					"read_only_user",
 					"team_responder",
 					"user",
-				}),
+				}, false),
 			},
 			"job_title": {
 				Type:     schema.TypeString,

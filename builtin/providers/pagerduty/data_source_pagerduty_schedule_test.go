@@ -13,13 +13,16 @@ func TestAccDataSourcePagerDutySchedule_Basic(t *testing.T) {
 	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
 	email := fmt.Sprintf("%s@foo.com", username)
 	schedule := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	location := "Europe/Berlin"
+	start := "2020-05-24T20:00:00-04:00"
+	rotationVirtualStart := "2020-05-24T20:00:00-04:00"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourcePagerDutyScheduleConfig(username, email, schedule),
+				Config: testAccDataSourcePagerDutyScheduleConfig(username, email, schedule, location, start, rotationVirtualStart),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourcePagerDutySchedule("pagerduty_schedule.test", "data.pagerduty_schedule.by_name"),
 				),
@@ -53,7 +56,7 @@ func testAccDataSourcePagerDutySchedule(src, n string) resource.TestCheckFunc {
 	}
 }
 
-func testAccDataSourcePagerDutyScheduleConfig(username, email, schedule string) string {
+func testAccDataSourcePagerDutyScheduleConfig(username, email, schedule, location, start, rotationVirtualStart string) string {
 	return fmt.Sprintf(`
 resource "pagerduty_user" "test" {
   name  = "%s"
@@ -63,12 +66,12 @@ resource "pagerduty_user" "test" {
 resource "pagerduty_schedule" "test" {
   name = "%s"
 
-  time_zone = "America/New_York"
+  time_zone = "%s"
 
   layer {
     name                         = "foo"
-    start                        = "2015-11-06T20:00:00-05:00"
-    rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
+    start                        = "%s"
+    rotation_virtual_start       = "%s"
     rotation_turn_length_seconds = 86400
     users                        = ["${pagerduty_user.test.id}"]
 
@@ -84,5 +87,5 @@ resource "pagerduty_schedule" "test" {
 data "pagerduty_schedule" "by_name" {
   name = "${pagerduty_schedule.test.name}"
 }
-`, username, email, schedule)
+`, username, email, schedule, location, start, rotationVirtualStart)
 }
