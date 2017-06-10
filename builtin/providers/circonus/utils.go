@@ -3,6 +3,7 @@ package circonus
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -77,6 +78,18 @@ func flattenList(l []interface{}) []*string {
 // flattenSet flattens the values in a schema.Set and returns a []*string
 func flattenSet(s *schema.Set) []*string {
 	return flattenList(s.List())
+}
+
+// importStatePassthrough is an implementation of StateFunc that can be used to
+// simply pass the ID directly through. This should be used only in the case
+// that an ID-only refresh is possible.  The ID is url.PathUnescape()'ed.
+func importStatePassthroughUnescape(d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+	// Ignore any path unescape issues
+	cid, _ := url.PathUnescape(d.Id())
+
+	d.SetId(cid)
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func derefStringList(lp []*string) []string {
