@@ -25,6 +25,7 @@ type Repository struct {
 	FullName         *string          `json:"full_name,omitempty"`
 	Description      *string          `json:"description,omitempty"`
 	Homepage         *string          `json:"homepage,omitempty"`
+	CodeOfConduct    *CodeOfConduct   `json:"code_of_conduct,omitempty"`
 	DefaultBranch    *string          `json:"default_branch,omitempty"`
 	MasterBranch     *string          `json:"master_branch,omitempty"`
 	CreatedAt        *Timestamp       `json:"created_at,omitempty"`
@@ -293,7 +294,7 @@ func (s *RepositoriesService) Get(ctx context.Context, owner, repo string) (*Rep
 
 	// TODO: remove custom Accept header when the license support fully launches
 	// https://developer.github.com/v3/licenses/#get-a-repositorys-license
-	acceptHeaders := []string{mediaTypeLicensesPreview, mediaTypeSquashPreview}
+	acceptHeaders := []string{mediaTypeLicensesPreview, mediaTypeSquashPreview, mediaTypeCodesOfConductPreview}
 	req.Header.Set("Accept", strings.Join(acceptHeaders, ", "))
 
 	repository := new(Repository)
@@ -303,6 +304,28 @@ func (s *RepositoriesService) Get(ctx context.Context, owner, repo string) (*Rep
 	}
 
 	return repository, resp, nil
+}
+
+// GetCodeOfConduct gets the contents of a repository's code of conduct.
+//
+// GitHub API docs: https://developer.github.com/v3/codes_of_conduct/#get-the-contents-of-a-repositorys-code-of-conduct
+func (s *RepositoriesService) GetCodeOfConduct(ctx context.Context, owner, repo string) (*CodeOfConduct, *Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/community/code_of_conduct", owner, repo)
+	req, err := s.client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeCodesOfConductPreview)
+
+	coc := new(CodeOfConduct)
+	resp, err := s.client.Do(ctx, req, coc)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return coc, resp, nil
 }
 
 // GetByID fetches a repository.
@@ -511,6 +534,7 @@ type Branch struct {
 type Protection struct {
 	RequiredStatusChecks       *RequiredStatusChecks       `json:"required_status_checks"`
 	RequiredPullRequestReviews *RequiredPullRequestReviews `json:"required_pull_request_reviews"`
+	EnforceAdmins              *AdminEnforcement           `json:"enforce_admins"`
 	Restrictions               *BranchRestrictions         `json:"restrictions"`
 }
 
@@ -518,12 +542,14 @@ type Protection struct {
 type ProtectionRequest struct {
 	RequiredStatusChecks       *RequiredStatusChecks       `json:"required_status_checks"`
 	RequiredPullRequestReviews *RequiredPullRequestReviews `json:"required_pull_request_reviews"`
+	EnforceAdmins              bool                        `json:"enforce_admins"`
 	Restrictions               *BranchRestrictionsRequest  `json:"restrictions"`
 }
 
 // RequiredStatusChecks represents the protection status of a individual branch.
 type RequiredStatusChecks struct {
 	// Enforce required status checks for repository administrators. (Required.)
+	// Deprecated: Use EnforceAdmins instead.
 	IncludeAdmins bool `json:"include_admins"`
 	// Require branches to be up to date before merging. (Required.)
 	Strict bool `json:"strict"`
@@ -535,7 +561,14 @@ type RequiredStatusChecks struct {
 // RequiredPullRequestReviews represents the protection configuration for pull requests.
 type RequiredPullRequestReviews struct {
 	// Enforce pull request reviews for repository administrators. (Required.)
+	// Deprecated: Use EnforceAdmins instead.
 	IncludeAdmins bool `json:"include_admins"`
+}
+
+// AdminEnforcement represents the configuration to enforce required status checks for repository administrators.
+type AdminEnforcement struct {
+	URL     *string `json:"url,omitempty"`
+	Enabled bool    `json:"enabled"`
 }
 
 // BranchRestrictions represents the restriction that only certain users or
@@ -627,6 +660,49 @@ func (s *RepositoriesService) GetBranchProtection(ctx context.Context, owner, re
 	}
 
 	return p, resp, nil
+}
+
+// GetRequiredStatusChecks gets the required status checks for a given protected branch.
+//
+// GitHub API docs: https://developer.github.com/v3/repos/branches/#get-required-status-checks-of-protected-branch
+func (s *RepositoriesService) GetRequiredStatusChecks(ctx context.Context, owner, repo, branch string) (*RequiredStatusChecks, *Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/branches/%v/protection/required_status_checks", owner, repo, branch)
+	req, err := s.client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO: remove custom Accept header when this API fully launches
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
+
+	p := new(RequiredStatusChecks)
+	resp, err := s.client.Do(ctx, req, p)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return p, resp, nil
+}
+
+// ListRequiredStatusChecksContexts lists the required status checks contexts for a given protected branch.
+//
+// GitHub API docs: https://developer.github.com/v3/repos/branches/#list-required-status-checks-contexts-of-protected-branch
+func (s *RepositoriesService) ListRequiredStatusChecksContexts(ctx context.Context, owner, repo, branch string) (contexts []string, resp *Response, err error) {
+	u := fmt.Sprintf("repos/%v/%v/branches/%v/protection/required_status_checks/contexts", owner, repo, branch)
+	req, err := s.client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO: remove custom Accept header when this API fully launches
+	req.Header.Set("Accept", mediaTypeProtectedBranchesPreview)
+
+	resp, err = s.client.Do(ctx, req, &contexts)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return contexts, resp, nil
 }
 
 // UpdateBranchProtection updates the protection of a given branch.

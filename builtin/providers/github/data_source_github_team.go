@@ -50,11 +50,11 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.SetId(strconv.Itoa(*team.ID))
-	d.Set("name", *team.Name)
-	d.Set("description", *team.Description)
-	d.Set("privacy", *team.Privacy)
-	d.Set("permission", *team.Permission)
+	d.SetId(strconv.Itoa(team.GetID()))
+	d.Set("name", team.GetName())
+	d.Set("description", team.GetDescription())
+	d.Set("privacy", team.GetPrivacy())
+	d.Set("permission", team.GetPermission())
 
 	return nil
 }

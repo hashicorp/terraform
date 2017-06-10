@@ -38,11 +38,11 @@ func (m Milestone) String() string {
 // IssuesService.ListMilestones method.
 type MilestoneListOptions struct {
 	// State filters milestones based on their state. Possible values are:
-	// open, closed. Default is "open".
+	// open, closed, all. Default is "open".
 	State string `url:"state,omitempty"`
 
-	// Sort specifies how to sort milestones. Possible values are: due_date, completeness.
-	// Default value is "due_date".
+	// Sort specifies how to sort milestones. Possible values are: due_on, completeness.
+	// Default value is "due_on".
 	Sort string `url:"sort,omitempty"`
 
 	// Direction in which to sort milestones. Possible values are: asc, desc.

@@ -28,6 +28,7 @@ type Commit struct {
 	Tree         *Tree                  `json:"tree,omitempty"`
 	Parents      []Commit               `json:"parents,omitempty"`
 	Stats        *CommitStats           `json:"stats,omitempty"`
+	HTMLURL      *string                `json:"html_url,omitempty"`
 	URL          *string                `json:"url,omitempty"`
 	Verification *SignatureVerification `json:"verification,omitempty"`
 

@@ -19,6 +19,7 @@ IMPROVEMENTS:
 * core: `terraform env` command renamed to `terraform workspace` [GH-14952]
 * provider/google: Add an additional delay when checking for sql operations [GH-15170]
 * provider/rancher: Move to Rancher V2 API [GH-13908]
+* provider/github: Added SSH and GPG key to user data source [GH-15211]
 
 BUG FIXES:
 
