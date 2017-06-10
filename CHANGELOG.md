@@ -12,9 +12,6 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
-* **New Data Source:** `azurerm_resource_group` [GH-15022]
-* **New Resource:** `aws_vpn_gateway_route_propagation` [GH-15137]
-* **New Resource:** `kubernetes_pod` [GH-13571]
 
 IMPROVEMENTS:
 
@@ -25,7 +22,6 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* provider/aws: fix aws cidr validation error [GH-15158]
 
 
 ## 0.9.8 (June 7, 2017)
