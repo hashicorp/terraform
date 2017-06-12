@@ -24,11 +24,11 @@ func main() {
 		log.Fatalf("This program must be invoked in the terraform project root; in %s", wd)
 	}
 
-	// Collect all of the data we need about plugins we have in the project
-	providers, err := discoverProviders()
-	if err != nil {
-		log.Fatalf("Failed to discover providers: %s", err)
-	}
+	//// Collect all of the data we need about plugins we have in the project
+	//providers, err := discoverProviders()
+	//if err != nil {
+	//    log.Fatalf("Failed to discover providers: %s", err)
+	//}
 
 	provisioners, err := discoverProvisioners()
 	if err != nil {
@@ -37,8 +37,8 @@ func main() {
 
 	// Do some simple code generation and templating
 	output := source
-	output = strings.Replace(output, "IMPORTS", makeImports(providers, provisioners), 1)
-	output = strings.Replace(output, "PROVIDERS", makeProviderMap(providers), 1)
+	output = strings.Replace(output, "IMPORTS", makeImports(nil, provisioners), 1)
+	//output = strings.Replace(output, "PROVIDERS", makeProviderMap(providers), 1)
 	output = strings.Replace(output, "PROVISIONERS", makeProvisionerMap(provisioners), 1)
 
 	// TODO sort the lists of plugins so we are not subjected to random OS ordering of the plugin lists
@@ -268,22 +268,11 @@ package command
 import (
 IMPORTS
 	"github.com/hashicorp/terraform/plugin"
-	"github.com/hashicorp/terraform/terraform"
-
-	//New Provider Builds
-	opcprovider "github.com/hashicorp/terraform-provider-opc/opc"
 )
 
-var InternalProviders = map[string]plugin.ProviderFunc{
-PROVIDERS
-}
+var InternalProviders = map[string]plugin.ProviderFunc{}
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
 PROVISIONERS
-}
-
-func init() {
-	// New Provider Layouts
-	InternalProviders["opc"] = func() terraform.ResourceProvider { return opcprovider.Provider() }
 }
 `
