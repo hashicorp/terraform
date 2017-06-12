@@ -27,6 +27,10 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:          schema.TypeString,
@@ -752,7 +756,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	// We retry the delete operation to handle InUse/InProgress errors coming
 	// from scaling operations. We should be able to sneak in a delete in between
 	// scaling operations within 5m.
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		if _, err := conn.DeleteAutoScalingGroup(&deleteopts); err != nil {
 			if awserr, ok := err.(awserr.Error); ok {
 				switch awserr.Code() {
@@ -774,7 +778,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		if g, _ = getAwsAutoscalingGroup(d.Id(), conn); g != nil {
 			return resource.RetryableError(
 				fmt.Errorf("Auto Scaling Group still exists"))
@@ -834,7 +838,7 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 
 	// Next, wait for the autoscale group to drain
 	log.Printf("[DEBUG] Waiting for group to have zero instances")
-	return resource.Retry(10*time.Minute, func() *resource.RetryError {
+	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		g, err := getAwsAutoscalingGroup(d.Id(), conn)
 		if err != nil {
 			return resource.NonRetryableError(err)
