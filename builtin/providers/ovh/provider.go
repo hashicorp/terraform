@@ -45,6 +45,7 @@ func Provider() terraform.ResourceProvider {
 			"ovh_publiccloud_private_network_subnet": resourcePublicCloudPrivateNetworkSubnet(),
 			"ovh_publiccloud_user":                   resourcePublicCloudUser(),
 			"ovh_vrack_publiccloud_attachment":       resourceVRackPublicCloudAttachment(),
+			"ovh_domain_zone_record":                 resourceOVHDomainZoneRecord(),
 		},
 
 		ConfigureFunc: configureProvider,
