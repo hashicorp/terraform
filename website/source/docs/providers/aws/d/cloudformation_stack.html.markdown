@@ -46,6 +46,7 @@ The following attributes are exported:
 * `outputs` - A map of outputs from the stack.
 * `parameters` - A map of parameters that specify input parameters for the stack.
 * `tags` - A map of tags associated with this stack.
+* `resources` - A map of resources managed by this stack.
 * `template_body` - Structure containing the template body.
 * `iam_role_arn` - The ARN of the IAM role used to create the stack.
 * `timeout_in_minutes` - The amount of time that can pass before the stack status becomes `CREATE_FAILED`
