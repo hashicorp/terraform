@@ -175,6 +175,32 @@ func TestAccAzureRMTrafficManagerEndpoint_nestedEndpoints(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMTrafficManagerEndpoint_location(t *testing.T) {
+	ri := acctest.RandInt()
+	first := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_location, ri, ri, ri, ri)
+	second := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_locationUpdated, ri, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: first,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMTrafficManagerEndpointExists("azurerm_traffic_manager_endpoint.test"),
+				),
+			},
+			{
+				Config: second,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMTrafficManagerEndpointExists("azurerm_traffic_manager_endpoint.test"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMTrafficManagerEndpointExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -586,6 +612,72 @@ resource "azurerm_traffic_manager_endpoint" "externalChild" {
     target = "terraform.io"
     priority = 1
     profile_name = "${azurerm_traffic_manager_profile.child.name}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+`
+
+var testAccAzureRMTrafficManagerEndpoint_location = `
+resource "azurerm_resource_group" "test" {
+    name     = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_traffic_manager_profile" "test" {
+    name                   = "acctesttmpparent%d"
+    resource_group_name    = "${azurerm_resource_group.test.name}"
+    traffic_routing_method = "Performance"
+
+    dns_config {
+        relative_name = "acctestparent%d"
+        ttl = 30
+    }
+
+    monitor_config {
+        protocol = "https"
+        port = 443
+        path = "/"
+    }
+}
+
+resource "azurerm_traffic_manager_endpoint" "test" {
+    name                = "acctestend-external%d"
+    type                = "externalEndpoints"
+    target              = "terraform.io"
+    endpoint_location   = "${azurerm_resource_group.test.location}"
+    profile_name        = "${azurerm_traffic_manager_profile.test.name}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+`
+
+var testAccAzureRMTrafficManagerEndpoint_locationUpdated = `
+resource "azurerm_resource_group" "test" {
+    name     = "acctestRG-%d"
+    location = "westus"
+}
+
+resource "azurerm_traffic_manager_profile" "test" {
+    name                   = "acctesttmpparent%d"
+    resource_group_name    = "${azurerm_resource_group.test.name}"
+    traffic_routing_method = "Performance"
+
+    dns_config {
+        relative_name = "acctestparent%d"
+        ttl = 30
+    }
+
+    monitor_config {
+        protocol = "https"
+        port = 443
+        path = "/"
+    }
+}
+
+resource "azurerm_traffic_manager_endpoint" "test" {
+    name                = "acctestend-external%d"
+    type                = "externalEndpoints"
+    target              = "terraform.io"
+    endpoint_location   = "${azurerm_resource_group.test.location}"
+    profile_name        = "${azurerm_traffic_manager_profile.test.name}"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 `
