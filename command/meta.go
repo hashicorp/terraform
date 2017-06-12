@@ -111,6 +111,13 @@ type Meta struct {
 	stateLockTimeout time.Duration
 	forceInitCopy    bool
 	reconfigure      bool
+
+	// errWriter is the write side of a pipe for the FlagSet output. We need to
+	// keep track of this to close previous pipes between tests. Normal
+	// operation never needs to close this.
+	errWriter *io.PipeWriter
+	// done chan to wait for the scanner goroutine
+	errScannerDone chan struct{}
 }
 
 type PluginOverrides struct {
@@ -275,9 +282,23 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	// This is kind of a hack, but it does the job. Basically: create
 	// a pipe, use a scanner to break it into lines, and output each line
 	// to the UI. Do this forever.
+
+	// If a previous pipe exists, we need to close that first.
+	// This should only happen in testing.
+	if m.errWriter != nil {
+		m.errWriter.Close()
+	}
+
+	if m.errScannerDone != nil {
+		<-m.errScannerDone
+	}
+
 	errR, errW := io.Pipe()
 	errScanner := bufio.NewScanner(errR)
+	m.errWriter = errW
+	m.errScannerDone = make(chan struct{})
 	go func() {
+		defer close(m.errScannerDone)
 		for errScanner.Scan() {
 			m.Ui.Error(errScanner.Text())
 		}
