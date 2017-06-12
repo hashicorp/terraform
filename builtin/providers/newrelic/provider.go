@@ -22,6 +22,16 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("NEWRELIC_API_URL", "https://api.newrelic.com/v2"),
 			},
+			"insecure_skip_verify": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("NEWRELIC_API_SKIP_VERIFY", false),
+			},
+			"cacert_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("NEWRELIC_API_CACERT", ""),
+			},
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -41,8 +51,10 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(data *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		APIKey: data.Get("api_key").(string),
-		APIURL: data.Get("api_url").(string),
+		APIKey:             data.Get("api_key").(string),
+		APIURL:             data.Get("api_url").(string),
+		InsecureSkipVerify: data.Get("insecure_skip_verify").(bool),
+		CACertFile:         data.Get("cacert_file").(string),
 	}
 	log.Println("[INFO] Initializing New Relic client")
 	return config.Client()
