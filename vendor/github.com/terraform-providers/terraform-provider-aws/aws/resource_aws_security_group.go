@@ -739,7 +739,7 @@ func updateSecurityGroupCache(conn *ec2.EC2, cache *SecurityGroupsCache) error {
 // a security group.
 func SGStateRefreshFunc(conn *ec2.EC2, cache *SecurityGroupsCache, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		group, err := RefreshSG(conn, cache, id)
+		group, err := refreshSG(conn, cache, id)
 		switch {
 		case group != nil:
 			return group, "exists", nil
@@ -751,18 +751,18 @@ func SGStateRefreshFunc(conn *ec2.EC2, cache *SecurityGroupsCache, id string) re
 	}
 }
 
-func RefreshSG(conn *ec2.EC2, cache *SecurityGroupsCache, id string) (*ec2.SecurityGroup, error) {
+func refreshSG(conn *ec2.EC2, cache *SecurityGroupsCache, id string) (*ec2.SecurityGroup, error) {
 	// If batch_security_groups is set to true on the AWS provider, we make a
 	// single batch call to fetch all SGs and cache it.
 	// Otherwise, just fetch the single security group from the AWS API
 	if cache != nil {
-		return RefreshSGFromCache(conn, cache, id)
+		return refreshSGFromCache(conn, cache, id)
 	} else {
-		return RefreshSGFromAPI(conn, id)
+		return refreshSGFromAPI(conn, id)
 	}
 }
 
-func RefreshSGFromCache(conn *ec2.EC2, cache *SecurityGroupsCache, id string) (*ec2.SecurityGroup, error) {
+func refreshSGFromCache(conn *ec2.EC2, cache *SecurityGroupsCache, id string) (*ec2.SecurityGroup, error) {
 	err := updateSecurityGroupCache(conn, cache)
 	if err != nil {
 		return nil, err
@@ -780,7 +780,7 @@ func RefreshSGFromCache(conn *ec2.EC2, cache *SecurityGroupsCache, id string) (*
 	return nil, nil
 }
 
-func RefreshSGFromAPI(conn *ec2.EC2, id string) (*ec2.SecurityGroup, error) {
+func refreshSGFromAPI(conn *ec2.EC2, id string) (*ec2.SecurityGroup, error) {
 	req := &ec2.DescribeSecurityGroupsInput{
 		GroupIds: []*string{aws.String(id)},
 	}

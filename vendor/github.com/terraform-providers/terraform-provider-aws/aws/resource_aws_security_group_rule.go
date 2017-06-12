@@ -340,7 +340,7 @@ func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}
 }
 
 func findResourceSecurityGroup(conn *ec2.EC2, cache *SecurityGroupsCache, id string) (*ec2.SecurityGroup, error) {
-	group, err := RefreshSG(conn, cache, id)
+	group, err := refreshSG(conn, cache, id)
 
 	if err != nil {
 		return nil, err
