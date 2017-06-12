@@ -269,9 +269,6 @@ import (
 IMPORTS
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
-
-	//New Provider Builds
-	opcprovider "github.com/hashicorp/terraform-provider-opc/opc"
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
