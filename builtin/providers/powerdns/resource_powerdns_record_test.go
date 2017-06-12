@@ -24,6 +24,22 @@ func TestAccPDNSRecord_A(t *testing.T) {
 	})
 }
 
+func TestAccPDNSRecord_WithPtr(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckPDNSRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testPDNSRecordConfigAWithPtr,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPDNSRecordExists("powerdns_record.test-a-ptr"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccPDNSRecord_WithCount(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -277,6 +293,16 @@ resource "powerdns_record" "test-a" {
 	type = "A"
 	ttl = 60
 	records = [ "1.1.1.1", "2.2.2.2" ]
+}`
+
+const testPDNSRecordConfigAWithPtr = `
+resource "powerdns_record" "test-a-ptr" {
+	zone = "sysa.xyz"
+	name = "redis.sysa.xyz"
+	type = "A"
+	ttl = 60
+	set_ptr = true
+	records = [ "1.1.1.1" ]
 }`
 
 const testPDNSRecordConfigHyphenedWithCount = `
