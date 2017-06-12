@@ -327,6 +327,10 @@ func TestAWSParseAccountInfoFromArn(t *testing.T) {
 func TestAWSGetCredentials_shouldError(t *testing.T) {
 	resetEnv := unsetEnv(t)
 	defer resetEnv()
+
+	resetCreds := setCredentialsFileEnv(t)
+	defer resetCreds()
+
 	cfg := Config{}
 
 	c, err := GetCredentials(&cfg)
@@ -399,6 +403,9 @@ func TestAWSGetCredentials_shouldIAM(t *testing.T) {
 	// clear AWS_* environment variables
 	resetEnv := unsetEnv(t)
 	defer resetEnv()
+
+	resetCreds := setCredentialsFileEnv(t)
+	defer resetCreds()
 
 	// capture the test server's close method, to call after the test returns
 	ts := awsEnv(t)
@@ -486,6 +493,10 @@ func TestAWSGetCredentials_shouldIgnoreIAM(t *testing.T) {
 func TestAWSGetCredentials_shouldErrorWithInvalidEndpoint(t *testing.T) {
 	resetEnv := unsetEnv(t)
 	defer resetEnv()
+
+	resetCreds := setCredentialsFileEnv(t)
+	defer resetCreds()
+
 	// capture the test server's close method, to call after the test returns
 	ts := invalidAwsEnv(t)
 	defer ts()
@@ -543,6 +554,10 @@ func TestAWSGetCredentials_shouldIgnoreInvalidEndpoint(t *testing.T) {
 func TestAWSGetCredentials_shouldCatchEC2RoleProvider(t *testing.T) {
 	resetEnv := unsetEnv(t)
 	defer resetEnv()
+
+	resetCreds := setCredentialsFileEnv(t)
+	defer resetCreds()
+
 	// capture the test server's close method, to call after the test returns
 	ts := awsEnv(t)
 	defer ts()
@@ -559,6 +574,7 @@ func TestAWSGetCredentials_shouldCatchEC2RoleProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error when getting creds: %s", err)
 	}
+
 	expectedProvider := "EC2RoleProvider"
 	if v.ProviderName != expectedProvider {
 		t.Fatalf("Expected provider name to be %q, %q given",
@@ -757,6 +773,24 @@ func awsEnv(t *testing.T) func() {
 
 	os.Setenv("AWS_METADATA_URL", ts.URL+"/latest")
 	return ts.Close
+}
+
+// if the machine running the tests has a credentials file in the path the
+// aws SDK will search for this file if the environment AWS_SHARED_CREDENTIALS_FILE
+// is not set to avoid failure set this to a dummy value.
+func setCredentialsFileEnv(t *testing.T) func() {
+	s := os.Getenv("AWS_SHARED_CREDENTIALS_FILE")
+
+	if err := os.Setenv("AWS_SHARED_CREDENTIALS_FILE", "fake"); err != nil {
+		t.Fatalf("Unable to set AWS_SHARED_CREDENTIALS_FILE")
+	}
+
+	return func() {
+		if err := os.Setenv("AWS_SHARED_CREDENTIALS_FILE", s); err != nil {
+			t.Fatalf("Error setting env var AWS_SHARED_CREDENTIALS_FLE: %s", err)
+		}
+
+	}
 }
 
 // invalidAwsEnv establishes a httptest server to simulate behaviour
