@@ -21,7 +21,7 @@ func TestCertRequest(t *testing.T) {
                         subject {
                             common_name = "example.com"
                             organization = "Example, Inc"
-                            organizational_unit = "Department of Terraform Testing"
+                            organizational_unit = ["Department of Terraform Testing", "otherOU"]
                             street_address = ["5879 Cotton Link"]
                             locality = "Pirate Harbor"
                             province = "CA"
@@ -75,6 +75,9 @@ EOT
 						return fmt.Errorf("incorrect subject organization: expected %v, got %v", expected, got)
 					}
 					if expected, got := "Department of Terraform Testing", csr.Subject.OrganizationalUnit[0]; got != expected {
+						return fmt.Errorf("incorrect subject organizational unit: expected %v, got %v", expected, got)
+					}
+					if expected, got := "otherOU", csr.Subject.OrganizationalUnit[1]; got != expected {
 						return fmt.Errorf("incorrect subject organizational unit: expected %v, got %v", expected, got)
 					}
 					if expected, got := "5879 Cotton Link", csr.Subject.StreetAddress[0]; got != expected {
