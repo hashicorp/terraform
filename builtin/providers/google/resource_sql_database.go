@@ -2,6 +2,7 @@ package google
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -13,6 +14,9 @@ func resourceSqlDatabase() *schema.Resource {
 		Create: resourceSqlDatabaseCreate,
 		Read:   resourceSqlDatabaseRead,
 		Delete: resourceSqlDatabaseDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -84,6 +88,13 @@ func resourceSqlDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	project, err := getProject(d, config)
 	if err != nil {
 		return err
+	}
+
+	// In the import case this won't be set
+	if _, ok := d.GetOk("instance"); !ok {
+		s := strings.Split(d.Id(), ":")
+		d.Set("instance", s[0])
+		d.Set("name", s[1])
 	}
 
 	database_name := d.Get("name").(string)

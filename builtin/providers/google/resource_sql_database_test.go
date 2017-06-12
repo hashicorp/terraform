@@ -20,7 +20,8 @@ func TestAccGoogleSqlDatabase_basic(t *testing.T) {
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleSqlDatabase_basic,
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabase_basic, acctest.RandString(10), acctest.RandString(10)),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlDatabaseExists(
 						"google_sql_database.database", &database),
@@ -99,7 +100,7 @@ func testAccGoogleSqlDatabaseDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testGoogleSqlDatabase_basic = fmt.Sprintf(`
+var testGoogleSqlDatabase_basic = `
 resource "google_sql_database_instance" "instance" {
 	name = "sqldatabasetest%s"
 	region = "us-central"
@@ -112,4 +113,4 @@ resource "google_sql_database" "database" {
 	name = "sqldatabasetest%s"
 	instance = "${google_sql_database_instance.instance.name}"
 }
-`, acctest.RandString(10), acctest.RandString(10))
+`
