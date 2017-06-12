@@ -127,6 +127,27 @@ func TestAccAWSAutoscalingSchedule_zeroValues(t *testing.T) {
 	})
 }
 
+func TestAccAWSAutoscalingSchedule_negativeOne(t *testing.T) {
+	var schedule autoscaling.ScheduledUpdateGroupAction
+
+	rName := fmt.Sprintf("tf-test-%d", acctest.RandInt())
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoscalingScheduleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoscalingScheduleConfig_negativeOne(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalingScheduleExists("aws_autoscaling_schedule.foobar", &schedule),
+					testAccCheckScalingScheduleHasNoDesiredCapacity(&schedule),
+					resource.TestCheckResourceAttr("aws_autoscaling_schedule.foobar", "desired_capacity", "-1"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckScalingScheduleExists(n string, policy *autoscaling.ScheduledUpdateGroupAction) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -180,6 +201,17 @@ func testAccCheckAWSAutoscalingScheduleDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func testAccCheckScalingScheduleHasNoDesiredCapacity(
+	schedule *autoscaling.ScheduledUpdateGroupAction) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if schedule.DesiredCapacity == nil {
+			return nil
+		}
+		return fmt.Errorf("Expected not to set desired capacity, got %v",
+			aws.Int64Value(schedule.DesiredCapacity))
+	}
 }
 
 func testAccAWSAutoscalingScheduleConfig(r, start, end string) string {
@@ -283,6 +315,42 @@ resource "aws_autoscaling_schedule" "foobar" {
     max_size = 0
     min_size = 0
     desired_capacity = 0
+    start_time = "2018-01-16T07:00:00Z"
+    end_time = "2018-01-16T13:00:00Z"
+    autoscaling_group_name = "${aws_autoscaling_group.foobar.name}"
+}`, r, r)
+}
+
+func testAccAWSAutoscalingScheduleConfig_negativeOne(r string) string {
+	return fmt.Sprintf(`
+resource "aws_launch_configuration" "foobar" {
+    name = "%s"
+    image_id = "ami-21f78e11"
+    instance_type = "t1.micro"
+}
+
+resource "aws_autoscaling_group" "foobar" {
+    availability_zones = ["us-west-2a"]
+    name = "%s"
+    max_size = 1
+    min_size = 1
+    health_check_grace_period = 300
+    health_check_type = "ELB"
+    force_delete = true
+    termination_policies = ["OldestInstance"]
+    launch_configuration = "${aws_launch_configuration.foobar.name}"
+    tag {
+        key = "Foo"
+        value = "foo-bar"
+        propagate_at_launch = true
+    }
+}
+
+resource "aws_autoscaling_schedule" "foobar" {
+    scheduled_action_name = "foobar"
+    max_size = 3
+    min_size = 1
+    desired_capacity = -1
     start_time = "2018-01-16T07:00:00Z"
     end_time = "2018-01-16T13:00:00Z"
     autoscaling_group_name = "${aws_autoscaling_group.foobar.name}"
