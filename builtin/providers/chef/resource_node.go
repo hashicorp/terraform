@@ -15,6 +15,9 @@ func resourceChefNode() *schema.Resource {
 		Update: UpdateNode,
 		Read:   ReadNode,
 		Delete: DeleteNode,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
