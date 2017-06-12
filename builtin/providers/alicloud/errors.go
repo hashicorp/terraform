@@ -37,6 +37,8 @@ const (
 	InvalidScalingGroupIdNotFound               = "InvalidScalingGroupId.NotFound"
 	IncorrectScalingConfigurationLifecycleState = "IncorrectScalingConfigurationLifecycleState"
 
+	// oss
+	OssBucketNotFound = "NoSuchBucket"
 	//unknown Error
 	UnknownError = "UnknownError"
 )
