@@ -153,8 +153,7 @@ func (v *VApp) AddVM(orgvdcnetwork OrgVDCNetwork, vapptemplate VAppTemplate, nam
 	s, _ := url.ParseRequestURI(v.VApp.HREF)
 	s.Path += "/action/recomposeVApp"
 
-	fmt.Println(s)
-	fmt.Println(string(output))
+	log.Printf("[TRACE] Recompose XML: %s", string(output))
 
 	b := bytes.NewBufferString(xml.Header + string(output))
 
@@ -165,9 +164,18 @@ func (v *VApp) AddVM(orgvdcnetwork OrgVDCNetwork, vapptemplate VAppTemplate, nam
 	task := NewTask(v.c)
 	v.Refresh()
 	if v.VApp.Tasks != nil {
-		fmt.Println("AYE")
+		log.Printf("[TRACE] Beginning Task of Adding VM: %s", name)
 		for _, t := range v.VApp.Tasks.Task {
 			task.Task = t
+			log.Printf("[TRACE] Awaiting Task to Finish: %s", task.Task.Name)
+			log.Printf("[TRACE] Awaiting Task to Finish: %s", task.Task.Description)
+			log.Printf("[TRACE] Awaiting Task to Finish: %s", task.Task.StartTime)
+			log.Printf("[TRACE] Awaiting Task to Finish: %s", task.Task.Status)
+			if task.Task.Status == "error" {
+				log.Printf("[WARN] Errored Idle Task: %s", task.Task.Error.Message)
+				log.Printf("[INFO] Moving onto next Task")
+				continue
+			}
 			err := task.WaitTaskCompletion()
 			if err != nil {
 				return fmt.Errorf("Error performing task: %#v", err)
@@ -199,11 +207,13 @@ func (v *VApp) AddVM(orgvdcnetwork OrgVDCNetwork, vapptemplate VAppTemplate, nam
 func (v *VApp) RemoveVM(vm VM) error {
 
 	task := NewTask(v.c)
-	for _, t := range v.VApp.Tasks.Task {
-		task.Task = t
-		err := task.WaitTaskCompletion()
-		if err != nil {
-			return fmt.Errorf("Error performing task: %#v", err)
+	if v.VApp.Tasks != nil {
+		for _, t := range v.VApp.Tasks.Task {
+			task.Task = t
+			err := task.WaitTaskCompletion()
+			if err != nil {
+				return fmt.Errorf("Error performing task: %#v", err)
+			}
 		}
 	}
 
@@ -249,7 +259,7 @@ func (v *VApp) RemoveVM(vm VM) error {
 	return nil
 }
 
-func (v *VApp) ComposeVApp(orgvdcnetwork OrgVDCNetwork, vapptemplate VAppTemplate, storage_profile_reference *types.Reference, name string, description string) (Task, error) {
+func (v *VApp) ComposeVApp(orgvdcnetwork OrgVDCNetwork, vapptemplate VAppTemplate, storageprofileref types.Reference, name string, description string) (Task, error) {
 
 	if vapptemplate.VAppTemplate.Children == nil || orgvdcnetwork.OrgVDCNetwork == nil {
 		return Task{}, fmt.Errorf("can't compose a new vApp, objects passed are not valid")
@@ -303,7 +313,7 @@ func (v *VApp) ComposeVApp(orgvdcnetwork OrgVDCNetwork, vapptemplate VAppTemplat
 				InnerNetwork:     orgvdcnetwork.OrgVDCNetwork.Name,
 				ContainerNetwork: orgvdcnetwork.OrgVDCNetwork.Name,
 			},
-			StorageProfile: storage_profile_reference,
+			StorageProfile: &storageprofileref,
 		},
 	}
 
@@ -654,7 +664,6 @@ func (v *VApp) Customize(computername, script string, changeSid bool) (Task, err
 
 	// The request was successful
 	return *task, nil
-
 }
 
 func (v *VApp) GetStatus() (string, error) {
@@ -717,6 +726,56 @@ func (v *VApp) ChangeCPUcount(size int) (Task, error) {
 	req := v.c.NewRequest(map[string]string{}, "PUT", *s, b)
 
 	req.Header.Add("Content-Type", "application/vnd.vmware.vcloud.rasdItem+xml")
+
+	resp, err := checkResp(v.c.Http.Do(req))
+	if err != nil {
+		return Task{}, fmt.Errorf("error customizing VM: %s", err)
+	}
+
+	task := NewTask(v.c)
+
+	if err = decodeBody(resp, task.Task); err != nil {
+		return Task{}, fmt.Errorf("error decoding Task response: %s", err)
+	}
+
+	// The request was successful
+	return *task, nil
+
+}
+
+func (v *VApp) ChangeStorageProfile(name string) (Task, error) {
+	err := v.Refresh()
+	if err != nil {
+		return Task{}, fmt.Errorf("error refreshing vapp before running customization: %v", err)
+	}
+
+	if v.VApp.Children == nil {
+		return Task{}, fmt.Errorf("vApp doesn't contain any children, aborting customization")
+	}
+
+	vdc, err := v.c.retrieveVDC()
+	storageprofileref, err := vdc.FindStorageProfileReference(name)
+
+	newprofile := &types.VM{
+		Name:           v.VApp.Children.VM[0].Name,
+		StorageProfile: &storageprofileref,
+		Xmlns:          "http://www.vmware.com/vcloud/v1.5",
+	}
+
+	output, err := xml.MarshalIndent(newprofile, "  ", "    ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+
+	log.Printf("[DEBUG] VCD Client configuration: %s", output)
+
+	b := bytes.NewBufferString(xml.Header + string(output))
+
+	s, _ := url.ParseRequestURI(v.VApp.Children.VM[0].HREF)
+
+	req := v.c.NewRequest(map[string]string{}, "PUT", *s, b)
+
+	req.Header.Add("Content-Type", "application/vnd.vmware.vcloud.vm+xml")
 
 	resp, err := checkResp(v.c.Http.Do(req))
 	if err != nil {
