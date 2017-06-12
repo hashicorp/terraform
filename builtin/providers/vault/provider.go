@@ -27,6 +27,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VAULT_TOKEN", ""),
 				Description: "Token to use to authenticate to Vault.",
 			},
+			"create_subtoken": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_CREATE_SUBTOKEN", true),
+				Description: "Set this to false to not create subtokens when terraform runs.",
+			},
 			"ca_cert_file": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -157,24 +163,27 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	// can explicitly be revoked, and this limited scope won't apply to
 	// any secrets that are *written* by Terraform to Vault.
 
-	client.SetToken(token)
-	renewable := false
-	childTokenLease, err := client.Auth().Token().Create(&api.TokenCreateRequest{
-		DisplayName:    "terraform",
-		TTL:            fmt.Sprintf("%ds", d.Get("max_lease_ttl_seconds").(int)),
-		ExplicitMaxTTL: fmt.Sprintf("%ds", d.Get("max_lease_ttl_seconds").(int)),
-		Renewable:      &renewable,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create limited child token: %s", err)
+	create_subtoken := d.Get("create_subtoken").(bool)
+	if create_subtoken {
+		client.SetToken(token)
+		renewable := false
+		childTokenLease, err := client.Auth().Token().Create(&api.TokenCreateRequest{
+			DisplayName:    "terraform",
+			TTL:            fmt.Sprintf("%ds", d.Get("max_lease_ttl_seconds").(int)),
+			ExplicitMaxTTL: fmt.Sprintf("%ds", d.Get("max_lease_ttl_seconds").(int)),
+			Renewable:      &renewable,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create limited child token: %s", err)
+		}
+
+		childToken := childTokenLease.Auth.ClientToken
+		policies := childTokenLease.Auth.Policies
+
+		log.Printf("[INFO] Using Vault token with the following policies: %s", strings.Join(policies, ", "))
+
+		client.SetToken(childToken)
 	}
-
-	childToken := childTokenLease.Auth.ClientToken
-	policies := childTokenLease.Auth.Policies
-
-	log.Printf("[INFO] Using Vault token with the following policies: %s", strings.Join(policies, ", "))
-
-	client.SetToken(childToken)
 
 	return client, nil
 }
