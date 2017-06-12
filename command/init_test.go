@@ -80,6 +80,39 @@ func TestInit_get(t *testing.T) {
 	}
 }
 
+func TestInit_getUpgradeModules(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	// copy.CopyDir(testFixturePath("init-get"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-get=true",
+		"-get-plugins=false",
+		"-upgrade",
+		testFixturePath("init-get"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("command did not complete successfully:\n%s", ui.ErrorWriter.String())
+	}
+
+	// Check output
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "(update)") {
+		t.Fatalf("doesn't look like get upgrade: %s", output)
+	}
+}
+
 func TestInit_backend(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)

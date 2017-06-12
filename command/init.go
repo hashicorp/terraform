@@ -31,7 +31,7 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var flagBackend, flagGet, flagGetPlugins bool
+	var flagBackend, flagGet, flagGetPlugins, flagUpgrade bool
 	var flagConfigExtra map[string]interface{}
 
 	args = c.Meta.process(args, false)
@@ -44,6 +44,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
+	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -112,10 +113,17 @@ func (c *InitCommand) Run(args []string) int {
 		if flagGet && len(conf.Modules) > 0 {
 			header = true
 
-			c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-				"[reset][bold]" +
-					"Downloading modules (if any)...")))
-			if err := getModules(&c.Meta, path, module.GetModeGet); err != nil {
+			getMode := module.GetModeGet
+			if flagUpgrade {
+				getMode = module.GetModeUpdate
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+					"[reset][bold]Upgrading modules...")))
+			} else {
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+					"[reset][bold]Downloading modules...")))
+			}
+
+			if err := getModules(&c.Meta, path, getMode); err != nil {
 				c.Ui.Error(fmt.Sprintf(
 					"Error downloading modules: %s", err))
 				return 1
@@ -324,7 +332,11 @@ Options:
 
   -no-color            If specified, output won't contain any color.
 
-  -reconfigure          Reconfigure the backend, ignoring any saved configuration.
+  -reconfigure         Reconfigure the backend, ignoring any saved configuration.
+
+  -upgrade=false       If installing modules (-get) or plugins (-get-plugins),
+                       ignore previously-downloaded objects and install the
+                       latest version allowed within configured constraints.
 `
 	return strings.TrimSpace(helpText)
 }
