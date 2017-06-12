@@ -68,6 +68,8 @@ func Provider() terraform.ResourceProvider {
 			"vsphere_folder":          resourceVSphereFolder(),
 			"vsphere_virtual_disk":    resourceVSphereVirtualDisk(),
 			"vsphere_virtual_machine": resourceVSphereVirtualMachine(),
+			"vsphere_snapshot":        resourceVSphereSnapshot(),
+			"vsphere_snapshot_revert": resourceVSphereRevertSnapshot(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -88,7 +90,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, fmt.Errorf(
 			"One of vsphere_server or [deprecated] vcenter_server must be provided.")
 	}
-
 	config := Config{
 		User:          d.Get("user").(string),
 		Password:      d.Get("password").(string),
