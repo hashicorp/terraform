@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"strings"
 )
 
 func resourceAwsElasticSearchDomain() *schema.Resource {
@@ -220,11 +221,27 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 	}
 
 	log.Printf("[DEBUG] Creating ElasticSearch domain: %s", input)
-	out, err := conn.CreateElasticsearchDomain(&input)
+
+	// IAM Roles can take some time to propagate if set in AccessPolicies and created in the same terraform
+	var out *elasticsearch.CreateElasticsearchDomainOutput
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+		var err error
+		out, err = conn.CreateElasticsearchDomain(&input)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "InvalidTypeException" && strings.Contains(awsErr.Message(), "Error setting policy") {
+					log.Printf("[DEBUG] Retrying creation of ElasticSearch domain %s", *input.DomainName)
+					return resource.RetryableError(err)
+				}
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
-
 	d.SetId(*out.DomainStatus.ARN)
 
 	log.Printf("[DEBUG] Waiting for ElasticSearch domain %q to be created", d.Id())

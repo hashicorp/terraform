@@ -96,6 +96,24 @@ func TestAccAWSElasticSearchDomain_complex(t *testing.T) {
 	})
 }
 
+func TestAccAWSElasticSearchDomain_policy(t *testing.T) {
+	var domain elasticsearch.ElasticsearchDomainStatus
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckESDomainDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccESDomainConfigWithPolicy(acctest.RandInt(), acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSElasticSearchDomain_tags(t *testing.T) {
 	var domain elasticsearch.ElasticsearchDomainStatus
 	var td elasticsearch.ListTagsOutput
@@ -221,6 +239,46 @@ resource "aws_elasticsearch_domain" "example" {
   }
 }
 `, randInt)
+}
+
+func testAccESDomainConfigWithPolicy(randESId int, randRoleId int) string {
+	return fmt.Sprintf(`
+resource "aws_elasticsearch_domain" "example" {
+  domain_name = "tf-test-%d"
+   ebs_options {
+    ebs_enabled = true
+    volume_size = 10
+  }
+  access_policies = <<CONFIG
+  {
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+	"AWS": "${aws_iam_role.example_role.arn}"
+      },
+      "Action": "es:*",
+      "Resource": "arn:aws:es:*"
+    }
+  ]
+  }
+CONFIG
+}
+resource "aws_iam_role" "example_role" {
+  name = "es-domain-role-%d"
+  assume_role_policy = "${data.aws_iam_policy_document.instance-assume-role-policy.json}"
+}
+data "aws_iam_policy_document" "instance-assume-role-policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+`, randESId, randRoleId)
 }
 
 func testAccESDomainConfig_complex(randInt int) string {
