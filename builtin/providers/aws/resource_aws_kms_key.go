@@ -53,6 +53,20 @@ func resourceAwsKmsKey() *schema.Resource {
 					return
 				},
 			},
+			"origin": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !(value == "AWS_KMS" || value == "EXTERNAL") {
+						es = append(es, fmt.Errorf(
+							"%q must be AWS_KMS or EXTERNAL", k))
+					}
+					return
+				},
+			},
 			"policy": &schema.Schema{
 				Type:             schema.TypeString,
 				Optional:         true,
@@ -98,6 +112,9 @@ func resourceAwsKmsKeyCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, exists := d.GetOk("key_usage"); exists {
 		req.KeyUsage = aws.String(v.(string))
 	}
+	if v, exists := d.GetOk("origin"); exists {
+		req.Origin = aws.String(v.(string))
+	}
 	if v, exists := d.GetOk("policy"); exists {
 		req.Policy = aws.String(v.(string))
 	}
@@ -130,7 +147,6 @@ func resourceAwsKmsKeyCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kmsconn
-
 	req := &kms.DescribeKeyInput{
 		KeyId: aws.String(d.Id()),
 	}
@@ -152,6 +168,7 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("key_id", metadata.KeyId)
 	d.Set("description", metadata.Description)
 	d.Set("key_usage", metadata.KeyUsage)
+	d.Set("origin", metadata.Origin)
 	d.Set("is_enabled", metadata.Enabled)
 
 	p, err := conn.GetKeyPolicy(&kms.GetKeyPolicyInput{
@@ -168,13 +185,19 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("policy", policy)
 
-	krs, err := conn.GetKeyRotationStatus(&kms.GetKeyRotationStatusInput{
-		KeyId: metadata.KeyId,
-	})
-	if err != nil {
-		return err
+	if *metadata.KeyState == "PendingImport" {
+		d.Set("enable_key_rotation", false)
+
+	} else {
+		krs, err := conn.GetKeyRotationStatus(&kms.GetKeyRotationStatusInput{
+			KeyId: metadata.KeyId,
+		})
+		if err != nil {
+			return err
+		}
+		d.Set("enable_key_rotation", krs.KeyRotationEnabled)
+
 	}
-	d.Set("enable_key_rotation", krs.KeyRotationEnabled)
 
 	tagList, err := conn.ListResourceTags(&kms.ListResourceTagsInput{
 		KeyId: metadata.KeyId,
