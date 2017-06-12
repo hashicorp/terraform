@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -65,6 +66,21 @@ func TestAccAWSSNSTopic_withIAMRole(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSNSTopicExists("aws_sns_topic.test_topic"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSNSTopic_withFakeIAMRole(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_sns_topic.test_topic",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSNSTopicDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config:      testAccAWSSNSTopicConfig_withFakeIAMRole,
+				ExpectError: regexp.MustCompile(`PrincipalNotFound`),
 			},
 		},
 	})
@@ -311,6 +327,30 @@ EOF
 }
 `, r, r)
 }
+
+// Test for https://github.com/hashicorp/terraform/issues/3660
+const testAccAWSSNSTopicConfig_withFakeIAMRole = `
+resource "aws_sns_topic" "test_topic" {
+  name = "example"
+  policy = <<EOF
+{
+  "Statement": [
+    {
+      "Sid": "Stmt1445931846145",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::012345678901:role/wooo"
+			},
+      "Action": "sns:Publish",
+      "Resource": "arn:aws:sns:us-west-2::example"
+    }
+  ],
+  "Version": "2012-10-17",
+  "Id": "Policy1445931846145"
+}
+EOF
+}
+`
 
 // Test for https://github.com/hashicorp/terraform/issues/14024
 func testAccAWSSNSTopicConfig_withDeliveryPolicy(r string) string {

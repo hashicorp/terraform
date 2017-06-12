@@ -147,7 +147,7 @@ func resourceAwsSNSUpdateRefreshFunc(
 				// if the error contains the PrincipalNotFound message, we can retry
 				if strings.Contains(awsErr.Message(), "PrincipalNotFound") {
 					log.Printf("[DEBUG] Retrying AWS SNS Topic Update: %s", params)
-					return nil, "retrying", nil
+					return nil, "retrying", err
 				}
 			}
 			return nil, "failed", err
