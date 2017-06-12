@@ -74,6 +74,9 @@ The following arguments are supported:
   it is not necessary to escape shell metacharacters nor add quotes around
   arguments containing spaces.
 
+* `working_dir` - (Optional) Working directory of the program.
+  If not supplied, the program will run in the current directory.
+
 * `query` - (Optional) A map of string values to pass to the external program
   as the query arguments. If not supplied, the program will receive an empty
   object as its input.
