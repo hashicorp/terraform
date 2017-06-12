@@ -46,3 +46,12 @@ The following arguments are supported:
 * `repository` - (Required) The repository to add to the team.
 * `permission` - (Optional) The permissions of team members regarding the repository.
   Must be one of `pull`, `push`, or `admin`. Defaults to `pull`.
+
+
+## Import
+
+Github Team Membership can be imported using an id made up of `teamid:repository`, e.g.
+
+```
+$ terraform import github_team_repository.terraform_repo 1234567:terraform
+```

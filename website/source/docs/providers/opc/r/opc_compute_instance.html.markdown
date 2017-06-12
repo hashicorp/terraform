@@ -166,6 +166,7 @@ In addition to the attributes listed above, the following attributes are exporte
 * `domain` - The default domain to use for the hostname and for DNS lookups.
 * `entry` - Imagelist entry number.
 * `fingerprint` - SSH server fingerprint presented by the instance.
+* `fqdn` - The fully qualified domain name of the instance.
 * `image_format` - The format of the image.
 * `ip_address` - The IP Address of the instance.
 * `placement_requirements` - The array of placement requirements for the instance.

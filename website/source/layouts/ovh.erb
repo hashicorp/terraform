@@ -1,0 +1,43 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+        </li>
+
+        <li<%= sidebar_current("docs-ovh-index") %>>
+          <a href="/docs/providers/ovh/index.html">OVH Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-ovh-resource-vrack") %>>
+          <a href="#">VRack Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-ovh-resource-vrack-publicloud-attachment") %>>
+              <a href="/docs/providers/ovh/r/vrack_publiccloud_attachment.html">ovh_vrack_publiccloud_attachment</a>
+            </li>
+          </ul>
+        </li>
+
+        <li<%= sidebar_current("docs-ovh-publiccloud") %>>
+          <a href="#">Public Cloud Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-ovh-resource-publiccloud-private-network") %>>
+              <a href="/docs/providers/ovh/r/publiccloud_private_network.html">ovh_publiccloud_private_network</a>
+            </li>
+            <li<%= sidebar_current("docs-ovh-resource-publiccloud-private-network-subnet") %>>
+              <a href="/docs/providers/ovh/r/publiccloud_private_network_subnet.html">ovh_publiccloud_private_network_subnet</a>
+            </li>
+            <li<%= sidebar_current("docs-ovh-resource-publiccloud-user") %>>
+              <a href="/docs/providers/ovh/r/publiccloud_user.html">ovh_publiccloud_user</a>
+            </li>
+          </ul>
+        </li>
+
+
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+  <% end %>

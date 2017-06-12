@@ -8,7 +8,10 @@ description: |-
 
 # google\_storage\_bucket\_acl
 
-Creates a new bucket ACL in Google cloud storage service(GCS).
+Creates a new bucket ACL in Google cloud storage service (GCS). For more information see 
+[the official documentation](https://cloud.google.com/storage/docs/access-control/lists) 
+and 
+[API](https://cloud.google.com/storage/docs/json_api/v1/bucketAccessControls).
 
 ## Example Usage
 
@@ -36,7 +39,7 @@ resource "google_storage_bucket_acl" "image-store-acl" {
 
 - - -
 
-* `predefined_acl` - (Optional) The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control#predefined-acl) to apply. Must be set if `role_entity` is not.
+* `predefined_acl` - (Optional) The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control/lists#predefined-acl) to apply. Must be set if `role_entity` is not.
 
 * `role_entity` - (Optional) List of role/entity pairs in the form `ROLE:entity`. See [GCS Bucket ACL documentation](https://cloud.google.com/storage/docs/json_api/v1/bucketAccessControls)  for more details. Must be set if `predefined_acl` is not.
 

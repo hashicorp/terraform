@@ -107,8 +107,8 @@ The following arguments are supported:
 
 ## Import
 
-Persistent Volume Claim can be imported using its name, e.g.
+Persistent Volume Claim can be imported using its namespace and name, e.g.
 
 ```
-$ terraform import kubernetes_persistent_volume_claim.example example-name
+$ terraform import kubernetes_persistent_volume_claim.example default/example-name
 ```

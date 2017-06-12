@@ -34,8 +34,8 @@ resource "azurerm_sql_elasticpool" "test" {
     server_name = "${azurerm_sql_server.test.name}"
     edition = "Basic"
     dtu = 100
-    db_min_dtu = 0
-    db_max_dtu = 5
+    db_dtu_min = 0
+    db_dtu_max = 5
     pool_size = 5000
 }
 ```

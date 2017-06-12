@@ -1,75 +1,18 @@
 package command
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/mitchellh/cli"
 )
-
-func TestInit(t *testing.T) {
-	dir := tempDir(t)
-
-	ui := new(cli.MockUi)
-	c := &InitCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
-		},
-	}
-
-	args := []string{
-		testFixturePath("init"),
-		dir,
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	if _, err := os.Stat(filepath.Join(dir, "hello.tf")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
-
-func TestInit_cwd(t *testing.T) {
-	dir := tempDir(t)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Change to the temporary directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
-
-	ui := new(cli.MockUi)
-	c := &InitCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
-		},
-	}
-
-	args := []string{
-		testFixturePath("init"),
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	if _, err := os.Stat("hello.tf"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
 
 func TestInit_empty(t *testing.T) {
 	// Create a temporary working directory that is empty
@@ -81,8 +24,8 @@ func TestInit_empty(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -96,8 +39,8 @@ func TestInit_multipleArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -107,48 +50,6 @@ func TestInit_multipleArgs(t *testing.T) {
 	}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
-	}
-}
-
-// https://github.com/hashicorp/terraform/issues/518
-func TestInit_dstInSrc(t *testing.T) {
-	dir := tempDir(t)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Change to the temporary directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
-
-	if _, err := os.Create("issue518.tf"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	ui := new(cli.MockUi)
-	c := &InitCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
-		},
-	}
-
-	args := []string{
-		".",
-		"foo",
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	if _, err := os.Stat(filepath.Join(dir, "foo", "issue518.tf")); err != nil {
-		t.Fatalf("err: %s", err)
 	}
 }
 
@@ -162,8 +63,8 @@ func TestInit_get(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -173,39 +74,6 @@ func TestInit_get(t *testing.T) {
 	}
 
 	// Check output
-	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "Get: file://") {
-		t.Fatalf("doesn't look like get: %s", output)
-	}
-}
-
-func TestInit_copyGet(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	ui := new(cli.MockUi)
-	c := &InitCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
-		},
-	}
-
-	args := []string{
-		testFixturePath("init-get"),
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	// Check copy
-	if _, err := os.Stat("main.tf"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	output := ui.OutputWriter.String()
 	if !strings.Contains(output, "Get: file://") {
 		t.Fatalf("doesn't look like get: %s", output)
@@ -222,8 +90,8 @@ func TestInit_backend(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -248,8 +116,8 @@ func TestInit_backendUnset(t *testing.T) {
 		ui := new(cli.MockUi)
 		c := &InitCommand{
 			Meta: Meta{
-				ContextOpts: testCtxConfig(testProvider()),
-				Ui:          ui,
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
 			},
 		}
 
@@ -273,8 +141,8 @@ func TestInit_backendUnset(t *testing.T) {
 		ui := new(cli.MockUi)
 		c := &InitCommand{
 			Meta: Meta{
-				ContextOpts: testCtxConfig(testProvider()),
-				Ui:          ui,
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
 			},
 		}
 
@@ -301,8 +169,8 @@ func TestInit_backendConfigFile(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -333,8 +201,8 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -360,8 +228,8 @@ func TestInit_backendConfigKV(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -377,31 +245,37 @@ func TestInit_backendConfigKV(t *testing.T) {
 	}
 }
 
-func TestInit_copyBackendDst(t *testing.T) {
+func TestInit_targetSubdir(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	// copy the source into a subdir
+	copy.CopyDir(testFixturePath("init-backend"), filepath.Join(td, "source"))
+
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
 	args := []string{
-		testFixturePath("init-backend"),
-		"dst",
+		"source",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	if _, err := os.Stat(filepath.Join(
-		"dst", DefaultDataDir, DefaultStateFilename)); err != nil {
+	if _, err := os.Stat(filepath.Join(td, "source", DefaultDataDir, DefaultStateFilename)); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// a data directory should not have been added to out working dir
+	if _, err := os.Stat(filepath.Join(td, DefaultDataDir)); !os.IsNotExist(err) {
 		t.Fatalf("err: %s", err)
 	}
 }
@@ -426,8 +300,8 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -474,8 +348,8 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -518,8 +392,8 @@ func TestInit_inputFalse(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -534,148 +408,166 @@ func TestInit_inputFalse(t *testing.T) {
 	}
 }
 
-/*
-func TestInit_remoteState(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+func TestInit_getProvider(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
-	s := terraform.NewState()
-	conf, srv := testRemoteState(t, s, 200)
-	defer srv.Close()
+	getter := &mockGetProvider{
+		Providers: map[string][]string{
+			// looking for an exact version
+			"exact": []string{"1.2.3"},
+			// config requires >= 2.3.3
+			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			// config specifies
+			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+		},
+	}
 
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
+		getProvider: getter.GetProvider,
 	}
 
-	args := []string{
-		"-backend", "HTTP",
-		"-backend-config", "address=" + conf.Config["address"],
-		testFixturePath("init"),
-		tmp,
-	}
+	args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	if _, err := os.Stat(filepath.Join(tmp, "hello.tf")); err != nil {
-		t.Fatalf("err: %s", err)
+	// check that we got the providers for our config
+	exactPath := filepath.Join(c.pluginDir(), getter.FileName("exact", "1.2.3"))
+	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
+		t.Fatal("provider 'exact' not downloaded")
 	}
-
-	if _, err := os.Stat(filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)); err != nil {
-		t.Fatalf("missing state: %s", err)
+	greaterThanPath := filepath.Join(c.pluginDir(), getter.FileName("greater_than", "2.3.4"))
+	if _, err := os.Stat(greaterThanPath); os.IsNotExist(err) {
+		t.Fatal("provider 'greater_than' not downloaded")
+	}
+	betweenPath := filepath.Join(c.pluginDir(), getter.FileName("between", "2.3.4"))
+	if _, err := os.Stat(betweenPath); os.IsNotExist(err) {
+		t.Fatal("provider 'between' not downloaded")
 	}
 }
 
-func TestInit_remoteStateSubdir(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
-	subdir := filepath.Join(tmp, "subdir")
+func TestInit_getProviderMissing(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
-	s := terraform.NewState()
-	conf, srv := testRemoteState(t, s, 200)
-	defer srv.Close()
+	getter := &mockGetProvider{
+		Providers: map[string][]string{
+			// looking for exact version 1.2.3
+			"exact": []string{"1.2.4"},
+			// config requires >= 2.3.3
+			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			// config specifies
+			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+		},
+	}
 
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		getProvider: getter.GetProvider,
+	}
+
+	args := []string{}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expceted error, got output: \n%s", ui.OutputWriter.String())
+	}
+
+	if !strings.Contains(ui.ErrorWriter.String(), "no suitable version for provider") {
+		t.Fatalf("unexpected error output: %s", ui.ErrorWriter)
+	}
+}
+
+func TestInit_getProviderHaveLegacyVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-providers-lock"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	if err := ioutil.WriteFile("terraform-provider-test", []byte("provider bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// provider test has a version constraint in the config, which should
+	// trigger the getProvider error below.
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		getProvider: func(dst, provider string, req discovery.Constraints, protoVersion uint) error {
+			return fmt.Errorf("EXPECTED PROVIDER ERROR %s", provider)
 		},
 	}
 
-	args := []string{
-		"-backend", "http",
-		"-backend-config", "address=" + conf.Config["address"],
-		testFixturePath("init"),
-		subdir,
+	args := []string{}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expceted error, got output: \n%s", ui.OutputWriter.String())
 	}
+
+	if !strings.Contains(ui.ErrorWriter.String(), "EXPECTED PROVIDER ERROR test") {
+		t.Fatalf("unexpected error output: %s", ui.ErrorWriter)
+	}
+}
+
+func TestInit_providerLockFile(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-provider-lock-file"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	getter := &mockGetProvider{
+		Providers: map[string][]string{
+			"test": []string{"1.2.3"},
+		},
+	}
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		getProvider: getter.GetProvider,
+	}
+
+	args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	if _, err := os.Stat(filepath.Join(subdir, "hello.tf")); err != nil {
-		t.Fatalf("err: %s", err)
+	providersLockFile := fmt.Sprintf(
+		".terraform/plugins/%s_%s/lock.json",
+		runtime.GOOS, runtime.GOARCH,
+	)
+	buf, err := ioutil.ReadFile(providersLockFile)
+	if err != nil {
+		t.Fatalf("failed to read providers lock file %s: %s", providersLockFile, err)
 	}
-
-	if _, err := os.Stat(filepath.Join(subdir, DefaultDataDir, DefaultStateFilename)); err != nil {
-		t.Fatalf("missing state: %s", err)
+	// The hash in here is for the empty files that mockGetProvider produces
+	wantLockFile := strings.TrimSpace(`
+{
+  "test": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
+`)
+	if string(buf) != wantLockFile {
+		t.Errorf("wrong provider lock file contents\ngot:  %s\nwant: %s", buf, wantLockFile)
 	}
 }
-
-func TestInit_remoteStateWithLocal(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
-
-	statePath := filepath.Join(tmp, DefaultStateFilename)
-
-	// Write some state
-	f, err := os.Create(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	err = terraform.WriteState(testState(), f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	ui := new(cli.MockUi)
-	c := &InitCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
-		},
-	}
-
-	args := []string{
-		"-backend", "http",
-		"-backend-config", "address=http://google.com",
-		testFixturePath("init"),
-	}
-	if code := c.Run(args); code == 0 {
-		t.Fatalf("should have failed: \n%s", ui.OutputWriter.String())
-	}
-}
-
-func TestInit_remoteStateWithRemote(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
-
-	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
-	if err := os.MkdirAll(filepath.Dir(statePath), 0755); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Write some state
-	f, err := os.Create(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	err = terraform.WriteState(testState(), f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	ui := new(cli.MockUi)
-	c := &InitCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
-		},
-	}
-
-	args := []string{
-		"-backend", "http",
-		"-backend-config", "address=http://google.com",
-		testFixturePath("init"),
-	}
-	if code := c.Run(args); code == 0 {
-		t.Fatalf("should have failed: \n%s", ui.OutputWriter.String())
-	}
-}
-*/

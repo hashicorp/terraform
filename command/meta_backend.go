@@ -9,11 +9,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/backend"
@@ -29,9 +27,9 @@ import (
 
 // BackendOpts are the options used to initialize a backend.Backend.
 type BackendOpts struct {
-	// ConfigPath is a path to a file or directory containing the backend
-	// configuration (declaration).
-	ConfigPath string
+	// Module is the root module from which we will extract the terraform and
+	// backend configuration.
+	Config *config.Config
 
 	// ConfigFile is a path to a file that contains configuration that
 	// is merged directly into the backend configuration when loaded
@@ -170,7 +168,7 @@ func (m *Meta) Operation() *backend.Operation {
 		PlanOutBackend:   m.backendState,
 		Targets:          m.targets,
 		UIIn:             m.UIInput(),
-		Environment:      m.Env(),
+		Workspace:        m.Workspace(),
 		LockState:        m.stateLock,
 		StateLockTimeout: m.stateLockTimeout,
 	}
@@ -178,71 +176,34 @@ func (m *Meta) Operation() *backend.Operation {
 
 // backendConfig returns the local configuration for the backend
 func (m *Meta) backendConfig(opts *BackendOpts) (*config.Backend, error) {
-	// If no explicit path was given then it is okay for there to be
-	// no backend configuration found.
-	emptyOk := opts.ConfigPath == ""
-
-	// Determine the path to the configuration.
-	path := opts.ConfigPath
-
-	// If we had no path set, it is an error. We can't initialize unset
-	if path == "" {
-		path = "."
-	}
-
-	// Expand the path
-	if !filepath.IsAbs(path) {
-		var err error
-		path, err = filepath.Abs(path)
+	if opts.Config == nil {
+		// check if the config was missing, or just not required
+		conf, err := m.Config(".")
 		if err != nil {
-			return nil, fmt.Errorf(
-				"Error expanding path to backend config %q: %s", path, err)
+			return nil, err
 		}
-	}
 
-	log.Printf("[DEBUG] command: loading backend config file: %s", path)
-
-	// We first need to determine if we're loading a file or a directory.
-	fi, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) && emptyOk {
-			log.Printf(
-				"[INFO] command: backend config not found, returning nil: %s",
-				path)
+		if conf == nil {
+			log.Println("[INFO] command: no config, returning nil")
 			return nil, nil
 		}
 
-		return nil, err
+		log.Println("[WARNING] BackendOpts.Config not set, but config found")
+		opts.Config = conf
 	}
 
-	var f func(string) (*config.Config, error) = config.LoadFile
-	if fi.IsDir() {
-		f = config.LoadDir
-	}
-
-	// Load the configuration
-	c, err := f(path)
-	if err != nil {
-		// Check for the error where we have no config files and return nil
-		// as the configuration type.
-		if errwrap.ContainsType(err, new(config.ErrNoConfigsFound)) {
-			log.Printf(
-				"[INFO] command: backend config not found, returning nil: %s",
-				path)
-			return nil, nil
-		}
-
-		return nil, err
-	}
+	c := opts.Config
 
 	// If there is no Terraform configuration block, no backend config
 	if c.Terraform == nil {
+		log.Println("[INFO] command: empty terraform config, returning nil")
 		return nil, nil
 	}
 
 	// Get the configuration for the backend itself.
 	backend := c.Terraform.Backend
 	if backend == nil {
+		log.Println("[INFO] command: empty backend config, returning nil")
 		return nil, nil
 	}
 
@@ -611,7 +572,7 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 		return nil, err
 	}
 
-	env := m.Env()
+	env := m.Workspace()
 
 	// Get the state so we can determine the effect of using this plan
 	realMgr, err := b.State(env)
@@ -1006,7 +967,7 @@ func (m *Meta) backend_C_r_s(
 		return nil, fmt.Errorf(errBackendLocalRead, err)
 	}
 
-	env := m.Env()
+	env := m.Workspace()
 
 	localState, err := localB.State(env)
 	if err != nil {
@@ -1380,13 +1341,17 @@ func (m *Meta) backendInitFromConfig(c *config.Backend) (backend.Backend, error)
 
 	// Validate
 	warns, errs := b.Validate(config)
+	for _, warning := range warns {
+		// We just write warnings directly to the UI. This isn't great
+		// since we're a bit deep here to be pushing stuff out into the
+		// UI, but sufficient to let us print out deprecation warnings
+		// and the like.
+		m.Ui.Warn(warning)
+	}
 	if len(errs) > 0 {
 		return nil, fmt.Errorf(
 			"Error configuring the backend %q: %s",
 			c.Type, multierror.Append(nil, errs...))
-	}
-	if len(warns) > 0 {
-		// TODO: warnings are currently ignored
 	}
 
 	// Configure
@@ -1746,7 +1711,7 @@ process.
 
 const successBackendLegacyUnset = `
 Terraform has successfully migrated from legacy remote state to your
-configured remote state.
+configured backend (%q).
 `
 
 const successBackendReconfigureWithLegacy = `

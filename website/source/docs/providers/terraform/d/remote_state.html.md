@@ -31,9 +31,9 @@ resource "aws_instance" "foo" {
 The following arguments are supported:
 
 * `backend` - (Required) The remote backend to use.
-* `environment` - (Optional) The Terraform environment to use.
-* `config` - (Optional) The configuration of the remote backend.
- * Remote state config docs can be found [here](/docs/backends/types/terraform-enterprise.html)
+* `workspace` - (Optional) The Terraform workspace whose state will be requested. Defaults to "default".
+* `config` - (Optional) The configuration of the remote backend. For more information,
+  see [the Backend Types documentation](/docs/backends/types/).
 
 ## Attributes Reference
 

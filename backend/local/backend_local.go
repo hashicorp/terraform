@@ -23,7 +23,7 @@ func (b *Local) Context(op *backend.Operation) (*terraform.Context, state.State,
 
 func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State, error) {
 	// Get the state.
-	s, err := b.State(op.Environment)
+	s, err := b.State(op.Workspace)
 	if err != nil {
 		return nil, nil, errwrap.Wrapf("Error loading state: {{err}}", err)
 	}
