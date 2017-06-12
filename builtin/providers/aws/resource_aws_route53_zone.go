@@ -31,6 +31,9 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				StateFunc: func(v interface{}) string {
+					return strings.TrimSuffix(v.(string), ".")
+				},
 			},
 
 			"comment": &schema.Schema{
