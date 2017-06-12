@@ -23,6 +23,7 @@ func TestAccDataSourceAwsSubnet(t *testing.T) {
 					testAccDataSourceAwsSubnetCheck("data.aws_subnet.by_id", rInt),
 					testAccDataSourceAwsSubnetCheck("data.aws_subnet.by_cidr", rInt),
 					testAccDataSourceAwsSubnetCheck("data.aws_subnet.by_tag", rInt),
+					testAccDataSourceAwsSubnetCheckReservedTag("data.aws_subnet.by_reserved_tag"),
 					testAccDataSourceAwsSubnetCheck("data.aws_subnet.by_vpc", rInt),
 					testAccDataSourceAwsSubnetCheck("data.aws_subnet.by_filter", rInt),
 				),
@@ -121,6 +122,32 @@ func testAccDataSourceAwsSubnetCheck(name string, rInt int) resource.TestCheckFu
 	}
 }
 
+func testAccDataSourceAwsSubnetCheckReservedTag(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("root module has no resource called %s", name)
+		}
+
+		subnetsCf, ok := s.RootModule().Resources["aws_cloudformation_stack.subnet_cf"]
+		if !ok {
+			return fmt.Errorf("can't find aws_cloudformation_stack.subnet_cf in state")
+		}
+
+		attr := rs.Primary.Attributes
+
+		if attr["id"] != subnetsCf.Primary.Attributes["outputs.SubnetId"] {
+			return fmt.Errorf(
+				"id is %s; want %s",
+				attr["id"],
+				subnetsCf.Primary.Attributes["outputs.SubnetId"],
+			)
+		}
+
+		return nil
+	}
+}
+
 func testAccDataSourceAwsSubnetConfig(rInt int) string {
 	return fmt.Sprintf(`
 		provider "aws" {
@@ -129,6 +156,14 @@ func testAccDataSourceAwsSubnetConfig(rInt int) string {
 
 		resource "aws_vpc" "test" {
 		  cidr_block = "172.%d.0.0/16"
+
+		  tags {
+		    Name = "terraform-testacc-subnet-data-source"
+		  }
+		}
+
+		resource "aws_vpc" "test_cf" {
+			cidr_block = "172.31.0.0/16"
 
 		  tags {
 		    Name = "terraform-testacc-subnet-data-source"
@@ -145,6 +180,36 @@ func testAccDataSourceAwsSubnetConfig(rInt int) string {
 		  }
 		}
 
+		resource "aws_cloudformation_stack" "subnet_cf" {
+  name = "terraform-testacc-subnet-cf-data-source"
+  parameters {
+    VpcId    = "${aws_vpc.test_cf.id}"
+  }
+  template_body = <<STACK
+Parameters:
+  VpcId:
+    Type: String
+Resources:
+  TerraformTestAccSubnetCfDataSource:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VpcId
+      CidrBlock: 172.31.1.0/24
+      AvailabilityZone: "us-west-2a"
+      Tags:
+      - Key: Name
+        Value: terraform-testacc-subnet-cf-data-source
+Outputs:
+  SubnetName:
+    Value: terraform-testacc-subnet-cf-data-source
+  CloudFormationLogical:
+    Value: TerraformTestAccSubnetCfDataSource
+  SubnetId:
+    Value:
+      Ref: TerraformTestAccSubnetCfDataSource
+STACK
+}
 
 		data "aws_subnet" "by_id" {
 		  id = "${aws_subnet.test.id}"
@@ -157,6 +222,12 @@ func testAccDataSourceAwsSubnetConfig(rInt int) string {
 		data "aws_subnet" "by_tag" {
 		  tags {
 		    Name = "${aws_subnet.test.tags["Name"]}"
+		  }
+		}
+
+		data "aws_subnet" "by_reserved_tag" {
+		  tags {
+		    "aws:cloudformation:logical-id" = "${aws_cloudformation_stack.subnet_cf.outputs["CloudFormationLogical"]}"
 		  }
 		}
 

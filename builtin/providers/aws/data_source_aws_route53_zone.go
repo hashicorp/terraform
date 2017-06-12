@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -45,6 +46,11 @@ func dataSourceAwsRoute53Zone() *schema.Resource {
 				Computed: true,
 			},
 			"tags": tagsSchemaComputed(),
+			"filter_reserved_tags": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"resource_record_set_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -55,12 +61,19 @@ func dataSourceAwsRoute53Zone() *schema.Resource {
 }
 
 func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error {
+	var tags []*ec2.Tag
 	conn := meta.(*AWSClient).r53conn
 	name, nameExists := d.GetOk("name")
 	name = hostedZoneName(name.(string))
 	id, idExists := d.GetOk("zone_id")
 	vpcId, vpcIdExists := d.GetOk("vpc_id")
-	tags := tagsFromMap(d.Get("tags").(map[string]interface{}))
+
+	if d.Get("filter_reserved_tags").(bool) {
+		tags = tagsFromMap(d.Get("tags").(map[string]interface{}))
+	} else {
+		tags = tagsFromMapUnfiltered(d.Get("tags").(map[string]interface{}))
+	}
+
 	if nameExists && idExists {
 		return fmt.Errorf("zone_id and name arguments can't be used together")
 	} else if !nameExists && !idExists {

@@ -39,17 +39,20 @@ The arguments of this data source act as filters for querying the available
 Route Table in the current region. The given filters must match exactly one
 Route Table whose data will be exported as attributes.
 
-
 * `filter` - (Optional) Custom filter block as described below.
 
+* `filter_reserved_tags` - (Optional) A boolean flag that controls whether the
+  data source will ignore AWS reserved tags, i.e. tags that match `^aws:*`.
+  Defaults to `false`.
+
 * `route_table_id` - (Optional) The id of the specific Route Table to retrieve.
+
+* `subnet_id` - (Optional) The id of a Subnet which is connected to the Route Table (not be exported if not given in parameter).
 
 * `tags` - (Optional) A mapping of tags, each pair of which must exactly match
   a pair on the desired Route Table.
 
 * `vpc_id` - (Optional) The id of the VPC that the desired Route Table belongs to.
-
-* `subnet_id` - (Optional) The id of a Subnet which is connected to the Route Table (not be exported if not given in parameter).
 
 More complex filters can be expressed using one or more `filter` sub-blocks,
 which take the following arguments:

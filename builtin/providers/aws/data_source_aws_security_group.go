@@ -38,6 +38,11 @@ func dataSourceAwsSecurityGroup() *schema.Resource {
 			},
 
 			"tags": tagsSchemaComputed(),
+			"filter_reserved_tags": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -56,9 +61,17 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 			"vpc-id":     d.Get("vpc_id").(string),
 		},
 	)
-	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(d.Get("tags").(map[string]interface{})),
-	)...)
+
+	if d.Get("filter_reserved_tags").(bool) {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMap(d.Get("tags").(map[string]interface{})),
+		)...)
+	} else {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMapUnfiltered(d.Get("tags").(map[string]interface{})),
+		)...)
+	}
+
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		d.Get("filter").(*schema.Set),
 	)...)
@@ -86,7 +99,13 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("name", sg.GroupName)
 	d.Set("description", sg.Description)
 	d.Set("vpc_id", sg.VpcId)
-	d.Set("tags", tagsToMap(sg.Tags))
+
+	if d.Get("filter_reserved_tags").(bool) {
+		d.Set("tags", tagsToMap(sg.Tags))
+	} else {
+		d.Set("tags", tagsToMapUnfiltered(sg.Tags))
+	}
+
 	d.Set("arn", fmt.Sprintf("arn:%s:ec2:%s:%s/security-group/%s",
 		meta.(*AWSClient).partition, meta.(*AWSClient).region, *sg.OwnerId, *sg.GroupId))
 

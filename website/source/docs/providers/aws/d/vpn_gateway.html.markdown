@@ -31,15 +31,19 @@ output "vpn_gateway_id" {
 The arguments of this data source act as filters for querying the available VPN gateways.
 The given filters must match exactly one VPN gateway whose data will be exported as attributes.
 
-* `id` - (Optional) The ID of the specific VPN Gateway to retrieve.
-
-* `state` - (Optional) The state of the specific VPN Gateway to retrieve.
+* `attached_vpc_id` - (Optional) The ID of a VPC attached to the specific VPN Gateway to retrieve.
 
 * `availability_zone` - (Optional) The Availability Zone of the specific VPN Gateway to retrieve.
 
-* `attached_vpc_id` - (Optional) The ID of a VPC attached to the specific VPN Gateway to retrieve.
-
 * `filter` - (Optional) Custom filter block as described below.
+
+* `filter_reserved_tags` - (Optional) A boolean flag that controls whether the
+  data source will ignore AWS reserved tags, i.e. tags that match `^aws:*`.
+  Defaults to `false`.
+
+* `id` - (Optional) The ID of the specific VPN Gateway to retrieve.
+
+* `state` - (Optional) The state of the specific VPN Gateway to retrieve.
 
 * `tags` - (Optional) A mapping of tags, each pair of which must exactly match
   a pair on the desired VPN Gateway.

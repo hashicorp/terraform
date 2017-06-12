@@ -31,6 +31,11 @@ func dataSourceAwsRouteTable() *schema.Resource {
 			},
 			"filter": ec2CustomFiltersSchema(),
 			"tags":   tagsSchemaComputed(),
+			"filter_reserved_tags": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"routes": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -128,9 +133,17 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 			"association.subnet-id": subnetId.(string),
 		},
 	)
-	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(tags.(map[string]interface{})),
-	)...)
+
+	if d.Get("filter_reserved_tags").(bool) {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMap(tags.(map[string]interface{})),
+		)...)
+	} else {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMapUnfiltered(tags.(map[string]interface{})),
+		)...)
+	}
+
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		filter.(*schema.Set),
 	)...)
@@ -152,7 +165,13 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 	d.SetId(aws.StringValue(rt.RouteTableId))
 	d.Set("route_table_id", rt.RouteTableId)
 	d.Set("vpc_id", rt.VpcId)
-	d.Set("tags", tagsToMap(rt.Tags))
+
+	if d.Get("filter_reserved_tags").(bool) {
+		d.Set("tags", tagsToMap(rt.Tags))
+	} else {
+		d.Set("tags", tagsToMapUnfiltered(rt.Tags))
+	}
+
 	if err := d.Set("routes", dataSourceRoutesRead(rt.Routes)); err != nil {
 		return err
 	}

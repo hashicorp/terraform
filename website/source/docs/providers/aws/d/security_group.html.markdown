@@ -41,6 +41,10 @@ security group whose data will be exported as attributes.
 
 * `filter` - (Optional) Custom filter block as described below.
 
+* `filter_reserved_tags` - (Optional) A boolean flag that controls whether the
+  data source will ignore AWS reserved tags, i.e. tags that match `^aws:*`.
+  Defaults to `false`.
+
 * `id` - (Optional) The id of the specific security group to retrieve.
 
 * `name` - (Optional) The name that the desired security group must have.

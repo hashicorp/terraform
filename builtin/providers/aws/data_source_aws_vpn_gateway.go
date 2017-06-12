@@ -36,6 +36,11 @@ func dataSourceAwsVpnGateway() *schema.Resource {
 			},
 			"filter": ec2CustomFiltersSchema(),
 			"tags":   tagsSchemaComputed(),
+			"filter_reserved_tags": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -65,9 +70,16 @@ func dataSourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error
 			},
 		)...)
 	}
-	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(d.Get("tags").(map[string]interface{})),
-	)...)
+
+	if d.Get("filter_reserved_tags").(bool) {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMap(d.Get("tags").(map[string]interface{})),
+		)...)
+	} else {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMapUnfiltered(d.Get("tags").(map[string]interface{})),
+		)...)
+	}
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		d.Get("filter").(*schema.Set),
 	)...)
@@ -92,7 +104,12 @@ func dataSourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error
 	d.SetId(aws.StringValue(vgw.VpnGatewayId))
 	d.Set("state", vgw.State)
 	d.Set("availability_zone", vgw.AvailabilityZone)
-	d.Set("tags", tagsToMap(vgw.Tags))
+
+	if d.Get("filter_reserved_tags").(bool) {
+		d.Set("tags", tagsToMap(vgw.Tags))
+	} else {
+		d.Set("tags", tagsToMapUnfiltered(vgw.Tags))
+	}
 
 	for _, attachment := range vgw.VpcAttachments {
 		if *attachment.State == "attached" {
