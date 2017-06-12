@@ -30,10 +30,18 @@ func resourceUser() *schema.Resource {
 				Default:  "localhost",
 			},
 
-			"password": &schema.Schema{
+			"plaintext_password": &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
 				Sensitive: true,
+				StateFunc: hashSum,
+			},
+			"password": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"plaintext_password"},
+				Sensitive:     true,
+				Deprecated:    "Please use plaintext_password instead",
 			},
 		},
 	}
@@ -46,7 +54,13 @@ func CreateUser(d *schema.ResourceData, meta interface{}) error {
 		d.Get("user").(string),
 		d.Get("host").(string))
 
-	password := d.Get("password").(string)
+	var password string
+	if v, ok := d.GetOk("plaintext_password"); ok {
+		password = v.(string)
+	} else {
+		password = d.Get("password").(string)
+	}
+
 	if password != "" {
 		stmtSQL = stmtSQL + fmt.Sprintf(" IDENTIFIED BY '%s'", password)
 	}
@@ -66,8 +80,16 @@ func CreateUser(d *schema.ResourceData, meta interface{}) error {
 func UpdateUser(d *schema.ResourceData, meta interface{}) error {
 	conf := meta.(*providerConfiguration)
 
-	if d.HasChange("password") {
-		_, newpw := d.GetChange("password")
+	var newpw interface{}
+	if d.HasChange("plaintext_password") {
+		_, newpw = d.GetChange("plaintext_password")
+	} else if d.HasChange("password") {
+		_, newpw = d.GetChange("password")
+	} else {
+		newpw = nil
+	}
+
+	if newpw != nil {
 		var stmtSQL string
 
 		/* ALTER USER syntax introduced in MySQL 5.7.6 deprecates SET PASSWORD (GH-8230) */

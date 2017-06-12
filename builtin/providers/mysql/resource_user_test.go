@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccUser(t *testing.T) {
+func TestAccUser_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -21,11 +21,39 @@ func TestAccUser(t *testing.T) {
 					testAccUserExists("mysql_user.test"),
 					resource.TestCheckResourceAttr("mysql_user.test", "user", "jdoe"),
 					resource.TestCheckResourceAttr("mysql_user.test", "host", "example.com"),
-					resource.TestCheckResourceAttr("mysql_user.test", "password", "password"),
+					resource.TestCheckResourceAttr("mysql_user.test", "plaintext_password", hashSum("password")),
 				),
 			},
 			resource.TestStep{
 				Config: testAccUserConfig_newPass,
+				Check: resource.ComposeTestCheckFunc(
+					testAccUserExists("mysql_user.test"),
+					resource.TestCheckResourceAttr("mysql_user.test", "user", "jdoe"),
+					resource.TestCheckResourceAttr("mysql_user.test", "host", "example.com"),
+					resource.TestCheckResourceAttr("mysql_user.test", "plaintext_password", hashSum("password2")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccUser_deprecated(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccUserCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccUserConfig_deprecated,
+				Check: resource.ComposeTestCheckFunc(
+					testAccUserExists("mysql_user.test"),
+					resource.TestCheckResourceAttr("mysql_user.test", "user", "jdoe"),
+					resource.TestCheckResourceAttr("mysql_user.test", "host", "example.com"),
+					resource.TestCheckResourceAttr("mysql_user.test", "password", "password"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccUserConfig_deprecated_newPass,
 				Check: resource.ComposeTestCheckFunc(
 					testAccUserExists("mysql_user.test"),
 					resource.TestCheckResourceAttr("mysql_user.test", "user", "jdoe"),
@@ -86,16 +114,32 @@ func testAccUserCheckDestroy(s *terraform.State) error {
 
 const testAccUserConfig_basic = `
 resource "mysql_user" "test" {
-        user = "jdoe"
-        host = "example.com"
-        password = "password"
+    user = "jdoe"
+    host = "example.com"
+    plaintext_password = "password"
 }
 `
 
 const testAccUserConfig_newPass = `
 resource "mysql_user" "test" {
-        user = "jdoe"
-        host = "example.com"
-        password = "password2"
+    user = "jdoe"
+    host = "example.com"
+    plaintext_password = "password2"
+}
+`
+
+const testAccUserConfig_deprecated = `
+resource "mysql_user" "test" {
+    user = "jdoe"
+    host = "example.com"
+    password = "password"
+}
+`
+
+const testAccUserConfig_deprecated_newPass = `
+resource "mysql_user" "test" {
+    user = "jdoe"
+    host = "example.com"
+    password = "password2"
 }
 `
