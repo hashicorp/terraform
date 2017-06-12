@@ -13,10 +13,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"regexp"
 )
 
 const awsSNSPendingConfirmationMessage = "pending confirmation"
 const awsSNSPendingConfirmationMessageWithoutSpaces = "pendingconfirmation"
+const awsSNSPasswordObfuscationPattern = "****"
 
 var SNSSubscriptionAttributeMap = map[string]string{
 	"topic_arn":            "TopicArn",
@@ -36,40 +38,40 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     false,
 				ValidateFunc: validateSNSSubscriptionProtocol,
 			},
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"endpoint_auto_confirms": &schema.Schema{
+			"endpoint_auto_confirms": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"confirmation_timeout_in_minutes": &schema.Schema{
+			"confirmation_timeout_in_minutes": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1,
 			},
-			"topic_arn": &schema.Schema{
+			"topic_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"delivery_policy": &schema.Schema{
+			"delivery_policy": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"raw_message_delivery": &schema.Schema{
+			"raw_message_delivery": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -259,13 +261,13 @@ func findSubscriptionByNonID(d *schema.ResourceData, snsconn *sns.SNS) (*sns.Sub
 	protocol := d.Get("protocol").(string)
 	endpoint := d.Get("endpoint").(string)
 	topic_arn := d.Get("topic_arn").(string)
+	obfuscatedEndpointPassword := obfuscateEndpointPassword(endpoint)
 
 	req := &sns.ListSubscriptionsByTopicInput{
 		TopicArn: aws.String(topic_arn),
 	}
 
 	for {
-
 		res, err := snsconn.ListSubscriptionsByTopic(req)
 
 		if err != nil {
@@ -273,8 +275,8 @@ func findSubscriptionByNonID(d *schema.ResourceData, snsconn *sns.SNS) (*sns.Sub
 		}
 
 		for _, subscription := range res.Subscriptions {
-			log.Printf("[DEBUG] check subscription with EndPoint %s, Protocol %s,  topicARN %s and SubscriptionARN %s", *subscription.Endpoint, *subscription.Protocol, *subscription.TopicArn, *subscription.SubscriptionArn)
-			if *subscription.Endpoint == endpoint && *subscription.Protocol == protocol && *subscription.TopicArn == topic_arn && !subscriptionHasPendingConfirmation(subscription.SubscriptionArn) {
+			log.Printf("[DEBUG] check subscription with EndPoint %s, Protocol %s, topicARN %s and SubscriptionARN %s", *subscription.Endpoint, *subscription.Protocol, *subscription.TopicArn, *subscription.SubscriptionArn)
+			if *subscription.Endpoint == obfuscatedEndpointPassword && *subscription.Protocol == protocol && *subscription.TopicArn == topic_arn && !subscriptionHasPendingConfirmation(subscription.SubscriptionArn) {
 				return subscription, nil
 			}
 		}
@@ -295,4 +297,10 @@ func subscriptionHasPendingConfirmation(arn *string) bool {
 	}
 
 	return true
+}
+
+// returns the endpoint with obfuscated password, if any
+func obfuscateEndpointPassword(endpoint string) string {
+	r := regexp.MustCompile("(://[^:]+):([^@]+)")
+	return r.ReplaceAllString(endpoint, fmt.Sprintf("$1:%s", awsSNSPasswordObfuscationPattern))
 }
