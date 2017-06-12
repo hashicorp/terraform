@@ -14,6 +14,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
+	"google.golang.org/api/appengine/v1"
 	"google.golang.org/api/bigquery/v2"
 	"google.golang.org/api/cloudbilling/v1"
 	"google.golang.org/api/cloudresourcemanager/v1"
@@ -34,6 +35,7 @@ type Config struct {
 	Project     string
 	Region      string
 
+	clientAppengine       *appengine.APIService
 	clientBilling         *cloudbilling.Service
 	clientCompute         *compute.Service
 	clientContainer       *container.Service
@@ -103,6 +105,13 @@ func (c *Config) loadAndValidate() error {
 		"(%s %s) Terraform/%s", runtime.GOOS, runtime.GOARCH, versionString)
 
 	var err error
+
+	log.Printf("[INFO] Instantiating Google App Engine Client...")
+	c.clientAppengine, err = appengine.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientAppengine.UserAgent = userAgent
 
 	log.Printf("[INFO] Instantiating GCE client...")
 	c.clientCompute, err = compute.New(client)
