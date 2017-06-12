@@ -1191,6 +1191,13 @@ func flattenCloudFormationOutputs(cfOutputs []*cloudformation.Output) map[string
 	return outputs
 }
 
+func flattenCloudformationExports(values, stack_ids map[string]string, cfExports []*cloudformation.Export) {
+	for _, e := range cfExports {
+		values[*e.Name] = *e.Value
+		stack_ids[*e.Name] = *e.ExportingStackId
+	}
+}
+
 func flattenAsgSuspendedProcesses(list []*autoscaling.SuspendedProcess) []string {
 	strs := make([]string, 0, len(list))
 	for _, r := range list {
