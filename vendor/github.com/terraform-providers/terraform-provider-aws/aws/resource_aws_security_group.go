@@ -17,6 +17,8 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+const SecurityGroupKey = "56e2e112-ef69-4461-af19-01064bdd44d6"
+
 func resourceAwsSecurityGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSecurityGroupCreate,
@@ -711,16 +713,14 @@ func resourceAwsSecurityGroupUpdateRules(
 }
 
 func clearSecurityGroupCache(cache *SecurityGroupsCache) {
-	mtKey := "security_groups_cache"
-	awsMutexKV.Lock(mtKey)
-	defer awsMutexKV.Unlock(mtKey)
+	awsMutexKV.Lock(SecurityGroupKey)
+	defer awsMutexKV.Unlock(SecurityGroupKey)
 	cache.SecurityGroups = nil
 }
 
 func updateSecurityGroupCache(conn *ec2.EC2, cache *SecurityGroupsCache) error {
-	mtKey := "security_groups_cache"
-	awsMutexKV.Lock(mtKey)
-	defer awsMutexKV.Unlock(mtKey)
+	awsMutexKV.Lock(SecurityGroupKey)
+	defer awsMutexKV.Unlock(SecurityGroupKey)
 	if cache.SecurityGroups == nil {
 		req := &ec2.DescribeSecurityGroupsInput{}
 		resp, err := conn.DescribeSecurityGroups(req)
