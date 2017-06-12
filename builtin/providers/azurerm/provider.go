@@ -134,6 +134,8 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_sql_database":      resourceArmSqlDatabase(),
 			"azurerm_sql_firewall_rule": resourceArmSqlFirewallRule(),
 			"azurerm_sql_server":        resourceArmSqlServer(),
+
+			"azurerm_app_service_plan": resourceArmAppServicePlan(),
 		},
 	}
 
