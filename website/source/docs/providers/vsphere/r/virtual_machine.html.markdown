@@ -56,6 +56,35 @@ resource "vsphere_virtual_machine" "lb" {
 }
 ```
 
+## Example Usage Force ESXi host
+
+```
+resource "vsphere_virtual_machine" "lb" {
+  name          = "lb01"
+  folder        = "Loadbalancers"
+  vcpu          = 2
+  memory        = 4096
+  domain        = "MYDOMAIN"
+  datacenter    = "EAST"
+  cluster       = "Production Cluster"
+  resource_pool = "Production Cluster/Resources/Production Servers"
+  host          = "Production Cluster/10.0.1.10"
+
+  gateway = "10.20.30.254"
+
+  network_interface {
+    label              = "10_20_30_VMNet"
+    ipv4_address       = "10.20.30.40"
+    ipv4_prefix_length = "24"
+  }
+
+  disk {
+    datastore = "EAST/VMFS01-EAST"
+    template  = "Templates/Centos7"
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -67,6 +96,7 @@ The following arguments are supported:
 * `datacenter` - (Optional) The name of a Datacenter in which to launch the virtual machine
 * `cluster` - (Optional) Name of a Cluster in which to launch the virtual machine
 * `resource_pool` (Optional) The name of a Resource Pool in which to launch the virtual machine. Requires full path (see cluster example).
+* `host` (Optional) A specific ESXi host to deploy this VM to. Requires full path (see ESXi host example).
 * `gateway` - __Deprecated, please use `network_interface.ipv4_gateway` instead__.
 * `domain` - (Optional) A FQDN for the virtual machine; defaults to "vsphere.local"
 * `time_zone` - (Optional) The [Linux](https://www.vmware.com/support/developer/vc-sdk/visdk41pubs/ApiReference/timezone.html) or [Windows](https://msdn.microsoft.com/en-us/library/ms912391.aspx) time zone to set on the virtual machine. Defaults to "Etc/UTC"

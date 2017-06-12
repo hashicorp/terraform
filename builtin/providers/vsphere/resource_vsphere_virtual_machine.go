@@ -83,6 +83,7 @@ type virtualMachine struct {
 	cluster               string
 	resourcePool          string
 	datastore             string
+	host                  string
 	vcpu                  int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
@@ -168,6 +169,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			},
 
 			"resource_pool": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"host": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -682,6 +689,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("cluster"); ok {
 		vm.cluster = v.(string)
+	}
+
+	if v, ok := d.GetOk("host"); ok {
+		vm.host = v.(string)
 	}
 
 	if v, ok := d.GetOk("resource_pool"); ok {
@@ -1537,7 +1548,7 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string, macAddress st
 }
 
 // buildVMRelocateSpec builds VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
-func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, linkedClone bool, initType string) (types.VirtualMachineRelocateSpec, error) {
+func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, hostSystem *object.HostSystem, linkedClone bool, initType string) (types.VirtualMachineRelocateSpec, error) {
 	var key int32
 	var moveType string
 	if linkedClone {
@@ -1561,10 +1572,16 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 	eagerScrub := initType == "eager_zeroed"
 	rpr := rp.Reference()
 	dsr := ds.Reference()
+	var hsr *types.ManagedObjectReference
+	if hostSystem != nil {
+		ref := hostSystem.Reference()
+		hsr = &ref
+	}
 	return types.VirtualMachineRelocateSpec{
 		Datastore:    &dsr,
 		Pool:         &rpr,
 		DiskMoveType: moveType,
+		Host:         hsr,
 		Disk: []types.VirtualMachineRelocateSpecDiskLocator{
 			{
 				Datastore: dsr,
@@ -1743,6 +1760,15 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		}
 	}
 	log.Printf("[DEBUG] resource pool: %#v", resourcePool)
+
+	var hostSystem *object.HostSystem
+	if vm.host != "" {
+		hostSystem, err = finder.HostSystem(context.TODO(), vm.host)
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] hostSystem: %#v", hostSystem)
+	}
 
 	dcFolders, err := dc.Folders(context.TODO())
 	if err != nil {
@@ -1930,7 +1956,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 
 		configSpec.Files = &types.VirtualMachineFileInfo{VmPathName: fmt.Sprintf("[%s]", mds.Name)}
 
-		task, err = folder.CreateVM(context.TODO(), configSpec, resourcePool, nil)
+		task, err = folder.CreateVM(context.TODO(), configSpec, resourcePool, hostSystem)
 		if err != nil {
 			log.Printf("[ERROR] %s", err)
 		}
@@ -1942,7 +1968,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 
 	} else {
 
-		relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
+		relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, hostSystem, vm.linkedClone, vm.hardDisks[0].initType)
 		if err != nil {
 			return err
 		}
