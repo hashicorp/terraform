@@ -273,7 +273,7 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 
 	callerRef := resource.UniqueId()
 	if v, ok := d.GetOk("reference_name"); ok {
-		callerRef = fmt.Sprintf("%s-%s", v.(string), callerRef)
+		callerRef = fmt.Sprintf("%s", v.(string))
 	}
 
 	input := &route53.CreateHealthCheckInput{
