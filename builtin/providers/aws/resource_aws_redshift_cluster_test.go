@@ -86,10 +86,30 @@ func TestAccAWSRedshiftCluster_withFinalSnapshot(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSRedshiftClusterSnapshot(rInt),
+		CheckDestroy: testAccCheckAWSRedshiftClusterSnapshot(rInt, false),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAWSRedshiftClusterConfigWithFinalSnapshot(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRedshiftCluster_withFinalSnapshotTimestamp(t *testing.T) {
+	var v redshift.Cluster
+
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRedshiftClusterSnapshot(rInt, true),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSRedshiftClusterConfigWithFinalSnapshotTimestamp(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
 				),
@@ -354,7 +374,7 @@ func testAccCheckAWSRedshiftClusterDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSRedshiftClusterSnapshot(rInt int) resource.TestCheckFunc {
+func testAccCheckAWSRedshiftClusterSnapshot(rInt int, timestamped bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		for _, rs := range s.RootModule().Resources {
 			if rs.Type != "aws_redshift_cluster" {
@@ -367,6 +387,10 @@ func testAccCheckAWSRedshiftClusterSnapshot(rInt int) resource.TestCheckFunc {
 			conn := testAccProvider.Meta().(*AWSClient).redshiftconn
 
 			snapshot_identifier := fmt.Sprintf("tf-acctest-snapshot-%d", rInt)
+			if timestamped {
+				t := time.Now()
+				snapshot_identifier = fmt.Sprintf("%s-%s", snapshot_identifier, t.Format("20060102"))
+			}
 			arn, err := buildRedshiftARN(snapshot_identifier, testAccProvider.Meta().(*AWSClient).partition, testAccProvider.Meta().(*AWSClient).accountid, testAccProvider.Meta().(*AWSClient).region)
 			tagsARN := strings.Replace(arn, ":cluster:", ":snapshot:", 1)
 			if err != nil {
@@ -622,6 +646,24 @@ resource "aws_redshift_cluster" "default" {
   allow_version_upgrade = false
   skip_final_snapshot = false
   final_snapshot_identifier = "tf-acctest-snapshot-%d"
+}`, rInt, rInt)
+}
+
+func testAccAWSRedshiftClusterConfigWithFinalSnapshotTimestamp(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo_test"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
+  allow_version_upgrade = false
+  skip_final_snapshot = false
+  final_snapshot_identifier = "tf-acctest-snapshot-%d"
+  timestamp_final_snapshot = true
+  timestamp_final_snapshot_format = "20060102"
 }`, rInt, rInt)
 }
 

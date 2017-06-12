@@ -218,6 +218,18 @@ func resourceAwsDbInstance() *schema.Resource {
 				},
 			},
 
+			"timestamp_final_snapshot": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
+			"timestamp_final_snapshot_format": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "20060102-150405",
+			},
+
 			"skip_final_snapshot": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -836,7 +848,12 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 
 	if skipFinalSnapshot == false {
 		if name, present := d.GetOk("final_snapshot_identifier"); present {
-			opts.FinalDBSnapshotIdentifier = aws.String(name.(string))
+			if d.Get("timestamp_final_snapshot").(bool) {
+				t := time.Now()
+				opts.FinalDBSnapshotIdentifier = aws.String(name.(string) + "-" + t.Format(d.Get("timestamp_final_snapshot_format").(string)))
+			} else {
+				opts.FinalDBSnapshotIdentifier = aws.String(name.(string))
+			}
 		} else {
 			return fmt.Errorf("DB Instance FinalSnapshotIdentifier is required when a final snapshot is required")
 		}
