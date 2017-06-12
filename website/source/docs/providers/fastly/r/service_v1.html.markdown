@@ -332,8 +332,10 @@ The `gcslogging` block supports:
 
 * `name` - (Required) A unique name to identify this GCS endpoint.
 * `email` - (Required) The email address associated with the target GCS bucket on your account.
+You can provide this secret via an environment variable, `FASTLY_GCS_EMAIL`.
 * `bucket_name` - (Required) The name of the bucket in which to store the logs.
 * `secret_key` - (Required) The secret key associated with the target gcs bucket on your account.
+You can provide this secret via an environment variable, `FASTLY_GCS_SECRET_KEY`.
 * `path` - (Optional) Path to store the files. Must end with a trailing slash.
 If this field is left empty, the files will be saved in the bucket's root path.
 * `period` - (Optional) How frequently the logs should be transferred, in
