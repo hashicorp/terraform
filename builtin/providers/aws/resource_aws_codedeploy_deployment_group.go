@@ -52,6 +52,91 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				},
 			},
 
+			"deployment_style": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"deployment_option": &schema.Schema{
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateDeploymentOption,
+						},
+
+						"deployment_type": &schema.Schema{
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateDeploymentType,
+						},
+					},
+				},
+			},
+
+			"blue_green_deployment_config": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"deployment_ready_option": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"action_on_timeout": &schema.Schema{
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validateDeploymentReadyOption,
+									},
+									"wait_time_in_minutes": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+								},
+							},
+						},
+
+						"green_fleet_provisioning_option": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"action": &schema.Schema{
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validateGreenFleetProvisioningOption,
+									},
+								},
+							},
+						},
+
+						"terminate_blue_instances_on_deployment_success": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"action": &schema.Schema{
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validateBlueInstanceTerminationOption,
+									},
+									"termination_wait_time_in_minutes": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
 			"service_role_arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -80,6 +165,30 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
+						},
+					},
+				},
+			},
+
+			"load_balancer_info": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"elb_info": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Set:      elbInfoHash,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
 						},
 					},
 				},
@@ -220,20 +329,29 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 		DeploymentGroupName: aws.String(deploymentGroup),
 		ServiceRoleArn:      aws.String(d.Get("service_role_arn").(string)),
 	}
+
+	if attr, ok := d.GetOk("deployment_style"); ok {
+		input.DeploymentStyle = buildDeploymentStyle(attr.([]interface{}))
+	}
+
 	if attr, ok := d.GetOk("deployment_config_name"); ok {
 		input.DeploymentConfigName = aws.String(attr.(string))
 	}
+
 	if attr, ok := d.GetOk("autoscaling_groups"); ok {
 		input.AutoScalingGroups = expandStringList(attr.(*schema.Set).List())
 	}
+
 	if attr, ok := d.GetOk("on_premises_instance_tag_filter"); ok {
 		onPremFilters := buildOnPremTagFilters(attr.(*schema.Set).List())
 		input.OnPremisesInstanceTagFilters = onPremFilters
 	}
+
 	if attr, ok := d.GetOk("ec2_tag_filter"); ok {
 		ec2TagFilters := buildEC2TagFilters(attr.(*schema.Set).List())
 		input.Ec2TagFilters = ec2TagFilters
 	}
+
 	if attr, ok := d.GetOk("trigger_configuration"); ok {
 		triggerConfigs := buildTriggerConfigs(attr.(*schema.Set).List())
 		input.TriggerConfigurations = triggerConfigs
@@ -245,6 +363,14 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 
 	if attr, ok := d.GetOk("alarm_configuration"); ok {
 		input.AlarmConfiguration = buildAlarmConfig(attr.([]interface{}))
+	}
+
+	if attr, ok := d.GetOk("load_balancer_info"); ok {
+		input.LoadBalancerInfo = buildLoadBalancerInfo(attr.([]interface{}))
+	}
+
+	if attr, ok := d.GetOk("blue_green_deployment_config"); ok {
+		input.BlueGreenDeploymentConfiguration = buildBlueGreenDeploymentConfig(attr.([]interface{}))
 	}
 
 	// Retry to handle IAM role eventual consistency.
@@ -309,12 +435,19 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 	d.Set("deployment_config_name", resp.DeploymentGroupInfo.DeploymentConfigName)
 	d.Set("deployment_group_name", resp.DeploymentGroupInfo.DeploymentGroupName)
 	d.Set("service_role_arn", resp.DeploymentGroupInfo.ServiceRoleArn)
+
+	if err := d.Set("deployment_style", deploymentStyleToMap(resp.DeploymentGroupInfo.DeploymentStyle)); err != nil {
+		return err
+	}
+
 	if err := d.Set("ec2_tag_filter", ec2TagFiltersToMap(resp.DeploymentGroupInfo.Ec2TagFilters)); err != nil {
 		return err
 	}
+
 	if err := d.Set("on_premises_instance_tag_filter", onPremisesTagFiltersToMap(resp.DeploymentGroupInfo.OnPremisesInstanceTagFilters)); err != nil {
 		return err
 	}
+
 	if err := d.Set("trigger_configuration", triggerConfigsToMap(resp.DeploymentGroupInfo.TriggerConfigurations)); err != nil {
 		return err
 	}
@@ -324,6 +457,14 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 	}
 
 	if err := d.Set("alarm_configuration", alarmConfigToMap(resp.DeploymentGroupInfo.AlarmConfiguration)); err != nil {
+		return err
+	}
+
+	if err := d.Set("load_balancer_info", loadBalancerInfoToMap(resp.DeploymentGroupInfo.LoadBalancerInfo)); err != nil {
+		return err
+	}
+
+	if err := d.Set("blue_green_deployment_config", blueGreenDeploymentConfigToMap(resp.DeploymentGroupInfo.BlueGreenDeploymentConfiguration)); err != nil {
 		return err
 	}
 
@@ -343,13 +484,20 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 		_, n := d.GetChange("autoscaling_groups")
 		input.AutoScalingGroups = expandStringList(n.(*schema.Set).List())
 	}
+
 	if d.HasChange("deployment_config_name") {
 		_, n := d.GetChange("deployment_config_name")
 		input.DeploymentConfigName = aws.String(n.(string))
 	}
+
 	if d.HasChange("deployment_group_name") {
 		_, n := d.GetChange("deployment_group_name")
 		input.NewDeploymentGroupName = aws.String(n.(string))
+	}
+
+	if d.HasChange("deployment_style") {
+		_, n := d.GetChange("deployment_style")
+		input.DeploymentStyle = buildDeploymentStyle(n.([]interface{}))
 	}
 
 	// TagFilters aren't like tags. They don't append. They simply replace.
@@ -358,11 +506,13 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 		onPremFilters := buildOnPremTagFilters(n.(*schema.Set).List())
 		input.OnPremisesInstanceTagFilters = onPremFilters
 	}
+
 	if d.HasChange("ec2_tag_filter") {
 		_, n := d.GetChange("ec2_tag_filter")
 		ec2Filters := buildEC2TagFilters(n.(*schema.Set).List())
 		input.Ec2TagFilters = ec2Filters
 	}
+
 	if d.HasChange("trigger_configuration") {
 		_, n := d.GetChange("trigger_configuration")
 		triggerConfigs := buildTriggerConfigs(n.(*schema.Set).List())
@@ -377,6 +527,16 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 	if d.HasChange("alarm_configuration") {
 		_, n := d.GetChange("alarm_configuration")
 		input.AlarmConfiguration = buildAlarmConfig(n.([]interface{}))
+	}
+
+	if d.HasChange("load_balancer_info") {
+		_, n := d.GetChange("load_balancer_info")
+		input.LoadBalancerInfo = buildLoadBalancerInfo(n.([]interface{}))
+	}
+
+	if d.HasChange("blue_green_deployment_config") {
+		_, n := d.GetChange("blue_green_deployment_config")
+		input.BlueGreenDeploymentConfiguration = buildBlueGreenDeploymentConfig(n.([]interface{}))
 	}
 
 	log.Printf("[DEBUG] Updating CodeDeploy DeploymentGroup %s", d.Id())
@@ -538,6 +698,84 @@ func buildAlarmConfig(configured []interface{}) *codedeploy.AlarmConfiguration {
 	return result
 }
 
+// buildDeploymentStyle converts a raw schema list containing a map[string]interface{}
+// into a single codedeploy.DeploymentStyle object
+func buildDeploymentStyle(list []interface{}) *codedeploy.DeploymentStyle {
+	result := &codedeploy.DeploymentStyle{}
+
+	if len(list) == 1 {
+		style := list[0].(map[string]interface{})
+		result.DeploymentOption = aws.String(style["deployment_option"].(string))
+		result.DeploymentType = aws.String(style["deployment_type"].(string))
+	}
+
+	return result
+}
+
+// buildLoadBalancerInfo converts a raw schema list containing a map[string]interface{}
+// into a single codedeploy.LoadBalancerInfo object
+func buildLoadBalancerInfo(list []interface{}) *codedeploy.LoadBalancerInfo {
+	if len(list) == 0 || list[0] == nil {
+		return nil
+	}
+
+	lbInfo := list[0].(map[string]interface{})
+	elbs := lbInfo["elb_info"].(*schema.Set).List()
+
+	loadBalancerInfo := &codedeploy.LoadBalancerInfo{
+		ElbInfoList: make([]*codedeploy.ELBInfo, 0, len(elbs)),
+	}
+
+	for _, v := range elbs {
+		elb := v.(map[string]interface{})
+		loadBalancerInfo.ElbInfoList = append(loadBalancerInfo.ElbInfoList, &codedeploy.ELBInfo{
+			Name: aws.String(elb["name"].(string)),
+		})
+	}
+
+	return loadBalancerInfo
+}
+
+// buildBlueGreenDeploymentConfig converts a raw schema list containing a map[string]interface{}
+// into a single codedeploy.BlueGreenDeploymentConfiguration object
+func buildBlueGreenDeploymentConfig(list []interface{}) *codedeploy.BlueGreenDeploymentConfiguration {
+	if len(list) == 0 || list[0] == nil {
+		return nil
+	}
+
+	blueGreenDeploymentConfig := &codedeploy.BlueGreenDeploymentConfiguration{}
+
+	config := list[0].(map[string]interface{})
+
+	if attr, ok := config["deployment_ready_option"]; ok {
+		m := attr.([]interface{})[0].(map[string]interface{})
+		deploymentReadyOption := &codedeploy.DeploymentReadyOption{
+			ActionOnTimeout:   aws.String(m["action_on_timeout"].(string)),
+			WaitTimeInMinutes: aws.Int64(int64(m["wait_time_in_minutes"].(int))),
+		}
+		blueGreenDeploymentConfig.DeploymentReadyOption = deploymentReadyOption
+	}
+
+	if attr, ok := config["green_fleet_provisioning_option"]; ok {
+		m := attr.([]interface{})[0].(map[string]interface{})
+		greenFleetProvisioningOption := &codedeploy.GreenFleetProvisioningOption{
+			Action: aws.String(m["action"].(string)),
+		}
+		blueGreenDeploymentConfig.GreenFleetProvisioningOption = greenFleetProvisioningOption
+	}
+
+	if attr, ok := config["terminate_blue_instances_on_deployment_success"]; ok {
+		m := attr.([]interface{})[0].(map[string]interface{})
+		blueInstanceTerminationOption := &codedeploy.BlueInstanceTerminationOption{
+			Action: aws.String(m["action"].(string)),
+			TerminationWaitTimeInMinutes: aws.Int64(int64(m["termination_wait_time_in_minutes"].(int))),
+		}
+		blueGreenDeploymentConfig.TerminateBlueInstancesOnDeploymentSuccess = blueInstanceTerminationOption
+	}
+
+	return blueGreenDeploymentConfig
+}
+
 // ec2TagFiltersToMap converts lists of tag filters into a []map[string]string.
 func ec2TagFiltersToMap(list []*codedeploy.EC2TagFilter) []map[string]string {
 	result := make([]map[string]string, 0, len(list))
@@ -630,6 +868,77 @@ func alarmConfigToMap(config *codedeploy.AlarmConfiguration) []map[string]interf
 	return result
 }
 
+// deploymentStyleToMap converts a codedeploy.DeploymentStyle object
+// into a []map[string]interface{} list containing a single item
+func deploymentStyleToMap(style *codedeploy.DeploymentStyle) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	if style == nil {
+		return result
+	}
+
+	item := make(map[string]interface{})
+	item["deployment_option"] = *style.DeploymentOption
+	item["deployment_type"] = *style.DeploymentType
+	result = append(result, item)
+	return result
+}
+
+// loadBalancerInfoToMap converts a codedeploy.LoadBalancerInfo object
+// into a []map[string]interface{} list containing a single item
+func loadBalancerInfoToMap(loadBalancerInfo *codedeploy.LoadBalancerInfo) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	if loadBalancerInfo == nil {
+		return result
+	}
+
+	elbs := make([]interface{}, 0, len(loadBalancerInfo.ElbInfoList))
+	for _, elb := range loadBalancerInfo.ElbInfoList {
+		item := make(map[string]interface{})
+		item["name"] = *elb.Name
+		elbs = append(elbs, item)
+	}
+
+	lbInfo := make(map[string]interface{})
+	lbInfo["elb_info"] = schema.NewSet(elbInfoHash, elbs)
+	result = append(result, lbInfo)
+
+	return result
+}
+
+// blueGreenDeploymentConfigToMap converts a codedeploy.BlueGreenDeploymentConfiguration object
+// into a []map[string]interface{} list containing a single item
+func blueGreenDeploymentConfigToMap(config *codedeploy.BlueGreenDeploymentConfiguration) []map[string]interface{} {
+	list := make([]map[string]interface{}, 0)
+
+	if config == nil {
+		return list
+	}
+
+	m := make(map[string]interface{})
+
+	a := make([]map[string]interface{}, 0)
+	deploymentReadyOption := make(map[string]interface{})
+	deploymentReadyOption["action_on_timeout"] = *config.DeploymentReadyOption.ActionOnTimeout
+	deploymentReadyOption["wait_time_in_minutes"] = *config.DeploymentReadyOption.WaitTimeInMinutes
+	m["deployment_ready_option"] = append(a, deploymentReadyOption)
+
+	b := make([]map[string]interface{}, 0)
+	greenFleetProvisioningOption := make(map[string]interface{})
+	greenFleetProvisioningOption["action"] = *config.GreenFleetProvisioningOption.Action
+	m["green_fleet_provisioning_option"] = append(b, greenFleetProvisioningOption)
+
+	c := make([]map[string]interface{}, 0)
+	blueInstanceTerminationOption := make(map[string]interface{})
+	blueInstanceTerminationOption["action"] = *config.TerminateBlueInstancesOnDeploymentSuccess.Action
+	blueInstanceTerminationOption["termination_wait_time_in_minutes"] = *config.TerminateBlueInstancesOnDeploymentSuccess.TerminationWaitTimeInMinutes
+	m["terminate_blue_instances_on_deployment_success"] = append(c, blueInstanceTerminationOption)
+
+	list = append(list, m)
+	return list
+}
+
 func resourceAwsCodeDeployTagFilterHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
@@ -670,6 +979,21 @@ func resourceAwsCodeDeployTriggerConfigHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
+func elbInfoHash(v interface{}) int {
+	var buf bytes.Buffer
+
+	if v == nil {
+		return hashcode.String(buf.String())
+	}
+
+	m := v.(map[string]interface{})
+	if v, ok := m["name"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
 func validateTriggerEvent(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	triggerEvents := map[string]bool{
@@ -685,6 +1009,71 @@ func validateTriggerEvent(v interface{}, k string) (ws []string, errors []error)
 
 	if !triggerEvents[value] {
 		errors = append(errors, fmt.Errorf("%q must be a valid event type value: %q", k, value))
+	}
+	return
+}
+
+func validateDeploymentOption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validOptions := map[string]bool{
+		"WITH_TRAFFIC_CONTROL":    true,
+		"WITHOUT_TRAFFIC_CONTROL": true,
+	}
+
+	if !validOptions[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid deployment option: %q", k, value))
+	}
+	return
+}
+
+func validateDeploymentType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validTypes := map[string]bool{
+		"IN_PLACE":   true,
+		"BLUE_GREEN": true,
+	}
+
+	if !validTypes[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid deployment type: %q", k, value))
+	}
+	return
+}
+
+func validateDeploymentReadyOption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validOptions := map[string]bool{
+		"CONTINUE_DEPLOYMENT": true,
+		"STOP_DEPLOYMENT":     true,
+	}
+
+	if !validOptions[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid deployment_ready_option:action_on_timeout value: %q", k, value))
+	}
+	return
+}
+
+func validateGreenFleetProvisioningOption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validOptions := map[string]bool{
+		"DISCOVER_EXISTING":       true,
+		"COPY_AUTO_SCALING_GROUP": true,
+	}
+
+	if !validOptions[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid green_fleet_provisioning_option:action value: %q", k, value))
+	}
+	return
+}
+
+func validateBlueInstanceTerminationOption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validOptions := map[string]bool{
+		"TERMINATE":  true,
+		"KEEP_ALIVE": true,
+	}
+
+	if !validOptions[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid terminate_blue_instances_on_deployment_success:action value: %q", k, value))
 	}
 	return
 }
