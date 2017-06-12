@@ -132,6 +132,15 @@ The following attributes are exported:
 * `tenancy` - The Instance tenancy
 * `security_group_ids` - The associated security groups.
 
+## Timeouts
+
+`aws_opsworks_instance` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `create` - (Default `10 minutes`) Used when the instance is created. It should cover the time needed for the instance to start successfully.
+- `delete` - (Default `10 minutes`) Used when the instance is deleted. It should cover the time needed for the instance to stop successfully.
+- `update` - (Default `10 minutes`) Used when the instance is changed. It should cover the time needed to either start or stop the instance.
+
 ## Import
 
 Opsworks Instances can be imported using the `instance id`, e.g.
