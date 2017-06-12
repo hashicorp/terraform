@@ -218,11 +218,13 @@ func resourceAwsS3Bucket() *schema.Resource {
 						},
 						"prefix": {
 							Type:     schema.TypeString,
-							Required: true,
+							Default:  "",
+							Optional: true,
 						},
 						"enabled": {
 							Type:     schema.TypeBool,
-							Required: true,
+							Default:  true,
+							Optional: true,
 						},
 						"abort_incomplete_multipart_upload_days": {
 							Type:     schema.TypeInt,
@@ -372,12 +374,14 @@ func resourceAwsS3Bucket() *schema.Resource {
 									},
 									"prefix": {
 										Type:         schema.TypeString,
-										Required:     true,
+										Default:      "",
+										Optional:     true,
 										ValidateFunc: validateS3BucketReplicationRulePrefix,
 									},
 									"status": {
 										Type:         schema.TypeString,
-										Required:     true,
+										Default:      "Enabled",
+										Optional:     true,
 										ValidateFunc: validateS3BucketReplicationRuleStatus,
 									},
 								},
