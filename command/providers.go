@@ -24,6 +24,7 @@ func (c *ProvidersCommand) Synopsis() string {
 }
 
 func (c *ProvidersCommand) Run(args []string) int {
+	c.Meta.process(args, false)
 
 	cmdFlags := c.Meta.flagSet("providers")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -41,6 +42,13 @@ func (c *ProvidersCommand) Run(args []string) int {
 	root, err := c.Module(configPath)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+		return 1
+	}
+	if root == nil {
+		c.Ui.Error(fmt.Sprintf(
+			"No configuration files found in the directory: %s\n\n"+
+				"This command requires configuration to run.",
+			configPath))
 		return 1
 	}
 
