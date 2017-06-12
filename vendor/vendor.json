@@ -54,7 +54,16 @@
 		},
 		{
 			"checksumSHA1": "Kr6/gY3LrNiOxMfDBCfBvBvenYw=",
+			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/disk",
+			"revision": "5841475edc7c8725d79885d635aa8956f97fdf0e",
+			"revisionTime": "2017-05-10T22:14:13Z",
+			"version": "v10.0.2-beta",
+			"versionExact": "v10.0.2-beta"
+		},
+		{
+			"checksumSHA1": "wQBiO1nFX8II54iaQW2vJ7iBcuI=",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/documentdb",
 			"revision": "5841475edc7c8725d79885d635aa8956f97fdf0e",
 			"revisionTime": "2017-05-10T22:14:13Z",
 			"version": "v10.0.2-beta",
@@ -2980,7 +2989,7 @@
 			"revisionTime": "2016-09-27T10:08:44Z"
 		},
 		{
-			"checksumSHA1": "6NyHxCamdKavA6RYSRuCEG3MtKA=",
+			"checksumSHA1": "/hY/JUzzV5+IMAGkfTGI3VA4k9Y=",
 			"path": "github.com/scaleway/scaleway-cli/pkg/api",
 			"revision": "2938313569b7f6cee34fdaae2a23c0daa7de5f3c",
 			"revisionTime": "2017-02-07T21:56:28Z"
