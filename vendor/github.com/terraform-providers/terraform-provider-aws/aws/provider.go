@@ -565,7 +565,7 @@ func init() {
 			"use virtual hosted bucket addressing when possible\n" +
 			"(http://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.",
 
-		"batch_security_groups": "Set this to batch refreshes EC2 security groups." +
+		"batch_security_groups": "Set this to batch refresh EC2 security groups. Experimental feature." +
 			" Speeds up refreshes when you have large numbers of security groups.",
 
 		"assume_role_role_arn": "The ARN of an IAM role to assume prior to making API calls.",
