@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	getter "github.com/hashicorp/go-getter"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
@@ -58,8 +57,8 @@ func (c *InitCommand) Run(args []string) int {
 
 	// Validate the arg count
 	args = cmdFlags.Args()
-	if len(args) > 2 {
-		c.Ui.Error("The init command expects at most two arguments.\n")
+	if len(args) > 1 {
+		c.Ui.Error("The init command expects at most one argument.\n")
 		cmdFlags.Usage()
 		return 1
 	}
@@ -73,21 +72,10 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Get the path and source module to copy
-	var path string
-	var source string
-	switch len(args) {
-	case 0:
-		path = pwd
-	case 1:
-		path = pwd
-		source = args[0]
-	case 2:
-		source = args[0]
-		path = args[1]
-	default:
-		panic("assertion failed on arg count")
+	path := pwd
+	if len(args) == 1 {
+		path = args[0]
 	}
-
 	// Set the state out path to be the path requested for the module
 	// to be copied. This ensures any remote states gets setup in the
 	// proper directory.
@@ -96,20 +84,6 @@ func (c *InitCommand) Run(args []string) int {
 	// This will track whether we outputted anything so that we know whether
 	// to output a newline before the success message
 	var header bool
-
-	// If we have a source, copy it
-	if source != "" {
-		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-			"[reset][bold]"+
-				"Initializing configuration from: %q...", source)))
-		if err := c.copySource(path, source, pwd); err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error copying source: %s", err))
-			return 1
-		}
-
-		header = true
-	}
 
 	// If our directory is empty, then we're done. We can't get or setup
 	// the backend with an empty directory.
@@ -302,27 +276,9 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 	return nil
 }
 
-func (c *InitCommand) copySource(dst, src, pwd string) error {
-	// Verify the directory is empty
-	if empty, err := config.IsEmptyDir(dst); err != nil {
-		return fmt.Errorf("Error checking on destination path: %s", err)
-	} else if !empty {
-		return fmt.Errorf(strings.TrimSpace(errInitCopyNotEmpty))
-	}
-
-	// Detect
-	source, err := getter.Detect(src, pwd, getter.Detectors)
-	if err != nil {
-		return fmt.Errorf("Error with module source: %s", err)
-	}
-
-	// Get it!
-	return module.GetCopy(dst, source)
-}
-
 func (c *InitCommand) Help() string {
 	helpText := `
-Usage: terraform init [options] [SOURCE] [PATH]
+Usage: terraform init [options] [DIR]
 
   Initialize a new or existing Terraform working directory by creating
   initial files, loading any remote state, downloading modules, etc.
@@ -339,14 +295,6 @@ Usage: terraform init [options] [SOURCE] [PATH]
 
   If no arguments are given, the configuration in this working directory
   is initialized.
-
-  If one or two arguments are given, the first is a SOURCE of a module to
-  download to the second argument PATH. After downloading the module to PATH,
-  the configuration will be initialized as if this command were called pointing
-  only to that PATH. PATH must be empty of any Terraform files. Any
-  conflicting non-Terraform files will be overwritten. The module download
-  is a copy. If you're downloading a module from Git, it will not preserve
-  Git history.
 
 Options:
 
