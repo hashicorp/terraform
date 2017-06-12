@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	terraformAWS "github.com/hashicorp/terraform/builtin/providers/aws"
+	terraformAWS "github.com/terraform-providers/terraform-provider-aws/aws"
 )
 
 // New creates a new backend for S3 remote state.
