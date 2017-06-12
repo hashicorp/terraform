@@ -85,7 +85,9 @@ func resourceAwsVpnConnectionRouteRead(d *schema.ResourceData, meta interface{})
 			d.SetId("")
 			return nil
 		} else {
-			log.Printf("[ERROR] Error finding VPN connection route: %s", err)
+			// if the route has changed, we won't know, and we won't be able to find it
+			// check the AWS console for any out-of-band edits made by your colleagues
+			log.Printf("[ERROR] Error finding VPN connection route: %s (did it change? check the AWS console)", err)
 			return err
 		}
 	}
