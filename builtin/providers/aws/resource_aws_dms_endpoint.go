@@ -43,6 +43,10 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateDmsEndpointId,
 			},
+			"service_access_role": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"endpoint_type": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -58,6 +62,7 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 					"mysql",
 					"oracle",
 					"postgres",
+					"dynamodb",
 					"mariadb",
 					"aurora",
 					"redshift",
@@ -79,16 +84,16 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 			},
 			"password": {
 				Type:      schema.TypeString,
-				Required:  true,
+				Optional:  true,
 				Sensitive: true,
 			},
 			"port": {
 				Type:     schema.TypeInt,
-				Required: true,
+				Optional: true,
 			},
 			"server_name": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"ssl_mode": {
 				Type:     schema.TypeString,
@@ -107,7 +112,7 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 			},
 			"username": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 		},
 	}
@@ -120,21 +125,30 @@ func resourceAwsDmsEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 		EndpointIdentifier: aws.String(d.Get("endpoint_id").(string)),
 		EndpointType:       aws.String(d.Get("endpoint_type").(string)),
 		EngineName:         aws.String(d.Get("engine_name").(string)),
-		Password:           aws.String(d.Get("password").(string)),
-		Port:               aws.Int64(int64(d.Get("port").(int))),
-		ServerName:         aws.String(d.Get("server_name").(string)),
 		Tags:               dmsTagsFromMap(d.Get("tags").(map[string]interface{})),
-		Username:           aws.String(d.Get("username").(string)),
 	}
 
-	if v, ok := d.GetOk("database_name"); ok {
-		request.DatabaseName = aws.String(v.(string))
+	// if dynamodb then add required params
+	if d.Get("engine_name").(string) == "dynamodb" {
+		request.DynamoDbSettings = &dms.DynamoDbSettings{
+			ServiceAccessRoleArn: aws.String(d.Get("service_access_role").(string)),
+		}
+	} else {
+		request.Password = aws.String(d.Get("password").(string))
+		request.Port = aws.Int64(int64(d.Get("port").(int)))
+		request.ServerName = aws.String(d.Get("server_name").(string))
+		request.Username = aws.String(d.Get("username").(string))
+
+		if v, ok := d.GetOk("database_name"); ok {
+			request.DatabaseName = aws.String(v.(string))
+		}
+		if v, ok := d.GetOk("extra_connection_attributes"); ok {
+			request.ExtraConnectionAttributes = aws.String(v.(string))
+		}
 	}
+
 	if v, ok := d.GetOk("certificate_arn"); ok {
 		request.CertificateArn = aws.String(v.(string))
-	}
-	if v, ok := d.GetOk("extra_connection_attributes"); ok {
-		request.ExtraConnectionAttributes = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("kms_key_arn"); ok {
 		request.KmsKeyId = aws.String(v.(string))
@@ -205,6 +219,13 @@ func resourceAwsDmsEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	if d.HasChange("database_name") {
 		request.DatabaseName = aws.String(d.Get("database_name").(string))
+		hasChanges = true
+	}
+
+	if d.HasChange("service_access_role") {
+		request.DynamoDbSettings = &dms.DynamoDbSettings{
+			ServiceAccessRoleArn: aws.String(d.Get("service_access_role").(string)),
+		}
 		hasChanges = true
 	}
 
@@ -290,18 +311,28 @@ func resourceAwsDmsEndpointSetState(d *schema.ResourceData, endpoint *dms.Endpoi
 	d.SetId(*endpoint.EndpointIdentifier)
 
 	d.Set("certificate_arn", endpoint.CertificateArn)
-	d.Set("database_name", endpoint.DatabaseName)
 	d.Set("endpoint_arn", endpoint.EndpointArn)
 	d.Set("endpoint_id", endpoint.EndpointIdentifier)
 	// For some reason the AWS API only accepts lowercase type but returns it as uppercase
 	d.Set("endpoint_type", strings.ToLower(*endpoint.EndpointType))
 	d.Set("engine_name", endpoint.EngineName)
-	d.Set("extra_connection_attributes", endpoint.ExtraConnectionAttributes)
+
+	if *endpoint.EngineName == "dynamodb" {
+		if endpoint.DynamoDbSettings != nil {
+			d.Set("service_access_role", endpoint.DynamoDbSettings.ServiceAccessRoleArn)
+		} else {
+			d.Set("service_access_role", "")
+		}
+	} else {
+		d.Set("database_name", endpoint.DatabaseName)
+		d.Set("extra_connection_attributes", endpoint.ExtraConnectionAttributes)
+		d.Set("port", endpoint.Port)
+		d.Set("server_name", endpoint.ServerName)
+		d.Set("username", endpoint.Username)
+	}
+
 	d.Set("kms_key_arn", endpoint.KmsKeyId)
-	d.Set("port", endpoint.Port)
-	d.Set("server_name", endpoint.ServerName)
 	d.Set("ssl_mode", endpoint.SslMode)
-	d.Set("username", endpoint.Username)
 
 	return nil
 }
