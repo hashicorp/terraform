@@ -404,6 +404,12 @@
 			"revisionTime": "2016-11-15T02:49:42Z"
 		},
 		{
+			"checksumSHA1": "Xzn4tBxMcpwF+/XTPuTp9VLA888=",
+			"path": "github.com/HX-Rd/namecheap",
+			"revision": "848e96cd4ec919db76de7ad304cdc48ae0ccb317",
+			"revisionTime": "2016-05-05T02:04:07Z"
+		},
+		{
 			"checksumSHA1": "pvmScnaMFuAVLTxxOWjhGZBgPkg=",
 			"path": "github.com/PuerkitoBio/urlesc",
 			"revision": "5bd2802263f21d8788851d5305584c82a5c75d7e",
