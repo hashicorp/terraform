@@ -1,4 +1,6 @@
-package passwordcredentials
+// Package password implements the OAuth2.0 "password credentials" token flow.
+// See https://tools.ietf.org/html/rfc6749#section-4.3
+package password
 
 import (
 	"net/http"
@@ -7,6 +9,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// Config describes a Resource Owner Password Credentials OAuth2 flow, with the
+// client application information, resource owner credentials and the server's
+// endpoint URLs.
 type Config struct {
 	// ClientID is the application's ID.
 	ClientID string
@@ -30,6 +35,10 @@ type Config struct {
 	Scopes []string
 }
 
+// Client returns an HTTP client using the provided token.
+// The token will auto-refresh as necessary. The underlying
+// HTTP transport will be obtained using the provided context.
+// The returned client and its Transport should not be modified.
 func (c *Config) Client(ctx context.Context) *http.Client {
 	return oauth2.NewClient(ctx, c.TokenSource(ctx))
 }
@@ -39,11 +48,6 @@ func (c *Config) Client(ctx context.Context) *http.Client {
 // client ID and client secret.
 //
 // Most users will use Config.Client instead.
-//
-// Client returns an HTTP client using the provided token.
-// The token will auto-refresh as necessary. The underlying
-// HTTP transport will be obtained using the provided context.
-// The returned client and its Transport should not be modified.
 func (c *Config) TokenSource(ctx context.Context) oauth2.TokenSource {
 	source := &tokenSource{
 		ctx:  ctx,
@@ -57,11 +61,8 @@ type tokenSource struct {
 	conf *Config
 }
 
-// Token refreshes the token by using a new client credentials request.
+// Token refreshes the token by using a new password credentials request.
 // tokens received this way do not include a refresh token
-// Token returns a token or an error.
-// Token must be safe for concurrent use by multiple goroutines.
-// The returned Token must not be modified.
 func (c *tokenSource) Token() (*oauth2.Token, error) {
 	config := oauth2.Config{
 		ClientID:     c.conf.ClientID,

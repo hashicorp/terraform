@@ -6,8 +6,10 @@ import (
 	"net/http"
 )
 
+// ProbeType wraps the possible types of a ProbeInfoDTO
 type ProbeType string
 
+// Here lie all the possible ProbeType values
 const (
 	DNSProbeType      ProbeType = "DNS"
 	FTPProbeType      ProbeType = "FTP"
@@ -62,10 +64,7 @@ func (s *ProbeDetailsDTO) Populate(t ProbeType) (err error) {
 	return nil
 }
 
-// Populate does magical things with json unmarshalling to unroll the Probe into
-// an appropriate datatype.  These are helper structures and functions for testing
-// and direct API use.  In the Terraform implementation, we will use Terraforms own
-// warped schema structure to handle the marshalling and unmarshalling.
+// GetDetailsObject extracts the appropriate details object from a ProbeDetailsDTO with the given ProbeType
 func (s *ProbeDetailsDTO) GetDetailsObject(t ProbeType) (interface{}, error) {
 	switch t {
 	case DNSProbeType:
@@ -87,42 +86,49 @@ func (s *ProbeDetailsDTO) GetDetailsObject(t ProbeType) (interface{}, error) {
 	}
 }
 
+// DNSProbeDetails returns the ProbeDetailsDTO data deserialized as a DNSProbeDetailsDTO
 func (s *ProbeDetailsDTO) DNSProbeDetails() (DNSProbeDetailsDTO, error) {
 	var d DNSProbeDetailsDTO
 	err := json.Unmarshal(s.data, &d)
 	return d, err
 }
 
+// FTPProbeDetails returns the ProbeDetailsDTO data deserialized as a FTPProbeDetailsDTO
 func (s *ProbeDetailsDTO) FTPProbeDetails() (FTPProbeDetailsDTO, error) {
 	var d FTPProbeDetailsDTO
 	err := json.Unmarshal(s.data, &d)
 	return d, err
 }
 
+// HTTPProbeDetails returns the ProbeDetailsDTO data deserialized as a HTTPProbeDetailsDTO
 func (s *ProbeDetailsDTO) HTTPProbeDetails() (HTTPProbeDetailsDTO, error) {
 	var d HTTPProbeDetailsDTO
 	err := json.Unmarshal(s.data, &d)
 	return d, err
 }
 
+// PingProbeDetails returns the ProbeDetailsDTO data deserialized as a PingProbeDetailsDTO
 func (s *ProbeDetailsDTO) PingProbeDetails() (PingProbeDetailsDTO, error) {
 	var d PingProbeDetailsDTO
 	err := json.Unmarshal(s.data, &d)
 	return d, err
 }
 
+// SMTPProbeDetails returns the ProbeDetailsDTO data deserialized as a SMTPProbeDetailsDTO
 func (s *ProbeDetailsDTO) SMTPProbeDetails() (SMTPProbeDetailsDTO, error) {
 	var d SMTPProbeDetailsDTO
 	err := json.Unmarshal(s.data, &d)
 	return d, err
 }
 
+// SMTPSENDProbeDetails returns the ProbeDetailsDTO data deserialized as a SMTPSENDProbeDetailsDTO
 func (s *ProbeDetailsDTO) SMTPSENDProbeDetails() (SMTPSENDProbeDetailsDTO, error) {
 	var d SMTPSENDProbeDetailsDTO
 	err := json.Unmarshal(s.data, &d)
 	return d, err
 }
 
+// TCPProbeDetails returns the ProbeDetailsDTO data deserialized as a TCPProbeDetails
 func (s *ProbeDetailsDTO) TCPProbeDetails() (TCPProbeDetailsDTO, error) {
 	var d TCPProbeDetailsDTO
 	err := json.Unmarshal(s.data, &d)
