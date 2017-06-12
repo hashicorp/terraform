@@ -1,11 +1,13 @@
 package google
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -71,6 +73,64 @@ func resourceStorageBucket() *schema.Resource {
 				Optional: true,
 				Default:  "STANDARD",
 				ForceNew: true,
+			},
+
+			"lifecycle_rule": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"action": {
+							Type:     schema.TypeSet,
+							Required: true,
+							MaxItems: 1,
+							Set:      resourceGCSBucketLifecycleRuleActionHash,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"type": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"storage_class": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+						"condition": {
+							Type:     schema.TypeSet,
+							Required: true,
+							MaxItems: 1,
+							Set:      resourceGCSBucketLifecycleRuleConditionHash,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"age": {
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+									"created_before": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"is_live": {
+										Type:     schema.TypeBool,
+										Optional: true,
+									},
+									"matches_storage_class": {
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"number_of_newer_versions": {
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 
 			"website": &schema.Schema{
@@ -146,6 +206,10 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 		sb.StorageClass = v.(string)
 	}
 
+	if err := resourceGCSBucketLifecycleCreateOrUpdate(d, sb, false); err != nil {
+		return err
+	}
+
 	if v, ok := d.GetOk("website"); ok {
 		websites := v.([]interface{})
 
@@ -203,6 +267,12 @@ func resourceStorageBucketUpdate(d *schema.ResourceData, meta interface{}) error
 	config := meta.(*Config)
 
 	sb := &storage.Bucket{}
+
+	if d.HasChange("lifecycle_rule") {
+		if err := resourceGCSBucketLifecycleCreateOrUpdate(d, sb, true); err != nil {
+			return err
+		}
+	}
 
 	if d.HasChange("website") {
 		if v, ok := d.GetOk("website"); ok {
@@ -377,4 +447,136 @@ func flattenCors(corsRules []*storage.BucketCors) []map[string]interface{} {
 		corsRulesSchema = append(corsRulesSchema, data)
 	}
 	return corsRulesSchema
+}
+
+func resourceGCSBucketLifecycleCreateOrUpdate(d *schema.ResourceData, sb *storage.Bucket, update bool) error {
+	if v, ok := d.GetOk("lifecycle_rule"); ok {
+		lifecycle_rules := v.([]interface{})
+
+		if len(lifecycle_rules) > 100 {
+			return fmt.Errorf("At most 100 lifecycle_rule blocks are allowed")
+		}
+
+		sb.Lifecycle = &storage.BucketLifecycle{}
+		sb.Lifecycle.Rule = make([]*storage.BucketLifecycleRule, 0, len(lifecycle_rules))
+
+		for _, lifecycle_rule := range lifecycle_rules {
+			lifecycle_rule := lifecycle_rule.(map[string]interface{})
+
+			target_lifecycle_rule := &storage.BucketLifecycleRule{}
+
+			if v, ok := lifecycle_rule["action"]; ok {
+				action := v.(*schema.Set).List()[0].(map[string]interface{})
+
+				target_lifecycle_rule.Action = &storage.BucketLifecycleRuleAction{}
+
+				if v, ok := action["type"]; ok {
+					target_lifecycle_rule.Action.Type = v.(string)
+				}
+
+				if v, ok := action["storage_class"]; ok {
+					target_lifecycle_rule.Action.StorageClass = v.(string)
+				}
+			}
+
+			if v, ok := lifecycle_rule["condition"]; ok {
+				condition := v.(*schema.Set).List()[0].(map[string]interface{})
+				condition_elements := 0
+
+				target_lifecycle_rule.Condition = &storage.BucketLifecycleRuleCondition{}
+
+				if v, ok := condition["age"]; ok {
+					condition_elements++
+					target_lifecycle_rule.Condition.Age = int64(v.(int))
+				}
+
+				if v, ok := condition["created_before"]; ok {
+					condition_elements++
+					target_lifecycle_rule.Condition.CreatedBefore = v.(string)
+				}
+
+				if v, ok := condition["is_live"]; ok {
+					condition_elements++
+					target_lifecycle_rule.Condition.IsLive = v.(bool)
+				}
+
+				if v, ok := condition["matches_storage_class"]; ok {
+					matches_storage_classes := v.([]interface{})
+
+					target_matches_storage_classes := make([]string, 0, len(matches_storage_classes))
+
+					for _, v := range matches_storage_classes {
+						target_matches_storage_classes = append(target_matches_storage_classes, v.(string))
+						condition_elements++
+					}
+
+					target_lifecycle_rule.Condition.MatchesStorageClass = target_matches_storage_classes
+				}
+
+				if v, ok := condition["number_of_newer_versions"]; ok {
+					condition_elements++
+					target_lifecycle_rule.Condition.NumNewerVersions = int64(v.(int))
+				}
+
+				if condition_elements < 1 {
+					return fmt.Errorf("At least one condition element is required")
+				}
+
+				sb.Lifecycle.Rule = append(sb.Lifecycle.Rule, target_lifecycle_rule)
+			}
+		}
+	}
+
+	return nil
+}
+
+func resourceGCSBucketLifecycleRuleActionHash(v interface{}) int {
+	if v == nil {
+		return 0
+	}
+
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%s-", m["type"].(string)))
+
+	if v, ok := m["storage_class"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func resourceGCSBucketLifecycleRuleConditionHash(v interface{}) int {
+	if v == nil {
+		return 0
+	}
+
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["age"]; ok {
+		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
+	}
+
+	if v, ok := m["created_before"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m["is_live"]; ok {
+		buf.WriteString(fmt.Sprintf("%t-", v.(bool)))
+	}
+
+	if v, ok := m["matches_storage_class"]; ok {
+		matches_storage_classes := v.([]interface{})
+		for _, matches_storage_class := range matches_storage_classes {
+			buf.WriteString(fmt.Sprintf("%s-", matches_storage_class))
+		}
+	}
+
+	if v, ok := m["number_of_newer_versions"]; ok {
+		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
+	}
+
+	return hashcode.String(buf.String())
 }
