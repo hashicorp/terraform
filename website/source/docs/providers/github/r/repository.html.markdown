@@ -44,6 +44,12 @@ The following arguments are supported:
 * `has_wiki` - (Optional) Set to `true` to enable the Github Wiki features on
   the repository.
 
+* `allow_merge_commit` - (Optional) Set to `false` to disable merge commits on the repository.
+
+* `allow_squash_merge` - (Optional) Set to `false` to disable squash merges on the repository.
+
+* `allow_rebase_merge` - (Optional) Set to `false` to disable rebase merges on the repository.
+
 * `has_downloads` - (Optional) Set to `true` to enable the (deprecated)
   downloads features on the repository.
 

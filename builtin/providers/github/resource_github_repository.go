@@ -45,6 +45,21 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"allow_merge_commit": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+			"allow_squash_merge": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+			"allow_rebase_merge": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 			"has_downloads": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -89,18 +104,24 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 	private := d.Get("private").(bool)
 	hasIssues := d.Get("has_issues").(bool)
 	hasWiki := d.Get("has_wiki").(bool)
+	allowMergeCommit := d.Get("allow_merge_commit").(bool)
+	allowSquashMerge := d.Get("allow_squash_merge").(bool)
+	allowRebaseMerge := d.Get("allow_rebase_merge").(bool)
 	hasDownloads := d.Get("has_downloads").(bool)
 	autoInit := d.Get("auto_init").(bool)
 
 	repo := &github.Repository{
-		Name:         &name,
-		Description:  &description,
-		Homepage:     &homepageUrl,
-		Private:      &private,
-		HasIssues:    &hasIssues,
-		HasWiki:      &hasWiki,
-		HasDownloads: &hasDownloads,
-		AutoInit:     &autoInit,
+		Name:             &name,
+		Description:      &description,
+		Homepage:         &homepageUrl,
+		Private:          &private,
+		HasIssues:        &hasIssues,
+		HasWiki:          &hasWiki,
+		AllowMergeCommit: &allowMergeCommit,
+		AllowSquashMerge: &allowSquashMerge,
+		AllowRebaseMerge: &allowRebaseMerge,
+		HasDownloads:     &hasDownloads,
+		AutoInit:         &autoInit,
 	}
 
 	return repo
@@ -144,6 +165,9 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("private", repo.Private)
 	d.Set("has_issues", repo.HasIssues)
 	d.Set("has_wiki", repo.HasWiki)
+	d.Set("allow_merge_commit", repo.AllowMergeCommit)
+	d.Set("allow_squash_merge", repo.AllowSquashMerge)
+	d.Set("allow_rebase_merge", repo.AllowRebaseMerge)
 	d.Set("has_downloads", repo.HasDownloads)
 	d.Set("full_name", repo.FullName)
 	d.Set("default_branch", repo.DefaultBranch)
@@ -151,6 +175,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("svn_url", repo.SVNURL)
 	d.Set("git_clone_url", repo.GitURL)
 	d.Set("http_clone_url", repo.CloneURL)
+
 	return nil
 }
 

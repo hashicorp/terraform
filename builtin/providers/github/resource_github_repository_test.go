@@ -28,13 +28,16 @@ func TestAccGithubRepository_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:          name,
-						Description:   description,
-						Homepage:      "http://example.com/",
-						HasIssues:     true,
-						HasWiki:       true,
-						HasDownloads:  true,
-						DefaultBranch: "master",
+						Name:             name,
+						Description:      description,
+						Homepage:         "http://example.com/",
+						HasIssues:        true,
+						HasWiki:          true,
+						AllowMergeCommit: false,
+						AllowSquashMerge: false,
+						AllowRebaseMerge: false,
+						HasDownloads:     true,
+						DefaultBranch:    "master",
 					}),
 				),
 			},
@@ -43,10 +46,13 @@ func TestAccGithubRepository_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:          name,
-						Description:   "Updated " + description,
-						Homepage:      "http://example.com/",
-						DefaultBranch: "master",
+						Name:             name,
+						Description:      "Updated " + description,
+						Homepage:         "http://example.com/",
+						AllowMergeCommit: true,
+						AllowSquashMerge: true,
+						AllowRebaseMerge: true,
+						DefaultBranch:    "master",
 					}),
 				),
 			},
@@ -98,13 +104,16 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 }
 
 type testAccGithubRepositoryExpectedAttributes struct {
-	Name         string
-	Description  string
-	Homepage     string
-	Private      bool
-	HasIssues    bool
-	HasWiki      bool
-	HasDownloads bool
+	Name             string
+	Description      string
+	Homepage         string
+	Private          bool
+	HasIssues        bool
+	HasWiki          bool
+	AllowMergeCommit bool
+	AllowSquashMerge bool
+	AllowRebaseMerge bool
+	HasDownloads     bool
 
 	DefaultBranch string
 }
@@ -129,6 +138,15 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 		}
 		if *repo.HasWiki != want.HasWiki {
 			return fmt.Errorf("got has wiki %#v; want %#v", *repo.HasWiki, want.HasWiki)
+		}
+		if *repo.AllowMergeCommit != want.AllowMergeCommit {
+			return fmt.Errorf("got allow merge commit %#v; want %#v", *repo.AllowMergeCommit, want.AllowMergeCommit)
+		}
+		if *repo.AllowSquashMerge != want.AllowSquashMerge {
+			return fmt.Errorf("got allow squash merge %#v; want %#v", *repo.AllowSquashMerge, want.AllowSquashMerge)
+		}
+		if *repo.AllowRebaseMerge != want.AllowRebaseMerge {
+			return fmt.Errorf("got allow rebase merge %#v; want %#v", *repo.AllowRebaseMerge, want.AllowRebaseMerge)
 		}
 		if *repo.HasDownloads != want.HasDownloads {
 			return fmt.Errorf("got has downloads %#v; want %#v", *repo.HasDownloads, want.HasDownloads)
@@ -208,6 +226,9 @@ resource "github_repository" "foo" {
 
   has_issues = true
   has_wiki = true
+  allow_merge_commit = false
+  allow_squash_merge = false
+  allow_rebase_merge = false
   has_downloads = true
 }
 `, randString, randString)
@@ -226,6 +247,9 @@ resource "github_repository" "foo" {
 
   has_issues = false
   has_wiki = false
+  allow_merge_commit = true
+  allow_squash_merge = true
+  allow_rebase_merge = true
   has_downloads = false
 }
 `, randString, randString)
