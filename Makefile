@@ -38,7 +38,7 @@ plugin-dev: generate
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
 # test runs the unit tests
-test: fmtcheck errcheck generate
+test: fmtcheck generate
 	go test -i $(TEST) || exit 1
 	echo $(TEST) | \
 		xargs -t -n4 go test $(TESTARGS) -timeout=60s -parallel=4
@@ -98,9 +98,6 @@ fmt:
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
-errcheck:
-	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
-
 vendor-status:
 	@govendor status
 
@@ -109,4 +106,4 @@ vendor-status:
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: bin core-dev core-test cover default dev errcheck fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status vet
+.PHONY: bin core-dev core-test cover default dev fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status vet
