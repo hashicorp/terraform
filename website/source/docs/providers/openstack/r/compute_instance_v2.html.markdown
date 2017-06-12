@@ -283,8 +283,8 @@ function, or the `template_cloudinit_config` resource.
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to create the server instance. If
-    omitted, the `OS_REGION_NAME` environment variable is used. Changing this
+* `region` - (Optional) The region in which to create the server instance. If
+    omitted, the `region` argument of the provider is used. Changing this
     creates a new server.
 
 * `name` - (Required) A unique name for the resource.

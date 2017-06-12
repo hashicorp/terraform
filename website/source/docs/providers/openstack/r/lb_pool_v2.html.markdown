@@ -29,9 +29,9 @@ resource "openstack_lb_pool_v2" "pool_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 Networking client.
+* `region` - (Optional) The region in which to obtain the V2 Networking client.
     A Networking client is needed to create an . If omitted, the
-    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    `region` argument of the provider is used. Changing this creates a new
     pool.
 
 * `tenant_id` - (Optional) Required for admins. The UUID of the tenant who owns

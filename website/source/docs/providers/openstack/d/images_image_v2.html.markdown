@@ -21,9 +21,9 @@ data "openstack_images_image_v2" "ubuntu" {
 
 ## Argument Reference
 
-* `region` - (Required) The region in which to obtain the V2 Glance client.
+* `region` - (Optional) The region in which to obtain the V2 Glance client.
     A Glance client is needed to create an Image that can be used with
-    a compute instance. If omitted, the `OS_REGION_NAME` environment variable
+    a compute instance. If omitted, the `region` argument of the provider
     is used.
 
 * `most_recent` - (Optional) If more than one result is returned, use the most

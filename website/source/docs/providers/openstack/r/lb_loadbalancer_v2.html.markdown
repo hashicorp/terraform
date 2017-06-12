@@ -22,9 +22,9 @@ resource "openstack_lb_loadbalancer_v2" "lb_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 Networking client.
+* `region` - (Optional) The region in which to obtain the V2 Networking client.
     A Networking client is needed to create an LB member. If omitted, the
-    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    `region` argument of the provider is used. Changing this creates a new
     LB member.
 
 * `vip_subnet_id` - (Required) The network on which to allocate the

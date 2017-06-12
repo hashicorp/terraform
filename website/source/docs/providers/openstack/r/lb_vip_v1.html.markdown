@@ -26,9 +26,9 @@ resource "openstack_lb_vip_v1" "vip_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 Networking client.
+* `region` - (Optional) The region in which to obtain the V2 Networking client.
     A Networking client is needed to create a VIP. If omitted, the
-    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    `region` argument of the provider is used. Changing this creates a new
     VIP.
 
 * `name` - (Required) The name of the vip. Changing this updates the name of

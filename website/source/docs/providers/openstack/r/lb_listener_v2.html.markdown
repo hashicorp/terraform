@@ -24,9 +24,9 @@ resource "openstack_lb_listener_v2" "listener_1" {
 
 The following arguments are supported:
 
-* `region` - (Required) The region in which to obtain the V2 Networking client.
+* `region` - (Optional) The region in which to obtain the V2 Networking client.
     A Networking client is needed to create an . If omitted, the
-    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    `region` argument of the provider is used. Changing this creates a new
     Listener.
 
 * `protocol` = (Required) The protocol - can either be TCP, HTTP or HTTPS.

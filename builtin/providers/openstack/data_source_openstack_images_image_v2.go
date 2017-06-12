@@ -17,10 +17,10 @@ func dataSourceImagesImageV2() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 
 			"name": {
@@ -143,7 +143,7 @@ func dataSourceImagesImageV2() *schema.Resource {
 // dataSourceImagesImageV2Read performs the image lookup.
 func dataSourceImagesImageV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	imageClient, err := config.imageV2Client(GetRegion(d))
+	imageClient, err := config.imageV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack image client: %s", err)
 	}
