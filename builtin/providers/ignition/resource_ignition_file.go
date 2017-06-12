@@ -5,6 +5,9 @@ import (
 	"fmt"
 
 	"github.com/coreos/ignition/config/types"
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -41,6 +44,13 @@ func resourceFile() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
+						},
+						"vars": &schema.Schema{
+							Type:     schema.TypeMap,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
 						},
 					},
 				},
@@ -119,47 +129,26 @@ func buildFile(d *schema.ResourceData, c *cache) (string, error) {
 		return "", fmt.Errorf("content or source options must be present")
 	}
 
-	var compression types.Compression
-	var source types.Url
-	var hash *types.Hash
+	var contents types.FileContents
 	var err error
-
 	if hasContent {
-		source, err = encodeDataURL(
-			d.Get("content.0.mime").(string),
-			d.Get("content.0.content").(string),
-		)
-
+		contents, err = calculateFileContentFromContent(d)
 		if err != nil {
 			return "", err
 		}
 	}
 
 	if hasSource {
-		source, err = buildURL(d.Get("source.0.source").(string))
+		contents, err = calculateFileContentFromSource(d)
 		if err != nil {
 			return "", err
 		}
-
-		compression = types.Compression(d.Get("source.0.compression").(string))
-		h, err := buildHash(d.Get("source.0.verification").(string))
-		if err != nil {
-			return "", err
-		}
-
-		hash = &h
 	}
 
 	return c.addFile(&types.File{
 		Filesystem: d.Get("filesystem").(string),
 		Path:       types.Path(d.Get("path").(string)),
-		Contents: types.FileContents{
-			Compression: compression,
-			Source:      source,
-			Verification: types.Verification{
-				Hash: hash,
-			},
-		},
+		Contents:   contents,
 		User: types.FileUser{
 			Id: d.Get("uid").(int),
 		},
@@ -170,9 +159,82 @@ func buildFile(d *schema.ResourceData, c *cache) (string, error) {
 	}), nil
 }
 
+func calculateFileContentFromContent(d *schema.ResourceData) (types.FileContents, error) {
+	var c types.FileContents
+	var err error
+
+	content, err := interpolate(
+		d.Get("content.0.content").(string),
+		d.Get("content.0.vars").(map[string]interface{}),
+	)
+
+	if err != nil {
+		return c, err
+	}
+
+	c.Source, err = encodeDataURL(
+		d.Get("content.0.mime").(string),
+		content,
+	)
+
+	return c, err
+}
+
+func calculateFileContentFromSource(d *schema.ResourceData) (types.FileContents, error) {
+	var c types.FileContents
+	var err error
+
+	c.Source, err = buildURL(d.Get("source.0.source").(string))
+	if err != nil {
+		return c, err
+	}
+
+	c.Compression = types.Compression(d.Get("source.0.compression").(string))
+	h, err := buildHash(d.Get("source.0.verification").(string))
+	if err != nil {
+		return c, err
+	}
+
+	c.Verification.Hash = &h
+	return c, nil
+}
+
 func encodeDataURL(mime, content string) (types.Url, error) {
 	base64 := base64.StdEncoding.EncodeToString([]byte(content))
 	return buildURL(
 		fmt.Sprintf("data:%s;charset=utf-8;base64,%s", mime, base64),
 	)
+}
+
+func interpolate(s string, vars map[string]interface{}) (string, error) {
+	tree, err := hil.Parse(s)
+	if err != nil {
+		return "", err
+	}
+
+	varmap := make(map[string]ast.Variable, len(vars))
+	for k, v := range vars {
+		varmap[k] = ast.Variable{
+			Value: v,
+			Type:  ast.TypeString,
+		}
+	}
+
+	config := hil.EvalConfig{
+		GlobalScope: &ast.BasicScope{
+			VarMap:  varmap,
+			FuncMap: config.Funcs(),
+		},
+	}
+
+	result, err := hil.Eval(tree, &config)
+	if err != nil {
+		return "", err
+	}
+
+	if result.Type != hil.TypeString {
+		return "", fmt.Errorf("unexpected output hil.Type: %v", result.Type)
+	}
+
+	return result.Value.(string), nil
 }
