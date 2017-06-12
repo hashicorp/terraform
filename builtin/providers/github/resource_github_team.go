@@ -33,6 +33,11 @@ func resourceGithubTeam() *schema.Resource {
 				Default:      "secret",
 				ValidateFunc: validateValueFunc([]string{"secret", "closed"}),
 			},
+			"ldap_dn": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
 		},
 	}
 }
@@ -50,6 +55,17 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	if ldap_dn := d.Get("ldap_dn").(string); ldap_dn != "" {
+		mapping := &github.TeamLDAPMapping{
+			LDAPDN: github.String(ldap_dn),
+		}
+		_, _, err = client.Admin.UpdateTeamLDAPMapping(context.TODO(), *githubTeam.ID, mapping)
+		if err != nil {
+			return err
+		}
+	}
+
 	d.SetId(fromGithubID(githubTeam.ID))
 	return resourceGithubTeamRead(d, meta)
 }
@@ -65,6 +81,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("description", team.Description)
 	d.Set("name", team.Name)
 	d.Set("privacy", team.Privacy)
+	d.Set("ldap_dn", team.GetLDAPDN())
 	return nil
 }
 
@@ -88,6 +105,18 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	if d.HasChange("ldap_dn") {
+		ldap_dn := d.Get("ldap_dn").(string)
+		mapping := &github.TeamLDAPMapping{
+			LDAPDN: github.String(ldap_dn),
+		}
+		_, _, err = client.Admin.UpdateTeamLDAPMapping(context.TODO(), *team.ID, mapping)
+		if err != nil {
+			return err
+		}
+	}
+
 	d.SetId(fromGithubID(team.ID))
 	return resourceGithubTeamRead(d, meta)
 }

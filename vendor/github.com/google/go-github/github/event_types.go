@@ -561,6 +561,7 @@ type PushEventRepository struct {
 	MasterBranch    *string             `json:"master_branch,omitempty"`
 	Organization    *string             `json:"organization,omitempty"`
 	URL             *string             `json:"url,omitempty"`
+	ArchiveURL      *string             `json:"archive_url,omitempty"`
 	HTMLURL         *string             `json:"html_url,omitempty"`
 	StatusesURL     *string             `json:"statuses_url,omitempty"`
 	GitURL          *string             `json:"git_url,omitempty"`

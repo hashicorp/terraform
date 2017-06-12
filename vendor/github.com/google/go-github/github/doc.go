@@ -157,5 +157,16 @@ github.Response struct.
 		opt.ListOptions.Page = resp.NextPage
 	}
 
+Google App Engine
+
+Go on App Engine Classic (which as of this writing uses Go 1.6) can not use
+the "context" import and still relies on "golang.org/x/net/context".
+As a result, if you wish to continue to use "go-github" on App Engine Classic,
+you will need to rewrite all the "context" imports using the following command:
+
+    gofmt -w -r '"context" -> "golang.org/x/net/context"' *.go
+
+See "with_appengine.go" for more details.
+
 */
 package github

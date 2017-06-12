@@ -32,6 +32,7 @@ The following arguments are supported:
 * `description` - (Optional) A description of the team.
 * `privacy` - (Optional) The level of privacy for the team. Must be one of `secret` or `closed`.
                Defaults to `secret`.
+* `ldan_dn` - (Optional) The LDAP Distinguished Name of the group where membership will be synchronized. Only available in GitHub Enterprise.
 
 ## Attributes Reference
 
