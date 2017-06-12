@@ -106,6 +106,14 @@ func Provider() terraform.ResourceProvider {
 				Removed:     "Use `kinesis` inside `endpoints` block instead",
 			},
 
+			"kinesis_analytics_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["kinesis_analytics_endpoint"],
+				Removed:     "Use `kinesisanalytics` inside `endpoints` block instead",
+			},
+
 			"endpoints": endpointsSchema(),
 
 			"insecure": {
@@ -353,6 +361,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_key_pair":                                 resourceAwsKeyPair(),
 			"aws_kinesis_firehose_delivery_stream":         resourceAwsKinesisFirehoseDeliveryStream(),
 			"aws_kinesis_stream":                           resourceAwsKinesisStream(),
+			"aws_kinesis_analytics":                        resourceAwsKinesisAnalytics(),
 			"aws_kms_alias":                                resourceAwsKmsAlias(),
 			"aws_kms_key":                                  resourceAwsKmsKey(),
 			"aws_lambda_function":                          resourceAwsLambdaFunction(),
@@ -519,6 +528,9 @@ func init() {
 		"kinesis_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
 			"It's typically used to connect to kinesalite.",
 
+		"kinesisanalytics_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
+			"It's typically used to connect to an atlassian/localstack type service.",
+
 		"kms_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
 		"iam_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
@@ -621,6 +633,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.ElbEndpoint = endpoints["elb"].(string)
 		config.IamEndpoint = endpoints["iam"].(string)
 		config.KinesisEndpoint = endpoints["kinesis"].(string)
+		config.KinesisAnalyticsEndpoint = endpoints["kinesisanalytics"].(string)
 		config.KmsEndpoint = endpoints["kms"].(string)
 		config.RdsEndpoint = endpoints["rds"].(string)
 		config.S3Endpoint = endpoints["s3"].(string)
@@ -756,6 +769,12 @@ func endpointsSchema() *schema.Schema {
 					Default:     "",
 					Description: descriptions["kinesis_endpoint"],
 				},
+				"kinesisanalytics": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["kinesisanalytics_endpoint"],
+				},
 				"kms": {
 					Type:        schema.TypeString,
 					Optional:    true,
@@ -805,6 +824,7 @@ func endpointsToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["ec2"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["elb"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["kinesis"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["kinesisanalytics"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["kms"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["rds"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["s3"].(string)))
