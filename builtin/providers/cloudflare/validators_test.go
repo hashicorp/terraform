@@ -61,3 +61,33 @@ func TestValidateRecordName(t *testing.T) {
 		}
 	}
 }
+
+func TestValidatePageRuleStatus(t *testing.T) {
+	validStatuses := []string{
+		"active",
+		"paused",
+	}
+	for _, v := range validStatuses {
+		_, errors := validatePageRuleStatus(v, "status")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid page rule status: %q", v, errors)
+		}
+	}
+
+	invalidStatuses := []string{
+		"on",
+		"live",
+		"yes",
+		"no",
+		"true",
+		"false",
+		"running",
+		"stopped",
+	}
+	for _, v := range invalidStatuses {
+		_, errors := validatePageRuleStatus(v, "status")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid page rule status: %q", v, errors)
+		}
+	}
+}
