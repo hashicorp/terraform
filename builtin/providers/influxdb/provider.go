@@ -19,6 +19,7 @@ func Provider() terraform.ResourceProvider {
 			"influxdb_database":         resourceDatabase(),
 			"influxdb_user":             resourceUser(),
 			"influxdb_continuous_query": resourceContinuousQuery(),
+			"influxdb_retention_policy": resourceRetentionPolicy(),
 		},
 
 		Schema: map[string]*schema.Schema{
