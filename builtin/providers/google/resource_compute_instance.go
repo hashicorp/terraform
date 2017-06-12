@@ -57,6 +57,12 @@ func resourceComputeInstance() *schema.Resource {
 							ForceNew: true,
 						},
 
+						"nvme": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
+
 						"auto_delete": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
@@ -410,6 +416,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		disk.Type = "PERSISTENT"
 		disk.Mode = "READ_WRITE"
 		disk.Boot = i == 0
+		disk.Interface = "SCSI"
 		disk.AutoDelete = d.Get(prefix + ".auto_delete").(bool)
 
 		if _, ok := d.GetOk(prefix + ".disk"); ok {
@@ -441,6 +448,12 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		if v, ok := d.GetOk(prefix + ".scratch"); ok {
 			if v.(bool) {
 				disk.Type = "SCRATCH"
+			}
+		}
+
+		if v, ok := d.GetOk(prefix + ".nvme"); ok {
+			if v.(bool) {
+				disk.Interface = "NVME"
 			}
 		}
 
@@ -867,6 +880,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 				"image":                   d.Get(fmt.Sprintf("disk.%d.image", dIndex)),
 				"type":                    d.Get(fmt.Sprintf("disk.%d.type", dIndex)),
 				"scratch":                 d.Get(fmt.Sprintf("disk.%d.scratch", dIndex)),
+				"nvme":                    d.Get(fmt.Sprintf("disk.%d.nvme", dIndex)),
 				"auto_delete":             d.Get(fmt.Sprintf("disk.%d.auto_delete", dIndex)),
 				"size":                    d.Get(fmt.Sprintf("disk.%d.size", dIndex)),
 				"device_name":             d.Get(fmt.Sprintf("disk.%d.device_name", dIndex)),
