@@ -96,29 +96,40 @@ func resourceArmVirtualMachine() *schema.Resource {
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"publisher": {
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-						},
-
-						"offer": {
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-						},
-
-						"sku": {
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-						},
-
-						"version": {
+						"id": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
+						},
+
+						"publisher": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							ForceNew:      true,
+							ConflictsWith: []string{"storage_image_reference.0.id"},
+						},
+
+						"offer": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							ForceNew:      true,
+							ConflictsWith: []string{"storage_image_reference.0.id"},
+						},
+
+						"sku": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							ForceNew:      true,
+							ConflictsWith: []string{"storage_image_reference.0.id"},
+						},
+
+						"version": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							Computed:      true,
+							ForceNew:      true,
+							ConflictsWith: []string{"storage_image_reference.0.id"},
 						},
 					},
 				},
@@ -845,9 +856,13 @@ func resourceArmVirtualMachinePlanHash(v interface{}) int {
 func resourceArmVirtualMachineStorageImageReferenceHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["publisher"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["offer"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["sku"].(string)))
+	if m["id"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["id"].(string)))
+	} else {
+		buf.WriteString(fmt.Sprintf("%s-", m["publisher"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", m["offer"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", m["sku"].(string)))
+	}
 
 	return hashcode.String(buf.String())
 }
@@ -901,12 +916,17 @@ func flattenAzureRmVirtualMachinePlan(plan *compute.Plan) []interface{} {
 
 func flattenAzureRmVirtualMachineImageReference(image *compute.ImageReference) []interface{} {
 	result := make(map[string]interface{})
-	result["offer"] = *image.Offer
-	result["publisher"] = *image.Publisher
-	result["sku"] = *image.Sku
 
-	if image.Version != nil {
-		result["version"] = *image.Version
+	if image.ID != nil {
+		result["id"] = *image.ID
+	} else {
+		result["offer"] = *image.Offer
+		result["publisher"] = *image.Publisher
+		result["sku"] = *image.Sku
+
+		if image.Version != nil {
+			result["version"] = *image.Version
+		}
 	}
 
 	return []interface{}{result}
@@ -1383,18 +1403,25 @@ func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute
 	storageImageRefs := d.Get("storage_image_reference").(*schema.Set).List()
 
 	storageImageRef := storageImageRefs[0].(map[string]interface{})
+	imageRef := compute.ImageReference{}
 
-	publisher := storageImageRef["publisher"].(string)
-	offer := storageImageRef["offer"].(string)
-	sku := storageImageRef["sku"].(string)
-	version := storageImageRef["version"].(string)
+	id := storageImageRef["id"].(string)
 
-	return &compute.ImageReference{
-		Publisher: &publisher,
-		Offer:     &offer,
-		Sku:       &sku,
-		Version:   &version,
-	}, nil
+	if id != "" {
+		imageRef.ID = &id
+	} else {
+		publisher := storageImageRef["publisher"].(string)
+		offer := storageImageRef["offer"].(string)
+		sku := storageImageRef["sku"].(string)
+		version := storageImageRef["version"].(string)
+
+		imageRef.Publisher = &publisher
+		imageRef.Offer = &offer
+		imageRef.Sku = &sku
+		imageRef.Version = &version
+	}
+
+	return &imageRef, nil
 }
 
 func expandAzureRmVirtualMachineNetworkProfile(d *schema.ResourceData) compute.NetworkProfile {
