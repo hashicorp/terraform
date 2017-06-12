@@ -1,0 +1,47 @@
+<% wrap_layout :inner do %>
+    <% content_for :sidebar do %>
+        <div class="docs-sidebar hidden-print affix-top" role="complementary">
+            <ul class="nav docs-sidenav">
+                <li<%= sidebar_current("docs-home") %>>
+                <a href="/docs/providers/index.html">All Providers</a>
+                </li>
+
+                <li<%= sidebar_current("docs-runscope-index") %>>
+                <a href="/docs/providers/runscope/index.html">Runscope Provider</a>
+                </li>
+
+                <li<%= sidebar_current("docs-runscope-datasource") %>>
+                    <a href="#">Data Sources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-runscope-datasource-user") %>>
+                            <a href="/docs/providers/runscope/d/integration.html">runscope_integration</a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current("docs-runscope-resource") %>>
+                <a href="#">Resources</a>
+                <ul class="nav nav-visible">
+                    <li<%= sidebar_current("docs-runscope-resource-bucket") %>>
+                    <a href="/docs/providers/runscope/r/bucket.html">runscope_bucket</a>
+                    </li>
+                    <li<%= sidebar_current("docs-runscope-resource-environment") %>>
+                    <a href="/docs/providers/runscope/r/environment.html">runscope_environment</a>
+                    </li>
+                    <li<%= sidebar_current("docs-runscope-resource-schedule") %>>
+                    <a href="/docs/providers/runscope/r/schedule.html">runscope_schedule</a>
+                    </li>
+                    <li<%= sidebar_current("docs-runscope-resource-step") %>>
+                    <a href="/docs/providers/runscope/r/step.html">runscope_step</a>
+                    </li>
+                    <li<%= sidebar_current("docs-runscope-resource-test") %>>
+                    <a href="/docs/providers/runscope/r/test.html">runscope_test</a>
+                    </li>
+                </ul>
+                </li>
+            </ul>
+        </div>
+    <% end %>
+
+    <%= yield %>
+    <% end %>
