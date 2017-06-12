@@ -55,6 +55,52 @@ func resourceContainerNodePool() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"node_config": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"machine_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"disk_size_gb": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(int)
+
+								if value < 10 {
+									errors = append(errors, fmt.Errorf(
+										"%q cannot be less than 10", k))
+								}
+								return
+							},
+						},
+
+						"oauth_scopes": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+								StateFunc: func(v interface{}) string {
+									return canonicalizeServiceScope(v.(string))
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -83,6 +129,34 @@ func resourceContainerNodePoolCreate(d *schema.ResourceData, meta interface{}) e
 	nodePool := &container.NodePool{
 		Name:             name,
 		InitialNodeCount: int64(nodeCount),
+	}
+
+	if v, ok := d.GetOk("node_config"); ok {
+		nodeConfigs := v.([]interface{})
+		if len(nodeConfigs) > 1 {
+			return fmt.Errorf("Cannot specify more than one node_config.")
+		}
+		nodeConfig := nodeConfigs[0].(map[string]interface{})
+
+		nodePool.Config = &container.NodeConfig{}
+
+		if v, ok = nodeConfig["machine_type"]; ok {
+			nodePool.Config.MachineType = v.(string)
+		}
+
+		if v, ok = nodeConfig["disk_size_gb"]; ok {
+			nodePool.Config.DiskSizeGb = int64(v.(int))
+		}
+
+		if v, ok := nodeConfig["oauth_scopes"]; ok {
+			scopesList := v.([]interface{})
+			scopes := []string{}
+			for _, v := range scopesList {
+				scopes = append(scopes, canonicalizeServiceScope(v.(string)))
+			}
+
+			nodePool.Config.OauthScopes = scopes
+		}
 	}
 
 	req := &container.CreateNodePoolRequest{
@@ -129,6 +203,7 @@ func resourceContainerNodePoolRead(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("name", nodePool.Name)
 	d.Set("initial_node_count", nodePool.InitialNodeCount)
+	d.Set("node_config", flattenClusterNodeConfig(nodePool.Config))
 
 	return nil
 }
