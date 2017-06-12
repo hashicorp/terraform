@@ -291,10 +291,19 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			opts.Port = aws.Int64(int64(attr.(int)))
 		}
 
-		var sgUpdate bool
+		// Check if any of the parameters that require a cluster modification after creation are set
+		var clusterUpdate bool
 		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
-			sgUpdate = true
+			clusterUpdate = true
 			opts.VpcSecurityGroupIds = expandStringList(attr.List())
+		}
+
+		if _, ok := d.GetOk("db_cluster_parameter_group_name"); ok {
+			clusterUpdate = true
+		}
+
+		if _, ok := d.GetOk("backup_retention_period"); ok {
+			clusterUpdate = true
 		}
 
 		log.Printf("[DEBUG] RDS Cluster restore from snapshot configuration: %s", opts)
@@ -303,12 +312,13 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			return fmt.Errorf("Error creating RDS Cluster: %s", err)
 		}
 
-		if sgUpdate {
-			log.Printf("[INFO] RDS Cluster is restoring from snapshot with default security, but custom security should be set, will now update after snapshot is restored!")
+		if clusterUpdate {
+			log.Printf("[INFO] RDS Cluster is restoring from snapshot with default db_cluster_parameter_group_name, backup_retention_period and vpc_security_group_ids" +
+				"but custom values should be set, will now update after snapshot is restored!")
 
 			d.SetId(d.Get("cluster_identifier").(string))
 
-			log.Printf("[INFO] RDS Cluster Instance ID: %s", d.Id())
+			log.Printf("[INFO] RDS Cluster ID: %s", d.Id())
 
 			log.Println("[INFO] Waiting for RDS Cluster to be available")
 
@@ -327,7 +337,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 				return err
 			}
 
-			err = resourceAwsRDSClusterInstanceUpdate(d, meta)
+			err = resourceAwsRDSClusterUpdate(d, meta)
 			if err != nil {
 				return err
 			}
