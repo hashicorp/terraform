@@ -1,41 +1,33 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_security_group"
-sidebar_current: "docs-aws-resource-security-group"
+page_title: "AWS: aws_security_group_rules"
+sidebar_current: "docs-aws-resource-security-group-rules"
 description: |-
-  Provides a security group resource.
+  Provides a security group rules resource.
 ---
 
-# aws\_security\_group
+# aws\_security\_group\_rules
 
-Provides a security group resource.
+Provides a security group rules resource. Represents all the `ingress` and `egress`
+rules that should exist for a given Security Group.
 
 ~> **NOTE on Security Groups and Security Group Rules:** Terraform currently provides
-a standalone [Security Group Rules resource](security_group_rules.html)
+this standalone Security Group Rules resource
 (all `ingress` and `egress` rules for a group),
 standalone [Security Group Rule resources](security_group_rule.html)
 (individual `ingress` or `egress` rules), and the ability to define
 `ingress` and `egress` rules in-line with
-this Security Group resource.
+a [Security Group resource](security_group.html).
 At this time, you cannot combine any of these methods to define rules for the same group.
 Doing so will cause a conflict of rule settings and will overwrite rules.
-
-~> **NOTE on Limitations of Security Groups with In-Line Rules:** AWS supports
-security group rules that refer to other security groups. It is possible to have
-two security groups refer to each other in their rules. However, if this is done
-using only Security Group resources with in-line rules, it may result in a
-circular dependency error. To get around this, consider using the standalone
-[Security Group Rules resource](security_group_rules.html) or
-[Security Group Rule resources](security_group_rule.html) instead of in-line rules.
 
 ## Example Usage
 
 Basic usage
 
 ```hcl
-resource "aws_security_group" "allow_all" {
-  name        = "allow_all"
-  description = "Allow all inbound traffic"
+resource "aws_security_group_rules" "allow_all" {
+  security_group_id = "sg-123456"
 
   ingress {
     from_port   = 0
@@ -54,46 +46,17 @@ resource "aws_security_group" "allow_all" {
 }
 ```
 
-Basic usage with tags:
-
-```hcl
-resource "aws_security_group" "allow_all" {
-  name        = "allow_all"
-  description = "Allow all inbound traffic"
-
-  ingress {
-    from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags {
-    Name = "allow_all"
-  }
-}
-```
-
 ## Argument Reference
 
 The following arguments are supported:
 
-* `name` - (Optional, Forces new resource) The name of the security group. If omitted, Terraform will
-assign a random, unique name
-* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified
-  prefix. Conflicts with `name`.
-* `description` - (Optional, Forces new resource) The security group description. Defaults to
-  "Managed by Terraform". Cannot be "". __NOTE__: This field maps to the AWS
-  `GroupDescription` attribute, for which there is no Update API. If you'd like
-  to classify your security groups in a way that can be updated, use `tags`.
+* `security_group_id` - (Required) The security group to apply these rules to.
 * `ingress` - (Optional) Can be specified multiple times for each
    ingress rule. Each ingress block supports fields documented below.
-   If no ingress blocks are defined, then ingress rules will not be managed by this resource.
+   If no ingress blocks are defined, then Terraform will remove all ingress rules.
 * `egress` - (Optional, VPC only) Can be specified multiple times for each
    egress rule. Each egress block supports fields documented below.
-   If no egress blocks are defined, then egress rules will not be managed by this resource.
-* `vpc_id` - (Optional, Forces new resource) The VPC ID.
-* `tags` - (Optional) A mapping of tags to assign to the resource.
+   If no egress blocks are defined, then Terraform will remove all egress rules.
 
 The `ingress` block supports:
 
@@ -122,22 +85,6 @@ The `egress` block supports:
      a source to this egress rule.
 * `to_port` - (Required) The end range port (or ICMP code if protocol is "icmp").
 
-~> **NOTE on Egress rules:** By default, AWS creates an `ALLOW ALL` egress rule when creating a
-new Security Group inside of a VPC. When creating a new Security
-Group inside a VPC, **Terraform will remove this default rule**, and require you
-specifically re-create it if you desire that rule. We feel this leads to fewer
-surprises in terms of controlling your egress rules. If you desire this rule to
-be in place, you can use this `egress` block:
-
-```hcl
-    egress {
-      from_port = 0
-      to_port = 0
-      protocol = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-```
-
 ## Usage with prefix list IDs
 
 Prefix list IDs are managed by AWS internally. Prefix list IDs
@@ -145,17 +92,20 @@ are associated with a prefix list name, or service name, that is linked to a spe
 Prefix list IDs are exported on VPC Endpoints, so you can use this format:
 
 ```hcl
-    # ...
-      egress {
-        from_port = 0
-        to_port = 0
-        protocol = "-1"
-        prefix_list_ids = ["${aws_vpc_endpoint.my_endpoint.prefix_list_id}"]
-      }
-    # ...
-    resource "aws_vpc_endpoint" "my_endpoint" {
-      # ...
-    }
+resource "aws_security_group_rules" "allow_all" {
+  security_group_id = "sg-123456"
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    prefix_list_ids = ["${aws_vpc_endpoint.my_endpoint.prefix_list_id}"]
+  }
+}
+
+# ...
+resource "aws_vpc_endpoint" "my_endpoint" {
+  # ...
+}
 ```
 
 ## Attributes Reference
@@ -163,18 +113,5 @@ Prefix list IDs are exported on VPC Endpoints, so you can use this format:
 The following attributes are exported:
 
 * `id` - The ID of the security group
-* `vpc_id` - The VPC ID.
-* `owner_id` - The owner ID.
-* `name` - The name of the security group
-* `description` - The description of the security group
 * `ingress` - The ingress rules. See above for more.
 * `egress` - The egress rules. See above for more.
-
-
-## Import
-
-Security Groups can be imported using the `security group id`, e.g.
-
-```
-$ terraform import aws_security_group.elb_sg sg-903004f8
-```
