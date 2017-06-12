@@ -115,8 +115,7 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
       name                                   = "IPConfiguration"
       subnet_id                              = "${azurerm_subnet.subnet.id}"
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.backlb.id}"]
-
-      # Does not exist - may not be necessary
+      # Terraform currently does not have a way to specify these IDs.
       # load_balancer_inbound_nat_pool_ids     = ["${azurerm_lb_nat_pool.np.id}"]
     }
   }
@@ -136,64 +135,69 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
   }
 }
 
-# TODO:  script autoscaling
+# There is not currently a resource in Terraform to create Autoscale Settings. 
 
-
-# "type": "Microsoft.Insights/autoscaleSettings",
-# "apiVersion": "[variables('insightsApiVersion')]",
-# "name": "autoscalewad",
-# "location": "[resourceGroup().location]",
-# "dependsOn": [
-#   "[concat('Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]"
-# ],
-# "properties": {
-#   "name": "autoscalewad",
-#   "targetResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
-#   "enabled": true,
-#   "profiles": [
-#     {
-#       "name": "Profile1",
-#       "capacity": {
-#         "minimum": "1",
-#         "maximum": "10",
-#         "default": "1"
-#       },
-#       "rules": [
-#         {
-#           "metricTrigger": {
-#             "metricName": "Percentage CPU",
-#             "metricNamespace": "",
-#             "metricResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
-#             "timeGrain": "PT1M",
-#             "statistic": "Average",
-#             "timeWindow": "PT5M",
-#             "timeAggregation": "Average",
-#             "operator": "GreaterThan",
-#             "threshold": 60.0
-#           },
-#           "scaleAction": {
-#             "direction": "Increase",
-#             "type": "ChangeCount",
-#             "value": "1",
-#             "cooldown": "PT1M"
+# {
+#       "type": "Microsoft.Insights/autoscaleSettings",
+#       "apiVersion": "[variables('insightsApiVersion')]",
+#       "name": "autoscalewad",
+#       "location": "[resourceGroup().location]",
+#       "dependsOn": [
+#         "[concat('Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]"
+#       ],
+#       "properties": {
+#         "name": "autoscalewad",
+#         "targetResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
+#         "enabled": true,
+#         "profiles": [
+#           {
+#             "name": "Profile1",
+#             "capacity": {
+#               "minimum": "1",
+#               "maximum": "10",
+#               "default": "1"
+#             },
+#             "rules": [
+#               {
+#                 "metricTrigger": {
+#                   "metricName": "Percentage CPU",
+#                   "metricNamespace": "",
+#                   "metricResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
+#                   "timeGrain": "PT1M",
+#                   "statistic": "Average",
+#                   "timeWindow": "PT5M",
+#                   "timeAggregation": "Average",
+#                   "operator": "GreaterThan",
+#                   "threshold": 60.0
+#                 },
+#                 "scaleAction": {
+#                   "direction": "Increase",
+#                   "type": "ChangeCount",
+#                   "value": "1",
+#                   "cooldown": "PT1M"
+#                 }
+#               },
+#               {
+#                 "metricTrigger": {
+#                   "metricName": "Percentage CPU",
+#                   "metricNamespace": "",
+#                   "metricResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
+#                   "timeGrain": "PT1M",
+#                   "statistic": "Average",
+#                   "timeWindow": "PT5M",
+#                   "timeAggregation": "Average",
+#                   "operator": "LessThan",
+#                   "threshold": 30.0
+#                 },
+#                 "scaleAction": {
+#                   "direction": "Decrease",
+#                   "type": "ChangeCount",
+#                   "value": "1",
+#                   "cooldown": "PT5M"
+#                 }
+#               }
+#             ]
 #           }
-#         },
-#         {
-#           "metricTrigger": {
-#             "metricName": "Percentage CPU",
-#             "metricNamespace": "",
-#             "metricResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
-#             "timeGrain": "PT1M",
-#             "statistic": "Average",
-#             "timeWindow": "PT5M",
-#             "timeAggregation": "Average",
-#             "operator": "LessThan",
-#             "threshold": 30.0
-#           },
-#           "scaleAction": {
-#             "direction": "Decrease",
-#             "type": "ChangeCount",
-#             "value": "1",
-#             "cooldown": "PT5M"
-#           }
-
+#         ]
+#       }
+# }
