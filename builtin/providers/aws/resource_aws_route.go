@@ -172,9 +172,17 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	case "vpc_peering_connection_id":
 		createOpts = &ec2.CreateRouteInput{
 			RouteTableId:           aws.String(d.Get("route_table_id").(string)),
-			DestinationCidrBlock:   aws.String(d.Get("destination_cidr_block").(string)),
 			VpcPeeringConnectionId: aws.String(d.Get("vpc_peering_connection_id").(string)),
 		}
+
+		if v, ok := d.GetOk("destination_cidr_block"); ok {
+			createOpts.DestinationCidrBlock = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("destination_ipv6_cidr_block"); ok {
+			createOpts.DestinationIpv6CidrBlock = aws.String(v.(string))
+		}
+
 	default:
 		return fmt.Errorf("An invalid target type specified: %s", setTarget)
 	}
