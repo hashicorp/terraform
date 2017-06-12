@@ -15,6 +15,11 @@ default 'root'@'%' user with no password. This user will be deleted by Terraform
 instance creation. You should use a `google_sql_user` to define a customer user with
 a restricted host and strong password.
 
+~> **NOTE on Postgres support:** Configuring Postgres instances is reported to work well with this
+Terraform resource however the corresponding Google-API is currently still in BETA which means it
+can change in backwards-incompatible ways at any point in time which might also affect the way this
+Terraform resource works when configuring Postgres instances.
+
 
 ## Example Usage
 
@@ -44,10 +49,11 @@ The following arguments are supported:
 - - -
 
 * `database_version` - (Optional, Default: `MYSQL_5_6`) The MySQL version to
-    use. Can be either `MYSQL_5_6` or `MYSQL_5_7` for second-generation
+    use. Can be `MYSQL_5_6`, `MYSQL_5_7` or `POSTGRES_9_6` for second-generation
     instances, or `MYSQL_5_5` or `MYSQL_5_6` for first-generation instances.
     See Google's [Second Generation Capabilities](https://cloud.google.com/sql/docs/1st-2nd-gen-differences)
     for more information.
+    Note that Google's Postgres support is currently still in BETA.
 
 * `name` - (Optional, Computed) The name of the instance. If the name is left
     blank, Terraform will randomly generate one when the instance is first
@@ -69,6 +75,16 @@ The required `settings` block supports:
 * `tier` - (Required) The machine tier (First Generation) or type (Second Generation) to use. See
     [tiers](https://cloud.google.com/sql/docs/admin-api/v1beta4/tiers) for more details and
     supported versions.
+    Postgres only supports shared-core machine types (i.e. `db-f1-micro`, `db-g1-small`) and custom
+    machine types (see Google's [Postgres Pricing
+    Page](https://cloud.google.com/sql/docs/postgres/pricing)).
+    For custom machine types the number of CPUs and the amount of memory (expressed in `MiB = GB *
+    1024`) is encoded in the tier as: `db-custom-{CPUS}-{MEMORY}`. For a machine with 1 CPU and
+    4GB of memory the tier would be `db-custom-1-4096`, for 2 CPUs and 13GB of ram it would be
+    `db-custom-2-13312`.
+    Only certain combinations of CPU and memory are allowed, see Google's [Custom Machine Type
+    Documentation](https://cloud.google.com/compute/docs/instances/creating-instance-with-custom-machine-type#create).
+    Note that Google's Postgres support is currently still in BETA.
 
 * `activation_policy` - (Optional) This specifies when the instance should be
     active. Can be either `ALWAYS`, `NEVER` or `ON_DEMAND`.
