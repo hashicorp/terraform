@@ -20,6 +20,14 @@ func TestAccBitbucketRepository_basic(t *testing.T) {
 		}
 	`, testUser)
 
+	testAccBitbucketRepositoryConfigUpdate := fmt.Sprintf(`
+		resource "bitbucket_repository" "test_repo" {
+			owner = "%s"
+			name = "test-repo-for-repository-test"
+			description = "Update the description"
+		}
+	`, testUser)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -29,6 +37,12 @@ func TestAccBitbucketRepository_basic(t *testing.T) {
 				Config: testAccBitbucketRepositoryConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBitbucketRepositoryExists("bitbucket_repository.test_repo", &repo),
+				),
+			},
+			resource.TestStep{
+				Config: testAccBitbucketRepositoryConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("bitbucket_repository.test_repo", "description", "Update the description"),
 				),
 			},
 		},
