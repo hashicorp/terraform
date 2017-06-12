@@ -319,6 +319,27 @@ func TestAccDigitalOceanDroplet_PrivateNetworkingIpv6(t *testing.T) {
 	})
 }
 
+func testAccDigitalOceanDroplet_Monitoring(t *testing.T) {
+	var droplet godo.Droplet
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckDigitalOceanDropletConfig_Monitoring(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "monitoring", "true"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckDigitalOceanDropletDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*godo.Client)
 
@@ -624,6 +645,18 @@ resource "digitalocean_droplet" "foobar" {
   region             = "sgp1"
   ipv6               = true
   private_networking = true
+}
+`, rInt)
+}
+
+func testAccCheckDigitalOceanDropletConfig_Monitoring(rInt int) string {
+	return fmt.Sprintf(`
+resource "digitalocean_droplet" "foobar" {
+  name       = "foo-%d"
+  size       = "1gb"
+  image      = "centos-7-x64"
+  region     = "nyc3"
+  monitoring = true
 }
 `, rInt)
 }
