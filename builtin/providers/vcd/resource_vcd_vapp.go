@@ -17,61 +17,65 @@ func resourceVcdVApp() *schema.Resource {
 		Delete: resourceVcdVAppDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"template_name": &schema.Schema{
+			"template_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"catalog_name": &schema.Schema{
+			"catalog_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"network_href": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
-			"network_name": &schema.Schema{
+			"network_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"memory": &schema.Schema{
+			"memory": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"cpus": &schema.Schema{
+			"cpus": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"ip": &schema.Schema{
+			"ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"initscript": &schema.Schema{
+			"storage_profile": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "terrafrom vapp",
+			},
+			"initscript": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"metadata": &schema.Schema{
+			"metadata": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
-			"href": &schema.Schema{
+			"href": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"power_on": &schema.Schema{
+			"power_on": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
@@ -99,59 +103,54 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] VAppTemplate: %#v", vapptemplate)
-	var networkHref string
 	net, err := vcdClient.OrgVdc.FindVDCNetwork(d.Get("network_name").(string))
 	if err != nil {
 		return fmt.Errorf("Error finding OrgVCD Network: %#v", err)
 	}
-	if attr, ok := d.GetOk("network_href"); ok {
-		networkHref = attr.(string)
-	} else {
-		networkHref = net.OrgVDCNetwork.HREF
-	}
-	// vapptemplate := govcd.NewVAppTemplate(&vcdClient.Client)
-	//
-	createvapp := &types.InstantiateVAppTemplateParams{
-		Ovf:   "http://schemas.dmtf.org/ovf/envelope/1",
-		Xmlns: "http://www.vmware.com/vcloud/v1.5",
-		Name:  d.Get("name").(string),
-		InstantiationParams: &types.InstantiationParams{
-			NetworkConfigSection: &types.NetworkConfigSection{
-				Info: "Configuration parameters for logical networks",
-				NetworkConfig: &types.VAppNetworkConfiguration{
-					NetworkName: d.Get("network_name").(string),
-					Configuration: &types.NetworkConfiguration{
-						ParentNetwork: &types.Reference{
-							HREF: networkHref,
-						},
-						FenceMode: "bridged",
-					},
-				},
-			},
-		},
-		Source: &types.Reference{
-			HREF: vapptemplate.VAppTemplate.HREF,
-		},
-	}
 
-	err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
-		e := vcdClient.OrgVdc.InstantiateVAppTemplate(createvapp)
+	storage_profile_reference := types.Reference{}
 
-		if e != nil {
-			return resource.RetryableError(fmt.Errorf("Error: %#v", e))
-		}
-
-		e = vcdClient.OrgVdc.Refresh()
-		if e != nil {
-			return resource.RetryableError(fmt.Errorf("Error: %#v", e))
-		}
-		return nil
-	})
+	// Use default storage profile by default
+	storage_profile_query_params := make(map[string]string)
+	storage_profile_query_params["type"] = "orgVdcStorageProfile"
+	storage_profile_query_params["format"] = "records"
+	storage_profiles, err := vcdClient.VCDClient.Query(storage_profile_query_params)
+	default_storage_profile, err := vcdClient.OrgVdc.GetDefaultStorageProfileReference(storage_profiles.Results)
 	if err != nil {
-		return err
+		return fmt.Errorf("Couldn't find storage_profile and no default storage_profile avaiable %s", err)
 	}
+
+	// Override default storage profile if we found the given storage profile
+	if d.Get("storage_profile").(string) != "" {
+		storage_profile_reference, err = vcdClient.OrgVdc.FindStorageProfileReference(d.Get("storage_profile").(string))
+		if err != nil {
+			storage_profile_reference = default_storage_profile
+			log.Printf("Using default storage_profile: %s", storage_profile_reference)
+		}
+	} else {
+		storage_profile_reference = default_storage_profile
+	}
+
+	log.Printf("storage_profile %s", storage_profile_reference)
 
 	vapp, err := vcdClient.OrgVdc.FindVAppByName(d.Get("name").(string))
+
+	if err != nil {
+		vapp = vcdClient.NewVApp(&vcdClient.Client)
+
+		err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
+			task, err := vapp.ComposeVApp(net, vapptemplate, storage_profile_reference, d.Get("name").(string), d.Get("description").(string))
+			if err != nil {
+				return resource.RetryableError(fmt.Errorf("Error creating vapp: %#v", err))
+			}
+
+			return resource.RetryableError(task.WaitTaskCompletion())
+		})
+
+		if err != nil {
+			return fmt.Errorf("Error creating vapp: %#v", err)
+		}
+	}
 
 	err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
 		task, err := vapp.ChangeVMName(d.Get("name").(string))
@@ -232,6 +231,20 @@ func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+	}
+
+	if d.HasChange("storage_profile") {
+		err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
+			task, err := vapp.ChangeStorageProfile(d.Get("storage_profile").(string))
+			if err != nil {
+				return resource.RetryableError(fmt.Errorf("Error changing storage_profile: %#v", err))
+			}
+
+			return resource.RetryableError(task.WaitTaskCompletion())
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	if d.HasChange("memory") || d.HasChange("cpus") || d.HasChange("power_on") {
