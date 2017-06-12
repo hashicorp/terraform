@@ -80,12 +80,16 @@ func applyFn(ctx context.Context) error {
 
 func validateFn(d *schema.ResourceData) (ws []string, es []error) {
 	numSrc := 0
-	if _, ok := d.GetOk("source"); ok == true {
+	content := d.Get("content").(string)
+	source := d.Get("source").(string)
+
+	if content != "" {
 		numSrc++
 	}
-	if _, ok := d.GetOk("content"); ok == true {
+	if source != "" {
 		numSrc++
 	}
+
 	if numSrc != 1 {
 		es = append(es, fmt.Errorf("Must provide one of 'content' or 'source'"))
 	}
