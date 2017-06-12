@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 
 var r53NoRecordsFound = errors.New("No matching Hosted Zone found")
 var r53NoHostedZoneFound = errors.New("No matching records found")
+var r53ValidRecordTypes = regexp.MustCompile("^(AAAA|A|NS|SOA|SPF|MX|PTR|CNAME|TXT|SRV|NAPTR)$")
 
 func resourceAwsRoute53Record() *schema.Resource {
 	return &schema.Resource{
@@ -466,11 +468,20 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 			return fmt.Errorf("Error Importing aws_route_53 record. Please make sure the record ID is in the form ZONEID_RECORDNAME_TYPE (i.e. Z4KAPRWWNC7JR_dev_A")
 		}
 
-		d.Set("zone_id", parts[0])
-		d.Set("name", parts[1])
-		d.Set("type", parts[2])
-		if len(parts) > 3 {
-			d.Set("set_identifier", parts[3])
+		//attempt to determine if there is a set_identifier
+		// this is complicated by domains which contain underscores
+		last := parts[len(parts)-1]
+		if len(parts) == 3 || r53ValidRecordTypes.MatchString(last) {
+			//no set identifier
+			d.Set("zone_id", parts[0])
+			d.Set("name", parts[1:len(parts)-1])
+			d.Set("type", last)
+		} else {
+			//possible set identifier
+			d.Set("zone_id", parts[0])
+			d.Set("name", parts[1:len(parts)-2])
+			d.Set("type", parts[len(parts)-2])
+			d.Set("set_identifier", last)
 		}
 	}
 
