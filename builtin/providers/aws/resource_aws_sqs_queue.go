@@ -16,16 +16,18 @@ import (
 )
 
 var AttributeMap = map[string]string{
-	"delay_seconds":               "DelaySeconds",
-	"max_message_size":            "MaximumMessageSize",
-	"message_retention_seconds":   "MessageRetentionPeriod",
-	"receive_wait_time_seconds":   "ReceiveMessageWaitTimeSeconds",
-	"visibility_timeout_seconds":  "VisibilityTimeout",
-	"policy":                      "Policy",
-	"redrive_policy":              "RedrivePolicy",
-	"arn":                         "QueueArn",
-	"fifo_queue":                  "FifoQueue",
-	"content_based_deduplication": "ContentBasedDeduplication",
+	"delay_seconds":                     "DelaySeconds",
+	"max_message_size":                  "MaximumMessageSize",
+	"message_retention_seconds":         "MessageRetentionPeriod",
+	"receive_wait_time_seconds":         "ReceiveMessageWaitTimeSeconds",
+	"visibility_timeout_seconds":        "VisibilityTimeout",
+	"policy":                            "Policy",
+	"redrive_policy":                    "RedrivePolicy",
+	"arn":                               "QueueArn",
+	"fifo_queue":                        "FifoQueue",
+	"content_based_deduplication":       "ContentBasedDeduplication",
+	"kms_master_key_id":                 "KmsMasterKeyId",
+	"kms_data_key_reuse_period_seconds": "KmsDataKeyReusePeriodSeconds",
 }
 
 // A number of these are marked as computed because if you don't
@@ -101,6 +103,15 @@ func resourceAwsSqsQueue() *schema.Resource {
 			"content_based_deduplication": {
 				Type:     schema.TypeBool,
 				Default:  false,
+				Optional: true,
+			},
+			"kms_master_key_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"kms_data_key_reuse_period_seconds": {
+				Type:     schema.TypeInt,
+				Computed: true,
 				Optional: true,
 			},
 		},
