@@ -64,10 +64,11 @@ func (s *BackupState) WriteLostResourceLog(data []byte) error {
 	return nil
 }
 
-func (s *BackupState) DeleteRecoveryLog() {
+func (s *BackupState) DeleteRecoveryLog() error {
 	if recoveryWriter, ok := s.Real.(RecoveryLogWriter); ok {
-		recoveryWriter.DeleteRecoveryLog()
+		return recoveryWriter.DeleteRecoveryLog()
 	}
+	return nil
 }
 
 func (s *BackupState) ReadRecoveryLog() (map[string]Instance, error) {

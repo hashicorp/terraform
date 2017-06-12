@@ -200,5 +200,6 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.s3Client = client.(*terraformAWS.AWSClient).S3()
 	b.dynClient = client.(*terraformAWS.AWSClient).DynamoDB()
+
 	return nil
 }

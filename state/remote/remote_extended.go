@@ -10,7 +10,7 @@ import (
 type ExtendedClient interface {
 	PutRecoveryLog([]byte) error
 	PutLostResourceLog([]byte) error
-	DeleteRecoveryLog()
+	DeleteRecoveryLog() error
 	GetRecoveryLog() (*Payload, error)
 }
 
@@ -33,11 +33,12 @@ func (s *State) WriteLostResourceLog(data []byte) error {
 	return nil
 }
 
-func (s *State) DeleteRecoveryLog() {
+func (s *State) DeleteRecoveryLog() error {
 	extendedClient, ok := s.Client.(ExtendedClient)
 	if ok {
-		extendedClient.DeleteRecoveryLog()
+		return extendedClient.DeleteRecoveryLog()
 	}
+	return nil
 }
 
 // Realisation of RecoveryLogReader interface rof remote state.
@@ -49,7 +50,7 @@ func (s *State) ReadRecoveryLog() (map[string]state.Instance, error) {
 		if err != nil {
 			return nil, err
 		}
-		if payload.Data == nil {
+		if payload == nil || payload.Data == nil {
 			return map[string]state.Instance{}, nil
 		}
 		err = json.Unmarshal(payload.Data, &instances)

@@ -104,7 +104,7 @@ func (s *InstancesStatusLogger) Remove(instState *terraform.InstanceState, info 
 	defer s.lock.Unlock()
 
 	if instState != nil && instState.Ephemeral.MetaId != "" {
-		fmt.Printf("Found by metaID. Remove from Lost Resources log. metaId: %s", instState.Ephemeral.MetaId)
+		fmt.Printf("Instance status found by metaID into lost resource log. Remove instance from Lost Resources log. metaId: %s", instState.Ephemeral.MetaId)
 		if _, found := s.lostResourceLog[instState.Ephemeral.MetaId]; found {
 			delete(s.lostResourceLog, instState.Ephemeral.MetaId)
 			s.writeLostResourceLog(writer)

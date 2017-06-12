@@ -169,16 +169,22 @@ func (c *RemoteClient) PutLostResourceLog(data []byte) error {
 	}
 }
 
-func (c *RemoteClient) DeleteRecoveryLog() {
-	_, _ = c.s3Client.DeleteObject(&s3.DeleteObjectInput{
+// Removes recovery log and lost resource log.
+func (c *RemoteClient) DeleteRecoveryLog() error {
+	_, err := c.s3Client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: &c.bucketName,
 		Key:    &c.recoveryLogPath,
 	})
 
-	_, _ = c.s3Client.DeleteObject(&s3.DeleteObjectInput{
+	if err != nil {
+		return err
+	}
+
+	_, err = c.s3Client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: &c.bucketName,
 		Key:    &c.lostResourcePath,
 	})
+	return err
 }
 
 func (c *RemoteClient) GetRecoveryLog() (*remote.Payload, error) {
@@ -193,10 +199,10 @@ func (c *RemoteClient) GetRecoveryLog() (*remote.Payload, error) {
 				return nil, nil
 			} else {
 				return nil,
-					fmt.Errorf("Failed to restore the recovery log, but it's possible that recovery data exists. AWS error: %s", err)
+					fmt.Errorf("Failed to restore the recovery log, but it's possible that recovery data is available. AWS error: %s", err)
 			}
 		} else {
-			return nil, fmt.Errorf("Failed to restore the recovery log, but it's possible that recovery data exists. Error: %s", err)
+			return nil, fmt.Errorf("Failed to restore the recovery log, but it's possible that recovery data is available. Error: %s", err)
 		}
 	}
 
@@ -204,7 +210,7 @@ func (c *RemoteClient) GetRecoveryLog() (*remote.Payload, error) {
 
 	buf := bytes.NewBuffer(nil)
 	if _, err := io.Copy(buf, output.Body); err != nil {
-		return nil, fmt.Errorf("Failed to read recovery log but recovery data is exists: %s", err)
+		return nil, fmt.Errorf("Failed to read recovery log but recovery data is available: %s", err)
 	}
 
 	payload := &remote.Payload{

@@ -224,7 +224,7 @@ func (d *ResourceData) ConnInfo() map[string]string {
 func (d *ResourceData) SetId(v string) {
 	d.once.Do(d.init)
 	d.newState.ID = v
-	d.onIdFilled()
+	d.onIdChanged()
 }
 
 // SetConnInfo sets the connection info for a resource.
@@ -502,7 +502,7 @@ func (d *ResourceData) get(addr []string, source getSource) getResult {
 	}
 }
 
-func (d *ResourceData) onIdFilled() {
+func (d *ResourceData) onIdChanged() {
 	if d.diff != nil {
 		d.diff.OnIdChanged(d.newState.ID)
 	}

@@ -37,7 +37,6 @@ func (b *Local) opApply(
 	// Setup our count hook that keeps track of resource changes
 	countHook := new(CountHook)
 	stateHook := new(StateHook)
-
 	if b.ContextOpts == nil {
 		b.ContextOpts = new(terraform.ContextOpts)
 	}
@@ -46,6 +45,7 @@ func (b *Local) opApply(
 
 	var persistHook *PersistHook
 	if !op.Destroy {
+		// Setup persist hook if current operation does not "Destroy" operation
 		persistHook = new(PersistHook)
 		b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook, persistHook)
 	} else {
@@ -104,6 +104,7 @@ func (b *Local) opApply(
 	// Setup our hook for continuous state updates
 	stateHook.State = opState
 	if persistHook != nil {
+		// Fill in the fields only if the hook was created
 		persistHook.State = opState
 		persistHook.Context = tfCtx
 	}
@@ -158,8 +159,10 @@ func (b *Local) opApply(
 	}
 
 	if recoveryWriter, ok := opState.(state.RecoveryLogWriter); ok && !op.Destroy {
-		b.CLI.Output("Removing the recovery log...")
-		recoveryWriter.DeleteRecoveryLog()
+		err := recoveryWriter.DeleteRecoveryLog()
+		if err != nil && b.CLI != nil {
+			b.CLI.Error(fmt.Sprintf("Error removing recovery log: %v", err))
+		}
 	}
 
 	if applyErr != nil {

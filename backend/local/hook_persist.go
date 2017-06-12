@@ -54,6 +54,8 @@ func (h *PersistHook) PostApply(instInfo *terraform.InstanceInfo, instState *ter
 			h.State.PersistState()
 			state.GetGlobalInstancesStatusLogger().Remove(instState, instInfo, recoveryLogWriter)
 		}
+	} else {
+		fmt.Printf("State does not support 'RecoveryLogWriter' functional.\n")
 	}
 	return terraform.HookActionContinue, nil
 }

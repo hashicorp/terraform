@@ -16,7 +16,7 @@ func (c *RecoveryCommand) Run(args []string) int {
 	args = c.Meta.process(args, true)
 	cmdFlags := c.Meta.flagSet("recover")
 
-	cmdFlags.BoolVar(&c.FailFast, "fail-fast", false, "Stop execution after the first failed attempt.")
+	cmdFlags.BoolVar(&c.FailFast, "stop-if-import-filed", false, "Stop recovery execution after the first import failed attempt.")
 	cmdFlags.BoolVar(&c.SuppressErrors, "suppress-errors", false, "Suppress error (return code 0) if any internal problem detected.")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -72,9 +72,10 @@ func (c *RecoveryCommand) startRecoveryProcess(instances map[string]state.Instan
 			Meta: c.Meta,
 		}
 		if importCommand.Run([]string{instance.Address, instance.Id}) > 0 {
-			c.Ui.Info("Import failure")
+			c.Ui.Info("Import failure\n")
 			if c.FailFast {
-				c.Ui.Info("Fast stopped...")
+				c.Ui.Info("Flag 'stop-if-import-filed' was set as 'true'. Stopping recovery.\n")
+				c.Ui.Info("You can try to solve this problem manually using recovery log and lost resource log.\n")
 				return 1
 			}
 			returnCode = 1
@@ -93,7 +94,7 @@ func (c *RecoveryCommand) startRecoveryProcess(instances map[string]state.Instan
 
 func (c *RecoveryCommand) returnError() int {
 	if c.SuppressErrors {
-		c.Ui.Info("Any problem detected. But the error was suppressed.")
+		c.Ui.Info("A problem was detected. But the error was suppressed. See execution log above.")
 		return 0
 	}
 	return 1
@@ -111,14 +112,14 @@ Usage: terraform recover [options]
 
 Options:
 
-  -fail-fast=false            Stop execution after the first failed import.
+  -stop-if-import-filed=false   Stop recovery execution after the first import failed attempt.
 
-  -suppress-errors=false      Suppress error (return code 0) if any internal problem detected.
+  -suppress-errors=false        Suppress error (return code 0) if any internal problem detected.
   `
 
 	return helpString
 }
 
 func (c *RecoveryCommand) Synopsis() string {
-	return "Find recovery log in remote bucket."
+	return "Find recovery log in remote bucket and try to recover resources."
 }

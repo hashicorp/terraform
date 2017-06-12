@@ -51,10 +51,11 @@ func (s *LockDisabled) WriteLostResourceLog(data []byte) error {
 	return nil
 }
 
-func (s *LockDisabled) DeleteRecoveryLog() {
+func (s *LockDisabled) DeleteRecoveryLog() error {
 	if recoveryWriter, ok := s.Inner.(RecoveryLogWriter); ok {
-		recoveryWriter.DeleteRecoveryLog()
+		return recoveryWriter.DeleteRecoveryLog()
 	}
+	return nil
 }
 
 func (s *LockDisabled) ReadRecoveryLog() (map[string]Instance, error) {
