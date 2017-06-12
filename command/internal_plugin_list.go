@@ -63,6 +63,7 @@ import (
 	randomprovider "github.com/hashicorp/terraform/builtin/providers/random"
 	rundeckprovider "github.com/hashicorp/terraform/builtin/providers/rundeck"
 	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
+	scvmmprovider "github.com/hashicorp/terraform/builtin/providers/scvmm"
 	softlayerprovider "github.com/hashicorp/terraform/builtin/providers/softlayer"
 	spotinstprovider "github.com/hashicorp/terraform/builtin/providers/spotinst"
 	statuscakeprovider "github.com/hashicorp/terraform/builtin/providers/statuscake"
@@ -145,6 +146,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"random":       randomprovider.Provider,
 	"rundeck":      rundeckprovider.Provider,
 	"scaleway":     scalewayprovider.Provider,
+	"scvmm":        scvmmprovider.Provider,
 	"softlayer":    softlayerprovider.Provider,
 	"spotinst":     spotinstprovider.Provider,
 	"statuscake":   statuscakeprovider.Provider,
