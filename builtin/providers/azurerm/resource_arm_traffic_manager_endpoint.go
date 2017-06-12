@@ -73,12 +73,13 @@ func resourceArmTrafficManagerEndpoint() *schema.Resource {
 				ValidateFunc: validation.IntBetween(1, 1000),
 			},
 
+			// when targeting an Azure resource the location of that resource will be set on the endpoint
 			"endpoint_location": {
-				Type:     schema.TypeString,
-				Optional: true,
-				// when targeting an Azure resource the location of that resource will be set on the endpoint
-				Computed:  true,
-				StateFunc: azureRMNormalizeLocation,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				StateFunc:        azureRMNormalizeLocation,
+				DiffSuppressFunc: azureRMSuppressLocationDiff,
 			},
 
 			"min_child_endpoints": {
