@@ -3,10 +3,10 @@ package triton
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"regexp"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/joyent/triton-go"
@@ -17,6 +17,9 @@ var (
 	machineStateDeleted = "deleted"
 
 	machineStateChangeTimeout = 10 * time.Minute
+
+	nicStateDeleted = "deleted"
+	nicStateRunning = "running"
 
 	resourceMachineMetadataKeys = map[string]string{
 		// semantics: "schema_name": "metadata_name"
@@ -109,13 +112,9 @@ func resourceMachine() *schema.Resource {
 			},
 			"nic": {
 				Description: "Network interface",
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Computed:    true,
 				Optional:    true,
-				Set: func(v interface{}) int {
-					m := v.(map[string]interface{})
-					return hashcode.String(m["network"].(string))
-				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ip": {
@@ -225,10 +224,11 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	for _, network := range d.Get("networks").([]interface{}) {
 		networks = append(networks, network.(string))
 	}
-	nics := d.Get("nic").(*schema.Set)
-	for _, nicI := range nics.List() {
-		nic := nicI.(map[string]interface{})
-		networks = append(networks, nic["network"].(string))
+	if nicsRaw, found := d.GetOk("nic"); found {
+		for _, nicI := range nicsRaw.([]interface{}) {
+			nic := nicI.(map[string]interface{})
+			networks = append(networks, nic["network"].(string))
+		}
 	}
 
 	metadata := map[string]string{}
@@ -276,9 +276,6 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 
 	// refresh state after it provisions
 	return resourceMachineRead(d, meta)
@@ -308,6 +305,10 @@ func resourceMachineRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	// If/when CloudAPI exposes the Interface name of each nic, we could use that
+	// to sort the list:
+	//
+	//sort.Slice(nics, func(i, j int) bool { return nics[i].Interface < nics[j].Interface })
 
 	d.Set("name", machine.Name)
 	d.Set("type", machine.Type)
@@ -478,6 +479,137 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("package")
 	}
 
+	if d.HasChange("nic") {
+		// NOTE (seanc@): Due to the way CloudAPI handles NICs and NIC ordering, the
+		// order of NICs in this list is significant.  A change to the order of a
+		// `nic` implies that all existing NICs must be removed and re-added to the
+		// machine.  This is fairly disruptive because a NIC change involves a
+		// reboot of the target machine.  For now, favor correctness (i.e. ordering)
+		// over availability provisioning time.  The availability of a target
+		// machine is being addressed independently.  Where possible, skip the
+		// add/remove if the nic at a given index hasn't changed.
+
+		o, n := d.GetChange("nic")
+		if o == nil {
+			o = []map[string]interface{}{}
+		}
+		if n == nil {
+			n = []map[string]interface{}{}
+		}
+
+		// Create a lower-bound index of NICs that haven't changed.  After this
+		// index has been crossed, all NICs must be removed/re-added.  A value of -1
+		// means all NICs are removed and re-added.
+		unchangedLowerBound := -1
+		for i, newNICRaw := range n.([]interface{}) {
+			if i > len(o.([]interface{}))-1 {
+				break
+			}
+
+			newNIC := newNICRaw.(map[string]interface{})
+			oldNicListRaw := o.([]interface{})
+			oldNIC := oldNicListRaw[i].(map[string]interface{})
+
+			identical := true
+			if len(newNIC) != len(oldNIC) {
+				identical = false
+			}
+			if identical {
+				for k, vNew := range newNIC {
+					if vOld, found := oldNIC[k]; found {
+						if !reflect.DeepEqual(vNew, vOld) {
+							identical = false
+							break
+						}
+					} else {
+						identical = false
+						break
+					}
+				}
+			}
+			if identical {
+				unchangedLowerBound = i
+			} else {
+				break
+			}
+		}
+
+		for i, nicRaw := range o.([]interface{}) {
+			if unchangedLowerBound >= i {
+				continue
+			}
+			nic := nicRaw.(map[string]interface{})
+			mac := nic["mac"].(string)
+			if err := client.Machines().RemoveNIC(context.Background(), &triton.RemoveNICInput{
+				MachineID: d.Id(),
+				MAC:       mac,
+			}); err != nil {
+				return err
+			}
+
+			stateConf := &resource.StateChangeConf{
+				Target: []string{nicStateDeleted},
+				Refresh: func() (interface{}, string, error) {
+					getResp, err := client.Machines().GetNIC(context.Background(), &triton.GetNICInput{
+						MachineID: d.Id(),
+						MAC:       mac,
+					})
+					if err != nil {
+						if triton.IsResourceNotFound(err) {
+							return getResp, nicStateDeleted, nil
+						}
+						return nil, "", err
+					}
+
+					return getResp, getResp.State, nil
+				},
+				Timeout:    machineStateChangeTimeout,
+				MinTimeout: 3 * time.Second,
+			}
+			_, err := stateConf.WaitForState()
+			if err != nil {
+				return err
+			}
+		}
+
+		for i, nicRaw := range n.([]interface{}) {
+			if unchangedLowerBound >= i {
+				continue
+			}
+			nicConfig := nicRaw.(map[string]interface{})
+			network := nicConfig["network"].(string)
+			newNic, err := client.Machines().AddNIC(context.Background(), &triton.AddNICInput{
+				MachineID: d.Id(),
+				Network:   network,
+				Primary:   i == 0,
+			})
+			if err != nil {
+				return err
+			}
+
+			stateConf := &resource.StateChangeConf{
+				Target: []string{nicStateRunning},
+				Refresh: func() (interface{}, string, error) {
+					getResp, err := client.Machines().GetNIC(context.Background(), &triton.GetNICInput{
+						MachineID: d.Id(),
+						MAC:       newNic.MAC,
+					})
+					if err != nil {
+						return nil, "", err
+					}
+
+					return getResp, getResp.State, nil
+				},
+				Timeout:    machineStateChangeTimeout,
+				MinTimeout: 3 * time.Second,
+			}
+			_, err = stateConf.WaitForState()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	if d.HasChange("firewall_enabled") {
 		enable := d.Get("firewall_enabled").(bool)
 
@@ -516,41 +648,6 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		d.SetPartial("firewall_enabled")
-	}
-
-	if d.HasChange("nic") {
-		o, n := d.GetChange("nic")
-		if o == nil {
-			o = new(schema.Set)
-		}
-		if n == nil {
-			n = new(schema.Set)
-		}
-
-		oldNICs := o.(*schema.Set)
-		newNICs := n.(*schema.Set)
-
-		for _, nicI := range newNICs.Difference(oldNICs).List() {
-			nic := nicI.(map[string]interface{})
-			if _, err := client.Machines().AddNIC(context.Background(), &triton.AddNICInput{
-				MachineID: d.Id(),
-				Network:   nic["network"].(string),
-			}); err != nil {
-				return err
-			}
-		}
-
-		for _, nicI := range oldNICs.Difference(newNICs).List() {
-			nic := nicI.(map[string]interface{})
-			if err := client.Machines().RemoveNIC(context.Background(), &triton.RemoveNICInput{
-				MachineID: d.Id(),
-				MAC:       nic["mac"].(string),
-			}); err != nil {
-				return err
-			}
-		}
-
-		d.SetPartial("nic")
 	}
 
 	metadata := map[string]string{}
