@@ -23,6 +23,7 @@ func TestAccAWSCloudTrail(t *testing.T) {
 			"logValidation": testAccAWSCloudTrail_logValidation,
 			"kmsKey":        testAccAWSCloudTrail_kmsKey,
 			"tags":          testAccAWSCloudTrail_tags,
+			"eventSelector": testAccAWSCloudTrail_eventSelector,
 		},
 	}
 
@@ -53,6 +54,7 @@ func testAccAWSCloudTrail_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "include_global_service_events", "true"),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "has_custom_event_selectors", "false"),
 					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
@@ -63,6 +65,7 @@ func testAccAWSCloudTrail_basic(t *testing.T) {
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "s3_key_prefix", "/prefix"),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "include_global_service_events", "false"),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "has_custom_event_selectors", "false"),
 					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
@@ -252,6 +255,28 @@ func testAccAWSCloudTrail_tags(t *testing.T) {
 					testAccCheckCloudTrailCheckTags(&trailTagsModified, map[string]string{}),
 					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
+				),
+			},
+		},
+	})
+}
+
+func testAccAWSCloudTrail_eventSelector(t *testing.T) {
+	var trail cloudtrail.Trail
+	cloudTrailRandInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudTrailConfig_eventSelector(cloudTrailRandInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "has_custom_event_selectors", "true"),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "event_selector.#", "1"),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "event_selector.0.include_management_events", "false"),
 				),
 			},
 		},
@@ -758,4 +783,63 @@ func testAccAWSCloudTrailConfig_tagsModified(cloudTrailRandInt int) string {
 func testAccAWSCloudTrailConfig_tagsModifiedAgain(cloudTrailRandInt int) string {
 	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
 		cloudTrailRandInt, "", cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+}
+
+var testAccAWSCloudTrailConfig_eventSelector_tpl = `
+resource "aws_cloudtrail" "foobar" {
+    name = "tf-acc-trail-event-selector-test-%d"
+    s3_bucket_name = "${aws_s3_bucket.foo.id}"
+		event_selector {
+			include_management_events = false
+			data_resources {
+				type = "AWS::S3::Object"
+				values = ["${aws_s3_bucket.foo2.arn}/"]
+			}
+		}
+}
+
+resource "aws_s3_bucket" "foo" {
+	bucket = "tf-test-trail-%d"
+	force_destroy = true
+	policy = <<POLICY
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "AWSCloudTrailAclCheck",
+			"Effect": "Allow",
+			"Principal": "*",
+			"Action": "s3:GetBucketAcl",
+			"Resource": "arn:aws:s3:::tf-test-trail-%d"
+		},
+		{
+			"Sid": "AWSCloudTrailWrite",
+			"Effect": "Allow",
+			"Principal": "*",
+			"Action": "s3:PutObject",
+			"Resource": "arn:aws:s3:::tf-test-trail-%d/*",
+			"Condition": {
+				"StringEquals": {
+					"s3:x-amz-acl": "bucket-owner-full-control"
+				}
+			}
+		}
+	]
+}
+POLICY
+}
+
+resource "aws_s3_bucket" "foo2" {
+	bucket = "tf-test-trail-data-%d"
+	force_destroy = true
+}
+`
+
+func testAccAWSCloudTrailConfig_eventSelector(cloudTrailRandInt int) string {
+	return fmt.Sprintf(testAccAWSCloudTrailConfig_eventSelector_tpl,
+		cloudTrailRandInt,
+		cloudTrailRandInt,
+		cloudTrailRandInt,
+		cloudTrailRandInt,
+		cloudTrailRandInt)
 }
