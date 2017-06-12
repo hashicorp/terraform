@@ -100,12 +100,6 @@
 			"revisionTime": "2017-04-18T07:21:50Z"
 		},
 		{
-			"checksumSHA1": "+2yCNqbcf7VcavAptooQReTGiHY=",
-			"path": "github.com/apparentlymart/go-rundeck-api",
-			"revision": "f6af74d34d1ef69a511c59173876fc1174c11f0d",
-			"revisionTime": "2016-08-26T14:30:32Z"
-		},
-		{
 			"checksumSHA1": "l0iFqayYAaEip6Olaq3/LCOa/Sg=",
 			"path": "github.com/armon/circbuf",
 			"revision": "bbbad097214e2918d8543d5201d12bfd7bca254d",
@@ -1666,12 +1660,6 @@
 			"revision": "3d184cea22ee1c41ec1697e0d830ff0c78f7ea97"
 		},
 		{
-			"checksumSHA1": "u5s2PZ7fzCOqQX7bVPf9IJ+qNLQ=",
-			"path": "github.com/rancher/go-rancher",
-			"revision": "ec24b7f12fca9f78fbfcd62a0ea8bce14ade8792",
-			"revisionTime": "2017-04-07T04:09:43Z"
-		},
-		{
 			"checksumSHA1": "Yqr9OQ7AuIB1N0HMbSxqEoVQG+k=",
 			"comment": "v2.0.1-8-g983d3a5",
 			"path": "github.com/ryanuber/columnize",
@@ -1846,10 +1834,12 @@
 			"revisionTime": "2016-12-14T09:25:55Z"
 		},
 		{
-			"checksumSHA1": "uTQtOqR0ePMMcvuvAIksiIZxhqU=",
+			"checksumSHA1": "Tkb1hBdBWeO7SGjixS2Hm48F6+s=",
 			"path": "golang.org/x/sys/unix",
-			"revision": "d75a52659825e75fff6158388dddc6a5b04f9ba5",
-			"revisionTime": "2016-12-14T18:38:57Z"
+			"revision": "0b25a408a50076fbbcae6b7ac0ea5fbb0b085e79",
+			"revisionTime": "2017-06-08T11:43:49Z",
+			"version": "master",
+			"versionExact": "master"
 		},
 		{
 			"checksumSHA1": "C7k1pbU/WU4CBoBwA4EBUnV/iek=",
@@ -1986,14 +1976,6 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b",
 			"revisionTime": "2017-04-07T17:21:22Z"
-		},
-		{
-			"checksumSHA1": "wICWAGQfZcHD2y0dHesz9R2YSiw=",
-			"path": "k8s.io/kubernetes/pkg/apimachinery",
-			"revision": "b0b7a323cc5a4a2019b2e9520c21c7830b7f708e",
-			"revisionTime": "2017-04-03T20:32:25Z",
-			"version": "v1.6.1",
-			"versionExact": "v1.6.1"
 		}
 	],
 	"rootPath": "github.com/hashicorp/terraform"
