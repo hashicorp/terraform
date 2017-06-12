@@ -294,6 +294,35 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 	})
 }
 
+const testAccCheckVSphereVirtualMachineConfig_hostname = `
+resource "vsphere_virtual_machine" "foo" {
+    name = "terraform-test"
+    hostname = "testterraform"
+` + testAccTemplateBasicBodyWithEnd
+
+func TestAccVSphereVirtualMachine_hostname(t *testing.T) {
+	var vm virtualMachine
+	basic_vars := setupTemplateBasicBodyVars()
+	config := basic_vars.testSprintfTemplateBody(testAccCheckVSphereVirtualMachineConfig_hostname)
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_hostname)
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testBasicPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					TestFuncData{vm: vm, label: basic_vars.label}.testCheckFuncBasic(),
+				),
+			},
+		},
+	})
+}
+
 const testAccCheckVSphereVirtualMachineConfig_debug = `
 provider "vsphere" {
   client_debug = true
