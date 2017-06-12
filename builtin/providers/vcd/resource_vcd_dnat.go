@@ -32,6 +32,12 @@ func resourceVcdDNAT() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"translated_port": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"internal_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -49,6 +55,10 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 	vcdClient.Mutex.Lock()
 	defer vcdClient.Mutex.Unlock()
 	portString := getPortString(d.Get("port").(int))
+	translatedPortString := portString // default
+	if d.Get("translated_port").(int) > 0 {
+		translatedPortString = getPortString(d.Get("translated_port").(int))
+	}
 
 	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 
@@ -62,9 +72,11 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 	// 3 seconds and then try again. Continue until a non-busy error or success
 
 	err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
-		task, err := edgeGateway.AddNATMapping("DNAT", d.Get("external_ip").(string),
+		task, err := edgeGateway.AddNATPortMapping("DNAT",
+			d.Get("external_ip").(string),
+			portString,
 			d.Get("internal_ip").(string),
-			portString)
+			translatedPortString)
 		if err != nil {
 			return resource.RetryableError(
 				fmt.Errorf("Error setting DNAT rules: %#v", err))
@@ -77,7 +89,7 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error completing tasks: %#v", err)
 	}
 
-	d.SetId(d.Get("external_ip").(string) + "_" + portString)
+	d.SetId(d.Get("external_ip").(string) + ":" + portString + " > " + d.Get("internal_ip").(string) + ":" + translatedPortString)
 	return nil
 }
 
@@ -115,6 +127,10 @@ func resourceVcdDNATDelete(d *schema.ResourceData, meta interface{}) error {
 	vcdClient.Mutex.Lock()
 	defer vcdClient.Mutex.Unlock()
 	portString := getPortString(d.Get("port").(int))
+	translatedPortString := portString // default
+	if d.Get("translated_port").(int) > 0 {
+		translatedPortString = getPortString(d.Get("translated_port").(int))
+	}
 
 	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 
@@ -122,9 +138,11 @@ func resourceVcdDNATDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Unable to find edge gateway: %#v", err)
 	}
 	err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
-		task, err := edgeGateway.RemoveNATMapping("DNAT", d.Get("external_ip").(string),
+		task, err := edgeGateway.RemoveNATPortMapping("DNAT",
+			d.Get("external_ip").(string),
+			portString,
 			d.Get("internal_ip").(string),
-			portString)
+			translatedPortString)
 		if err != nil {
 			return resource.RetryableError(
 				fmt.Errorf("Error setting DNAT rules: %#v", err))

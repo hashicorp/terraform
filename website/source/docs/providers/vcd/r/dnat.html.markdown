@@ -9,7 +9,7 @@ description: |-
 # vcd\_dnat
 
 Provides a vCloud Director DNAT resource. This can be used to create, modify,
-and delete destination NATs to map an external IP/port to a VM.
+and delete destination NATs to map an external IP/port to an internal IP/port.
 
 ## Example Usage
 
@@ -19,6 +19,7 @@ resource "vcd_dnat" "web" {
   external_ip  = "78.101.10.20"
   port         = 80
   internal_ip  = "10.10.0.5"
+  dest_port = 8080
 }
 ```
 
