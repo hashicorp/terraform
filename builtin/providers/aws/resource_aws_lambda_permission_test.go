@@ -62,9 +62,8 @@ func TestLambdaPermissionGetQualifierFromLambdaAliasOrVersionArn_alias(t *testin
 		t.Fatalf("Expected qualifier to match (%q != %q)", qualifier, expectedQualifier)
 	}
 }
-
 func TestLambdaPermissionGetQualifierFromLambdaAliasOrVersionArn_govcloud(t *testing.T) {
-	arnWithAlias := "arn:aws-us-gov:lambda:us-west-2:187636751137:function:lambda_function_name:testalias"
+	arnWithAlias := "arn:aws-us-gov:lambda:us-gov-west-1:187636751137:function:lambda_function_name:testalias"
 	expectedQualifier := "testalias"
 	qualifier, err := getQualifierFromLambdaAliasOrVersionArn(arnWithAlias)
 	if err != nil {
@@ -138,6 +137,19 @@ func TestLambdaPermissionGetFunctionNameFromLambdaArn_valid(t *testing.T) {
 		t.Fatalf("Expected no error (%q): %q", validArn, err)
 	}
 	expectedFunctionname = "lambda_function_name"
+	if fn != expectedFunctionname {
+		t.Fatalf("Expected Lambda function name to match (%q != %q)",
+			validArn, expectedFunctionname)
+	}
+}
+
+func TestLambdaPermissionGetFunctionNameFromGovCloudLambdaArn(t *testing.T) {
+	validArn := "arn:aws-us-gov:lambda:us-gov-west-1:187636751137:function:lambda_function_name"
+	fn, err := getFunctionNameFromLambdaArn(validArn)
+	if err != nil {
+		t.Fatalf("Expected no error (%q): %q", validArn, err)
+	}
+	expectedFunctionname := "lambda_function_name"
 	if fn != expectedFunctionname {
 		t.Fatalf("Expected Lambda function name to match (%q != %q)",
 			validArn, expectedFunctionname)
