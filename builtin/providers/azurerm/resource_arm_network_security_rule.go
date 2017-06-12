@@ -20,9 +20,10 @@ func resourceArmNetworkSecurityRule() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateName,
 			},
 
 			"resource_group_name": {
@@ -34,6 +35,7 @@ func resourceArmNetworkSecurityRule() *schema.Resource {
 			"network_security_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"description": {
