@@ -63,7 +63,7 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-				Default:  "ide",
+				Default:  "lsiLogic",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					if value != "ide" && value != "busLogic" && value != "lsiLogic" {
