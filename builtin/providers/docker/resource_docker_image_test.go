@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
@@ -54,7 +55,7 @@ func TestAccDockerImage_destroy(t *testing.T) {
 					continue
 				}
 
-				client := testAccProvider.Meta().(*dc.Client)
+				client := testAccProvider.Meta().(*ProviderConfig).DockerClient
 				_, err := client.InspectImage(rs.Primary.Attributes["latest"])
 				if err != nil {
 					return err
@@ -105,13 +106,32 @@ func TestAccDockerImage_data_pull_trigger(t *testing.T) {
 	})
 }
 
+func TestAccDockerImage_data_private(t *testing.T) {
+	registry := os.Getenv("DOCKER_REGISTRY_ADDRESS")
+	image := os.Getenv("DOCKER_PRIVATE_IMAGE")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                  func() { testAccPreCheck(t) },
+		Providers:                 testAccProviders,
+		PreventPostDestroyRefresh: true,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccDockerImageFromDataPrivateConfig, registry, image),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr("docker_image.foo_private", "latest", contentDigestRegexp),
+				),
+			},
+		},
+	})
+}
+
 func testAccDockerImageDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "docker_image" {
 			continue
 		}
 
-		client := testAccProvider.Meta().(*dc.Client)
+		client := testAccProvider.Meta().(*ProviderConfig).DockerClient
 		_, err := client.InspectImage(rs.Primary.Attributes["latest"])
 		if err == nil {
 			return fmt.Errorf("Image still exists")
@@ -158,5 +178,23 @@ data "docker_registry_image" "foobarbazoo" {
 resource "docker_image" "foobarbazoo" {
 	name = "${data.docker_registry_image.foobarbazoo.name}"
 	pull_trigger = "${data.docker_registry_image.foobarbazoo.sha256_digest}"
+}
+`
+
+const testAccDockerImageFromDataPrivateConfig = `
+provider "docker" {
+	alias = "private"
+	registry_auth {
+		address = "%s"
+	}
+}
+data "docker_registry_image" "foo_private" {
+	provider = "docker.private"
+	name = "%s"
+}
+resource "docker_image" "foo_private" {
+	provider = "docker.private"
+	name = "${data.docker_registry_image.foo_private.name}"
+	pull_triggers = ["${data.docker_registry_image.foo_private.sha256_digest}"]
 }
 `
