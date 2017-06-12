@@ -30,6 +30,7 @@ func Provider() terraform.ResourceProvider {
 			"heroku_addon":             resourceHerokuAddon(),
 			"heroku_app":               resourceHerokuApp(),
 			"heroku_app_feature":       resourceHerokuAppFeature(),
+			"heroku_authorization":     resourceHerokuAuthorization(),
 			"heroku_cert":              resourceHerokuCert(),
 			"heroku_domain":            resourceHerokuDomain(),
 			"heroku_drain":             resourceHerokuDrain(),
