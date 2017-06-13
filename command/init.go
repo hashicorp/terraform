@@ -213,7 +213,14 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		return err
 	}
 
-	available := c.providerPluginSet()
+	var available discovery.PluginMetaSet
+	if upgrade {
+		// If we're in upgrade mode, we ignore any auto-installed plugins
+		// in "available", causing us to reinstall and possibly upgrade them.
+		available = c.providerPluginManuallyInstalledSet()
+	} else {
+		available = c.providerPluginSet()
+	}
 	requirements := terraform.ModuleTreeDependencies(mod, state).AllPluginRequirements()
 	missing := c.missingPlugins(available, requirements)
 
@@ -251,6 +258,20 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("failed to save provider manifest: %s", err))
 		return err
+	}
+
+	if upgrade {
+		// Purge any auto-installed plugins that aren't being used.
+		purged, err := c.providerInstaller.PurgeUnused(chosen)
+		if err != nil {
+			// Failure to purge old plugins is not a fatal error
+			c.Ui.Warn(fmt.Sprintf("failed to purge unused plugins: %s", err))
+		}
+		if purged != nil {
+			for meta := range purged {
+				log.Printf("[DEBUG] Purged unused %s plugin %s", meta.Name, meta.Path)
+			}
+		}
 	}
 
 	// If any providers have "floating" versions (completely unconstrained)
