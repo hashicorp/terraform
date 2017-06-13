@@ -121,10 +121,11 @@ type Operation struct {
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
-	Destroy     bool
-	Targets     []string
-	Variables   map[string]interface{}
-	AutoApprove bool
+	Destroy      bool
+	Targets      []string
+	Variables    map[string]interface{}
+	AutoApprove  bool
+	DestroyForce bool
 
 	// Input/output/control options.
 	UIIn  terraform.UIInput
