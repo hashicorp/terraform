@@ -416,6 +416,12 @@ func TestInit_getProvider(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	// make the sure the name isn't discoverable as a provider
+	testProviderPath := "./test-provider-bin"
+	if err := createTestProviderBin(testProviderPath); err != nil {
+		t.Fatal(err)
+	}
+
 	getter := &mockGetProvider{
 		Providers: map[string][]string{
 			// looking for an exact version
@@ -424,6 +430,11 @@ func TestInit_getProvider(t *testing.T) {
 			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
 			// config specifies
 			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+		},
+		Bins: map[string]string{
+			"exact":        testProviderPath,
+			"greater_than": testProviderPath,
+			"between":      testProviderPath,
 		},
 	}
 
