@@ -448,7 +448,13 @@ func TestInit_getProvider(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	getter := &mockGetProvider{
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	installer := &mockProviderInstaller{
 		Providers: map[string][]string{
 			// looking for an exact version
 			"exact": []string{"1.2.3"},
@@ -457,15 +463,13 @@ func TestInit_getProvider(t *testing.T) {
 			// config specifies
 			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
 		},
+
+		Dir: m.pluginDir(),
 	}
 
-	ui := new(cli.MockUi)
 	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-		getProvider: getter.GetProvider,
+		Meta:              m,
+		providerInstaller: installer,
 	}
 
 	args := []string{}
@@ -474,15 +478,15 @@ func TestInit_getProvider(t *testing.T) {
 	}
 
 	// check that we got the providers for our config
-	exactPath := filepath.Join(c.pluginDir(), getter.FileName("exact", "1.2.3"))
+	exactPath := filepath.Join(c.pluginDir(), installer.FileName("exact", "1.2.3"))
 	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
 		t.Fatal("provider 'exact' not downloaded")
 	}
-	greaterThanPath := filepath.Join(c.pluginDir(), getter.FileName("greater_than", "2.3.4"))
+	greaterThanPath := filepath.Join(c.pluginDir(), installer.FileName("greater_than", "2.3.4"))
 	if _, err := os.Stat(greaterThanPath); os.IsNotExist(err) {
 		t.Fatal("provider 'greater_than' not downloaded")
 	}
-	betweenPath := filepath.Join(c.pluginDir(), getter.FileName("between", "2.3.4"))
+	betweenPath := filepath.Join(c.pluginDir(), installer.FileName("between", "2.3.4"))
 	if _, err := os.Stat(betweenPath); os.IsNotExist(err) {
 		t.Fatal("provider 'between' not downloaded")
 	}
@@ -495,7 +499,13 @@ func TestInit_getProviderMissing(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	getter := &mockGetProvider{
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	installer := &mockProviderInstaller{
 		Providers: map[string][]string{
 			// looking for exact version 1.2.3
 			"exact": []string{"1.2.4"},
@@ -504,15 +514,13 @@ func TestInit_getProviderMissing(t *testing.T) {
 			// config specifies
 			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
 		},
+
+		Dir: m.pluginDir(),
 	}
 
-	ui := new(cli.MockUi)
 	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-		getProvider: getter.GetProvider,
+		Meta:              m,
+		providerInstaller: installer,
 	}
 
 	args := []string{}
@@ -544,9 +552,9 @@ func TestInit_getProviderHaveLegacyVersion(t *testing.T) {
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
 		},
-		getProvider: func(dst, provider string, req discovery.Constraints, protoVersion uint) error {
-			return fmt.Errorf("EXPECTED PROVIDER ERROR %s", provider)
-		},
+		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, error) {
+			return discovery.PluginMeta{}, fmt.Errorf("EXPECTED PROVIDER ERROR %s", provider)
+		}),
 	}
 
 	args := []string{}
@@ -566,19 +574,23 @@ func TestInit_providerLockFile(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	getter := &mockGetProvider{
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	installer := &mockProviderInstaller{
 		Providers: map[string][]string{
 			"test": []string{"1.2.3"},
 		},
+
+		Dir: m.pluginDir(),
 	}
 
-	ui := new(cli.MockUi)
 	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-		getProvider: getter.GetProvider,
+		Meta:              m,
+		providerInstaller: installer,
 	}
 
 	args := []string{}

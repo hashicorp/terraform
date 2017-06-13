@@ -49,6 +49,10 @@ func (v Version) NewerThan(other Version) bool {
 	return v.raw.GreaterThan(other.raw)
 }
 
+func (v Version) Equal(other Version) bool {
+	return v.raw.Equal(other.raw)
+}
+
 // MinorUpgradeConstraintStr returns a ConstraintStr that would permit
 // minor upgrades relative to the receiving version.
 func (v Version) MinorUpgradeConstraintStr() ConstraintStr {

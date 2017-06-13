@@ -79,7 +79,7 @@ func (m *Meta) pluginDir() string {
 // Earlier entries in this slice get priority over later when multiple copies
 // of the same plugin version are found, but newer versions always override
 // older versions where both satisfy the provider version constraints.
-func (m *Meta) pluginDirs() []string {
+func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
 
 	// When searching the following directories, earlier entries get precedence
 	// if the same plugin version is found twice, but newer versions will
@@ -97,7 +97,9 @@ func (m *Meta) pluginDirs() []string {
 		dirs = append(dirs, filepath.Dir(exePath))
 	}
 
-	dirs = append(dirs, m.pluginDir())
+	if includeAutoInstalled {
+		dirs = append(dirs, m.pluginDir())
+	}
 	dirs = append(dirs, m.GlobalPluginDirs...)
 	return dirs
 }
@@ -105,7 +107,33 @@ func (m *Meta) pluginDirs() []string {
 // providerPluginSet returns the set of valid providers that were discovered in
 // the defined search paths.
 func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
-	plugins := discovery.FindPlugins("provider", m.pluginDirs())
+	plugins := discovery.FindPlugins("provider", m.pluginDirs(true))
+	plugins, _ = plugins.ValidateVersions()
+
+	for p := range plugins {
+		log.Printf("[DEBUG] found valid plugin: %q", p.Name)
+	}
+
+	return plugins
+}
+
+// providerPluginAutoInstalledSet returns the set of providers that exist
+// within the auto-install directory.
+func (m *Meta) providerPluginAutoInstalledSet() discovery.PluginMetaSet {
+	plugins := discovery.FindPlugins("provider", []string{m.pluginDir()})
+	plugins, _ = plugins.ValidateVersions()
+
+	for p := range plugins {
+		log.Printf("[DEBUG] found valid plugin: %q", p.Name)
+	}
+
+	return plugins
+}
+
+// providerPluginManuallyInstalledSet returns the set of providers that exist
+// in all locations *except* the auto-install directory.
+func (m *Meta) providerPluginManuallyInstalledSet() discovery.PluginMetaSet {
+	plugins := discovery.FindPlugins("provider", m.pluginDirs(false))
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
@@ -141,7 +169,7 @@ func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.Plug
 }
 
 func (m *Meta) provisionerFactories() map[string]terraform.ResourceProvisionerFactory {
-	dirs := m.pluginDirs()
+	dirs := m.pluginDirs(true)
 	plugins := discovery.FindPlugins("provisioner", dirs)
 	plugins, _ = plugins.ValidateVersions()
 
