@@ -1,14 +1,14 @@
 ---
 layout: "vault"
-page_title: "Provider: Vault"
+page_title: "Provider: HashiCorp Vault"
 sidebar_current: "docs-vault-index"
 description: |-
-  The Vault provider allows Terraform to read from, write to, and configure Hashicorp Vault
+  The HashiCorp Vault provider allows Terraform to read from, write to, and configure Hashicorp Vault.
 ---
 
-# Vault Provider
+# HashiCorp Vault Provider
 
-The Vault provider allows Terraform to read from, write to, and configure
+The HashiCorp Vault provider allows Terraform to read from, write to, and configure
 [Hashicorp Vault](https://vaultproject.io/).
 
 ~> **Important** Interacting with Vault from Terraform causes any secrets
@@ -148,4 +148,3 @@ resource "vault_generic_secret" "example" {
 EOT
 }
 ```
-

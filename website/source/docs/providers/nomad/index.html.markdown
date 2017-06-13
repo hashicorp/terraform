@@ -1,14 +1,14 @@
 ---
 layout: "nomad"
-page_title: "Provider: Nomad"
+page_title: "Provider: HashiCorp Nomad"
 sidebar_current: "docs-nomad-index"
 description: |-
-  Nomad is a cluster scheduler. The Nomad provider exposes resources to interact with a Nomad cluster.
+  HashiCorp Nomad is a cluster scheduler. The Nomad provider exposes resources to interact with a Nomad cluster.
 ---
 
-# Nomad Provider
+# HashiCorp Nomad Provider
 
-[Nomad](https://www.nomadproject.io) is a cluster scheduler. The Nomad
+[HashiCorp Nomad](https://www.nomadproject.io) is a cluster scheduler. The Nomad
 provider exposes resources to interact with a Nomad cluster.
 
 Use the navigation to the left to read about the available resources.
