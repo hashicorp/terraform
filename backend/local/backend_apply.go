@@ -98,18 +98,46 @@ func (b *Local) opApply(
 
 		trivialPlan := plan.Diff == nil || plan.Diff.Empty()
 		hasUI := op.UIOut != nil && op.UIIn != nil
-		if hasUI && !op.AutoApprove && !trivialPlan {
-			op.UIOut.Output(strings.TrimSpace(approvePlanHeader) + "\n")
-			op.UIOut.Output(format.Plan(&format.PlanOpts{
-				Plan:        plan,
-				Color:       b.Colorize(),
-				ModuleDepth: -1,
-			}))
-			desc := "Terraform will apply the plan described above.\n" +
-				"Only 'yes' will be accepted to approve."
+		if hasUI && ((op.Destroy && !op.DestroyForce) ||
+			(!op.Destroy && !op.AutoApprove && !trivialPlan)) {
+			var desc, query string
+			if op.Destroy {
+				// Default destroy message
+				desc = "Terraform will delete all your managed infrastructure.\n" +
+					"There is no undo. Only 'yes' will be accepted to confirm."
+
+				// If targets are specified, list those to user
+				if op.Targets != nil {
+					var descBuffer bytes.Buffer
+					descBuffer.WriteString("Terraform will delete the following infrastructure:\n")
+					for _, target := range op.Targets {
+						descBuffer.WriteString("\t")
+						descBuffer.WriteString(target)
+						descBuffer.WriteString("\n")
+					}
+					descBuffer.WriteString("There is no undo. Only 'yes' will be accepted to confirm")
+					desc = descBuffer.String()
+				}
+				query = "Do you really want to destroy?"
+			} else {
+				desc = "Terraform will apply the plan described above.\n" +
+					"Only 'yes' will be accepted to approve."
+				query = "Do you want to apply the plan above?"
+			}
+
+			if !trivialPlan {
+				// Display the plan of what we are going to apply/destroy.
+				op.UIOut.Output(strings.TrimSpace(approvePlanHeader) + "\n")
+				op.UIOut.Output(format.Plan(&format.PlanOpts{
+					Plan:        plan,
+					Color:       b.Colorize(),
+					ModuleDepth: -1,
+				}))
+			}
+
 			v, err := op.UIIn.Input(&terraform.InputOpts{
 				Id:          "approve",
-				Query:       "Do you want to apply the plan above?",
+				Query:       query,
 				Description: desc,
 			})
 			if err != nil {
@@ -117,7 +145,11 @@ func (b *Local) opApply(
 				return
 			}
 			if v != "yes" {
-				runningOp.Err = errors.New("Apply cancelled.")
+				if op.Destroy {
+					runningOp.Err = errors.New("Destroy cancelled.")
+				} else {
+					runningOp.Err = errors.New("Apply cancelled.")
+				}
 				return
 			}
 		}
