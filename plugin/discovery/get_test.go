@@ -108,7 +108,7 @@ func TestCheckProtocolVersions(t *testing.T) {
 	}
 }
 
-func TestProviderInstaller(t *testing.T) {
+func TestProviderInstallerGet(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "tf-plugin")
 	if err != nil {
 		t.Fatal(err)
@@ -159,6 +159,67 @@ func TestProviderInstaller(t *testing.T) {
 		t.Fatalf("test provider contains: %q", f)
 	}
 
+}
+
+func TestProviderInstallerPurgeUnused(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "tf-plugin")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.RemoveAll(tmpDir)
+
+	unwantedPath := filepath.Join(tmpDir, "terraform-provider-test_v0.0.1_x2")
+	wantedPath := filepath.Join(tmpDir, "terraform-provider-test_v1.2.3_x3")
+
+	f, err := os.Create(unwantedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	f, err = os.Create(wantedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	i := &ProviderInstaller{
+		Dir: tmpDir,
+
+		PluginProtocolVersion: 3,
+	}
+	purged, err := i.PurgeUnused(map[string]PluginMeta{
+		"test": PluginMeta{
+			Name:    "test",
+			Version: VersionStr("1.2.3"),
+			Path:    wantedPath,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := purged.Count(), 1; got != want {
+		t.Errorf("wrong purged count %d; want %d", got, want)
+	}
+	if got, want := purged.Newest().Path, unwantedPath; got != want {
+		t.Errorf("wrong purged path %s; want %s", got, want)
+	}
+
+	files, err := ioutil.ReadDir(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gotFilenames := make([]string, len(files))
+	for i, info := range files {
+		gotFilenames[i] = info.Name()
+	}
+	wantFilenames := []string{"terraform-provider-test_v1.2.3_x3"}
+
+	if !reflect.DeepEqual(gotFilenames, wantFilenames) {
+		t.Errorf("wrong filenames after purge\ngot:  %#v\nwant: %#v", gotFilenames, wantFilenames)
+	}
 }
 
 const versionList = `<!DOCTYPE html>
