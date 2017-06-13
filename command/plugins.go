@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 
+	multierror "github.com/hashicorp/go-multierror"
 	plugin "github.com/hashicorp/go-plugin"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -231,4 +232,27 @@ func provisionerFactory(client *plugin.Client) terraform.ResourceProvisionerFact
 
 		return raw.(terraform.ResourceProvisioner), nil
 	}
+}
+
+// execPlugins filters the listed plugins, removing files that aren't usable,
+// either due to permissions, plugin protocol version, or are otherwise
+// invalid. The returned error can be safely ignored if one only wants to
+// filter out plugins that aren't usable.
+func execPlugins(plugins discovery.PluginMetaSet) (discovery.PluginMetaSet, error) {
+	var errs error
+
+	filtered := make(discovery.PluginMetaSet)
+
+	for meta := range plugins {
+		c := tfplugin.Client(meta)
+		if _, err := c.Start(); err != nil {
+			log.Printf("[ERROR] %s %s (%s): %s", meta.Name, meta.Version, meta.Path, err)
+			errs = multierror.Append(errs, err)
+			continue
+		}
+
+		filtered.Add(meta)
+	}
+
+	return filtered, errs
 }
