@@ -234,6 +234,19 @@ func provisionerFactory(client *plugin.Client) terraform.ResourceProvisionerFact
 	}
 }
 
+// execChosen takes the final list of plugins and verifies that they can be
+// executed with execPlugins.
+func execChosen(plugins map[string]discovery.PluginMeta) error {
+	metas := make(discovery.PluginMetaSet)
+
+	for _, p := range plugins {
+		metas.Add(p)
+	}
+
+	_, err := execPlugins(metas)
+	return err
+}
+
 // execPlugins filters the listed plugins, removing files that aren't usable,
 // either due to permissions, plugin protocol version, or are otherwise
 // invalid. The returned error can be safely ignored if one only wants to
