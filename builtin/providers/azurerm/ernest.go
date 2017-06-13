@@ -26,6 +26,7 @@ func (armClient *ArmClient) ListNetworkInterfaceConfigurations(resourceGroupName
 			ipConfiguration := map[string]string{
 				"name":                                    *ip.Name,
 				"subnet_id":                               *ip.Subnet.ID,
+				"interface":                               *val.Name,
 				"private_ip_address":                      *ip.PrivateIPAddress,
 				"private_ip_address_allocation":           string(ip.PrivateIPAllocationMethod),
 				"load_balancer_backend_address_pools_ids": "", //strings.Join(addressPools, ","),
