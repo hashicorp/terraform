@@ -14,7 +14,7 @@ docker run --rm -it \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
       /bin/terraform plan -out=out.tfplan \
-        -var os_disk_vhd_uri=$EXISTING_IMAGE_URI \
+        -var os_disk_vhd_uri=$EXISTING_LINUX_IMAGE_URI \
         -var hostname=$KEY \
         -var resource_group=$KEY \
         -var existing_vnet_resource_group=$EXISTING_RESOURCE_GROUP \
@@ -43,7 +43,7 @@ docker run --rm -it \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
   -c "/bin/terraform destroy -force \
-        -var os_disk_vhd_uri=$EXISTING_IMAGE_URI \
+        -var os_disk_vhd_uri=$EXISTING_LINUX_IMAGE_URI \
         -var hostname=$KEY \
         -var resource_group=$KEY \
         -var existing_vnet_resource_group=$EXISTING_RESOURCE_GROUP \

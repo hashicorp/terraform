@@ -8,7 +8,7 @@ if docker -v; then
   export KEY=$(cat /dev/urandom | env LC_CTYPE=C tr -cd 'a-z' | head -c 12)
   export PASSWORD=$KEY$(cat /dev/urandom | env LC_CTYPE=C tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | env LC_CTYPE=C tr -cd '0-9' | head -c 2)
   export EXISTING_RESOURCE_GROUP=permanent
-  export EXISTING_IMAGE_URI=https://permanentstor.blob.core.windows.net/permanent-vhds/permanent-osdisk1.vhd
+  export EXISTING_LINUX_IMAGE_URI=https://tfpermstor.blob.core.windows.net/permanent-vhds/osdisk.vhd
   export EXISTING_STORAGE_ACCOUNT_NAME=tfpermstor
   export EXISTING_VIRTUAL_NETWORK_NAME=permanent-vnet
   export EXISTING_SUBNET_NAME=permanent-subnet
