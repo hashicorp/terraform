@@ -1976,7 +1976,44 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b",
 			"revisionTime": "2017-04-07T17:21:22Z"
-		}
+		},
+		{
+			"checksumSHA1": "WKZ27NoSSOcW1tizRhvJvHV9u2Y=",
+			"path": "github.com/miekg/coredns/middleware/etcd/msg",
+			"revision": "f32dcf2817a7e0a300ac5d99be001302fb044951",
+			"revisionTime": "2017-06-09T20:47:22Z"
+		},
+		{
+			"checksumSHA1": "7E+wlsgFE3g4oZj0e3y7YPCjfbs=",
+			"path": "gopkg.in/gcfg.v1",
+			"revision": "27e4946190b4a327b539185f2b5b1f7c84730728",
+			"revisionTime": "2016-08-14T19:51:52Z"
+		},
+		{
+			"checksumSHA1": "7TXmaY2EULtYSnf7FotEKtAnCWs=",
+			"path": "k8s.io/kubernetes/federation/pkg/dnsprovider",
+			"revision": "f89d2493f100bf7268b8778d7e077e7d5383c50b",
+			"revisionTime": "2017-06-07T11:48:08Z"
+		},
+		{
+			"checksumSHA1": "728whk7ZMRZ8dbKLA/aRhgtvtqc=",
+			"path": "k8s.io/kubernetes/federation/pkg/dnsprovider/providers/coredns",
+			"revision": "f89d2493f100bf7268b8778d7e077e7d5383c50b",
+			"revisionTime": "2017-06-07T11:48:08Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "wuwmU9JrcCwNIX/fLszqsZ6n3DQ=",
+			"path": "k8s.io/kubernetes/federation/pkg/dnsprovider/rrstype",
+			"revision": "f89d2493f100bf7268b8778d7e077e7d5383c50b",
+			"revisionTime": "2017-06-07T11:48:08Z"
+		},
+		{
+			"checksumSHA1": "HmbftipkadrLlCfzzVQ+iFHbl6g=",
+			"path": "github.com/golang/glog",
+			"revision": "23def4e6c14b4da8ac2ed8007337bc5eb5007998",
+			"revisionTime": "2016-01-25T20:49:56Z"
+		},
 	],
 	"rootPath": "github.com/hashicorp/terraform"
 }
