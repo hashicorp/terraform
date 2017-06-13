@@ -12,8 +12,8 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 
 	"github.com/hashicorp/terraform/backend"
-	tf_openstack "github.com/hashicorp/terraform/builtin/providers/openstack"
 	"github.com/hashicorp/terraform/helper/schema"
+	tf_openstack "github.com/terraform-providers/terraform-provider-openstack/openstack"
 )
 
 // New creates a new backend for Swift remote state.
