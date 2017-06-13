@@ -221,12 +221,20 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 		return errs
 	}
 
+	// Re-discover to see newly-installed plugins.
+	available = c.providerPluginSet()
+	chosen := choosePlugins(available, requirements)
+
+	// Verify that our chosen plugins can be executed as plugins.
+	if err := execChosen(chosen); err != nil {
+		c.Ui.Error(fmt.Sprintf("plugin execution error: %s", err))
+		return err
+	}
+
 	// With all the providers downloaded, we'll generate our lock file
 	// that ensures the provider binaries remain unchanged until we init
 	// again. If anything changes, other commands that use providers will
 	// fail with an error instructing the user to re-run this command.
-	available = c.providerPluginSet() // re-discover to see newly-installed plugins
-	chosen := choosePlugins(available, requirements)
 	digests := map[string][]byte{}
 	for name, meta := range chosen {
 		digest, err := meta.SHA256()
