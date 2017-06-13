@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	getter "github.com/hashicorp/go-getter"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 // Releases are located by parsing the html listing from releases.hashicorp.com.
@@ -55,6 +57,7 @@ func providerURL(name, version string) string {
 // from an online repository.
 type Installer interface {
 	Get(name string, req Constraints) (PluginMeta, error)
+	PurgeUnused(used map[string]PluginMeta) (removed PluginMetaSet, err error)
 }
 
 // ProviderInstaller is an Installer implementation that knows how to
@@ -138,6 +141,38 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	}
 
 	return PluginMeta{}, fmt.Errorf("no versions of %q compatible with the plugin ProtocolVersion", provider)
+}
+
+func (i *ProviderInstaller) PurgeUnused(used map[string]PluginMeta) (PluginMetaSet, error) {
+	purge := make(PluginMetaSet)
+
+	present := FindPlugins("provider", []string{i.Dir})
+	for meta := range present {
+		chosen, ok := used[meta.Name]
+		if !ok {
+			purge.Add(meta)
+		}
+		if chosen.Path != meta.Path {
+			purge.Add(meta)
+		}
+	}
+
+	removed := make(PluginMetaSet)
+	var errs error
+	for meta := range purge {
+		path := meta.Path
+		err := os.Remove(path)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf(
+				"failed to remove unused provider plugin %s: %s",
+				path, err,
+			))
+		} else {
+			removed.Add(meta)
+		}
+	}
+
+	return removed, errs
 }
 
 // Return the plugin version by making a HEAD request to the provided url
