@@ -41,6 +41,8 @@ docker run --rm -it \
   -e ARM_CLIENT_SECRET \
   -e ARM_SUBSCRIPTION_ID \
   -e ARM_TENANT_ID \
+  -e KEY_ENCRYPTION_KEY_URL \
+  -e KEY_VAULT_RESOURCE_ID \
   -v $(pwd):/data \
   --workdir=/data \
   --entrypoint "/bin/sh" \

@@ -10,7 +10,7 @@ if docker -v; then
   export EXISTING_RESOURCE_GROUP=donotdelete
   export EXISTING_IMAGE_URI=https://donotdeletedisks636.blob.core.windows.net/vhds/WindowsImage.vhd
   export EXISTING_STORAGE_ACCOUNT_NAME=donotdeletedisks636
-  export CUSTOM_IMAGE_NAME=WindowsImage
+  export CUSTOM_WINDOWS_IMAGE_NAME=WindowsImage
 
   /bin/sh ./deploy.ci.sh
 

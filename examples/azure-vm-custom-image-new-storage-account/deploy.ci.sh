@@ -20,7 +20,7 @@ docker run --rm -it \
         -var existing_resource_group=$EXISTING_RESOURCE_GROUP \
         -var admin_password=$PASSWORD \
         -var existing_storage_acct=$EXISTING_STORAGE_ACCOUNT_NAME \
-        -var custom_image_name=$CUSTOM_IMAGE_NAME; \
+        -var custom_image_name=$CUSTOM_WINDOWS_IMAGE_NAME; \
       /bin/terraform apply out.tfplan; \
       /bin/terraform show;"
 
@@ -48,7 +48,7 @@ docker run --rm -it \
         -var existing_resource_group=$EXISTING_RESOURCE_GROUP \
         -var admin_password=$PASSWORD \
         -var existing_storage_acct=$EXISTING_STORAGE_ACCOUNT_NAME \
-        -var custom_image_name=$CUSTOM_IMAGE_NAME \
+        -var custom_image_name=$CUSTOM_WINDOWS_IMAGE_NAME \
         -target=azurerm_virtual_machine.myvm \
         -target=azurerm_virtual_machine.transfer \
         -target=azurerm_network_interface.transfernic \
