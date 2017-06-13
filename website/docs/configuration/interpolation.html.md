@@ -232,6 +232,10 @@ The supported built-in functions are:
   * `floor(float)` - Returns the greatest integer value less than or equal to
       the argument.
 
+  * `flatten(list of lists)` - Flattens lists of lists down to a flat list of
+       primitive values, eliminating any nested lists recursively. Examples:
+       * `flatten(data.github_user.user.*.gpg_keys)`
+
   * `format(format, args, ...)` - Formats a string according to the given
       format. The syntax for the format is standard `sprintf` syntax.
       Good documentation for the syntax can be [found here](https://golang.org/pkg/fmt/).

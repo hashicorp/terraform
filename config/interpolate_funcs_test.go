@@ -2503,3 +2503,49 @@ func TestInterpolateFuncBcrypt(t *testing.T) {
 		},
 	})
 }
+
+func TestInterpolateFuncFlatten(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// empty string within array
+			{
+				`${flatten(split(",", "a,,b"))}`,
+				[]interface{}{"a", "", "b"},
+				false,
+			},
+
+			// typical array
+			{
+				`${flatten(split(",", "a,b,c"))}`,
+				[]interface{}{"a", "b", "c"},
+				false,
+			},
+
+			// empty array
+			{
+				`${flatten(split(",", ""))}`,
+				[]interface{}{""},
+				false,
+			},
+
+			// list of lists
+			{
+				`${flatten(list(list("a"), list("b")))}`,
+				[]interface{}{"a", "b"},
+				false,
+			},
+			// list of lists of lists
+			{
+				`${flatten(list(list("a"), list(list("b","c"))))}`,
+				[]interface{}{"a", "b", "c"},
+				false,
+			},
+			// list of strings
+			{
+				`${flatten(list("a", "b", "c"))}`,
+				[]interface{}{"a", "b", "c"},
+				false,
+			},
+		},
+	})
+}
