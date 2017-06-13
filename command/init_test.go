@@ -1,6 +1,7 @@
 package command
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -533,11 +534,29 @@ func TestInit_providerLockFile(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	// create a test binary
+	// don't give it a valid plugin name, or it will be found by plugin discovery
+	binPath := "./test-binary"
+	if err := createTestProviderBin(binPath); err != nil {
+		t.Fatal(err)
+	}
+
 	getter := &mockGetProvider{
 		Providers: map[string][]string{
 			"test": []string{"1.2.3"},
 		},
+		Bins: map[string]string{
+			"test": binPath,
+		},
 	}
+
+	// get the real hash value
+	data, err := ioutil.ReadFile(binPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedChecksum := sha256.Sum256(data)
 
 	ui := new(cli.MockUi)
 	c := &InitCommand{
@@ -562,11 +581,11 @@ func TestInit_providerLockFile(t *testing.T) {
 		t.Fatalf("failed to read providers lock file %s: %s", providersLockFile, err)
 	}
 	// The hash in here is for the empty files that mockGetProvider produces
-	wantLockFile := strings.TrimSpace(`
+	wantLockFile := strings.TrimSpace(fmt.Sprintf(`
 {
-  "test": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "test": "%x"
 }
-`)
+`, expectedChecksum))
 	if string(buf) != wantLockFile {
 		t.Errorf("wrong provider lock file contents\ngot:  %s\nwant: %s", buf, wantLockFile)
 	}
