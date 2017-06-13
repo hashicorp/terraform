@@ -75,7 +75,7 @@ resource "aws_api_gateway_integration" "integration" {
   rest_api_id             = "${aws_api_gateway_rest_api.api.id}"
   resource_id             = "${aws_api_gateway_rest_api.api.root_resource_id}"
   http_method             = "${aws_api_gateway_method.method.http_method}"
-  integration_http_method = "POST"
+  integration_http_method = "POST" # LAMBDA FUNCTIONS ONLY ACCEPT POST
   type                    = "AWS"
   uri                     = "arn:aws:apigateway:${var.myregion}:lambda:path/2015-03-31/functions/${aws_lambda_function.lambda.arn}/invocations"
 }
@@ -131,7 +131,7 @@ The following arguments are supported:
 * `http_method` - (Required) The HTTP method (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`, `ANY`)
   when calling the associated resource.
 * `integration_http_method` - (Optional) The integration HTTP method
-  (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`) specifying how API Gateway will interact with the back end.
+  ( `POST` is the only allowed option) specifying how API Gateway will interact with the back end.
   **Required** if `type` is `AWS`, `AWS_PROXY`, `HTTP` or `HTTP_PROXY`.
   Not all methods are compatible with all `AWS` integrations.
   e.g. Lambda function [can only be invoked](https://github.com/awslabs/aws-apigateway-importer/issues/9#issuecomment-129651005) via `POST`.
