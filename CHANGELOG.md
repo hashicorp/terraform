@@ -12,9 +12,9 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 IMPROVEMENTS:
 
-* core: Providers no longer in the main Terraform distribution; installed automatically by init instead [GH-15208]
-* core: `terraform env` command renamed to `terraform workspace` [GH-14952]
-
+* Providers no longer in the main Terraform distribution; installed automatically by init instead [GH-15208]
+* `terraform env` command renamed to `terraform workspace` [GH-14952]
+* `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
 
 ## 0.9.8 (June 7, 2017)
 
