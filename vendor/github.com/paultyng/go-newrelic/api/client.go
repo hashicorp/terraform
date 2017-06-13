@@ -1,7 +1,6 @@
 package api
 
 import (
-	"crypto/tls"
 	"fmt"
 
 	"github.com/tomnomnom/linkheader"
@@ -33,10 +32,9 @@ type ErrorDetail struct {
 
 // Config contains all the configuration data for the API Client
 type Config struct {
-	APIKey    string
-	BaseURL   string
-	Debug     bool
-	TLSConfig *tls.Config
+	APIKey  string
+	BaseURL string
+	Debug   bool
 }
 
 // New returns a new Client for the specified apiKey.
@@ -51,9 +49,6 @@ func New(config Config) Client {
 	r.SetHeader("X-Api-Key", config.APIKey)
 	r.SetHostURL(baseURL)
 
-	if config.TLSConfig != nil {
-		r.SetTLSClientConfig(config.TLSConfig)
-	}
 	if config.Debug {
 		r.SetDebug(true)
 	}
