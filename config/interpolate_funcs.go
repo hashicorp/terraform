@@ -76,6 +76,7 @@ func Funcs() map[string]ast.Function {
 		"element":      interpolationFuncElement(),
 		"file":         interpolationFuncFile(),
 		"matchkeys":    interpolationFuncMatchKeys(),
+		"flatten":      interpolationFuncFlatten(),
 		"floor":        interpolationFuncFloor(),
 		"format":       interpolationFuncFormat(),
 		"formatlist":   interpolationFuncFormatList(),
@@ -1450,6 +1451,33 @@ func interpolationFuncSubstr() ast.Function {
 			}
 
 			return str[offset:length], nil
+		},
+	}
+}
+
+// Flatten until it's not ast.TypeList
+func flattener(finalList []ast.Variable, flattenList []ast.Variable) []ast.Variable {
+	for _, val := range flattenList {
+		if val.Type == ast.TypeList {
+			finalList = flattener(finalList, val.Value.([]ast.Variable))
+		} else {
+			finalList = append(finalList, val)
+		}
+	}
+	return finalList
+}
+
+// Flatten to single list
+func interpolationFuncFlatten() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeList},
+		ReturnType: ast.TypeList,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			inputList := args[0].([]ast.Variable)
+
+			var outputList []ast.Variable
+			return flattener(outputList, inputList), nil
 		},
 	}
 }
