@@ -8,29 +8,31 @@ import (
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
 
-// mockGetProvider providers a GetProvider method for testing automatic
-// provider downloads
-type mockGetProvider struct {
+// mockProviderInstaller is a discovery.PluginInstaller implementation that
+// is a mock for discovery.ProviderInstaller.
+type mockProviderInstaller struct {
 	// A map of provider names to available versions.
 	// The tests expect the versions to be in order from newest to oldest.
 	Providers map[string][]string
+
+	Dir               string
+	PurgeUnusedCalled bool
 }
 
-func (m mockGetProvider) FileName(provider, version string) string {
+func (i *mockProviderInstaller) FileName(provider, version string) string {
 	return fmt.Sprintf("terraform-provider-%s_v%s_x4", provider, version)
 }
 
-// GetProvider will check the Providers map to see if it can find a suitable
-// version, and put an empty file in the dst directory.
-func (m mockGetProvider) GetProvider(dst, provider string, req discovery.Constraints, protoVersion uint) error {
-	versions := m.Providers[provider]
+func (i *mockProviderInstaller) Get(provider string, req discovery.Constraints) (discovery.PluginMeta, error) {
+	noMeta := discovery.PluginMeta{}
+	versions := i.Providers[provider]
 	if len(versions) == 0 {
-		return fmt.Errorf("provider %q not found", provider)
+		return noMeta, fmt.Errorf("provider %q not found", provider)
 	}
 
-	err := os.MkdirAll(dst, 0755)
+	err := os.MkdirAll(i.Dir, 0755)
 	if err != nil {
-		return fmt.Errorf("error creating plugins directory: %s", err)
+		return noMeta, fmt.Errorf("error creating plugins directory: %s", err)
 	}
 
 	for _, v := range versions {
@@ -41,16 +43,42 @@ func (m mockGetProvider) GetProvider(dst, provider string, req discovery.Constra
 
 		if req.Allows(version) {
 			// provider filename
-			name := m.FileName(provider, v)
-			path := filepath.Join(dst, name)
+			name := i.FileName(provider, v)
+			path := filepath.Join(i.Dir, name)
 			f, err := os.Create(path)
 			if err != nil {
-				return fmt.Errorf("error fetching provider: %s", err)
+				return noMeta, fmt.Errorf("error fetching provider: %s", err)
 			}
 			f.Close()
-			return nil
+			return discovery.PluginMeta{
+				Name:    provider,
+				Version: discovery.VersionStr(v),
+				Path:    path,
+			}, nil
 		}
 	}
 
-	return fmt.Errorf("no suitable version for provider %q found with constraints %s", provider, req)
+	return noMeta, fmt.Errorf("no suitable version for provider %q found with constraints %s", provider, req)
+}
+
+func (i *mockProviderInstaller) PurgeUnused(map[string]discovery.PluginMeta) (discovery.PluginMetaSet, error) {
+	i.PurgeUnusedCalled = true
+	ret := make(discovery.PluginMetaSet)
+	ret.Add(discovery.PluginMeta{
+		Name:    "test",
+		Version: "0.0.0",
+		Path:    "mock-test",
+	})
+	return ret, nil
+}
+
+type callbackPluginInstaller func(provider string, req discovery.Constraints) (discovery.PluginMeta, error)
+
+func (cb callbackPluginInstaller) Get(provider string, req discovery.Constraints) (discovery.PluginMeta, error) {
+	return cb(provider, req)
+}
+
+func (cb callbackPluginInstaller) PurgeUnused(map[string]discovery.PluginMeta) (discovery.PluginMetaSet, error) {
+	// does nothing
+	return make(discovery.PluginMetaSet), nil
 }

@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -38,7 +38,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 
 	filename := parts[3]
 
-	reg := regexp.MustCompile(`(terraform-provider-test_(\d).(\d).(\d)_([^_]+)_([^._]+)).zip`)
+	reg := regexp.MustCompile(`(terraform-provider-test)_(\d).(\d).(\d)_([^_]+)_([^._]+).zip`)
 
 	fileParts := reg.FindStringSubmatch(filename)
 	if len(fileParts) != 7 {
@@ -50,7 +50,8 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 
 	// write a dummy file
 	z := zip.NewWriter(w)
-	f, err := z.Create(fileParts[1] + "_X" + fileParts[4])
+	fn := fmt.Sprintf("%s_v%s.%s.%s_x%s", fileParts[1], fileParts[2], fileParts[3], fileParts[4], fileParts[4])
+	f, err := z.Create(fn)
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +108,7 @@ func TestCheckProtocolVersions(t *testing.T) {
 	}
 }
 
-func TestGetProvider(t *testing.T) {
+func TestProviderInstaller(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "tf-plugin")
 	if err != nil {
 		t.Fatal(err)
@@ -116,19 +117,38 @@ func TestGetProvider(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// attempt to use an incompatible protocol version
-	err = GetProvider(tmpDir, "test", AllVersions, 5)
+	i := &ProviderInstaller{
+		Dir: tmpDir,
+
+		PluginProtocolVersion: 5,
+	}
+	_, err = i.Get("test", AllVersions)
 	if err == nil {
-		t.Fatal("protocol version is incompatible")
+		t.Fatal("want error for incompatible version")
 	}
 
-	err = GetProvider(tmpDir, "test", AllVersions, 3)
+	i = &ProviderInstaller{
+		Dir: tmpDir,
+
+		PluginProtocolVersion: 3,
+	}
+	gotMeta, err := i.Get("test", AllVersions)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// we should have version 1.2.3
-	fileName := fmt.Sprintf("terraform-provider-test_1.2.3_%s_%s_X3", runtime.GOOS, runtime.GOARCH)
-	dest := filepath.Join(tmpDir, fileName)
+	dest := filepath.Join(tmpDir, "terraform-provider-test_v1.2.3_x3")
+
+	wantMeta := PluginMeta{
+		Name:    "test",
+		Version: VersionStr("1.2.3"),
+		Path:    dest,
+	}
+	if !reflect.DeepEqual(gotMeta, wantMeta) {
+		t.Errorf("wrong result meta\ngot:  %#v\nwant: %#v", gotMeta, wantMeta)
+	}
+
 	f, err := ioutil.ReadFile(dest)
 	if err != nil {
 		t.Fatal(err)

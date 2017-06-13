@@ -23,11 +23,11 @@ import (
 type InitCommand struct {
 	Meta
 
-	// getProvider fetches providers that aren't found locally, and unpacks
-	// them into the dst directory.
-	// This uses discovery.GetProvider by default, but it provided here as a
-	// way to mock fetching providers for tests.
-	getProvider func(dst, provider string, req discovery.Constraints, protoVersion uint) error
+	// providerInstaller is used to download and install providers that
+	// aren't found locally. This uses a discovery.ProviderInstaller instance
+	// by default, but it can be overridden here as a way to mock fetching
+	// providers for tests.
+	providerInstaller discovery.Installer
 }
 
 func (c *InitCommand) Run(args []string) int {
@@ -52,8 +52,12 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// set getProvider if we don't have a test version already
-	if c.getProvider == nil {
-		c.getProvider = discovery.GetProvider
+	if c.providerInstaller == nil {
+		c.providerInstaller = &discovery.ProviderInstaller{
+			Dir: c.pluginDir(),
+
+			PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
+		}
 	}
 
 	// Validate the arg count
@@ -176,7 +180,7 @@ func (c *InitCommand) Run(args []string) int {
 			"[reset][bold]Initializing provider plugins...",
 		))
 
-		err = c.getProviders(path, sMgr.State())
+		err = c.getProviders(path, sMgr.State(), flagUpgrade)
 		if err != nil {
 			// this function provides its own output
 			log.Printf("[ERROR] %s", err)
@@ -197,7 +201,7 @@ func (c *InitCommand) Run(args []string) int {
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(path string, state *terraform.State) error {
+func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade bool) error {
 	mod, err := c.Module(path)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error getting plugins: %s", err))
@@ -213,11 +217,10 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 	requirements := terraform.ModuleTreeDependencies(mod, state).AllPluginRequirements()
 	missing := c.missingPlugins(available, requirements)
 
-	dst := c.pluginDir()
 	var errs error
 	for provider, reqd := range missing {
 		c.Ui.Output(fmt.Sprintf("- downloading plugin for provider %q...", provider))
-		err := c.getProvider(dst, provider, reqd.Versions, plugin.Handshake.ProtocolVersion)
+		_, err := c.providerInstaller.Get(provider, reqd.Versions)
 
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errProviderNotFound, err, provider, reqd.Versions))
