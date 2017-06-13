@@ -19,7 +19,7 @@ func TestAWSGetAccountInfo_shouldBeValid_fromEC2Role(t *testing.T) {
 	resetEnv := unsetEnv(t)
 	defer resetEnv()
 	// capture the test server's close method, to call after the test returns
-	awsTs := awsEnv(generateMetadataApiRoutes(true, true, true))
+	awsTs := awsEnv(generateMetadataApiRoutes(append(securityCredentialsEndpoints, instanceIdEndpoint, iamInfoEndpoint)))
 	defer awsTs()
 
 	closeEmpty, emptySess, err := getMockedAwsApiSession("zero", []*awsMockEndpoint{})
@@ -51,7 +51,7 @@ func TestAWSGetAccountInfo_shouldBeValid_EC2RoleHasPriority(t *testing.T) {
 	resetEnv := unsetEnv(t)
 	defer resetEnv()
 	// capture the test server's close method, to call after the test returns
-	awsTs := awsEnv(generateMetadataApiRoutes(true, true, true))
+	awsTs := awsEnv(generateMetadataApiRoutes(append(securityCredentialsEndpoints, instanceIdEndpoint, iamInfoEndpoint)))
 	defer awsTs()
 
 	iamEndpoints := []*awsMockEndpoint{
@@ -133,7 +133,7 @@ func TestAWSGetAccountInfo_shouldBeValid_fromGetCallerIdentity(t *testing.T) {
 
 func TestAWSGetAccountInfo_shouldBeValid_EC2RoleFallsBackToCallerIdentity(t *testing.T) {
 	// This mimics the metadata service mocked by Hologram (https://github.com/AdRoll/hologram)
-	doGetAccountInfoWithMetadataRoutes(t, generateMetadataApiRoutes(false, false, true))
+	doGetAccountInfoWithMetadataRoutes(t, generateMetadataApiRoutes(securityCredentialsEndpoints))
 }
 
 func TestAWSGetAccountInfo_shouldBeValid_fromIamListRoles(t *testing.T) {
@@ -365,7 +365,7 @@ func TestAWSGetCredentials_shouldIAM(t *testing.T) {
 	defer resetEnv()
 
 	// capture the test server's close method, to call after the test returns
-	ts := awsEnv(generateMetadataApiRoutes(true, true, true))
+	ts := awsEnv(generateMetadataApiRoutes(append(securityCredentialsEndpoints, instanceIdEndpoint, iamInfoEndpoint)))
 	defer ts()
 
 	// An empty config, no key supplied
@@ -401,7 +401,7 @@ func TestAWSGetCredentials_shouldIgnoreIAM(t *testing.T) {
 	resetEnv := unsetEnv(t)
 	defer resetEnv()
 	// capture the test server's close method, to call after the test returns
-	ts := awsEnv(generateMetadataApiRoutes(true, true, true))
+	ts := awsEnv(generateMetadataApiRoutes(append(securityCredentialsEndpoints, instanceIdEndpoint, iamInfoEndpoint)))
 	defer ts()
 	simple := []struct {
 		Key, Secret, Token string
@@ -508,7 +508,7 @@ func TestAWSGetCredentials_shouldCatchEC2RoleProvider(t *testing.T) {
 	resetEnv := unsetEnv(t)
 	defer resetEnv()
 	// capture the test server's close method, to call after the test returns
-	ts := awsEnv(generateMetadataApiRoutes(true, true, true))
+	ts := awsEnv(generateMetadataApiRoutes(append(securityCredentialsEndpoints, instanceIdEndpoint, iamInfoEndpoint)))
 	defer ts()
 
 	creds, err := GetCredentials(&Config{})
@@ -808,35 +808,31 @@ type endpoint struct {
 	Body string `json:"body"`
 }
 
-func generateMetadataApiRoutes(includeInstanceId, includeIamInfo, includeSecurityCredentials bool) *routes {
-	routes := routes{}
-	routes.Endpoints = make([]*endpoint, 0)
-	if includeInstanceId {
-		routes.Endpoints = append(routes.Endpoints, &endpoint{
-			Uri:  "/latest/meta-data/instance-id",
-			Body: "mock-instance-id",
-		})
+func generateMetadataApiRoutes(endpoints []*endpoint) *routes {
+	return &routes{
+		Endpoints: endpoints,
 	}
+}
 
-	if includeIamInfo {
-		routes.Endpoints = append(routes.Endpoints, &endpoint{
-			Uri:  "/latest/meta-data/iam/info",
-			Body: "{\"Code\": \"Success\",\"LastUpdated\": \"2016-03-17T12:27:32Z\",\"InstanceProfileArn\": \"arn:aws:iam::123456789013:instance-profile/my-instance-profile\",\"InstanceProfileId\": \"AIPAABCDEFGHIJKLMN123\"}",
-		})
-	}
+var instanceIdEndpoint = &endpoint{
+	Uri:  "/latest/meta-data/instance-id",
+	Body: "mock-instance-id",
+}
 
-	if includeSecurityCredentials {
-		routes.Endpoints = append(routes.Endpoints, &endpoint{
-			Uri:  "/latest/meta-data/iam/security-credentials",
-			Body: "test_role",
-		})
-		routes.Endpoints = append(routes.Endpoints, &endpoint{
-			Uri:  "/latest/meta-data/iam/security-credentials/test_role",
-			Body: "{\"Code\":\"Success\",\"LastUpdated\":\"2015-12-11T17:17:25Z\",\"Type\":\"AWS-HMAC\",\"AccessKeyId\":\"somekey\",\"SecretAccessKey\":\"somesecret\",\"Token\":\"sometoken\"}",
-		})
-	}
+var securityCredentialsEndpoints = []*endpoint{
+	&endpoint{
+		Uri:  "/latest/meta-data/iam/security-credentials",
+		Body: "test_role",
+	},
+	&endpoint{
+		Uri:  "/latest/meta-data/iam/security-credentials/test_role",
+		Body: "{\"Code\":\"Success\",\"LastUpdated\":\"2015-12-11T17:17:25Z\",\"Type\":\"AWS-HMAC\",\"AccessKeyId\":\"somekey\",\"SecretAccessKey\":\"somesecret\",\"Token\":\"sometoken\"}",
+	},
+}
 
-	return &routes
+var iamInfoEndpoint = &endpoint{
+	Uri:  "/latest/meta-data/iam/info",
+	Body: "{\"Code\": \"Success\",\"LastUpdated\": \"2016-03-17T12:27:32Z\",\"InstanceProfileArn\": \"arn:aws:iam::123456789013:instance-profile/my-instance-profile\",\"InstanceProfileId\": \"AIPAABCDEFGHIJKLMN123\"}",
 }
 
 const iamResponse_GetUser_valid = `<GetUserResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">

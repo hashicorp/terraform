@@ -19,9 +19,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-multierror"
 )
 
 func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (string, string, error) {
+	var errors error
 	// If we have creds from instance profile, we can use metadata API
 	if authProviderName == ec2rolecreds.ProviderName {
 		log.Println("[DEBUG] Trying to get account ID via AWS Metadata API")
@@ -38,6 +40,8 @@ func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string)
 		if err == nil {
 			return parseAccountInfoFromArn(info.InstanceProfileArn)
 		}
+		log.Println("[DEBUG] Failed to get account info from metadata service: %s", err)
+		errors = multierror.Append(errors, err)
 		// We can end up here if there's an issue with the instance metadata service
 		// or if we're getting credentials from AdRoll's Hologram (in which case IAMInfo will
 		// error out). In any event, if we can't get account info here, we should try
@@ -52,7 +56,7 @@ func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string)
 		if err == nil {
 			return parseAccountInfoFromArn(*outUser.User.Arn)
 		}
-
+		errors = multierror.Append(errors, err)
 		awsErr, ok := err.(awserr.Error)
 		// AccessDenied and ValidationError can be raised
 		// if credentials belong to federated profile, so we ignore these
@@ -69,6 +73,7 @@ func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string)
 		return parseAccountInfoFromArn(*outCallerIdentity.Arn)
 	}
 	log.Printf("[DEBUG] Getting account ID via sts:GetCallerIdentity failed: %s", err)
+	errors = multierror.Append(errors, err)
 
 	// Then try IAM ListRoles
 	log.Println("[DEBUG] Trying to get account ID via iam:ListRoles")
@@ -76,11 +81,16 @@ func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string)
 		MaxItems: aws.Int64(int64(1)),
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("Failed getting account ID via 'iam:ListRoles': %s", err)
+		log.Println("[DEBUG] Failed to get account ID via iam:ListRoles: %s", err)
+		errors = multierror.Append(errors, err)
+		return "", "", fmt.Errorf("Failed getting account ID via all available methods. Errors: %s", errors)
 	}
 
 	if len(outRoles.Roles) < 1 {
-		return "", "", errors.New("Failed getting account ID via 'iam:ListRoles': No roles available")
+		err = fmt.Errorf("Failed to get account ID via iam:ListRoles: No roles available")
+		log.Println("[DEBUG] %s", err)
+		errors = multierror.Append(errors, err)
+		return "", "", fmt.Errorf("Failed getting account ID via all available methods. Errors: %s", errors)
 	}
 
 	return parseAccountInfoFromArn(*outRoles.Roles[0].Arn)
