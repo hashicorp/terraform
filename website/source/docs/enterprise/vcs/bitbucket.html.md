@@ -56,13 +56,13 @@ Once you have linked a Bitbucket installation to your account or organization,
 you are ready to begin creating Packer Builds and Terraform Environments linked
 to your desired Bitbucket Cloud repository.
 
-Terraform Enterprise environments are linked to individual GitHub repositories.
-However, a single GitHub repository can be linked to multiple environments
+Terraform Enterprise environments are linked to individual Bitbucket Cloud repositories.
+However, a single Bitbucket Cloud repository can be linked to multiple environments
 allowing a single set of Terraform configuration to be used across multiple
 environments.
 
 Environments can be linked when they're initially created using the New
-Environment process. Existing environments can be linked by setting GitHub
+Environment process. Existing environments can be linked by setting Bitbucket Cloud
 details in their **Integrations**.
 
 To link a Terraform Enterprise environment to a Bitbucket Cloud repository, you need
@@ -72,14 +72,16 @@ three pieces of information:
 format _username/repository_.
 
 - **Bitbucket Cloud branch** - The branch from which to ingress new versions. This
-defaults to the value GitHub provides as the default branch for this repository.
+defaults to the value Bitbucket Cloud provides as the default branch for this repository.
 
 - **Path to directory of Terraform files** - The repository's subdirectory that
 contains its terraform files. This defaults to the root of the repository.
 
+**Note**: Users creating, updating, or deleting webhooks via the API must have `owner` or `admin` permissions enabled on the target Bitbucket Cloud repository. To update user permissions on the target repository the repository owner can visit: https://bitbucket.org/your-username/your-repository/admin/access
+
 ### Connecting a Bitbucket Cloud Repository to a Terraform Environment
 
-Navigate to https://atlas.hashicorp.com/configurations/import and select Link to Bitbucket Cloud. A menu will appear asking you to name the environment. Then use the autocomplete field for repository and select the repository for which you'd like to create a webhook & environment. If necessary, fill out information about the VCS branch to pull from as well as the directory where the Terraform files live within the repository. Click Create and Continue.
+Navigate to https://atlas.hashicorp.com/configurations/import and select Link to Bitbucket Cloud. A menu will appear asking you to name the environment. Then use the autocomplete field for repository and select the repository for which you'd like to create a webhook & environment. If you do not see the repository you would like to connect to in the drop down, manually enter it using the format: username/repository. If necessary, fill out information about the VCS branch to pull from as well as the directory where the Terraform files live within the repository. Click Create and Continue.
 
 Upon success, you will be redirected to the environment's runs page (https://atlas.hashicorp.com/terraform/your-organization/environments/your-environment/changes/runs). A message will display letting you know that the repository is ingressing from Bitbucket and once finished you will be able to Queue, Run, & Apply a Terraform Plan. Depending on your webhook settings, changes will be triggered through git events on the specified branch.
 
