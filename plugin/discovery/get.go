@@ -51,24 +51,37 @@ func providerURL(name, version string) string {
 	return u
 }
 
-// GetProvider fetches a provider plugin based on the version constraints, and
-// copies it to the dst directory.
-//
-// TODO: verify checksum and signature
-func GetProvider(dst, provider string, req Constraints, pluginProtocolVersion uint) error {
+// An Installer maintains a local cache of plugins by downloading plugins
+// from an online repository.
+type Installer interface {
+	Get(name string, req Constraints) (PluginMeta, error)
+}
+
+// ProviderInstaller is an Installer implementation that knows how to
+// download Terraform providers from the official HashiCorp releases service
+// into a local directory. The files downloaded are compliant with the
+// naming scheme expected by FindPlugins, so the target directory of a
+// provider installer can be used as one of several plugin discovery sources.
+type ProviderInstaller struct {
+	Dir string
+
+	PluginProtocolVersion uint
+}
+
+func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, error) {
 	versions, err := listProviderVersions(provider)
 	// TODO: return multiple errors
 	if err != nil {
-		return err
+		return PluginMeta{}, err
 	}
 
 	if len(versions) == 0 {
-		return fmt.Errorf("no plugins found for provider %q", provider)
+		return PluginMeta{}, fmt.Errorf("no plugins found for provider %q", provider)
 	}
 
 	versions = allowedVersions(versions, req)
 	if len(versions) == 0 {
-		return fmt.Errorf("no version of %q available that fulfills constraints %s", provider, req)
+		return PluginMeta{}, fmt.Errorf("no version of %q available that fulfills constraints %s", provider, req)
 	}
 
 	// sort them newest to oldest
@@ -78,15 +91,53 @@ func GetProvider(dst, provider string, req Constraints, pluginProtocolVersion ui
 	for _, v := range versions {
 		url := providerURL(provider, v.String())
 		log.Printf("[DEBUG] fetching provider info for %s version %s", provider, v)
-		if checkPlugin(url, pluginProtocolVersion) {
+		if checkPlugin(url, i.PluginProtocolVersion) {
 			log.Printf("[DEBUG] getting provider %q version %q at %s", provider, v, url)
-			return getter.Get(dst, url)
+			err := getter.Get(i.Dir, url)
+			if err != nil {
+				return PluginMeta{}, err
+			}
+
+			// Find what we just installed
+			// (This is weird, because go-getter doesn't directly return
+			//  information about what was extracted, and we just extracted
+			//  the archive directly into a shared dir here.)
+			log.Printf("[DEBUG] looking for the %s %s plugin we just installed", provider, v)
+			metas := FindPlugins("provider", []string{i.Dir})
+			log.Printf("all plugins found %#v", metas)
+			metas, _ = metas.ValidateVersions()
+			metas = metas.WithName(provider).WithVersion(v)
+			log.Printf("filtered plugins %#v", metas)
+			if metas.Count() == 0 {
+				// This should never happen. Suggests that the release archive
+				// contains an executable file whose name doesn't match the
+				// expected convention.
+				return PluginMeta{}, fmt.Errorf(
+					"failed to find installed provider %s %s; this is a bug in Terraform and should be reported",
+					provider, v,
+				)
+			}
+
+			if metas.Count() > 1 {
+				// This should also never happen, and suggests that a
+				// particular version was re-released with a different
+				// executable filename. We consider releases as immutable, so
+				// this is an error.
+				return PluginMeta{}, fmt.Errorf(
+					"multiple plugins installed for %s %s; this is a bug in Terraform and should be reported",
+					provider, v,
+				)
+			}
+
+			// By now we know we have exactly one meta, and so "Newest" will
+			// return that one.
+			return metas.Newest(), nil
 		}
 
 		log.Printf("[INFO] incompatible ProtocolVersion for %s version %s", provider, v)
 	}
 
-	return fmt.Errorf("no versions of %q compatible with the plugin ProtocolVersion", provider)
+	return PluginMeta{}, fmt.Errorf("no versions of %q compatible with the plugin ProtocolVersion", provider)
 }
 
 // Return the plugin version by making a HEAD request to the provided url
