@@ -24,7 +24,8 @@ func (h *PersistHook) PreApply(
 	recoveryLogWriter, existsWriter := h.State.(state.RecoveryLogWriter)
 
 	if !existsWriter {
-		fmt.Printf("State does not support 'RecoveryLogWriter' functional.\n")
+		fmt.Printf("State does not support 'RecoveryLogWriter' functional.\n" +
+			"Please make sure what you set AWS remote backend as backend. Currently, only this backend is supported.\n")
 		return terraform.HookActionContinue, nil
 	}
 
@@ -55,7 +56,8 @@ func (h *PersistHook) PostApply(instInfo *terraform.InstanceInfo, instState *ter
 			state.GetGlobalInstancesStatusLogger().Remove(instState, instInfo, recoveryLogWriter)
 		}
 	} else {
-		fmt.Printf("State does not support 'RecoveryLogWriter' functional.\n")
+		fmt.Printf("State does not support 'RecoveryLogWriter' functional.\n" +
+			"Please make sure what you set AWS remote backend as backend. Currently, only this backend is supported.\n")
 	}
 	return terraform.HookActionContinue, nil
 }

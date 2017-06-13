@@ -50,7 +50,11 @@ func (c *RecoveryCommand) Run(args []string) int {
 		} else {
 			c.Ui.Info(fmt.Sprintf("Nothing to recover. Recovery log is empty."))
 		}
+	} else {
+		fmt.Printf("State does not support 'RecoveryLogReader' functional.\n" +
+			"Please make sure what you set AWS remote backend as backend. Currently, only this backend is supported.\n")
 	}
+
 	c.Ui.Info("Recovery complete.\n")
 	return 0
 }
@@ -60,7 +64,8 @@ func (c *RecoveryCommand) removeRecoveryLog(stateStore state.State) {
 		c.Ui.Info(fmt.Sprintf("Remove recovery log...\n"))
 		recoveryLogWriter.DeleteRecoveryLog()
 	} else {
-		c.Ui.Warn(fmt.Sprintf("State does not support 'RecoveryLogWriter' functional.\n"))
+		fmt.Printf("State does not support 'RecoveryLogWriter' functional.\n" +
+			"Please make sure what you set AWS remote backend as backend. Currently, only this backend is supported.\n")
 	}
 }
 
