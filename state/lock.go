@@ -36,3 +36,31 @@ func (s *LockDisabled) Lock(info *LockInfo) (string, error) {
 func (s *LockDisabled) Unlock(id string) error {
 	return nil
 }
+
+// Because LockDisabled is a wrapper for remote state need to recall wrapped object.
+func (s *LockDisabled) WriteRecoveryLog(data []byte) error {
+	if recoveryWriter, ok := s.Inner.(RecoveryLogWriter); ok {
+		return recoveryWriter.WriteRecoveryLog(data)
+	}
+	return nil
+}
+func (s *LockDisabled) WriteLostResourceLog(data []byte) error {
+	if recoveryWriter, ok := s.Inner.(RecoveryLogWriter); ok {
+		return recoveryWriter.WriteLostResourceLog(data)
+	}
+	return nil
+}
+
+func (s *LockDisabled) DeleteRecoveryLog() error {
+	if recoveryWriter, ok := s.Inner.(RecoveryLogWriter); ok {
+		return recoveryWriter.DeleteRecoveryLog()
+	}
+	return nil
+}
+
+func (s *LockDisabled) ReadRecoveryLog() (map[string]Instance, error) {
+	if recoveryReader, ok := s.Inner.(RecoveryLogReader); ok {
+		return recoveryReader.ReadRecoveryLog()
+	}
+	return nil, nil
+}

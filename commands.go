@@ -194,6 +194,12 @@ func init() {
 			}, nil
 		},
 
+		"recover": func() (cli.Command, error) {
+			return &command.RecoveryCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		//-----------------------------------------------------------
 		// Plumbing
 		//-----------------------------------------------------------
