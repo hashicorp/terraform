@@ -5,7 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
 
@@ -77,6 +79,39 @@ func TestInit_get(t *testing.T) {
 	output := ui.OutputWriter.String()
 	if !strings.Contains(output, "Get: file://") {
 		t.Fatalf("doesn't look like get: %s", output)
+	}
+}
+
+func TestInit_getUpgradeModules(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	// copy.CopyDir(testFixturePath("init-get"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-get=true",
+		"-get-plugins=false",
+		"-upgrade",
+		testFixturePath("init-get"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("command did not complete successfully:\n%s", ui.ErrorWriter.String())
+	}
+
+	// Check output
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "(update)") {
+		t.Fatalf("doesn't look like get upgrade: %s", output)
 	}
 }
 
@@ -415,7 +450,13 @@ func TestInit_getProvider(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	getter := &mockGetProvider{
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	installer := &mockProviderInstaller{
 		Providers: map[string][]string{
 			// looking for an exact version
 			"exact": []string{"1.2.3"},
@@ -424,15 +465,13 @@ func TestInit_getProvider(t *testing.T) {
 			// config specifies
 			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
 		},
+
+		Dir: m.pluginDir(),
 	}
 
-	ui := new(cli.MockUi)
 	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-		getProvider: getter.GetProvider,
+		Meta:              m,
+		providerInstaller: installer,
 	}
 
 	args := []string{}
@@ -441,18 +480,110 @@ func TestInit_getProvider(t *testing.T) {
 	}
 
 	// check that we got the providers for our config
-	exactPath := filepath.Join(c.pluginDir(), getter.FileName("exact", "1.2.3"))
+	exactPath := filepath.Join(c.pluginDir(), installer.FileName("exact", "1.2.3"))
 	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
 		t.Fatal("provider 'exact' not downloaded")
 	}
-	greaterThanPath := filepath.Join(c.pluginDir(), getter.FileName("greater_than", "2.3.4"))
+	greaterThanPath := filepath.Join(c.pluginDir(), installer.FileName("greater_than", "2.3.4"))
 	if _, err := os.Stat(greaterThanPath); os.IsNotExist(err) {
 		t.Fatal("provider 'greater_than' not downloaded")
 	}
-	betweenPath := filepath.Join(c.pluginDir(), getter.FileName("between", "2.3.4"))
+	betweenPath := filepath.Join(c.pluginDir(), installer.FileName("between", "2.3.4"))
 	if _, err := os.Stat(betweenPath); os.IsNotExist(err) {
 		t.Fatal("provider 'between' not downloaded")
 	}
+}
+
+func TestInit_getUpgradePlugins(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	installer := &mockProviderInstaller{
+		Providers: map[string][]string{
+			// looking for an exact version
+			"exact": []string{"1.2.3"},
+			// config requires >= 2.3.3
+			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			// config specifies
+			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+		},
+
+		Dir: m.pluginDir(),
+	}
+
+	err := os.MkdirAll(m.pluginDir(), os.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	exactUnwanted := filepath.Join(m.pluginDir(), installer.FileName("exact", "0.0.1"))
+	err = ioutil.WriteFile(exactUnwanted, []byte{}, os.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	greaterThanUnwanted := filepath.Join(m.pluginDir(), installer.FileName("greater_than", "2.3.3"))
+	err = ioutil.WriteFile(greaterThanUnwanted, []byte{}, os.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	betweenOverride := installer.FileName("between", "2.3.4") // intentionally directly in cwd, and should override auto-install
+	err = ioutil.WriteFile(betweenOverride, []byte{}, os.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: installer,
+	}
+
+	args := []string{
+		"-upgrade=true",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("command did not complete successfully:\n%s", ui.ErrorWriter.String())
+	}
+
+	files, err := ioutil.ReadDir(m.pluginDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !installer.PurgeUnusedCalled {
+		t.Errorf("init -upgrade didn't purge providers, but should have")
+	}
+
+	gotFilenames := make([]string, len(files))
+	for i, info := range files {
+		gotFilenames[i] = info.Name()
+	}
+	sort.Strings(gotFilenames)
+
+	wantFilenames := []string{
+		"lock.json",
+
+		// no "between" because the file in cwd overrides it
+
+		// The mock PurgeUnused doesn't actually purge anything, so the dir
+		// includes both our old and new versions.
+		"terraform-provider-exact_v0.0.1_x4",
+		"terraform-provider-exact_v1.2.3_x4",
+		"terraform-provider-greater_than_v2.3.3_x4",
+		"terraform-provider-greater_than_v2.3.4_x4",
+	}
+
+	if !reflect.DeepEqual(gotFilenames, wantFilenames) {
+		t.Errorf("wrong directory contents after upgrade\ngot:  %#v\nwant: %#v", gotFilenames, wantFilenames)
+	}
+
 }
 
 func TestInit_getProviderMissing(t *testing.T) {
@@ -462,7 +593,13 @@ func TestInit_getProviderMissing(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	getter := &mockGetProvider{
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	installer := &mockProviderInstaller{
 		Providers: map[string][]string{
 			// looking for exact version 1.2.3
 			"exact": []string{"1.2.4"},
@@ -471,15 +608,13 @@ func TestInit_getProviderMissing(t *testing.T) {
 			// config specifies
 			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
 		},
+
+		Dir: m.pluginDir(),
 	}
 
-	ui := new(cli.MockUi)
 	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-		getProvider: getter.GetProvider,
+		Meta:              m,
+		providerInstaller: installer,
 	}
 
 	args := []string{}
@@ -511,9 +646,9 @@ func TestInit_getProviderHaveLegacyVersion(t *testing.T) {
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
 		},
-		getProvider: func(dst, provider string, req discovery.Constraints, protoVersion uint) error {
-			return fmt.Errorf("EXPECTED PROVIDER ERROR %s", provider)
-		},
+		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, error) {
+			return discovery.PluginMeta{}, fmt.Errorf("EXPECTED PROVIDER ERROR %s", provider)
+		}),
 	}
 
 	args := []string{}
@@ -533,19 +668,23 @@ func TestInit_providerLockFile(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	getter := &mockGetProvider{
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	installer := &mockProviderInstaller{
 		Providers: map[string][]string{
 			"test": []string{"1.2.3"},
 		},
+
+		Dir: m.pluginDir(),
 	}
 
-	ui := new(cli.MockUi)
 	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-		getProvider: getter.GetProvider,
+		Meta:              m,
+		providerInstaller: installer,
 	}
 
 	args := []string{}

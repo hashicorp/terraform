@@ -23,15 +23,15 @@ import (
 type InitCommand struct {
 	Meta
 
-	// getProvider fetches providers that aren't found locally, and unpacks
-	// them into the dst directory.
-	// This uses discovery.GetProvider by default, but it provided here as a
-	// way to mock fetching providers for tests.
-	getProvider func(dst, provider string, req discovery.Constraints, protoVersion uint) error
+	// providerInstaller is used to download and install providers that
+	// aren't found locally. This uses a discovery.ProviderInstaller instance
+	// by default, but it can be overridden here as a way to mock fetching
+	// providers for tests.
+	providerInstaller discovery.Installer
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var flagBackend, flagGet, flagGetPlugins bool
+	var flagBackend, flagGet, flagGetPlugins, flagUpgrade bool
 	var flagConfigExtra map[string]interface{}
 
 	args = c.Meta.process(args, false)
@@ -44,6 +44,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
+	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -51,8 +52,12 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// set getProvider if we don't have a test version already
-	if c.getProvider == nil {
-		c.getProvider = discovery.GetProvider
+	if c.providerInstaller == nil {
+		c.providerInstaller = &discovery.ProviderInstaller{
+			Dir: c.pluginDir(),
+
+			PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
+		}
 	}
 
 	// Validate the arg count
@@ -112,10 +117,17 @@ func (c *InitCommand) Run(args []string) int {
 		if flagGet && len(conf.Modules) > 0 {
 			header = true
 
-			c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-				"[reset][bold]" +
-					"Downloading modules (if any)...")))
-			if err := getModules(&c.Meta, path, module.GetModeGet); err != nil {
+			getMode := module.GetModeGet
+			if flagUpgrade {
+				getMode = module.GetModeUpdate
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+					"[reset][bold]Upgrading modules...")))
+			} else {
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+					"[reset][bold]Downloading modules...")))
+			}
+
+			if err := getModules(&c.Meta, path, getMode); err != nil {
 				c.Ui.Error(fmt.Sprintf(
 					"Error downloading modules: %s", err))
 				return 1
@@ -168,7 +180,7 @@ func (c *InitCommand) Run(args []string) int {
 			"[reset][bold]Initializing provider plugins...",
 		))
 
-		err = c.getProviders(path, sMgr.State())
+		err = c.getProviders(path, sMgr.State(), flagUpgrade)
 		if err != nil {
 			// this function provides its own output
 			log.Printf("[ERROR] %s", err)
@@ -189,7 +201,7 @@ func (c *InitCommand) Run(args []string) int {
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(path string, state *terraform.State) error {
+func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade bool) error {
 	mod, err := c.Module(path)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error getting plugins: %s", err))
@@ -201,15 +213,21 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 		return err
 	}
 
-	available := c.providerPluginSet()
+	var available discovery.PluginMetaSet
+	if upgrade {
+		// If we're in upgrade mode, we ignore any auto-installed plugins
+		// in "available", causing us to reinstall and possibly upgrade them.
+		available = c.providerPluginManuallyInstalledSet()
+	} else {
+		available = c.providerPluginSet()
+	}
 	requirements := terraform.ModuleTreeDependencies(mod, state).AllPluginRequirements()
 	missing := c.missingPlugins(available, requirements)
 
-	dst := c.pluginDir()
 	var errs error
 	for provider, reqd := range missing {
 		c.Ui.Output(fmt.Sprintf("- downloading plugin for provider %q...", provider))
-		err := c.getProvider(dst, provider, reqd.Versions, plugin.Handshake.ProtocolVersion)
+		_, err := c.providerInstaller.Get(provider, reqd.Versions)
 
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errProviderNotFound, err, provider, reqd.Versions))
@@ -240,6 +258,20 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("failed to save provider manifest: %s", err))
 		return err
+	}
+
+	if upgrade {
+		// Purge any auto-installed plugins that aren't being used.
+		purged, err := c.providerInstaller.PurgeUnused(chosen)
+		if err != nil {
+			// Failure to purge old plugins is not a fatal error
+			c.Ui.Warn(fmt.Sprintf("failed to purge unused plugins: %s", err))
+		}
+		if purged != nil {
+			for meta := range purged {
+				log.Printf("[DEBUG] Purged unused %s plugin %s", meta.Name, meta.Path)
+			}
+		}
 	}
 
 	// If any providers have "floating" versions (completely unconstrained)
@@ -324,7 +356,11 @@ Options:
 
   -no-color            If specified, output won't contain any color.
 
-  -reconfigure          Reconfigure the backend, ignoring any saved configuration.
+  -reconfigure         Reconfigure the backend, ignoring any saved configuration.
+
+  -upgrade=false       If installing modules (-get) or plugins (-get-plugins),
+                       ignore previously-downloaded objects and install the
+                       latest version allowed within configured constraints.
 `
 	return strings.TrimSpace(helpText)
 }

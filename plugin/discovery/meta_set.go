@@ -60,6 +60,24 @@ func (s PluginMetaSet) WithName(name string) PluginMetaSet {
 	return ns
 }
 
+// WithVersion returns the subset of metas that have the given version.
+//
+// This should be used only with the "valid" result from ValidateVersions;
+// it will ignore any plugin metas that have a invalid version strings.
+func (s PluginMetaSet) WithVersion(version Version) PluginMetaSet {
+	ns := make(PluginMetaSet)
+	for p := range s {
+		gotVersion, err := p.Version.Parse()
+		if err != nil {
+			continue
+		}
+		if gotVersion.Equal(version) {
+			ns.Add(p)
+		}
+	}
+	return ns
+}
+
 // ByName groups the metas in the set by their Names, returning a map.
 func (s PluginMetaSet) ByName() map[string]PluginMetaSet {
 	ret := make(map[string]PluginMetaSet)
