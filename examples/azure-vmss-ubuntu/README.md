@@ -1,15 +1,8 @@
-### Autoscale a Linux VM Scale Set ###
+# Linux VM Scale Set
 
-This Terraform template was based on [this](https://github.com/Azure/azure-quickstart-templates/tree/master/201-vmss-ubuntu-autoscale) Azure Quickstart Template. Changes to the ARM template that may have occurred since the creation of this example may not be reflected in this Terraform template.
+This template deploys a desired count Linux VM Scale Set. Once the VMSS is deployed, the user can deploy an application inside each of the VMs (either by directly logging into the VMs or via a [`remote-exec` provisioner](https://www.terraform.io/docs/provisioners/remote-exec.html)).
 
-This template deploys a desired count Linux VM Scale Set integrated with Azure autoscale. Once the VMSS is deployed, the user can deploy an application inside each of the VMs (either by directly logging into the VMs or via a [`remote-exec` provisioner](https://www.terraform.io/docs/provisioners/remote-exec.html)).
-
-_There is a (feature request)[https://github.com/hashicorp/terraform/issues/12889] for Auto Scale Settings, but currently Terraform does not have a resource for this._
-
-The Autoscale rules are configured as follows:
-- sample for CPU (\\Processor\\PercentProcessorTime) in each VM every 1 Minute
-- if the Percent Processor Time is greater than 50% for 5 Minutes, then the scale out action (add more VM instances one at a time) is triggered
-- once the scale out action is completed, the cool down period is 1 Minute
+_Currently there is not a Terraform resource for Auto Scale Settings, but there is a (feature request)[https://github.com/hashicorp/terraform/issues/12889] for them._
 
 ## main.tf
 The `main.tf` file contains the actual resources that will be deployed. It also contains the Azure Resource Group definition and any defined variables.
@@ -27,3 +20,5 @@ If a `terraform.tfvars` file is present in the current directory, Terraform auto
 
 ## variables.tf
 The `variables.tf` file contains all of the input parameters that the user can specify when deploying this Terraform template.
+
+![`terraform graph`](/examples/azure-vmss-ubuntu/graph.png)
