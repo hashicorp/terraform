@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -81,10 +80,6 @@ func (c *InitCommand) Run(args []string) int {
 	if len(args) == 1 {
 		path = args[0]
 	}
-	// Set the state out path to be the path requested for the module
-	// to be copied. This ensures any remote states gets setup in the
-	// proper directory.
-	c.Meta.dataDir = filepath.Join(path, DefaultDataDir)
 
 	// This will track whether we outputted anything so that we know whether
 	// to output a newline before the success message

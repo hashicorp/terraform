@@ -305,12 +305,12 @@ func TestInit_targetSubdir(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	if _, err := os.Stat(filepath.Join(td, "source", DefaultDataDir, DefaultStateFilename)); err != nil {
+	if _, err := os.Stat(filepath.Join(td, DefaultDataDir, DefaultStateFilename)); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// a data directory should not have been added to out working dir
-	if _, err := os.Stat(filepath.Join(td, DefaultDataDir)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(td, "source", DefaultDataDir)); !os.IsNotExist(err) {
 		t.Fatalf("err: %s", err)
 	}
 }
