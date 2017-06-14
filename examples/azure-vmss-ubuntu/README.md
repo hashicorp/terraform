@@ -2,8 +2,6 @@
 
 This template deploys a desired count Linux VM Scale Set. Once the VMSS is deployed, the user can deploy an application inside each of the VMs (either by directly logging into the VMs or via a [`remote-exec` provisioner](https://www.terraform.io/docs/provisioners/remote-exec.html)).
 
-_Currently there is not a Terraform resource for Auto Scale Settings, but there is a (feature request)[https://github.com/hashicorp/terraform/issues/12889] for them._
-
 ## main.tf
 The `main.tf` file contains the actual resources that will be deployed. It also contains the Azure Resource Group definition and any defined variables.
 
