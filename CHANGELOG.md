@@ -16,6 +16,10 @@ IMPROVEMENTS:
 * `terraform env` command renamed to `terraform workspace` [GH-14952]
 * `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
 
+BUG FIXES:
+
+* provisioner/chef: Prevent a panic while trying to read the connection info [GH-15271
+
 ## 0.9.8 (June 7, 2017)
 
 NOTE:
