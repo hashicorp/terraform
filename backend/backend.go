@@ -136,8 +136,9 @@ type Operation struct {
 	// The duration to retry obtaining a State lock.
 	StateLockTimeout time.Duration
 
-	// Environment is the named state that should be loaded from the Backend.
-	Environment string
+	// Workspace is the name of the workspace that this operation should run
+	// in, which controls which named state is used.
+	Workspace string
 }
 
 // RunningOperation is the result of starting an operation.

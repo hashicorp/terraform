@@ -1,20 +1,24 @@
 ## 0.10.0-beta1 (Unreleased)
 
-FEATURES:
+BACKWARDS INCOMPATIBILITIES / NOTES:
 
-* **New Data Source:** `azurerm_resource_group` [GH-15022]
-* **New Resource:** `aws_vpn_gateway_route_propagation` [GH-15137]
-* **New Resource:** `kubernetes_pod` [GH-13571]
+* Terraform providers are no longer distributed as part of the main Terraform distribution. Instead, they are installed automatically
+  as part of running `terraform init`. It is therefore now mandatory to run `terraform init` before any other operations that use
+  provider plugins, to ensure that the required plugins are installed and properly initialized.
+* The `terraform env` family of commands have been renamed to `terraform workspace`, in response to feedback that the previous naming
+  was confusing due to collisions with other concepts of the same name. The commands still work the same as they did before, and
+  the `env` subcommand is still supported as an alias for backward compatibility. The `env` subcommand will be removed altogether in
+  a future release, so it's recommended to update any automation or wrapper scripts that use these commands.
 
 IMPROVEMENTS:
 
-* provider/google: Add an additional delay when checking for sql operations [GH-15170]
-* provider/rancher: Move to Rancher V2 API [GH-13908]
+* Providers no longer in the main Terraform distribution; installed automatically by init instead [GH-15208]
+* `terraform env` command renamed to `terraform workspace` [GH-14952]
+* `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
 
 BUG FIXES:
 
-* provider/aws: fix aws cidr validation error [GH-15158]
-
+* provisioner/chef: Prevent a panic while trying to read the connection info [GH-15271
 
 ## 0.9.8 (June 7, 2017)
 

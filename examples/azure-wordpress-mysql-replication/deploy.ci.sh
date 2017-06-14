@@ -28,7 +28,7 @@ docker run --rm -it \
 
 # cleanup deployed azure resources via azure-cli
 docker run --rm -it \
-  azuresdk/azure-cli-python:0.2.10 \
+  azuresdk/azure-cli-python \
   sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID > /dev/null; \
          az vm list -g $KEY; \
          az webapp show -n $KEY -g $KEY"
