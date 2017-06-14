@@ -11,22 +11,22 @@ git:
 
 # establish environment variables
 env:
-  # - TEST_DIR=examples/azure-wordpress-mysql-replication
-  # - TEST_DIR=examples/azure-2-vms-loadbalancer-lbrules
-  # - TEST_DIR=examples/azure-encrypt-running-linux-vm
-  # - TEST_DIR=examples/azure-servicebus-create-topic-and-subscription
-  # - TEST_DIR=examples/azure-search-create
-  # - TEST_DIR=examples/azure-vnet-to-vnet-peering
-  # - TEST_DIR=examples/azure-vnet-two-subnets
-  # - TEST_DIR=examples/azure-traffic-manager-vm
-  # - TEST_DIR=examples/azure-vm-from-user-image
-  # - TEST_DIR=examples/azure-cdn-with-storage-account
-  # - TEST_DIR=examples/azure-spark-and-cassandra-on-centos
-  # - TEST_DIR=examples/azure-sql-database
+  - TEST_DIR=examples/azure-wordpress-mysql-replication
+  - TEST_DIR=examples/azure-2-vms-loadbalancer-lbrules
+  - TEST_DIR=examples/azure-encrypt-running-linux-vm
+  - TEST_DIR=examples/azure-servicebus-create-topic-and-subscription
+  - TEST_DIR=examples/azure-search-create
+  - TEST_DIR=examples/azure-vnet-to-vnet-peering
+  - TEST_DIR=examples/azure-vnet-two-subnets
+  - TEST_DIR=examples/azure-traffic-manager-vm
+  - TEST_DIR=examples/azure-vm-from-user-image
+  - TEST_DIR=examples/azure-cdn-with-storage-account
+  - TEST_DIR=examples/azure-spark-and-cassandra-on-centos
+  - TEST_DIR=examples/azure-sql-database
   - TEST_DIR=examples/azure-vm-custom-image-new-storage-account
-  # - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
-  # - TEST_DIR=examples/azure-vm-specialized-vhd-existing-vnet
-  # - TEST_DIR=examples/azure-vnet-two-subnets
+  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
+  - TEST_DIR=examples/azure-vm-specialized-vhd-existing-vnet
+  - TEST_DIR=examples/azure-vnet-two-subnets
 
 branches:
   only:
@@ -43,7 +43,6 @@ before_deploy:
   - export EXISTING_RESOURCE_GROUP=permanent
   - export KEY_VAULT_NAME=TerraformVault
   - export EXISTING_VIRTUAL_NETWORK_NAME=permanent-vnet
-  - export EXISTING_SUBNET_ID=/subscriptions/0baf16e2-035c-41fa-aadd-7259dccda244/resourceGroups/permanent/providers/Microsoft.Network/virtualNetworks/permanent-vnet/subnets/permanent-subnet
   - export EXISTING_SUBNET_NAME=permanent-subnet
   - export CUSTOM_WINDOWS_IMAGE_NAME=WindowsImage
   - export CUSTOM_LINUX_IMAGE_NAME=LinuxImage

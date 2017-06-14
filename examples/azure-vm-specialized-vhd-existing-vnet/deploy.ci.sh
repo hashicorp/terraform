@@ -48,7 +48,7 @@ docker run --rm -it \
         -var resource_group=$KEY \
         -var existing_vnet_resource_group=$EXISTING_RESOURCE_GROUP \
         -var admin_password=$PASSWORD \
-        -var existing_subnet_id=$EXISTING_SUBNET_ID \
+        -var existing_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/permanent/providers/Microsoft.Network/virtualNetworks/$EXISTING_VIRTUAL_NETWORK_NAME/subnets/$EXISTING_SUBNET_NAME \
         -var existing_subnet_name=$EXISTING_SUBNET_NAME \
         -var existing_virtual_network_name=$EXISTING_VIRTUAL_NETWORK_NAME \
         -var existing_storage_acct=$EXISTING_STORAGE_ACCOUNT_NAME \

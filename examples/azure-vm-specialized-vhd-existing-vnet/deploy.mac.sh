@@ -12,7 +12,6 @@ if docker -v; then
   export EXISTING_STORAGE_ACCOUNT_NAME=tfpermstor
   export EXISTING_VIRTUAL_NETWORK_NAME=permanent-vnet
   export EXISTING_SUBNET_NAME=permanent-subnet
-  export EXISTING_SUBNET_ID=/subscriptions/0baf16e2-035c-41fa-aadd-7259dccda244/resourceGroups/permanent/providers/Microsoft.Network/virtualNetworks/permanent-vnet/subnets/permanent-subnet
 
   /bin/sh ./deploy.ci.sh
 
