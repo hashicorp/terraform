@@ -43,4 +43,3 @@ docker run --rm -it \
         -target=azurerm_network_interface.nic \
         -target=azurerm_virtual_network.vnet \
         -target=azurerm_public_ip.pip;"
-        
