@@ -28,7 +28,7 @@ From a Linux or Mac, you can just use the `ssh-keygen` command. Once you are fin
 
 You will need to create a Key Vault to store your SSH Private Key that will then be used as part of the deployment.
 
-1. Create Key Vault using Powershell <br/>
+1. **Create Key Vault using Powershell**<br/>
   a.  Create new resource group: New-AzureRMResourceGroup -Name 'ResourceGroupName' -Location 'West US'<br/>
   b.  Create key vault: New-AzureRmKeyVault -VaultName 'KeyVaultName' -ResourceGroup 'ResourceGroupName' -Location 'West US'<br/>
   c.  Create variable with sshPrivateKey: $securesecret = ConvertTo-SecureString -String '[copy ssh Private Key here - including line feeds]' -AsPlainText -Force<br/>
@@ -52,43 +52,14 @@ You will need to create a Key Vault to store your SSH Private Key that will then
          Ex: `az keyvault create -n KeyVaultName -g ResourceGroupName -l 'East US' --enabled-for-template-deployment true`<br/>
   c.  Create Secret: az keyvault secret set --vault-name \<vault-name\> -n \<secret-name\> --file \<private-key-file-name\><br/>
          Ex: `az keyvault secret set --vault-name KeyVaultName -n SecretName --file ~/.ssh/id_rsa`<br/>
-
-### azuredeploy.Parameters.json File Explained
-
-1.  _artifactsLocation: The base URL where artifacts required by this template are located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from `https://raw.githubusercontent.com/Microsoft/openshift-origin/master/` to `https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/`
-2.  masterVmSize: Select from one of the allowed VM sizes listed in the azuredeploy.json file
-3.  nodeVmSize: Select from one of the allowed VM sizes listed in the azuredeploy.json file
-4.  osImage: Select from CentOS or RHEL for the Operating System
-5.  openshiftMasterHostName: Host name for the Master Node. Unique within the Resource Group. Maximum Length is 8 characters
-6.  openshiftMasterPublicIpDnsLabelPrefix: A unique Public DNS name to reference the Master Node by
-7.  nodeLbPublicIpDnsLabelPrefix: A unique Public DNS name to reference the Node Load Balancer by.  Used to access deployed applications
-8.  nodePrefix: prefix to be prepended to create host names for the Nodes. Unique within the Resource Group. Maximum Length is 8 characters
-9.  nodeInstanceCount: Number of Nodes to deploy
-10. adminUsername: Admin username for both OS login and OpenShift login
-11. adminPassword: Password for OpenShift login
-12. sshPublicKey: Copy your SSH Public Key here
-14. keyVaultResourceGroup: The name of the Resource Group that contains the Key Vault
-15. keyVaultName: The name of the Key Vault you created
-16. keyVaultSecret: The Secret Name you used when creating the Secret
-17. defaultSubDomainType: This will either be xipio (if you don't have your own domain) or custom if you have your own domain that you would like to use for routing
-18. defaultSubDomain: The wildcard DNS name you would like to use for routing if you selected custom above.  If you selected xipio above, then this field will be ignored
+3. **Clone the Openshift repository [here](https://github.com/Microsoft/openshift-origin)**<br/>
+  a.  Note the local script path, this will be needed for remote-execs on the remote machines.<br/>
 
 ## Deploy Template
 
-Once you have collected all of the prerequisites for the template, you can deploy the template by populating the *azuredeploy.parameters.local.json* file and executing Resource Manager deployment commands with PowerShell or the CLI.
+Once you have collected all of the prerequisites for the template, you can deploy the template via terraform.
 
-For Azure CLI 2.0, sample commands:
-
-```bash
-az group create --name OpenShiftTestRG --location WestUS2
-```
-while in the folder where your local fork resides
-
-```bash
-az group deployment create --resource-group OpenShiftTestRG --template-file azuredeploy.json --parameters @azuredeploy.parameters.local.json --no-wait
-```
-
-Monitor deployment via CLI or Portal and get the console URL from outputs of successful deployment which will look something like (if using sample parameters file and "West US 2" location):
+Monitor deployment via Terraform and get the console URL from outputs of successful deployment which will look something like (if using sample parameters file and "West US 2" location):
 
 `https://me-master1.westus2.cloudapp.azure.com:8443/console`
 
@@ -98,6 +69,9 @@ The cluster will use self-signed certificates. Accept the warning and proceed to
 
 Ensure combination of openshiftMasterPublicIpDnsLabelPrefix, and nodeLbPublicIpDnsLabelPrefix parameters, combined with the deployment location give you globally unique URL for the cluster or deployment will fail at the step of allocating public IPs with fully-qualified-domain-names as above.
 
+### NOTE
+
+This template deploys a bastion host, merely for the connection provisioner and allowing remote-exec to run commands on machines without public IPs; notice the specific dependencies on the order in which VMs are created for this to work properly.
 
 ### NOTE
 
