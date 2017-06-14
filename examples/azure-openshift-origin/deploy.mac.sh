@@ -6,8 +6,7 @@ if docker -v; then
 
   # generate a unique string for CI deployment
   export KEY=$(cat /dev/urandom | env LC_CTYPE=C tr -cd 'a-z' | head -c 12)
-  # export KEY=xmyvxjychlzg
-  export PASSWORD="P4ssw0rd1!"
+  export PASSWORD="P4ssw0rd1"
   export KEY_VAULT_RESOURCE_GROUP=permanent
   export KEY_VAULT_NAME=TerraformVault
   export KEY_VAULT_SECRET=OpenShiftSSH
