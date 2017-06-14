@@ -32,4 +32,4 @@ docker run --rm -it \
   --workdir=/data \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
-  -c "/bin/terraform plan -out=out.tfplan -var admin_username=$KEY -var hostname=$KEY -var vmss_name=$KEY -var resource_group=$KEY -var admin_password=$PASSWORD;"
+  -c "/bin/terraform destroy -force -var resource_group=$KEY -var admin_username=$KEY -var hostname=$KEY -var vmss_name=$KEY -var admin_password=$PASSWORD;"
