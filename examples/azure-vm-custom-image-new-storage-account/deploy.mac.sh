@@ -11,6 +11,7 @@ if docker -v; then
   export EXISTING_WINDOWS_IMAGE_URI=https://tfpermstor.blob.core.windows.net/vhds/osdisk_alBZrO4OlX.vhd
   export EXISTING_STORAGE_ACCOUNT_NAME=donotdeletedisks636
   export CUSTOM_WINDOWS_IMAGE_NAME=WindowsImage
+  export WINDOWS_DISK_NAME=osdisk_alBZrO4OlX
 
   /bin/sh ./deploy.ci.sh
 

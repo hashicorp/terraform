@@ -11,22 +11,22 @@ git:
 
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-wordpress-mysql-replication
-  - TEST_DIR=examples/azure-2-vms-loadbalancer-lbrules
-  - TEST_DIR=examples/azure-encrypt-running-linux-vm
-  - TEST_DIR=examples/azure-servicebus-create-topic-and-subscription
-  - TEST_DIR=examples/azure-search-create
-  - TEST_DIR=examples/azure-vnet-to-vnet-peering
-  - TEST_DIR=examples/azure-vnet-two-subnets
-  - TEST_DIR=examples/azure-traffic-manager-vm
-  - TEST_DIR=examples/azure-vm-from-user-image
-  - TEST_DIR=examples/azure-cdn-with-storage-account
-  - TEST_DIR=examples/azure-spark-and-cassandra-on-centos
-  - TEST_DIR=examples/azure-sql-database
+  # - TEST_DIR=examples/azure-wordpress-mysql-replication
+  # - TEST_DIR=examples/azure-2-vms-loadbalancer-lbrules
+  # - TEST_DIR=examples/azure-encrypt-running-linux-vm
+  # - TEST_DIR=examples/azure-servicebus-create-topic-and-subscription
+  # - TEST_DIR=examples/azure-search-create
+  # - TEST_DIR=examples/azure-vnet-to-vnet-peering
+  # - TEST_DIR=examples/azure-vnet-two-subnets
+  # - TEST_DIR=examples/azure-traffic-manager-vm
+  # - TEST_DIR=examples/azure-vm-from-user-image
+  # - TEST_DIR=examples/azure-cdn-with-storage-account
+  # - TEST_DIR=examples/azure-spark-and-cassandra-on-centos
+  # - TEST_DIR=examples/azure-sql-database
   - TEST_DIR=examples/azure-vm-custom-image-new-storage-account
-  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
-  - TEST_DIR=examples/azure-vm-specialized-vhd-existing-vnet
-  - TEST_DIR=examples/azure-vnet-two-subnets
+  # - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
+  # - TEST_DIR=examples/azure-vm-specialized-vhd-existing-vnet
+  # - TEST_DIR=examples/azure-vnet-two-subnets
 
 branches:
   only:
@@ -39,6 +39,7 @@ before_deploy:
   - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
   - export EXISTING_LINUX_IMAGE_URI=https://tfpermstor.blob.core.windows.net/vhds/osdisk_fmF5O5MxlR.vhd
   - export EXISTING_WINDOWS_IMAGE_URI=https://tfpermstor.blob.core.windows.net/vhds/osdisk_alBZrO4OlX.vhd
+  - export WINDOWS_DISK_NAME=osdisk_alBZrO4OlX
   - export EXISTING_STORAGE_ACCOUNT_NAME=tfpermstor
   - export EXISTING_RESOURCE_GROUP=permanent
   - export KEY_VAULT_NAME=TerraformVault
