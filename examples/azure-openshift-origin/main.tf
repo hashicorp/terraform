@@ -539,14 +539,6 @@ resource "azurerm_virtual_machine" "master" {
     destination = "deployOpenShift.sh"
   }
 
-  # provisioner "remote-exec" {
-  #   inline = [
-  #     "chmod +x masterPrep.sh",
-  #     "chmod +x deployOpenShift.sh",
-  #     "sudo bash masterPrep.sh \"${azurerm_storage_account.persistent_volume_storage_account.name}\" \"${var.admin_username}\" && sudo bash deployOpenShift.sh \"${var.admin_username}\" \"${var.openshift_password}\" \"${file(var.connection_private_ssh_key_path)}\" \"${var.openshift_cluster_prefix}-master\" \"${azurerm_public_ip.openshift_master_pip.fqdn}\" \"${azurerm_public_ip.openshift_master_pip.ip_address}\" \"${var.openshift_cluster_prefix}-infra\" \"${var.openshift_cluster_prefix}-node\" \"${var.node_instance_count}\" \"${var.infra_instance_count}\" \"${var.master_instance_count}\" \"${var.default_sub_domain_type}\" \"${azurerm_storage_account.registry_storage_account.name}\" \"${azurerm_storage_account.registry_storage_account.primary_access_key}\" \"${var.tenant_id}\" \"${var.subscription_id}\" \"${var.aad_client_id}\" \"${var.aad_client_secret}\" \"${azurerm_resource_group.rg.name}\" \"${azurerm_resource_group.rg.location}\" \"${azurerm_storage_account.persistent_volume_storage_account.name}\" \"${azurerm_storage_account.persistent_volume_storage_account.primary_access_key}\" 3>&1 1>&2 2>&3 1>>out.txt | tee -a out.txt"
-  #   ]
-  # }
-
   provisioner "remote-exec" {
     inline = [
       "chmod +x masterPrep.sh",
