@@ -1,10 +1,10 @@
 # provider "azurerm" {
-#   subscription_id = "REPLACE-WITH-YOUR-SUBSCRIPTION-ID"
-#   client_id       = "REPLACE-WITH-YOUR-CLIENT-ID"
-#   client_secret   = "REPLACE-WITH-YOUR-CLIENT-SECRET"
-#   tenant_id       = "REPLACE-WITH-YOUR-TENANT-ID"
+#   subscription_id = "${var.subscription_id}"
+#   client_id       = "${var.client_id}"
+#   client_secret   = "${var.client_secret}"
+#   tenant_id       = "${var.tenant_id}"
 # }
-
+    
 resource "azurerm_resource_group" "rg" {
   name     = "${var.resource_group}"
   location = "${var.location}"
@@ -15,11 +15,6 @@ resource "azurerm_virtual_network" "vnet" {
   location            = "${azurerm_resource_group.rg.location}"
   address_space       = ["10.0.0.0/16"]
   resource_group_name = "${azurerm_resource_group.rg.name}"
-
-  subnet {
-    name           = "subnet"
-    address_prefix = "10.0.0.0/24"
-  }
 }
 
 resource "azurerm_subnet" "subnet" {
@@ -29,27 +24,23 @@ resource "azurerm_subnet" "subnet" {
   virtual_network_name = "${azurerm_virtual_network.vnet.name}"
 }
 
-resource "azurerm_network_interface" "nic" {
-  name                = "${var.hostname}nic"
-  location            = "${azurerm_resource_group.rg.location}"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-
-  ip_configuration {
-    name                          = "${var.hostname}ipconfig"
-    subnet_id                     = "${azurerm_subnet.subnet.id}"
-    private_ip_address_allocation = "Dynamic"
-    subnet_id                     = "${azurerm_subnet.subnet.id}"
-  }
+resource "azurerm_public_ip" "pip" {
+  name                         = "${var.hostname}-pip"
+  location                     = "${azurerm_resource_group.rg.location}"
+  resource_group_name          = "${azurerm_resource_group.rg.name}"
+  public_ip_address_allocation = "Dynamic"
+  domain_name_label            = "${var.hostname}"
 }
 
 resource "azurerm_lb" "lb" {
   name                = "LoadBalancer"
   location            = "${azurerm_resource_group.rg.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
+  depends_on          = ["azurerm_public_ip.pip"]
 
   frontend_ip_configuration {
-    name      = "LBFrontEnd"
-    subnet_id = "${azurerm_subnet.subnet.id}"
+    name                 = "LBFrontEnd"
+    public_ip_address_id = "${azurerm_public_ip.pip.id}"
   }
 }
 
@@ -90,6 +81,7 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
   upgrade_policy_mode = "Manual"
   overprovision       = true
+  depends_on          = ["azurerm_lb.lb", "azurerm_virtual_network.vnet"]
 
   sku {
     name     = "${var.vm_sku}"
@@ -108,20 +100,19 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
   }
 
   network_profile {
-    name    = "${azurerm_network_interface.nic.name}"
+    name    = "${var.hostname}-nic"
     primary = true
 
     ip_configuration {
-      name                                   = "IPConfiguration"
+      name                                   = "${var.hostname}ipconfig"
       subnet_id                              = "${azurerm_subnet.subnet.id}"
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.backlb.id}"]
-      # Terraform currently does not have a way to specify these IDs.
-      # load_balancer_inbound_nat_pool_ids     = ["${azurerm_lb_nat_pool.np.id}"]
+      load_balancer_inbound_nat_rules_ids    = ["${element(azurerm_lb_nat_pool.np.*.id, count.index)}"]
     }
   }
 
   storage_profile_os_disk {
-    name           = "osDiskProfile"
+    name           = "${var.hostname}"
     caching        = "ReadWrite"
     create_option  = "FromImage"
     vhd_containers = ["${azurerm_storage_account.stor.primary_blob_endpoint}${azurerm_storage_container.vhds.name}"]

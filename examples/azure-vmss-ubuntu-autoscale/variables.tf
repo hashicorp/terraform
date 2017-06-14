@@ -1,3 +1,8 @@
+# variable "subscription_id" {}
+# variable "client_id" {}
+# variable "client_secret" {}
+# variable "tenant_id" {}
+
 variable "resource_group" {
   description = "The name of the resource group in which to create the virtual network."
 }
