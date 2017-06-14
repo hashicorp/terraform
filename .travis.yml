@@ -11,6 +11,8 @@ git:
 
 # establish environment variables
 env:
+  # - TEST_DIR=examples/azure-openshift-origin
+  # - TEST_DIR=examples/azure-vmss-ubuntu
   - TEST_DIR=examples/azure-wordpress-mysql-replication
   - TEST_DIR=examples/azure-2-vms-loadbalancer-lbrules
   - TEST_DIR=examples/azure-encrypt-running-linux-vm
