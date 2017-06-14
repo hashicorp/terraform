@@ -15,18 +15,27 @@ variable "tenant_id" {
   description = "Tenant ID with access to your key vault and subscription"
 }
 
-variable "artifacts_location" {
-  description = "The base URL where artifacts required by this template are located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from https://raw.githubusercontent.com/Microsoft/openshift-origin/master/ to https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/"
-  default     = "https://raw.githubusercontent.com/Microsoft/openshift-origin/b0bfbf25a7832fac424c0807a92fd15508364ffe/"
+variable "openshift_script_path" {
+  description = "Local path to openshift scripts to prep nodes and install openshift origin"
 }
 
-variable "openshift_artifacts_location" {
-  description = "The base URL where the deployOpenShift.sh script which is required by this template is located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from https://raw.githubusercontent.com/Microsoft/openshift-origin/master/ to https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/"
-}
+# variable "artifacts_location" {
+#   description = "The base URL where artifacts required by this template are located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from https://raw.githubusercontent.com/Microsoft/openshift-origin/master/ to https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/"
+#   default     = "https://raw.githubusercontent.com/Microsoft/openshift-origin/b0bfbf25a7832fac424c0807a92fd15508364ffe/"
+# }
+#
+# variable "openshift_artifacts_location" {
+#   description = "The base URL where the deployOpenShift.sh script which is required by this template is located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from https://raw.githubusercontent.com/Microsoft/openshift-origin/master/ to https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/"
+# }
 
 variable "os_image" {
   description = "Select from CentOS (centos) or RHEL (rhel) for the Operating System"
   default     = "centos"
+}
+
+variable "bastion_vm_size" {
+  description = "Size of the Bastion Virtual Machine. Allowed values: Standard_A4, Standard_A5, Standard_A6, Standard_A7, Standard_A8, Standard_A9, Standard_A10, Standard_A11, Standard_D1, Standard_D2, Standard_D3, Standard_D4, Standard_D11, Standard_D12, Standard_D13, Standard_D14, Standard_D1_v2, Standard_D2_v2, Standard_D3_v2, Standard_D4_v2, Standard_D5_v2, Standard_D11_v2, Standard_D12_v2, Standard_D13_v2, Standard_D14_v2, Standard_G1, Standard_G2, Standard_G3, Standard_G4, Standard_G5, Standard_D1_v2, Standard_DS2, Standard_DS3, Standard_DS4, Standard_DS11, Standard_DS12, Standard_DS13, Standard_DS14, Standard_DS1_v2, Standard_DS2_v2, Standard_DS3_v2, Standard_DS4_v2, Standard_DS5_v2, Standard_DS11_v2, Standard_DS12_v2, Standard_DS13_v2, Standard_DS14_v2, Standard_GS1, Standard_GS2, Standard_GS3, Standard_GS4, Standard_GS5"
+  default     = "Standard_D2_v2"
 }
 
 variable "master_vm_size" {
@@ -116,7 +125,7 @@ variable "os_image_map" {
     centos_version   = "latest"
     rhel_publisher   = "RedHat"
     rhel_offer       = "RHEL"
-    rhel_sku         = "7.3"
+    rhel_sku         = "7.2"
     rhel_version     = "latest"
   }
 }
@@ -163,12 +172,16 @@ variable "ssh_public_key" {
   description = "Path to your SSH Public Key"
 }
 
-variable "ssh_private_key" {
-  description = "Name of your SSH Private Key"
-}
+# variable "ssh_private_key" {
+#   description = "Name of your SSH Private Key"
+# }
 
-variable "ssh_private_key_id" {
-  description = "SSH Private Key id"
+# variable "ssh_private_key_id" {
+#   description = "SSH Private Key id"
+# }
+
+variable "connection_private_ssh_key_path" {
+  description = "Path to the private ssh key used to connect to machines within the OpenShift cluster."
 }
 
 variable "key_vault_resource_group" {

@@ -149,6 +149,13 @@ resource "azurerm_network_security_group" "node_nsg" {
 
 # ******* STORAGE ACCOUNTS ***********
 
+resource "azurerm_storage_account" "bastion_storage_account" {
+  name                = "${var.openshift_cluster_prefix}bsa"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+  account_type        = "${var.storage_account_type_map["${var.bastion_vm_size}"]}"
+}
+
 resource "azurerm_storage_account" "master_storage_account" {
   name                = "${var.openshift_cluster_prefix}msa"
   resource_group_name = "${azurerm_resource_group.rg.name}"
@@ -191,13 +198,6 @@ resource "azurerm_storage_account" "persistent_volume_storage_account" {
   account_type        = "Standard_LRS"
 }
 
-resource "azurerm_storage_container" "vhds" {
-  name                  = "vhds"
-  resource_group_name   = "${azurerm_resource_group.rg.name}"
-  storage_account_name  = "${azurerm_storage_account.persistent_volume_storage_account.name}"
-  container_access_type = "private"
-}
-
 # ******* AVAILABILITY SETS ***********
 
 resource "azurerm_availability_set" "master" {
@@ -219,6 +219,14 @@ resource "azurerm_availability_set" "node" {
 }
 
 # ******* IP ADDRESSES ***********
+
+resource "azurerm_public_ip" "bastion_pip" {
+  name                         = "bastionpip"
+  resource_group_name          = "${azurerm_resource_group.rg.name}"
+  location                     = "${azurerm_resource_group.rg.location}"
+  public_ip_address_allocation = "Static"
+  domain_name_label            = "${var.openshift_cluster_prefix}-bastion"
+}
 
 resource "azurerm_public_ip" "openshift_master_pip" {
   name                         = "masterpip"
@@ -391,13 +399,26 @@ resource "azurerm_lb_rule" "infra_lb_https" {
 
 # ******* NETWORK INTERFACES ***********
 
+resource "azurerm_network_interface" "bastion_nic" {
+  name                      = "bastionnic${count.index}"
+  location                  = "${azurerm_resource_group.rg.location}"
+  resource_group_name       = "${azurerm_resource_group.rg.name}"
+  network_security_group_id = "${azurerm_network_security_group.master_nsg.id}"
+
+  ip_configuration {
+    name                          = "bastionip${count.index}"
+    subnet_id                     = "${azurerm_subnet.master_subnet.id}"
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = "${azurerm_public_ip.bastion_pip.id}"
+  }
+}
+
 resource "azurerm_network_interface" "master_nic" {
   name                      = "masternic${count.index}"
   location                  = "${azurerm_resource_group.rg.location}"
   resource_group_name       = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.master_nsg.id}"
   count                     = "${var.master_instance_count}"
-  depends_on                = ["azurerm_subnet.master_subnet", "azurerm_lb.master_lb", "azurerm_lb_backend_address_pool.master_lb"]
 
   ip_configuration {
     name                                    = "masterip${count.index}"
@@ -414,7 +435,6 @@ resource "azurerm_network_interface" "infra_nic" {
   resource_group_name       = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.infra_nsg.id}"
   count                     = "${var.infra_instance_count}"
-  depends_on                = ["azurerm_subnet.master_subnet", "azurerm_lb.infra_lb", "azurerm_lb_backend_address_pool.infra_lb", "azurerm_network_security_group.infra_nsg"]
 
   ip_configuration {
     name                                    = "infraip${count.index}"
@@ -430,7 +450,6 @@ resource "azurerm_network_interface" "node_nic" {
   resource_group_name       = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.node_nsg.id}"
   count                     = "${var.node_instance_count}"
-  depends_on                = ["azurerm_subnet.node_subnet", "azurerm_network_security_group.node_nsg"]
 
   ip_configuration {
     name                          = "nodeip${count.index}"
@@ -439,20 +458,101 @@ resource "azurerm_network_interface" "node_nic" {
   }
 }
 
+# ******* Bastion Host *******
+
+resource "azurerm_virtual_machine" "bastion" {
+  name                             = "${var.openshift_cluster_prefix}-bastion-1"
+  location                         = "${azurerm_resource_group.rg.location}"
+  resource_group_name              = "${azurerm_resource_group.rg.name}"
+  network_interface_ids            = ["${azurerm_network_interface.bastion_nic.id}"]
+  vm_size                          = "${var.bastion_vm_size}"
+  delete_os_disk_on_termination    = true
+  delete_data_disks_on_termination = true
+
+  tags {
+    displayName = "${var.openshift_cluster_prefix}-bastion VM Creation"
+  }
+
+  os_profile {
+    computer_name  = "${var.openshift_cluster_prefix}-bastion-${count.index}"
+    admin_username = "${var.admin_username}"
+    admin_password = "${var.openshift_password}"
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = true
+
+    ssh_keys {
+      path     = "/home/${var.admin_username}/.ssh/authorized_keys"
+      key_data = "${var.ssh_public_key}"
+    }
+  }
+
+  storage_image_reference {
+    publisher = "${lookup(var.os_image_map, join("_publisher", list(var.os_image, "")))}"
+    offer     = "${lookup(var.os_image_map, join("_offer", list(var.os_image, "")))}"
+    sku       = "${lookup(var.os_image_map, join("_sku", list(var.os_image, "")))}"
+    version   = "${lookup(var.os_image_map, join("_version", list(var.os_image, "")))}"
+  }
+
+  storage_os_disk {
+    name          = "${var.openshift_cluster_prefix}-master-osdisk${count.index}"
+    vhd_uri       = "${azurerm_storage_account.bastion_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-bastion-osdisk.vhd"
+    caching       = "ReadWrite"
+    create_option = "FromImage"
+    disk_size_gb  = 60
+  }
+}
+
 # ******* Master VMs *******
 
 resource "azurerm_virtual_machine" "master" {
-  name                  = "${var.openshift_cluster_prefix}-master-${count.index}"
-  location              = "${azurerm_resource_group.rg.location}"
-  resource_group_name   = "${azurerm_resource_group.rg.name}"
-  availability_set_id   = "${azurerm_availability_set.master.id}"
-  network_interface_ids = ["${element(azurerm_network_interface.master_nic.*.id, count.index)}"]
-  vm_size               = "${var.master_vm_size}"
-  count                 = "${var.master_instance_count}"
-  depends_on            = ["azurerm_network_interface.master_nic", "azurerm_availability_set.master"]
+  name                             = "${var.openshift_cluster_prefix}-master-${count.index}"
+  location                         = "${azurerm_resource_group.rg.location}"
+  resource_group_name              = "${azurerm_resource_group.rg.name}"
+  availability_set_id              = "${azurerm_availability_set.master.id}"
+  network_interface_ids            = ["${element(azurerm_network_interface.master_nic.*.id, count.index)}"]
+  vm_size                          = "${var.master_vm_size}"
+  delete_os_disk_on_termination    = true
+  delete_data_disks_on_termination = true
+  count                            = "${var.master_instance_count}"
+  depends_on                       = ["azurerm_virtual_machine.infra", "azurerm_virtual_machine.node"]
 
   tags {
     displayName = "${var.openshift_cluster_prefix}-master VM Creation"
+  }
+
+  connection {
+    host        = "${azurerm_public_ip.openshift_master_pip.fqdn}"
+    user        = "${var.admin_username}"
+    port        = 2200
+    private_key = "${file(var.connection_private_ssh_key_path)}"
+  }
+
+  provisioner "file" {
+    source      = "${var.openshift_script_path}/masterPrep.sh"
+    destination = "masterPrep.sh"
+  }
+
+  provisioner "file" {
+    source      = "${var.openshift_script_path}/deployOpenShift.sh"
+    destination = "deployOpenShift.sh"
+  }
+
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "chmod +x masterPrep.sh",
+  #     "chmod +x deployOpenShift.sh",
+  #     "sudo bash masterPrep.sh \"${azurerm_storage_account.persistent_volume_storage_account.name}\" \"${var.admin_username}\" && sudo bash deployOpenShift.sh \"${var.admin_username}\" \"${var.openshift_password}\" \"${file(var.connection_private_ssh_key_path)}\" \"${var.openshift_cluster_prefix}-master\" \"${azurerm_public_ip.openshift_master_pip.fqdn}\" \"${azurerm_public_ip.openshift_master_pip.ip_address}\" \"${var.openshift_cluster_prefix}-infra\" \"${var.openshift_cluster_prefix}-node\" \"${var.node_instance_count}\" \"${var.infra_instance_count}\" \"${var.master_instance_count}\" \"${var.default_sub_domain_type}\" \"${azurerm_storage_account.registry_storage_account.name}\" \"${azurerm_storage_account.registry_storage_account.primary_access_key}\" \"${var.tenant_id}\" \"${var.subscription_id}\" \"${var.aad_client_id}\" \"${var.aad_client_secret}\" \"${azurerm_resource_group.rg.name}\" \"${azurerm_resource_group.rg.location}\" \"${azurerm_storage_account.persistent_volume_storage_account.name}\" \"${azurerm_storage_account.persistent_volume_storage_account.primary_access_key}\" 3>&1 1>&2 2>&3 1>>out.txt | tee -a out.txt"
+  #   ]
+  # }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x masterPrep.sh",
+      "chmod +x deployOpenShift.sh",
+      "sudo bash masterPrep.sh \"${azurerm_storage_account.persistent_volume_storage_account.name}\" \"${var.admin_username}\" && sudo bash deployOpenShift.sh \"${var.admin_username}\" \"'${var.openshift_password}'\" \"${var.key_vault_secret}\" \"${var.openshift_cluster_prefix}-master\" \"${azurerm_public_ip.openshift_master_pip.fqdn}\" \"${azurerm_public_ip.openshift_master_pip.ip_address}\" \"${var.openshift_cluster_prefix}-infra\" \"${var.openshift_cluster_prefix}-node\" \"${var.node_instance_count}\" \"${var.infra_instance_count}\" \"${var.master_instance_count}\" \"${var.default_sub_domain_type}\" \"${azurerm_storage_account.registry_storage_account.name}\" \"${azurerm_storage_account.registry_storage_account.primary_access_key}\" \"${var.tenant_id}\" \"${var.subscription_id}\" \"${var.aad_client_id}\" \"${var.aad_client_secret}\" \"${azurerm_resource_group.rg.name}\" \"${azurerm_resource_group.rg.location}\" \"${var.key_vault_name}\""
+    ]
   }
 
   os_profile {
@@ -479,7 +579,7 @@ resource "azurerm_virtual_machine" "master" {
 
   storage_os_disk {
     name          = "${var.openshift_cluster_prefix}-master-osdisk${count.index}"
-    vhd_uri       = "${azurerm_storage_account.master_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-master-osdisk.vhd"
+    vhd_uri       = "${azurerm_storage_account.master_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-master-osdisk${count.index}.vhd"
     caching       = "ReadWrite"
     create_option = "FromImage"
     disk_size_gb  = 60
@@ -487,7 +587,7 @@ resource "azurerm_virtual_machine" "master" {
 
   storage_data_disk {
     name          = "${var.openshift_cluster_prefix}-master-docker-pool${count.index}"
-    vhd_uri       = "${azurerm_storage_account.master_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-master-docker-pool.vhd"
+    vhd_uri       = "${azurerm_storage_account.master_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-master-docker-pool${count.index}.vhd"
     disk_size_gb  = "${var.data_disk_size}"
     create_option = "Empty"
     lun           = 0
@@ -497,17 +597,40 @@ resource "azurerm_virtual_machine" "master" {
 # ******* Infra VMs *******
 
 resource "azurerm_virtual_machine" "infra" {
-  name                  = "${var.openshift_cluster_prefix}-infra-${count.index}"
-  location              = "${azurerm_resource_group.rg.location}"
-  resource_group_name   = "${azurerm_resource_group.rg.name}"
-  availability_set_id   = "${azurerm_availability_set.infra.id}"
-  network_interface_ids = ["${element(azurerm_network_interface.infra_nic.*.id, count.index)}"]
-  vm_size               = "${var.infra_vm_size}"
-  count                 = "${var.infra_instance_count}"
-  depends_on            = ["azurerm_network_interface.infra_nic", "azurerm_availability_set.infra"]
+  name                             = "${var.openshift_cluster_prefix}-infra-${count.index}"
+  location                         = "${azurerm_resource_group.rg.location}"
+  resource_group_name              = "${azurerm_resource_group.rg.name}"
+  availability_set_id              = "${azurerm_availability_set.infra.id}"
+  network_interface_ids            = ["${element(azurerm_network_interface.infra_nic.*.id, count.index)}"]
+  vm_size                          = "${var.infra_vm_size}"
+  delete_os_disk_on_termination    = true
+  delete_data_disks_on_termination = true
+  count                            = "${var.infra_instance_count}"
 
   tags {
     displayName = "${var.openshift_cluster_prefix}-infra VM Creation"
+  }
+
+  connection {
+    type                = "ssh"
+    bastion_host        = "${azurerm_public_ip.bastion_pip.fqdn}"
+    bastion_user        = "${var.admin_username}"
+    bastion_private_key = "${file(var.connection_private_ssh_key_path)}"
+    host                = "${element(azurerm_network_interface.infra_nic.*.private_ip_address, count.index)}"
+    user                = "${var.admin_username}"
+    private_key         = "${file(var.connection_private_ssh_key_path)}"
+  }
+
+  provisioner "file" {
+    source      = "${var.openshift_script_path}/nodePrep.sh"
+    destination = "nodePrep.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x nodePrep.sh",
+      "sudo bash nodePrep.sh",
+    ]
   }
 
   os_profile {
@@ -534,34 +657,57 @@ resource "azurerm_virtual_machine" "infra" {
 
   storage_os_disk {
     name          = "${var.openshift_cluster_prefix}-infra-osdisk${count.index}"
-    vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-infra-osdisk.vhd"
+    vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-infra-osdisk${count.index}.vhd"
     caching       = "ReadWrite"
     create_option = "FromImage"
   }
 
   storage_data_disk {
     name          = "${var.openshift_cluster_prefix}-infra-docker-pool"
-    vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-infra-docker-pool.vhd"
+    vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-infra-docker-pool${count.index}.vhd"
     disk_size_gb  = "${var.data_disk_size}"
     create_option = "Empty"
     lun           = 0
   }
 }
 
-# # ******* Node VMs *******
+# ******* Node VMs *******
 
 resource "azurerm_virtual_machine" "node" {
-  name                  = "${var.openshift_cluster_prefix}-node-${count.index}"
-  location              = "${azurerm_resource_group.rg.location}"
-  resource_group_name   = "${azurerm_resource_group.rg.name}"
-  availability_set_id   = "${azurerm_availability_set.node.id}"
-  network_interface_ids = ["${element(azurerm_network_interface.node_nic.*.id, count.index)}"]
-  vm_size               = "${var.node_vm_size}"
-  count                 = "${var.node_instance_count}"
-  depends_on            = ["azurerm_network_interface.node_nic", "azurerm_availability_set.node"]
+  name                             = "${var.openshift_cluster_prefix}-node-${count.index}"
+  location                         = "${azurerm_resource_group.rg.location}"
+  resource_group_name              = "${azurerm_resource_group.rg.name}"
+  availability_set_id              = "${azurerm_availability_set.node.id}"
+  network_interface_ids            = ["${element(azurerm_network_interface.node_nic.*.id, count.index)}"]
+  vm_size                          = "${var.node_vm_size}"
+  delete_os_disk_on_termination    = true
+  delete_data_disks_on_termination = true
+  count                            = "${var.node_instance_count}"
 
   tags {
     displayName = "${var.openshift_cluster_prefix}-node VM Creation"
+  }
+
+  connection {
+    type                = "ssh"
+    bastion_host        = "${azurerm_public_ip.bastion_pip.fqdn}"
+    bastion_user        = "${var.admin_username}"
+    bastion_private_key = "${file(var.connection_private_ssh_key_path)}"
+    host                = "${element(azurerm_network_interface.node_nic.*.private_ip_address, count.index)}"
+    user                = "${var.admin_username}"
+    private_key         = "${file(var.connection_private_ssh_key_path)}"
+  }
+
+  provisioner "file" {
+    source      = "${var.openshift_script_path}/nodePrep.sh"
+    destination = "nodePrep.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x nodePrep.sh",
+      "sudo bash nodePrep.sh",
+    ]
   }
 
   os_profile {
@@ -588,14 +734,14 @@ resource "azurerm_virtual_machine" "node" {
 
   storage_os_disk {
     name          = "${var.openshift_cluster_prefix}-node-osdisk"
-    vhd_uri       = "${azurerm_storage_account.nodeos_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-node-osdisk.vhd"
+    vhd_uri       = "${azurerm_storage_account.nodeos_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-node-osdisk${count.index}.vhd"
     caching       = "ReadWrite"
     create_option = "FromImage"
   }
 
   storage_data_disk {
     name          = "${var.openshift_cluster_prefix}-node-docker-pool${count.index}"
-    vhd_uri       = "${azurerm_storage_account.nodeos_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-node-docker-pool.vhd"
+    vhd_uri       = "${azurerm_storage_account.nodeos_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-node-docker-pool${count.index}.vhd"
     disk_size_gb  = "${var.data_disk_size}"
     create_option = "Empty"
     lun           = 0
@@ -604,81 +750,85 @@ resource "azurerm_virtual_machine" "node" {
 
 # ******* VM EXTENSIONS *******
 
-resource "azurerm_virtual_machine_extension" "deploy_open_shift_master" {
-  name                       = "masterOpShExt${count.index}"
-  location                   = "${azurerm_resource_group.rg.location}"
-  resource_group_name        = "${azurerm_resource_group.rg.name}"
-  virtual_machine_name       = "${element(azurerm_virtual_machine.master.*.name, count.index)}"
-  publisher                  = "Microsoft.Azure.Extensions"
-  type                       = "CustomScript"
-  type_handler_version       = "2.0"
-  auto_upgrade_minor_version = true
-  depends_on                 = ["azurerm_virtual_machine.master", "azurerm_virtual_machine_extension.node_prep", "azurerm_storage_container.vhds", "azurerm_virtual_machine_extension.deploy_infra"]
 
-  settings = <<SETTINGS
-{
-  "fileUris": [
-		"${var.artifacts_location}scripts/masterPrep.sh", 
-    "${var.openshift_artifacts_location}scripts/deployOpenShift.sh"
-	]
-}
-SETTINGS
+# resource "azurerm_virtual_machine_extension" "deploy_open_shift_master" {
+#   name                       = "masterOpShExt${count.index}"
+#   location                   = "${azurerm_resource_group.rg.location}"
+#   resource_group_name        = "${azurerm_resource_group.rg.name}"
+#   virtual_machine_name       = "${element(azurerm_virtual_machine.master.*.name, count.index)}"
+#   publisher                  = "Microsoft.Azure.Extensions"
+#   type                       = "CustomScript"
+#   type_handler_version       = "2.0"
+#   auto_upgrade_minor_version = true
+#   depends_on                 = ["azurerm_virtual_machine.master", "azurerm_virtual_machine_extension.node_prep", "azurerm_storage_container.vhds", "azurerm_virtual_machine_extension.deploy_infra"]
+#
+#   settings = <<SETTINGS
+# {
+#   "fileUris": [
+# 		"${var.artifacts_location}scripts/masterPrep.sh",
+#     "${var.artifacts_location}scripts/deployOpenShift.sh"
+# 	]
+# }
+# SETTINGS
+#
+#   protected_settings = <<SETTINGS
+#  {
+#    "commandToExecute": "bash masterPrep.sh ${azurerm_storage_account.persistent_volume_storage_account.name} ${var.admin_username} && bash deployOpenShift.sh \"${var.admin_username}\" '${var.openshift_password}' \"${var.key_vault_secret}\" \"${var.openshift_cluster_prefix}-master\" \"${azurerm_public_ip.openshift_master_pip.fqdn}\" \"${azurerm_public_ip.openshift_master_pip.ip_address}\" \"${var.openshift_cluster_prefix}-infra\" \"${var.openshift_cluster_prefix}-node\" \"${var.node_instance_count}\" \"${var.infra_instance_count}\" \"${var.master_instance_count}\" \"${var.default_sub_domain_type}\" \"${azurerm_storage_account.registry_storage_account.name}\" \"${azurerm_storage_account.registry_storage_account.primary_access_key}\" \"${var.tenant_id}\" \"${var.subscription_id}\" \"${var.aad_client_id}\" \"${var.aad_client_secret}\" \"${azurerm_resource_group.rg.name}\" \"${azurerm_resource_group.rg.location}\" \"${var.key_vault_name}\""
+#  }
+# SETTINGS
+# }
 
-  protected_settings = <<SETTINGS
- {
-   "commandToExecute": "bash masterPrep.sh ${azurerm_storage_account.persistent_volume_storage_account.name} ${var.admin_username} && bash deployOpenShift.sh \"${var.admin_username}\" '${var.openshift_password}' \"${var.key_vault_secret}\" \"${var.openshift_cluster_prefix}-master\" \"${azurerm_public_ip.openshift_master_pip.fqdn}\" \"${azurerm_public_ip.openshift_master_pip.ip_address}\" \"${var.openshift_cluster_prefix}-infra\" \"${var.openshift_cluster_prefix}-node\" \"${var.node_instance_count}\" \"${var.infra_instance_count}\" \"${var.master_instance_count}\" \"${var.default_sub_domain_type} Domain\" \"${azurerm_storage_account.registry_storage_account.name}\" '${azurerm_storage_account.registry_storage_account.primary_access_key}' '${var.tenant_id}' '${var.subscription_id}' '${var.aad_client_id}' '${var.aad_client_secret}' '${azurerm_resource_group.rg.name}' '${azurerm_resource_group.rg.location}' '${var.key_vault_name}'"
- }
-SETTINGS
-}
 
-resource "azurerm_virtual_machine_extension" "deploy_infra" {
-  name                       = "infraOpShExt${count.index}"
-  location                   = "${azurerm_resource_group.rg.location}"
-  resource_group_name        = "${azurerm_resource_group.rg.name}"
-  virtual_machine_name       = "${element(azurerm_virtual_machine.infra.*.name, count.index)}"
-  publisher                  = "Microsoft.Azure.Extensions"
-  type                       = "CustomScript"
-  type_handler_version       = "2.0"
-  auto_upgrade_minor_version = true
-  depends_on                 = ["azurerm_virtual_machine.infra"]
+# resource "azurerm_virtual_machine_extension" "deploy_infra" {
+#   name                       = "infraOpShExt${count.index}"
+#   location                   = "${azurerm_resource_group.rg.location}"
+#   resource_group_name        = "${azurerm_resource_group.rg.name}"
+#   virtual_machine_name       = "${element(azurerm_virtual_machine.infra.*.name, count.index)}"
+#   publisher                  = "Microsoft.Azure.Extensions"
+#   type                       = "CustomScript"
+#   type_handler_version       = "2.0"
+#   auto_upgrade_minor_version = true
+#   depends_on                 = ["azurerm_virtual_machine.infra"]
+#
+#   settings = <<SETTINGS
+# {
+#   "fileUris": [
+# 		"${var.artifacts_location}scripts/nodePrep.sh"
+# 	]
+# }
+# SETTINGS
+#
+#   protected_settings = <<SETTINGS
+# {
+# 	"commandToExecute": "bash nodePrep.sh"
+# }
+# SETTINGS
+# }
 
-  settings = <<SETTINGS
-{
-  "fileUris": [
-		"${var.artifacts_location}scripts/nodePrep.sh"
-	]
-}
-SETTINGS
 
-  protected_settings = <<SETTINGS
-{
-	"commandToExecute": "bash nodePrep.sh"
-}
-SETTINGS
-}
+# resource "azurerm_virtual_machine_extension" "node_prep" {
+#   name                       = "nodePrepExt${count.index}"
+#   location                   = "${azurerm_resource_group.rg.location}"
+#   resource_group_name        = "${azurerm_resource_group.rg.name}"
+#   virtual_machine_name       = "${element(azurerm_virtual_machine.node.*.name, count.index)}"
+#   publisher                  = "Microsoft.Azure.Extensions"
+#   type                       = "CustomScript"
+#   type_handler_version       = "2.0"
+#   auto_upgrade_minor_version = true
+#   depends_on                 = ["azurerm_virtual_machine.node", "azurerm_storage_account.nodeos_storage_account"]
+#
+#   settings = <<SETTINGS
+# {
+#   "fileUris": [
+# 		"${var.artifacts_location}scripts/nodePrep.sh"
+# 	]
+# }
+# SETTINGS
+#
+#   protected_settings = <<SETTINGS
+# {
+# 	"commandToExecute": "bash nodePrep.sh"
+# }
+# SETTINGS
+# }
 
-resource "azurerm_virtual_machine_extension" "node_prep" {
-  name                       = "nodePrepExt${count.index}"
-  location                   = "${azurerm_resource_group.rg.location}"
-  resource_group_name        = "${azurerm_resource_group.rg.name}"
-  virtual_machine_name       = "${element(azurerm_virtual_machine.node.*.name, count.index)}"
-  publisher                  = "Microsoft.Azure.Extensions"
-  type                       = "CustomScript"
-  type_handler_version       = "2.0"
-  auto_upgrade_minor_version = true
-  depends_on                 = ["azurerm_virtual_machine.node", "azurerm_storage_account.nodeos_storage_account"]
-
-  settings = <<SETTINGS
-{
-  "fileUris": [
-		"${var.artifacts_location}scripts/nodePrep.sh"
-	]
-}
-SETTINGS
-
-  protected_settings = <<SETTINGS
-{
-	"commandToExecute": "bash nodePrep.sh"
-}
-SETTINGS
-}
