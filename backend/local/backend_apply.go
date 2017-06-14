@@ -126,6 +126,17 @@ func (b *Local) opApply(
 			b.CLI.Output("stopping apply operation...")
 		}
 
+		// try to force a PersistState just in case the process is terminated
+		// before we can complete.
+		if err := opState.PersistState(); err != nil {
+			// We can't error out from here, but warn the user if there was an error.
+			// If this isn't transient, we will catch it again below, and
+			// attempt to save the state another way.
+			if b.CLI != nil {
+				b.CLI.Error(fmt.Sprintf(earlyStateWriteErrorFmt, err))
+			}
+		}
+
 		// Stop execution
 		go tfCtx.Stop()
 
@@ -269,4 +280,11 @@ For resources that support import, it is possible to recover by manually
 importing each resource using its id from the target system.
 
 This is a serious bug in Terraform and should be reported.
+`
+
+const earlyStateWriteErrorFmt = `Error saving current state: %s
+
+Terraform encountered an error attempting to save the state before canceling
+the current operation. Once the operation is complete another attempt will be
+made to save the final state.
 `

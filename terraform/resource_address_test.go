@@ -1,10 +1,12 @@
 package terraform
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 )
 
 func TestParseResourceAddressInternal(t *testing.T) {
@@ -624,6 +626,297 @@ func TestResourceAddressStateId(t *testing.T) {
 			actual := tc.Input.stateId()
 			if actual != tc.Expected {
 				t.Fatalf("bad: %q\n\nexpected: %s\n\ngot: %s", tn, tc.Expected, actual)
+			}
+		})
+	}
+}
+
+func TestResourceAddressHasResourceSpec(t *testing.T) {
+	cases := []struct {
+		Input string
+		Want  bool
+	}{
+		{
+			"module.foo",
+			false,
+		},
+		{
+			"module.foo.module.bar",
+			false,
+		},
+		{
+			"null_resource.baz",
+			true,
+		},
+		{
+			"null_resource.baz[0]",
+			true,
+		},
+		{
+			"data.null_data_source.baz",
+			true,
+		},
+		{
+			"data.null_data_source.baz[0]",
+			true,
+		},
+		{
+			"module.foo.null_resource.baz",
+			true,
+		},
+		{
+			"module.foo.data.null_data_source.baz",
+			true,
+		},
+		{
+			"module.foo.module.bar.null_resource.baz",
+			true,
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.Input, func(t *testing.T) {
+			addr, err := ParseResourceAddress(test.Input)
+			if err != nil {
+				t.Fatalf("error parsing address: %s", err)
+			}
+			got := addr.HasResourceSpec()
+			if got != test.Want {
+				t.Fatalf("%q: wrong result %#v; want %#v", test.Input, got, test.Want)
+			}
+		})
+	}
+}
+
+func TestResourceAddressWholeModuleAddress(t *testing.T) {
+	cases := []struct {
+		Input string
+		Want  string
+	}{
+		{
+			"module.foo",
+			"module.foo",
+		},
+		{
+			"module.foo.module.bar",
+			"module.foo.module.bar",
+		},
+		{
+			"null_resource.baz",
+			"",
+		},
+		{
+			"null_resource.baz[0]",
+			"",
+		},
+		{
+			"data.null_data_source.baz",
+			"",
+		},
+		{
+			"data.null_data_source.baz[0]",
+			"",
+		},
+		{
+			"module.foo.null_resource.baz",
+			"module.foo",
+		},
+		{
+			"module.foo.data.null_data_source.baz",
+			"module.foo",
+		},
+		{
+			"module.foo.module.bar.null_resource.baz",
+			"module.foo.module.bar",
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.Input, func(t *testing.T) {
+			addr, err := ParseResourceAddress(test.Input)
+			if err != nil {
+				t.Fatalf("error parsing address: %s", err)
+			}
+			gotAddr := addr.WholeModuleAddress()
+			got := gotAddr.String()
+			if got != test.Want {
+				t.Fatalf("%q: wrong result %#v; want %#v", test.Input, got, test.Want)
+			}
+		})
+	}
+}
+
+func TestResourceAddressMatchesConfig(t *testing.T) {
+	root := testModule(t, "empty-with-child-module")
+	child := root.Child([]string{"child"})
+	grandchild := root.Child([]string{"child", "grandchild"})
+
+	tests := []struct {
+		Addr     *ResourceAddress
+		Module   *module.Tree
+		Resource *config.Resource
+		Want     bool
+	}{
+		{
+			&ResourceAddress{
+				Mode:  config.ManagedResourceMode,
+				Type:  "null_resource",
+				Name:  "baz",
+				Index: -1,
+			},
+			root,
+			&config.Resource{
+				Mode: config.ManagedResourceMode,
+				Type: "null_resource",
+				Name: "baz",
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Path:  []string{"child"},
+				Mode:  config.ManagedResourceMode,
+				Type:  "null_resource",
+				Name:  "baz",
+				Index: -1,
+			},
+			child,
+			&config.Resource{
+				Mode: config.ManagedResourceMode,
+				Type: "null_resource",
+				Name: "baz",
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Path:  []string{"child", "grandchild"},
+				Mode:  config.ManagedResourceMode,
+				Type:  "null_resource",
+				Name:  "baz",
+				Index: -1,
+			},
+			grandchild,
+			&config.Resource{
+				Mode: config.ManagedResourceMode,
+				Type: "null_resource",
+				Name: "baz",
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Path:  []string{"child"},
+				Index: -1,
+			},
+			child,
+			&config.Resource{
+				Mode: config.ManagedResourceMode,
+				Type: "null_resource",
+				Name: "baz",
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Path:  []string{"child", "grandchild"},
+				Index: -1,
+			},
+			grandchild,
+			&config.Resource{
+				Mode: config.ManagedResourceMode,
+				Type: "null_resource",
+				Name: "baz",
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Mode:  config.DataResourceMode,
+				Type:  "null_resource",
+				Name:  "baz",
+				Index: -1,
+			},
+			module.NewEmptyTree(),
+			&config.Resource{
+				Mode: config.ManagedResourceMode,
+				Type: "null_resource",
+				Name: "baz",
+			},
+			false,
+		},
+		{
+			&ResourceAddress{
+				Mode:  config.ManagedResourceMode,
+				Type:  "null_resource",
+				Name:  "baz",
+				Index: -1,
+			},
+			module.NewEmptyTree(),
+			&config.Resource{
+				Mode: config.ManagedResourceMode,
+				Type: "null_resource",
+				Name: "pizza",
+			},
+			false,
+		},
+		{
+			&ResourceAddress{
+				Mode:  config.ManagedResourceMode,
+				Type:  "null_resource",
+				Name:  "baz",
+				Index: -1,
+			},
+			module.NewEmptyTree(),
+			&config.Resource{
+				Mode: config.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "baz",
+			},
+			false,
+		},
+		{
+			&ResourceAddress{
+				Path:  []string{"child", "grandchild"},
+				Mode:  config.ManagedResourceMode,
+				Type:  "null_resource",
+				Name:  "baz",
+				Index: -1,
+			},
+			child,
+			&config.Resource{
+				Mode: config.ManagedResourceMode,
+				Type: "null_resource",
+				Name: "baz",
+			},
+			false,
+		},
+		{
+			&ResourceAddress{
+				Path:  []string{"child"},
+				Mode:  config.ManagedResourceMode,
+				Type:  "null_resource",
+				Name:  "baz",
+				Index: -1,
+			},
+			grandchild,
+			&config.Resource{
+				Mode: config.ManagedResourceMode,
+				Type: "null_resource",
+				Name: "baz",
+			},
+			false,
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%02d-%s", i, test.Addr), func(t *testing.T) {
+			got := test.Addr.MatchesConfig(test.Module, test.Resource)
+			if got != test.Want {
+				t.Errorf(
+					"wrong result\naddr: %s\nmod:  %#v\nrsrc: %#v\ngot:  %#v\nwant: %#v",
+					test.Addr, test.Module.Path(), test.Resource, got, test.Want,
+				)
 			}
 		})
 	}

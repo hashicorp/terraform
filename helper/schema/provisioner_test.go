@@ -3,6 +3,7 @@ package schema
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -14,13 +15,35 @@ func TestProvisioner_impl(t *testing.T) {
 	var _ terraform.ResourceProvisioner = new(Provisioner)
 }
 
+func noopApply(ctx context.Context) error {
+	return nil
+}
+
 func TestProvisionerValidate(t *testing.T) {
 	cases := []struct {
 		Name   string
 		P      *Provisioner
 		Config map[string]interface{}
 		Err    bool
+		Warns  []string
 	}{
+		{
+			Name:   "No ApplyFunc",
+			P:      &Provisioner{},
+			Config: nil,
+			Err:    true,
+		},
+		{
+			Name: "Incorrect schema",
+			P: &Provisioner{
+				Schema: map[string]*Schema{
+					"foo": {},
+				},
+				ApplyFunc: noopApply,
+			},
+			Config: nil,
+			Err:    true,
+		},
 		{
 			"Basic required field",
 			&Provisioner{
@@ -30,9 +53,11 @@ func TestProvisionerValidate(t *testing.T) {
 						Type:     TypeString,
 					},
 				},
+				ApplyFunc: noopApply,
 			},
 			nil,
 			true,
+			nil,
 		},
 
 		{
@@ -44,11 +69,57 @@ func TestProvisionerValidate(t *testing.T) {
 						Type:     TypeString,
 					},
 				},
+				ApplyFunc: noopApply,
 			},
 			map[string]interface{}{
 				"foo": "bar",
 			},
 			false,
+			nil,
+		},
+		{
+			Name: "Warning from property validation",
+			P: &Provisioner{
+				Schema: map[string]*Schema{
+					"foo": {
+						Type:     TypeString,
+						Optional: true,
+						ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+							ws = append(ws, "Simple warning from property validation")
+							return
+						},
+					},
+				},
+				ApplyFunc: noopApply,
+			},
+			Config: map[string]interface{}{
+				"foo": "",
+			},
+			Err:   false,
+			Warns: []string{"Simple warning from property validation"},
+		},
+		{
+			Name: "No schema",
+			P: &Provisioner{
+				Schema:    nil,
+				ApplyFunc: noopApply,
+			},
+			Config: nil,
+			Err:    false,
+		},
+		{
+			Name: "Warning from provisioner ValidateFunc",
+			P: &Provisioner{
+				Schema:    nil,
+				ApplyFunc: noopApply,
+				ValidateFunc: func(*ResourceData) (ws []string, errors []error) {
+					ws = append(ws, "Simple warning from provisioner ValidateFunc")
+					return
+				},
+			},
+			Config: nil,
+			Err:    false,
+			Warns:  []string{"Simple warning from provisioner ValidateFunc"},
 		},
 	}
 
@@ -59,9 +130,12 @@ func TestProvisionerValidate(t *testing.T) {
 				t.Fatalf("err: %s", err)
 			}
 
-			_, es := tc.P.Validate(terraform.NewResourceConfig(c))
+			ws, es := tc.P.Validate(terraform.NewResourceConfig(c))
 			if len(es) > 0 != tc.Err {
-				t.Fatalf("%d: %#v", i, es)
+				t.Fatalf("%d: %#v %s", i, es, es)
+			}
+			if (tc.Warns != nil || len(ws) != 0) && !reflect.DeepEqual(ws, tc.Warns) {
+				t.Fatalf("%d: warnings mismatch, actual: %#v", i, ws)
 			}
 		})
 	}

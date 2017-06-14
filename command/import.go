@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -49,6 +50,23 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Validate the provided resource address for syntax
+	addr, err := terraform.ParseResourceAddress(args[0])
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(importCommandInvalidAddressFmt, err))
+		return 1
+	}
+	if !addr.HasResourceSpec() {
+		// module.foo target isn't allowed for import
+		c.Ui.Error(importCommandMissingResourceSpecMsg)
+		return 1
+	}
+	if addr.Mode != config.ManagedResourceMode {
+		// can't import to a data resource address
+		c.Ui.Error(importCommandResourceModeMsg)
+		return 1
+	}
+
 	// Load the module
 	var mod *module.Tree
 	if configPath != "" {
@@ -60,8 +78,44 @@ func (c *ImportCommand) Run(args []string) int {
 		}
 	}
 
+	// Verify that the given address points to something that exists in config.
+	// This is to reduce the risk that a typo in the resource address will
+	// import something that Terraform will want to immediately destroy on
+	// the next plan, and generally acts as a reassurance of user intent.
+	targetMod := mod.Child(addr.Path)
+	if targetMod == nil {
+		modulePath := addr.WholeModuleAddress().String()
+		if modulePath == "" {
+			c.Ui.Error(importCommandMissingConfigMsg)
+		} else {
+			c.Ui.Error(fmt.Sprintf(importCommandMissingModuleFmt, modulePath))
+		}
+		return 1
+	}
+	rcs := targetMod.Config().Resources
+	var rc *config.Resource
+	for _, thisRc := range rcs {
+		if addr.MatchesConfig(targetMod, thisRc) {
+			rc = thisRc
+			break
+		}
+	}
+	if rc == nil {
+		modulePath := addr.WholeModuleAddress().String()
+		if modulePath == "" {
+			modulePath = "the root module"
+		}
+		c.Ui.Error(fmt.Sprintf(
+			importCommandMissingResourceFmt,
+			addr, modulePath, addr.Type, addr.Name,
+		))
+		return 1
+	}
+
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
+	b, err := c.Backend(&BackendOpts{
+		Config: mod.Config(),
+	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
@@ -113,13 +167,7 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-		"[reset][green]\n" +
-			"Import success! The resources imported are shown above. These are\n" +
-			"now in your Terraform state. Import does not currently generate\n" +
-			"configuration, so you must do this next. If you do not create configuration\n" +
-			"for the above resources, then the next `terraform plan` will mark\n" +
-			"them for destruction.")))
+	c.Ui.Output(c.Colorize().Color("[reset][green]\n" + importCommandSuccessMsg))
 
 	return 0
 }
@@ -196,3 +244,51 @@ Options:
 func (c *ImportCommand) Synopsis() string {
 	return "Import existing infrastructure into Terraform"
 }
+
+const importCommandInvalidAddressFmt = `Error: %s
+
+For information on valid syntax, see:
+https://www.terraform.io/docs/internals/resource-addressing.html
+`
+
+const importCommandMissingResourceSpecMsg = `Error: resource address must include a full resource spec
+
+For information on valid syntax, see:
+https://www.terraform.io/docs/internals/resource-addressing.html
+`
+
+const importCommandResourceModeMsg = `Error: resource address must refer to a managed resource.
+
+Data resources cannot be imported.
+`
+
+const importCommandMissingConfigMsg = `Error: no configuration files in this directory.
+
+"terraform import" can only be run in a Terraform configuration directory.
+Create one or more .tf files in this directory to import here.
+`
+
+const importCommandMissingModuleFmt = `Error: %s does not exist in the configuration.
+
+Please add the configuration for the module before importing resources into it.
+`
+
+const importCommandMissingResourceFmt = `Error: resource address %q does not exist in the configuration.
+
+Before importing this resource, please create its configuration in %s. For example:
+
+resource %q %q {
+  # (resource arguments)
+}
+`
+
+const importCommandSuccessMsg = `Import successful!
+
+The resources that were imported are shown above. These resources are now in
+your Terraform state and will henceforth be managed by Terraform.
+
+Import does not generate configuration, so the next step is to ensure that
+the resource configurations match the current (or desired) state of the
+imported resources. You can use the output from "terraform plan" to verify that
+the configuration is correct and complete.
+`

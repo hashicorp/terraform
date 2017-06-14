@@ -24,7 +24,7 @@ func (c *StateMeta) State(m *Meta) (state.State, error) {
 		return nil, err
 	}
 
-	env := m.Env()
+	env := m.Workspace()
 	// Get the state
 	s, err := b.State(env)
 	if err != nil {
