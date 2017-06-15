@@ -257,6 +257,12 @@ The supported built-in functions are:
       `formatlist("instance %v has private ip %v", aws_instance.foo.*.id, aws_instance.foo.*.private_ip)`.
       Passing lists with different lengths to formatlist results in an error.
 
+  * `indent(numspaces, string)` - Prepends the specified number of spaces to all but the first
+      line of the given multi-line string. May be useful when inserting a multi-line string
+      into an already-indented context. The first line is not indented, to allow for the
+      indented string to be placed after some sort of already-indented preamble.
+      Example: `"    \"items\": ${ indent(4, "[\n    \"item1\"\n]") },"`
+
   * `index(list, elem)` - Finds the index of a given element in a list.
       This function only works on flat lists.
       Example: `index(aws_instance.foo.*.tags.Name, "foo-test")`

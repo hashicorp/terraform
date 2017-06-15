@@ -1354,6 +1354,34 @@ func TestInterpolateFuncIndex(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncIndent(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${indent(4, "Fleas:
+Adam
+Had'em
+
+E.E. Cummings")}`,
+				"Fleas:\n    Adam\n    Had'em\n    \n    E.E. Cummings",
+				false,
+			},
+			{
+				`${indent(4, "oneliner")}`,
+				"oneliner",
+				false,
+			},
+			{
+				`${indent(4, "#!/usr/bin/env bash
+date
+pwd")}`,
+				"#!/usr/bin/env bash\n    date\n    pwd",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncJoin(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
