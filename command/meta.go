@@ -44,7 +44,8 @@ type Meta struct {
 	// Protected: commands can set these
 	//----------------------------------------------------------
 
-	// Modify the data directory location. Defaults to DefaultDataDir
+	// Modify the data directory location. This should be accessed through the
+	// DataDir method.
 	dataDir string
 
 	// Override certain behavior for tests within this package
@@ -159,6 +160,7 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 }
 
 // DataDir returns the directory where local data will be stored.
+// Defaults to DefaultsDataDir in the current working directory.
 func (m *Meta) DataDir() string {
 	dataDir := DefaultDataDir
 	if m.dataDir != "" {
@@ -498,12 +500,7 @@ func (m *Meta) WorkspaceOverridden() (string, bool) {
 		return envVar, true
 	}
 
-	dataDir := m.dataDir
-	if m.dataDir == "" {
-		dataDir = DefaultDataDir
-	}
-
-	envData, err := ioutil.ReadFile(filepath.Join(dataDir, local.DefaultWorkspaceFile))
+	envData, err := ioutil.ReadFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
 	current := string(bytes.TrimSpace(envData))
 	if current == "" {
 		current = backend.DefaultStateName
@@ -520,17 +517,12 @@ func (m *Meta) WorkspaceOverridden() (string, bool) {
 // SetWorkspace saves the given name as the current workspace in the local
 // filesystem.
 func (m *Meta) SetWorkspace(name string) error {
-	dataDir := m.dataDir
-	if m.dataDir == "" {
-		dataDir = DefaultDataDir
-	}
-
-	err := os.MkdirAll(dataDir, 0755)
+	err := os.MkdirAll(m.DataDir(), 0755)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(dataDir, local.DefaultWorkspaceFile), []byte(name), 0644)
+	err = ioutil.WriteFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile), []byte(name), 0644)
 	if err != nil {
 		return err
 	}
