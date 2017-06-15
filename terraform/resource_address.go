@@ -248,6 +248,53 @@ func ParseResourceAddress(s string) (*ResourceAddress, error) {
 	}, nil
 }
 
+// Contains returns true if and only if the given node is contained within
+// the receiver.
+//
+// Containment is defined in terms of the module and resource heirarchy:
+// a resource is contained within its module and any ancestor modules,
+// an indexed resource instance is contained with the unindexed resource, etc.
+func (addr *ResourceAddress) Contains(other *ResourceAddress) bool {
+	ourPath := addr.Path
+	givenPath := other.Path
+	if len(givenPath) < len(ourPath) {
+		return false
+	}
+	for i := range ourPath {
+		if ourPath[i] != givenPath[i] {
+			return false
+		}
+	}
+
+	// If the receiver is a whole-module address then the path prefix
+	// matching is all we need.
+	if !addr.HasResourceSpec() {
+		return true
+	}
+
+	if addr.Type != other.Type || addr.Name != other.Name || addr.Mode != other.Mode {
+		return false
+	}
+
+	if addr.Index != -1 && addr.Index != other.Index {
+		return false
+	}
+
+	if addr.InstanceTypeSet && (addr.InstanceTypeSet != other.InstanceTypeSet || addr.InstanceType != other.InstanceType) {
+		return false
+	}
+
+	return true
+}
+
+// Equals returns true if the receiver matches the given address.
+//
+// The name of this method is a misnomer, since it doesn't test for exact
+// equality. Instead, it tests that the _specified_ parts of each
+// address match, treating any unspecified parts as wildcards.
+//
+// See also Contains, which takes a more heirarchical approach to comparing
+// addresses.
 func (addr *ResourceAddress) Equals(raw interface{}) bool {
 	other, ok := raw.(*ResourceAddress)
 	if !ok {
@@ -324,7 +371,7 @@ func tokenizeResourceAddress(s string) (map[string]string, error) {
 	// string "aws_instance.web.tainted[1]"
 	re := regexp.MustCompile(`\A` +
 		// "module.foo.module.bar" (optional)
-		`(?P<path>(?:module\.[^.]+\.?)*)` +
+		`(?P<path>(?:module\.(?P<module_name>[^.]+)\.?)*)` +
 		// possibly "data.", if targeting is a data resource
 		`(?P<data_prefix>(?:data\.)?)` +
 		// "aws_instance.web" (optional when module path specified)
