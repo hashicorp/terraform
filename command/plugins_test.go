@@ -2,11 +2,36 @@ package command
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
+	"testing"
 
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
+
+func TestPluginPath(t *testing.T) {
+	td, err := ioutil.TempDir("", "tf")
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	pluginPath := []string{"a", "b", "c"}
+
+	m := Meta{}
+	if err := m.storePluginPath(pluginPath); err != nil {
+		t.Fatal(err)
+	}
+
+	restoredPath, err := m.loadPluginPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(pluginPath, restoredPath) {
+		t.Fatalf("expected plugin path %#v, got %#v", pluginPath, restoredPath)
+	}
+}
 
 // mockProviderInstaller is a discovery.PluginInstaller implementation that
 // is a mock for discovery.ProviderInstaller.

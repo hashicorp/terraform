@@ -83,6 +83,9 @@ func (m *Meta) storePluginPath(pluginPath []string) error {
 		return err
 	}
 
+	// if this fails, so will WriteFile
+	os.MkdirAll(m.DataDir(), 0755)
+
 	return ioutil.WriteFile(filepath.Join(m.DataDir(), PluginPathFile), js, 0644)
 }
 
