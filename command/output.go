@@ -50,7 +50,7 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	env := c.Env()
+	env := c.Workspace()
 
 	// Get the state
 	stateStore, err := b.State(env)

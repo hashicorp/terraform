@@ -132,10 +132,15 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	*/
 
+	var conf *config.Config
+	if mod != nil {
+		conf = mod.Config()
+	}
+
 	// Load the backend
 	b, err := c.Backend(&BackendOpts{
-		ConfigPath: configPath,
-		Plan:       plan,
+		Config: conf,
+		Plan:   plan,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))

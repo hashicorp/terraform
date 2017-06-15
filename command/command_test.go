@@ -69,23 +69,27 @@ func testFixturePath(name string) string {
 	return filepath.Join(fixtureDir, name)
 }
 
-func testCtxConfig(p terraform.ResourceProvider) *terraform.ContextOpts {
-	return &terraform.ContextOpts{
-		Providers: map[string]terraform.ResourceProviderFactory{
-			"test": func() (terraform.ResourceProvider, error) {
-				return p, nil
+func metaOverridesForProvider(p terraform.ResourceProvider) *testingOverrides {
+	return &testingOverrides{
+		ProviderResolver: terraform.ResourceProviderResolverFixed(
+			map[string]terraform.ResourceProviderFactory{
+				"test": func() (terraform.ResourceProvider, error) {
+					return p, nil
+				},
 			},
-		},
+		),
 	}
 }
 
-func testCtxConfigWithShell(p terraform.ResourceProvider, pr terraform.ResourceProvisioner) *terraform.ContextOpts {
-	return &terraform.ContextOpts{
-		Providers: map[string]terraform.ResourceProviderFactory{
-			"test": func() (terraform.ResourceProvider, error) {
-				return p, nil
+func metaOverridesForProviderAndProvisioner(p terraform.ResourceProvider, pr terraform.ResourceProvisioner) *testingOverrides {
+	return &testingOverrides{
+		ProviderResolver: terraform.ResourceProviderResolverFixed(
+			map[string]terraform.ResourceProviderFactory{
+				"test": func() (terraform.ResourceProvider, error) {
+					return p, nil
+				},
 			},
-		},
+		),
 		Provisioners: map[string]terraform.ResourceProvisionerFactory{
 			"shell": func() (terraform.ResourceProvisioner, error) {
 				return pr, nil

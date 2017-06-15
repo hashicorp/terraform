@@ -28,8 +28,8 @@ func TestApply(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -74,8 +74,8 @@ func TestApply_lockedState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -112,8 +112,8 @@ func TestApply_lockedStateWait(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -188,8 +188,8 @@ func TestApply_parallelism(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(provider),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(provider),
+			Ui:               ui,
 		},
 	}
 
@@ -241,8 +241,8 @@ func TestApply_configInvalid(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -276,8 +276,8 @@ func TestApply_defaultState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -314,8 +314,8 @@ func TestApply_error(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -378,73 +378,6 @@ func TestApply_error(t *testing.T) {
 	}
 }
 
-func TestApply_init(t *testing.T) {
-	// Change to the temporary directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	dir := tempDir(t)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
-
-	// Create the test fixtures
-	statePath := testTempFile(t)
-	ln := testHttpServer(t)
-	defer ln.Close()
-
-	// Initialize the command
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &ApplyCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
-		},
-	}
-
-	// Build the URL to the init
-	var u url.URL
-	u.Scheme = "http"
-	u.Host = ln.Addr().String()
-	u.Path = "/header"
-
-	args := []string{
-		"-state", statePath,
-		u.String(),
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	if _, err := os.Stat("hello.tf"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if _, err := os.Stat(statePath); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if state == nil {
-		t.Fatal("state should not be nil")
-	}
-}
-
 func TestApply_input(t *testing.T) {
 	// Disable test mode so input would be asked
 	test = false
@@ -460,8 +393,8 @@ func TestApply_input(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -495,8 +428,8 @@ func TestApply_inputPartial(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -535,8 +468,8 @@ func TestApply_noArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -584,8 +517,8 @@ func TestApply_plan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -630,8 +563,8 @@ func TestApply_plan_backup(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -672,8 +605,8 @@ func TestApply_plan_noBackup(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -729,8 +662,8 @@ func TestApply_plan_remoteState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -782,8 +715,8 @@ func TestApply_planWithVarFile(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -824,8 +757,8 @@ func TestApply_planVars(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -855,12 +788,10 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 		Module: testModule(t, "apply-plan-no-module"),
 	})
 
-	contextOpts := testCtxConfig(p)
-
 	apply := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: contextOpts,
-			Ui:          new(cli.MockUi),
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               new(cli.MockUi),
 		},
 	}
 	args := []string{
@@ -895,8 +826,8 @@ func TestApply_refresh(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -961,8 +892,8 @@ func TestApply_shutdown(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 
 		ShutdownCh: shutdownCh,
@@ -1072,8 +1003,8 @@ func TestApply_state(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1145,8 +1076,8 @@ func TestApply_stateNoExist(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1164,8 +1095,8 @@ func TestApply_sensitiveOutput(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1198,8 +1129,8 @@ func TestApply_stateFuture(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1239,8 +1170,8 @@ func TestApply_statePast(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1260,8 +1191,8 @@ func TestApply_vars(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1303,8 +1234,8 @@ func TestApply_varFile(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1356,8 +1287,8 @@ func TestApply_varFileDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1408,8 +1339,8 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1471,8 +1402,8 @@ func TestApply_backup(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1540,8 +1471,8 @@ func TestApply_disableBackup(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1608,8 +1539,8 @@ func TestApply_terraformEnv(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1641,7 +1572,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Create new env
 	{
 		ui := new(cli.MockUi)
-		newCmd := &EnvNewCommand{}
+		newCmd := &WorkspaceNewCommand{}
 		newCmd.Meta = Meta{Ui: ui}
 		if code := newCmd.Run([]string{"test"}); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -1652,7 +1583,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	{
 		args := []string{"test"}
 		ui := new(cli.MockUi)
-		selCmd := &EnvSelectCommand{}
+		selCmd := &WorkspaceSelectCommand{}
 		selCmd.Meta = Meta{Ui: ui}
 		if code := selCmd.Run(args); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -1663,8 +1594,8 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 

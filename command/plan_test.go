@@ -28,8 +28,8 @@ func TestPlan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -61,8 +61,8 @@ func TestPlan_lockedState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -89,8 +89,8 @@ func TestPlan_plan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -128,8 +128,8 @@ func TestPlan_destroy(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -165,8 +165,8 @@ func TestPlan_noState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -205,8 +205,8 @@ func TestPlan_outPath(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -262,8 +262,8 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -318,8 +318,8 @@ func TestPlan_outBackend(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -382,8 +382,8 @@ func TestPlan_outBackendLegacy(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -412,8 +412,8 @@ func TestPlan_refresh(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -450,8 +450,8 @@ func TestPlan_state(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -506,8 +506,8 @@ func TestPlan_stateDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -535,8 +535,8 @@ func TestPlan_stateFuture(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -576,8 +576,8 @@ func TestPlan_statePast(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -608,8 +608,8 @@ func TestPlan_validate(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -632,8 +632,8 @@ func TestPlan_vars(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -676,8 +676,8 @@ func TestPlan_varsUnset(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -702,8 +702,8 @@ func TestPlan_varFile(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -752,8 +752,8 @@ func TestPlan_varFileDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -795,8 +795,8 @@ func TestPlan_detailedExitcode(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -820,8 +820,8 @@ func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 

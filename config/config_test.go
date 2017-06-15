@@ -207,6 +207,18 @@ func TestConfigValidate_table(t *testing.T) {
 			false,
 			"",
 		},
+		{
+			"provider with valid version constraint",
+			"provider-version",
+			false,
+			"",
+		},
+		{
+			"provider with invalid version constraint",
+			"provider-version-invalid",
+			true,
+			"invalid version constraint",
+		},
 	}
 
 	for i, tc := range cases {
@@ -593,20 +605,6 @@ func TestConfigValidate_varMultiExactNonSlice(t *testing.T) {
 	}
 }
 
-func TestConfigValidate_varMultiNonSlice(t *testing.T) {
-	c := testConfig(t, "validate-var-multi-non-slice")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
-func TestConfigValidate_varMultiNonSliceProvisioner(t *testing.T) {
-	c := testConfig(t, "validate-var-multi-non-slice-provisioner")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
 func TestConfigValidate_varMultiFunctionCall(t *testing.T) {
 	c := testConfig(t, "validate-var-multi-func")
 	if err := c.Validate(); err != nil {
@@ -623,6 +621,13 @@ func TestConfigValidate_varModule(t *testing.T) {
 
 func TestConfigValidate_varModuleInvalid(t *testing.T) {
 	c := testConfig(t, "validate-var-module-invalid")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
+func TestConfigValidate_varProviderVersionInvalid(t *testing.T) {
+	c := testConfig(t, "validate-provider-version-invalid")
 	if err := c.Validate(); err == nil {
 		t.Fatal("should not be valid")
 	}
@@ -685,5 +690,76 @@ func TestConfigDataCount(t *testing.T) {
 	// it's not a real key and won't validate.
 	if _, ok := c.Resources[0].RawConfig.Raw["count"]; ok {
 		t.Fatal("count key still exists in RawConfig")
+	}
+}
+
+func TestConfigProviderVersion(t *testing.T) {
+	c := testConfig(t, "provider-version")
+
+	if len(c.ProviderConfigs) != 1 {
+		t.Fatal("expected 1 provider")
+	}
+
+	p := c.ProviderConfigs[0]
+	if p.Name != "aws" {
+		t.Fatalf("expected provider name 'aws', got %q", p.Name)
+	}
+
+	if p.Version != "0.0.1" {
+		t.Fatalf("expected providers version '0.0.1', got %q", p.Version)
+	}
+
+	if _, ok := p.RawConfig.Raw["version"]; ok {
+		t.Fatal("'version' should not exist in raw config")
+	}
+}
+
+func TestResourceProviderFullName(t *testing.T) {
+	type testCase struct {
+		ResourceName string
+		Alias        string
+		Expected     string
+	}
+
+	tests := []testCase{
+		{
+			// If no alias is provided, the first underscore-separated segment
+			// is assumed to be the provider name.
+			ResourceName: "aws_thing",
+			Alias:        "",
+			Expected:     "aws",
+		},
+		{
+			// If we have more than one underscore then it's the first one that we'll use.
+			ResourceName: "aws_thingy_thing",
+			Alias:        "",
+			Expected:     "aws",
+		},
+		{
+			// A provider can export a resource whose name is just the bare provider name,
+			// e.g. because the provider only has one resource and so any additional
+			// parts would be redundant.
+			ResourceName: "external",
+			Alias:        "",
+			Expected:     "external",
+		},
+		{
+			// Alias always overrides the default extraction of the name
+			ResourceName: "aws_thing",
+			Alias:        "tls.baz",
+			Expected:     "tls.baz",
+		},
+	}
+
+	for _, test := range tests {
+		got := ResourceProviderFullName(test.ResourceName, test.Alias)
+		if got != test.Expected {
+			t.Errorf(
+				"(%q, %q) produced %q; want %q",
+				test.ResourceName, test.Alias,
+				got,
+				test.Expected,
+			)
+		}
 	}
 }
