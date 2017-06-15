@@ -96,6 +96,7 @@ func findPluginPaths(kind string, machineName string, dirs []string) []string {
 				continue
 			}
 
+			// FIXME: we pass in GOOS_GOARCH paths directly, so these may not be "legacy"
 			if strings.HasPrefix(fullName, prefix) {
 				// Legacy style with files directly in the base directory
 				absPath, err := filepath.Abs(filepath.Join(baseDir, fullName))

@@ -494,6 +494,62 @@ func TestInit_getProvider(t *testing.T) {
 	}
 }
 
+// make sure we can locate providers in various paths
+func TestInit_findVendoredProviders(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+
+	configDirName := "init-get-providers"
+	copy.CopyDir(testFixturePath(configDirName), filepath.Join(td, configDirName))
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make our plugin paths
+	if err := os.MkdirAll(c.pluginDir(), 0755); err != nil {
+		t.Fatal(err)
+	}
+	vendorMachineDir := filepath.Join(
+		DefaultPluginVendorDir,
+		fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH),
+	)
+	if err := os.MkdirAll(vendorMachineDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// add some dummy providers
+	// the auto plugin directory
+	exactPath := filepath.Join(c.pluginDir(), "terraform-provider-exact_v1.2.3_x4")
+	if err := ioutil.WriteFile(exactPath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	// the vendor path
+	greaterThanPath := filepath.Join(vendorMachineDir, "terraform-provider-greater_than_v2.3.4_x4")
+	if err := ioutil.WriteFile(greaterThanPath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	// Check the current directory too
+	betweenPath := filepath.Join(".", "terraform-provider-between_v2.3.4_x4")
+	if err := ioutil.WriteFile(betweenPath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	args := []string{configDirName}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
 func TestInit_getUpgradePlugins(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -708,5 +764,103 @@ func TestInit_providerLockFile(t *testing.T) {
 `)
 	if string(buf) != wantLockFile {
 		t.Errorf("wrong provider lock file contents\ngot:  %s\nwant: %s", buf, wantLockFile)
+	}
+}
+
+// Test user-supplied -plugin-dir
+func TestInit_pluginDirProviders(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make our vendor paths
+	pluginPath := []string{"a", "b", "c"}
+	for _, p := range pluginPath {
+		if err := os.MkdirAll(p, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// add some dummy providers in our plugin dirs
+	for i, name := range []string{
+		"terraform-provider-exact_v1.2.3_x4",
+		"terraform-provider-greater_than_v2.3.4_x4",
+		"terraform-provider-between_v2.3.4_x4",
+	} {
+
+		if err := ioutil.WriteFile(filepath.Join(pluginPath[i], name), []byte("test bin"), 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	args := []string{
+		"-plugin-dir", "a",
+		"-plugin-dir", "b",
+		"-plugin-dir", "c",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter)
+	}
+}
+
+// Test user-supplied -plugin-dir doesn't allow auto-install
+func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, error) {
+			t.Fatalf("plugin installer should not have been called for %q", provider)
+			return discovery.PluginMeta{}, nil
+		}),
+	}
+
+	// make our vendor paths
+	pluginPath := []string{"a", "b"}
+	for _, p := range pluginPath {
+		if err := os.MkdirAll(p, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// add some dummy providers in our plugin dirs
+	for i, name := range []string{
+		"terraform-provider-exact_v1.2.3_x4",
+		"terraform-provider-greater_than_v2.3.4_x4",
+	} {
+
+		if err := ioutil.WriteFile(filepath.Join(pluginPath[i], name), []byte("test bin"), 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	args := []string{
+		"-plugin-dir", "a",
+		"-plugin-dir", "b",
+	}
+	if code := c.Run(args); code == 0 {
+		// should have been an error
+		t.Fatalf("bad: \n%s", ui.OutputWriter)
 	}
 }

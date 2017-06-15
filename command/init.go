@@ -22,6 +22,9 @@ import (
 type InitCommand struct {
 	Meta
 
+	// getPlugins is for the -get-plugins flag
+	getPlugins bool
+
 	// providerInstaller is used to download and install providers that
 	// aren't found locally. This uses a discovery.ProviderInstaller instance
 	// by default, but it can be overridden here as a way to mock fetching
@@ -30,24 +33,31 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var flagBackend, flagGet, flagGetPlugins, flagUpgrade bool
+	var flagBackend, flagGet, flagUpgrade bool
 	var flagConfigExtra map[string]interface{}
+	var flagPluginPath FlagStringSlice
 
 	args = c.Meta.process(args, false)
 	cmdFlags := c.flagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
 	cmdFlags.Var((*variables.FlagAny)(&flagConfigExtra), "backend-config", "")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
-	cmdFlags.BoolVar(&flagGetPlugins, "get-plugins", true, "")
+	cmdFlags.BoolVar(&c.getPlugins, "get-plugins", true, "")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
+	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
 
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
+	}
+
+	if len(flagPluginPath) > 0 {
+		c.pluginPath = flagPluginPath
+		c.getPlugins = false
 	}
 
 	// set getProvider if we don't have a test version already
@@ -64,6 +74,11 @@ func (c *InitCommand) Run(args []string) int {
 	if len(args) > 1 {
 		c.Ui.Error("The init command expects at most one argument.\n")
 		cmdFlags.Usage()
+		return 1
+	}
+
+	if err := c.storePluginPath(c.pluginPath); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error saving -plugin-path values: %s", err))
 		return 1
 	}
 
@@ -132,7 +147,7 @@ func (c *InitCommand) Run(args []string) int {
 
 		// If we're requesting backend configuration or looking for required
 		// plugins, load the backend
-		if flagBackend || flagGetPlugins {
+		if flagBackend {
 			header = true
 
 			// Only output that we're initializing a backend if we have
@@ -156,31 +171,29 @@ func (c *InitCommand) Run(args []string) int {
 		}
 	}
 
-	// Now that we have loaded all modules, check the module tree for missing providers
-	if flagGetPlugins {
-		sMgr, err := back.State(c.Workspace())
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error loading state: %s", err))
-			return 1
-		}
+	// Now that we have loaded all modules, check the module tree for missing providers.
+	sMgr, err := back.State(c.Workspace())
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Error loading state: %s", err))
+		return 1
+	}
 
-		if err := sMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error refreshing state: %s", err))
-			return 1
-		}
+	if err := sMgr.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Error refreshing state: %s", err))
+		return 1
+	}
 
-		c.Ui.Output(c.Colorize().Color(
-			"[reset][bold]Initializing provider plugins...",
-		))
+	c.Ui.Output(c.Colorize().Color(
+		"[reset][bold]Initializing provider plugins...",
+	))
 
-		err = c.getProviders(path, sMgr.State(), flagUpgrade)
-		if err != nil {
-			// this function provides its own output
-			log.Printf("[ERROR] %s", err)
-			return 1
-		}
+	err = c.getProviders(path, sMgr.State(), flagUpgrade)
+	if err != nil {
+		// this function provides its own output
+		log.Printf("[ERROR] %s", err)
+		return 1
 	}
 
 	// If we outputted information, then we need to output a newline
@@ -220,17 +233,26 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	missing := c.missingPlugins(available, requirements)
 
 	var errs error
-	for provider, reqd := range missing {
-		c.Ui.Output(fmt.Sprintf("- downloading plugin for provider %q...", provider))
-		_, err := c.providerInstaller.Get(provider, reqd.Versions)
+	if c.getPlugins {
+		for provider, reqd := range missing {
+			c.Ui.Output(fmt.Sprintf("- downloading plugin for provider %q...", provider))
+			_, err := c.providerInstaller.Get(provider, reqd.Versions)
 
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf(errProviderNotFound, err, provider, reqd.Versions))
-			errs = multierror.Append(errs, err)
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf(errProviderNotFound, err, provider, reqd.Versions))
+				errs = multierror.Append(errs, err)
+			}
 		}
-	}
 
-	if errs != nil {
+		if errs != nil {
+			return errs
+		}
+	} else if len(missing) > 0 {
+		// we have missing providers, but aren't going to try and download them
+		for provider, reqd := range missing {
+			c.Ui.Error(fmt.Sprintf(errProviderNotFound, err, provider, reqd.Versions))
+			errs = multierror.Append(errs, fmt.Errorf("missing provider %q", provider))
+		}
 		return errs
 	}
 
@@ -350,6 +372,11 @@ Options:
   -lock-timeout=0s     Duration to retry a state lock.
 
   -no-color            If specified, output won't contain any color.
+
+  -plugin-dir          Directory containing plugin binaries. This overrides all
+                       default search paths for plugins, and prevents the 
+                       automatic installation of plugins. This flag can be used
+                       multiple times.
 
   -reconfigure         Reconfigure the backend, ignoring any saved configuration.
 
