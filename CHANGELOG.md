@@ -19,6 +19,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * provisioner/chef: Prevent a panic while trying to read the connection info [GH-15271
+* provisioner/file: Refactor the provisioner validation function to prevent false positives [GH-15273]
 
 ## 0.9.8 (June 7, 2017)
 
