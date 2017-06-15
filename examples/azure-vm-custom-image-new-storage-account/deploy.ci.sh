@@ -56,4 +56,5 @@ docker run --rm -it \
         -target=azurerm_virtual_network.vnet \
         -target=azurerm_public_ip.mypip \
         -target=azurerm_public_ip.transferpip \
-        -target=azurerm_storage_account.stor;"
+        -target=azurerm_storage_account.stor \
+        -target=azurerm_resource_group.rg;"
