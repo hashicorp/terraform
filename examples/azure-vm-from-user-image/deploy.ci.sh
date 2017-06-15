@@ -43,3 +43,8 @@ docker run --rm -it \
         -target=azurerm_network_interface.nic \
         -target=azurerm_virtual_network.vnet \
         -target=azurerm_public_ip.pip;"
+
+docker run --rm -it \
+  azuresdk/azure-cli-python:0.2.10 \
+  sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID > /dev/null; \
+         az disk delete --name $KEY-osdisk --resource-group permanent"
