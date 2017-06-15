@@ -111,4 +111,4 @@ Few options you have
    ```sh
    sudo htpasswd /etc/origin/master/htpasswd user1
    ```
-  now this user can login with the 'oc' CLI tool or the openshift console url
+  Now this user can login with the 'oc' CLI tool or the openshift console url.
