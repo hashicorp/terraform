@@ -48,6 +48,12 @@ type Meta struct {
 	// DataDir method.
 	dataDir string
 
+	// pluginPath is a user defined set of directories to look for plugins.
+	// This is set during init with the `-plugin-dir` flag, saved to a file in
+	// the data directory.
+	// This overrides all other search paths when discoverying plugins.
+	pluginPath []string
+
 	// Override certain behavior for tests within this package
 	testingOverrides *testingOverrides
 
