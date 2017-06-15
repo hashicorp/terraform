@@ -1,8 +1,11 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -69,6 +72,40 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 	return factories, errs
 }
 
+// store the user-supplied path for plugin discovery
+func (m *Meta) storePluginPath(pluginPath []string) error {
+	if len(pluginPath) == 0 {
+		return nil
+	}
+
+	js, err := json.MarshalIndent(pluginPath, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(filepath.Join(m.DataDir(), PluginPathFile), js, 0644)
+}
+
+// Load the user-defined plugin search path into Meta.pluginPath if the file
+// exists.
+func (m *Meta) loadPluginPath() ([]string, error) {
+	js, err := ioutil.ReadFile(filepath.Join(m.DataDir(), PluginPathFile))
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	var pluginPath []string
+	if err := json.Unmarshal(js, &pluginPath); err != nil {
+		return nil, err
+	}
+
+	return pluginPath, nil
+}
+
 // the default location for automatically installed plugins
 func (m *Meta) pluginDir() string {
 	return filepath.Join(m.DataDir(), "plugins", fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH))
@@ -80,6 +117,10 @@ func (m *Meta) pluginDir() string {
 // of the same plugin version are found, but newer versions always override
 // older versions where both satisfy the provider version constraints.
 func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
+	// user defined paths take precedence
+	if len(m.pluginPath) > 0 {
+		return m.pluginPath
+	}
 
 	// When searching the following directories, earlier entries get precedence
 	// if the same plugin version is found twice, but newer versions will
