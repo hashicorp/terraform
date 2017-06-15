@@ -56,5 +56,10 @@ docker run --rm -it \
         -target=azurerm_virtual_network.vnet \
         -target=azurerm_public_ip.mypip \
         -target=azurerm_public_ip.transferpip \
-        -target=azurerm_storage_account.stor \
-        -target=azurerm_resource_group.rg;"
+        -target=azurerm_storage_account.stor;"
+
+# If you target the resource group to destroy with Terraform, it will destroy the existing storage account, so it must be deleted manually with the CLI.
+docker run --rm -it \
+  azuresdk/azure-cli-python:0.2.10 \
+  sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID > /dev/null; \
+         az group delete -n $KEY -y"
