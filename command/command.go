@@ -15,6 +15,10 @@ var test bool = false
 // DefaultDataDir is the default directory for storing local data.
 const DefaultDataDir = ".terraform"
 
+// PluginPathFile is the name of the file in the data dir which stores the list
+// of directories supplied by the user with the `-plugin-dir` flag during init.
+const PluginPathFile = "plugin_path"
+
 // DefaultPluginVendorDir is the location in the config directory to look for
 // user-added plugin binaries. Terraform only reads from this path if it
 // exists, it is never created by terraform.

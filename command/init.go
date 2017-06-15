@@ -32,6 +32,7 @@ type InitCommand struct {
 func (c *InitCommand) Run(args []string) int {
 	var flagBackend, flagGet, flagGetPlugins, flagUpgrade bool
 	var flagConfigExtra map[string]interface{}
+	var flagPluginPath FlagStringSlice
 
 	args = c.Meta.process(args, false)
 	cmdFlags := c.flagSet("init")
@@ -44,11 +45,14 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
+	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
 
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
+
+	c.pluginPath = flagPluginPath
 
 	// set getProvider if we don't have a test version already
 	if c.providerInstaller == nil {
@@ -64,6 +68,11 @@ func (c *InitCommand) Run(args []string) int {
 	if len(args) > 1 {
 		c.Ui.Error("The init command expects at most one argument.\n")
 		cmdFlags.Usage()
+		return 1
+	}
+
+	if err := c.storePluginPath(c.pluginPath); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error saving -plugin-path values: %s", err))
 		return 1
 	}
 
