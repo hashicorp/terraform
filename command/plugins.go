@@ -97,10 +97,14 @@ func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
 		dirs = append(dirs, filepath.Dir(exePath))
 	}
 
+	// add the user vendor directory
+	dirs = append(dirs, DefaultPluginVendorDir)
+
 	if includeAutoInstalled {
 		dirs = append(dirs, m.pluginDir())
 	}
 	dirs = append(dirs, m.GlobalPluginDirs...)
+
 	return dirs
 }
 
