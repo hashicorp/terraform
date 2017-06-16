@@ -13,8 +13,9 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 IMPROVEMENTS:
 
 * Providers no longer in the main Terraform distribution; installed automatically by init instead [GH-15208]
-* `terraform env` command renamed to `terraform workspace` [GH-14952]
-* `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
+* cli: `terraform env` command renamed to `terraform workspace` [GH-14952]
+* cli: `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
+* config: New interpolation function `contains`, to find if a given string exists in a list of strings. [GH-15322]
 
 BUG FIXES:
 
