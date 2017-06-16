@@ -15,7 +15,7 @@ from version control. It is safe to run this command multiple times.
 
 ## Usage
 
-Usage: `terraform init [options] [SOURCE] [PATH]`
+Usage: `terraform init [options] [DIR]`
 
 Initialize a new or existing Terraform working directory by creating
 initial files, loading any remote state, downloading modules, etc.
@@ -26,45 +26,47 @@ necessary to run Terraform that is typically not committed to version
 control.
 
 This command is always safe to run multiple times. Though subsequent runs
-may give errors, this command will never delete your configuration or state.
-Even so, if you have important information, please back it up prior to
-running this command just in case.
+may give errors, this command will never delete your configuration or
+state. Even so, if you have important information, please back it up prior
+to running this command, just in case.
 
-If no arguments are given, the configuration in the current working directory
+If no arguments are given, the configuration in this working directory
 is initialized.
-
-If one or two arguments are given, the first is a SOURCE of a module to
-download to the second argument PATH. After downloading the module to PATH,
-the configuration will be initialized as if this command were called pointing
-only to that PATH. PATH must be empty of any Terraform files. Any
-conflicting non-Terraform files will be overwritten. The module download
-is a copy. If you're downloading a module from Git, it will not preserve
-Git history.
 
 The command-line flags are all optional. The list of available flags are:
 
 * `-backend=true` - Initialize the [backend](/docs/backends) for this configuration.
 
-* `-backend-config=value` - Value can be a path to an HCL file or a string
-  in the format of 'key=value'. This specifies additional configuration to merge
-  for the backend. This can be specified multiple times. Flags specified
-  later in the line override those specified earlier if they conflict.
+* `-backend-config=path` This can be either a path to an HCL file with key/value
+  assignments (same format as terraform.tfvars) or a 'key=value' format. This is
+  merged with what is in the configuration file. This can be specified multiple
+  times. The backend type must be in the configuration itself.
 
-* `-force-copy` -  Suppress prompts about copying state data. This is equivalent
-  to providing a "yes" to all confirmation prompts.
+* `-force-copy`          Suppress prompts about copying state data. This is
+  equivalent to providing a "yes" to all confirmation prompts.
 
-* `-get=true` - Download any modules for this configuration.
+* `-get=true`            Download any modules for this configuration.
 
-* `-input=true` - Ask for input interactively if necessary. If this is false
-  and input is required, `init` will error.
+* `-get-plugins=true`    Download any missing plugins for this configuration.
 
-* `-lock=true` - Lock the state file when locking is supported.
+* `-input=true`          Ask for input if necessary. If false, will error if
+  input was required.
 
-* `-lock-timeout=0s` - Duration to retry a state lock.
+* `-lock=true`           Lock the state file when locking is supported.
 
-* `-no-color` - If specified, output won't contain any color.
+* `-lock-timeout=0s`     Duration to retry a state lock.
 
-* `-reconfigure` - Reconfigure the backend, ignoring any saved configuration.
+* `-no-color`            If specified, output won't contain any color.
+
+* `-plugin-dir`          Directory containing plugin binaries. This overrides all
+  default search paths for plugins, and prevents the automatic installation of
+  plugins. This flag can be used multiple times.
+
+* `-reconfigure`         Reconfigure the backend, ignoring any saved configuration.
+
+* `-upgrade=false`       If installing modules (-get) or plugins (-get-plugins),
+  ignore previously-downloaded objects and install the latest version allowed
+  within configured constraints.
 
 ## Backend Config
 
