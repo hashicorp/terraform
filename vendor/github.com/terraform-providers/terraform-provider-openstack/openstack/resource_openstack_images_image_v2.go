@@ -34,6 +34,13 @@ func resourceImagesImageV2() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"checksum": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -122,13 +129,6 @@ func resourceImagesImageV2() *schema.Resource {
 				Default:  false,
 			},
 
-			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
-			},
-
 			"schema": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -169,7 +169,7 @@ func resourceImagesImageV2() *schema.Resource {
 
 func resourceImagesImageV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	imageClient, err := config.imageV2Client(GetRegion(d))
+	imageClient, err := config.imageV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack image client: %s", err)
 	}
@@ -246,7 +246,7 @@ func resourceImagesImageV2Create(d *schema.ResourceData, meta interface{}) error
 
 func resourceImagesImageV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	imageClient, err := config.imageV2Client(GetRegion(d))
+	imageClient, err := config.imageV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack image client: %s", err)
 	}
@@ -277,12 +277,14 @@ func resourceImagesImageV2Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("size_bytes", img.SizeBytes)
 	d.Set("tags", img.Tags)
 	d.Set("visibility", img.Visibility)
+	d.Set("region", GetRegion(d, config))
+
 	return nil
 }
 
 func resourceImagesImageV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	imageClient, err := config.imageV2Client(GetRegion(d))
+	imageClient, err := config.imageV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack image client: %s", err)
 	}
@@ -320,7 +322,7 @@ func resourceImagesImageV2Update(d *schema.ResourceData, meta interface{}) error
 
 func resourceImagesImageV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	imageClient, err := config.imageV2Client(GetRegion(d))
+	imageClient, err := config.imageV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack image client: %s", err)
 	}

@@ -27,10 +27,10 @@ func resourceLoadBalancerV2() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 
 			"name": &schema.Schema{
@@ -108,7 +108,7 @@ func resourceLoadBalancerV2() *schema.Resource {
 
 func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -167,7 +167,7 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 
 func resourceLoadBalancerV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -188,6 +188,7 @@ func resourceLoadBalancerV2Read(d *schema.ResourceData, meta interface{}) error 
 	d.Set("admin_state_up", lb.AdminStateUp)
 	d.Set("flavor", lb.Flavor)
 	d.Set("loadbalancer_provider", lb.Provider)
+	d.Set("region", GetRegion(d, config))
 
 	// Get any security groups on the VIP Port
 	if lb.VipPortID != "" {
@@ -204,7 +205,7 @@ func resourceLoadBalancerV2Read(d *schema.ResourceData, meta interface{}) error 
 
 func resourceLoadBalancerV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -241,7 +242,7 @@ func resourceLoadBalancerV2Update(d *schema.ResourceData, meta interface{}) erro
 
 func resourceLoadBalancerV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}

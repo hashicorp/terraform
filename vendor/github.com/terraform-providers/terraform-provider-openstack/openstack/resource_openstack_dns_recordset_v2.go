@@ -31,10 +31,10 @@ func resourceDNSRecordSetV2() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
 			},
 			"zone_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -80,7 +80,7 @@ func resourceDNSRecordSetV2() *schema.Resource {
 
 func resourceDNSRecordSetV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	dnsClient, err := config.dnsV2Client(GetRegion(d))
+	dnsClient, err := config.dnsV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 	}
@@ -131,7 +131,7 @@ func resourceDNSRecordSetV2Create(d *schema.ResourceData, meta interface{}) erro
 
 func resourceDNSRecordSetV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	dnsClient, err := config.dnsV2Client(GetRegion(d))
+	dnsClient, err := config.dnsV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 	}
@@ -154,7 +154,7 @@ func resourceDNSRecordSetV2Read(d *schema.ResourceData, meta interface{}) error 
 	d.Set("ttl", n.TTL)
 	d.Set("type", n.Type)
 	d.Set("records", n.Records)
-	d.Set("region", GetRegion(d))
+	d.Set("region", GetRegion(d, config))
 	d.Set("zone_id", zoneID)
 
 	return nil
@@ -162,7 +162,7 @@ func resourceDNSRecordSetV2Read(d *schema.ResourceData, meta interface{}) error 
 
 func resourceDNSRecordSetV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	dnsClient, err := config.dnsV2Client(GetRegion(d))
+	dnsClient, err := config.dnsV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 	}
@@ -215,7 +215,7 @@ func resourceDNSRecordSetV2Update(d *schema.ResourceData, meta interface{}) erro
 
 func resourceDNSRecordSetV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	dnsClient, err := config.dnsV2Client(GetRegion(d))
+	dnsClient, err := config.dnsV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 	}

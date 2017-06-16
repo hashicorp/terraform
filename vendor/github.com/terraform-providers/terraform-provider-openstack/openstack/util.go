@@ -3,7 +3,6 @@ package openstack
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"sort"
 	"strings"
 
@@ -36,17 +35,15 @@ func CheckDeleted(d *schema.ResourceData, err error, msg string) error {
 	return fmt.Errorf("%s: %s", msg, err)
 }
 
-// GetRegion returns the region from either d.Get("region") or OS_REGION_NAME
-func GetRegion(d *schema.ResourceData) string {
+// GetRegion returns the region that was specified in the resource. If a
+// region was not set, the provider-level region is checked. The provider-level
+// region can either be set by the region argument or by OS_REGION_NAME.
+func GetRegion(d *schema.ResourceData, config *Config) string {
 	if v, ok := d.GetOk("region"); ok {
 		return v.(string)
 	}
 
-	if v := os.Getenv("OS_REGION_NAME"); v != "" {
-		return v
-	}
-
-	return ""
+	return config.Region
 }
 
 // AddValueSpecs expands the 'value_specs' object and removes 'value_specs'

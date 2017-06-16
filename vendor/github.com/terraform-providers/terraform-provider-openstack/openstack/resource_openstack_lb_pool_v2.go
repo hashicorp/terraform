@@ -26,10 +26,10 @@ func resourcePoolV2() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 
 			"tenant_id": &schema.Schema{
@@ -136,7 +136,7 @@ func resourcePoolV2() *schema.Resource {
 
 func resourcePoolV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -219,7 +219,7 @@ func resourcePoolV2Create(d *schema.ResourceData, meta interface{}) error {
 
 func resourcePoolV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -239,13 +239,14 @@ func resourcePoolV2Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", pool.Name)
 	d.Set("id", pool.ID)
 	d.Set("persistence", pool.Persistence)
+	d.Set("region", GetRegion(d, config))
 
 	return nil
 }
 
 func resourcePoolV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -277,7 +278,7 @@ func resourcePoolV2Update(d *schema.ResourceData, meta interface{}) error {
 
 func resourcePoolV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
