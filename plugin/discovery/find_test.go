@@ -10,9 +10,8 @@ import (
 func TestFindPluginPaths(t *testing.T) {
 	got := findPluginPaths(
 		"foo",
-		"mockos_mockarch",
 		[]string{
-			"test-fixtures/current-style-plugins",
+			"test-fixtures/current-style-plugins/mockos_mockarch",
 			"test-fixtures/legacy-style-plugins",
 			"test-fixtures/non-existent",
 			"test-fixtures/not-a-dir",
@@ -21,6 +20,8 @@ func TestFindPluginPaths(t *testing.T) {
 	want := []string{
 		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v0.0.1"),
 		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v1.0.0"),
+		// un-versioned plugins are still picked up, even in current-style paths
+		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-missing-version"),
 		filepath.Join("test-fixtures", "legacy-style-plugins", "terraform-foo-bar"),
 		filepath.Join("test-fixtures", "legacy-style-plugins", "terraform-foo-baz"),
 	}
