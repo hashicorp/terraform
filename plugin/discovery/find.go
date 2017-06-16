@@ -131,7 +131,7 @@ func ResolvePluginPaths(paths []string) PluginMetaSet {
 
 		parts := strings.SplitN(baseName, "_v", 2)
 		name := parts[0]
-		version := "0.0.0"
+		version := VersionZero
 		if len(parts) == 2 {
 			version = parts[1]
 		}

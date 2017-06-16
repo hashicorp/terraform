@@ -303,7 +303,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 			continue
 		}
 
-		if req.Versions.Unconstrained() {
+		if req.Versions.Unconstrained() && meta.Version != discovery.VersionZero {
 			// meta.Version.MustParse is safe here because our "chosen" metas
 			// were already filtered for validity of versions.
 			constraintSuggestions[name] = meta.Version.MustParse().MinorUpgradeConstraintStr()
