@@ -22,7 +22,7 @@ variable "existing_storage_acct" {
 
 variable "existing_storage_acct_type" {
   description = "The type of the storage account in which your existing VHD and image reside"
-  default     = "Premium_LRS"
+  default     = "Standard_LRS"
 }
 
 variable "existing_resource_group" {

@@ -60,7 +60,7 @@ resource "azurerm_virtual_machine" "vm" {
   storage_os_disk {
     name          = "${var.hostname}osdisk"
     create_option = "FromImage"
-    disk_size_gb  = "15"
+    disk_size_gb  = "30"
   }
 
   os_profile {
