@@ -4,14 +4,8 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
-	"regexp"
-	"runtime"
 	"strings"
 )
-
-// Store the machine name for excluding legacy plugins in new-style directories.
-// This is a var to override in testing
-var machineName = runtime.GOOS + "_" + runtime.GOARCH
 
 // FindPlugins looks in the given directories for files whose filenames
 // suggest that they are plugins of the given kind (e.g. "provider") and
@@ -48,8 +42,6 @@ func FindPluginPaths(kind string, dirs []string) []string {
 }
 
 func findPluginPaths(kind string, dirs []string) []string {
-	hasMachineSuffix := regexp.MustCompile(machineName + "/?").MatchString
-
 	prefix := "terraform-" + kind + "-"
 
 	ret := make([]string, 0, len(dirs))
@@ -62,8 +54,6 @@ func findPluginPaths(kind string, dirs []string) []string {
 		}
 
 		log.Printf("[DEBUG] checking for plugins in %q", dir)
-
-		isMachineDir := hasMachineSuffix(dir)
 
 		for _, item := range items {
 			fullName := item.Name()
@@ -86,18 +76,16 @@ func findPluginPaths(kind string, dirs []string) []string {
 				continue
 			}
 
-			if !isMachineDir {
-				// Legacy style with files directly in the base directory
-				absPath, err := filepath.Abs(filepath.Join(dir, fullName))
-				if err != nil {
-					log.Printf("[ERROR] plugin filepath error: %s", err)
-					continue
-				}
-
-				log.Printf("[DEBUG] found legacy plugin %q", fullName)
-
-				ret = append(ret, filepath.Clean(absPath))
+			// Legacy style with files directly in the base directory
+			absPath, err := filepath.Abs(filepath.Join(dir, fullName))
+			if err != nil {
+				log.Printf("[ERROR] plugin filepath error: %s", err)
+				continue
 			}
+
+			log.Printf("[WARNING] found legacy plugin %q", fullName)
+
+			ret = append(ret, filepath.Clean(absPath))
 		}
 	}
 
