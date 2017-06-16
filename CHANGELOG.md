@@ -9,6 +9,10 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
   was confusing due to collisions with other concepts of the same name. The commands still work the same as they did before, and
   the `env` subcommand is still supported as an alias for backward compatibility. The `env` subcommand will be removed altogether in
   a future release, so it's recommended to update any automation or wrapper scripts that use these commands.
+* The `terraform init` subcommand no longer takes a SOURCE argument to copy to the current directory. The behavior has
+  been changed to match that of `plan` and `apply`, so that a configuration can be provided as an argument on the
+  commandline while initializing the current directory. If a module needs to be copied into the current directory before
+  initialization, it will have to be done manually.
 
 IMPROVEMENTS:
 
