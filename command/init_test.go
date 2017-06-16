@@ -519,11 +519,7 @@ func TestInit_findVendoredProviders(t *testing.T) {
 	if err := os.MkdirAll(c.pluginDir(), 0755); err != nil {
 		t.Fatal(err)
 	}
-	vendorMachineDir := filepath.Join(
-		DefaultPluginVendorDir,
-		fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH),
-	)
-	if err := os.MkdirAll(vendorMachineDir, 0755); err != nil {
+	if err := os.MkdirAll(DefaultPluginVendorDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -534,7 +530,7 @@ func TestInit_findVendoredProviders(t *testing.T) {
 		t.Fatal(err)
 	}
 	// the vendor path
-	greaterThanPath := filepath.Join(vendorMachineDir, "terraform-provider-greater_than_v2.3.4_x4")
+	greaterThanPath := filepath.Join(DefaultPluginVendorDir, "terraform-provider-greater_than_v2.3.4_x4")
 	if err := ioutil.WriteFile(greaterThanPath, []byte("test bin"), 0755); err != nil {
 		t.Fatal(err)
 	}
