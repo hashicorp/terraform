@@ -205,6 +205,9 @@ The supported built-in functions are:
   * `concat(list1, list2, ...)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
+  * `contains(list, element)` - Returns *true* if a list contains the given element
+     and returns *false* otherwise. Examples: `element(var.list_of_strings, "an_element")`
+
   * `dirname(path)` - Returns all but the last element of path, typically the path's directory.
 
   * `distinct(list)` - Removes duplicate items from a list. Keeps the first

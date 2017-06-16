@@ -943,6 +943,43 @@ func TestInterpolateFuncConcat(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncContains(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.listOfStrings": interfaceToVariableSwallowError([]string{"notfoo", "stillnotfoo", "bar"}),
+			"var.listOfInts":    interfaceToVariableSwallowError([]int{1, 2, 3}),
+		},
+		Cases: []testFunctionCase{
+			{
+				`${contains(var.listOfStrings, "bar")}`,
+				"true",
+				false,
+			},
+
+			{
+				`${contains(var.listOfStrings, "foo")}`,
+				"false",
+				false,
+			},
+			{
+				`${contains(var.listOfInts, 1)}`,
+				"true",
+				false,
+			},
+			{
+				`${contains(var.listOfInts, 10)}`,
+				"false",
+				false,
+			},
+			{
+				`${contains(var.listOfInts, "2")}`,
+				"true",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncMerge(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
