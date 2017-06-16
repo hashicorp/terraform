@@ -251,7 +251,7 @@ func TestParseResourceAddress(t *testing.T) {
 			"module.a",
 			&ResourceAddress{
 				Path:         []string{"a"},
-				Type:         "",
+				Type:         "module",
 				Name:         "",
 				InstanceType: TypePrimary,
 				Index:        -1,
@@ -263,7 +263,7 @@ func TestParseResourceAddress(t *testing.T) {
 			"module.a.module.b",
 			&ResourceAddress{
 				Path:         []string{"a", "b"},
-				Type:         "",
+				Type:         "module",
 				Name:         "",
 				InstanceType: TypePrimary,
 				Index:        -1,
