@@ -66,7 +66,9 @@ resource "aws_instance" "example" {
 
 ~> **Note**: The above configuration is designed to work on most EC2 accounts,
 with access to a default VPC. For EC2 Classic users, please use `t1.micro` for
-`instance_type`, and `ami-408c7f28` for the `ami`.
+`instance_type`, and `ami-408c7f28` for the `ami`. If you use a region other than
+`us-east-1` then you will need to choose an AMI in that region
+as AMI IDs are region specific.
 
 Replace the `ACCESS_KEY_HERE` and `SECRET_KEY_HERE` with your
 AWS access key and secret key, available from
