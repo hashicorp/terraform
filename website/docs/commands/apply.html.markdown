@@ -54,9 +54,9 @@ The command-line flags are all optional. The list of available flags are:
   [remote state](/docs/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
-  Address](/docs/internals/resource-addressing.html) to target. Operation will
-  be limited to this resource and its dependencies. This flag can be used
-  multiple times.
+  Address](/docs/internals/resource-addressing.html) to target. For more
+  information, see
+  [the targeting docs from `terraform plan`](/docs/commands/plan.html#resource-targeting).
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
