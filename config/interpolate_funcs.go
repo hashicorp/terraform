@@ -70,6 +70,7 @@ func Funcs() map[string]ast.Function {
 		"coalescelist": interpolationFuncCoalesceList(),
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
+		"contains":     interpolationFuncContains(),
 		"dirname":      interpolationFuncDirname(),
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
@@ -352,6 +353,22 @@ func interpolationFuncCoalesceList() ast.Function {
 				}
 			}
 			return make([]ast.Variable, 0), nil
+		},
+	}
+}
+
+// interpolationFuncContains returns true if an element is in the list
+// and return false otherwise
+func interpolationFuncContains() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeString},
+		ReturnType: ast.TypeBool,
+		Callback: func(args []interface{}) (interface{}, error) {
+			_, err := interpolationFuncIndex().Callback(args)
+			if err != nil {
+				return false, nil
+			}
+			return true, nil
 		},
 	}
 }
