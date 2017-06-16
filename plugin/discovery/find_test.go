@@ -7,12 +7,15 @@ import (
 	"testing"
 )
 
+func init() {
+	machineName = "mockos_mockarch"
+}
+
 func TestFindPluginPaths(t *testing.T) {
 	got := findPluginPaths(
 		"foo",
-		"mockos_mockarch",
 		[]string{
-			"test-fixtures/current-style-plugins",
+			"test-fixtures/current-style-plugins/mockos_mockarch",
 			"test-fixtures/legacy-style-plugins",
 			"test-fixtures/non-existent",
 			"test-fixtures/not-a-dir",
