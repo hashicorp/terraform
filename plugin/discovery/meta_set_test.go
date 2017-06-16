@@ -402,14 +402,14 @@ func TestPluginMetaSetOverridePaths(t *testing.T) {
 	}
 	if !ns.Has(PluginMeta{
 		Name:    "foo",
-		Version: "0.0.0",
+		Version: VersionZero,
 		Path:    "override-foo",
 	}) {
 		t.Errorf("new set is missing 'foo' override")
 	}
 	if !ns.Has(PluginMeta{
 		Name:    "fun",
-		Version: "0.0.0",
+		Version: VersionZero,
 		Path:    "override-fun",
 	}) {
 		t.Errorf("new set is missing 'fun' override")
