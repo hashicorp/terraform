@@ -13,12 +13,18 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
   been changed to match that of `plan` and `apply`, so that a configuration can be provided as an argument on the
   commandline while initializing the current directory. If a module needs to be copied into the current directory before
   initialization, it will have to be done manually.
+* The `-target` option available on several Terraform subcommands has changed behavior and **now matches potentially more resources**.
+  In particular, given an option `-target=module.foo`, resources in any descendent modules of `foo` will also be targeted, where before
+  this was not true. After upgrading, be sure to look carefully at the set of changes proposed by `terraform plan` when using `-target`
+  to ensure that the target is being interpreted as expected. Note that the `-target` argument is offered for exceptional circumstances
+  only and is not intended for routine use.
 
 IMPROVEMENTS:
 
 * Providers no longer in the main Terraform distribution; installed automatically by init instead [GH-15208]
 * cli: `terraform env` command renamed to `terraform workspace` [GH-14952]
 * cli: `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
+* cli: The `-target` option to various Terraform operation can now target resources in descendent modules. [GH-15314]
 * config: New interpolation function `contains`, to find if a given string exists in a list of strings. [GH-15322]
 
 BUG FIXES:
