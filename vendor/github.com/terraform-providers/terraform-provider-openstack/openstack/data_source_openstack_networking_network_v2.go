@@ -17,6 +17,12 @@ func dataSourceNetworkingNetworkV2() *schema.Resource {
 		Read: dataSourceNetworkingNetworkV2Read,
 
 		Schema: map[string]*schema.Schema{
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -28,11 +34,6 @@ func dataSourceNetworkingNetworkV2() *schema.Resource {
 			"matching_subnet_cidr": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-			},
-			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -57,7 +58,7 @@ func dataSourceNetworkingNetworkV2() *schema.Resource {
 
 func dataSourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 
 	listOpts := networks.ListOpts{
 		ID:       d.Get("network_id").(string),
@@ -111,7 +112,7 @@ func dataSourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{})
 	d.Set("admin_state_up", strconv.FormatBool(network.AdminStateUp))
 	d.Set("shared", strconv.FormatBool(network.Shared))
 	d.Set("tenant_id", network.TenantID)
-	d.Set("region", GetRegion(d))
+	d.Set("region", GetRegion(d, config))
 
 	return nil
 }
