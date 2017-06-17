@@ -119,8 +119,8 @@ func TestProviderInstallerGet(t *testing.T) {
 	// attempt to use an incompatible protocol version
 	i := &ProviderInstaller{
 		Dir: tmpDir,
-
 		PluginProtocolVersion: 5,
+		SkipVerify:            true,
 	}
 	_, err = i.Get("test", AllVersions)
 	if err == nil {
@@ -129,8 +129,8 @@ func TestProviderInstallerGet(t *testing.T) {
 
 	i = &ProviderInstaller{
 		Dir: tmpDir,
-
 		PluginProtocolVersion: 3,
+		SkipVerify:            true,
 	}
 	gotMeta, err := i.Get("test", AllVersions)
 	if err != nil {
@@ -185,8 +185,8 @@ func TestProviderInstallerPurgeUnused(t *testing.T) {
 
 	i := &ProviderInstaller{
 		Dir: tmpDir,
-
 		PluginProtocolVersion: 3,
+		SkipVerify:            true,
 	}
 	purged, err := i.PurgeUnused(map[string]PluginMeta{
 		"test": PluginMeta{
