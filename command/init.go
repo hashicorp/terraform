@@ -155,8 +155,7 @@ func (c *InitCommand) Run(args []string) int {
 			// in which case we choose not to show this.
 			if conf.Terraform != nil && conf.Terraform.Backend != nil {
 				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-					"[reset][bold]" +
-						"Initializing the backend...")))
+					"\n[reset][bold]Initializing the backend...")))
 			}
 
 			opts := &BackendOpts{
@@ -184,10 +183,6 @@ func (c *InitCommand) Run(args []string) int {
 			"Error refreshing state: %s", err))
 		return 1
 	}
-
-	c.Ui.Output(c.Colorize().Color(
-		"[reset][bold]Initializing provider plugins...",
-	))
 
 	err = c.getProviders(path, sMgr.State(), flagUpgrade)
 	if err != nil {
@@ -229,7 +224,17 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	} else {
 		available = c.providerPluginSet()
 	}
+
 	requirements := terraform.ModuleTreeDependencies(mod, state).AllPluginRequirements()
+	if len(requirements) == 0 {
+		// nothing to initialize
+		return nil
+	}
+
+	c.Ui.Output(c.Colorize().Color(
+		"\n[reset][bold]Initializing provider plugins...",
+	))
+
 	missing := c.missingPlugins(available, requirements)
 
 	var errs error
