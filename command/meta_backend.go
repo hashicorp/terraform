@@ -946,8 +946,7 @@ func (m *Meta) backend_C_R_s(
 	}
 
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-		"[reset][green]\n\n"+
-			strings.TrimSpace(successBackendSet), s.Backend.Type)))
+		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
 
 	return b, nil
 }
@@ -1050,8 +1049,7 @@ func (m *Meta) backend_C_r_s(
 	}
 
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-		"[reset][green]\n\n"+
-			strings.TrimSpace(successBackendSet), s.Backend.Type)))
+		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
 
 	// Return the backend
 	return b, nil
@@ -1148,8 +1146,7 @@ func (m *Meta) backend_C_r_S_changed(
 
 	if output {
 		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-			"[reset][green]\n\n"+
-				strings.TrimSpace(successBackendSet), s.Backend.Type)))
+			"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
 	}
 
 	return b, nil
