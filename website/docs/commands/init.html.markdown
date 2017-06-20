@@ -68,6 +68,9 @@ The command-line flags are all optional. The list of available flags are:
   ignore previously-downloaded objects and install the latest version allowed
   within configured constraints.
 
+* `-verify-plugins=true` Verify the authenticity and integrity of automatically
+  downloaded plugins.
+
 ## Backend Config
 
 The `-backend-config` can take a path or `key=value` pair to specify additional
