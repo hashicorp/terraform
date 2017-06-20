@@ -81,6 +81,11 @@ type EvalDiff struct {
 	// Resource is needed to fetch the ignore_changes list so we can
 	// filter user-requested ignored attributes from the diff.
 	Resource *config.Resource
+
+	// Quiet is used to indicate that this count should not be used in the UI.
+	// This is used with refresh nodes on scale-out so that resources do not get
+	// counted twice in the UI output.
+	Quiet bool
 }
 
 // TODO: test
@@ -157,6 +162,9 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, err
 	}
 
+	// Flag quiet to ensure that this resource is skipped in post-diff hooks, such as count, etc.
+	diff.Quiet = n.Quiet
+
 	// Call post-refresh hook
 	err = ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostDiff(n.Info, diff)
@@ -165,8 +173,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, err
 	}
 
-	// Update our output
-	*n.OutputDiff = diff
+	// Update our output if we care
+	if n.OutputDiff != nil {
+		*n.OutputDiff = diff
+	}
 
 	// Update the state if we care
 	if n.OutputState != nil {

@@ -100,6 +100,11 @@ func (h *CountHook) PostDiff(
 		return terraform.HookActionContinue, nil
 	}
 
+	// Don't count anything for a Quiet diff
+	if d.Quiet {
+		return terraform.HookActionContinue, nil
+	}
+
 	switch d.ChangeType() {
 	case terraform.DiffDestroyCreate:
 		h.ToRemoveAndAdd += 1
