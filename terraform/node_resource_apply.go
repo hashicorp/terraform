@@ -6,6 +6,50 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+// NodeApplyableResourceGroup represents a subgraph of NodeApplyableResource
+// nodes that share a common resource type and name but have different
+// indexes.
+//
+// This is used to summarize the apply graph to avoid the combinatorial
+// explosion that would result when creating several resources that are
+// all connected with common `count` values.
+type NodeApplyableResourceGroup struct {
+	*NodeAbstractResource // address index must be unset
+
+	Resources []*NodeApplyableResource
+}
+
+// GraphNodeDynamicExpandable impl
+func (n *NodeApplyableResourceGroup) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	// Start creating the steps
+	steps := []GraphTransformer{
+		// Insert our nodes.
+		graphTransformerFunc(func(g *Graph) error {
+			for _, node := range n.Resources {
+				g.Add(node)
+			}
+			return nil
+		}),
+
+		// Targeting
+		&TargetsTransformer{ParsedTargets: n.Targets},
+
+		// Connect references so ordering is correct
+		&ReferenceTransformer{},
+
+		// Make sure there is a single root
+		&RootTransformer{},
+	}
+
+	// Build the graph
+	b := &BasicGraphBuilder{
+		Steps:    steps,
+		Validate: true,
+		Name:     "NodeApplyableResourceGroup",
+	}
+	return b.Build(ctx.Path())
+}
+
 // NodeApplyableResource represents a resource that is "applyable":
 // it is ready to be applied and is represented by a diff.
 type NodeApplyableResource struct {

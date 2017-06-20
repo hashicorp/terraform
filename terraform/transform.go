@@ -50,3 +50,12 @@ func (t *graphTransformerMulti) Transform(g *Graph) error {
 func GraphTransformMulti(ts ...GraphTransformer) GraphTransformer {
 	return &graphTransformerMulti{Transforms: ts}
 }
+
+// graphTransformerFunc is an implementation of GraphTransformer that
+// is just a single function. The usual way to use this is as a closure,
+// so it can access state from the calling function.
+type graphTransformerFunc func(*Graph) error
+
+func (f graphTransformerFunc) Transform(g *Graph) error {
+	return f(g)
+}

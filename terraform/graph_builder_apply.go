@@ -87,6 +87,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
+		// Group individual resources together by their resource types and
+		// names, to reduce the number of edges created by resource
+		// dependencies.
+		applyableResourceGroupTransformer{},
+
 		// Create all the providers
 		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
 		&ProviderTransformer{},
@@ -138,4 +143,47 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	return steps
+}
+
+// applyableResourceGroupTransformer is a GraphTransformer that groups
+// together all NodeApplyableResource nodes into NodeApplyableResourceGroup
+// nodes, grouping nodes by the non-index portions of their resource
+// addresses.
+//
+// This must be applied before any edges are created in the graph, since it
+// will destroy any existing edges that exist with the resource nodes it
+// places in groups.
+type applyableResourceGroupTransformer struct{}
+
+func (t applyableResourceGroupTransformer) Transform(g *Graph) error {
+	groups := map[string][]*NodeApplyableResource{}
+	addrs := map[string]*ResourceAddress{}
+
+	for _, n := range g.Vertices() {
+		resource, isOurs := n.(*NodeApplyableResource)
+		if !isOurs {
+			continue
+		}
+
+		addr := resource.ResourceAddr().Copy()
+		addr.Index = -1
+		k := addr.String()
+
+		groups[k] = append(groups[k], resource)
+		addrs[k] = addr
+		g.Remove(n)
+	}
+
+	for k, resources := range groups {
+		addr := addrs[k]
+		n := &NodeApplyableResourceGroup{
+			NodeAbstractResource: &NodeAbstractResource{
+				Addr: addr,
+			},
+			Resources: resources,
+		}
+		g.Add(n)
+	}
+
+	return nil
 }
