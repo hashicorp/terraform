@@ -36,6 +36,7 @@ func (c *InitCommand) Run(args []string) int {
 	var flagBackend, flagGet, flagUpgrade bool
 	var flagConfigExtra map[string]interface{}
 	var flagPluginPath FlagStringSlice
+	var flagVerifyPlugins bool
 
 	args = c.Meta.process(args, false)
 	cmdFlags := c.flagSet("init")
@@ -49,6 +50,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
+	cmdFlags.BoolVar(&flagVerifyPlugins, "verify-plugins", true, "verify plugins")
 
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -64,8 +66,8 @@ func (c *InitCommand) Run(args []string) int {
 	if c.providerInstaller == nil {
 		c.providerInstaller = &discovery.ProviderInstaller{
 			Dir: c.pluginDir(),
-
 			PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
+			SkipVerify:            !flagVerifyPlugins,
 		}
 	}
 
@@ -403,11 +405,15 @@ Options:
                        automatic installation of plugins. This flag can be used
                        multiple times.
 
-  -reconfigure         Reconfigure the backend, ignoring any saved configuration.
+  -reconfigure         Reconfigure the backend, ignoring any saved
+                       configuration.
 
   -upgrade=false       If installing modules (-get) or plugins (-get-plugins),
                        ignore previously-downloaded objects and install the
                        latest version allowed within configured constraints.
+
+  -verify-plugins=true Verify the authenticity and integrity of automatically
+                       downloaded plugins.
 `
 	return strings.TrimSpace(helpText)
 }
