@@ -8,7 +8,7 @@ import (
 	"log"
 
 	"encoding/base64"
-	"github.com/Azure/azure-sdk-for-go/arm/storage"
+	"github.com/Azure/azure-sdk-for-go/storage"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
@@ -30,7 +30,10 @@ type RemoteClient struct {
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
-	blob, err := c.blobClient.GetBlob(c.containerName, c.keyName)
+	containerReference := c.blobClient.GetContainerReference(c.containerName)
+	blobReference := containerReference.GetBlobReference(c.keyName)
+	options := &storage.GetBlobOptions{}
+	blob, err := blobReference.Get(options)
 	if err != nil {
 		if storErr, ok := err.(storage.AzureStorageServiceError); ok {
 			if storErr.Code == "BlobNotFound" {
@@ -60,38 +63,40 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
-	headers := map[string]string{
-		"Content-Type": "application/json",
-	}
+	setOptions := &storage.SetBlobPropertiesOptions{}
+	putOptions := &storage.PutBlobOptions{}
+
+	containerReference := c.blobClient.GetContainerReference(c.containerName)
+	blobReference := containerReference.GetBlobReference(c.keyName)
+
+	blobReference.Properties.ContentType = "application/json"
+	blobReference.Properties.ContentLength = int64(len(data))
 
 	if c.leaseID != "" {
-		headers[leaseHeader] = c.leaseID
+		setOptions.LeaseID = c.leaseID
+		putOptions.LeaseID = c.leaseID
 	}
 
-	log.Print("[DEBUG] Uploading remote state to Azure")
+	reader := bytes.NewReader(data)
 
-	err := c.blobClient.CreateBlockBlobFromReader(
-		c.containerName,
-		c.keyName,
-		uint64(len(data)),
-		bytes.NewReader(data),
-		headers,
-	)
-
+	err := blobReference.CreateBlockBlobFromReader(reader, putOptions)
 	if err != nil {
-		return fmt.Errorf("Failed to upload state: %v", err)
+		return err
 	}
 
-	return nil
+	return blobReference.SetProperties(setOptions)
 }
 
 func (c *RemoteClient) Delete() error {
-	headers := map[string]string{}
+	containerReference := c.blobClient.GetContainerReference(c.containerName)
+	blobReference := containerReference.GetBlobReference(c.keyName)
+	options := &storage.DeleteBlobOptions{}
+
 	if c.leaseID != "" {
-		headers[leaseHeader] = c.leaseID
+		options.LeaseID = c.leaseID
 	}
 
-	return c.blobClient.DeleteBlob(c.containerName, c.keyName, headers)
+	return blobReference.Delete(options)
 }
 
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
@@ -119,7 +124,9 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		}
 	}
 
-	leaseID, err := c.blobClient.AcquireLease(c.containerName, c.keyName, -1, info.ID)
+	containerReference := c.blobClient.GetContainerReference(c.containerName)
+	blobReference := containerReference.GetBlobReference(c.keyName)
+	leaseID, err := blobReference.AcquireLease(-1, info.ID, &storage.LeaseOptions{})
 	if err != nil {
 		if storErr, ok := err.(storage.AzureStorageServiceError); ok && storErr.Code != "BlobNotFound" {
 			return "", getLockInfoErr(err)
@@ -144,7 +151,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 			}
 		}
 
-		leaseID, err = c.blobClient.AcquireLease(c.containerName, c.keyName, -1, info.ID)
+		leaseID, err = blobReference.AcquireLease(-1, info.ID, &storage.LeaseOptions{})
 		if err != nil {
 			return "", getLockInfoErr(err)
 		}
@@ -161,12 +168,14 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 }
 
 func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
-	meta, err := c.blobClient.GetBlobMetadata(c.containerName, c.keyName)
+	containerReference := c.blobClient.GetContainerReference(c.containerName)
+	blobReference := containerReference.GetBlobReference(c.keyName)
+	err := blobReference.GetMetadata(&storage.GetBlobMetadataOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	raw := meta[lockInfoMetaKey]
+	raw := blobReference.Metadata[lockInfoMetaKey]
 	if raw == "" {
 		return nil, fmt.Errorf("blob metadata %s was empty", lockInfoMetaKey)
 	}
@@ -187,22 +196,24 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 
 // writes info to blob meta data, deletes metadata entry if info is nil
 func (c *RemoteClient) writeLockInfo(info *state.LockInfo) error {
-	meta, err := c.blobClient.GetBlobMetadata(c.containerName, c.keyName)
+	containerReference := c.blobClient.GetContainerReference(c.containerName)
+	blobReference := containerReference.GetBlobReference(c.keyName)
+	err := blobReference.GetMetadata(&storage.GetBlobMetadataOptions{})
 	if err != nil {
 		return err
 	}
 
 	if info == nil {
-		delete(meta, lockInfoMetaKey)
+		delete(blobReference.Metadata, lockInfoMetaKey)
 	} else {
 		value := base64.StdEncoding.EncodeToString(info.Marshal())
-		meta[lockInfoMetaKey] = value
+		blobReference.Metadata[lockInfoMetaKey] = value
 	}
 
-	headers := map[string]string{
-		leaseHeader: c.leaseID,
+	opts := &storage.SetBlobMetadataOptions{
+		LeaseID: c.leaseID,
 	}
-	return c.blobClient.SetBlobMetadata(c.containerName, c.keyName, meta, headers)
+	return blobReference.SetMetadata(opts)
 
 }
 
@@ -226,7 +237,9 @@ func (c *RemoteClient) Unlock(id string) error {
 		return lockErr
 	}
 
-	err = c.blobClient.ReleaseLease(c.containerName, c.keyName, id)
+	containerReference := c.blobClient.GetContainerReference(c.containerName)
+	blobReference := containerReference.GetBlobReference(c.keyName)
+	err = blobReference.ReleaseLease(id, &storage.LeaseOptions{})
 	if err != nil {
 		lockErr.Err = err
 		return lockErr
