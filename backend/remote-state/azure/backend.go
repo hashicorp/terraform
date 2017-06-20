@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Azure/azure-sdk-for-go/arm/storage"
+	armStorage "github.com/Azure/azure-sdk-for-go/arm/storage"
+	"github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -157,18 +160,18 @@ func getAccessKey(d *schema.ResourceData, storageAccountName string, env azure.E
 		return "", fmt.Errorf("resource_group_name and credentials must be provided when access_key is absent")
 	}
 
-	oauthConfig, err := env.OAuthConfigForTenant(tenantID.(string))
+	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, tenantID.(string))
 	if err != nil {
 		return "", err
 	}
 
-	spt, err := azure.NewServicePrincipalToken(*oauthConfig, clientID.(string), clientSecret.(string), env.ResourceManagerEndpoint)
+	spt, err := adal.NewServicePrincipalToken(*oauthConfig, clientID.(string), clientSecret.(string), env.ResourceManagerEndpoint)
 	if err != nil {
 		return "", err
 	}
 
-	accountsClient := storage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, subscriptionID.(string))
-	accountsClient.Authorizer = spt
+	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, subscriptionID.(string))
+	accountsClient.Authorizer = autorest.NewBearerAuthorizer(spt)
 
 	keys, err := accountsClient.ListKeys(resourceGroupName.(string), storageAccountName)
 	if err != nil {

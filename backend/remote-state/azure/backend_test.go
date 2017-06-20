@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
-	"github.com/Azure/azure-sdk-for-go/arm/storage"
-	"github.com/Azure/azure-storage-go"
+	armStorage "github.com/Azure/azure-sdk-for-go/arm/storage"
+	"github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -121,14 +123,15 @@ func setupResources(t *testing.T, keyName string) testResources {
 	}
 
 	t.Logf("creating storage account %s", res.storageAccountName)
-	_, err = clients.storageAccountsClient.Create(res.resourceGroupName, res.storageAccountName, armStorage.AccountCreateParameters{
+	_, createError := clients.storageAccountsClient.Create(res.resourceGroupName, res.storageAccountName, armStorage.AccountCreateParameters{
 		Sku: &armStorage.Sku{
 			Name: armStorage.StandardLRS,
 			Tier: armStorage.Standard,
 		},
 		Location: &location,
 	}, make(chan struct{}))
-	if err != nil {
+	createErr := <-createError
+	if createErr != nil {
 		destroyResources(t, res.resourceGroupName)
 		t.Fatalf("failed to create test storage account: %s", err)
 	}
@@ -151,8 +154,9 @@ func setupResources(t *testing.T, keyName string) testResources {
 	}
 
 	t.Logf("creating container %s", res.containerName)
-	container := storageClient.GetBlobService().GetContainerReference(res.containerName)
-	err = container.Create()
+	blobService := storageClient.GetBlobService()
+	container := blobService.GetContainerReference(res.containerName)
+	err = container.Create(&storage.CreateContainerOptions{})
 	if err != nil {
 		destroyResources(t, res.resourceGroupName)
 		t.Fatalf("failed to create storage container: %s", err)
@@ -169,7 +173,8 @@ func destroyResources(t *testing.T, resourceGroupName string) {
 	t.Log("destroying created resources")
 
 	// destroying is simple as deleting the resource group will destroy everything else
-	_, err := clients.groupsClient.Delete(resourceGroupName, make(chan struct{}))
+	_, deleteErr := clients.groupsClient.Delete(resourceGroupName, make(chan struct{}))
+	err := <-deleteErr
 	if err != nil {
 		t.Logf(warning, err)
 		return
@@ -206,21 +211,21 @@ func getTestClient(t *testing.T) testClient {
 	}
 	client.environment = env
 
-	oauthConfig, err := env.OAuthConfigForTenant(client.tenantID)
+	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, client.tenantID)
 	if err != nil {
 		t.Fatalf("Failed to get OAuth config: %s", err)
 	}
 
-	spt, err := azure.NewServicePrincipalToken(*oauthConfig, client.clientID, client.clientSecret, env.ResourceManagerEndpoint)
+	spt, err := adal.NewServicePrincipalToken(*oauthConfig, client.clientID, client.clientSecret, env.ResourceManagerEndpoint)
 	if err != nil {
 		t.Fatalf("Failed to create Service Principal Token: %s", err)
 	}
 
 	client.groupsClient = resources.NewGroupsClientWithBaseURI(env.ResourceManagerEndpoint, client.subscriptionID)
-	client.groupsClient.Authorizer = spt
+	client.groupsClient.Authorizer = autorest.NewBearerAuthorizer(spt)
 
 	client.storageAccountsClient = armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, client.subscriptionID)
-	client.storageAccountsClient.Authorizer = spt
+	client.storageAccountsClient.Authorizer = autorest.NewBearerAuthorizer(spt)
 
 	return client
 }

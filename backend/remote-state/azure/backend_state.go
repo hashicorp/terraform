@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/arm/storage"
+	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
@@ -57,7 +57,11 @@ func (b *Backend) DeleteState(name string) error {
 		return fmt.Errorf("can't delete default state")
 	}
 
-	return b.blobClient.DeleteBlob(b.containerName, b.path(name), nil)
+	containerReference := b.blobClient.GetContainerReference(b.containerName)
+	blobReference := containerReference.GetBlobReference(b.path(name))
+	options := &storage.DeleteBlobOptions{}
+
+	return blobReference.Delete(options)
 }
 
 func (b *Backend) State(name string) (state.State, error) {
