@@ -479,6 +479,10 @@ func TestInit_getProvider(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
+	if !installer.PurgeUnusedCalled {
+		t.Errorf("init didn't purge providers, but should have")
+	}
+
 	// check that we got the providers for our config
 	exactPath := filepath.Join(c.pluginDir(), installer.FileName("exact", "1.2.3"))
 	if _, err := os.Stat(exactPath); os.IsNotExist(err) {

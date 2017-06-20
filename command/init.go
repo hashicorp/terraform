@@ -302,7 +302,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		return err
 	}
 
-	if upgrade {
+	{
 		// Purge any auto-installed plugins that aren't being used.
 		purged, err := c.providerInstaller.PurgeUnused(chosen)
 		if err != nil {
