@@ -240,11 +240,24 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	var errs error
 	if c.getPlugins {
 		for provider, reqd := range missing {
-			c.Ui.Output(fmt.Sprintf("- downloading plugin for provider %q...", provider))
+			c.Ui.Output(fmt.Sprintf("- Downloading plugin for provider %q...", provider))
 			_, err := c.providerInstaller.Get(provider, reqd.Versions)
 
 			if err != nil {
-				c.Ui.Error(fmt.Sprintf(errProviderNotFound, err, provider, reqd.Versions))
+				switch err {
+				case discovery.ErrorNoSuchProvider:
+					c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
+				case discovery.ErrorNoSuitableVersion:
+					c.Ui.Error(fmt.Sprintf(errProviderVersionsUnsuitable, provider, reqd.Versions))
+				case discovery.ErrorNoVersionCompatible:
+					// FIXME: This error message is sub-awesome because we don't
+					// have enough information here to tell the user which versions
+					// we considered and which versions might be compatible.
+					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, reqd.Versions))
+				default:
+					c.Ui.Error(fmt.Sprintf(errProviderInstallError, provider, err.Error(), DefaultPluginVendorDir))
+				}
+
 				errs = multierror.Append(errs, err)
 			}
 		}
@@ -254,10 +267,17 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		}
 	} else if len(missing) > 0 {
 		// we have missing providers, but aren't going to try and download them
+		var lines []string
 		for provider, reqd := range missing {
-			c.Ui.Error(fmt.Sprintf(errProviderNotFound, err, provider, reqd.Versions))
+			if reqd.Versions.Unconstrained() {
+				lines = append(lines, fmt.Sprintf("* %s (any version)\n", provider))
+			} else {
+				lines = append(lines, fmt.Sprintf("* %s (%s)\n", provider, reqd.Versions))
+			}
 			errs = multierror.Append(errs, fmt.Errorf("missing provider %q", provider))
 		}
+		sort.Strings(lines)
+		c.Ui.Error(fmt.Sprintf(errMissingProvidersNoInstall, strings.Join(lines, ""), DefaultPluginVendorDir))
 		return errs
 	}
 
@@ -434,13 +454,88 @@ suggested below.
 `
 
 const errProviderNotFound = `
-[reset][red]%[1]s
+[reset][bold][red]Provider %[1]q not available for installation.[reset][red]
 
-[reset][bold][red]Error: Satisfying %[2]q, provider not found
+A provider named %[1]q could not be found in the official repository.
 
-[reset][red]A version of the %[2]q provider that satisfies all version
-constraints could not be found. The requested version
-constraints are shown below.
+This may result from mistyping the provider name, or the given provider may
+be a third-party provider that cannot be installed automatically.
 
-%[2]s = %[3]q[reset]
+In the latter case, the plugin must be installed manually by locating and
+downloading a suitable distribution package and placing the plugin's executable
+file in the following directory:
+    %[2]s
+
+Terraform detects necessary plugins by inspecting the configuration and state.
+To view the provider versions requested by each module, run
+"terraform providers".
+`
+
+const errProviderVersionsUnsuitable = `
+[reset][bold][red]No provider %[1]q plugins meet the constraint %[2]q.[reset][red]
+
+The version constraint is derived from the "version" argument within the
+provider %[1]q block in configuration. Child modules may also apply
+provider version constraints. To view the provider versions requested by each
+module in the current configuration, run "terraform providers".
+
+To proceed, the version constraints for this provider must be relaxed by
+either adjusting or removing the "version" argument in the provider blocks
+throughout the configuration.
+`
+
+const errProviderIncompatible = `
+[reset][bold][red]No available provider %[1]q plugins are compatible with this Terraform version.[reset][red]
+
+From time to time, new Terraform major releases can change the requirements for
+plugins such that older plugins become incompatible.
+
+Terraform checked all of the plugin versions matching the given constraint:
+    %[2]s
+
+Unfortunately, none of the suitable versions are compatible with this version
+of Terraform. If you have recently upgraded Terraform, it may be necessary to
+move to a newer major release of this provider. Alternatively, if you are
+attempting to upgrade the provider to a new major version you may need to
+also upgrade Terraform to support the new version.
+
+Consult the documentation for this provider for more information on
+compatibility between provider versions and Terraform versions.
+`
+
+const errProviderInstallError = `
+[reset][bold][red]Error installing provider %[1]q: %[2]s.[reset][red]
+
+Terraform analyses the configuration and state and automatically downloads
+plugins for the providers used. However, when attempting to download this
+plugin an unexpected error occured.
+
+This may be caused if for some reason Terraform is unable to reach the
+plugin repository. The repository may be unreachable if access is blocked
+by a firewall.
+
+If automatic installation is not possible or desirable in your environment,
+you may alternatively manually install plugins by downloading a suitable
+distribution package and placing the plugin's executable file in the
+following directory:
+    %[3]s
+`
+
+const errMissingProvidersNoInstall = `
+[reset][bold][red]Missing required providers.[reset][red]
+
+The following provider constraints are not met by the currently-installed
+provider plugins:
+
+%[1]s
+Terraform can automatically download and install plugins to meet the given
+constraints, but this step was skipped due to the use of -get-plugins=false
+and/or -plugin-dir on the command line.
+
+If automatic installation is not possible or desirable in your environment,
+you may manually install plugins by downloading a suitable distribution package
+and placing the plugin's executable file in one of the directories given in
+by -plugin-dir on the command line, or in the following directory if custom
+plugin directories are not set:
+    %[2]s
 `
