@@ -38,6 +38,10 @@ func providerName(name string) string {
 	return "terraform-provider-" + name
 }
 
+func providerFileName(name, version string) string {
+	return fmt.Sprintf("%s_%s_%s_%s.zip", providerName(name), version, runtime.GOOS, runtime.GOARCH)
+}
+
 // providerVersionsURL returns the path to the released versions directory for the provider:
 // https://releases.hashicorp.com/terraform-provider-name/
 func providerVersionsURL(name string) string {
@@ -48,7 +52,11 @@ func providerVersionsURL(name string) string {
 // and ARCH:
 // .../terraform-provider-name_<x.y.z>/terraform-provider-name_<x.y.z>_<os>_<arch>.<ext>
 func providerURL(name, version string) string {
-	fileName := fmt.Sprintf("%s_%s_%s_%s.zip", providerName(name), version, runtime.GOOS, runtime.GOARCH)
+	return fmt.Sprintf("%s%s/%s", providerVersionsURL(name), version, providerFileName(name, version))
+}
+
+func providerChecksumURL(name, version string) string {
+	fileName := fmt.Sprintf("%s_%s_SHA256SUMS", providerName(name), version)
 	u := fmt.Sprintf("%s%s/%s", providerVersionsURL(name), version, fileName)
 	return u
 }
@@ -69,6 +77,9 @@ type ProviderInstaller struct {
 	Dir string
 
 	PluginProtocolVersion uint
+
+	// Skip checksum and signature verification
+	SkipVerify bool
 }
 
 // Get is part of an implementation of type Installer, and attempts to download
@@ -112,6 +123,19 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	// take the first matching plugin we find
 	for _, v := range versions {
 		url := providerURL(provider, v.String())
+
+		if !i.SkipVerify {
+			sha256, err := getProviderChecksum(provider, v.String())
+			if err != nil {
+				return PluginMeta{}, nil
+			}
+
+			// add the checksum parameter for go-getter to verify the download for us.
+			if sha256 != "" {
+				url = url + "?checksum=sha256:" + sha256
+			}
+		}
+
 		log.Printf("[DEBUG] fetching provider info for %s version %s", provider, v)
 		if checkPlugin(url, i.PluginProtocolVersion) {
 			log.Printf("[DEBUG] getting provider %q version %q at %s", provider, v, url)
@@ -126,10 +150,10 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 			//  the archive directly into a shared dir here.)
 			log.Printf("[DEBUG] looking for the %s %s plugin we just installed", provider, v)
 			metas := FindPlugins("provider", []string{i.Dir})
-			log.Printf("all plugins found %#v", metas)
+			log.Printf("[DEBUG] all plugins found %#v", metas)
 			metas, _ = metas.ValidateVersions()
 			metas = metas.WithName(provider).WithVersion(v)
-			log.Printf("filtered plugins %#v", metas)
+			log.Printf("[DEBUG] filtered plugins %#v", metas)
 			if metas.Count() == 0 {
 				// This should never happen. Suggests that the release archive
 				// contains an executable file whose name doesn't match the
@@ -320,4 +344,62 @@ func versionsFromNames(names []string) []Version {
 	}
 
 	return versions
+}
+
+func getProviderChecksum(name, version string) (string, error) {
+	checksums, err := getPluginSHA256SUMs(providerChecksumURL(name, version))
+	if err != nil {
+		return "", err
+	}
+
+	return checksumForFile(checksums, providerFileName(name, version)), nil
+}
+
+func checksumForFile(sums []byte, name string) string {
+	for _, line := range strings.Split(string(sums), "\n") {
+		parts := strings.Fields(line)
+		if len(parts) > 1 && parts[1] == name {
+			return parts[0]
+		}
+	}
+	return ""
+}
+
+// fetch the SHA256SUMS file provided, and verify its signature.
+func getPluginSHA256SUMs(sumsURL string) ([]byte, error) {
+	sigURL := sumsURL + ".sig"
+
+	sums, err := getFile(sumsURL)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching checksums: %s", err)
+	}
+
+	sig, err := getFile(sigURL)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching checksums signature: %s", err)
+	}
+
+	if err := verifySig(sums, sig); err != nil {
+		return nil, err
+	}
+
+	return sums, nil
+}
+
+func getFile(url string) ([]byte, error) {
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s", resp.Status)
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return data, err
+	}
+	return data, nil
 }
