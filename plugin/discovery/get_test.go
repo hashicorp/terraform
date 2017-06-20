@@ -123,7 +123,7 @@ func TestProviderInstallerGet(t *testing.T) {
 		PluginProtocolVersion: 5,
 	}
 	_, err = i.Get("test", AllVersions)
-	if err == nil {
+	if err != ErrorNoVersionCompatible {
 		t.Fatal("want error for incompatible version")
 	}
 
@@ -132,6 +132,21 @@ func TestProviderInstallerGet(t *testing.T) {
 
 		PluginProtocolVersion: 3,
 	}
+
+	{
+		_, err := i.Get("test", ConstraintStr(">9.0.0").MustParse())
+		if err != ErrorNoSuitableVersion {
+			t.Fatal("want error for mismatching constraints")
+		}
+	}
+
+	{
+		_, err := i.Get("nonexist", AllVersions)
+		if err != ErrorNoSuchProvider {
+			t.Fatal("want error for no such provider")
+		}
+	}
+
 	gotMeta, err := i.Get("test", AllVersions)
 	if err != nil {
 		t.Fatal(err)
