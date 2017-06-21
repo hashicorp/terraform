@@ -127,7 +127,7 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		if !i.SkipVerify {
 			sha256, err := getProviderChecksum(provider, v.String())
 			if err != nil {
-				return PluginMeta{}, nil
+				return PluginMeta{}, err
 			}
 
 			// add the checksum parameter for go-getter to verify the download for us.
