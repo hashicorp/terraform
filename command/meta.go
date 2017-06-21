@@ -500,11 +500,11 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 }
 
 func (m *Meta) EnvPath() string {
-  envName = m.Workspace()
+  envName := m.Workspace()
 	if envName == backend.DefaultStateName {
 		return ""
 	} else {
-		return filepath.Join(local.stateEnvDir(), envName)
+		return filepath.Join(local.stateWorkspaceDir(), envName)
 	}
 }
 
