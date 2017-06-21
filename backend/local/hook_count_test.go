@@ -241,3 +241,42 @@ func TestCountHookPostDiff_DataSource(t *testing.T) {
 			expected, h)
 	}
 }
+
+func TestCountHookPostDiff_IgnoreStub(t *testing.T) {
+	h := new(CountHook)
+
+	resources := []*terraform.InstanceDiff{
+		&terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"foo.0": &terraform.ResourceAttrDiff{},
+				"foo.1": &terraform.ResourceAttrDiff{},
+				"foo.2": &terraform.ResourceAttrDiff{RequiresNew: true},
+			},
+			Stub: true,
+		},
+		&terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"foo.0": &terraform.ResourceAttrDiff{},
+				"foo.1": &terraform.ResourceAttrDiff{},
+				"foo.2": &terraform.ResourceAttrDiff{RequiresNew: true},
+			},
+		},
+	}
+
+	n := &terraform.InstanceInfo{}
+
+	for _, d := range resources {
+		h.PostDiff(n, d)
+	}
+
+	expected := new(CountHook)
+	expected.ToAdd = 1
+	expected.ToChange = 0
+	expected.ToRemoveAndAdd = 0
+	expected.ToRemove = 0
+
+	if !reflect.DeepEqual(expected, h) {
+		t.Fatalf("Expected %#v, got %#v instead.",
+			expected, h)
+	}
+}
