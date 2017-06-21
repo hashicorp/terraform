@@ -33,6 +33,16 @@ func testChecksumHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// this this checksum file is corrupt and doesn't match the sig
+	if r.URL.Path == "/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS" {
+		http.ServeFile(w, r, "testdata/terraform-provider-badsig_0.1.0_SHA256SUMS")
+		return
+	}
+	if r.URL.Path == "/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS.sig" {
+		http.ServeFile(w, r, "testdata/terraform-provider-badsig_0.1.0_SHA256SUMS.sig")
+		return
+	}
+
 	http.Error(w, "signtaure files not found", http.StatusNotFound)
 }
 
@@ -77,6 +87,7 @@ func testReleaseServer() *httptest.Server {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/terraform-provider-test/", testHandler)
 	handler.HandleFunc("/terraform-provider-template/", testChecksumHandler)
+	handler.HandleFunc("/terraform-provider-badsig/", testChecksumHandler)
 
 	return httptest.NewServer(handler)
 }
@@ -270,6 +281,23 @@ func TestProviderChecksum(t *testing.T) {
 
 	if sha256sum != expected {
 		t.Fatalf("expected: %s\ngot %s\n", sha256sum, expected)
+	}
+}
+
+// Test fetching a provider's checksum file witha bad signature
+func TestProviderChecksumBadSignature(t *testing.T) {
+	// we only need the checksum, as getter is doing the actual file comparison.
+	sha256sum, err := getProviderChecksum("badsig", "0.1.0")
+	if err == nil {
+		t.Fatal("expcted error")
+	}
+
+	if !strings.Contains(err.Error(), "signature") {
+		t.Fatal("expected signature error, got:", err)
+	}
+
+	if sha256sum != "" {
+		t.Fatal("expected no checksum, got:", sha256sum)
 	}
 }
 
