@@ -172,21 +172,42 @@ func (c *InitCommand) Run(args []string) int {
 		}
 	}
 
+	if back == nil {
+		// If we didn't initialize a backend then we'll try to at least
+		// instantiate one. This might fail if it wasn't already initalized
+		// by a previous run, so we must still expect that "back" may be nil
+		// in code that follows.
+		back, err = c.Backend(nil)
+		if err != nil {
+			// This is fine. We'll proceed with no backend, then.
+			back = nil
+		}
+	}
+
+	var state *terraform.State
+
+	// If we have a functional backend (either just initialized or initialized
+	// on a previous run) we'll use the current state as a potential source
+	// of provider dependencies.
+	if back != nil {
+		sMgr, err := back.State(c.Workspace())
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Error loading state: %s", err))
+			return 1
+		}
+
+		if err := sMgr.RefreshState(); err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Error refreshing state: %s", err))
+			return 1
+		}
+
+		state = sMgr.State()
+	}
+
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	sMgr, err := back.State(c.Workspace())
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error loading state: %s", err))
-		return 1
-	}
-
-	if err := sMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error refreshing state: %s", err))
-		return 1
-	}
-
-	err = c.getProviders(path, sMgr.State(), flagUpgrade)
+	err = c.getProviders(path, state, flagUpgrade)
 	if err != nil {
 		// this function provides its own output
 		log.Printf("[ERROR] %s", err)
