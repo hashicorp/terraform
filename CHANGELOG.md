@@ -1,3 +1,4 @@
+## 0.0.2 (Unreleased)
 ## 0.0.1 (June 21, 2017)
 
 NOTES:
