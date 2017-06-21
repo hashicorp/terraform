@@ -82,10 +82,11 @@ type EvalDiff struct {
 	// filter user-requested ignored attributes from the diff.
 	Resource *config.Resource
 
-	// Quiet is used to indicate that this count should not be used in the UI.
-	// This is used with refresh nodes on scale-out so that resources do not get
-	// counted twice in the UI output.
-	Quiet bool
+	// Stub is used to flag the generated InstanceDiff as a stub. This is used to
+	// ensure that the node exists to perform interpolations and generate
+	// computed paths off of, but not as an actual diff where resouces should be
+	// counted, and not as a diff that should be acted on.
+	Stub bool
 }
 
 // TODO: test
@@ -162,8 +163,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, err
 	}
 
-	// Flag quiet to ensure that this resource is skipped in post-diff hooks, such as count, etc.
-	diff.Quiet = n.Quiet
+	// Flag stub in the diff if set in the eval node. This ensures that this
+	// resource is skipped in post-diff hooks, such as count, etc, and is usually
+	// set in a pre-plan phase.
+	diff.Stub = n.Stub
 
 	// Call post-refresh hook
 	err = ctx.Hook(func(h Hook) (HookAction, error) {

@@ -374,10 +374,10 @@ type InstanceDiff struct {
 	// The value here must only contain Go primitives and collections.
 	Meta map[string]interface{}
 
-	// Quiet should be set when this diff exists only for purposes of providing a
+	// Stub should be set when this diff exists only for purposes of providing a
 	// diff to various pre-plan or dry-run steps in the graph. A diff with this
 	// enabled should not be acted on in the plan.
-	Quiet bool
+	Stub bool
 }
 
 func (d *InstanceDiff) Lock()   { d.mu.Lock() }

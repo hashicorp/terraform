@@ -234,7 +234,7 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedScaleInResource(
 				Provider:    &provider,
 				State:       &state,
 				OutputState: &state,
-				Quiet:       true,
+				Stub:        true,
 			},
 			&EvalWriteState{
 				Name:         stateID,
