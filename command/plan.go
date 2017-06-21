@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 )
 
@@ -44,6 +45,12 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		return 1
+	}
+
 	// Check if the path is a plan
 	plan, err := c.Plan(configPath)
 	if err != nil {
@@ -68,10 +75,14 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 	}
 
+	var conf *config.Config
+	if mod != nil {
+		conf = mod.Config()
+	}
 	// Load the backend
 	b, err := c.Backend(&BackendOpts{
-		ConfigPath: configPath,
-		Plan:       plan,
+		Config: conf,
+		Plan:   plan,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))

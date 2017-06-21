@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
@@ -20,8 +19,8 @@ import (
 )
 
 const (
-	DefaultEnvDir          = "terraform.tfstate.d"
-	DefaultEnvFile         = "environment"
+	DefaultWorkspaceDir    = "terraform.tfstate.d"
+	DefaultWorkspaceFile   = "environment"
 	DefaultStateFilename   = "terraform.tfstate"
 	DefaultDataDir         = ".terraform"
 	DefaultBackupExtension = ".backup"
@@ -36,8 +35,8 @@ type Local struct {
 	CLI      cli.Ui
 	CLIColor *colorstring.Colorize
 
-	// The State* paths are set from the CLI options, and may be left blank to
-	// use the defaults. If the actual paths for the local backend state are
+	// The State* paths are set from the backend config, and may be left blank
+	// to use the defaults. If the actual paths for the local backend state are
 	// needed, use the StatePaths method.
 	//
 	// StatePath is the local path where state is read from.
@@ -48,12 +47,12 @@ type Local struct {
 	// StateBackupPath is the local path where a backup file will be written.
 	// Set this to "-" to disable state backup.
 	//
-	// StateEnvPath is the path to the folder containing environments. This
-	// defaults to DefaultEnvDir if not set.
-	StatePath       string
-	StateOutPath    string
-	StateBackupPath string
-	StateEnvDir     string
+	// StateWorkspaceDir is the path to the folder containing data for
+	// non-default workspaces. This defaults to DefaultWorkspaceDir if not set.
+	StatePath         string
+	StateOutPath      string
+	StateBackupPath   string
+	StateWorkspaceDir string
 
 	// We only want to create a single instance of a local state, so store them
 	// here as they're loaded.
@@ -127,7 +126,7 @@ func (b *Local) States() ([]string, error) {
 	// the listing always start with "default"
 	envs := []string{backend.DefaultStateName}
 
-	entries, err := ioutil.ReadDir(b.stateEnvDir())
+	entries, err := ioutil.ReadDir(b.stateWorkspaceDir())
 	// no error if there's no envs configured
 	if os.IsNotExist(err) {
 		return envs, nil
@@ -166,7 +165,7 @@ func (b *Local) DeleteState(name string) error {
 	}
 
 	delete(b.states, name)
-	return os.RemoveAll(filepath.Join(b.stateEnvDir(), name))
+	return os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
 }
 
 func (b *Local) State(name string) (state.State, error) {
@@ -292,10 +291,19 @@ func (b *Local) init() {
 				Default:  "",
 			},
 
-			"environment_dir": &schema.Schema{
+			"workspace_dir": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
+			},
+
+			"environment_dir": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Default:       "",
+				ConflictsWith: []string{"workspace_dir"},
+
+				Deprecated: "workspace_dir should be used instead, with the same meaning",
 			},
 		},
 
@@ -318,10 +326,18 @@ func (b *Local) schemaConfigure(ctx context.Context) error {
 		b.StateOutPath = path
 	}
 
+	if raw, ok := d.GetOk("workspace_dir"); ok {
+		path := raw.(string)
+		if path != "" {
+			b.StateWorkspaceDir = path
+		}
+	}
+
+	// Legacy name, which ConflictsWith workspace_dir
 	if raw, ok := d.GetOk("environment_dir"); ok {
 		path := raw.(string)
 		if path != "" {
-			b.StateEnvDir = path
+			b.StateWorkspaceDir = path
 		}
 	}
 
@@ -344,7 +360,7 @@ func (b *Local) StatePaths(name string) (string, string, string) {
 			statePath = DefaultStateFilename
 		}
 	} else {
-		statePath = filepath.Join(b.stateEnvDir(), name, DefaultStateFilename)
+		statePath = filepath.Join(b.stateWorkspaceDir(), name, DefaultStateFilename)
 	}
 
 	if stateOutPath == "" {
@@ -367,7 +383,7 @@ func (b *Local) createState(name string) error {
 		return nil
 	}
 
-	stateDir := filepath.Join(b.stateEnvDir(), name)
+	stateDir := filepath.Join(b.stateWorkspaceDir(), name)
 	s, err := os.Stat(stateDir)
 	if err == nil && s.IsDir() {
 		// no need to check for os.IsNotExist, since that is covered by os.MkdirAll
@@ -383,30 +399,11 @@ func (b *Local) createState(name string) error {
 	return nil
 }
 
-// stateEnvDir returns the directory where state environments are stored.
-func (b *Local) stateEnvDir() string {
-	if b.StateEnvDir != "" {
-		return b.StateEnvDir
+// stateWorkspaceDir returns the directory where state environments are stored.
+func (b *Local) stateWorkspaceDir() string {
+	if b.StateWorkspaceDir != "" {
+		return b.StateWorkspaceDir
 	}
 
-	return DefaultEnvDir
-}
-
-// currentStateName returns the name of the current named state as set in the
-// configuration files.
-// If there are no configured environments, currentStateName returns "default"
-func (b *Local) currentStateName() (string, error) {
-	contents, err := ioutil.ReadFile(filepath.Join(DefaultDataDir, DefaultEnvFile))
-	if os.IsNotExist(err) {
-		return backend.DefaultStateName, nil
-	}
-	if err != nil {
-		return "", err
-	}
-
-	if fromFile := strings.TrimSpace(string(contents)); fromFile != "" {
-		return fromFile, nil
-	}
-
-	return backend.DefaultStateName, nil
+	return DefaultWorkspaceDir
 }

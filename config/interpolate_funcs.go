@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // stringSliceToVariableValue converts a string slice into the value
@@ -59,6 +60,7 @@ func Funcs() map[string]ast.Function {
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64sha256": interpolationFuncBase64Sha256(),
 		"base64sha512": interpolationFuncBase64Sha512(),
+		"bcrypt":       interpolationFuncBcrypt(),
 		"ceil":         interpolationFuncCeil(),
 		"chomp":        interpolationFuncChomp(),
 		"cidrhost":     interpolationFuncCidrHost(),
@@ -68,6 +70,7 @@ func Funcs() map[string]ast.Function {
 		"coalescelist": interpolationFuncCoalesceList(),
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
+		"contains":     interpolationFuncContains(),
 		"dirname":      interpolationFuncDirname(),
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
@@ -350,6 +353,22 @@ func interpolationFuncCoalesceList() ast.Function {
 				}
 			}
 			return make([]ast.Variable, 0), nil
+		},
+	}
+}
+
+// interpolationFuncContains returns true if an element is in the list
+// and return false otherwise
+func interpolationFuncContains() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeString},
+		ReturnType: ast.TypeBool,
+		Callback: func(args []interface{}) (interface{}, error) {
+			_, err := interpolationFuncIndex().Callback(args)
+			if err != nil {
+				return false, nil
+			}
+			return true, nil
 		},
 	}
 }
@@ -1318,6 +1337,40 @@ func interpolationFuncBase64Sha512() ast.Function {
 			shaSum := h.Sum(nil)
 			encoded := base64.StdEncoding.EncodeToString(shaSum[:])
 			return encoded, nil
+		},
+	}
+}
+
+func interpolationFuncBcrypt() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeString},
+		Variadic:     true,
+		VariadicType: ast.TypeString,
+		ReturnType:   ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			defaultCost := 10
+
+			if len(args) > 1 {
+				costStr := args[1].(string)
+				cost, err := strconv.Atoi(costStr)
+				if err != nil {
+					return "", err
+				}
+
+				defaultCost = cost
+			}
+
+			if len(args) > 2 {
+				return "", fmt.Errorf("bcrypt() takes no more than two arguments")
+			}
+
+			input := args[0].(string)
+			out, err := bcrypt.GenerateFromPassword([]byte(input), defaultCost)
+			if err != nil {
+				return "", fmt.Errorf("error occured generating password %s", err.Error())
+			}
+
+			return string(out), nil
 		},
 	}
 }
