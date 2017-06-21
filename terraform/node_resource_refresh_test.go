@@ -59,11 +59,11 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleOut(t *testing.T) {
 	actual := g.StringWithNodeTypes()
 	expected := `aws_instance.foo[0] - *terraform.NodeRefreshableManagedResourceInstance
 aws_instance.foo[1] - *terraform.NodeRefreshableManagedResourceInstance
-aws_instance.foo[2] - *terraform.NodePlannableResourceInstance
+aws_instance.foo[2] - *terraform.NodeRefreshableManagedResourceInstance
 root - terraform.graphNodeRoot
   aws_instance.foo[0] - *terraform.NodeRefreshableManagedResourceInstance
   aws_instance.foo[1] - *terraform.NodeRefreshableManagedResourceInstance
-  aws_instance.foo[2] - *terraform.NodePlannableResourceInstance
+  aws_instance.foo[2] - *terraform.NodeRefreshableManagedResourceInstance
 `
 	if expected != actual {
 		t.Fatalf("Expected:\n%s\nGot:\n%s", expected, actual)
