@@ -250,12 +250,24 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 				case discovery.ErrorNoSuchProvider:
 					c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
 				case discovery.ErrorNoSuitableVersion:
-					c.Ui.Error(fmt.Sprintf(errProviderVersionsUnsuitable, provider, reqd.Versions))
+					if reqd.Versions.Unconstrained() {
+						// This should never happen, but might crop up if we catch
+						// the releases server in a weird state where the provider's
+						// directory is present but does not yet contain any
+						// versions. We'll treat it like ErrorNoSuchProvider, then.
+						c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
+					} else {
+						c.Ui.Error(fmt.Sprintf(errProviderVersionsUnsuitable, provider, reqd.Versions))
+					}
 				case discovery.ErrorNoVersionCompatible:
 					// FIXME: This error message is sub-awesome because we don't
 					// have enough information here to tell the user which versions
 					// we considered and which versions might be compatible.
-					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, reqd.Versions))
+					constraint := reqd.Versions.String()
+					if constraint == "" {
+						constraint = "(any version)"
+					}
+					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
 				default:
 					c.Ui.Error(fmt.Sprintf(errProviderInstallError, provider, err.Error(), DefaultPluginVendorDir))
 				}
