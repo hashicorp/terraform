@@ -63,9 +63,8 @@ The command-line flags are all optional. The list of available flags are:
   Ignored when [remote state](/docs/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
-  Address](/docs/internals/resource-addressing.html) to target. Operation will
-  be limited to this resource and its dependencies. This flag can be used
-  multiple times.
+  Address](/docs/internals/resource-addressing.html) to target. This flag can
+  be used multiple times. See below for more information.
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
@@ -77,6 +76,37 @@ The command-line flags are all optional. The list of available flags are:
   "terraform.tfvars" is present, it will be automatically loaded first. Any
   files specified by `-var-file` override any values in a "terraform.tfvars".
   This flag can be used multiple times.
+
+## Resource Targeting
+
+The `-target` option can be used to focus Terraform's attention on only a
+subset of resources.
+[Resource Address](/docs/internals/resource-addressing.html) syntax is used
+to specify the constraint. The resource address is interpreted as follows:
+
+* If the given address has a _resource spec_, only the specified resource
+  is targeted. If the named resource uses `count` and no explicit index
+  is specified in the address, all of the instances sharing the given
+  resource name are targeted.
+
+* The the given address _does not_ have a resource spec, and instead just
+  specifies a module path, the target applies to all resources in the
+  specified module _and_ all of the descendent modules of the specified
+  module.
+
+This targeting capability is provided for exceptional circumstances, such
+as recovering from mistakes or working around Terraform limitations. It
+is *not recommended* to use `-target` for routine operations, since this can
+lead to undetected configuration drift and confusion about how the true state
+of resources relates to configuration.
+
+Instead of using `-target` as a means to operate on isolated portions of very
+large configurations, prefer instead to break large configurations into
+several smaller configurations that can each be independently applied.
+[Data sources](/docs/configuration/data-sources.html) can be used to access
+information about resources created in other configurations, allowing
+a complex system architecture to be broken down into more managable parts
+that can be updated independently.
 
 ## Security Warning
 

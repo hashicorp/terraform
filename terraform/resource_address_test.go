@@ -304,6 +304,306 @@ func TestParseResourceAddress(t *testing.T) {
 	}
 }
 
+func TestResourceAddressContains(t *testing.T) {
+	tests := []struct {
+		Address *ResourceAddress
+		Other   *ResourceAddress
+		Want    bool
+	}{
+		{
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: true,
+				InstanceType:    TypePrimary,
+				Index:           0,
+			},
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: true,
+				InstanceType:    TypePrimary,
+				Index:           0,
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: false,
+				Index:           0,
+			},
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: true,
+				InstanceType:    TypePrimary,
+				Index:           0,
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: true,
+				InstanceType:    TypePrimary,
+				Index:           0,
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			&ResourceAddress{
+				Path:            []string{"bar"},
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Path:            []string{"bar"},
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			&ResourceAddress{
+				Path:            []string{"bar"},
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Path:            []string{"bar"},
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			&ResourceAddress{
+				Path:            []string{"bar", "baz"},
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Path:            []string{"bar"},
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			&ResourceAddress{
+				Path:            []string{"bar", "baz"},
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			true,
+		},
+		{
+			&ResourceAddress{
+				Path:            []string{"bar"},
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			&ResourceAddress{
+				Path:            []string{"bar", "baz", "foo", "pizza"},
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			true,
+		},
+
+		{
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "bar",
+				InstanceTypeSet: true,
+				InstanceType:    TypePrimary,
+				Index:           0,
+			},
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: true,
+				InstanceType:    TypePrimary,
+				Index:           0,
+			},
+			false,
+		},
+		{
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: true,
+				InstanceType:    TypePrimary,
+				Index:           0,
+			},
+			&ResourceAddress{
+				Mode:            config.DataResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: true,
+				InstanceType:    TypePrimary,
+				Index:           0,
+			},
+			false,
+		},
+		{
+			&ResourceAddress{
+				Path:            []string{"bar"},
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			&ResourceAddress{
+				Path:            []string{"baz"},
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			false,
+		},
+		{
+			&ResourceAddress{
+				Path:            []string{"bar"},
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			&ResourceAddress{
+				Path:            []string{"baz", "bar"},
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			false,
+		},
+		{
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: true,
+				InstanceType:    TypePrimary,
+				Index:           0,
+			},
+			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
+				Type:            "aws_instance",
+				Name:            "foo",
+				InstanceTypeSet: false,
+				Index:           0,
+			},
+			false,
+		},
+		{
+			&ResourceAddress{
+				Path:            []string{"bar", "baz"},
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			&ResourceAddress{
+				Path:            []string{"bar"},
+				InstanceTypeSet: false,
+				Index:           -1,
+			},
+			false,
+		},
+		{
+			&ResourceAddress{
+				Type:         "aws_instance",
+				Name:         "foo",
+				Index:        1,
+				InstanceType: TypePrimary,
+				Mode:         config.ManagedResourceMode,
+			},
+			&ResourceAddress{
+				Type:         "aws_instance",
+				Name:         "foo",
+				Index:        -1,
+				InstanceType: TypePrimary,
+				Mode:         config.ManagedResourceMode,
+			},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s contains %s", test.Address, test.Other), func(t *testing.T) {
+			got := test.Address.Contains(test.Other)
+			if got != test.Want {
+				t.Errorf(
+					"wrong result\nrecv:  %s\ngiven: %s\ngot:   %#v\nwant:  %#v",
+					test.Address, test.Other,
+					got, test.Want,
+				)
+			}
+		})
+	}
+}
+
 func TestResourceAddressEquals(t *testing.T) {
 	cases := map[string]struct {
 		Address *ResourceAddress

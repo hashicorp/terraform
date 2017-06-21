@@ -4,12 +4,10 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -123,15 +121,21 @@ func TestPush_goodBackendInit(t *testing.T) {
 		// Expected weird behavior, doesn't affect unpackaging
 		".terraform/",
 		".terraform/",
-		".terraform/plugins/",
-		fmt.Sprintf(".terraform/plugins/%s_%s/", runtime.GOOS, runtime.GOARCH),
-		fmt.Sprintf(".terraform/plugins/%s_%s/lock.json", runtime.GOOS, runtime.GOARCH),
+
+		// this config contains no plugins
+		// TODO: we should add one or more plugins to this test config, just to
+		// verfy the pushed data. The expected additional files are listed below:
+		//
+		//".terraform/plugins/",
+		//fmt.Sprintf(".terraform/plugins/%s_%s/", runtime.GOOS, runtime.GOARCH),
+		//fmt.Sprintf(".terraform/plugins/%s_%s/lock.json", runtime.GOOS, runtime.GOARCH),
+
 		".terraform/terraform.tfstate",
 		".terraform/terraform.tfstate",
 		"main.tf",
 	}
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("expected: %#v\ngot: %#v", expected, actual)
 	}
 
 	variables := make(map[string]interface{})
