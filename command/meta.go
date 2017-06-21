@@ -372,6 +372,22 @@ func (m *Meta) process(args []string, vars bool) []string {
 	// the args...
 	m.autoKey = ""
 	if vars {
+		if _, err := os.Stat(filepath.Join(m.EnvPath(), DefaultVarsFilename)); err == nil {
+			m.autoKey = "var-file-default"
+			args = append(args, "", "")
+			copy(args[2:], args[0:])
+			args[0] = "-" + m.autoKey
+			args[1] = DefaultVarsFilename
+		}
+
+		if _, err := os.Stat(filepath.Join(m.EnvPath(), DefaultVarsFilename + ".json")); err == nil {
+			m.autoKey = "var-file-default"
+			args = append(args, "", "")
+			copy(args[2:], args[0:])
+			args[0] = "-" + m.autoKey
+			args[1] = DefaultVarsFilename + ".json"
+		}
+    
 		if _, err := os.Stat(DefaultVarsFilename); err == nil {
 			m.autoKey = "var-file-default"
 			args = append(args, "", "")
@@ -481,6 +497,15 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 	)))
 
 	return true
+}
+
+func (m *Meta) EnvPath() string {
+  envName = m.Workspace()
+	if envName == backend.DefaultStateName {
+		return ""
+	} else {
+		return filepath.Join(local.stateEnvDir(), envName)
+	}
 }
 
 // WorkspaceNameEnvVar is the name of the environment variable that can be used
