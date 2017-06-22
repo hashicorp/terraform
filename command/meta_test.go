@@ -363,12 +363,25 @@ func TestMeta_process(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	// Regular tfvars files will not be autoloaded
+	fileIgnored := "ignored.tfvars"
+	err = ioutil.WriteFile(
+		filepath.Join(d, fileIgnored),
+		[]byte(""),
+		0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	m := new(Meta)
 	args := []string{}
 	args, err = m.process(args, true)
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	if len(args) != 6 {
+		t.Fatalf("expected 6 args, got %v", args)
 	}
 
 	if args[0] != "-var-file-default" {
