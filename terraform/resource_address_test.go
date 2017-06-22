@@ -1221,3 +1221,88 @@ func TestResourceAddressMatchesConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestResourceAddressLess(t *testing.T) {
+	tests := []struct {
+		A    string
+		B    string
+		Want bool
+	}{
+		{
+			"foo.bar",
+			"module.baz.foo.bar",
+			true,
+		},
+		{
+			"module.baz.foo.bar",
+			"module.baz.foo.bar",
+			false,
+		},
+		{
+			"module.baz.foo.bar",
+			"module.boz.foo.bar",
+			true,
+		},
+		{
+			"a.b",
+			"b.c",
+			true,
+		},
+		{
+			"a.b",
+			"a.c",
+			true,
+		},
+		{
+			"a.b[9]",
+			"a.b[10]",
+			true,
+		},
+		{
+			"a.b",
+			"a.b.deposed",
+			true,
+		},
+		{
+			"a.b.tainted",
+			"a.b.deposed",
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s < %s", test.A, test.B), func(t *testing.T) {
+			addrA, err := ParseResourceAddress(test.A)
+			if err != nil {
+				t.Fatal(err)
+			}
+			addrB, err := ParseResourceAddress(test.B)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := addrA.Less(addrB)
+			invGot := addrB.Less(addrA)
+			if got != test.Want {
+				t.Errorf(
+					"wrong result\ntest: %s < %s\ngot:  %#v\nwant: %#v",
+					test.A, test.B, got, test.Want,
+				)
+			}
+			if test.A != test.B { // inverse test doesn't apply when equal
+				if invGot != !test.Want {
+					t.Errorf(
+						"wrong inverse result\ntest: %s < %s\ngot:  %#v\nwant: %#v",
+						test.B, test.A, invGot, !test.Want,
+					)
+				}
+			} else {
+				if invGot != test.Want {
+					t.Errorf(
+						"wrong inverse result\ntest: %s < %s\ngot:  %#v\nwant: %#v",
+						test.B, test.A, invGot, test.Want,
+					)
+				}
+			}
+		})
+	}
+}

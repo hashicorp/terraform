@@ -329,6 +329,58 @@ func (addr *ResourceAddress) Equals(raw interface{}) bool {
 		modeMatch
 }
 
+// Less returns true if and only if the receiver should be sorted before
+// the given address when presenting a list of resource addresses to
+// an end-user.
+//
+// This sort uses lexicographic sorting for most components, but uses
+// numeric sort for indices, thus causing index 10 to sort after
+// index 9, rather than after index 1.
+func (addr *ResourceAddress) Less(other *ResourceAddress) bool {
+
+	switch {
+
+	case len(addr.Path) < len(other.Path):
+		return true
+
+	case !reflect.DeepEqual(addr.Path, other.Path):
+		// If the two paths are the same length but don't match, we'll just
+		// cheat and compare the string forms since it's easier than
+		// comparing all of the path segments in turn.
+		addrStr := addr.String()
+		otherStr := other.String()
+		return addrStr < otherStr
+
+	case addr.Mode == config.DataResourceMode && other.Mode != config.DataResourceMode:
+		return true
+
+	case addr.Type < other.Type:
+		return true
+
+	case addr.Name < other.Name:
+		return true
+
+	case addr.Index < other.Index:
+		// Since "Index" is -1 for an un-indexed address, this also conveniently
+		// sorts unindexed addresses before indexed ones, should they both
+		// appear for some reason.
+		return true
+
+	case other.InstanceTypeSet && !addr.InstanceTypeSet:
+		return true
+
+	case addr.InstanceType < other.InstanceType:
+		// InstanceType is actually an enum, so this is just an arbitrary
+		// sort based on the enum numeric values, and thus not particularly
+		// meaningful.
+		return true
+
+	default:
+		return false
+
+	}
+}
+
 func ParseResourceIndex(s string) (int, error) {
 	if s == "" {
 		return -1, nil
