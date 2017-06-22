@@ -400,8 +400,19 @@ func (m *Meta) process(args []string, vars bool) ([]string, error) {
 			return nil, err
 		}
 
-		err = nil
 		var preArgs []string
+
+		if _, err = os.Stat(DefaultVarsFilename); err == nil {
+			m.autoKey = "var-file-default"
+			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename)
+		}
+
+		if _, err = os.Stat(DefaultVarsFilename + ".json"); err == nil {
+			m.autoKey = "var-file-default"
+			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename+".json")
+		}
+
+		err = nil
 		for err != io.EOF {
 			var fis []os.FileInfo
 			fis, err = f.Readdir(128)
@@ -412,7 +423,7 @@ func (m *Meta) process(args []string, vars bool) ([]string, error) {
 			for _, fi := range fis {
 				name := fi.Name()
 				// Ignore directories, non-var-files, and ignored files
-				if fi.IsDir() || !isVarFile(name) || config.IsIgnoredFile(name) {
+				if fi.IsDir() || !isAutoVarFile(name) || config.IsIgnoredFile(name) {
 					continue
 				}
 
@@ -570,8 +581,8 @@ func (m *Meta) SetWorkspace(name string) error {
 	return nil
 }
 
-// isVarFile determines if the file ends with .tfvars or .tfvars.json
-func isVarFile(path string) bool {
-	return strings.HasSuffix(path, ".tfvars") ||
-		strings.HasSuffix(path, ".tfvars.json")
+// isAutoVarFile determines if the file ends with .auto.tfvars or .auto.tfvars.json
+func isAutoVarFile(path string) bool {
+	return strings.HasSuffix(path, ".auto.tfvars") ||
+		strings.HasSuffix(path, ".auto.tfvars.json")
 }

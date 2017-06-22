@@ -233,4 +233,4 @@ This will give the map the effective value:
 }
 ```
 
-It's also possible to override the values in a variables file, either in any `*.tfvars` file or specified using the `-var-file` flag.
+It's also possible to override the values in a variables file, either in any `terraform.tfvars` file, an `.auto.tfvars` file, or specified using the `-var-file` flag.
