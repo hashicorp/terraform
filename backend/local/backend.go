@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
@@ -407,3 +408,24 @@ func (b *Local) stateWorkspaceDir() string {
 
 	return DefaultWorkspaceDir
 }
+
+func (b *Local) pluginInitRequired(providerErr *terraform.ResourceProviderError) {
+	b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
+		strings.TrimSpace(errPluginInit)+"\n",
+		"Could not satisfy plugin requirements",
+		providerErr)))
+}
+
+const errPluginInit = `
+[reset][bold][yellow]Plugin reinitialization required. Please run "terraform init".[reset]
+[yellow]Reason: %s
+
+Plugins are external binaries that Terraform uses to access and manipulate
+resources. If this message is showing up, it means that the configuration you
+have references plugins which can't be located, don't satisfy the version
+constraints, or are otherwise incompatible.
+
+The errors encountered discovering plugins are:
+
+%s
+`
