@@ -25,6 +25,7 @@ IMPROVEMENTS:
 * cli: `terraform env` command renamed to `terraform workspace` [GH-14952]
 * cli: `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
 * cli: The `-target` option to various Terraform operation can now target resources in descendent modules. [GH-15314]
+* cli: Minor updates to `terraform plan` output: use standard resource address syntax, more visually-distinct `-/+` actions, and more [GH-15362]
 * config: New interpolation function `contains`, to find if a given string exists in a list of strings. [GH-15322]
 
 BUG FIXES:
