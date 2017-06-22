@@ -62,12 +62,6 @@ If you're working on a specific provider and only wish to rebuild that provider,
 $ make plugin-dev PLUGIN=provider-azure
 ```
 
-If you're working on the core of Terraform, and only wish to rebuild that without rebuilding providers, you can use the `core-dev` target. It is important to note that some types of changes may require both core and providers to be rebuilt - for example work on the RPC interface. To build just the core of Terraform:
-
-```sh
-$ make core-dev
-```
-
 ### Dependencies
 
 Terraform stores its dependencies under `vendor/`, which [Go 1.6+ will automatically recognize and load](https://golang.org/cmd/go/#hdr-Vendor_Directories). We use [`govendor`](https://github.com/kardianos/govendor) to manage the vendored dependencies.
