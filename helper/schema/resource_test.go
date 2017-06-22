@@ -133,6 +133,64 @@ func TestResourceApply_Timeout_state(t *testing.T) {
 	}
 }
 
+// Regression test to ensure that the meta data is read from state, if a
+// resource is destroyed and the timeout meta is no longer available from the
+// config
+func TestResourceApply_Timeout_destroy(t *testing.T) {
+	timeouts := &ResourceTimeout{
+		Create: DefaultTimeout(40 * time.Minute),
+		Update: DefaultTimeout(80 * time.Minute),
+		Delete: DefaultTimeout(40 * time.Minute),
+	}
+
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+		Timeouts: timeouts,
+	}
+
+	called := false
+	var delTimeout time.Duration
+	r.Delete = func(d *ResourceData, m interface{}) error {
+		delTimeout = d.Timeout(TimeoutDelete)
+		called = true
+		return nil
+	}
+
+	s := &terraform.InstanceState{
+		ID: "bar",
+	}
+
+	if err := timeouts.StateEncode(s); err != nil {
+		t.Fatalf("Error encoding to state: %s", err)
+	}
+
+	d := &terraform.InstanceDiff{
+		Destroy: true,
+	}
+
+	actual, err := r.Apply(s, d, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !called {
+		t.Fatal("delete not called")
+	}
+
+	if *timeouts.Delete != delTimeout {
+		t.Fatalf("timeouts don't match, expected (%#v), got (%#v)", timeouts.Delete, delTimeout)
+	}
+
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestResourceDiff_Timeout_diff(t *testing.T) {
 	r := &Resource{
 		Schema: map[string]*Schema{
