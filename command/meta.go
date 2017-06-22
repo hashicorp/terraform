@@ -382,6 +382,18 @@ func (m *Meta) process(args []string, vars bool) ([]string, error) {
 	// the args...
 	m.autoKey = ""
 	if vars {
+		var preArgs []string
+
+		if _, err := os.Stat(DefaultVarsFilename); err == nil {
+			m.autoKey = "var-file-default"
+			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename)
+		}
+
+		if _, err := os.Stat(DefaultVarsFilename + ".json"); err == nil {
+			m.autoKey = "var-file-default"
+			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename+".json")
+		}
+
 		wd, err := os.Getwd()
 		if err != nil {
 			return nil, err
@@ -398,18 +410,6 @@ func (m *Meta) process(args []string, vars bool) ([]string, error) {
 		}
 		if !fi.IsDir() {
 			return nil, err
-		}
-
-		var preArgs []string
-
-		if _, err = os.Stat(DefaultVarsFilename); err == nil {
-			m.autoKey = "var-file-default"
-			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename)
-		}
-
-		if _, err = os.Stat(DefaultVarsFilename + ".json"); err == nil {
-			m.autoKey = "var-file-default"
-			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename+".json")
 		}
 
 		err = nil
