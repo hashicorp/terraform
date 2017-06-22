@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -861,7 +862,7 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 		t.Fatal("successfully created context; want error")
 	}
 
-	if !strings.Contains(err.Error(), "Can't satisfy provider requirements") {
+	if !regexp.MustCompile(`provider ".+" is not available`).MatchString(err.Error()) {
 		t.Fatalf("wrong error: %s", err)
 	}
 }

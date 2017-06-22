@@ -1,10 +1,9 @@
 package terraform
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
 
@@ -162,6 +161,18 @@ type ResourceProvider interface {
 	ReadDataApply(*InstanceInfo, *InstanceDiff) (*InstanceState, error)
 }
 
+// ResourceProviderError may be returned when creating a Context if the
+// required providers cannot be satisfied. This error can then be used to
+// format a more useful message for the user.
+type ResourceProviderError struct {
+	Errors []error
+}
+
+func (e *ResourceProviderError) Error() string {
+	// use multierror to format the default output
+	return multierror.Append(nil, e.Errors...).Error()
+}
+
 // ResourceProviderCloser is an interface that providers that can close
 // connections that aren't needed anymore must implement.
 type ResourceProviderCloser interface {
@@ -265,13 +276,9 @@ func ProviderHasDataSource(p ResourceProvider, n string) bool {
 func resourceProviderFactories(resolver ResourceProviderResolver, reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, error) {
 	ret, errs := resolver.ResolveProviders(reqd)
 	if errs != nil {
-		errBuf := &bytes.Buffer{}
-		errBuf.WriteString("Can't satisfy provider requirements with currently-installed plugins:\n\n")
-		for _, err := range errs {
-			fmt.Fprintf(errBuf, "* %s\n", err)
+		return nil, &ResourceProviderError{
+			Errors: errs,
 		}
-		errBuf.WriteString("\nRun 'terraform init' to install the necessary provider plugins.\n")
-		return nil, errors.New(errBuf.String())
 	}
 
 	return ret, nil
