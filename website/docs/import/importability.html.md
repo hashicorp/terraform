@@ -206,6 +206,8 @@ To make a resource importable, please see the
 * google_compute_target_pool
 * google_dns_managed_zone
 * google_project
+* google_sql_database_instance
+* google_sql_database
 * google_sql_user
 * google_storage_bucket
 
