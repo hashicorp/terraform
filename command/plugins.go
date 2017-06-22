@@ -53,12 +53,7 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 				continue
 			}
 			if !reqd[name].AcceptsSHA256(digest) {
-				// This generic error message is intended to avoid troubling
-				// users with implementation details. The main useful point
-				// here is that they need to run "terraform init" to
-				// fix this, which is covered by the UI code reporting these
-				// error messages.
-				errs = append(errs, fmt.Errorf("provider.%s: installed but not yet initialized", name))
+				errs = append(errs, fmt.Errorf("provider.%s: checksum mismatch", name))
 				continue
 			}
 

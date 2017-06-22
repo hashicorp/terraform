@@ -412,20 +412,18 @@ func (b *Local) stateWorkspaceDir() string {
 func (b *Local) pluginInitRequired(providerErr *terraform.ResourceProviderError) {
 	b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
 		strings.TrimSpace(errPluginInit)+"\n",
-		"Could not satisfy plugin requirements",
 		providerErr)))
 }
 
+// this relies on multierror to format the plugin errors below the copy
 const errPluginInit = `
 [reset][bold][yellow]Plugin reinitialization required. Please run "terraform init".[reset]
-[yellow]Reason: %s
+[yellow]Reason: Could not satisfy plugin requirements.
 
 Plugins are external binaries that Terraform uses to access and manipulate
 resources. If this message is showing up, it means that the configuration you
 have references plugins which can't be located, don't satisfy the version
 constraints, or are otherwise incompatible.
 
-The errors encountered discovering plugins are:
-
-%s
+[reset][red]%s
 `
