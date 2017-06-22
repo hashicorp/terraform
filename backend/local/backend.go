@@ -421,9 +421,12 @@ const errPluginInit = `
 [yellow]Reason: Could not satisfy plugin requirements.
 
 Plugins are external binaries that Terraform uses to access and manipulate
-resources. If this message is showing up, it means that the configuration you
-have references plugins which can't be located, don't satisfy the version
-constraints, or are otherwise incompatible.
+resources. The configuration provided requires plugins which can't be located,
+don't satisfy the version constraints, or are otherwise incompatible.
 
 [reset][red]%s
+
+[reset][yellow]Terraform automatically discovers provider requirements from your
+configuration, including providers used in child modules. To see the
+requirements and constraints from each module, run "terraform providers".
 `
