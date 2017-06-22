@@ -1,4 +1,4 @@
-## 0.10.0-beta1 (Unreleased)
+## 0.10.0-beta1 (June 22, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
@@ -21,18 +21,18 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 IMPROVEMENTS:
 
-* Providers no longer in the main Terraform distribution; installed automatically by init instead [GH-15208]
-* cli: `terraform env` command renamed to `terraform workspace` [GH-14952]
+* Providers no longer in the main Terraform distribution; installed automatically by init instead ([#15208](https://github.com/hashicorp/terraform/issues/15208))
+* cli: `terraform env` command renamed to `terraform workspace` ([#14952](https://github.com/hashicorp/terraform/issues/14952))
 * cli: `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
-* cli: The `-target` option to various Terraform operation can now target resources in descendent modules. [GH-15314]
-* cli: Minor updates to `terraform plan` output: use standard resource address syntax, more visually-distinct `-/+` actions, and more [GH-15362]
-* config: New interpolation function `contains`, to find if a given string exists in a list of strings. [GH-15322]
+* cli: The `-target` option to various Terraform operation can now target resources in descendent modules. ([#15314](https://github.com/hashicorp/terraform/issues/15314))
+* cli: Minor updates to `terraform plan` output: use standard resource address syntax, more visually-distinct `-/+` actions, and more ([#15362](https://github.com/hashicorp/terraform/issues/15362))
+* config: New interpolation function `contains`, to find if a given string exists in a list of strings. ([#15322](https://github.com/hashicorp/terraform/issues/15322))
 
 BUG FIXES:
 
-* config: Interpolation function `cidrhost` was not correctly calcluating host addresses under IPv6 CIDR prefixes [GH-15321]
-* provisioner/chef: Prevent a panic while trying to read the connection info [GH-15271]
-* provisioner/file: Refactor the provisioner validation function to prevent false positives [GH-15273]
+* config: Interpolation function `cidrhost` was not correctly calcluating host addresses under IPv6 CIDR prefixes ([#15321](https://github.com/hashicorp/terraform/issues/15321))
+* provisioner/chef: Prevent a panic while trying to read the connection info ([#15271](https://github.com/hashicorp/terraform/issues/15271))
+* provisioner/file: Refactor the provisioner validation function to prevent false positives ([#15273](https://github.com/hashicorp/terraform/issues/15273))
 
 ## 0.9.8 (June 7, 2017)
 
