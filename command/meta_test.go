@@ -339,17 +339,25 @@ func TestMeta_process(t *testing.T) {
 	defer os.Chdir(cwd)
 
 	// Create two vars files
-	file1 := "file1.tfvars"
+	defaultVarsfile := "terraform.tfvars"
 	err = ioutil.WriteFile(
-		filepath.Join(d, file1),
+		filepath.Join(d, defaultVarsfile),
 		[]byte(""),
 		0644)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	file2 := "file2.tfvars"
+	fileFirstAlphabetical := "a-file.auto.tfvars"
 	err = ioutil.WriteFile(
-		filepath.Join(d, file2),
+		filepath.Join(d, fileFirstAlphabetical),
+		[]byte(""),
+		0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	fileLastAlphabetical := "z-file.auto.tfvars"
+	err = ioutil.WriteFile(
+		filepath.Join(d, fileLastAlphabetical),
 		[]byte(""),
 		0644)
 	if err != nil {
@@ -366,13 +374,19 @@ func TestMeta_process(t *testing.T) {
 	if args[0] != "-var-file-default" {
 		t.Fatalf("expected %q, got %q", "-var-file-default", args[0])
 	}
-	if args[1] != file1 {
-		t.Fatalf("expected %q, got %q", file1, args[1])
+	if args[1] != defaultVarsfile {
+		t.Fatalf("expected %q, got %q", defaultVarsfile, args[3])
 	}
 	if args[2] != "-var-file-default" {
 		t.Fatalf("expected %q, got %q", "-var-file-default", args[0])
 	}
-	if args[3] != file2 {
-		t.Fatalf("expected %q, got %q", file2, args[3])
+	if args[3] != fileFirstAlphabetical {
+		t.Fatalf("expected %q, got %q", fileFirstAlphabetical, args[1])
+	}
+	if args[4] != "-var-file-default" {
+		t.Fatalf("expected %q, got %q", "-var-file-default", args[0])
+	}
+	if args[5] != fileLastAlphabetical {
+		t.Fatalf("expected %q, got %q", fileLastAlphabetical, args[3])
 	}
 }
