@@ -2,6 +2,7 @@ package command
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -60,7 +61,23 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 			client := tfplugin.Client(newest)
 			factories[name] = providerFactory(client)
 		} else {
-			errs = append(errs, fmt.Errorf("provider.%s: no suitable version installed", name))
+			msg := fmt.Sprintf("provider.%s: no suitable version installed", name)
+
+			if req := reqd[name]; req.Versions.String() != "" {
+				foundVersions := []string{}
+				for meta := range r.Available.WithName(name) {
+					foundVersions = append(foundVersions, fmt.Sprintf("%q", meta.Version))
+				}
+
+				found := "none"
+				if len(foundVersions) > 0 {
+					found = strings.Join(foundVersions, ", ")
+				}
+
+				msg += fmt.Sprintf("\n  version requirements: %q\n  versions found: %s", req.Versions, found)
+			}
+
+			errs = append(errs, errors.New(msg))
 		}
 	}
 
