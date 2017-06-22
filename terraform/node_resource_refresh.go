@@ -94,7 +94,7 @@ func (n *NodeRefreshableManagedResourceInstance) EvalTree() EvalNode {
 	switch mode := n.Addr.Mode; mode {
 	case config.ManagedResourceMode:
 		if n.ResourceState == nil {
-			return n.evalTreeManagedScaleInResource()
+			return n.evalTreeManagedScaleOutResource()
 		}
 		return n.evalTreeManagedResource()
 
@@ -173,7 +173,7 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 	}
 }
 
-func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedScaleInResource() EvalNode {
+func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedScaleOutResource() EvalNode {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var provider ResourceProvider
