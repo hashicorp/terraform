@@ -60,6 +60,11 @@ func expandArray(m map[string]string, prefix string) []interface{} {
 		return []interface{}{}
 	}
 
+	// NOTE: "num" is not necessarily accurate, e.g. if a user tampers
+	// with state, so the following code should not crash when given a
+	// number of items more or less than what's given in num. The
+	// num key is mainly just a hint that this is a list or set.
+
 	// The Schema "Set" type stores its values in an array format, but
 	// using numeric hash values instead of ordinal keys. Take the set
 	// of keys regardless of value, and expand them in numeric order.
@@ -101,7 +106,7 @@ func expandArray(m map[string]string, prefix string) []interface{} {
 	}
 	sort.Ints(keysList)
 
-	result := make([]interface{}, num)
+	result := make([]interface{}, len(keysList))
 	for i, key := range keysList {
 		keyString := strconv.Itoa(key)
 		if computed[keyString] {
