@@ -130,12 +130,7 @@ func TestStateRm_backupExplicit(t *testing.T) {
 	// Test it is correct
 	testStateOutput(t, statePath, testStateRmOutput)
 
-	// Test we have backups
-	backups := testStateBackups(t, filepath.Dir(statePath))
-	if len(backups) != 1 {
-		t.Fatalf("bad: %#v", backups)
-	}
-	testStateOutput(t, backups[0], testStateRmOutputOriginal)
+	// Test backup
 	testStateOutput(t, backupPath, testStateRmOutputOriginal)
 }
 
