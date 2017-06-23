@@ -24,5 +24,7 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-list=true` - List files whose formatting differs (disabled if using STDIN)
 * `-write=true` - Write result to source file instead of STDOUT (disabled if
-    using STDIN)
+    using STDIN or -check)
 * `-diff=false` - Display diffs of formatting changes
+* `-check=false` - Check if the input is formatted. Exit status will be 0 if
+    all input is properly formatted and non-zero otherwise.
