@@ -402,8 +402,8 @@ func (m *Meta) uiHook() *UiHook {
 
 // confirm asks a yes/no confirmation.
 func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
-	if !m.input {
-		return false, errors.New("input disabled")
+	if !m.Input() {
+		return false, errors.New("input is disabled")
 	}
 	for {
 		v, err := m.UIInput().Input(opts)
