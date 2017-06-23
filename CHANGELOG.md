@@ -1,6 +1,8 @@
 ## 0.10.0-beta2 (not yet released)
 
+BUG FIXES:
 
+* core: Improved reslience against crashes for a certain kind of inconsistency in the representation of list values in state. [GH-15390]
 
 ## 0.10.0-beta1 (June 22, 2017)
 
