@@ -78,8 +78,7 @@ Options:
   -backup=PATH        Path where Terraform should write the backup
                       state. This can't be disabled. If not set, Terraform
                       will write it to the same path as the statefile with
-                      a backup extension. This backup will be made in addition
-                      to the timestamped backup.
+                      a backup extension.
 
   -state=statefile    Path to a Terraform state file to use to look
                       up Terraform-managed resources. By default it will
