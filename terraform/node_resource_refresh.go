@@ -94,7 +94,7 @@ func (n *NodeRefreshableManagedResourceInstance) EvalTree() EvalNode {
 	switch mode := n.Addr.Mode; mode {
 	case config.ManagedResourceMode:
 		if n.ResourceState == nil {
-			return n.evalTreeManagedScaleOutResource()
+			return n.evalTreeManagedResourceNoState()
 		}
 		return n.evalTreeManagedResource()
 
@@ -173,7 +173,18 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 	}
 }
 
-func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedScaleOutResource() EvalNode {
+// evalTreeManagedResourceNoState produces an EvalSequence for refresh resource
+// nodes that don't have state attached. An example of where this functionality
+// is useful is when a resource that already exists in state is being scaled
+// out, ie: has its resource count increased. In this case, the scaled out node
+// needs to be available to other nodes (namely data sources) that may depend
+// on it for proper interpolation, or confusing "index out of range" errors can
+// occur.
+//
+// The steps in this sequence are very similar to the steps carried out in
+// plan, but nothing is done with the diff after it is created - it is dropped,
+// and its changes are not counted in the UI.
+func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState() EvalNode {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var provider ResourceProvider
