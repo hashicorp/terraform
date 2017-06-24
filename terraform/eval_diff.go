@@ -96,11 +96,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	provider := *n.Provider
 
 	// Call pre-diff hook
-	err := ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.Info, state)
-	})
-	if err != nil {
-		return nil, err
+	if !n.Stub {
+		err := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreDiff(n.Info, state)
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// The state for the diff must never be nil
@@ -163,17 +165,14 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, err
 	}
 
-	// Flag stub in the diff if set in the eval node. This ensures that this
-	// resource is skipped in post-diff hooks, such as count, etc, and is usually
-	// set in a pre-plan phase.
-	diff.Stub = n.Stub
-
 	// Call post-refresh hook
-	err = ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.Info, diff)
-	})
-	if err != nil {
-		return nil, err
+	if !n.Stub {
+		err = ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostDiff(n.Info, diff)
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Update our output if we care

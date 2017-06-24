@@ -373,11 +373,6 @@ type InstanceDiff struct {
 	// mean to be used for additional data a resource may want to pass through.
 	// The value here must only contain Go primitives and collections.
 	Meta map[string]interface{}
-
-	// Stub should be set when this diff exists only for purposes of providing a
-	// diff to various pre-plan or dry-run steps in the graph. A diff with this
-	// enabled should not be acted on in the plan.
-	Stub bool
 }
 
 func (d *InstanceDiff) Lock()   { d.mu.Lock() }
