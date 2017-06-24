@@ -157,10 +157,6 @@ root - terraform.graphNodeRoot
 }
 
 func TestNodeRefreshableManagedResourceEvalTree_scaleOut(t *testing.T) {
-	var provider ResourceProvider
-	var state *InstanceState
-	var resourceConfig *ResourceConfig
-
 	addr, err := ParseResourceAddress("aws_instance.foo[2]")
 	if err != nil {
 		t.Fatalf("bad: %s", err)
@@ -176,57 +172,7 @@ func TestNodeRefreshableManagedResourceEvalTree_scaleOut(t *testing.T) {
 	}
 
 	actual := n.EvalTree()
-
-	expected := &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalInterpolate{
-				Config: n.Config.RawConfig.Copy(),
-				Resource: &Resource{
-					Name:       addr.Name,
-					Type:       addr.Type,
-					CountIndex: addr.Index,
-				},
-				Output: &resourceConfig,
-			},
-			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
-				Output: &provider,
-			},
-			&EvalValidateResource{
-				Provider:       &provider,
-				Config:         &resourceConfig,
-				ResourceName:   n.Config.Name,
-				ResourceType:   n.Config.Type,
-				ResourceMode:   n.Config.Mode,
-				IgnoreWarnings: true,
-			},
-			&EvalReadState{
-				Name:   addr.stateId(),
-				Output: &state,
-			},
-			&EvalDiff{
-				Name: addr.stateId(),
-				Info: &InstanceInfo{
-					Id:         addr.stateId(),
-					Type:       addr.Type,
-					ModulePath: normalizeModulePath(addr.Path),
-				},
-				Config:      &resourceConfig,
-				Resource:    n.Config,
-				Provider:    &provider,
-				State:       &state,
-				OutputState: &state,
-				Stub:        true,
-			},
-			&EvalWriteState{
-				Name:         addr.stateId(),
-				ResourceType: n.Config.Type,
-				Provider:     n.Config.Provider,
-				Dependencies: n.StateReferences(),
-				State:        &state,
-			},
-		},
-	}
+	expected := n.evalTreeManagedResourceNoState()
 
 	if !reflect.DeepEqual(expected, actual) {
 		t.Fatalf("Expected:\n\n%s\nGot:\n\n%s\n", spew.Sdump(expected), spew.Sdump(actual))
