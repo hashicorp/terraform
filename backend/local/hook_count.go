@@ -100,11 +100,6 @@ func (h *CountHook) PostDiff(
 		return terraform.HookActionContinue, nil
 	}
 
-	// Don't count anything for a Stub diff
-	if d.Stub {
-		return terraform.HookActionContinue, nil
-	}
-
 	switch d.ChangeType() {
 	case terraform.DiffDestroyCreate:
 		h.ToRemoveAndAdd += 1
