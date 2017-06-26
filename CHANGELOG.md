@@ -1,6 +1,8 @@
 ## 0.9.9 (Not yet released)
 
+BUG FIXES:
 
+* provisioner/file: Refactor the provisioner validation function to prevent false positives ([#15273](https://github.com/hashicorp/terraform/issues/15273))
 
 ## 0.9.8 (June 7, 2017)
 
