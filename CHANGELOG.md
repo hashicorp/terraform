@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * provisioner/file: Refactor the provisioner validation function to prevent false positives ([#15273](https://github.com/hashicorp/terraform/issues/15273))
+* provisioner/chef: Prevent a panic while trying to read the connection info ([#15271](https://github.com/hashicorp/terraform/issues/15271))
 
 ## 0.9.8 (June 7, 2017)
 
