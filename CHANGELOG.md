@@ -3,8 +3,9 @@
 BUG FIXES:
 
 * core: the S3 Backend was failing to remove the state file checksums from DynamoDB when deleting a workspace [GH-15383]
-* core: the state `rm` and `mv` commands were always loading a state from a Backend, and ignoring the `-state` flag [GH-15388]
 * core: Improved reslience against crashes for a certain kind of inconsistency in the representation of list values in state. [GH-15390]
+* cli: the state `rm` and `mv` commands were always loading a state from a Backend, and ignoring the `-state` flag [GH-15388]
+* cli: certain prompts in `terraform init` were respecting `-input=false` but not the `TF_INPUT` environment variable [GH-15391]
 
 ## 0.10.0-beta1 (June 22, 2017)
 
