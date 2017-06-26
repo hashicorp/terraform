@@ -36,6 +36,52 @@ func TestValidationIntBetween(t *testing.T) {
 	})
 }
 
+func TestValidationIntAtLeast(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: 1,
+			f:   IntAtLeast(1),
+		},
+		{
+			val: 1,
+			f:   IntAtLeast(0),
+		},
+		{
+			val:         1,
+			f:           IntAtLeast(2),
+			expectedErr: regexp.MustCompile("expected [\\w]+ to be at least \\(2\\), got 1"),
+		},
+		{
+			val:         "1",
+			f:           IntAtLeast(2),
+			expectedErr: regexp.MustCompile("expected type of [\\w]+ to be int"),
+		},
+	})
+}
+
+func TestValidationIntAtMost(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: 1,
+			f:   IntAtMost(1),
+		},
+		{
+			val: 1,
+			f:   IntAtMost(2),
+		},
+		{
+			val:         1,
+			f:           IntAtMost(0),
+			expectedErr: regexp.MustCompile("expected [\\w]+ to be at most \\(0\\), got 1"),
+		},
+		{
+			val:         "1",
+			f:           IntAtMost(0),
+			expectedErr: regexp.MustCompile("expected type of [\\w]+ to be int"),
+		},
+	})
+}
+
 func TestValidationStringInSlice(t *testing.T) {
 	runTestCases(t, []testCase{
 		{
