@@ -120,7 +120,7 @@ You can also specify branches and version withs the ?ref query
 
 ```hcl
 module "consul" {
-  source = "git::https://bitbucket.org/foocompany/module_name.git?hotfix
+  source = "git::https://bitbucket.org/foocompany/module_name.git?ref=hotfix
 }
 ```
 
