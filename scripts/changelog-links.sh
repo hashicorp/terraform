@@ -24,7 +24,7 @@ else
   SED="sed -i.bak -r -e"
 fi
 
-PROVIDER_URL="https:\/\/github.com\/terraform-providers\/terraform-provider-softlayer"
+PROVIDER_URL="https:\/\/github.com\/terraform-providers\/terraform-provider-softlayer\/issues"
 
 $SED "s/GH-([0-9]+)/\[#\1\]\($PROVIDER_URL\/\1\)/g" -e 's/\[\[#(.+)([0-9])\)]$/(\[#\1\2))/g' CHANGELOG.md
 
