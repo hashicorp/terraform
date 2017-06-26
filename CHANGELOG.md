@@ -1,4 +1,4 @@
-## 0.9.9 (Not yet released)
+## 0.9.9 (June 26, 2017)
 
 BUG FIXES:
 
