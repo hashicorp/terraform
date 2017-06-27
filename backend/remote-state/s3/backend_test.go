@@ -159,7 +159,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// put a state in an env directory name
-	client.path = keyEnvPrefix + "/error"
+	client.path = b.workspaceKeyPrefix + "/error"
 	stateMgr.WriteState(terraform.NewState())
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
@@ -169,7 +169,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// add state with the wrong key for an existing env
-	client.path = keyEnvPrefix + "/s2/notTestState"
+	client.path = b.workspaceKeyPrefix + "/s2/notTestState"
 	stateMgr.WriteState(terraform.NewState())
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
@@ -202,7 +202,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	s2 = s2Mgr.State()
 
 	// add a state with a key that matches an existing environment dir name
-	client.path = keyEnvPrefix + "/s2/"
+	client.path = b.workspaceKeyPrefix + "/s2/"
 	stateMgr.WriteState(terraform.NewState())
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
