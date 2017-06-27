@@ -105,6 +105,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Honor the lock request, for consistency and one final safety check.
 	if c.stateLock {
 		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
 		defer cancel()
@@ -117,7 +118,17 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
-		defer clistate.Unlock(sMgr, lockID, c.Ui, c.Colorize())
+
+		// We need to release the lock just before deleting the state, in case
+		// the backend can't remove the resource while holding the lock. This
+		// is currently true for Windows local files.
+		//
+		// TODO: While there is little safety in locking while deleting the
+		// state, it might be nice to be able to coordinate processes around
+		// state deletion, i.e. in a CI environment. Adding Delete() as a
+		// required method of States would allow the removal of the resource to
+		// be delegated from the Backend to the State itself.
+		clistate.Unlock(sMgr, lockID, c.Ui, c.Colorize())
 	}
 
 	err = b.DeleteState(delEnv)
