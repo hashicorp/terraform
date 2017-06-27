@@ -103,7 +103,7 @@ func (b *Local) opApply(
 			var desc, query string
 			if op.Destroy {
 				// Default destroy message
-				desc = "Terraform will delete all your managed infrastructure.\n" +
+				desc = "Terraform will delete all your managed infrastructure, as shown above.\n" +
 					"There is no undo. Only 'yes' will be accepted to confirm."
 
 				// If targets are specified, list those to user
@@ -120,14 +120,18 @@ func (b *Local) opApply(
 				}
 				query = "Do you really want to destroy?"
 			} else {
-				desc = "Terraform will apply the plan described above.\n" +
+				desc = "Terraform will apply the changes described above.\n" +
 					"Only 'yes' will be accepted to approve."
-				query = "Do you want to apply the plan above?"
+				query = "Do you want to apply these changes?"
 			}
 
 			if !trivialPlan {
 				// Display the plan of what we are going to apply/destroy.
-				op.UIOut.Output(strings.TrimSpace(approvePlanHeader) + "\n")
+				if op.Destroy {
+					op.UIOut.Output("\n" + strings.TrimSpace(approveDestroyPlanHeader) + "\n")
+				} else {
+					op.UIOut.Output("\n" + strings.TrimSpace(approvePlanHeader) + "\n")
+				}
 				op.UIOut.Output(format.Plan(&format.PlanOpts{
 					Plan:        plan,
 					Color:       b.Colorize(),
@@ -355,4 +359,10 @@ Resources are shown in alphabetical order for quick scanning. Green resources
 will be created (or destroyed and then created if an existing resource
 exists), yellow resources are being changed in-place, and red resources
 will be destroyed. Cyan entries are data sources to be read.
+`
+
+const approveDestroyPlanHeader = `
+The Terraform destroy plan has been generated and is shown below.
+Resources are shown in alphabetical order for quick scanning.
+Resources shown in red will be destroyed.
 `
