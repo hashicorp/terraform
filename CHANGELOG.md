@@ -1,5 +1,13 @@
 ## 0.10.0-beta2 (not yet released)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* A new flag `-auto-approve` has been added to `terraform apply`. This flag controls whether an interactive approval is applied before making the changes in the plan. For now this flag defaults to `true` to preserve previous behavior, but this will become the new default in a future version. We suggest that anyone running `terraform apply` in wrapper scripts or automation refer to the upgrade guide to learn how to prepare such wrapper scripts for the later breaking change.
+
+IMPROVEMENTS:
+
+* cli: `terraform apply` now has an option `-auto-approve=false` that produces an interactive prompt to approve the generated plan. This will become the default workflow in a future Terraform version. [GH-7251]
+
 BUG FIXES:
 
 * core: the S3 Backend was failing to remove the state file checksums from DynamoDB when deleting a workspace [GH-15383]
