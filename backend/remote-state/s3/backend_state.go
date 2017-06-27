@@ -14,16 +14,10 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-const (
-	// This will be used as directory name, the odd looking colon is simply to
-	// reduce the chance of name conflicts with existing objects.
-	keyEnvPrefix = "env:"
-)
-
 func (b *Backend) States() ([]string, error) {
 	params := &s3.ListObjectsInput{
 		Bucket: &b.bucketName,
-		Prefix: aws.String(keyEnvPrefix + "/"),
+		Prefix: aws.String(b.workspaceKeyPrefix + "/"),
 	}
 
 	resp, err := b.s3Client.ListObjects(params)
@@ -53,7 +47,7 @@ func (b *Backend) keyEnv(key string) string {
 	}
 
 	// shouldn't happen since we listed by prefix
-	if parts[0] != keyEnvPrefix {
+	if parts[0] != b.workspaceKeyPrefix {
 		return ""
 	}
 
@@ -183,7 +177,7 @@ func (b *Backend) path(name string) string {
 		return b.keyName
 	}
 
-	return strings.Join([]string{keyEnvPrefix, name, b.keyName}, "/")
+	return strings.Join([]string{b.workspaceKeyPrefix, name, b.keyName}, "/")
 }
 
 const errStateUnlock = `
