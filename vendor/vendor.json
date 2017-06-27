@@ -1685,10 +1685,10 @@
 			"revisionTime": "2017-06-12T09:08:25Z"
 		},
 		{
-			"checksumSHA1": "+LOuwysQ27JLjJNWSPKF/yXTMEc=",
+			"checksumSHA1": "7WDq0VsOJmABPUCEvfuerEp7mBg=",
 			"path": "github.com/terraform-providers/terraform-provider-openstack/openstack",
-			"revision": "6278902610d3077274146559ef10fbb5455e5129",
-			"revisionTime": "2017-06-09T18:33:54Z"
+			"revision": "4080a521c6ea4872f38bae658ac17b774eefcfe1",
+			"revisionTime": "2017-06-13T14:56:00Z"
 		},
 		{
 			"checksumSHA1": "iHiMTBffQvWYlOLu3130JXuQpgQ=",

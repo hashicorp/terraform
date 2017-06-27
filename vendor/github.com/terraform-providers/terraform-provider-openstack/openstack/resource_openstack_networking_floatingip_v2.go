@@ -31,10 +31,10 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
@@ -73,7 +73,7 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 
 func resourceNetworkFloatingIPV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
@@ -120,7 +120,7 @@ func resourceNetworkFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkFloatingIPV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
@@ -140,14 +140,14 @@ func resourceNetworkFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 	d.Set("pool", poolName)
 	d.Set("tenant_id", floatingIP.TenantID)
 
-	d.Set("region", GetRegion(d))
+	d.Set("region", GetRegion(d, config))
 
 	return nil
 }
 
 func resourceNetworkFloatingIPV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
@@ -171,7 +171,7 @@ func resourceNetworkFloatingIPV2Update(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkFloatingIPV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
@@ -196,7 +196,7 @@ func resourceNetworkFloatingIPV2Delete(d *schema.ResourceData, meta interface{})
 
 func getNetworkID(d *schema.ResourceData, meta interface{}, networkName string) (string, error) {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return "", fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
@@ -226,7 +226,7 @@ func getNetworkID(d *schema.ResourceData, meta interface{}, networkName string) 
 
 func getNetworkName(d *schema.ResourceData, meta interface{}, networkID string) (string, error) {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return "", fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
