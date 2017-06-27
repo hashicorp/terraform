@@ -143,7 +143,7 @@ func New() backend.Backend {
 			"workspace_key_prefix": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The prefix applied to the state path inside the bucket",
+				Description: "The prefix applied to the non-default state path inside the bucket",
 				Default:     "env:",
 			},
 		},
