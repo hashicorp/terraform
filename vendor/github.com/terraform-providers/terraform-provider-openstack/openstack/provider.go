@@ -20,6 +20,13 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["auth_url"],
 			},
 
+			"region": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["region"],
+				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+			},
+
 			"user_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -187,6 +194,8 @@ func init() {
 	descriptions = map[string]string{
 		"auth_url": "The Identity authentication URL.",
 
+		"region": "The OpenStack region to connect to.",
+
 		"user_name": "Username to login with.",
 
 		"user_id": "User ID to login with.",
@@ -231,6 +240,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		IdentityEndpoint: d.Get("auth_url").(string),
 		Insecure:         d.Get("insecure").(bool),
 		Password:         d.Get("password").(string),
+		Region:           d.Get("region").(string),
 		Swauth:           d.Get("swauth").(bool),
 		Token:            d.Get("token").(string),
 		TenantID:         d.Get("tenant_id").(string),
@@ -239,7 +249,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		UserID:           d.Get("user_id").(string),
 	}
 
-	if err := config.loadAndValidate(); err != nil {
+	if err := config.LoadAndValidate(); err != nil {
 		return nil, err
 	}
 

@@ -29,10 +29,10 @@ func resourceNetworkingSecGroupRuleV2() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 			"direction": &schema.Schema{
 				Type:     schema.TypeString,
@@ -95,7 +95,7 @@ func resourceNetworkingSecGroupRuleV2() *schema.Resource {
 func resourceNetworkingSecGroupRuleV2Create(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -152,7 +152,7 @@ func resourceNetworkingSecGroupRuleV2Read(d *schema.ResourceData, meta interface
 	log.Printf("[DEBUG] Retrieve information about security group rule: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -172,7 +172,7 @@ func resourceNetworkingSecGroupRuleV2Read(d *schema.ResourceData, meta interface
 	d.Set("remote_ip_prefix", security_group_rule.RemoteIPPrefix)
 	d.Set("security_group_id", security_group_rule.SecGroupID)
 	d.Set("tenant_id", security_group_rule.TenantID)
-	d.Set("region", GetRegion(d))
+	d.Set("region", GetRegion(d, config))
 
 	return nil
 }
@@ -181,7 +181,7 @@ func resourceNetworkingSecGroupRuleV2Delete(d *schema.ResourceData, meta interfa
 	log.Printf("[DEBUG] Destroy security group rule: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
