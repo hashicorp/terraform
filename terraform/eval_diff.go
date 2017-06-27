@@ -81,6 +81,12 @@ type EvalDiff struct {
 	// Resource is needed to fetch the ignore_changes list so we can
 	// filter user-requested ignored attributes from the diff.
 	Resource *config.Resource
+
+	// Stub is used to flag the generated InstanceDiff as a stub. This is used to
+	// ensure that the node exists to perform interpolations and generate
+	// computed paths off of, but not as an actual diff where resouces should be
+	// counted, and not as a diff that should be acted on.
+	Stub bool
 }
 
 // TODO: test
@@ -90,11 +96,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	provider := *n.Provider
 
 	// Call pre-diff hook
-	err := ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.Info, state)
-	})
-	if err != nil {
-		return nil, err
+	if !n.Stub {
+		err := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreDiff(n.Info, state)
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// The state for the diff must never be nil
@@ -158,15 +166,19 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Call post-refresh hook
-	err = ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.Info, diff)
-	})
-	if err != nil {
-		return nil, err
+	if !n.Stub {
+		err = ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostDiff(n.Info, diff)
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	// Update our output
-	*n.OutputDiff = diff
+	// Update our output if we care
+	if n.OutputDiff != nil {
+		*n.OutputDiff = diff
+	}
 
 	// Update the state if we care
 	if n.OutputState != nil {
