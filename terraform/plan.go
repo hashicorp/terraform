@@ -40,12 +40,29 @@ type Plan struct {
 // Context returns a Context with the data encapsulated in this plan.
 //
 // The following fields in opts are overridden by the plan: Config,
-// Diff, State, Variables.
+// Diff, Variables.
+//
+// If State is not provided, it is set from the plan. If it _is_ provided,
+// it must be Equal to the state stored in plan, but may have a newer
+// serial.
 func (p *Plan) Context(opts *ContextOpts) (*Context, error) {
 	opts.Diff = p.Diff
 	opts.Module = p.Module
-	opts.State = p.State
 	opts.Targets = p.Targets
+
+	// If we are given a state in "base" then we'll use it, and otherwise
+	// we'll fall back on the state stashed in the plan. We do this because
+	// sometimes the caller has already persisted the plan's state by the
+	// time we get here, and we don't want to regress to the plan-time state
+	// serial if so.
+	if opts.State == nil {
+		opts.State = p.State
+	} else if !opts.State.Equal(p.State) {
+		// Even if we're overriding the state, it should be logically equal
+		// to what's in plan. The only valid change to have made by the time
+		// we get here is to have incremented the serial.
+		return nil, errors.New("plan state and ContextOpts state are not equal")
+	}
 
 	opts.Variables = make(map[string]interface{})
 	for k, v := range p.Vars {
