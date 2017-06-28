@@ -17,6 +17,8 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+const SecurityGroupKey = "56e2e112-ef69-4461-af19-01064bdd44d6"
+
 func resourceAwsSecurityGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSecurityGroupCreate,
@@ -212,6 +214,8 @@ func resourceAwsSecurityGroup() *schema.Resource {
 
 func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	cache := meta.(*AWSClient).SecurityGroupsCache()
+	clearSecurityGroupCache(cache)
 
 	securityGroupOpts := &ec2.CreateSecurityGroupInput{}
 
@@ -252,7 +256,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{""},
 		Target:  []string{"exists"},
-		Refresh: SGStateRefreshFunc(conn, d.Id()),
+		Refresh: SGStateRefreshFunc(conn, cache, d.Id()),
 		Timeout: 10 * time.Minute,
 	}
 
@@ -330,8 +334,9 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	cache := meta.(*AWSClient).SecurityGroupsCache()
 
-	sgRaw, _, err := SGStateRefreshFunc(conn, d.Id())()
+	sgRaw, _, err := SGStateRefreshFunc(conn, cache, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -372,8 +377,10 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	cache := meta.(*AWSClient).SecurityGroupsCache()
+	clearSecurityGroupCache(cache)
 
-	sgRaw, _, err := SGStateRefreshFunc(conn, d.Id())()
+	sgRaw, _, err := SGStateRefreshFunc(conn, cache, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -408,6 +415,8 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	cache := meta.(*AWSClient).SecurityGroupsCache()
+	clearSecurityGroupCache(cache)
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
@@ -703,36 +712,100 @@ func resourceAwsSecurityGroupUpdateRules(
 	return nil
 }
 
+func clearSecurityGroupCache(cache *SecurityGroupsCache) {
+	awsMutexKV.Lock(SecurityGroupKey)
+	defer awsMutexKV.Unlock(SecurityGroupKey)
+	cache.SecurityGroups = nil
+}
+
+func updateSecurityGroupCache(conn *ec2.EC2, cache *SecurityGroupsCache) error {
+	awsMutexKV.Lock(SecurityGroupKey)
+	defer awsMutexKV.Unlock(SecurityGroupKey)
+	if cache.SecurityGroups == nil {
+		req := &ec2.DescribeSecurityGroupsInput{}
+		resp, err := conn.DescribeSecurityGroups(req)
+
+		if err != nil {
+			log.Printf("Error on SGStateRefresh: %s", err)
+			return err
+		}
+
+		cache.SecurityGroups = resp
+	}
+	return nil
+}
+
 // SGStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // a security group.
-func SGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+func SGStateRefreshFunc(conn *ec2.EC2, cache *SecurityGroupsCache, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		req := &ec2.DescribeSecurityGroupsInput{
-			GroupIds: []*string{aws.String(id)},
-		}
-		resp, err := conn.DescribeSecurityGroups(req)
-		if err != nil {
-			if ec2err, ok := err.(awserr.Error); ok {
-				if ec2err.Code() == "InvalidSecurityGroupID.NotFound" ||
-					ec2err.Code() == "InvalidGroup.NotFound" {
-					resp = nil
-					err = nil
-				}
-			}
-
-			if err != nil {
-				log.Printf("Error on SGStateRefresh: %s", err)
-				return nil, "", err
-			}
-		}
-
-		if resp == nil {
+		group, err := refreshSG(conn, cache, id)
+		switch {
+		case group != nil:
+			return group, "exists", nil
+		case err != nil:
+			return nil, "", err
+		default:
 			return nil, "", nil
 		}
-
-		group := resp.SecurityGroups[0]
-		return group, "exists", nil
 	}
+}
+
+func refreshSG(conn *ec2.EC2, cache *SecurityGroupsCache, id string) (*ec2.SecurityGroup, error) {
+	// If batch_security_groups is set to true on the AWS provider, we make a
+	// single batch call to fetch all SGs and cache it.
+	// Otherwise, just fetch the single security group from the AWS API
+	if cache != nil {
+		return refreshSGFromCache(conn, cache, id)
+	} else {
+		return refreshSGFromAPI(conn, id)
+	}
+}
+
+func refreshSGFromCache(conn *ec2.EC2, cache *SecurityGroupsCache, id string) (*ec2.SecurityGroup, error) {
+	err := updateSecurityGroupCache(conn, cache)
+	if err != nil {
+		return nil, err
+	}
+	var group *ec2.SecurityGroup
+	for _, sg := range cache.SecurityGroups.SecurityGroups {
+		if id == *sg.GroupId {
+			group = sg
+		}
+	}
+
+	if group != nil {
+		return group, nil
+	}
+	return nil, nil
+}
+
+func refreshSGFromAPI(conn *ec2.EC2, id string) (*ec2.SecurityGroup, error) {
+	req := &ec2.DescribeSecurityGroupsInput{
+		GroupIds: []*string{aws.String(id)},
+	}
+	resp, err := conn.DescribeSecurityGroups(req)
+	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok {
+			if ec2err.Code() == "InvalidSecurityGroupID.NotFound" ||
+				ec2err.Code() == "InvalidGroup.NotFound" {
+				resp = nil
+				err = nil
+			}
+		}
+
+		if err != nil {
+			log.Printf("Error on SGStateRefresh: %s", err)
+			return nil, err
+		}
+	}
+
+	if resp == nil {
+		return nil, nil
+	}
+
+	group := resp.SecurityGroups[0]
+	return group, nil
 }
 
 // matchRules receives the group id, type of rules, and the local / remote maps

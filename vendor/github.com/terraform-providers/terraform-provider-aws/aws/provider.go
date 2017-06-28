@@ -156,6 +156,13 @@ func Provider() terraform.ResourceProvider {
 				Default:     false,
 				Description: descriptions["s3_force_path_style"],
 			},
+
+			"batch_security_groups": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["batch_security_groups"],
+			},
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -558,6 +565,9 @@ func init() {
 			"use virtual hosted bucket addressing when possible\n" +
 			"(http://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.",
 
+		"batch_security_groups": "Set this to batch refresh EC2 security groups. Experimental feature." +
+			" Speeds up refreshes when you have large numbers of security groups.",
+
 		"assume_role_role_arn": "The ARN of an IAM role to assume prior to making API calls.",
 
 		"assume_role_session_name": "The session name to use when assuming the role. If omitted," +
@@ -588,6 +598,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		SkipRequestingAccountId: d.Get("skip_requesting_account_id").(bool),
 		SkipMetadataApiCheck:    d.Get("skip_metadata_api_check").(bool),
 		S3ForcePathStyle:        d.Get("s3_force_path_style").(bool),
+		BatchSecurityGroups:     d.Get("batch_security_groups").(bool),
 	}
 
 	assumeRoleList := d.Get("assume_role").(*schema.Set).List()

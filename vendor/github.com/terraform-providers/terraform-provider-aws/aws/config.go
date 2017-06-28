@@ -114,9 +114,15 @@ type Config struct {
 	SkipRequestingAccountId bool
 	SkipMetadataApiCheck    bool
 	S3ForcePathStyle        bool
+	BatchSecurityGroups     bool
+}
+
+type SecurityGroupsCache struct {
+	SecurityGroups *ec2.DescribeSecurityGroupsOutput
 }
 
 type AWSClient struct {
+	securitygroupscache   *SecurityGroupsCache
 	cfconn                *cloudformation.CloudFormation
 	cloudfrontconn        *cloudfront.CloudFront
 	cloudtrailconn        *cloudtrail.CloudTrail
@@ -174,6 +180,10 @@ type AWSClient struct {
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
 	wafregionalconn       *wafregional.WAFRegional
+}
+
+func (c *AWSClient) SecurityGroupsCache() *SecurityGroupsCache {
+	return c.securitygroupscache
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -330,6 +340,10 @@ func (c *Config) Client() (interface{}, error) {
 		} else {
 			client.supportedplatforms = supportedPlatforms
 		}
+	}
+
+	if c.BatchSecurityGroups {
+		client.securitygroupscache = &SecurityGroupsCache{}
 	}
 
 	client.acmconn = acm.New(sess)
