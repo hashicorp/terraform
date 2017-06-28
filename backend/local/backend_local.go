@@ -49,6 +49,10 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 	}
 
 	// Load our state
+	// By the time we get here, the backend creation code in "command" took
+	// care of making s.State() return a state compatible with our plan,
+	// if any, so we can safely pass this value in both the plan context
+	// and new context cases below.
 	opts.State = s.State()
 
 	// Build the context
