@@ -20,7 +20,7 @@ func (c *WorkspaceShowCommand) Run(args []string) int {
 	workspace := c.Workspace()
 	c.Ui.Output(workspace)
 
-	return 1
+	return 0
 }
 
 func (c *WorkspaceShowCommand) Help() string {
