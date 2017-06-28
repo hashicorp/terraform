@@ -99,7 +99,7 @@ func TestWorkspace_createAndList(t *testing.T) {
 	expected := "default\n  test_a\n  test_b\n* test_c"
 
 	if actual != expected {
-		t.Fatalf("\nexpcted: %q\nactual:  %q", expected, actual)
+		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
 	}
 }
 
@@ -134,7 +134,7 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	expected := "default"
 
 	if actual != expected {
-		t.Fatalf("\nexpcted: %q\nactual:  %q", expected, actual)
+		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
 	}
 
 	newCmd := &WorkspaceNewCommand{}
@@ -163,7 +163,7 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	expected = "test_a"
 
 	if actual != expected {
-		t.Fatalf("\nexpcted: %q\nactual:  %q", expected, actual)
+		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
 	}
 }
 
