@@ -1,6 +1,5 @@
 TEST?=$$(go list ./... |grep -v 'vendor')
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
-COVER_TEST?=$$(go list ./... |grep -v 'vendor')
 
 default: build
 
@@ -14,17 +13,6 @@ test: fmtcheck
 
 testacc: fmtcheck
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
-
-testrace: fmtcheck
-	TF_ACC= go test -race $(TEST) $(TESTARGS)
-
-cover:
-	@go tool cover 2>/dev/null; if [ $$? -eq 3 ]; then \
-		go get -u golang.org/x/tools/cmd/cover; \
-	fi
-	go test $(COVER_TEST) -coverprofile=coverage.out
-	go tool cover -html=coverage.out
-	rm coverage.out
 
 vet:
 	@echo "go vet ."
@@ -47,12 +35,5 @@ errcheck:
 vendor-status:
 	@govendor status
 
-test-compile: fmtcheck
-	@if [ "$(TEST)" = "./..." ]; then \
-		echo "ERROR: Set TEST to a specific package. For example,"; \
-		echo "  make test-compile TEST=./builtin/providers/aws"; \
-		exit 1; \
-	fi
-	go test -c $(TEST) $(TESTARGS)
+.PHONY: build test testacc vet fmt fmtcheck errcheck vendor-status
 
-.PHONY: build test testacc testrace cover vet fmt fmtcheck errcheck vendor-status test-compile
