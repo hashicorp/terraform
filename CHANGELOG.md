@@ -54,6 +54,13 @@ BUG FIXES:
 * provisioner/chef: Prevent a panic while trying to read the connection info ([#15271](https://github.com/hashicorp/terraform/issues/15271))
 * provisioner/file: Refactor the provisioner validation function to prevent false positives ([#15273](https://github.com/hashicorp/terraform/issues/15273))
 
+## 0.9.10 (June 29, 2017)
+
+BUG FIXES:
+
+* core: Hotfix for issue where state index wasn't getting properly incremented when applying a change containing only data source updates and/or resource drift. (That is, state changes made during refresh.)
+  This issue is significant only for the "atlas" backend, since that backend verifies on the server that state serial numbers are being used consistently. ([#15423](https://github.com/hashicorp/terraform/issues/15423))
+
 ## 0.9.9 (June 26, 2017)
 
 BUG FIXES:
