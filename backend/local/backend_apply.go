@@ -250,7 +250,8 @@ func (b *Local) opApply(
 				countHook.Removed)))
 		}
 
-		if countHook.Added > 0 || countHook.Changed > 0 {
+		// only show the state file help message if the state is local.
+		if (countHook.Added > 0 || countHook.Changed > 0) && b.StateOutPath != "" {
 			b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
 				"[reset]\n"+
 					"The state of your infrastructure has been saved to the path\n"+
