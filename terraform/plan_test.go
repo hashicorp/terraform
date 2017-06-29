@@ -133,7 +133,7 @@ func TestPlanContextOptsOverrideStateBad(t *testing.T) {
 
 	_, err := plan.contextOpts(base)
 	if err == nil {
-		t.Fatalf("plan.contextOpts succeeded; want error due to non-equal state", err)
+		t.Fatal("plan.contextOpts succeeded; want error due to non-equal state")
 	}
 }
 
