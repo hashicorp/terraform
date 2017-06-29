@@ -155,6 +155,10 @@ func TestWorkspace_createAndShow(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
+	showCmd = &WorkspaceShowCommand{}
+	ui = new(cli.MockUi)
+	showCmd.Meta = Meta{Ui: ui}
+
 	if code := showCmd.Run(nil); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
