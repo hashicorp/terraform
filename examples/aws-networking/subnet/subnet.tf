@@ -1,6 +1,7 @@
 resource "aws_subnet" "main" {
   cidr_block = "${cidrsubnet(data.aws_vpc.target.cidr_block, 4, lookup(var.az_numbers, data.aws_availability_zone.target.name_suffix))}"
   vpc_id     = "${var.vpc_id}"
+  availability_zone = "${var.availability_zone}"
 }
 
 resource "aws_route_table" "main" {
