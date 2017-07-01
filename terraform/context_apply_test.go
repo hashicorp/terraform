@@ -8761,3 +8761,40 @@ module.child.subchild:
     type = aws_instance
 	`)
 }
+
+func TestContext2Apply_localVal(t *testing.T) {
+	m := testModule(t, "apply-local-val")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{},
+		),
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("error during plan: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("error during apply: %s", err)
+	}
+
+	got := strings.TrimSpace(state.String())
+	want := strings.TrimSpace(`
+<no state>
+Outputs:
+
+result_1 = hello
+result_3 = hello world
+
+module.child:
+  <no state>
+  Outputs:
+
+  result = hello
+`)
+	if got != want {
+		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
