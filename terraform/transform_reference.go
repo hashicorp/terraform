@@ -296,6 +296,8 @@ func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) []string {
 		return []string{fmt.Sprintf("%s.%d/%s.N", id, idx, id)}
 	case *config.UserVariable:
 		return []string{fmt.Sprintf("var.%s", v.Name)}
+	case *config.LocalVariable:
+		return []string{fmt.Sprintf("local.%s", v.Name)}
 	default:
 		return nil
 	}
