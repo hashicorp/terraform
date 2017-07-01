@@ -58,6 +58,17 @@ resource aws_instance "web" {
     }
 }
 
+locals {
+  security_group_ids = "${aws_security_group.firewall.*.id}"
+  web_ip = "${aws_instance.web.private_ip}"
+}
+
+locals {
+  literal = 2
+  literal_list = ["foo"]
+  literal_map = {"foo" = "bar"}
+}
+
 resource "aws_instance" "db" {
     security_groups = "${aws_security_group.firewall.*.id}"
     VPC = "foo"
