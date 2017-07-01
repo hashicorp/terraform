@@ -148,6 +148,42 @@ func outputsStr(os []*Output) string {
 	return strings.TrimSpace(result)
 }
 
+func localsStr(ls []*Local) string {
+	ns := make([]string, 0, len(ls))
+	m := make(map[string]*Local)
+	for _, l := range ls {
+		ns = append(ns, l.Name)
+		m[l.Name] = l
+	}
+	sort.Strings(ns)
+
+	result := ""
+	for _, n := range ns {
+		l := m[n]
+
+		result += fmt.Sprintf("%s\n", n)
+
+		if len(l.RawConfig.Variables) > 0 {
+			result += fmt.Sprintf("  vars\n")
+			for _, rawV := range l.RawConfig.Variables {
+				kind := "unknown"
+				str := rawV.FullKey()
+
+				switch rawV.(type) {
+				case *ResourceVariable:
+					kind = "resource"
+				case *UserVariable:
+					kind = "user"
+				}
+
+				result += fmt.Sprintf("    %s: %s\n", kind, str)
+			}
+		}
+	}
+
+	return strings.TrimSpace(result)
+}
+
 // This helper turns a provider configs field into a deterministic
 // string value for comparison in tests.
 func providerConfigsStr(pcs []*ProviderConfig) string {
