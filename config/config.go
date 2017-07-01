@@ -34,6 +34,7 @@ type Config struct {
 	ProviderConfigs []*ProviderConfig
 	Resources       []*Resource
 	Variables       []*Variable
+	Locals          []*Local
 	Outputs         []*Output
 
 	// The fields below can be filled in by loaders for validation
@@ -147,12 +148,18 @@ func (p *Provisioner) Copy() *Provisioner {
 	}
 }
 
-// Variable is a variable defined within the configuration.
+// Variable is a module argument defined within the configuration.
 type Variable struct {
 	Name         string
 	DeclaredType string `mapstructure:"type"`
 	Default      interface{}
 	Description  string
+}
+
+// Local is a local value defined within the configuration.
+type Local struct {
+	Name      string
+	RawConfig *RawConfig
 }
 
 // Output is an output defined within the configuration. An output is
@@ -676,6 +683,29 @@ func (c *Config) Validate() error {
 					id,
 					rv.FullKey()))
 				continue
+			}
+		}
+	}
+
+	// Check that all locals are valid
+	{
+		found := make(map[string]struct{})
+		for _, l := range c.Locals {
+			if _, ok := found[l.Name]; ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: duplicate local. local value names must be unique",
+					l.Name,
+				))
+				continue
+			}
+			found[l.Name] = struct{}{}
+
+			for _, v := range l.RawConfig.Variables {
+				if _, ok := v.(*CountVariable); ok {
+					errs = append(errs, fmt.Errorf(
+						"local %s: count variables are only valid within resources", l.Name,
+					))
+				}
 			}
 		}
 	}

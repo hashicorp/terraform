@@ -79,6 +79,14 @@
         }
     },
 
+    "locals": {
+        "security_group_ids": "${aws_security_group.firewall.*.id}",
+        "web_ip": "${aws_instance.web.private_ip}",
+        "literal": 2,
+        "literal_list": ["foo"],
+        "literal_map": {"foo": "bar"}
+    },
+
     "output": {
         "web_ip": {
             "value": "${aws_instance.web.private_ip}"
