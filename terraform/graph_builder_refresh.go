@@ -133,6 +133,9 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		&ParentProviderTransformer{},
 		&AttachProviderConfigTransformer{Module: b.Module},
 
+		// Add the local values
+		&LocalTransformer{Module: b.Module},
+
 		// Add the outputs
 		&OutputTransformer{Module: b.Module},
 
