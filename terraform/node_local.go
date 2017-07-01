@@ -70,10 +70,10 @@ func (n *NodeLocal) EvalTree() EvalNode {
 		},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
-			/*&EvalWriteLocal{
-				Name:  n.Config.Name,
-				Value: n.Config.RawConfig,
-			},*/
+				&EvalLocal{
+					Name:  n.Config.Name,
+					Value: n.Config.RawConfig,
+				},
 			},
 		},
 	}
