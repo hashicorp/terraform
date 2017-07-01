@@ -977,6 +977,10 @@ type ModuleState struct {
 	// always disjoint, so the path represents amodule tree
 	Path []string `json:"path"`
 
+	// Locals are kept only transiently in-memory, because we can always
+	// re-compute them.
+	Locals map[string]interface{} `json:"-"`
+
 	// Outputs declared by the module and maintained for each module
 	// even though only the root module technically needs to be kept.
 	// This allows operators to inspect values at the boundaries.
