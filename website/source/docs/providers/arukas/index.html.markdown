@@ -8,6 +8,11 @@ description: |-
 
 # Arukas Provider
 
+!> **NOTE:** Arukas' beta service will end on **July 31, 2017**.
+    After that, official service will be started (however, the release date is undecided).
+    We plan to upgrade this provider after official service starts.
+    Until that time, this provider will not be maintained.
+
 The Arukas provider is used to manage [Arukas](https://arukas.io/en/) resources.
 
 Use the navigation to the left to read about the available resources.
