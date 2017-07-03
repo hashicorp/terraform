@@ -51,8 +51,10 @@ type Meta struct {
 	// pluginPath is a user defined set of directories to look for plugins.
 	// This is set during init with the `-plugin-dir` flag, saved to a file in
 	// the data directory.
-	// This overrides all other search paths when discoverying plugins.
+	// This overrides all other search paths when discovering plugins.
 	pluginPath []string
+
+	ignorePluginChecksum bool
 
 	// Override certain behavior for tests within this package
 	testingOverrides *testingOverrides
@@ -224,6 +226,10 @@ func (m *Meta) StdinPiped() bool {
 	return fi.Mode()&os.ModeNamedPipe != 0
 }
 
+const (
+	ProviderSkipVerifyEnvVar = "TF_SKIP_PROVIDER_VERIFY"
+)
+
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
@@ -260,6 +266,9 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	}
 
 	opts.ProviderSHA256s = m.providerPluginsLock().Read()
+	if v := os.Getenv(ProviderSkipVerifyEnvVar); v != "" {
+		opts.SkipProviderVerify = true
+	}
 
 	opts.Meta = &terraform.ContextMeta{
 		Env: m.Workspace(),
