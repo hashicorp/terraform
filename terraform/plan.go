@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/hashicorp/terraform/config/module"
@@ -61,7 +62,12 @@ func (p *Plan) Context(opts *ContextOpts) (*Context, error) {
 		// Even if we're overriding the state, it should be logically equal
 		// to what's in plan. The only valid change to have made by the time
 		// we get here is to have incremented the serial.
-		return nil, errors.New("plan state and ContextOpts state are not equal")
+		//
+		// Due to the fact that serialization may change the representation of
+		// the state, there is little chance that these aren't actually equal.
+		// Log the error condition for reference, but continue with the state
+		// we have.
+		log.Println("[ERROR] plan state and ContextOpts state are not equal")
 	}
 
 	opts.Variables = make(map[string]interface{})
