@@ -11,6 +11,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* config: Fixed a parsing issue in the interpolation language HIL that was causing misinterpretation of literal strings ending with escaped backslashes [GH-15415]
 * core: the S3 Backend was failing to remove the state file checksums from DynamoDB when deleting a workspace [GH-15383]
 * core: Improved reslience against crashes for a certain kind of inconsistency in the representation of list values in state. [GH-15390]
 * core: Display correct to and from backends in copy message when migrating to new remote state [GH-15318]
