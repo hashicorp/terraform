@@ -1,5 +1,8 @@
-## 0.9.11 (Not yet released)
+## 0.9.11 (Jul 3, 2017)
 
+BUG FIXES:
+
+* core: Hotfix for issue where a state from a plan was reported as not equal to the same state stored to a backend. This arose from the fix for the previous issue where the incorrect copy of the state was being used when applying with a plan. ([#15460](https://github.com/hashicorp/terraform/issues/15460))
 
 
 ## 0.9.10 (June 29, 2017)
