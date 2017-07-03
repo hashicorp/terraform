@@ -206,6 +206,10 @@ func (c *InitCommand) Run(args []string) int {
 		state = sMgr.State()
 	}
 
+	if v := os.Getenv(ProviderSkipVerifyEnvVar); v != "" {
+		c.ignorePluginChecksum = true
+	}
+
 	// Now that we have loaded all modules, check the module tree for missing providers.
 	err = c.getProviders(path, state, flagUpgrade)
 	if err != nil {
@@ -330,6 +334,9 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 			return err
 		}
 		digests[name] = digest
+		if c.ignorePluginChecksum {
+			digests[name] = nil
+		}
 	}
 	err = c.providerPluginsLock().Write(digests)
 	if err != nil {
