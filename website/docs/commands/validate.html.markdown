@@ -37,8 +37,8 @@ for the configurations.
 
 The command-line flags are all optional. The available flags are:
 
-* `-config-only` - If specified, the command will check basic syntax of the
-  config only. It will not check that required variables have been specified.
+* `-check-variables=true` - If set to true (default), the command will check
+  whether all required variables have been specified.
 
 * `-no-color` - Disables output with coloring.
 

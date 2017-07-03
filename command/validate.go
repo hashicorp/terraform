@@ -18,10 +18,10 @@ const defaultPath = "."
 
 func (c *ValidateCommand) Run(args []string) int {
 	args = c.Meta.process(args, true)
-	var configOnly bool
+	var checkVars bool
 
 	cmdFlags := c.Meta.flagSet("validate")
-	cmdFlags.BoolVar(&configOnly, "config-only", false, "config-only")
+	cmdFlags.BoolVar(&checkVars, "check-variables", true, "check-variables")
 	cmdFlags.Usage = func() {
 		c.Ui.Error(c.Help())
 	}
@@ -43,7 +43,7 @@ func (c *ValidateCommand) Run(args []string) int {
 			"Unable to locate directory %v\n", err.Error()))
 	}
 
-	rtnCode := c.validate(dir, configOnly)
+	rtnCode := c.validate(dir, checkVars)
 
 	return rtnCode
 }
@@ -70,23 +70,22 @@ Usage: terraform validate [options] [dir]
 
 Options:
 
-  -config-only        If specified, the command will check basic syntax of
-                      the config only. It will not check that required
-                      variables have been specified.
+  -check-variables=true If set to true (default), the command will check
+                        whether all required variables have been specified.
 
-  -no-color           If specified, output won't contain any color.
+  -no-color             If specified, output won't contain any color.
 
-  -var 'foo=bar'      Set a variable in the Terraform configuration. This
-                      flag can be set multiple times.
+  -var 'foo=bar'        Set a variable in the Terraform configuration. This
+                        flag can be set multiple times.
 
-  -var-file=foo       Set variables in the Terraform configuration from
-                      a file. If "terraform.tfvars" is present, it will be
-                      automatically loaded if this flag is not specified.
+  -var-file=foo         Set variables in the Terraform configuration from
+                        a file. If "terraform.tfvars" is present, it will be
+                        automatically loaded if this flag is not specified.
 `
 	return strings.TrimSpace(helpText)
 }
 
-func (c *ValidateCommand) validate(dir string, configOnly bool) int {
+func (c *ValidateCommand) validate(dir string, checkVars bool) int {
 	cfg, err := config.LoadDir(dir)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
@@ -100,7 +99,7 @@ func (c *ValidateCommand) validate(dir string, configOnly bool) int {
 		return 1
 	}
 
-	if !configOnly {
+	if checkVars {
 		mod, err := c.Module(dir)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))

@@ -135,7 +135,7 @@ func TestMissingDefinedVar(t *testing.T) {
 }
 
 func TestMissingDefinedVarConfigOnly(t *testing.T) {
-	ui, code := setupTest("validate-invalid/missing_defined_var", "-config-only")
+	ui, code := setupTest("validate-invalid/missing_defined_var", "-check-variables=false")
 	if code != 0 {
 		t.Fatalf("Should have passed: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
