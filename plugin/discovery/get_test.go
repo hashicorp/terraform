@@ -100,7 +100,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestVersionListing(t *testing.T) {
-	versions, err := listProviderVersions("test")
+	i := &ProviderInstaller{}
+	versions, err := i.listProviderVersions("test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,11 +126,12 @@ func TestVersionListing(t *testing.T) {
 }
 
 func TestCheckProtocolVersions(t *testing.T) {
-	if checkPlugin(providerURL("test", VersionStr("1.2.3").MustParse().String()), 4) {
+	i := &ProviderInstaller{}
+	if checkPlugin(i.providerURL("test", VersionStr("1.2.3").MustParse().String()), 4) {
 		t.Fatal("protocol version 4 is not compatible")
 	}
 
-	if !checkPlugin(providerURL("test", VersionStr("1.2.3").MustParse().String()), 3) {
+	if !checkPlugin(i.providerURL("test", VersionStr("1.2.3").MustParse().String()), 3) {
 		t.Fatal("protocol version 3 should be compatible")
 	}
 }
@@ -265,8 +267,10 @@ func TestProviderInstallerPurgeUnused(t *testing.T) {
 
 // Test fetching a provider's checksum file while verifying its signature.
 func TestProviderChecksum(t *testing.T) {
+	i := &ProviderInstaller{}
+
 	// we only need the checksum, as getter is doing the actual file comparison.
-	sha256sum, err := getProviderChecksum("template", "0.1.0")
+	sha256sum, err := i.getProviderChecksum("template", "0.1.0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,7 +281,7 @@ func TestProviderChecksum(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := checksumForFile(sumData, providerFileName("template", "0.1.0"))
+	expected := checksumForFile(sumData, i.providerFileName("template", "0.1.0"))
 
 	if sha256sum != expected {
 		t.Fatalf("expected: %s\ngot %s\n", sha256sum, expected)
@@ -286,8 +290,10 @@ func TestProviderChecksum(t *testing.T) {
 
 // Test fetching a provider's checksum file witha bad signature
 func TestProviderChecksumBadSignature(t *testing.T) {
+	i := &ProviderInstaller{}
+
 	// we only need the checksum, as getter is doing the actual file comparison.
-	sha256sum, err := getProviderChecksum("badsig", "0.1.0")
+	sha256sum, err := i.getProviderChecksum("badsig", "0.1.0")
 	if err == nil {
 		t.Fatal("expcted error")
 	}
