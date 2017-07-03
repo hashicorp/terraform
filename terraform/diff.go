@@ -840,36 +840,27 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 		// If our attributes are not computed, then there is no reason why we can't
 		// check to make sure the diff values are the same. Do that now.
 		//
-		// Single-value NewComputed values pass
-		if diffOld.NewComputed {
-			continue
-		}
-
-		// Computed keys for sets and lists pass
-		if strings.Contains(k, "~") {
-			continue
-		}
-
-		// Counts for sets need to be skipped as well as we have determined that we
-		// may not know the full value due to interpolation
-		if strings.HasSuffix(k, "#") {
-			continue
-		}
-
-		// Lists can be skipped if they are being removed (going from n > 0 to 0)
-		if strings.HasSuffix(k, "%") && diffOld.New == "0" && diffOld.Old != "0" {
-			continue
-		}
-
-		// If both old and new are RequiresNew, we are okay if both new values
-		// match.
-		if diffOld.RequiresNew && diffNew.RequiresNew && diffOld.New == diffNew.New {
-			continue
-		}
-
-		// At this point, we should be able to just check for deep equality.
-		if !reflect.DeepEqual(diffOld, diffNew) {
-			return false, fmt.Sprintf("value mismatch: %s", k)
+		// There are several conditions that we need to pass here as they are
+		// allowed cases even if values don't match, so let's check those first.
+		switch {
+		case diffOld.NewComputed:
+			// NewComputed values pass
+		case strings.Contains(k, "~"):
+			// Computed keys for sets and lists
+		case strings.HasSuffix(k, "#"):
+			// Counts for sets need to be skipped as well as we have determined that
+			// we may not know the full value due to interpolation
+		case strings.HasSuffix(k, "%") && diffOld.New == "0" && diffOld.Old != "0":
+			// Lists can be skipped if they are being removed (going from n > 0 to 0)
+		case d.DestroyTainted && d2.GetDestroyTainted() && diffOld.New == diffNew.New:
+			// Same for DestoryTainted
+		case d.requiresNew() && d2.RequiresNew() && diffOld.New == diffNew.New:
+			// Same for RequiresNew
+		default:
+			// Anything that gets here should be able to be checked for deep equality.
+			if !reflect.DeepEqual(diffOld, diffNew) {
+				return false, fmt.Sprintf("value mismatch: %s", k)
+			}
 		}
 	}
 
