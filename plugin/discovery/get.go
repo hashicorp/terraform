@@ -32,35 +32,6 @@ var releaseHost = "https://releases.hashicorp.com"
 
 var httpClient = cleanhttp.DefaultClient()
 
-// Plugins are referred to by the short name, but all URLs and files will use
-// the full name prefixed with terraform-<plugin_type>-
-func providerName(name string) string {
-	return "terraform-provider-" + name
-}
-
-func providerFileName(name, version string) string {
-	return fmt.Sprintf("%s_%s_%s_%s.zip", providerName(name), version, runtime.GOOS, runtime.GOARCH)
-}
-
-// providerVersionsURL returns the path to the released versions directory for the provider:
-// https://releases.hashicorp.com/terraform-provider-name/
-func providerVersionsURL(name string) string {
-	return releaseHost + "/" + providerName(name) + "/"
-}
-
-// providerURL returns the full path to the provider file, using the current OS
-// and ARCH:
-// .../terraform-provider-name_<x.y.z>/terraform-provider-name_<x.y.z>_<os>_<arch>.<ext>
-func providerURL(name, version string) string {
-	return fmt.Sprintf("%s%s/%s", providerVersionsURL(name), version, providerFileName(name, version))
-}
-
-func providerChecksumURL(name, version string) string {
-	fileName := fmt.Sprintf("%s_%s_SHA256SUMS", providerName(name), version)
-	u := fmt.Sprintf("%s%s/%s", providerVersionsURL(name), version, fileName)
-	return u
-}
-
 // An Installer maintains a local cache of plugins by downloading plugins
 // from an online repository.
 type Installer interface {
@@ -77,6 +48,13 @@ type ProviderInstaller struct {
 	Dir string
 
 	PluginProtocolVersion uint
+
+	// OS and Arch specify the OS and architecture that should be used when
+	// installing plugins. These use the same labels as the runtime.GOOS and
+	// runtime.GOARCH variables respectively, and indeed the values of these
+	// are used as defaults if either of these is the empty string.
+	OS   string
+	Arch string
 
 	// Skip checksum and signature verification
 	SkipVerify bool
@@ -102,7 +80,7 @@ type ProviderInstaller struct {
 // be presented alongside context about what is being installed, and thus the
 // error messages do not redundantly include such information.
 func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, error) {
-	versions, err := listProviderVersions(provider)
+	versions, err := i.listProviderVersions(provider)
 	// TODO: return multiple errors
 	if err != nil {
 		return PluginMeta{}, err
@@ -122,10 +100,10 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 
 	// take the first matching plugin we find
 	for _, v := range versions {
-		url := providerURL(provider, v.String())
+		url := i.providerURL(provider, v.String())
 
 		if !i.SkipVerify {
-			sha256, err := getProviderChecksum(provider, v.String())
+			sha256, err := i.getProviderChecksum(provider, v.String())
 			if err != nil {
 				return PluginMeta{}, err
 			}
@@ -218,6 +196,52 @@ func (i *ProviderInstaller) PurgeUnused(used map[string]PluginMeta) (PluginMetaS
 	return removed, errs
 }
 
+// Plugins are referred to by the short name, but all URLs and files will use
+// the full name prefixed with terraform-<plugin_type>-
+func (i *ProviderInstaller) providerName(name string) string {
+	return "terraform-provider-" + name
+}
+
+func (i *ProviderInstaller) providerFileName(name, version string) string {
+	os := i.OS
+	arch := i.Arch
+	if os == "" {
+		os = runtime.GOOS
+	}
+	if arch == "" {
+		arch = runtime.GOARCH
+	}
+	return fmt.Sprintf("%s_%s_%s_%s.zip", i.providerName(name), version, os, arch)
+}
+
+// providerVersionsURL returns the path to the released versions directory for the provider:
+// https://releases.hashicorp.com/terraform-provider-name/
+func (i *ProviderInstaller) providerVersionsURL(name string) string {
+	return releaseHost + "/" + i.providerName(name) + "/"
+}
+
+// providerURL returns the full path to the provider file, using the current OS
+// and ARCH:
+// .../terraform-provider-name_<x.y.z>/terraform-provider-name_<x.y.z>_<os>_<arch>.<ext>
+func (i *ProviderInstaller) providerURL(name, version string) string {
+	return fmt.Sprintf("%s%s/%s", i.providerVersionsURL(name), version, i.providerFileName(name, version))
+}
+
+func (i *ProviderInstaller) providerChecksumURL(name, version string) string {
+	fileName := fmt.Sprintf("%s_%s_SHA256SUMS", i.providerName(name), version)
+	u := fmt.Sprintf("%s%s/%s", i.providerVersionsURL(name), version, fileName)
+	return u
+}
+
+func (i *ProviderInstaller) getProviderChecksum(name, version string) (string, error) {
+	checksums, err := getPluginSHA256SUMs(i.providerChecksumURL(name, version))
+	if err != nil {
+		return "", err
+	}
+
+	return checksumForFile(checksums, i.providerFileName(name, version)), nil
+}
+
 // Return the plugin version by making a HEAD request to the provided url
 func checkPlugin(url string, pluginProtocolVersion uint) bool {
 	resp, err := httpClient.Head(url)
@@ -246,6 +270,17 @@ func checkPlugin(url string, pluginProtocolVersion uint) bool {
 	return protoVersion == int(pluginProtocolVersion)
 }
 
+// list the version available for the named plugin
+func (i *ProviderInstaller) listProviderVersions(name string) ([]Version, error) {
+	versions, err := listPluginVersions(i.providerVersionsURL(name))
+	if err != nil {
+		// listPluginVersions returns a verbose error message indicating
+		// what was being accessed and what failed
+		return nil, err
+	}
+	return versions, nil
+}
+
 var errVersionNotFound = errors.New("version not found")
 
 // take the list of available versions for a plugin, and filter out those that
@@ -260,17 +295,6 @@ func allowedVersions(available []Version, required Constraints) []Version {
 	}
 
 	return allowed
-}
-
-// list the version available for the named plugin
-func listProviderVersions(name string) ([]Version, error) {
-	versions, err := listPluginVersions(providerVersionsURL(name))
-	if err != nil {
-		// listPluginVersions returns a verbose error message indicating
-		// what was being accessed and what failed
-		return nil, err
-	}
-	return versions, nil
 }
 
 // return a list of the plugin versions at the given URL
@@ -344,15 +368,6 @@ func versionsFromNames(names []string) []Version {
 	}
 
 	return versions
-}
-
-func getProviderChecksum(name, version string) (string, error) {
-	checksums, err := getPluginSHA256SUMs(providerChecksumURL(name, version))
-	if err != nil {
-		return "", err
-	}
-
-	return checksumForFile(checksums, providerFileName(name, version)), nil
 }
 
 func checksumForFile(sums []byte, name string) string {
