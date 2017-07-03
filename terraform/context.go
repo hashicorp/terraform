@@ -65,7 +65,8 @@ type ContextOpts struct {
 
 	// If non-nil, will apply as additional constraints on the provider
 	// plugins that will be requested from the provider resolver.
-	ProviderSHA256s map[string][]byte
+	ProviderSHA256s    map[string][]byte
+	SkipProviderVerify bool
 
 	UIInput UIInput
 }
@@ -185,7 +186,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 		var err error
 		deps := ModuleTreeDependencies(opts.Module, state)
 		reqd := deps.AllPluginRequirements()
-		if opts.ProviderSHA256s != nil {
+		if opts.ProviderSHA256s != nil && !opts.SkipProviderVerify {
 			reqd.LockExecutables(opts.ProviderSHA256s)
 		}
 		providers, err = resourceProviderFactories(opts.ProviderResolver, reqd)
