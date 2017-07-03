@@ -1131,6 +1131,26 @@ func TestInstanceDiffSame(t *testing.T) {
 			true,
 			"",
 		},
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "1",
+						New: "2",
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "1",
+						New: "3",
+					},
+				},
+			},
+			false,
+			"value mismatch: foo",
+		},
 	}
 
 	for i, tc := range cases {
