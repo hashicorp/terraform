@@ -3,6 +3,8 @@
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
 * A new flag `-auto-approve` has been added to `terraform apply`. This flag controls whether an interactive approval is applied before making the changes in the plan. For now this flag defaults to `true` to preserve previous behavior, but this will become the new default in a future version. We suggest that anyone running `terraform apply` in wrapper scripts or automation refer to the upgrade guide to learn how to prepare such wrapper scripts for the later breaking change.
+* The `validate` command now checks that all variables are specified by default.
+  The validation will fail by default if that's not the case. [GH-13872]
 
 IMPROVEMENTS:
 
