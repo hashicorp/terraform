@@ -10,6 +10,7 @@ IMPROVEMENTS:
 
 * backend/s3: Add `workspace_key_prefix` to allow a user-configurable prefix for workspaces in the S3 Backend. [GH-15370]
 * cli: `terraform apply` now has an option `-auto-approve=false` that produces an interactive prompt to approve the generated plan. This will become the default workflow in a future Terraform version. [GH-7251]
+* cli: `terraform workspace show` command prints the current workspace name in a way that's more convenient for processing in wrapper scripts. [GH-15157]
 
 BUG FIXES:
 
