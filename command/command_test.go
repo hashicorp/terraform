@@ -238,9 +238,9 @@ func testStateRead(t *testing.T, path string) *terraform.State {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	defer f.Close()
 
 	newState, err := terraform.ReadState(f)
-	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

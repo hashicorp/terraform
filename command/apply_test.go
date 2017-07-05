@@ -45,16 +45,7 @@ func TestApply(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
@@ -292,16 +283,7 @@ func TestApply_defaultState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
@@ -360,16 +342,7 @@ func TestApply_error(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
@@ -484,13 +457,7 @@ func TestApply_noArgs(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
+	state := testStateRead(t, statePath)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -538,16 +505,7 @@ func TestApply_plan(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
@@ -584,16 +542,7 @@ func TestApply_plan_backup(t *testing.T) {
 
 	{
 		// Should have a backup file
-		f, err := os.Open(backupPath)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		_, err = terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		testStateRead(t, backupPath)
 	}
 }
 
@@ -732,16 +681,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
@@ -847,31 +787,13 @@ func TestApply_refresh(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
 
 	// Should have a backup file
-	f, err = os.Open(statePath + DefaultBackupExtension)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	backupState, err := terraform.ReadState(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	backupState := testStateRead(t, statePath+DefaultBackupExtension)
 
 	actualStr := strings.TrimSpace(backupState.String())
 	expectedStr := strings.TrimSpace(originalState.String())
@@ -953,16 +875,7 @@ func TestApply_shutdown(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
@@ -1035,31 +948,12 @@ func TestApply_state(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
 
-	// Should have a backup file
-	f, err = os.Open(statePath + DefaultBackupExtension)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	backupState, err := terraform.ReadState(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	backupState := testStateRead(t, statePath+DefaultBackupExtension)
 
 	// nil out the ConnInfo since that should not be restored
 	originalState.RootModule().Resources["test_instance.foo"].Primary.Ephemeral.ConnInfo = nil
@@ -1142,17 +1036,7 @@ func TestApply_stateFuture(t *testing.T) {
 		t.Fatal("should fail")
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	newState, err := terraform.ReadState(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
+	newState := testStateRead(t, statePath)
 	if !newState.Equal(originalState) {
 		t.Fatalf("bad: %#v", newState)
 	}
@@ -1422,31 +1306,12 @@ func TestApply_backup(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
 
-	// Should have a backup file
-	f, err = os.Open(backupPath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	backupState, err := terraform.ReadState(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	backupState := testStateRead(t, backupPath)
 
 	actual := backupState.RootModule().Resources["test_instance.foo"]
 	expected := originalState.RootModule().Resources["test_instance.foo"]
@@ -1504,22 +1369,13 @@ func TestApply_disableBackup(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
 
 	// Ensure there is no backup
-	_, err = os.Stat(statePath + DefaultBackupExtension)
+	_, err := os.Stat(statePath + DefaultBackupExtension)
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}
