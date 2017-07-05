@@ -290,7 +290,17 @@ func (d *ResourceDiff) setDiff(key string, new interface{}, computed bool) error
 }
 
 // ForceNew force-flags ForceNew in the schema for a specific key, and
-// re-calculates its diff. This function is a no-op/error if there is no diff.
+// re-calculates its diff, effectively causing this attribute to force a new
+// resource.
+//
+// Keep in mind that forcing a new resource will force a second run of the
+// resource's CustomizeDiff function (with a new ResourceDiff) once the current
+// one has completed. This second run is performed without state. This behavior
+// will be the same as if a new resource is being created and is performed to
+// ensure that the diff looks like the diff for a new resource as much as
+// possible. CustomizeDiff should expect such a scenario and act correctly.
+//
+// This function is a no-op/error if there is no diff.
 //
 // Note that the change to schema is permanent for the lifecycle of this
 // specific ResourceDiff instance.
