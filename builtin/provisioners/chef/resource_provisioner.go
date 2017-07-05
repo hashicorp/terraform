@@ -561,16 +561,16 @@ func (p *provisioner) configureVaultsFunc(gemCmd string, knifeCmd string, confDi
 		for vault, items := range p.Vaults {
 			for _, item := range items {
 				
-+				removeCmd := fmt.Sprintf("%s vault remove %s %s -C %s -M client %s",
-+					knifeCmd,
-+					vault,
-+					item,
-+					p.NodeName,
-+					options,
-+				)
-+				if err := p.runCommand(o, comm, removeCmd); err != nil {
-+					return err
-+				}
+				removeCmd := fmt.Sprintf("%s vault remove %s %s -C %s -M client %s",
+					knifeCmd,
+					vault,
+					item,
+					p.NodeName,
+					options,
+				)
+				if err := p.runCommand(o, comm, removeCmd); err != nil {
+					return err
+				}
 				
 				updateCmd := fmt.Sprintf("%s vault update %s %s -C %s -M client %s",
 					knifeCmd,
