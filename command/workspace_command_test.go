@@ -254,6 +254,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 	}
 
 	newState := envState.State()
+	originalState.Version = newState.Version // the round-trip through the state manager implicitly populates version
 	if !originalState.Equal(newState) {
 		t.Fatalf("states not equal\norig: %s\nnew: %s", originalState, newState)
 	}
