@@ -5,12 +5,14 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 * A new flag `-auto-approve` has been added to `terraform apply`. This flag controls whether an interactive approval is applied before making the changes in the plan. For now this flag defaults to `true` to preserve previous behavior, but this will become the new default in a future version. We suggest that anyone running `terraform apply` in wrapper scripts or automation refer to the upgrade guide to learn how to prepare such wrapper scripts for the later breaking change.
 * The `validate` command now checks that all variables are specified by default.
   The validation will fail by default if that's not the case. [GH-13872]
+* `terraform state rm` now requires at least one argument. Previously, calling it with no arguments would remove all resources from state, which is consistent with the other `terraform state` commands but unlikely enough that we considered it better to be inconsistent here to reduce the risk of accidentally destroying the state.
 
 IMPROVEMENTS:
 
 * backend/s3: Add `workspace_key_prefix` to allow a user-configurable prefix for workspaces in the S3 Backend. [GH-15370]
 * cli: `terraform apply` now has an option `-auto-approve=false` that produces an interactive prompt to approve the generated plan. This will become the default workflow in a future Terraform version. [GH-7251]
 * cli: `terraform workspace show` command prints the current workspace name in a way that's more convenient for processing in wrapper scripts. [GH-15157]
+* cli: `terraform state rm` will now generate an error if no arguments are passed, whereas before it treated it as an open resource address selecting _all_ resources [GH-15283]
 
 BUG FIXES:
 
