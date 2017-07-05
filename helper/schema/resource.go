@@ -90,7 +90,25 @@ type Resource struct {
 	// diff that has been created, diff values not controlled by configuration,
 	// or even veto the diff altogether and abort the plan. It is passed a
 	// *ResourceDiff, a structure similar to ResourceData but lacking most write
-	// functions, allowing the provider to customize the diff only.
+	// functions like Set, while introducing new functions that work with the
+	// diff such as SetNew, SetNewComputed, and ForceNew.
+	//
+	// The phases Terraform runs this in, and the state available via functions
+	// like Get and GetChange, are as follows:
+	//
+	//  * New resource: One run with no state
+	//  * Existing resource: One run with state
+	//   * Existing resource, forced new: One run with state (before ForceNew),
+	//     then one run without state (as if new resource)
+	//  * Tainted resource: No runs (custom diff logic is skipped)
+	//  * Destroy: No runs (standard diff logic is skipped on destroy diffs)
+	//
+	// This function needs to be resilient to support all scenarios.
+	//
+	// If this function needs to access external API resources, remember to flag
+	// the RequiresRefresh attribute mentioned below to ensure that
+	// -refresh=false is blocked when running plan or apply, as this means that
+	// this resource requires refresh-like behaviour to work effectively.
 	//
 	// For the most part, only computed fields can be customized by this
 	// function.
