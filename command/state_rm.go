@@ -24,6 +24,11 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 	args = cmdFlags.Args()
 
+	if len(args) < 1 {
+		c.Ui.Error("At least one resource address is required.")
+		return 1
+	}
+
 	state, err := c.StateMeta.State(&c.Meta)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
