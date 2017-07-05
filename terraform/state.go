@@ -677,6 +677,7 @@ func (s *State) init() {
 	if s.Version == 0 {
 		s.Version = StateVersion
 	}
+
 	if s.moduleByPath(rootModulePath) == nil {
 		s.addModule(rootModulePath)
 	}
