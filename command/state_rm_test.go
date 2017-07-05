@@ -3,6 +3,7 @@ package command
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -69,6 +70,62 @@ func TestStateRm(t *testing.T) {
 		t.Fatalf("bad: %#v", backups)
 	}
 	testStateOutput(t, backups[0], testStateRmOutputOriginal)
+}
+
+func TestStateRmNoArgs(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+
+					"test_instance.bar": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateRmCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+	}
+	if code := c.Run(args); code != 1 {
+		t.Errorf("wrong exit status %d; want %d", code, 1)
+	}
+
+	if msg := ui.ErrorWriter.String(); !strings.Contains(msg, "At least one resource address") {
+		t.Errorf("not the error we were looking for:\n%s", msg)
+	}
+
 }
 
 func TestStateRm_backupExplicit(t *testing.T) {
