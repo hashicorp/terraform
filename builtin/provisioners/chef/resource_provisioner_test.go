@@ -339,6 +339,10 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 
 			Commands: map[string]bool{
 				fmt.Sprintf("%s install chef-vault", windowsGemCmd): true,
+				fmt.Sprintf("%s vault remove vault1 item1 -C nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
+				fmt.Sprintf("%s vault remove vault1 item2 -C nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
 				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
 				fmt.Sprintf("%s vault update vault1 item2 -C nodename1 -M client -c %s/client.rb "+
