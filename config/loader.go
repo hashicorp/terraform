@@ -218,7 +218,8 @@ func dirFiles(dir string) ([]string, []string, error) {
 // isIgnoredFile returns true or false depending on whether the
 // provided file name is a file that should be ignored.
 func isIgnoredFile(name string) bool {
-	return strings.HasPrefix(name, ".") || // Unix-like hidden files
+	// Unix-like hidden files, excepting tf.json
+	return (strings.HasPrefix(name, ".") && !strings.HasSuffix(name, ".tf.json")) ||
 		strings.HasSuffix(name, "~") || // vim
 		strings.HasPrefix(name, "#") && strings.HasSuffix(name, "#") // emacs
 }
