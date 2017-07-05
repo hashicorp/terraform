@@ -23,6 +23,7 @@ BUG FIXES:
 * core: Fix a regression from 0.9.6 that was causing the tally of resources to create to be double-counted sometimes in the plan output [GH-15344]
 * cli: the state `rm` and `mv` commands were always loading a state from a Backend, and ignoring the `-state` flag [GH-15388]
 * cli: certain prompts in `terraform init` were respecting `-input=false` but not the `TF_INPUT` environment variable [GH-15391]
+* state: Further work, building on [#15423](https://github.com/hashicorp/terraform/issues/15423), to improve the internal design of the state managers to make this code more maintainable and reduce the risk of regressions; this may lead to slight changes to the number of times Terraform writes to remote state and how the serial is implemented with respect to those writes, which does not affect outward functionality but is worth noting if you log or inspect state updates for debugging purposes.
 
 ## 0.10.0-beta1 (June 22, 2017)
 
