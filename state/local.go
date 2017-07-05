@@ -48,8 +48,8 @@ func (s *LocalState) SetState(state *terraform.State) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.state = state
-	s.readState = state
+	s.state = state.DeepCopy()
+	s.readState = state.DeepCopy()
 }
 
 // StateReader impl.
@@ -74,7 +74,14 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 	}
 	defer s.stateFileOut.Sync()
 
-	s.state = state
+	s.state = state.DeepCopy() // don't want mutations before we actually get this written to disk
+
+	if s.readState != nil && s.state != nil {
+		// We don't trust callers to properly manage serials. Instead, we assume
+		// that a WriteState is always for the next version after what was
+		// most recently read.
+		s.state.Serial = s.readState.Serial
+	}
 
 	if _, err := s.stateFileOut.Seek(0, os.SEEK_SET); err != nil {
 		return err
@@ -88,8 +95,9 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 		return nil
 	}
 
-	s.state.IncrementSerialMaybe(s.readState)
-	s.readState = s.state
+	if !s.state.MarshalEqual(s.readState) {
+		s.state.Serial++
+	}
 
 	if err := terraform.WriteState(s.state, s.stateFileOut); err != nil {
 		return err
@@ -147,7 +155,7 @@ func (s *LocalState) RefreshState() error {
 	}
 
 	s.state = state
-	s.readState = state
+	s.readState = s.state.DeepCopy()
 	return nil
 }
 

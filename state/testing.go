@@ -31,6 +31,12 @@ func TestState(t *testing.T, s interface{}) {
 		t.Fatalf("not initial:\n%#v\n\n%#v", state, current)
 	}
 
+	// Now we've proven that the state we're starting with is an initial
+	// state, we'll complete our work here with that state, since otherwise
+	// further writes would violate the invariant that we only try to write
+	// states that share the same lineage as what was initially written.
+	current = reader.State()
+
 	// Write a new state and verify that we have it
 	if ws, ok := s.(StateWriter); ok {
 		current.AddModuleState(&terraform.ModuleState{
@@ -74,12 +80,12 @@ func TestState(t *testing.T, s interface{}) {
 	}
 
 	// If we can write and persist then verify that the serial
-	// is only implemented on change.
+	// is only incremented on change.
 	writer, writeOk := s.(StateWriter)
 	persister, persistOk := s.(StatePersister)
 	if writeOk && persistOk {
 		// Same serial
-		serial := current.Serial
+		serial := reader.State().Serial
 		if err := writer.WriteState(current); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -88,7 +94,7 @@ func TestState(t *testing.T, s interface{}) {
 		}
 
 		if reader.State().Serial != serial {
-			t.Fatalf("bad: expected %d, got %d", serial, reader.State().Serial)
+			t.Fatalf("serial changed after persisting with no changes: got %d, want %d", reader.State().Serial, serial)
 		}
 
 		// Change the serial
@@ -113,7 +119,7 @@ func TestState(t *testing.T, s interface{}) {
 		}
 
 		if reader.State().Serial <= serial {
-			t.Fatalf("bad: expected %d, got %d", serial, reader.State().Serial)
+			t.Fatalf("serial incorrect after persisting with changes: got %d, want > %d", reader.State().Serial, serial)
 		}
 
 		// Check that State() returns a copy by modifying the copy and comparing
