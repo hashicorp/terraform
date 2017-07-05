@@ -272,6 +272,14 @@ func TestApply_defaultState(t *testing.T) {
 		},
 	}
 
+	// create an existing state file
+	localState := &state.LocalState{Path: statePath}
+	if err := localState.WriteState(terraform.NewState()); err != nil {
+		t.Fatal(err)
+	}
+
+	serial := localState.State().Serial
+
 	args := []string{
 		testFixturePath("apply"),
 	}
@@ -286,6 +294,10 @@ func TestApply_defaultState(t *testing.T) {
 	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
+	}
+
+	if state.Serial <= serial {
+		t.Fatalf("serial was not incremented. previous:%d, current%d", serial, state.Serial)
 	}
 }
 
@@ -540,10 +552,8 @@ func TestApply_plan_backup(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	{
-		// Should have a backup file
-		testStateRead(t, backupPath)
-	}
+	// Should have a backup file
+	testStateRead(t, backupPath)
 }
 
 func TestApply_plan_noBackup(t *testing.T) {
