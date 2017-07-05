@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -394,7 +395,23 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 		}
 	}
 
+	// Resource-specific checks
+	for k, _ := range tsm {
+		if isReservedResourceFieldName(k) {
+			return fmt.Errorf("%s is a reserved field name for a resource", k)
+		}
+	}
+
 	return schemaMap(r.Schema).InternalValidate(tsm)
+}
+
+func isReservedResourceFieldName(name string) bool {
+	for _, reservedName := range config.ReservedResourceFields {
+		if name == reservedName {
+			return true
+		}
+	}
+	return false
 }
 
 // Data returns a ResourceData struct for this Resource. Each return value
