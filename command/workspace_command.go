@@ -35,6 +35,7 @@ Usage: terraform workspace
 
 Subcommands:
 
+    show      Show the current workspace name.
     list      List workspaces.
     select    Select a workspace.
     new       Create a new workspace.
