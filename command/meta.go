@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -398,38 +399,26 @@ func (m *Meta) process(args []string, vars bool) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		f, err := os.Open(wd)
+
+		fis, err := ioutil.ReadDir(wd)
 		if err != nil {
 			return nil, err
 		}
-		defer f.Close()
 
-		fi, err := f.Stat()
-		if err != nil {
-			return nil, err
-		}
-		if !fi.IsDir() {
-			return nil, err
-		}
+		// make sure we add the files in order
+		sort.Slice(fis, func(i, j int) bool {
+			return fis[i].Name() < fis[j].Name()
+		})
 
-		err = nil
-		for err != io.EOF {
-			var fis []os.FileInfo
-			fis, err = f.Readdir(128)
-			if err != nil && err != io.EOF {
-				return nil, err
+		for _, fi := range fis {
+			name := fi.Name()
+			// Ignore directories, non-var-files, and ignored files
+			if fi.IsDir() || !isAutoVarFile(name) || config.IsIgnoredFile(name) {
+				continue
 			}
 
-			for _, fi := range fis {
-				name := fi.Name()
-				// Ignore directories, non-var-files, and ignored files
-				if fi.IsDir() || !isAutoVarFile(name) || config.IsIgnoredFile(name) {
-					continue
-				}
-
-				m.autoKey = "var-file-default"
-				preArgs = append(preArgs, "-"+m.autoKey, name)
-			}
+			m.autoKey = "var-file-default"
+			preArgs = append(preArgs, "-"+m.autoKey, name)
 		}
 
 		args = append(preArgs, args...)
