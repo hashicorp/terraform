@@ -1,4 +1,4 @@
-## 0.10.0-beta2 (not yet released)
+## 0.10.0-beta2 (Unreleased)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
