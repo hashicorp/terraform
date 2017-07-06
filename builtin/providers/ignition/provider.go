@@ -190,6 +190,9 @@ func hash(s string) string {
 func castSliceInterface(i []interface{}) []string {
 	var o []string
 	for _, value := range i {
+		if value == nil {
+			continue
+		}
 		o = append(o, value.(string))
 	}
 
