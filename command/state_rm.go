@@ -14,7 +14,10 @@ type StateRmCommand struct {
 }
 
 func (c *StateRmCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := c.Meta.flagSet("state show")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "-", "backup")

@@ -27,7 +27,10 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	var configPath string
-	args = c.Meta.process(args, true)
+	args, err = c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := c.Meta.flagSet("import")
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
@@ -240,8 +243,8 @@ Options:
                       with the "-config" flag.
 
   -var-file=foo       Set variables in the Terraform configuration from
-                      a file. If "terraform.tfvars" is present, it will be
-                      automatically loaded if this flag is not specified.
+                      a file. If "terraform.tfvars" or any ".auto.tfvars"
+                      files are present, they will be automatically loaded.
 
 
 `

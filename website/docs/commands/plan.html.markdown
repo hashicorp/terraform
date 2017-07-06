@@ -72,10 +72,12 @@ The command-line flags are all optional. The list of available flags are:
   specified via this flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-   a [variable file](/docs/configuration/variables.html#variable-files). If
-  "terraform.tfvars" is present, it will be automatically loaded first. Any
-  files specified by `-var-file` override any values in a "terraform.tfvars".
-  This flag can be used multiple times.
+  a [variable file](/docs/configuration/variables.html#variable-files). If
+  a `terraform.tfvars` or any `.auto.tfvars` files are present in the current
+  directory, they will be automatically loaded. `terraform.tfvars` is loaded
+  first and the `.auto.tfvars` files after in alphabetical order. Any files
+  specified by `-var-file` override any values set automatically from files in
+  the working directory. This flag can be used multiple times.
 
 ## Resource Targeting
 
