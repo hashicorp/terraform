@@ -26,7 +26,7 @@ install:
 - go get github.com/kardianos/govendor
 script:
 - make vendor-status
-- make test
+- make testrace
 - make vet
 - GOOS=windows go build
 branches:
