@@ -74,14 +74,14 @@ func TestWorkspace_createAndList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newCmd := &WorkspaceNewCommand{}
-
 	envs := []string{"test_a", "test_b", "test_c"}
 
 	// create multiple workspaces
 	for _, env := range envs {
 		ui := new(cli.MockUi)
-		newCmd.Meta = Meta{Ui: ui}
+		newCmd := &WorkspaceNewCommand{
+			Meta: Meta{Ui: ui},
+		}
 		if code := newCmd.Run([]string{env}); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 		}
@@ -179,14 +179,14 @@ func TestWorkspace_createInvalid(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	newCmd := &WorkspaceNewCommand{}
-
 	envs := []string{"test_a*", "test_b/foo", "../../../test_c", "好_d"}
 
 	// create multiple workspaces
 	for _, env := range envs {
 		ui := new(cli.MockUi)
-		newCmd.Meta = Meta{Ui: ui}
+		newCmd := &WorkspaceNewCommand{
+			Meta: Meta{Ui: ui},
+		}
 		if code := newCmd.Run([]string{env}); code == 0 {
 			t.Fatalf("expected failure: \n%s", ui.OutputWriter)
 		}
