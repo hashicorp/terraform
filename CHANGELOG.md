@@ -13,6 +13,7 @@ IMPROVEMENTS:
 * cli: `terraform apply` now has an option `-auto-approve=false` that produces an interactive prompt to approve the generated plan. This will become the default workflow in a future Terraform version. [GH-7251]
 * cli: `terraform workspace show` command prints the current workspace name in a way that's more convenient for processing in wrapper scripts. [GH-15157]
 * cli: `terraform state rm` will now generate an error if no arguments are passed, whereas before it treated it as an open resource address selecting _all_ resources [GH-15283]
+* cli: Files in the config directory ending in `.auto.tfvars` are now loaded automatically (in lexicographical order) in addition to the single `terraform.tfvars` file that auto-loaded previously. [GH-13306]
 
 BUG FIXES:
 
