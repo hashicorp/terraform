@@ -43,16 +43,27 @@ func TestIngnitionFilesystem(t *testing.T) {
 			}
 		}
 
+		data "ignition_filesystem" "zaz" {
+			name = "zaz"
+			mount {
+				device = "/zaz"
+				format = "ext4"
+				create = true
+				options = [""]
+			}
+		}
+
 		data "ignition_config" "test" {
 			filesystems = [
 				"${data.ignition_filesystem.foo.id}",
 				"${data.ignition_filesystem.qux.id}",
 				"${data.ignition_filesystem.baz.id}",
 				"${data.ignition_filesystem.bar.id}",
+				"${data.ignition_filesystem.zaz.id}",
 			]
 		}
 	`, func(c *types.Config) error {
-		if len(c.Storage.Filesystems) != 4 {
+		if len(c.Storage.Filesystems) != 5 {
 			return fmt.Errorf("disks, found %d", len(c.Storage.Filesystems))
 		}
 
