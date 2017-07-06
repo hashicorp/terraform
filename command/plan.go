@@ -21,7 +21,10 @@ func (c *PlanCommand) Run(args []string) int {
 	var outPath string
 	var moduleDepth int
 
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := c.Meta.flagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
@@ -183,8 +186,8 @@ Options:
                       flag can be set multiple times.
 
   -var-file=foo       Set variables in the Terraform configuration from
-                      a file. If "terraform.tfvars" is present, it will be
-                      automatically loaded if this flag is not specified.
+                      a file. If "terraform.tfvars" or any ".auto.tfvars"
+                      files are present, they will be automatically loaded.
 `
 	return strings.TrimSpace(helpText)
 }
