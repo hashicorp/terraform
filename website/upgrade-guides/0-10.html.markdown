@@ -64,8 +64,8 @@ In the mean time,
 [the prior mechanisms for installing third-party providers](/docs/plugins/basics.html#installing-a-plugin)
 are still supported. Maintainers of third-party providers may optionally
 make use of the new versioning mechanism by naming provider binaries
-using the scheme `terraform-provider-NAME-V0.0.1`, where "0.0.1" is an
-example version. Terraform expects providers to follow
+using the scheme `terraform-provider-NAME_v0.0.1`, where "0.0.1" is an
+example version. Terraform expects providers to follow the
 [semantic versioning](http://semver.org/) methodology.
 
 Although third-party providers with versions cannot currently be automatically
