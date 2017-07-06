@@ -1,29 +1,32 @@
-## 0.10.0-beta2 (Unreleased)
+## 0.10.0-rc1 (Unreleased)
+
+
+## 0.10.0-beta2 (July 6, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
 * A new flag `-auto-approve` has been added to `terraform apply`. This flag controls whether an interactive approval is applied before making the changes in the plan. For now this flag defaults to `true` to preserve previous behavior, but this will become the new default in a future version. We suggest that anyone running `terraform apply` in wrapper scripts or automation refer to the upgrade guide to learn how to prepare such wrapper scripts for the later breaking change.
 * The `validate` command now checks that all variables are specified by default.
-  The validation will fail by default if that's not the case. [GH-13872]
+  The validation will fail by default if that's not the case. ([#13872](https://github.com/hashicorp/terraform/issues/13872))
 * `terraform state rm` now requires at least one argument. Previously, calling it with no arguments would remove all resources from state, which is consistent with the other `terraform state` commands but unlikely enough that we considered it better to be inconsistent here to reduce the risk of accidentally destroying the state.
 
 IMPROVEMENTS:
 
-* backend/s3: Add `workspace_key_prefix` to allow a user-configurable prefix for workspaces in the S3 Backend. [GH-15370]
-* cli: `terraform apply` now has an option `-auto-approve=false` that produces an interactive prompt to approve the generated plan. This will become the default workflow in a future Terraform version. [GH-7251]
-* cli: `terraform workspace show` command prints the current workspace name in a way that's more convenient for processing in wrapper scripts. [GH-15157]
-* cli: `terraform state rm` will now generate an error if no arguments are passed, whereas before it treated it as an open resource address selecting _all_ resources [GH-15283]
-* cli: Files in the config directory ending in `.auto.tfvars` are now loaded automatically (in lexicographical order) in addition to the single `terraform.tfvars` file that auto-loaded previously. [GH-13306]
+* backend/s3: Add `workspace_key_prefix` to allow a user-configurable prefix for workspaces in the S3 Backend. ([#15370](https://github.com/hashicorp/terraform/issues/15370))
+* cli: `terraform apply` now has an option `-auto-approve=false` that produces an interactive prompt to approve the generated plan. This will become the default workflow in a future Terraform version. ([#7251](https://github.com/hashicorp/terraform/issues/7251))
+* cli: `terraform workspace show` command prints the current workspace name in a way that's more convenient for processing in wrapper scripts. ([#15157](https://github.com/hashicorp/terraform/issues/15157))
+* cli: `terraform state rm` will now generate an error if no arguments are passed, whereas before it treated it as an open resource address selecting _all_ resources ([#15283](https://github.com/hashicorp/terraform/issues/15283))
+* cli: Files in the config directory ending in `.auto.tfvars` are now loaded automatically (in lexicographical order) in addition to the single `terraform.tfvars` file that auto-loaded previously. ([#13306](https://github.com/hashicorp/terraform/issues/13306))
 
 BUG FIXES:
 
-* config: Fixed a parsing issue in the interpolation language HIL that was causing misinterpretation of literal strings ending with escaped backslashes [GH-15415]
-* core: the S3 Backend was failing to remove the state file checksums from DynamoDB when deleting a workspace [GH-15383]
-* core: Improved reslience against crashes for a certain kind of inconsistency in the representation of list values in state. [GH-15390]
-* core: Display correct to and from backends in copy message when migrating to new remote state [GH-15318]
-* core: Fix a regression from 0.9.6 that was causing the tally of resources to create to be double-counted sometimes in the plan output [GH-15344]
-* cli: the state `rm` and `mv` commands were always loading a state from a Backend, and ignoring the `-state` flag [GH-15388]
-* cli: certain prompts in `terraform init` were respecting `-input=false` but not the `TF_INPUT` environment variable [GH-15391]
+* config: Fixed a parsing issue in the interpolation language HIL that was causing misinterpretation of literal strings ending with escaped backslashes ([#15415](https://github.com/hashicorp/terraform/issues/15415))
+* core: the S3 Backend was failing to remove the state file checksums from DynamoDB when deleting a workspace ([#15383](https://github.com/hashicorp/terraform/issues/15383))
+* core: Improved reslience against crashes for a certain kind of inconsistency in the representation of list values in state. ([#15390](https://github.com/hashicorp/terraform/issues/15390))
+* core: Display correct to and from backends in copy message when migrating to new remote state ([#15318](https://github.com/hashicorp/terraform/issues/15318))
+* core: Fix a regression from 0.9.6 that was causing the tally of resources to create to be double-counted sometimes in the plan output ([#15344](https://github.com/hashicorp/terraform/issues/15344))
+* cli: the state `rm` and `mv` commands were always loading a state from a Backend, and ignoring the `-state` flag ([#15388](https://github.com/hashicorp/terraform/issues/15388))
+* cli: certain prompts in `terraform init` were respecting `-input=false` but not the `TF_INPUT` environment variable ([#15391](https://github.com/hashicorp/terraform/issues/15391))
 * state: Further work, building on [#15423](https://github.com/hashicorp/terraform/issues/15423), to improve the internal design of the state managers to make this code more maintainable and reduce the risk of regressions; this may lead to slight changes to the number of times Terraform writes to remote state and how the serial is implemented with respect to those writes, which does not affect outward functionality but is worth noting if you log or inspect state updates for debugging purposes.
 
 ## 0.10.0-beta1 (June 22, 2017)
@@ -555,7 +558,7 @@ BUG FIXES:
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
  * provider/aws: Fix a critical bug in `aws_emr_cluster` in order to preserve the ordering
-   of any arguments in `bootstrap_action`. Terraform will now enforce the ordering  
+   of any arguments in `bootstrap_action`. Terraform will now enforce the ordering
    from the configuration. As a result, `aws_emr_cluster` resources may need to be
    recreated, as there is no API to update them in-place ([#13580](https://github.com/hashicorp/terraform/issues/13580))
 
