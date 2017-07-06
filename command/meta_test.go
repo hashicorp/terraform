@@ -138,20 +138,12 @@ func TestMetaInputMode_defaultVars(t *testing.T) {
 
 	// Create a temporary directory for our cwd
 	d := tempDir(t)
-	if err := os.MkdirAll(d, 0755); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(d); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	os.MkdirAll(d, 0755)
+	defer os.RemoveAll(d)
+	defer testChdir(t, d)()
 
 	// Create the default vars file
-	err = ioutil.WriteFile(
+	err := ioutil.WriteFile(
 		filepath.Join(d, DefaultVarsFilename),
 		[]byte(""),
 		0644)
@@ -326,21 +318,13 @@ func TestMeta_process(t *testing.T) {
 
 	// Create a temporary directory for our cwd
 	d := tempDir(t)
-	if err := os.MkdirAll(d, 0755); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(d); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	os.MkdirAll(d, 0755)
+	defer os.RemoveAll(d)
+	defer testChdir(t, d)()
 
 	// Create two vars files
 	defaultVarsfile := "terraform.tfvars"
-	err = ioutil.WriteFile(
+	err := ioutil.WriteFile(
 		filepath.Join(d, defaultVarsfile),
 		[]byte(""),
 		0644)
@@ -388,18 +372,18 @@ func TestMeta_process(t *testing.T) {
 		t.Fatalf("expected %q, got %q", "-var-file-default", args[0])
 	}
 	if args[1] != defaultVarsfile {
-		t.Fatalf("expected %q, got %q", defaultVarsfile, args[3])
+		t.Fatalf("expected %q, got %q", defaultVarsfile, args[1])
 	}
 	if args[2] != "-var-file-default" {
-		t.Fatalf("expected %q, got %q", "-var-file-default", args[0])
+		t.Fatalf("expected %q, got %q", "-var-file-default", args[2])
 	}
 	if args[3] != fileFirstAlphabetical {
-		t.Fatalf("expected %q, got %q", fileFirstAlphabetical, args[1])
+		t.Fatalf("expected %q, got %q", fileFirstAlphabetical, args[3])
 	}
 	if args[4] != "-var-file-default" {
-		t.Fatalf("expected %q, got %q", "-var-file-default", args[0])
+		t.Fatalf("expected %q, got %q", "-var-file-default", args[4])
 	}
 	if args[5] != fileLastAlphabetical {
-		t.Fatalf("expected %q, got %q", fileLastAlphabetical, args[3])
+		t.Fatalf("expected %q, got %q", fileLastAlphabetical, args[5])
 	}
 }
