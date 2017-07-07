@@ -18,8 +18,6 @@ resource "alicloud_instance" "instance" {
   internet_charge_type = "${var.internet_charge_type}"
   internet_max_bandwidth_out = "${var.internet_max_bandwidth_out}"
 
-  io_optimized = "${var.io_optimized}"
-
   allocate_public_ip = "${var.allocate_public_ip}"
 
   password = "${var.ecs_password}"
@@ -39,7 +37,6 @@ resource "alicloud_disk_attachment" "instance-attachment" {
   count = "${var.count}"
   disk_id = "${element(alicloud_disk.disk.*.id, count.index)}"
   instance_id = "${element(alicloud_instance.instance.*.id, count.index)}"
-  device_name = "${var.device_name}"
 }
 
 

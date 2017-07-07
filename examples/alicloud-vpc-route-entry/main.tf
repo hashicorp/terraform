@@ -37,7 +37,7 @@ resource "alicloud_security_group_rule" "ssh-in" {
 resource "alicloud_security_group_rule" "http-in" {
   type = "ingress"
   ip_protocol = "tcp"
-  nic_type = "internet"
+  nic_type = "intranet"
   policy = "accept"
   port_range = "80/80"
   priority = 1
@@ -48,7 +48,7 @@ resource "alicloud_security_group_rule" "http-in" {
 resource "alicloud_security_group_rule" "https-in" {
   type = "ingress"
   ip_protocol = "tcp"
-  nic_type = "internet"
+  nic_type = "intranet"
   policy = "accept"
   port_range = "443/443"
   priority = 1
@@ -69,7 +69,6 @@ resource "alicloud_instance" "snat" {
 	instance_type = "${var.instance_type}"
 	internet_charge_type = "${var.internet_charge_type}"
 	internet_max_bandwidth_out = 5
-	io_optimized = "${var.io_optimized}"
 
 	system_disk_category = "cloud_efficiency"
 	image_id = "${var.image_id}"

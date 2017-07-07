@@ -7,7 +7,7 @@ variable "vswitch_cidr" {
 }
 
 variable "zone" {
-  default = "cn-beijing-c"
+  default = "cn-beijing-d"
 }
 
 variable "image" {
@@ -15,11 +15,11 @@ variable "image" {
 }
 
 variable "instance_nat_type" {
-  default = "ecs.n1.small"
+  default = "ecs.n4.small"
 }
 
 variable "instance_worker_type" {
-  default = "ecs.s2.large"
+  default = "ecs.n4.large"
 }
 
 variable "instance_pwd" {

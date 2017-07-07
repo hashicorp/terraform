@@ -33,7 +33,6 @@ resource "alicloud_ess_scaling_configuration" "config" {
 
   image_id = "${data.alicloud_images.ecs_image.images.0.id}"
   instance_type = "${var.ecs_instance_type}"
-  io_optimized = "optimized"
   security_group_id = "${alicloud_security_group.sg.id}"
 }
 
@@ -47,5 +46,5 @@ resource "alicloud_ess_scaling_rule" "rule" {
 resource "alicloud_ess_schedule" "run" {
   scheduled_action = "${alicloud_ess_scaling_rule.rule.ari}"
   launch_time = "${var.schedule_launch_time}"
-  scheduled_task_name = "tf-run"
+  scheduled_task_name = "tf-run-foo"
 }

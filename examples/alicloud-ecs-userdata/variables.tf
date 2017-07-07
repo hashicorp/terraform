@@ -7,7 +7,7 @@ variable "vswitch_cidr" {
 }
 
 variable "zone" {
-  default = "cn-beijing-b"
+  default = "cn-beijing-a"
 }
 
 variable "password" {
@@ -19,5 +19,5 @@ variable "image" {
 }
 
 variable "ecs_type" {
-  default = "ecs.n1.medium"
+  default = "ecs.n4.large"
 }

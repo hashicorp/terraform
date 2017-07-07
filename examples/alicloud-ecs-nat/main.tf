@@ -24,7 +24,6 @@ resource "alicloud_instance" "nat" {
   security_groups = ["${alicloud_security_group.group.id}"]
   vswitch_id = "${alicloud_vswitch.main.id}"
   instance_name = "nat"
-  io_optimized = "optimized"
   system_disk_category = "cloud_efficiency"
   password= "${var.instance_pwd}"
 
@@ -52,7 +51,6 @@ resource "alicloud_instance" "worker" {
   security_groups = ["${alicloud_security_group.group.id}"]
   vswitch_id = "${alicloud_vswitch.main.id}"
   instance_name = "worker"
-  io_optimized = "optimized"
   system_disk_category = "cloud_efficiency"
   password= "${var.instance_pwd}"
 
