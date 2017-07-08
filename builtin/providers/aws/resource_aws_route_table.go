@@ -352,6 +352,10 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 				opts.NatGatewayId = aws.String(s)
 			}
 
+			if "" != *opts.InstanceId && "" != *opts.NetworkInterfaceId {
+				opts.InstanceId = aws.String("")
+			}
+
 			log.Printf("[INFO] Creating route for %s: %#v", d.Id(), opts)
 			err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 				_, err := conn.CreateRoute(&opts)
