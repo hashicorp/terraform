@@ -112,6 +112,8 @@ type Resource struct {
 	//
 	// For the most part, only computed fields can be customized by this
 	// function.
+	//
+	// This function is only allowed on regular resources (not data sources).
 	CustomizeDiff CustomizeDiffFunc
 
 	// Importer is the ResourceImporter implementation for this resource.
@@ -377,6 +379,11 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 	if !writable {
 		if r.Create != nil || r.Update != nil || r.Delete != nil {
 			return fmt.Errorf("must not implement Create, Update or Delete")
+		}
+
+		// CustomizeDiff cannot be defined for read-only resources
+		if r.CustomizeDiff != nil {
+			return fmt.Errorf("cannot implement CustomizeDiff")
 		}
 	}
 
