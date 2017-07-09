@@ -835,6 +835,21 @@ func TestResourceInternalValidate(t *testing.T) {
 			true,
 			false,
 		},
+
+		13: { // non-writable must not define CustomizeDiff
+			&Resource{
+				Read: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"goo": &Schema{
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+				CustomizeDiff: func(*ResourceDiff, interface{}) error { return nil },
+			},
+			false,
+			true,
+		},
 	}
 
 	for i, tc := range cases {
