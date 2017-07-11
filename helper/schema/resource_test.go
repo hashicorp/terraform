@@ -706,11 +706,75 @@ func TestResourceInternalValidate(t *testing.T) {
 			true,
 			true,
 		},
+
+		8: { // Reserved name at root should be disallowed
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Read:   func(d *ResourceData, meta interface{}) error { return nil },
+				Update: func(d *ResourceData, meta interface{}) error { return nil },
+				Delete: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"count": {
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+			},
+			true,
+			true,
+		},
+
+		9: { // Reserved name at nested levels should be allowed
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Read:   func(d *ResourceData, meta interface{}) error { return nil },
+				Update: func(d *ResourceData, meta interface{}) error { return nil },
+				Delete: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"parent_list": &Schema{
+						Type:     TypeString,
+						Optional: true,
+						Elem: &Resource{
+							Schema: map[string]*Schema{
+								"provisioner": {
+									Type:     TypeString,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			true,
+			false,
+		},
+
+		10: { // Provider reserved name should be allowed in resource
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Read:   func(d *ResourceData, meta interface{}) error { return nil },
+				Update: func(d *ResourceData, meta interface{}) error { return nil },
+				Delete: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"alias": &Schema{
+						Type:     TypeString,
+						Optional: true,
+					},
+				},
+			},
+			true,
+			false,
+		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
-			err := tc.In.InternalValidate(schemaMap{}, tc.Writable)
+			sm := schemaMap{}
+			if tc.In != nil {
+				sm = schemaMap(tc.In.Schema)
+			}
+
+			err := tc.In.InternalValidate(sm, tc.Writable)
 			if err != nil != tc.Err {
 				t.Fatalf("%d: bad: %s", i, err)
 			}
