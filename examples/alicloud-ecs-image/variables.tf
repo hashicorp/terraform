@@ -32,7 +32,7 @@ variable "ecs_password" {
   default = "Test12345"
 }
 variable "availability_zones" {
-  default = "cn-beijing-b"
+  default = "cn-beijing-a"
 }
 variable "allocate_public_ip" {
   default = true
@@ -51,7 +51,4 @@ variable "disk_category" {
 }
 variable "disk_size" {
   default = "40"
-}
-variable "device_name" {
-  default = "/dev/xvdb"
 }

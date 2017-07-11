@@ -59,9 +59,6 @@ variable "disk_category" {
 variable "disk_size" {
   default = "40"
 }
-variable "device_name" {
-  default = "/dev/xvdb"
-}
 
 variable "vswitch_id" {
   default = ""
