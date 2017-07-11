@@ -1,5 +1,8 @@
 ## 0.10.0-rc1 (Unreleased)
 
+IMPROVEMENTS:
+
+* core: Actively disallow reserved field names in schema [GH-15522]
 
 ## 0.10.0-beta2 (July 6, 2017)
 
