@@ -407,3 +407,64 @@ func TestProviderReset(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestProvider_InternalValidate(t *testing.T) {
+	cases := []struct {
+		P           *Provider
+		ExpectedErr error
+	}{
+		{
+			P: &Provider{
+				Schema: map[string]*Schema{
+					"foo": {
+						Type:     TypeBool,
+						Optional: true,
+					},
+				},
+			},
+			ExpectedErr: nil,
+		},
+		{ // Reserved resource fields should be allowed in provider block
+			P: &Provider{
+				Schema: map[string]*Schema{
+					"provisioner": {
+						Type:     TypeString,
+						Optional: true,
+					},
+					"count": {
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+			},
+			ExpectedErr: nil,
+		},
+		{ // Reserved provider fields should not be allowed
+			P: &Provider{
+				Schema: map[string]*Schema{
+					"alias": {
+						Type:     TypeString,
+						Optional: true,
+					},
+				},
+			},
+			ExpectedErr: fmt.Errorf("%s is a reserved field name for a provider", "alias"),
+		},
+	}
+
+	for i, tc := range cases {
+		err := tc.P.InternalValidate()
+		if tc.ExpectedErr == nil {
+			if err != nil {
+				t.Fatalf("%d: Error returned (expected no error): %s", i, err)
+			}
+			continue
+		}
+		if tc.ExpectedErr != nil && err == nil {
+			t.Fatalf("%d: Expected error (%s), but no error returned", i, tc.ExpectedErr)
+		}
+		if err.Error() != tc.ExpectedErr.Error() {
+			t.Fatalf("%d: Errors don't match. Expected: %#v Given: %#v", i, tc.ExpectedErr, err)
+		}
+	}
+}
