@@ -406,6 +406,10 @@ func Test(t TestT, c TestCase) {
 				step)
 		} else {
 			if step.ImportState {
+				if step.Config == "" {
+					step.Config = testProviderConfig(c)
+				}
+
 				// Can optionally set step.Config in addition to
 				// step.ImportState, to provide config for the import.
 				state, err = testStepImportState(opts, state, step)
@@ -497,6 +501,18 @@ func Test(t TestT, c TestCase) {
 	} else {
 		log.Printf("[WARN] Skipping destroy test since there is no state.")
 	}
+}
+
+// testProviderConfig takes the list of Providers in a TestCase and returns a
+// config with only empty provider blocks. This is useful for Import, where no
+// config is provided, but the providers must be defined.
+func testProviderConfig(c TestCase) string {
+	var lines []string
+	for p := range c.Providers {
+		lines = append(lines, fmt.Sprintf("provider %q {}\n", p))
+	}
+
+	return strings.Join(lines, "")
 }
 
 // testProviderResolver is a helper to build a ResourceProviderResolver

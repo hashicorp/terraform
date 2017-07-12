@@ -53,13 +53,13 @@ func findPluginPaths(kind string, dirs []string) []string {
 			continue
 		}
 
-		log.Printf("[DEBUG] checking for plugins in %q", dir)
+		log.Printf("[DEBUG] checking for %s in %q", kind, dir)
 
 		for _, item := range items {
 			fullName := item.Name()
 
 			if !strings.HasPrefix(fullName, prefix) {
-				log.Printf("[DEBUG] skipping %q, not a plugin", fullName)
+				log.Printf("[DEBUG] skipping %q, not a %s", fullName, kind)
 				continue
 			}
 
@@ -71,7 +71,7 @@ func findPluginPaths(kind string, dirs []string) []string {
 					continue
 				}
 
-				log.Printf("[DEBUG] found plugin %q", fullName)
+				log.Printf("[DEBUG] found %s %q", kind, fullName)
 				ret = append(ret, filepath.Clean(absPath))
 				continue
 			}
@@ -83,7 +83,7 @@ func findPluginPaths(kind string, dirs []string) []string {
 				continue
 			}
 
-			log.Printf("[WARNING] found legacy plugin %q", fullName)
+			log.Printf("[WARNING] found legacy %s %q", kind, fullName)
 
 			ret = append(ret, filepath.Clean(absPath))
 		}

@@ -17,10 +17,10 @@ func resourceObjectStorageContainerV1() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -63,7 +63,7 @@ func resourceObjectStorageContainerV1() *schema.Resource {
 
 func resourceObjectStorageContainerV1Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	objectStorageClient, err := config.objectStorageV1Client(GetRegion(d))
+	objectStorageClient, err := config.objectStorageV1Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack object storage client: %s", err)
 	}
@@ -93,12 +93,15 @@ func resourceObjectStorageContainerV1Create(d *schema.ResourceData, meta interfa
 }
 
 func resourceObjectStorageContainerV1Read(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+	d.Set("region", GetRegion(d, config))
+
 	return nil
 }
 
 func resourceObjectStorageContainerV1Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	objectStorageClient, err := config.objectStorageV1Client(GetRegion(d))
+	objectStorageClient, err := config.objectStorageV1Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack object storage client: %s", err)
 	}
@@ -125,7 +128,7 @@ func resourceObjectStorageContainerV1Update(d *schema.ResourceData, meta interfa
 
 func resourceObjectStorageContainerV1Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	objectStorageClient, err := config.objectStorageV1Client(GetRegion(d))
+	objectStorageClient, err := config.objectStorageV1Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack object storage client: %s", err)
 	}

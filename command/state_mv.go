@@ -15,7 +15,10 @@ type StateMvCommand struct {
 }
 
 func (c *StateMvCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	// We create two metas to track the two states
 	var meta1, meta2 Meta
@@ -203,8 +206,7 @@ Options:
   -backup=PATH        Path where Terraform should write the backup for the original
                       state. This can't be disabled. If not set, Terraform
                       will write it to the same path as the statefile with
-                      a backup extension. This backup will be made in addition
-                      to the timestamped backup.
+                      a backup extension.
 
   -backup-out=PATH    Path where Terraform should write the backup for the destination
                       state. This can't be disabled. If not set, Terraform

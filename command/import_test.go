@@ -2,9 +2,14 @@ package command
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/hashicorp/terraform/plugin"
+	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -463,6 +468,72 @@ func TestImport_targetIsModule(t *testing.T) {
 	msg := ui.ErrorWriter.String()
 	if want := `resource address must include a full resource spec`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
+}
+
+// make sure we search the full plugin path during import
+func TestImport_pluginDir(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("import-provider"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// make a fake provider in a custom plugin directory
+	if err := os.Mkdir("plugins", 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile("plugins/terraform-provider-test_v1.1.1_x4", []byte("invalid binary"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	// store our custom plugin path, which would normally happen during init
+	if err := c.storePluginPath([]string{"./plugins"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Now we need to go through some plugin init.
+	// This discovers our fake plugin and writes the lock file.
+	initCmd := &InitCommand{
+		Meta: Meta{
+			pluginPath: []string{"./plugins"},
+			Ui:         new(cli.MockUi),
+		},
+		providerInstaller: &discovery.ProviderInstaller{
+			PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
+		},
+	}
+	if err := initCmd.getProviders(".", nil, false); err != nil {
+		t.Fatal(err)
+	}
+
+	args := []string{
+		"test_instance.foo",
+		"bar",
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expected error, got: %s", ui.OutputWriter)
+	}
+
+	outMsg := ui.OutputWriter.String()
+	// if we were missing a plugin, the output will have some explanation
+	// about requirements. If discovery starts verifying binary compatibility,
+	// we will need to write a dummy provider above.
+	if strings.Contains(outMsg, "requirements") {
+		t.Fatal("unexpected output:", outMsg)
+	}
+
+	// We wanted a plugin execution error, rather than a requirement error.
+	// Looking for "exec" in the error should suffice for now.
+	errMsg := ui.ErrorWriter.String()
+	if !strings.Contains(errMsg, "exec") {
+		t.Fatal("unexpected error:", errMsg)
 	}
 }
 

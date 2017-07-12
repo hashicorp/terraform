@@ -38,7 +38,10 @@ func (c *InitCommand) Run(args []string) int {
 	var flagPluginPath FlagStringSlice
 	var flagVerifyPlugins bool
 
-	args = c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 	cmdFlags := c.flagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
 	cmdFlags.Var((*variables.FlagAny)(&flagConfigExtra), "backend-config", "")
@@ -172,21 +175,46 @@ func (c *InitCommand) Run(args []string) int {
 		}
 	}
 
+	if back == nil {
+		// If we didn't initialize a backend then we'll try to at least
+		// instantiate one. This might fail if it wasn't already initalized
+		// by a previous run, so we must still expect that "back" may be nil
+		// in code that follows.
+		back, err = c.Backend(nil)
+		if err != nil {
+			// This is fine. We'll proceed with no backend, then.
+			back = nil
+		}
+	}
+
+	var state *terraform.State
+
+	// If we have a functional backend (either just initialized or initialized
+	// on a previous run) we'll use the current state as a potential source
+	// of provider dependencies.
+	if back != nil {
+		sMgr, err := back.State(c.Workspace())
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Error loading state: %s", err))
+			return 1
+		}
+
+		if err := sMgr.RefreshState(); err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Error refreshing state: %s", err))
+			return 1
+		}
+
+		state = sMgr.State()
+	}
+
+	if v := os.Getenv(ProviderSkipVerifyEnvVar); v != "" {
+		c.ignorePluginChecksum = true
+	}
+
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	sMgr, err := back.State(c.Workspace())
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error loading state: %s", err))
-		return 1
-	}
-
-	if err := sMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error refreshing state: %s", err))
-		return 1
-	}
-
-	err = c.getProviders(path, sMgr.State(), flagUpgrade)
+	err = c.getProviders(path, state, flagUpgrade)
 	if err != nil {
 		// this function provides its own output
 		log.Printf("[ERROR] %s", err)
@@ -250,12 +278,24 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 				case discovery.ErrorNoSuchProvider:
 					c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
 				case discovery.ErrorNoSuitableVersion:
-					c.Ui.Error(fmt.Sprintf(errProviderVersionsUnsuitable, provider, reqd.Versions))
+					if reqd.Versions.Unconstrained() {
+						// This should never happen, but might crop up if we catch
+						// the releases server in a weird state where the provider's
+						// directory is present but does not yet contain any
+						// versions. We'll treat it like ErrorNoSuchProvider, then.
+						c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
+					} else {
+						c.Ui.Error(fmt.Sprintf(errProviderVersionsUnsuitable, provider, reqd.Versions))
+					}
 				case discovery.ErrorNoVersionCompatible:
 					// FIXME: This error message is sub-awesome because we don't
 					// have enough information here to tell the user which versions
 					// we considered and which versions might be compatible.
-					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, reqd.Versions))
+					constraint := reqd.Versions.String()
+					if constraint == "" {
+						constraint = "(any version)"
+					}
+					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
 				default:
 					c.Ui.Error(fmt.Sprintf(errProviderInstallError, provider, err.Error(), DefaultPluginVendorDir))
 				}
@@ -297,6 +337,9 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 			return err
 		}
 		digests[name] = digest
+		if c.ignorePluginChecksum {
+			digests[name] = nil
+		}
 	}
 	err = c.providerPluginsLock().Write(digests)
 	if err != nil {

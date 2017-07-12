@@ -168,6 +168,7 @@ func (m *Meta) Operation() *backend.Operation {
 		PlanOutBackend:   m.backendState,
 		Targets:          m.targets,
 		UIIn:             m.UIInput(),
+		UIOut:            m.Ui,
 		Workspace:        m.Workspace(),
 		LockState:        m.stateLock,
 		StateLockTimeout: m.stateLockTimeout,
@@ -1080,8 +1081,8 @@ func (m *Meta) backend_C_r_S_changed(
 	if !copy {
 		copy, err = m.confirm(&terraform.InputOpts{
 			Id:          "backend-migrate-to-new",
-			Query:       fmt.Sprintf("Do you want to copy the state from %q?", c.Type),
-			Description: strings.TrimSpace(fmt.Sprintf(inputBackendMigrateChange, c.Type, s.Backend.Type)),
+			Query:       fmt.Sprintf("Do you want to copy the state from %q?", s.Backend.Type),
+			Description: strings.TrimSpace(fmt.Sprintf(inputBackendMigrateChange, s.Backend.Type, c.Type)),
 		})
 		if err != nil {
 			return nil, fmt.Errorf(

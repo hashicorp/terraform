@@ -30,10 +30,10 @@ func resourceFWFirewallV1() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -82,7 +82,7 @@ func resourceFWFirewallV1() *schema.Resource {
 func resourceFWFirewallV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -157,7 +157,7 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Retrieve information about firewall: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -175,8 +175,8 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("policy_id", firewall.PolicyID)
 	d.Set("admin_state_up", firewall.AdminStateUp)
 	d.Set("tenant_id", firewall.TenantID)
-	d.Set("region", GetRegion(d))
 	d.Set("associated_routers", firewall.RouterIDs)
+	d.Set("region", GetRegion(d, config))
 
 	return nil
 }
@@ -184,7 +184,7 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 func resourceFWFirewallV1Update(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -254,7 +254,7 @@ func resourceFWFirewallV1Delete(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[DEBUG] Destroy firewall: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}

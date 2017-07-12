@@ -9,7 +9,8 @@
         "ecs:DiscoverPollEndpoint",
         "ecs:Poll",
         "ecs:RegisterContainerInstance",
-        "ecs:Submit*"
+        "ecs:Submit*",
+        "ecs:StartTelemetrySession"
       ],
       "Resource": [
         "*"

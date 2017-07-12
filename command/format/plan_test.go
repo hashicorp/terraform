@@ -121,7 +121,7 @@ func TestPlan_rootDataSource(t *testing.T) {
 
 	expected := strings.TrimSpace(`
  <= data.type.name
-    A: "B"
+      A: "B"
 	`)
 	if actual != expected {
 		t.Fatalf("expected:\n\n%s\n\ngot:\n\n%s", expected, actual)
@@ -162,7 +162,7 @@ func TestPlan_nestedDataSource(t *testing.T) {
 
 	expected := strings.TrimSpace(`
  <= module.nested.data.type.name
-    A: "B"
+      A: "B"
 	`)
 	if actual != expected {
 		t.Fatalf("expected:\n\n%s\n\ngot:\n\n%s", expected, actual)

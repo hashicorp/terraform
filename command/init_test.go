@@ -474,7 +474,9 @@ func TestInit_getProvider(t *testing.T) {
 		providerInstaller: installer,
 	}
 
-	args := []string{}
+	args := []string{
+		"-backend=false", // should be possible to install plugins without backend init
+	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}

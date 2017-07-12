@@ -2,6 +2,7 @@ package command
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -45,7 +46,7 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 	var errs []error
 
 	chosen := choosePlugins(r.Available, reqd)
-	for name := range reqd {
+	for name, req := range reqd {
 		if newest, available := chosen[name]; available {
 			digest, err := newest.SHA256()
 			if err != nil {
@@ -53,19 +54,34 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 				continue
 			}
 			if !reqd[name].AcceptsSHA256(digest) {
-				// This generic error message is intended to avoid troubling
-				// users with implementation details. The main useful point
-				// here is that they need to run "terraform init" to
-				// fix this, which is covered by the UI code reporting these
-				// error messages.
-				errs = append(errs, fmt.Errorf("provider.%s: installed but not yet initialized", name))
+				errs = append(errs, fmt.Errorf("provider.%s: new or changed plugin executable", name))
 				continue
 			}
 
 			client := tfplugin.Client(newest)
 			factories[name] = providerFactory(client)
 		} else {
-			errs = append(errs, fmt.Errorf("provider.%s: no suitable version installed", name))
+			msg := fmt.Sprintf("provider.%s: no suitable version installed", name)
+
+			required := req.Versions.String()
+			// no version is unconstrained
+			if required == "" {
+				required = "(any version)"
+			}
+
+			foundVersions := []string{}
+			for meta := range r.Available.WithName(name) {
+				foundVersions = append(foundVersions, fmt.Sprintf("%q", meta.Version))
+			}
+
+			found := "none"
+			if len(foundVersions) > 0 {
+				found = strings.Join(foundVersions, ", ")
+			}
+
+			msg += fmt.Sprintf("\n  version requirements: %q\n  versions installed: %s", required, found)
+
+			errs = append(errs, errors.New(msg))
 		}
 	}
 

@@ -7,21 +7,21 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func setupTest(fixturepath string) (*cli.MockUi, int) {
+func setupTest(fixturepath string, args ...string) (*cli.MockUi, int) {
 	ui := new(cli.MockUi)
 	c := &ValidateCommand{
 		Meta: Meta{
-			Ui: ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
-	args := []string{
-		testFixturePath(fixturepath),
-	}
+	args = append(args, testFixturePath(fixturepath))
 
 	code := c.Run(args)
 	return ui, code
 }
+
 func TestValidateCommand(t *testing.T) {
 	if ui, code := setupTest("validate-valid"); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -120,5 +120,23 @@ func TestWronglyUsedInterpolationShouldFail(t *testing.T) {
 	}
 	if !strings.Contains(ui.ErrorWriter.String(), "Variable 'vairable_with_interpolation': cannot contain interpolations") {
 		t.Fatalf("Should have failed: %d\n\n'%s'", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestMissingDefinedVar(t *testing.T) {
+	ui, code := setupTest("validate-invalid/missing_defined_var")
+	if code != 1 {
+		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !strings.Contains(ui.ErrorWriter.String(), "Required variable not set:") {
+		t.Fatalf("Should have failed: %d\n\n'%s'", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestMissingDefinedVarConfigOnly(t *testing.T) {
+	ui, code := setupTest("validate-invalid/missing_defined_var", "-check-variables=false")
+	if code != 0 {
+		t.Fatalf("Should have passed: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }

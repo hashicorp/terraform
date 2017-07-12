@@ -160,7 +160,6 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 // testState returns a test State structure that we use for a lot of tests.
 func testState() *terraform.State {
 	state := &terraform.State{
-		Version: 2,
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
 				Path: []string{"root"},
@@ -177,20 +176,7 @@ func testState() *terraform.State {
 		},
 	}
 	state.Init()
-
-	// Write and read the state so that it is properly initialized. We
-	// do this since we didn't call the normal NewState constructor.
-	var buf bytes.Buffer
-	if err := terraform.WriteState(state, &buf); err != nil {
-		panic(err)
-	}
-
-	result, err := terraform.ReadState(&buf)
-	if err != nil {
-		panic(err)
-	}
-
-	return result
+	return state
 }
 
 func testStateFile(t *testing.T, s *terraform.State) string {
@@ -252,9 +238,9 @@ func testStateRead(t *testing.T, path string) *terraform.State {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	defer f.Close()
 
 	newState, err := terraform.ReadState(f)
-	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

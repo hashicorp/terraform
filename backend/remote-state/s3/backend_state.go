@@ -14,16 +14,10 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-const (
-	// This will be used as directory name, the odd looking colon is simply to
-	// reduce the chance of name conflicts with existing objects.
-	keyEnvPrefix = "env:"
-)
-
 func (b *Backend) States() ([]string, error) {
 	params := &s3.ListObjectsInput{
 		Bucket: &b.bucketName,
-		Prefix: aws.String(keyEnvPrefix + "/"),
+		Prefix: aws.String(b.workspaceKeyPrefix + "/"),
 	}
 
 	resp, err := b.s3Client.ListObjects(params)
@@ -53,7 +47,7 @@ func (b *Backend) keyEnv(key string) string {
 	}
 
 	// shouldn't happen since we listed by prefix
-	if parts[0] != keyEnvPrefix {
+	if parts[0] != b.workspaceKeyPrefix {
 		return ""
 	}
 
@@ -70,20 +64,16 @@ func (b *Backend) DeleteState(name string) error {
 		return fmt.Errorf("can't delete default state")
 	}
 
-	params := &s3.DeleteObjectInput{
-		Bucket: &b.bucketName,
-		Key:    aws.String(b.path(name)),
-	}
-
-	_, err := b.s3Client.DeleteObject(params)
+	client, err := b.remoteClient(name)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return client.Delete()
 }
 
-func (b *Backend) State(name string) (state.State, error) {
+// get a remote client configured for this state
+func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	if name == "" {
 		return nil, errors.New("missing state name")
 	}
@@ -99,8 +89,16 @@ func (b *Backend) State(name string) (state.State, error) {
 		ddbTable:             b.ddbTable,
 	}
 
-	stateMgr := &remote.State{Client: client}
+	return client, nil
+}
 
+func (b *Backend) State(name string) (state.State, error) {
+	client, err := b.remoteClient(name)
+	if err != nil {
+		return nil, err
+	}
+
+	stateMgr := &remote.State{Client: client}
 	// Check to see if this state already exists.
 	// If we're trying to force-unlock a state, we can't take the lock before
 	// fetching the state. If the state doesn't exist, we have to assume this
@@ -179,7 +177,7 @@ func (b *Backend) path(name string) string {
 		return b.keyName
 	}
 
-	return strings.Join([]string{keyEnvPrefix, name, b.keyName}, "/")
+	return strings.Join([]string{b.workspaceKeyPrefix, name, b.keyName}, "/")
 }
 
 const errStateUnlock = `

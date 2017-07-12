@@ -16,7 +16,10 @@ type UnlockCommand struct {
 }
 
 func (c *UnlockCommand) Run(args []string) int {
-	args = c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 
 	force := false
 	cmdFlags := c.Meta.flagSet("force-unlock")

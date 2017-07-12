@@ -74,14 +74,14 @@ func TestWorkspace_createAndList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newCmd := &WorkspaceNewCommand{}
-
 	envs := []string{"test_a", "test_b", "test_c"}
 
 	// create multiple workspaces
 	for _, env := range envs {
 		ui := new(cli.MockUi)
-		newCmd.Meta = Meta{Ui: ui}
+		newCmd := &WorkspaceNewCommand{
+			Meta: Meta{Ui: ui},
+		}
 		if code := newCmd.Run([]string{env}); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 		}
@@ -99,7 +99,75 @@ func TestWorkspace_createAndList(t *testing.T) {
 	expected := "default\n  test_a\n  test_b\n* test_c"
 
 	if actual != expected {
-		t.Fatalf("\nexpcted: %q\nactual:  %q", expected, actual)
+		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
+	}
+}
+
+// Create some workspaces and test the show output.
+func TestWorkspace_createAndShow(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// make sure a vars file doesn't interfere
+	err := ioutil.WriteFile(
+		DefaultVarsFilename,
+		[]byte(`foo = "bar"`),
+		0644,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// make sure current workspace show outputs "default"
+	showCmd := &WorkspaceShowCommand{}
+	ui := new(cli.MockUi)
+	showCmd.Meta = Meta{Ui: ui}
+
+	if code := showCmd.Run(nil); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	expected := "default"
+
+	if actual != expected {
+		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
+	}
+
+	newCmd := &WorkspaceNewCommand{}
+
+	env := []string{"test_a"}
+
+	// create test_a workspace
+	ui = new(cli.MockUi)
+	newCmd.Meta = Meta{Ui: ui}
+	if code := newCmd.Run(env); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	selCmd := &WorkspaceSelectCommand{}
+	ui = new(cli.MockUi)
+	selCmd.Meta = Meta{Ui: ui}
+	if code := selCmd.Run(env); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	showCmd = &WorkspaceShowCommand{}
+	ui = new(cli.MockUi)
+	showCmd.Meta = Meta{Ui: ui}
+
+	if code := showCmd.Run(nil); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	actual = strings.TrimSpace(ui.OutputWriter.String())
+	expected = "test_a"
+
+	if actual != expected {
+		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
 	}
 }
 
@@ -111,14 +179,14 @@ func TestWorkspace_createInvalid(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	newCmd := &WorkspaceNewCommand{}
-
 	envs := []string{"test_a*", "test_b/foo", "../../../test_c", "好_d"}
 
 	// create multiple workspaces
 	for _, env := range envs {
 		ui := new(cli.MockUi)
-		newCmd.Meta = Meta{Ui: ui}
+		newCmd := &WorkspaceNewCommand{
+			Meta: Meta{Ui: ui},
+		}
 		if code := newCmd.Run([]string{env}); code == 0 {
 			t.Fatalf("expected failure: \n%s", ui.OutputWriter)
 		}
@@ -186,6 +254,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 	}
 
 	newState := envState.State()
+	originalState.Version = newState.Version // the round-trip through the state manager implicitly populates version
 	if !originalState.Equal(newState) {
 		t.Fatalf("states not equal\norig: %s\nnew: %s", originalState, newState)
 	}

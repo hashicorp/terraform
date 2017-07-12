@@ -30,10 +30,10 @@ func resourceDNSZoneV2() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -85,7 +85,7 @@ func resourceDNSZoneV2() *schema.Resource {
 
 func resourceDNSZoneV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	dnsClient, err := config.dnsV2Client(GetRegion(d))
+	dnsClient, err := config.dnsV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 	}
@@ -141,7 +141,7 @@ func resourceDNSZoneV2Create(d *schema.ResourceData, meta interface{}) error {
 
 func resourceDNSZoneV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	dnsClient, err := config.dnsV2Client(GetRegion(d))
+	dnsClient, err := config.dnsV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 	}
@@ -160,14 +160,14 @@ func resourceDNSZoneV2Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("type", n.Type)
 	d.Set("attributes", n.Attributes)
 	d.Set("masters", n.Masters)
-	d.Set("region", GetRegion(d))
+	d.Set("region", GetRegion(d, config))
 
 	return nil
 }
 
 func resourceDNSZoneV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	dnsClient, err := config.dnsV2Client(GetRegion(d))
+	dnsClient, err := config.dnsV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 	}
@@ -215,7 +215,7 @@ func resourceDNSZoneV2Update(d *schema.ResourceData, meta interface{}) error {
 
 func resourceDNSZoneV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	dnsClient, err := config.dnsV2Client(GetRegion(d))
+	dnsClient, err := config.dnsV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 	}

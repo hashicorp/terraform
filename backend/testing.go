@@ -187,6 +187,24 @@ func testBackendStates(t *testing.T, b Backend) {
 		t.Fatal("expected error")
 	}
 
+	// Create and delete the foo state again.
+	// Make sure that there are no leftover artifacts from a deleted state
+	// preventing re-creation.
+	foo, err = b.State("foo")
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	if err := foo.RefreshState(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if v := foo.State(); v.HasResources() {
+		t.Fatalf("should be empty: %s", v)
+	}
+	// and delete it again
+	if err := b.DeleteState("foo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	// Verify deletion
 	{
 		states, err := b.States()

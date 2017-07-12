@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
@@ -51,8 +53,10 @@ type Meta struct {
 	// pluginPath is a user defined set of directories to look for plugins.
 	// This is set during init with the `-plugin-dir` flag, saved to a file in
 	// the data directory.
-	// This overrides all other search paths when discoverying plugins.
+	// This overrides all other search paths when discovering plugins.
 	pluginPath []string
+
+	ignorePluginChecksum bool
 
 	// Override certain behavior for tests within this package
 	testingOverrides *testingOverrides
@@ -224,6 +228,10 @@ func (m *Meta) StdinPiped() bool {
 	return fi.Mode()&os.ModeNamedPipe != 0
 }
 
+const (
+	ProviderSkipVerifyEnvVar = "TF_SKIP_PROVIDER_VERIFY"
+)
+
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
@@ -260,6 +268,9 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	}
 
 	opts.ProviderSHA256s = m.providerPluginsLock().Read()
+	if v := os.Getenv(ProviderSkipVerifyEnvVar); v != "" {
+		opts.SkipProviderVerify = true
+	}
 
 	opts.Meta = &terraform.ContextMeta{
 		Env: m.Workspace(),
@@ -339,7 +350,7 @@ func (m *Meta) moduleStorage(root string) getter.Storage {
 // slice.
 //
 // vars says whether or not we support variables.
-func (m *Meta) process(args []string, vars bool) []string {
+func (m *Meta) process(args []string, vars bool) ([]string, error) {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
 	if m.oldUi != nil {
@@ -372,24 +383,48 @@ func (m *Meta) process(args []string, vars bool) []string {
 	// the args...
 	m.autoKey = ""
 	if vars {
+		var preArgs []string
+
 		if _, err := os.Stat(DefaultVarsFilename); err == nil {
 			m.autoKey = "var-file-default"
-			args = append(args, "", "")
-			copy(args[2:], args[0:])
-			args[0] = "-" + m.autoKey
-			args[1] = DefaultVarsFilename
+			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename)
 		}
 
 		if _, err := os.Stat(DefaultVarsFilename + ".json"); err == nil {
 			m.autoKey = "var-file-default"
-			args = append(args, "", "")
-			copy(args[2:], args[0:])
-			args[0] = "-" + m.autoKey
-			args[1] = DefaultVarsFilename + ".json"
+			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename+".json")
 		}
+
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+
+		fis, err := ioutil.ReadDir(wd)
+		if err != nil {
+			return nil, err
+		}
+
+		// make sure we add the files in order
+		sort.Slice(fis, func(i, j int) bool {
+			return fis[i].Name() < fis[j].Name()
+		})
+
+		for _, fi := range fis {
+			name := fi.Name()
+			// Ignore directories, non-var-files, and ignored files
+			if fi.IsDir() || !isAutoVarFile(name) || config.IsIgnoredFile(name) {
+				continue
+			}
+
+			m.autoKey = "var-file-default"
+			preArgs = append(preArgs, "-"+m.autoKey, name)
+		}
+
+		args = append(preArgs, args...)
 	}
 
-	return args
+	return args, nil
 }
 
 // uiHook returns the UiHook to use with the context.
@@ -402,8 +437,8 @@ func (m *Meta) uiHook() *UiHook {
 
 // confirm asks a yes/no confirmation.
 func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
-	if !m.input {
-		return false, errors.New("input disabled")
+	if !m.Input() {
+		return false, errors.New("input is disabled")
 	}
 	for {
 		v, err := m.UIInput().Input(opts)
@@ -533,4 +568,10 @@ func (m *Meta) SetWorkspace(name string) error {
 		return err
 	}
 	return nil
+}
+
+// isAutoVarFile determines if the file ends with .auto.tfvars or .auto.tfvars.json
+func isAutoVarFile(path string) bool {
+	return strings.HasSuffix(path, ".auto.tfvars") ||
+		strings.HasSuffix(path, ".auto.tfvars.json")
 }

@@ -27,7 +27,10 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	var configPath string
-	args = c.Meta.process(args, true)
+	args, err = c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := c.Meta.flagSet("import")
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
@@ -112,9 +115,16 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		return 1
+	}
+
 	// Load the backend
 	b, err := c.Backend(&BackendOpts{
-		Config: mod.Config(),
+		Config:     mod.Config(),
+		ForceLocal: true,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
@@ -233,8 +243,8 @@ Options:
                       with the "-config" flag.
 
   -var-file=foo       Set variables in the Terraform configuration from
-                      a file. If "terraform.tfvars" is present, it will be
-                      automatically loaded if this flag is not specified.
+                      a file. If "terraform.tfvars" or any ".auto.tfvars"
+                      files are present, they will be automatically loaded.
 
 
 `

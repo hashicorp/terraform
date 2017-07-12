@@ -30,10 +30,10 @@ func resourceLBMonitorV1() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -88,7 +88,7 @@ func resourceLBMonitorV1() *schema.Resource {
 
 func resourceLBMonitorV1Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -147,7 +147,7 @@ func resourceLBMonitorV1Create(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMonitorV1Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -168,14 +168,14 @@ func resourceLBMonitorV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("http_method", m.HTTPMethod)
 	d.Set("expected_codes", m.ExpectedCodes)
 	d.Set("admin_state_up", strconv.FormatBool(m.AdminStateUp))
-	d.Set("region", GetRegion(d))
+	d.Set("region", GetRegion(d, config))
 
 	return nil
 }
 
 func resourceLBMonitorV1Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -212,7 +212,7 @@ func resourceLBMonitorV1Update(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMonitorV1Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	networkingClient, err := config.networkingV2Client(GetRegion(d, config))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}

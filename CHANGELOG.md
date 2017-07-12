@@ -1,4 +1,38 @@
-## 0.10.0-beta1 (Unreleased)
+## 0.10.0-rc1 (Unreleased)
+
+IMPROVEMENTS:
+
+* core: Actively disallow reserved field names in schema [GH-15522]
+
+## 0.10.0-beta2 (July 6, 2017)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* A new flag `-auto-approve` has been added to `terraform apply`. This flag controls whether an interactive approval is applied before making the changes in the plan. For now this flag defaults to `true` to preserve previous behavior, but this will become the new default in a future version. We suggest that anyone running `terraform apply` in wrapper scripts or automation refer to the upgrade guide to learn how to prepare such wrapper scripts for the later breaking change.
+* The `validate` command now checks that all variables are specified by default.
+  The validation will fail by default if that's not the case. ([#13872](https://github.com/hashicorp/terraform/issues/13872))
+* `terraform state rm` now requires at least one argument. Previously, calling it with no arguments would remove all resources from state, which is consistent with the other `terraform state` commands but unlikely enough that we considered it better to be inconsistent here to reduce the risk of accidentally destroying the state.
+
+IMPROVEMENTS:
+
+* backend/s3: Add `workspace_key_prefix` to allow a user-configurable prefix for workspaces in the S3 Backend. ([#15370](https://github.com/hashicorp/terraform/issues/15370))
+* cli: `terraform apply` now has an option `-auto-approve=false` that produces an interactive prompt to approve the generated plan. This will become the default workflow in a future Terraform version. ([#7251](https://github.com/hashicorp/terraform/issues/7251))
+* cli: `terraform workspace show` command prints the current workspace name in a way that's more convenient for processing in wrapper scripts. ([#15157](https://github.com/hashicorp/terraform/issues/15157))
+* cli: `terraform state rm` will now generate an error if no arguments are passed, whereas before it treated it as an open resource address selecting _all_ resources ([#15283](https://github.com/hashicorp/terraform/issues/15283))
+* cli: Files in the config directory ending in `.auto.tfvars` are now loaded automatically (in lexicographical order) in addition to the single `terraform.tfvars` file that auto-loaded previously. ([#13306](https://github.com/hashicorp/terraform/issues/13306))
+
+BUG FIXES:
+
+* config: Fixed a parsing issue in the interpolation language HIL that was causing misinterpretation of literal strings ending with escaped backslashes ([#15415](https://github.com/hashicorp/terraform/issues/15415))
+* core: the S3 Backend was failing to remove the state file checksums from DynamoDB when deleting a workspace ([#15383](https://github.com/hashicorp/terraform/issues/15383))
+* core: Improved reslience against crashes for a certain kind of inconsistency in the representation of list values in state. ([#15390](https://github.com/hashicorp/terraform/issues/15390))
+* core: Display correct to and from backends in copy message when migrating to new remote state ([#15318](https://github.com/hashicorp/terraform/issues/15318))
+* core: Fix a regression from 0.9.6 that was causing the tally of resources to create to be double-counted sometimes in the plan output ([#15344](https://github.com/hashicorp/terraform/issues/15344))
+* cli: the state `rm` and `mv` commands were always loading a state from a Backend, and ignoring the `-state` flag ([#15388](https://github.com/hashicorp/terraform/issues/15388))
+* cli: certain prompts in `terraform init` were respecting `-input=false` but not the `TF_INPUT` environment variable ([#15391](https://github.com/hashicorp/terraform/issues/15391))
+* state: Further work, building on [#15423](https://github.com/hashicorp/terraform/issues/15423), to improve the internal design of the state managers to make this code more maintainable and reduce the risk of regressions; this may lead to slight changes to the number of times Terraform writes to remote state and how the serial is implemented with respect to those writes, which does not affect outward functionality but is worth noting if you log or inspect state updates for debugging purposes.
+
+## 0.10.0-beta1 (June 22, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
@@ -21,17 +55,39 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 IMPROVEMENTS:
 
-* Providers no longer in the main Terraform distribution; installed automatically by init instead [GH-15208]
-* cli: `terraform env` command renamed to `terraform workspace` [GH-14952]
+* Providers no longer in the main Terraform distribution; installed automatically by init instead ([#15208](https://github.com/hashicorp/terraform/issues/15208))
+* cli: `terraform env` command renamed to `terraform workspace` ([#14952](https://github.com/hashicorp/terraform/issues/14952))
 * cli: `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
-* cli: The `-target` option to various Terraform operation can now target resources in descendent modules. [GH-15314]
-* config: New interpolation function `contains`, to find if a given string exists in a list of strings. [GH-15322]
+* cli: The `-target` option to various Terraform operation can now target resources in descendent modules. ([#15314](https://github.com/hashicorp/terraform/issues/15314))
+* cli: Minor updates to `terraform plan` output: use standard resource address syntax, more visually-distinct `-/+` actions, and more ([#15362](https://github.com/hashicorp/terraform/issues/15362))
+* config: New interpolation function `contains`, to find if a given string exists in a list of strings. ([#15322](https://github.com/hashicorp/terraform/issues/15322))
 
 BUG FIXES:
 
-* config: Interpolation function `cidrhost` was not correctly calcluating host addresses under IPv6 CIDR prefixes [GH-15321]
-* provisioner/chef: Prevent a panic while trying to read the connection info [GH-15271]
-* provisioner/file: Refactor the provisioner validation function to prevent false positives [GH-15273]
+* config: Interpolation function `cidrhost` was not correctly calcluating host addresses under IPv6 CIDR prefixes ([#15321](https://github.com/hashicorp/terraform/issues/15321))
+* provisioner/chef: Prevent a panic while trying to read the connection info ([#15271](https://github.com/hashicorp/terraform/issues/15271))
+* provisioner/file: Refactor the provisioner validation function to prevent false positives ([#15273](https://github.com/hashicorp/terraform/issues/15273))
+
+## 0.9.11 (Jul 3, 2017)
+
+BUG FIXES:
+
+* core: Hotfix for issue where a state from a plan was reported as not equal to the same state stored to a backend. This arose from the fix for the previous issue where the incorrect copy of the state was being used when applying with a plan. ([#15460](https://github.com/hashicorp/terraform/issues/15460))
+
+
+## 0.9.10 (June 29, 2017)
+
+BUG FIXES:
+
+* core: Hotfix for issue where state index wasn't getting properly incremented when applying a change containing only data source updates and/or resource drift. (That is, state changes made during refresh.)
+  This issue is significant only for the "atlas" backend, since that backend verifies on the server that state serial numbers are being used consistently. ([#15423](https://github.com/hashicorp/terraform/issues/15423))
+
+## 0.9.9 (June 26, 2017)
+
+BUG FIXES:
+
+ * provisioner/file: Refactor the provisioner validation function to prevent false positives ([#15273](https://github.com/hashicorp/terraform/issues/15273)))
+ * provisioner/chef: Prevent a panic while trying to read the connection info ([#15271](https://github.com/hashicorp/terraform/issues/15271)))
 
 ## 0.9.8 (June 7, 2017)
 
@@ -505,7 +561,7 @@ BUG FIXES:
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
  * provider/aws: Fix a critical bug in `aws_emr_cluster` in order to preserve the ordering
-   of any arguments in `bootstrap_action`. Terraform will now enforce the ordering  
+   of any arguments in `bootstrap_action`. Terraform will now enforce the ordering
    from the configuration. As a result, `aws_emr_cluster` resources may need to be
    recreated, as there is no API to update them in-place ([#13580](https://github.com/hashicorp/terraform/issues/13580))
 

@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -861,7 +862,7 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 		t.Fatal("successfully created context; want error")
 	}
 
-	if !strings.Contains(err.Error(), "Can't satisfy provider requirements") {
+	if !regexp.MustCompile(`provider ".+" is not available`).MatchString(err.Error()) {
 		t.Fatalf("wrong error: %s", err)
 	}
 }
@@ -1047,5 +1048,65 @@ func TestContext2Validate(t *testing.T) {
 	}
 	if len(e) > 0 {
 		t.Fatalf("bad: %s", e)
+	}
+}
+
+// TestContext2Refresh_noDiffHookOnScaleOut tests to make sure that
+// pre/post-diff hooks are not called when running EvalDiff on scale-out nodes
+// (nodes with no state). The effect here is to make sure that the diffs -
+// which only exist for interpolation of parallel resources or data sources -
+// do not end up being counted in the UI.
+func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
+	h := new(MockHook)
+	p := testProvider("aws")
+	m := testModule(t, "refresh-resource-scale-inout")
+	p.RefreshFn = nil
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Deposed: []*InstanceState{
+							&InstanceState{
+								ID: "foo",
+							},
+						},
+					},
+					"aws_instance.foo.1": &ResourceState{
+						Type: "aws_instance",
+						Deposed: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Hooks:  []Hook{h},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: state,
+	})
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if h.PreDiffCalled {
+		t.Fatal("PreDiff should not have been called")
+	}
+	if h.PostDiffCalled {
+		t.Fatal("PostDiff should not have been called")
 	}
 }
