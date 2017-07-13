@@ -31,6 +31,8 @@ Developing Terraform
 
 If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.8+ is *required*). Alternatively, you can use the Vagrantfile in the root of this repo to stand up a virtual machine with the appropriate dev tooling already set up for you.
 
+Note that as of Terraform 0.10, most providers are no longer built in, and instead are located in their own repositories in the [terraform-providers](https://github.com/terraform-providers) organization on GitHub. Instructions for developing each provider are in the associated README file.
+
 For local dev first make sure Go is properly installed, including setting up a [GOPATH](http://golang.org/doc/code.html#GOPATH). You will also need to add `$GOPATH/bin` to your `$PATH`.
 
 Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`. All the necessary dependencies are either vendored or automatically installed, so you just need to type `make`. This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
@@ -56,10 +58,10 @@ $ make test TEST=./terraform
 ...
 ```
 
-If you're working on a specific provider and only wish to rebuild that provider, you can use the `plugin-dev` target. For example, to build only the Azure provider:
+If you're working on a specific provider which has not been separated into an individual repository and only wish to rebuild that provider, you can use the `plugin-dev` target. For example, to build only the Test provider:
 
 ```sh
-$ make plugin-dev PLUGIN=provider-azure
+$ make plugin-dev PLUGIN=provider-test
 ```
 
 ### Dependencies
