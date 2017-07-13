@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -173,10 +174,10 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
-	expectedOutput := "data.google_compute_zones.available: Destruction complete\n"
+	expectedRegexp := "^data.google_compute_zones.available: Destruction complete after -?[a-z0-9.]+\n$"
 	output := ui.OutputWriter.String()
-	if output != expectedOutput {
-		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
+	if matched, _ := regexp.MatchString(expectedRegexp, output); !matched {
+		t.Fatalf("Output didn't match regexp.\nExpected: %q\nGiven: %q", expectedRegexp, output)
 	}
 
 	expectedErrOutput := ""
