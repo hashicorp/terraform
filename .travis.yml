@@ -13,7 +13,7 @@ env:
 before_install:
   - curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
   - unzip consul.zip
-  - mkdir ~/bin
+  - mkdir -p ~/bin
   - mv consul ~/bin
   - export PATH="~/bin:$PATH"
 
@@ -42,4 +42,3 @@ matrix:
   fast_finish: true
   allow_failures:
   - go: tip
-  
