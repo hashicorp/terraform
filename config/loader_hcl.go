@@ -465,6 +465,7 @@ func loadVariablesHcl(list *ast.ObjectList) ([]*Variable, error) {
 		DeclaredType string `hcl:"type"`
 		Default      interface{}
 		Description  string
+		Secret       string
 		Fields       []string `hcl:",decodedFields"`
 	}
 
@@ -489,7 +490,7 @@ func loadVariablesHcl(list *ast.ObjectList) ([]*Variable, error) {
 		}
 
 		// Check for invalid keys
-		valid := []string{"type", "default", "description"}
+		valid := []string{"type", "default", "description", "secret"}
 		if err := checkHCLKeys(item.Val, valid); err != nil {
 			return nil, multierror.Prefix(err, fmt.Sprintf(
 				"variable[%s]:", n))
@@ -521,8 +522,13 @@ func loadVariablesHcl(list *ast.ObjectList) ([]*Variable, error) {
 			DeclaredType: hclVar.DeclaredType,
 			Default:      hclVar.Default,
 			Description:  hclVar.Description,
+			Secret:       hclVar.Secret,
 		}
+
 		if err := newVar.ValidateTypeAndDefault(); err != nil {
+			return nil, err
+		}
+		if err := newVar.ValidateSecret(); err != nil {
 			return nil, err
 		}
 

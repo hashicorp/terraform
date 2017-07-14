@@ -422,6 +422,7 @@ func (c *Context) Input(mode InputMode) error {
 					Id:          fmt.Sprintf("var.%s", n),
 					Query:       fmt.Sprintf("var.%s", n),
 					Description: v.Description,
+					Secret:      v.Secret,
 				})
 				if err != nil {
 					return fmt.Errorf(

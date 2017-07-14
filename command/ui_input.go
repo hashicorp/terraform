@@ -13,6 +13,8 @@ import (
 	"sync"
 	"unicode"
 
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/colorstring"
 )
@@ -119,10 +121,21 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 	// interrupt this if we are interrupted (SIGINT)
 	result := make(chan string, 1)
 	go func() {
-		buf := bufio.NewReader(r)
-		line, err := buf.ReadString('\n')
-		if err != nil {
-			log.Printf("[ERR] UIInput scan err: %s", err)
+		var line string
+		var err error
+
+		if opts.Secret == "true" {
+			secretBytes, err := terminal.ReadPassword(0)
+			if err != nil {
+				log.Printf("[ERR] UIInput scan err: %s", err)
+			}
+			line = string(secretBytes[:])
+		} else {
+			buf := bufio.NewReader(r)
+			line, err = buf.ReadString('\n')
+			if err != nil {
+				log.Printf("[ERR] UIInput scan err: %s", err)
+			}
 		}
 
 		result <- strings.TrimRightFunc(line, unicode.IsSpace)

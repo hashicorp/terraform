@@ -23,4 +23,6 @@ type InputOpts struct {
 
 	// Default will be the value returned if no data is entered.
 	Default string
+
+	Secret string
 }

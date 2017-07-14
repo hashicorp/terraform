@@ -153,6 +153,7 @@ type Variable struct {
 	DeclaredType string `mapstructure:"type"`
 	Default      interface{}
 	Description  string
+	Secret       string
 }
 
 // Output is an output defined within the configuration. An output is
@@ -964,6 +965,9 @@ func (v *Variable) Merge(v2 *Variable) *Variable {
 	if v2.Description != "" {
 		result.Description = v2.Description
 	}
+	if v2.Secret != "" {
+		result.Secret = v2.Secret
+	}
 
 	return &result
 }
@@ -1015,6 +1019,17 @@ func (v *Variable) ValidateTypeAndDefault() error {
 	if v.inferTypeFromDefault() != v.Type() {
 		return fmt.Errorf("'%s' has a default value which is not of type '%s' (got '%s')",
 			v.Name, v.DeclaredType, v.inferTypeFromDefault().Printable())
+	}
+
+	return nil
+}
+
+// ValidateSecret ensures that secret parameter of a variable is either "true" or "false"
+func (v *Variable) ValidateSecret() error {
+	if v.Secret != "" {
+		if (v.Secret != "true") && (v.Secret != "false") {
+			return fmt.Errorf("'%s' secret parameter must be a string equal to \"true\" or \"false\" ", v.Name)
+		}
 	}
 
 	return nil
