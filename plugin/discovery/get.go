@@ -242,7 +242,9 @@ func (i *ProviderInstaller) getProviderChecksum(name, version string) (string, e
 	return checksumForFile(checksums, i.providerFileName(name, version)), nil
 }
 
-// Return the plugin version by making a HEAD request to the provided url
+// Return the plugin version by making a HEAD request to the provided url.
+// If the header is not present, we assume the latest version will be
+// compatible, and leave the check for discovery or execution.
 func checkPlugin(url string, pluginProtocolVersion uint) bool {
 	resp, err := httpClient.Head(url)
 	if err != nil {
@@ -257,8 +259,10 @@ func checkPlugin(url string, pluginProtocolVersion uint) bool {
 
 	proto := resp.Header.Get(protocolVersionHeader)
 	if proto == "" {
+		// The header isn't present, but we don't make this error fatal since
+		// the latest version will probably work.
 		log.Printf("[WARNING] missing %s from: %s", protocolVersionHeader, url)
-		return false
+		return true
 	}
 
 	protoVersion, err := strconv.Atoi(proto)
