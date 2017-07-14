@@ -243,6 +243,13 @@ func NewSessionWithOptions(opts Options) (*Session, error) {
 		envCfg.EnableSharedConfig = true
 	}
 
+	if len(envCfg.SharedCredentialsFile) == 0 {
+		envCfg.SharedCredentialsFile = defaults.SharedCredentialsFilename()
+	}
+	if len(envCfg.SharedConfigFile) == 0 {
+		envCfg.SharedConfigFile = defaults.SharedConfigFilename()
+	}
+
 	// Only use AWS_CA_BUNDLE if session option is not provided.
 	if len(envCfg.CustomCABundle) != 0 && opts.CustomCABundle == nil {
 		f, err := os.Open(envCfg.CustomCABundle)

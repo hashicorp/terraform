@@ -28,8 +28,8 @@ func TestApply(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -45,16 +45,7 @@ func TestApply(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
@@ -74,8 +65,8 @@ func TestApply_lockedState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -112,8 +103,8 @@ func TestApply_lockedStateWait(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -188,8 +179,8 @@ func TestApply_parallelism(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(provider),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(provider),
+			Ui:               ui,
 		},
 	}
 
@@ -241,8 +232,8 @@ func TestApply_configInvalid(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -276,10 +267,18 @@ func TestApply_defaultState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
+
+	// create an existing state file
+	localState := &state.LocalState{Path: statePath}
+	if err := localState.WriteState(terraform.NewState()); err != nil {
+		t.Fatal(err)
+	}
+
+	serial := localState.State().Serial
 
 	args := []string{
 		testFixturePath("apply"),
@@ -292,18 +291,13 @@ func TestApply_defaultState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
+	}
+
+	if state.Serial <= serial {
+		t.Fatalf("serial was not incremented. previous:%d, current%d", serial, state.Serial)
 	}
 }
 
@@ -314,8 +308,8 @@ func TestApply_error(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -360,88 +354,12 @@ func TestApply_error(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
 	if len(state.RootModule().Resources) == 0 {
 		t.Fatal("no resources in state")
-	}
-}
-
-func TestApply_init(t *testing.T) {
-	// Change to the temporary directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	dir := tempDir(t)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
-
-	// Create the test fixtures
-	statePath := testTempFile(t)
-	ln := testHttpServer(t)
-	defer ln.Close()
-
-	// Initialize the command
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &ApplyCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
-		},
-	}
-
-	// Build the URL to the init
-	var u url.URL
-	u.Scheme = "http"
-	u.Host = ln.Addr().String()
-	u.Path = "/header"
-
-	args := []string{
-		"-state", statePath,
-		u.String(),
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	if _, err := os.Stat("hello.tf"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if _, err := os.Stat(statePath); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if state == nil {
-		t.Fatal("state should not be nil")
 	}
 }
 
@@ -460,8 +378,8 @@ func TestApply_input(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -495,8 +413,8 @@ func TestApply_inputPartial(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -535,8 +453,8 @@ func TestApply_noArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -551,13 +469,7 @@ func TestApply_noArgs(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
+	state := testStateRead(t, statePath)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -584,8 +496,8 @@ func TestApply_plan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -605,16 +517,7 @@ func TestApply_plan(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
@@ -630,8 +533,8 @@ func TestApply_plan_backup(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -649,19 +552,8 @@ func TestApply_plan_backup(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	{
-		// Should have a backup file
-		f, err := os.Open(backupPath)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		_, err = terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
+	// Should have a backup file
+	testStateRead(t, backupPath)
 }
 
 func TestApply_plan_noBackup(t *testing.T) {
@@ -672,8 +564,8 @@ func TestApply_plan_noBackup(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -729,8 +621,8 @@ func TestApply_plan_remoteState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -782,8 +674,8 @@ func TestApply_planWithVarFile(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -799,16 +691,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
@@ -824,8 +707,8 @@ func TestApply_planVars(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -855,12 +738,10 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 		Module: testModule(t, "apply-plan-no-module"),
 	})
 
-	contextOpts := testCtxConfig(p)
-
 	apply := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: contextOpts,
-			Ui:          new(cli.MockUi),
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               new(cli.MockUi),
 		},
 	}
 	args := []string{
@@ -895,8 +776,8 @@ func TestApply_refresh(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -916,31 +797,13 @@ func TestApply_refresh(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
 
 	// Should have a backup file
-	f, err = os.Open(statePath + DefaultBackupExtension)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	backupState, err := terraform.ReadState(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	backupState := testStateRead(t, statePath+DefaultBackupExtension)
 
 	actualStr := strings.TrimSpace(backupState.String())
 	expectedStr := strings.TrimSpace(originalState.String())
@@ -961,8 +824,8 @@ func TestApply_shutdown(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 
 		ShutdownCh: shutdownCh,
@@ -1022,16 +885,7 @@ func TestApply_shutdown(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
@@ -1072,8 +926,8 @@ func TestApply_state(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1104,31 +958,12 @@ func TestApply_state(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
 
-	// Should have a backup file
-	f, err = os.Open(statePath + DefaultBackupExtension)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	backupState, err := terraform.ReadState(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	backupState := testStateRead(t, statePath+DefaultBackupExtension)
 
 	// nil out the ConnInfo since that should not be restored
 	originalState.RootModule().Resources["test_instance.foo"].Primary.Ephemeral.ConnInfo = nil
@@ -1145,8 +980,8 @@ func TestApply_stateNoExist(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1164,8 +999,8 @@ func TestApply_sensitiveOutput(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1198,8 +1033,8 @@ func TestApply_stateFuture(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1211,17 +1046,7 @@ func TestApply_stateFuture(t *testing.T) {
 		t.Fatal("should fail")
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	newState, err := terraform.ReadState(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
+	newState := testStateRead(t, statePath)
 	if !newState.Equal(originalState) {
 		t.Fatalf("bad: %#v", newState)
 	}
@@ -1239,8 +1064,8 @@ func TestApply_statePast(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1260,8 +1085,8 @@ func TestApply_vars(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1303,8 +1128,8 @@ func TestApply_varFile(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1356,8 +1181,8 @@ func TestApply_varFileDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1408,8 +1233,8 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1471,8 +1296,8 @@ func TestApply_backup(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1491,31 +1316,12 @@ func TestApply_backup(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
 
-	// Should have a backup file
-	f, err = os.Open(backupPath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	backupState, err := terraform.ReadState(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	backupState := testStateRead(t, backupPath)
 
 	actual := backupState.RootModule().Resources["test_instance.foo"]
 	expected := originalState.RootModule().Resources["test_instance.foo"]
@@ -1540,8 +1346,8 @@ func TestApply_disableBackup(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1573,22 +1379,13 @@ func TestApply_disableBackup(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer f.Close()
-
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
 
 	// Ensure there is no backup
-	_, err = os.Stat(statePath + DefaultBackupExtension)
+	_, err := os.Stat(statePath + DefaultBackupExtension)
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}
@@ -1608,8 +1405,8 @@ func TestApply_terraformEnv(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -1641,7 +1438,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Create new env
 	{
 		ui := new(cli.MockUi)
-		newCmd := &EnvNewCommand{}
+		newCmd := &WorkspaceNewCommand{}
 		newCmd.Meta = Meta{Ui: ui}
 		if code := newCmd.Run([]string{"test"}); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -1652,7 +1449,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	{
 		args := []string{"test"}
 		ui := new(cli.MockUi)
-		selCmd := &EnvSelectCommand{}
+		selCmd := &WorkspaceSelectCommand{}
 		selCmd.Meta = Meta{Ui: ui}
 		if code := selCmd.Run(args); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -1663,8 +1460,8 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 

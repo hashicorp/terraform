@@ -62,28 +62,28 @@ func contains(plugins []plugin, name string) bool {
 	return false
 }
 
-func TestDiscoverTypesProviders(t *testing.T) {
-	plugins, err := discoverTypesInPath("../builtin/providers", "terraform.ResourceProvider", "Provider")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	// We're just going to spot-check, not do this exhaustively
-	if !contains(plugins, "aws") {
-		t.Errorf("Expected to find aws provider")
-	}
-	if !contains(plugins, "docker") {
-		t.Errorf("Expected to find docker provider")
-	}
-	if !contains(plugins, "dnsimple") {
-		t.Errorf("Expected to find dnsimple provider")
-	}
-	if !contains(plugins, "triton") {
-		t.Errorf("Expected to find triton provider")
-	}
-	if contains(plugins, "file") {
-		t.Errorf("Found unexpected provider file")
-	}
-}
+//func TestDiscoverTypesProviders(t *testing.T) {
+//    plugins, err := discoverTypesInPath("../builtin/providers", "terraform.ResourceProvider", "Provider")
+//    if err != nil {
+//        t.Fatalf(err.Error())
+//    }
+//    // We're just going to spot-check, not do this exhaustively
+//    if !contains(plugins, "aws") {
+//        t.Errorf("Expected to find aws provider")
+//    }
+//    if !contains(plugins, "docker") {
+//        t.Errorf("Expected to find docker provider")
+//    }
+//    if !contains(plugins, "dnsimple") {
+//        t.Errorf("Expected to find dnsimple provider")
+//    }
+//    if !contains(plugins, "triton") {
+//        t.Errorf("Expected to find triton provider")
+//    }
+//    if contains(plugins, "file") {
+//        t.Errorf("Found unexpected provider file")
+//    }
+//}
 
 func TestDiscoverTypesProvisioners(t *testing.T) {
 	plugins, err := discoverTypesInPath("../builtin/provisioners", "terraform.ResourceProvisioner", "Provisioner")

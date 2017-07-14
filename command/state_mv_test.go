@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -47,8 +48,8 @@ func TestStateMv(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -70,6 +71,86 @@ func TestStateMv(t *testing.T) {
 		t.Fatalf("bad: %#v", backups)
 	}
 	testStateOutput(t, backups[0], testStateMvOutputOriginal)
+}
+
+// don't modify backend state is we supply a -state flag
+func TestStateMv_explicitWithBackend(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	backupPath := filepath.Join(td, "backup")
+
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+
+					"test_instance.baz": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, state)
+
+	// init our backend
+	ui := new(cli.MockUi)
+	ic := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{}
+	if code := ic.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// only modify statePath
+	p := testProvider()
+	ui = new(cli.MockUi)
+	c := &StateMvCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args = []string{
+		"-backup", backupPath,
+		"-state", statePath,
+		"test_instance.foo",
+		"test_instance.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, statePath, testStateMvOutput)
 }
 
 func TestStateMv_backupExplicit(t *testing.T) {
@@ -114,8 +195,8 @@ func TestStateMv_backupExplicit(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -132,12 +213,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 	// Test it is correct
 	testStateOutput(t, statePath, testStateMvOutput)
 
-	// Test we have backups
-	backups := testStateBackups(t, filepath.Dir(statePath))
-	if len(backups) != 1 {
-		t.Fatalf("bad: %#v", backups)
-	}
-	testStateOutput(t, backups[0], testStateMvOutputOriginal)
+	// Test backup
 	testStateOutput(t, backupPath, testStateMvOutputOriginal)
 }
 
@@ -169,8 +245,8 @@ func TestStateMv_stateOutNew(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -241,8 +317,8 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -282,8 +358,8 @@ func TestStateMv_noState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -343,8 +419,8 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -521,8 +597,8 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -602,8 +678,8 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 

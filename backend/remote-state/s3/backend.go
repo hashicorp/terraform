@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	terraformAWS "github.com/hashicorp/terraform/builtin/providers/aws"
+	terraformAWS "github.com/terraform-providers/terraform-provider-aws/aws"
 )
 
 // New creates a new backend for S3 remote state.
@@ -139,6 +139,13 @@ func New() backend.Backend {
 				Description: "The permissions applied when assuming a role.",
 				Default:     "",
 			},
+
+			"workspace_key_prefix": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The prefix applied to the non-default state path inside the bucket",
+				Default:     "env:",
+			},
 		},
 	}
 
@@ -160,6 +167,7 @@ type Backend struct {
 	acl                  string
 	kmsKeyID             string
 	ddbTable             string
+	workspaceKeyPrefix   string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -175,6 +183,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.serverSideEncryption = data.Get("encrypt").(bool)
 	b.acl = data.Get("acl").(string)
 	b.kmsKeyID = data.Get("kms_key_id").(string)
+	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
 
 	b.ddbTable = data.Get("dynamodb_table").(string)
 	if b.ddbTable == "" {

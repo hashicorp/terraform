@@ -467,6 +467,12 @@ const (
 	// Use only one ARN type.
 	ErrCodeMultipleIamArnsProvidedException = "MultipleIamArnsProvidedException"
 
+	// ErrCodeResourceValidationException for service response error code
+	// "ResourceValidationException".
+	//
+	// The specified resource could not be validated.
+	ErrCodeResourceValidationException = "ResourceValidationException"
+
 	// ErrCodeRevisionDoesNotExistException for service response error code
 	// "RevisionDoesNotExistException".
 	//

@@ -256,16 +256,17 @@ func Provisioner() terraform.ResourceProvisioner {
 // TODO: Support context cancelling (Provisioner Stop)
 func applyFn(ctx context.Context) error {
 	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
+	s := ctx.Value(schema.ProvRawStateKey).(*terraform.InstanceState)
 	d := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
 
-	// Decode the raw config for this provisioner
+	// Decode the provisioner config
 	p, err := decodeConfig(d)
 	if err != nil {
 		return err
 	}
 
 	if p.OSType == "" {
-		switch t := d.State().Ephemeral.ConnInfo["type"]; t {
+		switch t := s.Ephemeral.ConnInfo["type"]; t {
 		case "ssh", "": // The default connection type is ssh, so if the type is empty assume ssh
 			p.OSType = "linux"
 		case "winrm":
@@ -285,7 +286,7 @@ func applyFn(ctx context.Context) error {
 		p.generateClientKey = p.generateClientKeyFunc(linuxKnifeCmd, linuxConfDir, linuxNoOutput)
 		p.configureVaults = p.configureVaultsFunc(linuxGemCmd, linuxKnifeCmd, linuxConfDir)
 		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
-		p.useSudo = !p.PreventSudo && d.State().Ephemeral.ConnInfo["user"] != "root"
+		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
 	case "windows":
 		p.cleanupUserKeyCmd = fmt.Sprintf("cd %s && del /F /Q %s", windowsConfDir, p.UserName+".pem")
 		p.createConfigFiles = p.windowsCreateConfigFiles
@@ -300,7 +301,7 @@ func applyFn(ctx context.Context) error {
 	}
 
 	// Get a new communicator
-	comm, err := communicator.New(d.State())
+	comm, err := communicator.New(s)
 	if err != nil {
 		return err
 	}
@@ -368,21 +369,20 @@ func applyFn(ctx context.Context) error {
 	return nil
 }
 
-func validateFn(d *schema.ResourceData) (ws []string, es []error) {
-	p, err := decodeConfig(d)
-	if err != nil {
-		es = append(es, err)
-		return ws, es
+func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
+	usePolicyFile, ok := c.Get("use_policyfile")
+	if !ok {
+		usePolicyFile = false
 	}
 
-	if !p.UsePolicyfile && p.RunList == nil {
-		es = append(es, errors.New("Key not found: run_list"))
+	if !usePolicyFile.(bool) && !c.IsSet("run_list") {
+		es = append(es, errors.New("\"run_list\": required field is not set"))
 	}
-	if p.UsePolicyfile && p.PolicyName == "" {
-		es = append(es, errors.New("Policyfile enabled but key not found: policy_name"))
+	if usePolicyFile.(bool) && !c.IsSet("policy_name") {
+		es = append(es, errors.New("using policyfile, but \"policy_name\" not set"))
 	}
-	if p.UsePolicyfile && p.PolicyGroup == "" {
-		es = append(es, errors.New("Policyfile enabled but key not found: policy_group"))
+	if usePolicyFile.(bool) && !c.IsSet("policy_group") {
+		es = append(es, errors.New("using policyfile, but \"policy_group\" not set"))
 	}
 
 	return ws, es

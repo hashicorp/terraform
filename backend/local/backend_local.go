@@ -1,6 +1,7 @@
 package local
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -23,7 +24,7 @@ func (b *Local) Context(op *backend.Operation) (*terraform.Context, state.State,
 
 func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State, error) {
 	// Get the state.
-	s, err := b.State(op.Environment)
+	s, err := b.State(op.Workspace)
 	if err != nil {
 		return nil, nil, errwrap.Wrapf("Error loading state: {{err}}", err)
 	}
@@ -57,6 +58,15 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 	} else {
 		tfCtx, err = terraform.NewContext(&opts)
 	}
+
+	// any errors resolving plugins returns this
+	if rpe, ok := err.(*terraform.ResourceProviderError); ok {
+		b.pluginInitRequired(rpe)
+		// we wrote the full UI error here, so return a generic error for flow
+		// control in the command.
+		return nil, nil, errors.New("error satisfying plugin requirements")
+	}
+
 	if err != nil {
 		return nil, nil, err
 	}

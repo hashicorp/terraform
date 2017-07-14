@@ -108,10 +108,6 @@ func wrappedMain() int {
 
 	// Load the configuration
 	config := BuiltinConfig
-	if err := config.Discover(Ui); err != nil {
-		Ui.Error(fmt.Sprintf("Error discovering plugins: %s", err))
-		return 1
-	}
 
 	// Load the configuration file if we have one, that can be used to
 	// define extra providers and provisioners.
@@ -185,9 +181,9 @@ func wrappedMain() int {
 		HelpWriter: os.Stdout,
 	}
 
-	// Initialize the TFConfig settings for the commands...
-	ContextOpts.Providers = config.ProviderFactories()
-	ContextOpts.Provisioners = config.ProvisionerFactories()
+	// Pass in the overriding plugin paths from config
+	PluginOverrides.Providers = config.Providers
+	PluginOverrides.Provisioners = config.Provisioners
 
 	exitCode, err := cliRunner.Run()
 	if err != nil {

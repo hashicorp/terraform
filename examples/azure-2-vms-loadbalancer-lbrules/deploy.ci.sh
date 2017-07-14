@@ -18,7 +18,7 @@ docker run --rm -it \
 
 # cleanup deployed azure resources via azure-cli
 docker run --rm -it \
-  azuresdk/azure-cli-python \
+  azuresdk/azure-cli-python:0.2.10 \
   sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID > /dev/null; \
          az network lb show -g $KEY -n rglb; \
          az network lb rule list -g $KEY --lb-name rglb;"

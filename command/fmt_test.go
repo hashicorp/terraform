@@ -22,8 +22,8 @@ func TestFmt_errorReporting(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -43,8 +43,8 @@ func TestFmt_tooManyArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -82,8 +82,8 @@ func TestFmt_workingDirectory(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -108,8 +108,8 @@ func TestFmt_directoryArg(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -131,8 +131,8 @@ func TestFmt_stdinArg(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 		input: input,
 	}
@@ -158,8 +158,8 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 

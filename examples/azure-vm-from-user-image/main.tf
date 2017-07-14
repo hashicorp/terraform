@@ -55,7 +55,7 @@ resource "azurerm_virtual_machine" "vm" {
   storage_os_disk {
     name          = "${var.hostname}-osdisk1"
     image_uri     = "${var.image_uri}"
-    vhd_uri       = "https://${var.storage_account_name}.blob.core.windows.net/vhds/${var.hostname}osdisk.vhd"
+    vhd_uri       = "https://${var.storage_account_name}.blob.core.windows.net/vhds/${var.hostname}-osdisk.vhd"
     os_type       = "${var.os_type}"
     caching       = "ReadWrite"
     create_option = "FromImage"

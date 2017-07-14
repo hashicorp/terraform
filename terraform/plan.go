@@ -31,6 +31,9 @@ type Plan struct {
 	Vars    map[string]interface{}
 	Targets []string
 
+	TerraformVersion string
+	ProviderSHA256s  map[string][]byte
+
 	// Backend is the backend that this plan should use and store data with.
 	Backend *BackendState
 
@@ -42,17 +45,40 @@ type Plan struct {
 // The following fields in opts are overridden by the plan: Config,
 // Diff, State, Variables.
 func (p *Plan) Context(opts *ContextOpts) (*Context, error) {
+	var err error
+	opts, err = p.contextOpts(opts)
+	if err != nil {
+		return nil, err
+	}
+	return NewContext(opts)
+}
+
+// contextOpts mutates the given base ContextOpts in place to use input
+// objects obtained from the receiving plan.
+func (p *Plan) contextOpts(base *ContextOpts) (*ContextOpts, error) {
+	opts := base
+
 	opts.Diff = p.Diff
 	opts.Module = p.Module
 	opts.State = p.State
 	opts.Targets = p.Targets
+
+	opts.ProviderSHA256s = p.ProviderSHA256s
+
+	thisVersion := VersionString()
+	if p.TerraformVersion != "" && p.TerraformVersion != thisVersion {
+		return nil, fmt.Errorf(
+			"plan was created with a different version of Terraform (created with %s, but running %s)",
+			p.TerraformVersion, thisVersion,
+		)
+	}
 
 	opts.Variables = make(map[string]interface{})
 	for k, v := range p.Vars {
 		opts.Variables[k] = v
 	}
 
-	return NewContext(opts)
+	return opts, nil
 }
 
 func (p *Plan) String() string {
@@ -86,7 +112,7 @@ func (p *Plan) init() {
 // the ability in the future to change the file format if we want for any
 // reason.
 const planFormatMagic = "tfplan"
-const planFormatVersion byte = 1
+const planFormatVersion byte = 2
 
 // ReadPlan reads a plan structure out of a reader in the format that
 // was written by WritePlan.

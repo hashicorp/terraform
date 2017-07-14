@@ -5,7 +5,7 @@ Terraform
 - [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
 - Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
 
-![Terraform](https://rawgithub.com/hashicorp/terraform/master/website/source/assets/images/logo-hashicorp.svg)
+![Terraform](https://rawgit.com/hashicorp/terraform-website/master/source/assets/images/logo-hashicorp.svg)
 
 Terraform is a tool for building, changing, and versioning infrastructure safely and efficiently. Terraform can manage existing and popular service providers as well as custom in-house solutions.
 
@@ -30,6 +30,8 @@ Developing Terraform
 --------------------
 
 If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.8+ is *required*). Alternatively, you can use the Vagrantfile in the root of this repo to stand up a virtual machine with the appropriate dev tooling already set up for you.
+
+Note that as of Terraform 0.10, most providers are no longer built in, and instead are located in their own repositories in the [terraform-providers](https://github.com/terraform-providers) organization on GitHub. Instructions for developing each provider are in the associated README file.
 
 For local dev first make sure Go is properly installed, including setting up a [GOPATH](http://golang.org/doc/code.html#GOPATH). You will also need to add `$GOPATH/bin` to your `$PATH`.
 
@@ -56,16 +58,10 @@ $ make test TEST=./terraform
 ...
 ```
 
-If you're working on a specific provider and only wish to rebuild that provider, you can use the `plugin-dev` target. For example, to build only the Azure provider:
+If you're working on a specific provider which has not been separated into an individual repository and only wish to rebuild that provider, you can use the `plugin-dev` target. For example, to build only the Test provider:
 
 ```sh
-$ make plugin-dev PLUGIN=provider-azure
-```
-
-If you're working on the core of Terraform, and only wish to rebuild that without rebuilding providers, you can use the `core-dev` target. It is important to note that some types of changes may require both core and providers to be rebuilt - for example work on the RPC interface. To build just the core of Terraform:
-
-```sh
-$ make core-dev
+$ make plugin-dev PLUGIN=provider-test
 ```
 
 ### Dependencies
