@@ -10,6 +10,7 @@ import (
 	backendatlas "github.com/hashicorp/terraform/backend/atlas"
 	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendB2 "github.com/hashicorp/terraform/backend/remote-state/b2"
 	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
 	backendinmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
@@ -35,6 +36,7 @@ func init() {
 	// since init() code is serial and can't spawn goroutines.
 	backends = map[string]func() backend.Backend{
 		"atlas":  func() backend.Backend { return &backendatlas.Backend{} },
+		"b2":     func() backend.Backend { return backendB2.New() },
 		"local":  func() backend.Backend { return &backendlocal.Local{} },
 		"consul": func() backend.Backend { return backendconsul.New() },
 		"inmem":  func() backend.Backend { return backendinmem.New() },
