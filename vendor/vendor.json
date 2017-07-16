@@ -2014,6 +2014,12 @@
 			"revisionTime": "2017-01-11T19:10:52Z"
 		},
 		{
+			"checksumSHA1": "5MuWKBWtRRVG3SEVB9uqDT+BsF4=",
+			"path": "gopkg.in/kothar/go-backblaze.v0",
+			"revision": "fbcadd9c8589cf2e13010a7844022deac62e56da",
+			"revisionTime": "2016-08-12T15:38:59Z"
+		},
+		{
 			"checksumSHA1": "fALlQNY1fM99NesfLJ50KguWsio=",
 			"path": "gopkg.in/yaml.v2",
 			"revision": "cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b",
