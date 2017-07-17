@@ -25,6 +25,8 @@ type AgentService struct {
 	Port              int
 	Address           string
 	EnableTagOverride bool
+	CreateIndex       uint64
+	ModifyIndex       uint64
 }
 
 // AgentMember represents a cluster member known to the agent
@@ -65,17 +67,19 @@ type AgentCheckRegistration struct {
 
 // AgentServiceCheck is used to define a node or service level check
 type AgentServiceCheck struct {
-	Script            string `json:",omitempty"`
-	DockerContainerID string `json:",omitempty"`
-	Shell             string `json:",omitempty"` // Only supported for Docker.
-	Interval          string `json:",omitempty"`
-	Timeout           string `json:",omitempty"`
-	TTL               string `json:",omitempty"`
-	HTTP              string `json:",omitempty"`
-	TCP               string `json:",omitempty"`
-	Status            string `json:",omitempty"`
-	Notes             string `json:",omitempty"`
-	TLSSkipVerify     bool   `json:",omitempty"`
+	Script            string              `json:",omitempty"`
+	DockerContainerID string              `json:",omitempty"`
+	Shell             string              `json:",omitempty"` // Only supported for Docker.
+	Interval          string              `json:",omitempty"`
+	Timeout           string              `json:",omitempty"`
+	TTL               string              `json:",omitempty"`
+	HTTP              string              `json:",omitempty"`
+	Header            map[string][]string `json:",omitempty"`
+	Method            string              `json:",omitempty"`
+	TCP               string              `json:",omitempty"`
+	Status            string              `json:",omitempty"`
+	Notes             string              `json:",omitempty"`
+	TLSSkipVerify     bool                `json:",omitempty"`
 
 	// In Consul 0.7 and later, checks that are associated with a service
 	// may also contain this optional DeregisterCriticalServiceAfter field,
@@ -438,7 +442,7 @@ func (a *Agent) DisableNodeMaintenance() error {
 // Monitor returns a channel which will receive streaming logs from the agent
 // Providing a non-nil stopCh can be used to close the connection and stop the
 // log stream
-func (a *Agent) Monitor(loglevel string, stopCh chan struct{}, q *QueryOptions) (chan string, error) {
+func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
 	r.setQueryOptions(q)
 	if loglevel != "" {
