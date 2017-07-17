@@ -118,3 +118,52 @@ func TestReadWritePlan(t *testing.T) {
 		t.Fatalf("bad:\n\n%s\n\nexpected:\n\n%s", actualStr, expectedStr)
 	}
 }
+
+func TestPlanContextOptsOverrideStateGood(t *testing.T) {
+	plan := &Plan{
+		Diff: &Diff{
+			Modules: []*ModuleDiff{
+				{
+					Path: []string{"test"},
+				},
+			},
+		},
+		Module: module.NewTree("test", nil),
+		State: &State{
+			TFVersion: "sigil",
+			Serial:    1,
+		},
+		Vars:    map[string]interface{}{"foo": "bar"},
+		Targets: []string{"baz"},
+
+		TerraformVersion: VersionString(),
+		ProviderSHA256s: map[string][]byte{
+			"test": []byte("placeholder"),
+		},
+	}
+
+	base := &ContextOpts{
+		State: &State{
+			TFVersion: "sigil",
+			Serial:    2,
+		},
+	}
+
+	got, err := plan.contextOpts(base)
+	if err != nil {
+		t.Fatalf("error creating context: %s", err)
+	}
+
+	want := &ContextOpts{
+		Diff:            plan.Diff,
+		Module:          plan.Module,
+		State:           base.State,
+		Variables:       plan.Vars,
+		Targets:         plan.Targets,
+		ProviderSHA256s: plan.ProviderSHA256s,
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("wrong result\ngot:  %#v\nwant %#v", got, want)
+	}
+}

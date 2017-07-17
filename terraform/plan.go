@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/hashicorp/terraform/config/module"
@@ -43,7 +44,11 @@ type Plan struct {
 // Context returns a Context with the data encapsulated in this plan.
 //
 // The following fields in opts are overridden by the plan: Config,
-// Diff, State, Variables.
+// Diff, Variables.
+//
+// If State is not provided, it is set from the plan. If it _is_ provided,
+// it must be Equal to the state stored in plan, but may have a newer
+// serial.
 func (p *Plan) Context(opts *ContextOpts) (*Context, error) {
 	var err error
 	opts, err = p.contextOpts(opts)
@@ -60,10 +65,22 @@ func (p *Plan) contextOpts(base *ContextOpts) (*ContextOpts, error) {
 
 	opts.Diff = p.Diff
 	opts.Module = p.Module
-	opts.State = p.State
 	opts.Targets = p.Targets
-
 	opts.ProviderSHA256s = p.ProviderSHA256s
+
+	if opts.State == nil {
+		opts.State = p.State
+	} else if !opts.State.Equal(p.State) {
+		// Even if we're overriding the state, it should be logically equal
+		// to what's in plan. The only valid change to have made by the time
+		// we get here is to have incremented the serial.
+		//
+		// Due to the fact that serialization may change the representation of
+		// the state, there is little chance that these aren't actually equal.
+		// Log the error condition for reference, but continue with the state
+		// we have.
+		log.Println("[WARNING] Plan state and ContextOpts state are not equal")
+	}
 
 	thisVersion := VersionString()
 	if p.TerraformVersion != "" && p.TerraformVersion != thisVersion {
