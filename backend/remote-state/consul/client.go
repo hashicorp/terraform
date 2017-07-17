@@ -367,14 +367,7 @@ func (c *RemoteClient) createSession() (string, error) {
 	log.Println("[INFO] created consul lock session", id)
 
 	// keep the session renewed
-	// we need an adapter to convert the session Done() channel to a
-	// non-directional channel to satisfy the RenewPeriodic signature.
-	done := make(chan struct{})
-	go func() {
-		<-ctx.Done()
-		close(done)
-	}()
-	go session.RenewPeriodic(lockSessionTTL, id, nil, done)
+	go session.RenewPeriodic(lockSessionTTL, id, nil, ctx.Done())
 
 	return id, nil
 }
