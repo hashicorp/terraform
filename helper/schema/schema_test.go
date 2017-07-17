@@ -3353,6 +3353,48 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			},
 			true,
 		},
+
+		"invalid field name format #1": {
+			map[string]*Schema{
+				"with space": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+			true,
+		},
+
+		"invalid field name format #2": {
+			map[string]*Schema{
+				"WithCapitals": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+			true,
+		},
+
+		"invalid field name format of a Deprecated field": {
+			map[string]*Schema{
+				"WithCapitals": &Schema{
+					Type:       TypeString,
+					Optional:   true,
+					Deprecated: "Use with_underscores instead",
+				},
+			},
+			false,
+		},
+
+		"invalid field name format of a Removed field": {
+			map[string]*Schema{
+				"WithCapitals": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Removed:  "Use with_underscores instead",
+				},
+			},
+			false,
+		},
 	}
 
 	for tn, tc := range cases {
