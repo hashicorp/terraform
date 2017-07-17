@@ -2,7 +2,8 @@
 
 IMPROVEMENTS:
 
-* core: Actively disallow reserved field names in schema [GH-15522]
+* helper/schema: Actively disallow reserved field names in schema [GH-15522]
+* helper/schema: Force field names to be alphanum lowercase + underscores [GH-15562]
 
 ## 0.10.0-beta2 (July 6, 2017)
 
