@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
-
 	"gopkg.in/kothar/go-backblaze.v0"
 )
 

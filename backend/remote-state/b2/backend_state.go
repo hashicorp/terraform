@@ -1,17 +1,19 @@
 package b2
 
 import (
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-
 	"errors"
-	"gopkg.in/kothar/go-backblaze.v0"
 	"sort"
 	"strings"
+
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/terraform"
+	"gopkg.in/kothar/go-backblaze.v0"
 )
 
 const (
-	keyEnvSuffix = "env:"
+	keyEnvSuffix = "-env:"
 )
 
 func (b *Backend) States() ([]string, error) {
@@ -40,11 +42,10 @@ func (b *Backend) States() ([]string, error) {
 // go-backblaze currently doesn't support the B2 API's 'prefix' option
 // Until this is fixed, start from default env's path and manually check for env suffix
 func (b *Backend) findFilesWithEnvSuffix(suffix string, bucket *backblaze.Bucket) ([]string, error) {
-	scanning := true
 	filenames := []string{}
 	startingFilename := b.keyName
 
-	for scanning {
+	for {
 		resp, err := bucket.ListFileNames(startingFilename, 1000)
 		if err != nil {
 			return nil, err
@@ -58,9 +59,10 @@ func (b *Backend) findFilesWithEnvSuffix(suffix string, bucket *backblaze.Bucket
 
 		if strings.HasPrefix(resp.NextFileName, b.keyName) {
 			startingFilename = resp.NextFileName
-		} else {
-			scanning = false
+			continue
 		}
+
+		break
 	}
 
 	return filenames, nil
@@ -82,7 +84,56 @@ func (b *Backend) DeleteState(name string) error {
 }
 
 func (b *Backend) State(name string) (state.State, error) {
-	return nil, backend.ErrNamedStatesNotSupported
+	client, err := b.remoteClient(name)
+	if err != nil {
+		return nil, err
+	}
+
+	stateMgr := &remote.State{Client: client}
+
+	// Check is the state file exists
+	// If it does not, create a new one
+	states, err := b.States()
+	if err != nil {
+		return nil, err
+	}
+
+	exists := false
+	for _, s := range states {
+		if s == name {
+			exists = true
+			break
+		}
+	}
+
+	if !exists {
+		if err := stateMgr.WriteState(terraform.NewState()); err != nil {
+			return nil, err
+		}
+		if err := stateMgr.PersistState(); err != nil {
+			return nil, err
+		}
+	}
+
+	return stateMgr, nil
+}
+
+func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
+	if name == "" {
+		return nil, errors.New("missing state name")
+	}
+
+	bucket, err := b.b2.Bucket(b.bucketName)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &RemoteClient{
+		bucket: bucket,
+		path:   b.path(name),
+	}
+
+	return client, nil
 }
 
 func (b *Backend) path(name string) string {
