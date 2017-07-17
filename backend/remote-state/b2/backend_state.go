@@ -52,12 +52,12 @@ func (b *Backend) findFilesWithEnvSuffix(suffix string, bucket *backblaze.Bucket
 		}
 
 		for _, fileStatus := range resp.Files {
-			if strings.HasPrefix(fileStatus.Name, b.keyName) {
+			if strings.HasPrefix(fileStatus.Name, b.keyName+keyEnvSuffix) {
 				filenames = append(filenames, fileStatus.Name)
 			}
 		}
 
-		if strings.HasPrefix(resp.NextFileName, b.keyName) {
+		if strings.HasPrefix(resp.NextFileName, b.keyName+keyEnvSuffix) {
 			startingFilename = resp.NextFileName
 			continue
 		}
