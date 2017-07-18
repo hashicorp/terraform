@@ -72,3 +72,41 @@ Usage: terraform graph [options] PATH
   read this format is GraphViz, but many web services are also available
   to read this format.
 ```
+
+## Upgrade and Security Bulletin Checks
+
+The Terraform CLI commands interact with the HashiCorp service
+[Checkpoint](https://checkpoint.hashicorp.com/) to check for the availability
+of new versions and for critical security bulletins about the current version.
+
+One place where the effect of this can be seen is in `terraform version`, where
+it is used by default to indicate in the output when a newer version is
+available.
+
+Only anonymous information, which cannot be used to identify the user or host,
+is sent to Checkpoint. An anonymous ID is sent which helps de-duplicate warning
+messages. Both the anonymous id and the use of checkpoint itself are completely
+optional and can be disabled.
+
+Checkpoint itself can be entirely disabled for all HashiCorp products by
+setting the environment variable `CHECKPOINT_DISABLE` to any non-empty value.
+
+Alternatively, settings in Terraform's global configuration file can be used
+to disable checkpoint features. On Unix systems this file is named
+`.terraformrc` and is placed within the home directory of the user running
+Terraform. On Windows, this file is named `terraform.rc` and is and is placed
+in the current user's _Application Data_ folder.
+
+The following checkpoint-related settings are supported in this file:
+
+* `disable_checkpoint` - set to `true` to disable checkpoint calls
+  entirely. This is similar to the `CHECKPOINT_DISABLE` environment variable
+  described above.
+
+* `disable_checkpoint_signature` - set to `true` to disable the use of an
+  anonymous signature in checkpoint requests. This allows Terraform to check
+  for security bulletins but does not send the anonymous signature in these
+  requests.
+
+[The Checkpoint client code](https://github.com/hashicorp/go-checkpoint) used
+by Terraform is available for review by any interested party.
