@@ -32,6 +32,59 @@ of this page will assume you're familiar with
 [plugin basics](/docs/plugins/basics.html) and that you already have
 a basic development environment setup.
 
+## Provider Plugin Codebases
+
+Provider plugins live outside of the Terraform core codebase in their own
+source code repositories. The official set of provider plugins released by
+HashiCorp (developed by both HashiCorp staff and community contributors)
+all live in repositories in
+[the `terraform-providers` organization](https://github.com/terraform-providers)
+on GitHub, but third-party plugins can be maintained in any source code
+repository.
+
+When developing a provider plugin, it is recommended to use a common `GOPATH`
+that includes both the core Terraform repository and the repositories of any
+providers being changed. This makes it easier to use a locally-built
+`terraform` executable and a set of locally-built provider plugins together
+without further configuration.
+
+For example, to download both Terraform and the `template` provider into
+`GOPATH`:
+
+```
+$ go get github.com/hashicorp/terraform
+$ go get github.com/terraform-providers/terraform-provider-template
+```
+
+These two packages are both "main" packages that can be built into separate
+executables with `go install`:
+
+```
+$ go install github.com/hashicorp/terraform
+$ go install github.com/terraform-providers/terraform-provider-template
+```
+
+After running the above commands, both Terraform core and the `template`
+provider will both be installed in the current `GOPATH` and `$GOPATH/bin`
+will contain both `terraform` and `terraform-provider-template` executables.
+This `terraform` executable will find and use the `template` provider plugin
+alongside it in the `bin` directory in preference to downloading and installing
+an official release.
+
+When constructing a new provider from scratch, it's recommended to follow
+a similar repository structure as for the existing providers, with the main
+package in the repository root and a library package in a subdirectory named
+after the provider. For more information, see
+[the custom providers guide](/guides/writing-custom-terraform-providers.html).
+
+When making changes only to files within the provider repository, it is _not_
+necessary to re-build the main Terraform executable. Note that some packages
+from the Terraform repository are used as library dependencies by providers,
+such as `github.com/hashicorp/terraform/helper/schema`; it is recommended to
+use `govendor` to create a local vendor copy of the relevant packages in the
+provider repository, as can be seen in the repositories within the
+`terraform-providers` GitHub organization.
+
 ## Low-Level Interface
 
 The interface you must implement for providers is
