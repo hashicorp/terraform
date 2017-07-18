@@ -51,10 +51,14 @@ func buildTwoPartID(a, b *string) string {
 	return fmt.Sprintf("%s:%s", *a, *b)
 }
 
+func releaseGithubSemaphor() {
+	<-githubSemaphor
+}
+
 func wrapGithubSemaphor(f func(*schema.ResourceData, interface{}) error) func(*schema.ResourceData, interface{}) error {
-	defer <-githubSemaphor // release semaphor
-
-	githubSemaphor <- 1 // request semaphor
-
-	return f
+	return func(s *schema.ResourceData, i interface{}) error {
+		defer releaseGithubSemaphor()
+		githubSemaphor <- 1 // request semaphor
+		return f(s, i)
+	}
 }
