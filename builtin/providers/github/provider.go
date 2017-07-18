@@ -54,9 +54,13 @@ func Provider() terraform.ResourceProvider {
 	}
 }
 
+var githubSemaphor chan int
+
 var descriptions map[string]string
 
 func init() {
+	githubSemaphor = make(chan int, 4)
+
 	descriptions = map[string]string{
 		"token": "The OAuth token used to connect to GitHub.",
 

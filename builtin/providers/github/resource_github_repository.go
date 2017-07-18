@@ -11,10 +11,10 @@ import (
 func resourceGithubRepository() *schema.Resource {
 
 	return &schema.Resource{
-		Create: resourceGithubRepositoryCreate,
-		Read:   resourceGithubRepositoryRead,
-		Update: resourceGithubRepositoryUpdate,
-		Delete: resourceGithubRepositoryDelete,
+		Create: wrapGithubSemaphor(resourceGithubRepositoryCreate),
+		Read:   wrapGithubSemaphor(resourceGithubRepositoryRead),
+		Update: wrapGithubSemaphor(resourceGithubRepositoryUpdate),
+		Delete: wrapGithubSemaphor(resourceGithubRepositoryDelete),
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
