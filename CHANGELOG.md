@@ -1,6 +1,10 @@
 ## 0.10.0-rc1 (Unreleased)
 
-IMPROVEMENTS:
+BUG FIXES:
+
+* Handle correctly the `.exe` suffix on locally-compiled provider plugins on Windows systems. [GH-15587]
+
+INTERNAL CHANGES:
 
 * helper/schema: Actively disallow reserved field names in schema [GH-15522]
 * helper/schema: Force field names to be alphanum lowercase + underscores [GH-15562]
