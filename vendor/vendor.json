@@ -1666,6 +1666,18 @@
 			"revisionTime": "2017-07-06T04:51:09Z"
 		},
 		{
+			"checksumSHA1": "NizrNME2NimBRFA7WnzwlXPzsL4=",
+			"path": "github.com/pquerna/ffjson/fflib/v1",
+			"revision": "e17ae1e9b229dae956972fddd3479917136b749e",
+			"revisionTime": "2017-07-06T04:51:09Z"
+		},
+		{
+			"checksumSHA1": "iZHmHPBzKJiS6ROUaVOf4DVOhbA=",
+			"path": "github.com/pquerna/ffjson/fflib/v1/internal",
+			"revision": "e17ae1e9b229dae956972fddd3479917136b749e",
+			"revisionTime": "2017-07-06T04:51:09Z"
+		},
+		{
 			"checksumSHA1": "Yqr9OQ7AuIB1N0HMbSxqEoVQG+k=",
 			"comment": "v2.0.1-8-g983d3a5",
 			"path": "github.com/ryanuber/columnize",
