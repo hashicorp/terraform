@@ -1660,6 +1660,12 @@
 			"revision": "3d184cea22ee1c41ec1697e0d830ff0c78f7ea97"
 		},
 		{
+			"checksumSHA1": "sLu2d9DEcqaat6Oqnx1xR8ow2vI=",
+			"path": "github.com/pquerna/ffjson/ffjson",
+			"revision": "e17ae1e9b229dae956972fddd3479917136b749e",
+			"revisionTime": "2017-07-06T04:51:09Z"
+		},
+		{
 			"checksumSHA1": "Yqr9OQ7AuIB1N0HMbSxqEoVQG+k=",
 			"comment": "v2.0.1-8-g983d3a5",
 			"path": "github.com/ryanuber/columnize",
