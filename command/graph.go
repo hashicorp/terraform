@@ -88,6 +88,12 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Building a graph may require config module to be present, even if it's
+	// empty.
+	if mod == nil && plan == nil {
+		mod = module.NewEmptyTree()
+	}
+
 	// Build the operation
 	opReq := c.Operation()
 	opReq.Module = mod
