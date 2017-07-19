@@ -15,10 +15,23 @@ a Terraform release already on releases.hashicorp.com, the build will fail.
 
 ## What it produces
 
-This configuration is used to produce the "latest", "light" and "beta" tags
-in Dockerhub, as well as specific version tags.
+This configuration is used to produce the "latest", "light", and "beta"
+tags in Dockerhub, as well as specific version tags.
 
-"latest" and "light" are synonyms, and are built from a branch in this
-repository called "stable". "beta" is built from a branch called "beta". Both
-of these branches should be updated only to _tagged_ commits, and only when
+* "latest" and "light" are synonyms, and are built from a branch in this
+repository called "stable".
+* "beta" is built from a branch called "beta".
+
+All of these branches should be updated only to _tagged_ commits, and only when
 it is desirable to create a new release image.
+
+## The `full` and `master` images image
+
+This configuration does not produce the "full" image. That is instead produced
+by the `Dockerfile` in the repository root, driven by updates to the "stable"
+branch.
+
+The "master" tag is updated for _every_ commit to the master branch of
+the Terraform core repository. It is not recommended to use these images for
+any production use, but they can be useful for testing bleeding-edge features
+that are not yet included in a release.
