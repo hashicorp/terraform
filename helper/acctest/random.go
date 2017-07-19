@@ -60,6 +60,9 @@ func RandStringFromCharSet(strlen int, charSet string) string {
 // returned in OpenSSH format, and the private key is PEM encoded.
 func RandSSHKeyPair(comment string) (string, string, error) {
 	privateKey, privateKeyPEM, err := genPrivateKey()
+	if err != nil {
+		return "", "", err
+	}
 
 	publicKey, err := ssh.NewPublicKey(&privateKey.PublicKey)
 	if err != nil {
