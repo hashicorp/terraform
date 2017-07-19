@@ -2,6 +2,8 @@
 
 BUG FIXES:
 
+* Don't show a message about the path to the state file if the state is remote [GH-15435]
+* Fix crash when `terraform graph` is run with no configuration [GH-15588]
 * Handle correctly the `.exe` suffix on locally-compiled provider plugins on Windows systems. [GH-15587]
 
 INTERNAL CHANGES:
