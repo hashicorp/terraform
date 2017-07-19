@@ -1,15 +1,15 @@
-## 0.10.0-rc1 (Unreleased)
+## 0.10.0-rc1 (July 19, 2017)
 
 BUG FIXES:
 
-* Don't show a message about the path to the state file if the state is remote [GH-15435]
-* Fix crash when `terraform graph` is run with no configuration [GH-15588]
-* Handle correctly the `.exe` suffix on locally-compiled provider plugins on Windows systems. [GH-15587]
+* Don't show a message about the path to the state file if the state is remote ([#15435](https://github.com/hashicorp/terraform/issues/15435))
+* Fix crash when `terraform graph` is run with no configuration ([#15588](https://github.com/hashicorp/terraform/issues/15588))
+* Handle correctly the `.exe` suffix on locally-compiled provider plugins on Windows systems. ([#15587](https://github.com/hashicorp/terraform/issues/15587))
 
 INTERNAL CHANGES:
 
-* helper/schema: Actively disallow reserved field names in schema [GH-15522]
-* helper/schema: Force field names to be alphanum lowercase + underscores [GH-15562]
+* helper/schema: Actively disallow reserved field names in schema ([#15522](https://github.com/hashicorp/terraform/issues/15522))
+* helper/schema: Force field names to be alphanum lowercase + underscores ([#15562](https://github.com/hashicorp/terraform/issues/15562))
 
 ## 0.10.0-beta2 (July 6, 2017)
 
