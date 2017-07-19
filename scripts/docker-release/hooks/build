@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# This script assumes that its working directory is the parent directory,
+# where the Dockerfile-release file is located, since that's how Dockerhub
+# runs hooks.
+
+set -eu
+
+# We assume that this is always running while git HEAD is pointed at a release
+# tag or a branch that is pointed at the same commit as a release tag. If not,
+# this will fail since we can't build a release image for a commit that hasn't
+# actually been released.
+VERSION="$(git describe)"
+
+echo "Building release docker images for version $VERSION"
+VERSION_SLUG="${VERSION#v}"
+
+docker build "--build-arg=TERRAFORM_VERSION=${VERSION_SLUG}" -t ${IMAGE_NAME} -f "Dockerfile-release" .
