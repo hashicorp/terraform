@@ -57,7 +57,7 @@ These are the parameters that can be set:
 - `type` (optional) - If set this defines the type of the variable. Valid values
   are `string`, `list`, and `map`. If this field is omitted, the variable type
   will be inferred based on the `default`. If no `default` is provided, the type
-  is assumed to be `string`.
+  is assumed to be `string`. Terraform will make an implicit conversation of any values to `boolean` or `decimal` types if the consumer expects that.
 
 - `default` (optional) - This sets a default value for the variable. If no
   default is provided, the variable is considered required and Terraform will
