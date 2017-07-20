@@ -13,6 +13,9 @@ import (
 
 func TestPluginPath(t *testing.T) {
 	td, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
