@@ -3,10 +3,10 @@ provider "alicloud" {
   region = "${var.region}"
 }
 
-data "alicloud_instance_types" "1c2g" {
+data "alicloud_instance_types" "2c4g" {
 	cpu_core_count = 2
 	memory_size = 4
-	instance_type_family = "ecs.n1"
+	instance_type_family = "ecs.n4"
 }
 
 data "alicloud_images" "centos" {
@@ -15,7 +15,7 @@ data "alicloud_images" "centos" {
 }
 
 data "alicloud_zones" "default" {
-	"available_instance_type"= "${data.alicloud_instance_types.1c2g.instance_types.0.id}"
+	"available_instance_type"= "${data.alicloud_instance_types.2c4g.instance_types.0.id}"
 	"available_disk_category"= "${var.disk_category}"
 }
 
@@ -62,9 +62,8 @@ resource "alicloud_instance" "webserver" {
 
 	# series II
 	instance_charge_type = "PostPaid"
-	instance_type = "${data.alicloud_instance_types.1c2g.instance_types.0.id}"
+	instance_type = "${data.alicloud_instance_types.2c4g.instance_types.0.id}"
 	internet_max_bandwidth_out = 0
-	io_optimized = "${var.io_optimized}"
 
 	system_disk_category = "${var.disk_category}"
 	image_id = "${data.alicloud_images.centos.images.0.id}"

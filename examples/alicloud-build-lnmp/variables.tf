@@ -7,9 +7,7 @@ variable "vpc_cidr" {
 variable "vswitch_cidr" {
   default = "10.1.1.0/24"
 }
-variable "io_optimized" {
-  default = "optimized"
-}
+
 variable "ecs_password" {
   default = "Test1234567*"
 }

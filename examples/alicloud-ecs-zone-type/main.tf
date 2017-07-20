@@ -1,7 +1,7 @@
 data "alicloud_instance_types" "1c2g" {
 	cpu_core_count = 1
 	memory_size = 2
-	instance_type_family = "ecs.n1"
+	instance_type_family = "ecs.n4"
 }
 
 data "alicloud_zones" "default" {
@@ -58,8 +58,6 @@ resource "alicloud_instance" "instance" {
 
   internet_charge_type = "${var.internet_charge_type}"
   internet_max_bandwidth_out = "${var.internet_max_bandwidth_out}"
-
-  io_optimized = "${var.io_optimized}"
 
   password = "${var.ecs_password}"
 

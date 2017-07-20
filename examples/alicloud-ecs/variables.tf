@@ -37,18 +37,11 @@ variable "internet_max_bandwidth_out" {
   default = 5
 }
 
-variable "io_optimized" {
-  default = "optimized"
-}
-
 variable "disk_category" {
   default = "cloud_efficiency"
 }
 variable "disk_size" {
   default = "40"
-}
-variable "device_name" {
-  default = "/dev/xvdb"
 }
 
 variable "nic_type" {

@@ -8,21 +8,19 @@ resource "alicloud_instance" "instance" {
   instance_name = "website-${format(var.count_format, count.index+1)}"
   host_name = "website-${format(var.count_format, count.index+1)}"
   image_id = "centos7u2_64_40G_cloudinit_20160728.raw"
-  instance_type = "ecs.s2.large"
+  instance_type = "ecs.n4.small"
   count = "6"
-  availability_zone = "cn-beijing-b"
+  availability_zone = "cn-beijing-a"
   security_groups = "${var.security_groups}"
 
   internet_charge_type = "PayByBandwidth"
-
-  io_optimized = "none"
 
   password = "${var.ecs_password}"
 
   allocate_public_ip = "false"
 
   instance_charge_type = "PostPaid"
-  system_disk_category = "cloud"
+  system_disk_category = "cloud_ssd"
 
 
   tags {
