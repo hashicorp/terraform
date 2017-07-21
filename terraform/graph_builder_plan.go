@@ -40,6 +40,9 @@ type PlanGraphBuilder struct {
 	// Validate will do structural validation of the graph.
 	Validate bool
 
+	// Input represents that this builder is for an Input operation.
+	Input bool
+
 	// CustomConcrete can be set to customize the node types created
 	// for various parts of the plan. This is useful in order to customize
 	// the plan behavior.
@@ -107,7 +110,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		),
 
 		// Add module variables
-		&ModuleVariableTransformer{Module: b.Module},
+		&ModuleVariableTransformer{
+			Module: b.Module,
+			Input:  b.Input,
+		},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
