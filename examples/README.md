@@ -8,9 +8,17 @@ To run any example, just run `terraform apply` within that directory
 if you have Terraform checked out. Or, you can run it directly from git:
 
 ```
-$ terraform init github.com/hashicorp/terraform/examples/aws-two-tier
+$ terraform init github.com/hashicorp/terraform/examples/cross-provider
 ...
 
 $ terraform apply
 ...
 ```
+
+## Provider-specific Examples
+
+Terraform providers each live in their own repository. Some of these
+repositories contain documentation specific to their provider:
+
+* [AliCloud Examples](https://github.com/terraform-providers/terraform-provider-alicloud/tree/master/examples)
+* [Amazon Web Services Examples](https://github.com/terraform-providers/terraform-provider-aws/tree/master/examples)
