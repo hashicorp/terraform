@@ -1,7 +1,0 @@
-# Azure provide keys example. This should not be included in your repository for security reasons
-# Use terrafrom -var-file="FULLPATH"
-
-subscription_id = ""
-client_id = ""
-client_secret = ""
-tenant_id = ""
