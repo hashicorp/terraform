@@ -63,6 +63,9 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
   this was not true. After upgrading, be sure to look carefully at the set of changes proposed by `terraform plan` when using `-target`
   to ensure that the target is being interpreted as expected. Note that the `-target` argument is offered for exceptional circumstances
   only and is not intended for routine use.
+* The `import` command requires that imported resources be specified in the configuration file. Previously, users were encouraged to
+  import a resource and _then_ write the configuration block for it. This creates the risk that users could import a resource and
+  subsequently create no configuration for it, which results in Terraform deleting the resource. ([#11835](https://github.com/hashicorp/terraform/issues/11835))
 
 IMPROVEMENTS:
 
