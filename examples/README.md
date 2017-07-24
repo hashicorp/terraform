@@ -23,3 +23,4 @@ repositories contain documentation specific to their provider:
 * [AliCloud Examples](https://github.com/terraform-providers/terraform-provider-alicloud/tree/master/examples)
 * [Amazon Web Services Examples](https://github.com/terraform-providers/terraform-provider-aws/tree/master/examples)
 * [Azure Examples](https://github.com/terraform-providers/terraform-provider-azurerm/tree/master/examples)
+* [Google Cloud Examples](https://github.com/terraform-providers/terraform-provider-google/tree/master/examples)
