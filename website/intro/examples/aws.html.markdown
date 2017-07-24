@@ -8,7 +8,7 @@ description: |-
 
 # Two-Tier AWS Architecture
 
-[**Example Source Code**](https://github.com/hashicorp/terraform/tree/master/examples/aws-two-tier)
+[**Example Source Code**](https://github.com/terraform-providers/terraform-provider-aws/tree/master/examples/two-tier)
 
 This provides a template for running a simple two-tier architecture on Amazon
 Web Services. The premise is that you have stateless app servers running behind
