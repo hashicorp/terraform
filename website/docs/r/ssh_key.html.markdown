@@ -6,7 +6,7 @@ description: |-
   Manages SoftLayer SSH Keys.
 ---
 
-# softlayer\ssh_key
+# softlayer\_ssh\_key
 
 Provides SSK keys. This allows SSH keys to be created, updated and deleted.
 For additional details please refer to [API documentation](http://sldn.softlayer.com/reference/datatypes/SoftLayer_Security_Ssh_Key).
