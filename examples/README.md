@@ -21,4 +21,5 @@ repositories contain documentation specific to their provider:
 * [Amazon Web Services Examples](https://github.com/terraform-providers/terraform-provider-aws/tree/master/examples)
 * [Azure Examples](https://github.com/terraform-providers/terraform-provider-azurerm/tree/master/examples)
 * [CenturyLink Cloud Examples](https://github.com/terraform-providers/terraform-provider-clc/tree/master/examples)
+* [Consul Examples](https://github.com/terraform-providers/terraform-provider-consul/tree/master/examples)
 * [Google Cloud Examples](https://github.com/terraform-providers/terraform-provider-google/tree/master/examples)
