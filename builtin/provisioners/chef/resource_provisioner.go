@@ -782,18 +782,18 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 }
 
 func getStringList(v interface{}) []string {
-	if v == nil {
-		return nil
-	}
-	switch l := v.(type) {
-	case []string:
-		return l
+	var result []string
+
+	switch v := v.(type) {
+	case nil:
+		return result
 	case []interface{}:
-		arr := make([]string, len(l))
-		for i, x := range l {
-			arr[i] = x.(string)
+		for _, vv := range v {
+			if vv, ok := vv.(string); ok {
+				result = append(result, vv)
+			}
 		}
-		return arr
+		return result
 	default:
 		panic(fmt.Sprintf("Unsupported type: %T", v))
 	}
