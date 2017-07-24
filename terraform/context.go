@@ -258,11 +258,11 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 	case GraphTypeInput:
 		return (&InputGraphBuilder{
 			Module:    c.module,
-			State:     c.state,
 			Providers: c.components.ResourceProviders(),
 			Targets:   c.targets,
 			Validate:  opts.Validate,
 		}).Build(RootModulePath)
+
 	case GraphTypeValidate:
 		// The validate graph is just a slightly modified plan graph
 		fallthrough

@@ -1,20 +1,18 @@
 package terraform
 
 import (
-	"sync"
-
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 )
 
 // InputGraphBuilder implements GraphBuilder and is responsible for building
 // a graph for input.
+//
+// It is a simplified version of the PlanGraphBuilder, adding only what is
+// required to locate missing variables and provider values.
 type InputGraphBuilder struct {
 	// Module is the root module for the graph to build.
 	Module *module.Tree
-
-	// State is the current state
-	State *State
 
 	// Providers is the list of providers supported.
 	Providers []string
@@ -30,16 +28,6 @@ type InputGraphBuilder struct {
 
 	// Validate will do structural validation of the graph.
 	Validate bool
-
-	// CustomConcrete can be set to customize the node types created
-	// for various parts of the plan. This is useful in order to customize
-	// the plan behavior.
-	CustomConcrete         bool
-	ConcreteProvider       ConcreteProviderNodeFunc
-	ConcreteResource       ConcreteResourceNodeFunc
-	ConcreteResourceOrphan ConcreteResourceNodeFunc
-
-	once sync.Once
 }
 
 // See GraphBuilder
@@ -53,52 +41,28 @@ func (b *InputGraphBuilder) Build(path []string) (*Graph, error) {
 
 // See GraphBuilder
 func (b *InputGraphBuilder) Steps() []GraphTransformer {
-	b.once.Do(b.init)
+	concreteProvider := func(a *NodeAbstractProvider) dag.Vertex {
+		return &NodeApplyableProvider{
+			NodeAbstractProvider: a,
+		}
+	}
 
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
-		&ConfigTransformer{
-			Concrete: b.ConcreteResource,
-			Module:   b.Module,
-		},
+		&ConfigTransformer{Module: b.Module},
 
 		// Add the outputs
 		&OutputTransformer{Module: b.Module},
-
-		// Add orphan resources
-		&OrphanResourceTransformer{
-			Concrete: b.ConcreteResourceOrphan,
-			State:    b.State,
-			Module:   b.Module,
-		},
-
-		// Attach the configuration to any resources
-		&AttachResourceConfigTransformer{Module: b.Module},
-
-		// Attach the state
-		&AttachStateTransformer{State: b.State},
 
 		// Add root variables
 		&RootVariableTransformer{Module: b.Module},
 
 		// Create all the providers
-		&MissingProviderTransformer{Providers: b.Providers, Concrete: b.ConcreteProvider},
+		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
 		&ProviderTransformer{},
 		&DisableProviderTransformer{},
 		&ParentProviderTransformer{},
 		&AttachProviderConfigTransformer{Module: b.Module},
-
-		// Provisioner-related transformations. Only add these if requested.
-		GraphTransformIf(
-			func() bool { return b.Provisioners != nil },
-			GraphTransformMulti(
-				&MissingProvisionerTransformer{Provisioners: b.Provisioners},
-				&ProvisionerTransformer{},
-			),
-		),
-
-		// Add module variables
-		&ModuleVariableTransformer{Module: b.Module},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
@@ -109,12 +73,7 @@ func (b *InputGraphBuilder) Steps() []GraphTransformer {
 
 		// Target
 		&TargetsTransformer{
-			Targets: b.Targets,
-
-			// Resource nodes from config have not yet been expanded for
-			// "count", so we must apply targeting without indices. Exact
-			// targeting will be dealt with later when these resources
-			// DynamicExpand.
+			Targets:       b.Targets,
 			IgnoreIndices: true,
 		},
 
@@ -133,16 +92,4 @@ func (b *InputGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	return steps
-}
-
-func (b *InputGraphBuilder) init() {
-	// We're going to customize the concrete functions
-	b.CustomConcrete = true
-
-	// Set the provider to the normal provider. This will ask for input.
-	b.ConcreteProvider = func(a *NodeAbstractProvider) dag.Vertex {
-		return &NodeApplyableProvider{
-			NodeAbstractProvider: a,
-		}
-	}
 }
