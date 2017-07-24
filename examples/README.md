@@ -4,15 +4,12 @@ This folder contains a set of Terraform examples. These examples each
 have their own README you can read for more details on what the example
 does.
 
-To run any example, just run `terraform apply` within that directory
-if you have Terraform checked out. Or, you can run it directly from git:
+To try any example, clone this repository and run the following commands
+from within the example's directory:
 
 ```
-$ terraform init github.com/hashicorp/terraform/examples/cross-provider
-...
-
+$ terraform init
 $ terraform apply
-...
 ```
 
 ## Provider-specific Examples
