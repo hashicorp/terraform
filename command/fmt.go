@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	stdinArg      = "-"
-	fileExtension = "tf"
+	stdinArg          = "-"
+	fileExtension     = "tf"
+	varsFileExtension = "tfvars"
 )
 
 // FmtCommand is a Command implementation that rewrites Terraform config
@@ -62,7 +63,7 @@ func (c *FmtCommand) Run(args []string) int {
 	}
 
 	output := &cli.UiWriter{Ui: c.Ui}
-	err = fmtcmd.Run(dirs, []string{fileExtension}, c.input, output, c.opts)
+	err = fmtcmd.Run(dirs, []string{fileExtension, varsFileExtension}, c.input, output, c.opts)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error running fmt: %s", err))
 		return 2
@@ -76,6 +77,7 @@ func (c *FmtCommand) Help() string {
 Usage: terraform fmt [options] [DIR]
 
 	Rewrites all Terraform configuration files to a canonical format.
+	This includes any tfvars files also.
 
 	If DIR is not specified then the current working directory will be used.
 	If DIR is "-" then content will be read from STDIN.
