@@ -1,5 +1,8 @@
 ## 0.10.0 (Unreleased)
 
+BUG FIXES: 
+
+* provisioner/chef: fix panic [GH-15617]
 
 
 ## 0.10.0-rc1 (July 19, 2017)
