@@ -1,8 +1,22 @@
-## 0.10.0-rc1 (Unreleased)
+## 0.10.0 (Unreleased)
 
-IMPROVEMENTS:
+BUG FIXES: 
 
-* core: Actively disallow reserved field names in schema [GH-15522]
+* provisioner/chef: fix panic [GH-15617]
+
+
+## 0.10.0-rc1 (July 19, 2017)
+
+BUG FIXES:
+
+* Don't show a message about the path to the state file if the state is remote ([#15435](https://github.com/hashicorp/terraform/issues/15435))
+* Fix crash when `terraform graph` is run with no configuration ([#15588](https://github.com/hashicorp/terraform/issues/15588))
+* Handle correctly the `.exe` suffix on locally-compiled provider plugins on Windows systems. ([#15587](https://github.com/hashicorp/terraform/issues/15587))
+
+INTERNAL CHANGES:
+
+* helper/schema: Actively disallow reserved field names in schema ([#15522](https://github.com/hashicorp/terraform/issues/15522))
+* helper/schema: Force field names to be alphanum lowercase + underscores ([#15562](https://github.com/hashicorp/terraform/issues/15562))
 
 ## 0.10.0-beta2 (July 6, 2017)
 
@@ -52,6 +66,10 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
   this was not true. After upgrading, be sure to look carefully at the set of changes proposed by `terraform plan` when using `-target`
   to ensure that the target is being interpreted as expected. Note that the `-target` argument is offered for exceptional circumstances
   only and is not intended for routine use.
+* The `import` command requires that imported resources be specified in the configuration file. Previously, users were encouraged to
+  import a resource and _then_ write the configuration block for it. This creates the risk that users could import a resource and
+  subsequently create no configuration for it, which results in Terraform deleting the resource. If the imported resource is not
+  present in the configuration file, the `import` command will fail.
 
 IMPROVEMENTS:
 

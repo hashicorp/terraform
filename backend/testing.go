@@ -92,11 +92,20 @@ func testBackendStates(t *testing.T, b Backend) {
 		// start with a fresh state, and record the lineage being
 		// written to "bar"
 		barState := terraform.NewState()
+
+		// creating the named state may have created a lineage, so use that if it exists.
+		if s := bar.State(); s != nil && s.Lineage != "" {
+			barState.Lineage = s.Lineage
+		}
 		barLineage := barState.Lineage
 
 		// the foo lineage should be distinct from bar, and unchanged after
 		// modifying bar
 		fooState := terraform.NewState()
+		// creating the named state may have created a lineage, so use that if it exists.
+		if s := foo.State(); s != nil && s.Lineage != "" {
+			fooState.Lineage = s.Lineage
+		}
 		fooLineage := fooState.Lineage
 
 		// write a known state to foo

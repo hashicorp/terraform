@@ -75,6 +75,10 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	states, err := b.States()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to get configured named states: %s", err))
+		return 1
+	}
 	for _, s := range states {
 		if newEnv == s {
 			c.Ui.Error(fmt.Sprintf(envExists, newEnv))
