@@ -17,90 +17,113 @@ from version control. It is safe to run this command multiple times.
 
 Usage: `terraform init [options] [DIR]`
 
-Initialize a new or existing Terraform working directory by creating
-initial files, loading any remote state, downloading modules, etc.
+This command performs several different initialization steps in order to
+prepare a working directory for use. More details on these are in the
+sections below, but in most cases it is not necessary to worry about these
+individual steps.
 
-This is the first command that should be run for any new or existing
-Terraform configuration per machine. This sets up all the local data
-necessary to run Terraform that is typically not committed to version
-control.
+This command is always safe to run multiple times, to bring the working
+directory up to date with changes in the configuration. Though subsequent runs
+may give errors, this command will never delete your existing configuration or
+state.
 
-This command is always safe to run multiple times. Though subsequent runs
-may give errors, this command will never delete your configuration or
-state. Even so, if you have important information, please back it up prior
-to running this command, just in case.
+If no arguments are given, the configuration in the current working directory
+is initialized. It is recommended to run Terraform with the current working
+directory set to the root directory of the configuration, and omit the `DIR`
+argument.
 
-If no arguments are given, the configuration in this working directory
-is initialized.
+## General Options
 
-The command-line flags are all optional. The list of available flags are:
+The following options apply to all of (or several of) the initialization steps:
 
-* `-backend=true` - Initialize the [backend](/docs/backends) for this configuration.
-
-* `-backend-config=path` This can be either a path to an HCL file with key/value
-  assignments (same format as terraform.tfvars) or a 'key=value' format. This is
-  merged with what is in the configuration file. This can be specified multiple
-  times. The backend type must be in the configuration itself.
-
-* `-force-copy`          Suppress prompts about copying state data. This is
-  equivalent to providing a "yes" to all confirmation prompts.
-
-* `-get=true`            Download any modules for this configuration.
-
-* `-get-plugins=true`    Download any missing plugins for this configuration.
-
-* `-input=true`          Ask for input if necessary. If false, will error if
+* `-input=true` Ask for input if necessary. If false, will error if
   input was required.
 
-* `-lock=true`           Lock the state file when locking is supported.
+* `-lock=false` Disable locking of state files during state-related operations.
 
-* `-lock-timeout=0s`     Duration to retry a state lock.
+* `-lock-timeout=<duration>` Override the time Terraform will wait to acquire
+  a state lock. The default is `0s` (zero seconds), which causes immediate
+  failure if the lock is already held by another process.
 
-* `-no-color`            If specified, output won't contain any color.
+* `-no-color` Disable color codes in the command output.
 
-* `-plugin-dir`          Directory containing plugin binaries. This overrides all
-  default search paths for plugins, and prevents the automatic installation of
-  plugins. This flag can be used multiple times.
+* `-upgrade` Opt to upgrade modules and plugins as part of their respective
+  installation steps. See the seconds below for more details.
 
-* `-reconfigure`         Reconfigure the backend, ignoring any saved configuration.
+## Backend Initialization
 
-* `-upgrade=false`       If installing modules (-get) or plugins (-get-plugins),
-  ignore previously-downloaded objects and install the latest version allowed
-  within configured constraints.
+During init, the root configuration directory is consulted for
+[backend configuration](/docs/backends/config.html) and the chosen backend
+is initialized using the given configuration settings.
 
-* `-verify-plugins=true` Verify the authenticity and integrity of automatically
-  downloaded plugins.
+Re-running init with an already-initalized backend will update the working
+directory to use the new backend settings. Depending on what changed, this
+may result in interactive prompts to confirm migration of workspace states.
+The `-force-copy` option suppresses these prompts and answers "yes" to the
+migration questions. The `-reconfigure` option disregards any existing
+configuration, preventing migration of any existing state.
 
-## Backend Config
+To skip backend configuration, use `-backend=false`. Note that some other init
+steps require an initialized backend, so it's recommended to use this flag only
+when the working directory was already previously initialized for a particular
+backend.
 
-The `-backend-config` can take a path or `key=value` pair to specify additional
-backend configuration when [initializing a backend](/docs/backends/init.html).
+The `-backend-config=...` option can be used for
+[partial backend configuration](/docs/backends/config.html#partial-configuration),
+in situations where the backend settings are dynamic or sensitive and so cannot
+be statically specified in the configuration file.
 
-This is particularly useful for
-[partial configuration of backends](/docs/backends/config.html). Partial
-configuration lets you keep sensitive information out of your Terraform
-configuration.
+## Child Module Installation
 
-For path values, the backend configuration file is a basic HCL file with key/value pairs.
-The keys are configuration keys for your backend. You do not need to wrap it
-in a `terraform` block. For example, the following file is a valid backend
-configuration file for the Consul backend type:
+During init, the configuration is searched for `module` blocks, and the source
+code for referenced [modules](/docs/modules/) is retrieved from the locations
+given in their `source` arguments.
 
-```hcl
-address = "demo.consul.io"
-path    = "newpath"
-```
+Re-running init with modules already installed will install the sources for
+any modules that were added to configuration since the last init, but will not
+change any already-installed modules. Use `-upgrade` to override this behavior,
+updating all modules to the latest available source code.
 
-If the value contains an equal sign (`=`), it is parsed as a `key=value` pair.
-The format of this flag is identical to the `-var` flag for plan, apply,
-etc. but applies to configuration keys for backends. For example:
+To skip child module installation, use `-get=false`. Note that some other init
+steps can complete only when the module tree is complete, so it's recommended
+to use this flag only when the working directory was already previously
+initialized with its child modules.
 
-```shell
-$ terraform init \
-  -backend-config 'address=demo.consul.io' \
-  -backend-config 'path=newpath'
-```
+## Plugin Installation
 
-These two formats can be mixed. In this case, the values will be merged by
-key with keys specified later in the command-line overriding conflicting
-keys specified earlier.
+During init, the configuration is searched for both direct and indirect
+references to [providers](/docs/configuration/providers.html), and the plugins
+for the providers are retrieved from the plugin repository. The downloaded
+plugins are installed to a subdirectory of the working directory, and are thus
+local to that working directory.
+
+Re-running init with plugins already installed will install plugins only for
+any providers that were added to the configuration since the last init. Use
+`-upgrade` to additionally update already-installed plugins to the latest
+versions that comply with the version constraints given in configuration.
+
+To skip plugin installation, use `-get-plugins=false`.
+
+The automatic plugin installation behavior can be overridden by extracting
+the desired providers into a local directory and using the additonal option
+`-plugin-dir=PATH`. When this option is specified, _only_ the given directory
+is consulted, which prevents Terraform from making requests to the plugin
+repository or looking for plugins in other local directories.
+
+When plugins are automatically downloaded and installed, by default the
+contents are verified against an official HashiCorp release signature to
+ensure that they were not corrupted or tampered with during download. It is
+recommended to allow Terraform to make these checks, but if desired they may
+be disabled using the option `-verify-plugins=false`.
+
+## Running `terraform init` in automation
+
+For teams that use Terraform as a key part of a change management and
+deployment pipeline, it can be desirable to orchestrate Terraform runs in some
+sort of automation in order to ensure consistency between runs, and provide
+other interesting features such as integration with version control hooks.
+
+There are some special concerns when running `init` in such an environment,
+including optionally making plugins available locally to avoid repeated
+re-installation. For more information, see
+[`Running Terraform in Automation`](/guides/running-terraform-in-automation.html).

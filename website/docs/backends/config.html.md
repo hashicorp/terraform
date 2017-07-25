@@ -18,7 +18,7 @@ Below, we show a complete example configuring the "consul" backend:
 terraform {
   backend "consul" {
     address = "demo.consul.io"
-    path    = "tfdocs"
+    path    = "example_app/terraform_state"
   }
 }
 ```
@@ -48,35 +48,46 @@ a configuration in the future: create the new configuration and run
 
 ## Partial Configuration
 
-You do not need to specify every required attribute in the configuration.
-This may be desirable to avoid storing secrets (such as access keys) within
-the configuration itself. We call this specifying only a _partial_ configuration.
+You do not need to specify every required argument in the backend configuration.
+Omitting certain arguments may be desirable to avoid storing secrets, such as
+access keys, within the main configuration. When some or all of the arguments
+are ommitted, we call this a _partial configuration_.
 
-With a partial configuration, the remaining configuration is expected as
-part of the [initialization](/docs/backends/init.html) process. There are
-a few ways to supply the remaining configuration:
+With a partial configuration, the remaining configuration arguments must be
+provided as part of
+[the initialization process](/docs/backends/init.html#backend-initialization).
+There are several ways to supply the remaining arguments:
 
   * **Interactively**: Terraform will interactively ask you for the required
-    values. Terraform will not ask you for optional values.
+    values, unless interactive input is disabled. Terraform will not prompt for
+    optional values.
 
-  * **File**: A configuration file may be specified via the command line.
-    This file can then be sourced via some secure means (such as
-    [Vault](https://www.vaultproject.io)).
+  * **File**: A configuration file may be specified via the `init` command line.
+    To specify a file, use the `-backend-config=PATH` option when running
+    `terraform init`. If the file contains secrets it may be kept in
+    a secure data store, such as
+    [Vault](https://www.vaultproject.io/), in which case it must be downloaded
+    to the local disk before running Terraform.
 
-  * **Command-line key/value pairs**: Key/value pairs in the format of
-    `key=value` can be specified as part of the init command. Note that
-    many shells retain command-line flags in a history file, so this isn't
-    recommended for secrets.
+  * **Command-line key/value pairs**: Key/value pairs can be specified via the
+    `init` command line. Note that many shells retain command-line flags in a
+    history file, so this isn't recommended for secrets. To specify a single
+    key/value pair, use the `-backend-config="KEY=VALUE"` option when running
+    `terraform init`.
 
-In all cases, the final configuration is stored on disk in the
-".terraform" directory, which should be ignored from version control.
+If backend settings are provided in multiple locations, the top-level
+settings are merged such that any command-line options override the settings
+in the main configuration and then the command-line options are processed
+in order, with later options overriding values set by earlier options.
 
-This means that sensitive information can be omitted from version control
-but it ultimately still lives on disk. In the future, Terraform may provide
-basic encryption on disk so that values are at least not plaintext.
+The final, merged configuration is stored on disk in the `.terraform`
+directory, which should be ignored from version control. This means that
+sensitive information can be omitted from version control, but it will be
+present in plain text on local disk when running Terraform.
 
 When using partial configuration, Terraform requires at a minimum that
-an empty backend configuration is in the Terraform files. For example:
+an empty backend configuration is specified in one of the root Terraform
+configuration files, to specify the backend type. For example:
 
 ```hcl
 terraform {
@@ -84,10 +95,23 @@ terraform {
 }
 ```
 
-This minimal requirement allows Terraform to detect _unsetting_ backends.
-We cannot accept the backend type on the command-line because while it is
-technically possible, Terraform would then be unable to detect if you
-want to unset your backend (and move back to local state).
+A backend configuration file has the contents of the `backend` block as
+top-level attributes, without the need to wrap it in another `terraform`
+or `backend` block:
+
+```hcl
+address = "demo.consul.io"
+path    = "example_app/terraform_state"
+```
+
+The same settings can alternatively be specified on the command line as
+follows:
+
+```
+$ terraform init \
+    -backend-config="address=demo.consul.io" \
+    -backend-config="path=example_app/terraform_state"
+```
 
 ## Changing Configuration
 
@@ -101,9 +125,9 @@ the reinitialization process, Terraform will ask if you'd like to migrate
 your existing state to the new configuration. This allows you to easily
 switch from one backend to another.
 
-If you're using [state environments](/docs/state/environments.html),
-Terraform is able to copy all environments to the destination. If Terraform
-detects you have multiple states, it will ask if this is what you want to do.
+If you're using multiple [workspaces](/docs/state/workspaces.html),
+Terraform can copy all workspaces to the destination. If Terraform detects
+you have multiple workspaces, it will ask if this is what you want to do.
 
 If you're just reconfiguring the same backend, Terraform will still ask if you
 want to migrate your state. You can respond "no" in this scenario.
