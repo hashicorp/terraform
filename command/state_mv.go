@@ -24,7 +24,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	var meta1, meta2 Meta
 	cmdFlags := c.Meta.flagSet("state mv")
 	cmdFlags.StringVar(&meta1.backupPath, "backup", "-", "backup")
-	cmdFlags.StringVar(&meta1.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&meta1.statePath, "state", "", "path")
 	cmdFlags.StringVar(&meta2.backupPath, "backup-out", "-", "backup")
 	cmdFlags.StringVar(&meta2.statePath, "state-out", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {

@@ -21,7 +21,7 @@ func (c *StateRmCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.flagSet("state show")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "-", "backup")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
