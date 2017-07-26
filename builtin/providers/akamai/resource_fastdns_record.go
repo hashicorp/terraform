@@ -6,7 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid"
+	"github.com/akamai/AkamaiOPEN-edgegrid-golang/client-v1"
+	"github.com/akamai/AkamaiOPEN-edgegrid-golang/configdns-v1"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -22,192 +23,192 @@ func resourceFastDNSRecord() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			// Terraform-only Params
-			"hostname": &schema.Schema{
+			"hostname": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
 			// Special to allow multiple targets:
-			"targets": &schema.Schema{
+			"targets": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			// DNS Record attributes
-			"active": &schema.Schema{
+			"active": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"algorithm": &schema.Schema{
+			"algorithm": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"contact": &schema.Schema{
+			"contact": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"digest": &schema.Schema{
+			"digest": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"digesttype": &schema.Schema{
+			"digesttype": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"expiration": &schema.Schema{
+			"expiration": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"expire": &schema.Schema{
+			"expire": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"fingerprint": &schema.Schema{
+			"fingerprint": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"fingerprinttype": &schema.Schema{
+			"fingerprinttype": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"flags": &schema.Schema{
+			"flags": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"hardware": &schema.Schema{
+			"hardware": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"inception": &schema.Schema{
+			"inception": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"iterations": &schema.Schema{
+			"iterations": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"key": &schema.Schema{
+			"key": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"keytag": &schema.Schema{
+			"keytag": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"labels": &schema.Schema{
+			"labels": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"mailbox": &schema.Schema{
+			"mailbox": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"minimum": &schema.Schema{
+			"minimum": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"nexthashedownername": &schema.Schema{
+			"nexthashedownername": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"order": &schema.Schema{
+			"order": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"originalttl": &schema.Schema{
+			"originalttl": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"originserver": &schema.Schema{
+			"originserver": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"port": &schema.Schema{
+			"port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"preference": &schema.Schema{
+			"preference": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"priority": &schema.Schema{
+			"priority": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"refresh": &schema.Schema{
+			"refresh": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"regexp": &schema.Schema{
+			"regexp": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"replacement": &schema.Schema{
+			"replacement": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"retry": &schema.Schema{
+			"retry": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"salt": &schema.Schema{
+			"salt": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"serial": &schema.Schema{
+			"serial": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"service": &schema.Schema{
+			"service": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"signature": &schema.Schema{
+			"signature": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"signer": &schema.Schema{
+			"signer": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"software": &schema.Schema{
+			"software": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"subtype": &schema.Schema{
+			"subtype": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"ttl": &schema.Schema{
+			"ttl": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"txt": &schema.Schema{
+			"txt": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"typebitmaps": &schema.Schema{
+			"typebitmaps": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"typecovered": &schema.Schema{
+			"typecovered": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"weight": &schema.Schema{
+			"weight": {
 				Type:     schema.TypeInt, // Should be uint
 				Optional: true,
 			},
@@ -224,15 +225,13 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 		log.Printf("[INFO] [Akamai FastDNS] Creating %s Record \"%s\" on %s", recordType, d.Get("name"), d.Get("hostname"))
 	}
 
-	config := meta.(*Config)
-
-	zone, error := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
+	zone, error := dns.GetZone(d.Get("hostname").(string))
 
 	if error != nil {
 		return error
 	}
 
-	records := edgegrid.DNSRecordSet{}
+	records := dns.RecordSet{}
 	error = unmarshalResourceData(d, &records)
 
 	if error != nil {
@@ -241,24 +240,21 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 
 	var name string
 	if recordType == "SOA" {
-		zone.Zone.Records[recordType] = append(zone.Zone.Records[recordType], records[0])
+		zone.Zone.Soa = records[0]
 		name = recordType
 	} else {
 		name = d.Get("name").(string)
 
-		// Add existing records unless they have the same name
-		for _, v := range zone.Zone.Records[recordType] {
-			if v.Name != name {
-				records = append(records, v)
+		for _, record := range records {
+			err := zone.SetRecord(record)
+			if err != nil {
+				return err
 			}
 		}
-
-		zone.Zone.Records[recordType] = records
-		fixupCnames(zone, records[0])
 	}
 
 	error = zone.Save()
-	if error.(edgegrid.APIError).Status == 409 {
+	if error.(client.APIError).Status == 409 {
 		//tempZone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
 	}
 
@@ -272,10 +268,9 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[INFO] [Akamai FastDNS] resourcePAPIRead")
-	config := meta.(*Config)
+	log.Println("[INFO] [Akamai FastDNS] resourcePropertyRead")
 
-	zone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
+	zone, err := dns.GetZone(d.Get("hostname").(string))
 	if err != nil {
 		return err
 	}
@@ -289,13 +284,7 @@ func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
 		return errors.New("Resource has been modified, aborting")
 	}
 
-	recordSet := edgegrid.DNSRecordSet{}
-	for _, record := range zone.Zone.Records[recordType] {
-		if record.Name == name {
-			recordSet = append(recordSet, record)
-		}
-	}
-
+	recordSet := zone.GetRecordType(recordType).(dns.RecordSet)
 	err = marshalResourceData(d, &recordSet)
 	if err != nil {
 		return err
@@ -309,16 +298,14 @@ func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-
-	zone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
+	zone, err := dns.GetZone(d.Get("hostname").(string))
 	if err != nil {
 		return err
 	}
 
 	recordType := strings.ToUpper(d.Get("type").(string))
 
-	records := edgegrid.DNSRecordSet{}
+	records := dns.RecordSet{}
 	error := unmarshalResourceData(d, &records)
 
 	if error != nil {
@@ -326,18 +313,11 @@ func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if recordType == "SOA" {
-		zone.Zone.Records[recordType] = nil
+		zone.Zone.Soa = nil
 	} else {
 		name := d.Get("name").(string)
 
-		newRecords := edgegrid.DNSRecordSet{}
-		for _, v := range zone.Zone.Records[recordType] {
-			if v.Name != name {
-				newRecords = append(newRecords, v)
-			}
-		}
-
-		zone.Zone.Records[recordType] = records
+		zone.RemoveRecordsByName(name, []string{recordType})
 	}
 
 	error = zone.Save()
@@ -351,11 +331,9 @@ func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceFastDNSRecordExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	log.Println("[INFO] [Akamai FastDNS] resourcePAPIExists")
+	log.Println("[INFO] [Akamai FastDNS] resourcePropertyExists")
 
-	config := meta.(*Config)
-
-	zone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
+	zone, err := dns.GetZone(d.Get("hostname").(string))
 	if err != nil {
 		log.Println("[WARN] [Akamai FastDNS] Error checking if record exists: " + err.Error())
 		return false, err
@@ -369,10 +347,8 @@ func resourceFastDNSRecordExists(d *schema.ResourceData, meta interface{}) (bool
 		return false, nil
 	}
 
-	log.Printf("[TRACE] [Akamai FastDNS] Records: %#v\n\n", zone.Zone.Records[recordType])
-
 	var found_record bool
-	for _, record := range zone.Zone.Records[recordType] {
+	for _, record := range zone.GetRecordType(recordType).(dns.RecordSet) {
 		if strings.TrimSuffix(record.Name, ".") == name {
 			found_record = true
 			break
@@ -394,57 +370,10 @@ func getDNSRecordId(id string) (token string, hostname string, recordType string
 	return parts[0], parts[1], parts[2], parts[3]
 }
 
-func fixupCnames(zone *edgegrid.DNSZone, record *edgegrid.DNSRecord) {
-	if record.RecordType == "CNAME" {
-		names := make(map[string]string, len(zone.Zone.Records["CNAME"]))
-		for _, record := range zone.Zone.Records["CNAME"] {
-			names[strings.ToUpper(record.Name)] = record.Name
-		}
-
-		for recordType, records := range zone.Zone.Records {
-			if recordType == "CNAME" {
-				continue
-			}
-
-			newRecords := edgegrid.DNSRecordSet{}
-			for _, record := range records {
-				if _, ok := names[record.Name]; ok == false {
-					newRecords = append(newRecords, record)
-				} else {
-					log.Printf(
-						"[WARN] [Akamai FastDNS] %s Record conflicts with CNAME \"%s\", %[1]s Record ignored.",
-						recordType,
-						names[strings.ToUpper(record.Name)],
-					)
-				}
-			}
-			zone.Zone.Records[recordType] = newRecords
-		}
-	} else if record.Name != "" {
-		name := strings.ToLower(record.Name)
-
-		newRecords := edgegrid.DNSRecordSet{}
-		for _, cname := range zone.Zone.Records["CNAME"] {
-			if strings.ToLower(cname.Name) != name {
-				newRecords = append(newRecords, cname)
-			} else {
-				log.Printf(
-					"[WARN] [Akamai FastDNS] %s Record \"%s\" conflicts with existing CNAME \"%s\", removing CNAME",
-					record.RecordType,
-					record.Name,
-					cname.Name,
-				)
-			}
-		}
-
-		zone.Zone.Records["CNAME"] = newRecords
-	}
-}
-
-func unmarshalResourceData(d *schema.ResourceData, records *edgegrid.DNSRecordSet) error {
+func unmarshalResourceData(d *schema.ResourceData, records *dns.RecordSet) error {
 	recordType := strings.ToUpper(d.Get("type").(string))
-	tester := edgegrid.DNSRecord{RecordType: recordType}
-	recordSet := edgegrid.DNSRecordSet{}
+	tester := dns.Record{RecordType: recordType}
+	recordSet := dns.RecordSet{}
 
 	targets := 1
 	if tester.Allows("targets") {
@@ -452,7 +381,7 @@ func unmarshalResourceData(d *schema.ResourceData, records *edgegrid.DNSRecordSe
 	}
 
 	for i := 0; i < targets; i++ {
-		record := edgegrid.DNSRecord{RecordType: recordType}
+		record := dns.Record{RecordType: recordType}
 
 		if val, exists := d.GetOk("targets"); exists != false && !record.Allows("targets") {
 			return errors.New("Attribute \"targets\" not allowed for record type " + record.RecordType)
@@ -814,7 +743,7 @@ func unmarshalResourceData(d *schema.ResourceData, records *edgegrid.DNSRecordSe
 	return nil
 }
 
-func marshalResourceData(d *schema.ResourceData, records *edgegrid.DNSRecordSet) error {
+func marshalResourceData(d *schema.ResourceData, records *dns.RecordSet) error {
 	if len(*records) == 0 {
 		return nil
 	}
@@ -878,9 +807,7 @@ func marshalResourceData(d *schema.ResourceData, records *edgegrid.DNSRecordSet)
 }
 
 func importRecord(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	config := meta.(*Config)
-
-	zone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
+	zone, err := dns.GetZone(d.Get("hostname").(string))
 	if err != nil {
 		return nil, err
 	}
@@ -888,7 +815,7 @@ func importRecord(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceD
 	_, hostname, recordType, name := getDNSRecordId("_." + d.Id())
 
 	var exists bool
-	for _, record := range zone.Zone.Records[recordType] {
+	for _, record := range zone.GetRecordType(recordType).(dns.RecordSet) {
 		if strings.ToLower(record.Name) == name {
 			exists = true
 		}

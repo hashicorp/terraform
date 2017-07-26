@@ -1,9 +1,11 @@
 package akamai
 
 import (
-	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid"
+	"github.com/akamai/AkamaiOPEN-edgegrid-golang/configdns-v1"
+	"github.com/akamai/AkamaiOPEN-edgegrid-golang/edgegrid"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
 )
 
 func Provider() terraform.ResourceProvider {
@@ -33,53 +35,43 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	configDnsV1Service, err := getConfigDNSV1Service(d)
-	papiV0Service, err := getPAPIV0Service(d)
+	err := getConfigDNSV1Service(d)
 	if err != nil {
 		return nil, err
 	}
 
-	config := &Config{}
-	config.ConfigDNSV1Service = configDnsV1Service
-	config.PapiV0Service = papiV0Service
+	err = getPAPIV1Service(d)
+	if err != nil {
+		return nil, err
+	}
 
-	return config, nil
+	return &Config{}, nil
 }
 
-func getConfigDNSV1Service(d *schema.ResourceData) (*edgegrid.ConfigDNSV1Service, error) {
+func getConfigDNSV1Service(d *schema.ResourceData) error {
 	edgerc := d.Get("edgerc").(string)
 	section := d.Get("fastdns_section").(string)
 
-	fastDnsConfig, err := edgegrid.Init(edgerc, section)
+	fastDnsConfig, err := edgegrid.InitEdgeRc(edgerc, section)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	fastDnsClient, err := edgegrid.NewClient(nil, &fastDnsConfig)
-	if err != nil {
-		return nil, err
-	}
+	dns.Init(fastDnsConfig)
 
-	client := edgegrid.NewConfigDNSV1Service(fastDnsClient, &fastDnsConfig)
-
-	return client, nil
+	return nil
 }
 
-func getPAPIV0Service(d *schema.ResourceData) (*edgegrid.PapiV0Service, error) {
+func getPAPIV1Service(d *schema.ResourceData) error {
 	edgerc := d.Get("edgerc").(string)
 	section := d.Get("papi_section").(string)
 
-	papiConfig, err := edgegrid.Init(edgerc, section)
+	papiConfig, err := edgegrid.InitEdgeRc(edgerc, section)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	papiClient, err := edgegrid.NewClient(nil, &papiConfig)
-	if err != nil {
-		return nil, err
-	}
+	papi.Init(papiConfig)
 
-	client := edgegrid.NewPapiV0Service(papiClient, &papiConfig)
-
-	return client, nil
+	return nil
 }

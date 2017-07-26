@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid"
+	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
+	"github.com/hashicorp/terraform/builtin/providers/akamai/helper"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -26,62 +28,69 @@ func resourceProperty() *schema.Resource {
 }
 
 func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
-	papi := meta.(*Config).PapiV0Service
-
-	group, err := getGroup(papi, d)
+	group, err := getGroup(d)
 	if err != nil {
 		return err
 	}
 
-	contract, err := getContract(papi, group, d)
+	contract, err := getContract(group, d)
 	if err != nil {
 		return err
 	}
 
-	cloneFrom, err := getCloneFrom(papi, d)
+	cloneFrom, err := getCloneFrom(d)
 	if err != nil {
 		return err
 	}
 
-	productId, err := getProductId(papi, d, contract)
+	productId, err := getProductId(d, contract)
 	if err != nil {
 		return err
 	}
 
-	property, err := createProperty(papi, contract, group, cloneFrom, productId, d)
+	property, err := createProperty(contract, group, cloneFrom, productId, d)
 	if err != nil {
 		return err
 	}
 
-	hostnameEdgeHostnameMap, err := createHostnames(papi, contract, group, productId, d)
+	hostnameEdgeHostnameMap, err := createHostnames(contract, group, productId, d)
 	if err != nil {
 		return err
 	}
 
-	cpCode, err := createCpCode(papi, contract, group, productId, d)
+	cpCode, err := createCpCode(contract, group, productId, d)
 	if err != nil {
 		return err
 	}
 
-	err = initRules(property, cpCode, d)
+	rules, err := initRules(property, cpCode, d)
 	if err != nil {
 		return err
 	}
 
-	edgeHostnames, err := setEdgeHostnames(papi, property, hostnameEdgeHostnameMap)
+	if rulesSet, ok := d.GetOk("rule"); ok {
+		err := updateRules(rules, "/", rulesSet.(*schema.Set))
+		if err != nil {
+			return err
+		}
+
+		rules.Save()
+	}
+
+	edgeHostnames, err := setEdgeHostnames(property, hostnameEdgeHostnameMap)
 	if err != nil {
 		return err
 	}
 
 	d.Set("edge_hostname", edgeHostnames)
 
-	activation, err := activateProperty(papi, property, d)
+	activation, err := activateProperty(property, d)
 	if err != nil {
 		return err
 	}
 
 	go activation.PollStatus(property)
-	for activation.Status != edgegrid.PapiStatusActive {
+	for activation.Status != papi.StatusActive {
 		select {
 		case statusChanged := <-activation.StatusChange:
 			if statusChanged == false {
@@ -112,7 +121,7 @@ func resourcePropertyExists(d *schema.ResourceData, meta interface{}) (bool, err
 	return false, errors.New("resourcePropertyExists")
 }
 
-func getCloneFrom(papi *edgegrid.PapiV0Service, d *schema.ResourceData) (*edgegrid.PapiClonePropertyFrom, error) {
+func getCloneFrom(d *schema.ResourceData) (*papi.ClonePropertyFrom, error) {
 	log.Println("[DEBUG] Setting up clone from")
 
 	cF, ok := d.GetOk("clone_from")
@@ -126,7 +135,7 @@ func getCloneFrom(papi *edgegrid.PapiV0Service, d *schema.ResourceData) (*edgegr
 
 	propertyId := cloneFrom["property_id"].(string)
 
-	property := edgegrid.NewPapiProperty(edgegrid.NewPapiProperties(papi))
+	property := papi.NewProperty(papi.NewProperties())
 	property.PropertyID = propertyId
 	err := property.GetProperty()
 	if err != nil {
@@ -143,7 +152,7 @@ func getCloneFrom(papi *edgegrid.PapiV0Service, d *schema.ResourceData) (*edgegr
 		version = v.PropertyVersion
 	}
 
-	clone := edgegrid.NewPapiClonePropertyFrom()
+	clone := papi.NewClonePropertyFrom()
 	clone.PropertyID = propertyId
 	clone.Version = version
 
@@ -160,7 +169,7 @@ func getCloneFrom(papi *edgegrid.PapiV0Service, d *schema.ResourceData) (*edgegr
 	return clone, nil
 }
 
-func getProductId(papi *edgegrid.PapiV0Service, d *schema.ResourceData, contract *edgegrid.PapiContract) (string, error) {
+func getProductId(d *schema.ResourceData, contract *papi.Contract) (string, error) {
 	log.Println("[DEBUG] Fetching product id")
 
 	productId, ok := d.GetOk("product_id")
@@ -207,11 +216,11 @@ func getProductId(papi *edgegrid.PapiV0Service, d *schema.ResourceData, contract
 	return "", fmt.Errorf("unable to determine product")
 }
 
-func getGroup(papi *edgegrid.PapiV0Service, d *schema.ResourceData) (*edgegrid.PapiGroup, error) {
+func getGroup(d *schema.ResourceData) (*papi.Group, error) {
 	log.Println("[DEBUG] Fetching groups")
 	groupId := d.Get("group").(string)
 
-	groups := edgegrid.NewPapiGroups(papi)
+	groups := papi.NewGroups()
 	groups.GetGroups()
 	group, err := groups.FindGroup(groupId)
 	if err != nil {
@@ -222,11 +231,11 @@ func getGroup(papi *edgegrid.PapiV0Service, d *schema.ResourceData) (*edgegrid.P
 	return group, nil
 }
 
-func getContract(papi *edgegrid.PapiV0Service, group *edgegrid.PapiGroup, d *schema.ResourceData) (*edgegrid.PapiContract, error) {
+func getContract(group *papi.Group, d *schema.ResourceData) (*papi.Contract, error) {
 	log.Println("[DEBUG] Fetching contract")
 
 	contractId, contractOk := d.GetOk("contract")
-	contract := edgegrid.NewPapiContract(edgegrid.NewPapiContracts(papi))
+	contract := papi.NewContract(papi.NewContracts())
 	if contractOk {
 		if strings.HasPrefix(contractId.(string), "ctr_") {
 			contract.ContractID = contractId.(string)
@@ -250,13 +259,13 @@ func getContract(papi *edgegrid.PapiV0Service, group *edgegrid.PapiGroup, d *sch
 	return contract, nil
 }
 
-func createProperty(papi *edgegrid.PapiV0Service, contract *edgegrid.PapiContract, group *edgegrid.PapiGroup, cloneFrom *edgegrid.PapiClonePropertyFrom, productId string, d *schema.ResourceData) (*edgegrid.PapiProperty, error) {
+func createProperty(contract *papi.Contract, group *papi.Group, cloneFrom *papi.ClonePropertyFrom, productId string, d *schema.ResourceData) (*papi.Property, error) {
 	log.Println("[DEBUG] Creating property")
 
 	name, nameOk := d.GetOk("name")
 	hostnames := d.Get("hostname").(*schema.Set).List()
 
-	property, err := papi.NewProperty(contract, group)
+	property, err := group.NewProperty(contract)
 	property.ProductID = productId
 	if cloneFrom != nil {
 		property.CloneFrom = cloneFrom
@@ -275,23 +284,23 @@ func createProperty(papi *edgegrid.PapiV0Service, contract *edgegrid.PapiContrac
 	return property, nil
 }
 
-func createHostnames(papi *edgegrid.PapiV0Service, contract *edgegrid.PapiContract, group *edgegrid.PapiGroup, productId string, d *schema.ResourceData) (map[string]*edgegrid.PapiEdgeHostname, error) {
+func createHostnames(contract *papi.Contract, group *papi.Group, productId string, d *schema.ResourceData) (map[string]*papi.EdgeHostname, error) {
 	hostnames := d.Get("hostname").(*schema.Set).List()
 
 	ipv6, ipv6Ok := d.GetOk("ipv6")
 
 	log.Println("[DEBUG] Figuring out hostnames")
-	edgeHostnames := edgegrid.NewPapiEdgeHostnames(papi)
+	edgeHostnames := papi.NewEdgeHostnames()
 	edgeHostnames.GetEdgeHostnames(contract, group, "")
 
-	hostnameEdgeHostnameMap := map[string]*edgegrid.PapiEdgeHostname{}
+	hostnameEdgeHostnameMap := map[string]*papi.EdgeHostname{}
 
 	// Contract/Group has _some_ Edge Hostnames, try to map 1:1 (e.g. example.com -> example.com.edgesuite.net)
 	// If some mapping exists, map non-existent ones to the first 1:1 we find, otherwise if none exist map to the
 	// first Edge Hostname found in the contract/group
 	if len(edgeHostnames.EdgeHostnames.Items) > 0 {
 		log.Println("[DEBUG] Hostnames retrieved, trying to map")
-		edgeHostnamesMap := map[string]*edgegrid.PapiEdgeHostname{}
+		edgeHostnamesMap := map[string]*papi.EdgeHostname{}
 
 		defaultEdgeHostname := edgeHostnames.EdgeHostnames.Items[0]
 
@@ -336,7 +345,7 @@ func createHostnames(papi *edgegrid.PapiV0Service, contract *edgegrid.PapiContra
 	// mapping example.com -> example.com.edgegrid.net
 	if len(edgeHostnames.EdgeHostnames.Items) == 0 {
 		log.Println("[DEBUG] No Edge Hostnames found, creating new one")
-		newEdgeHostname := edgegrid.NewPapiEdgeHostname(edgeHostnames)
+		newEdgeHostname := papi.NewEdgeHostname(edgeHostnames)
 		newEdgeHostname.ProductID = productId
 		newEdgeHostname.IPVersionBehavior = "IPV4"
 		if ipv6Ok && ipv6.(bool) {
@@ -349,7 +358,7 @@ func createHostnames(papi *edgegrid.PapiV0Service, contract *edgegrid.PapiContra
 
 		go newEdgeHostname.PollStatus("")
 
-		for newEdgeHostname.Status != edgegrid.PapiStatusActive {
+		for newEdgeHostname.Status != papi.StatusActive {
 			select {
 			case <-newEdgeHostname.StatusChange:
 			case <-time.After(time.Minute * 20):
@@ -367,10 +376,10 @@ func createHostnames(papi *edgegrid.PapiV0Service, contract *edgegrid.PapiContra
 	return hostnameEdgeHostnameMap, nil
 }
 
-func createCpCode(papi *edgegrid.PapiV0Service, contract *edgegrid.PapiContract, group *edgegrid.PapiGroup, productId string, d *schema.ResourceData) (*edgegrid.PapiCpCode, error) {
+func createCpCode(contract *papi.Contract, group *papi.Group, productId string, d *schema.ResourceData) (*papi.CpCode, error) {
 	log.Println("[DEBUG] Setting up CPCode")
-	cpCodes := edgegrid.NewPapiCpCodes(papi, contract, group)
-	cpCode := edgegrid.NewPapiCpCode(cpCodes)
+	cpCodes := papi.NewCpCodes(contract, group)
+	cpCode := papi.NewCpCode(cpCodes)
 	cpCode.CpcodeID = d.Get("cpcode").(string)
 	if !strings.HasPrefix(cpCode.CpcodeID, "cpc_") {
 		cpCode.CpcodeID = "cpc_" + cpCode.CpcodeID
@@ -385,7 +394,7 @@ func createCpCode(papi *edgegrid.PapiV0Service, contract *edgegrid.PapiContract,
 
 		if cpCode == nil {
 			log.Println("[DEBUG] CPCode not found, creating a new one")
-			cpCode = edgegrid.NewPapiCpCode(cpCodes)
+			cpCode = papi.NewCpCode(cpCodes)
 			cpCode.ProductID = productId
 			cpCode.CpcodeName = d.Get("cpcode").(string)
 			err := cpCode.Save()
@@ -400,72 +409,218 @@ func createCpCode(papi *edgegrid.PapiV0Service, contract *edgegrid.PapiContract,
 	return cpCode, nil
 }
 
-func initRules(property *edgegrid.PapiProperty, cpCode *edgegrid.PapiCpCode, d *schema.ResourceData) error {
+func initRules(property *papi.Property, cpCode *papi.CpCode, d *schema.ResourceData) (*papi.Rules, error) {
 	log.Println("[DEBUG] Getting rules")
 	rules, err := property.GetRules()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Println("[DEBUG] Setting CPCode")
-	rules.AddBehaviorOptions("/cpCode", edgegrid.PapiOptionValue{
-		"value": edgegrid.PapiOptionValue{
+	rules.AddBehaviorOptions("/cpCode", papi.OptionValue{
+		"value": papi.OptionValue{
 			"id": cpCode.ID(),
 		},
 	})
 
 	log.Println("[DEBUG] Setting origin")
-	originConfig := d.Get("origin").(*schema.Set).List()[0].(map[string]interface{})
+	if origin, ok := d.GetOk("origin"); ok {
+		originConfig := origin.(*schema.Set).List()[0].(map[string]interface{})
 
-	forwardHostname := originConfig["forward_hostname"].(string)
-	var originValues edgegrid.PapiOptionValue
-	if forwardHostname == "ORIGIN_HOSTNAME" || forwardHostname == "REQUEST_HOST_HEADER" {
-		log.Println("[DEBUG] Setting non-custom forward hostname")
-		originValues = edgegrid.PapiOptionValue{
-			"originType":        "CUSTOMER",
-			"hostname":          originConfig["hostname"].(string),
-			"httpPort":          originConfig["port"].(int),
-			"forwardHostHeader": forwardHostname,
+		forwardHostname := originConfig["forward_hostname"].(string)
+		var originValues papi.OptionValue
+		if forwardHostname == "ORIGIN_HOSTNAME" || forwardHostname == "REQUEST_HOST_HEADER" {
+			log.Println("[DEBUG] Setting non-custom forward hostname")
+			originValues = papi.OptionValue{
+				"originType":        "CUSTOMER",
+				"hostname":          originConfig["hostname"].(string),
+				"httpPort":          originConfig["port"].(int),
+				"forwardHostHeader": forwardHostname,
+			}
+		} else {
+			log.Println("[DEBUG] Setting custom forward hostname")
+			originValues = papi.OptionValue{
+				"originType":              "CUSTOMER",
+				"hostname":                originConfig["hostname"].(string),
+				"httpPort":                originConfig["port"].(string),
+				"forwardHostHeader":       "CUSTOM",
+				"customForwardHostHeader": forwardHostname,
+			}
 		}
-	} else {
-		log.Println("[DEBUG] Setting custom forward hostname")
-		originValues = edgegrid.PapiOptionValue{
-			"originType":              "CUSTOMER",
-			"hostname":                originConfig["hostname"].(string),
-			"httpPort":                originConfig["port"].(string),
-			"forwardHostHeader":       "CUSTOM",
-			"customForwardHostHeader": forwardHostname,
-		}
+		rules.AddBehaviorOptions("/origin", originValues)
 	}
-	rules.AddBehaviorOptions("/origin", originValues)
 
 	log.Println("[DEBUG] Setting SureRoute")
-	rules.AddBehaviorOptions("/Performance/sureRoute", edgegrid.PapiOptionValue{
+	rules.AddBehaviorOptions("/Performance/sureRoute", papi.OptionValue{
 		"testObjectUrl":   "/akamai/sureroute-testobject.html",
 		"enableCustomKey": false,
 	})
 
 	log.Println("[DEBUG] Fixing Image compression settings")
-	rules.AddBehaviorOptions("/Performance/JPEG Images/adaptiveImageCompression", edgegrid.PapiOptionValue{
+	rules.AddBehaviorOptions("/Performance/JPEG Images/adaptiveImageCompression", papi.OptionValue{
 		"tier1MobileCompressionMethod": "BYPASS",
 		"tier2MobileCompressionMethod": "COMPRESS",
 		"tier2MobileCompressionValue":  60,
 	})
-
+	{
+	}
 	log.Println("[DEBUG] Saving rules")
 
 	err = rules.Save()
 	if err != nil {
-		return err
+		return rules, err
 	}
 	log.Println("[DEBUG] Rules saved")
+
+	return rules, nil
+}
+
+func updateRules(rules *papi.Rules, path string, rulesSet *schema.Set) error {
+	log.Printf("[DEBUG] Updating rules at path: %s\n", path)
+	if rulesSet.Len() == 0 {
+		return nil
+	}
+
+	for _, ruleElem := range helper.ListSet(rulesSet) {
+		rule := papi.NewRule(rules)
+
+		rule.Name = "default"
+		if ruleElem.Contains("name") {
+			rule.Name = ruleElem.GetString("name")
+		}
+
+		if ruleElem.Contains("comment") {
+			rule.Comments = ruleElem.GetString("comment")
+		}
+
+		if ruleElem.Contains("criteria") {
+			criteriaElem := ruleElem.Get("criteria").(*schema.Set)
+
+			for _, v := range helper.ListSet(criteriaElem) {
+				criteria := papi.NewCriteria(rule)
+				criteria.Name = v.GetString("name")
+
+				options, err := getOptions(v)
+				if err != nil {
+					return err
+				}
+				criteria.Options = &options
+				rule.AddCriteria(criteria)
+			}
+		}
+
+		if ruleElem.Contains("behavior") {
+			behaviorElem := ruleElem.Get("behavior").(*schema.Set)
+
+			for _, v := range helper.ListSet(behaviorElem) {
+				behavior := papi.NewBehavior(rule)
+				behavior.Name = v.GetString("name")
+
+				options, err := getOptions(v)
+				if err != nil {
+					return err
+				}
+				behavior.Options = &options
+				rule.AddBehavior(behavior)
+			}
+		}
+
+		log.Printf("[DEBUG] Saving rule: %s\n\n", path+"/")
+		log.Printf("[DEBUG] Rule: %#v\n\n", rule)
+		err := rules.AddRule(path, rule)
+		if err != nil {
+			return err
+		}
+
+		if ruleElem.Contains("rule") && ruleElem.GetSet("rule").Len() > 0 {
+			err := updateRules(rules, path+"/"+rule.Name, ruleElem.GetSet("rule"))
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Println("[DEBUG] Child rules not found")
+		}
+	}
 
 	return nil
 }
 
-func setEdgeHostnames(papi *edgegrid.PapiV0Service, property *edgegrid.PapiProperty, hostnameEdgeHostnameMap map[string]*edgegrid.PapiEdgeHostname) (map[string]string, error) {
+func getOptions(v helper.Elem) (papi.OptionValue, error) {
+	option := papi.OptionValue{}
+	for _, optionElem := range helper.ListSet(v.GetSet("option")) {
+		if v == nil || optionElem.GetString("name") == "" {
+			continue
+		}
+		name := optionElem.GetString("name")
+
+		optionType := optionElem.GetString("type")
+
+		if optionType == "auto" {
+			switch {
+			case optionElem.Contains("values") && optionElem.GetSet("values").Len() > 0:
+				optionType = "set"
+			case optionElem.Contains("value") && optionElem.GetString("value") != "":
+				optionType = "string"
+			case optionElem.Contains("flag"):
+				optionType = "bool"
+			default:
+				return nil, fmt.Errorf("Invalid value for option \"%s\"", name)
+			}
+		}
+
+		switch {
+		case optionType == "string":
+			value := optionElem.GetString("value")
+			option[name] = value
+		case optionType == "array" || optionType == "set":
+			var values []interface{}
+			for _, value := range optionElem.GetSet("values").List() {
+				if v, ok := value.(string); ok {
+					values = append(values, numberify(v))
+				}
+			}
+			option[name] = values
+		case optionType == "int" || optionType == "integer":
+			value, err := strconv.Atoi(optionElem.GetString("value"))
+			if err != nil {
+				return nil, err
+			}
+
+			option[name] = value
+		case optionType == "float" || optionType == "double":
+			value, err := strconv.ParseFloat(optionElem.GetString("value"), 64)
+			if err != nil {
+				return nil, err
+			}
+
+			option[name] = value
+		case optionType == "number":
+			option[name] = numberify(optionElem.GetString("value"))
+		case optionType == "bool" || optionType == "boolean" || optionType == "flag":
+			option[name] = optionElem.GetBool("value")
+		}
+	}
+
+	return option, nil
+}
+
+func numberify(v string) interface{} {
+	i, err := strconv.Atoi(v)
+	if err == nil {
+		return i
+	}
+
+	f, err := strconv.ParseFloat(v, 64)
+	if err == nil {
+		return f
+	}
+
+	return v
+}
+
+func setEdgeHostnames(property *papi.Property, hostnameEdgeHostnameMap map[string]*papi.EdgeHostname) (map[string]string, error) {
 	log.Println("[DEBUG] Setting Edge Hostnames")
-	version := edgegrid.NewPapiVersion(edgegrid.NewPapiVersions(papi))
+	version := papi.NewVersion(papi.NewVersions())
 	version.PropertyVersion = 1
 	propertyHostnames, err := property.GetHostnames(version)
 	if err != nil {
@@ -473,10 +628,10 @@ func setEdgeHostnames(papi *edgegrid.PapiV0Service, property *edgegrid.PapiPrope
 	}
 
 	var ehn map[string]string = make(map[string]string)
-	propertyHostnames.Hostnames.Items = []*edgegrid.PapiHostname{}
+	propertyHostnames.Hostnames.Items = []*papi.Hostname{}
 	for from, to := range hostnameEdgeHostnameMap {
 		hostname := propertyHostnames.NewHostname()
-		hostname.CnameType = edgegrid.PapiCnameTypeEdgeHostname
+		hostname.CnameType = papi.CnameTypeEdgeHostname
 		hostname.CnameFrom = from
 		hostname.CnameTo = to.EdgeHostnameDomain
 		hostname.EdgeHostnameID = to.EdgeHostnameID
@@ -492,11 +647,11 @@ func setEdgeHostnames(papi *edgegrid.PapiV0Service, property *edgegrid.PapiPrope
 	return ehn, nil
 }
 
-func activateProperty(papi *edgegrid.PapiV0Service, property *edgegrid.PapiProperty, d *schema.ResourceData) (*edgegrid.PapiActivation, error) {
+func activateProperty(property *papi.Property, d *schema.ResourceData) (*papi.Activation, error) {
 	log.Println("[DEBUG] Creating new activation")
-	activation := edgegrid.NewPapiActivation(edgegrid.NewPapiActivations(papi))
+	activation := papi.NewActivation(papi.NewActivations())
 	activation.PropertyVersion = property.LatestVersion
-	activation.Network = edgegrid.PapiNetworkStaging
+	activation.Network = papi.NetworkProduction
 	for _, email := range d.Get("contact").(*schema.Set).List() {
 		activation.NotifyEmails = append(activation.NotifyEmails, email.(string))
 	}

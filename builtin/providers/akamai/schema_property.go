@@ -69,7 +69,7 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 	},
 	"origin": {
 		Type:     schema.TypeSet,
-		Required: true,
+		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"is_secure": {
@@ -111,6 +111,48 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 					Type:     schema.TypeSet,
 					Elem:     &schema.Schema{Type: schema.TypeString},
 					Optional: true,
+				},
+				"criteria": {
+					Type:     schema.TypeSet,
+					Optional: true,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"name": {
+								Type:     schema.TypeString,
+								Required: true,
+							},
+							"option": {
+								Type:     schema.TypeSet,
+								Optional: true,
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"name": {
+											Type:     schema.TypeString,
+											Required: true,
+										},
+										"values": {
+											Type:     schema.TypeSet,
+											Elem:     &schema.Schema{Type: schema.TypeString},
+											Optional: true,
+										},
+										"value": {
+											Type:     schema.TypeString,
+											Optional: true,
+										},
+										"flag": {
+											Type:     schema.TypeBool,
+											Optional: true,
+										},
+										"type": {
+											Type:     schema.TypeString,
+											Optional: true,
+											Default:  "auto",
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -163,6 +205,48 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 					Type:     schema.TypeBool,
 					Optional: true,
 				},
+				"criteria": {
+					Type:     schema.TypeSet,
+					Optional: true,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"name": {
+								Type:     schema.TypeString,
+								Required: true,
+							},
+							"option": {
+								Type:     schema.TypeSet,
+								Optional: true,
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"name": {
+											Type:     schema.TypeString,
+											Required: true,
+										},
+										"values": {
+											Type:     schema.TypeSet,
+											Elem:     &schema.Schema{Type: schema.TypeString},
+											Optional: true,
+										},
+										"value": {
+											Type:     schema.TypeString,
+											Optional: true,
+										},
+										"flag": {
+											Type:     schema.TypeBool,
+											Optional: true,
+										},
+										"type": {
+											Type:     schema.TypeString,
+											Optional: true,
+											Default:  "auto",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	},
@@ -172,13 +256,14 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"name": {
-					Type:     schema.TypeString,
-					Required: true,
-				},
 				"comment": {
 					Type:     schema.TypeString,
 					Optional: true,
+				},
+				"criteria_match": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "all",
 				},
 				"criteria": {
 					Type:     schema.TypeSet,
@@ -210,6 +295,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 										"flag": {
 											Type:     schema.TypeBool,
 											Optional: true,
+										},
+										"type": {
+											Type:     schema.TypeString,
+											Optional: true,
+											Default:  "auto",
 										},
 									},
 								},
@@ -248,6 +338,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 											Type:     schema.TypeBool,
 											Optional: true,
 										},
+										"type": {
+											Type:     schema.TypeString,
+											Optional: true,
+											Default:  "auto",
+										},
 									},
 								},
 							},
@@ -266,6 +361,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 							"comment": {
 								Type:     schema.TypeString,
 								Required: true,
+							},
+							"criteria_match": {
+								Type:     schema.TypeString,
+								Optional: true,
+								Default:  "all",
 							},
 							"criteria": {
 								Type:     schema.TypeSet,
@@ -297,6 +397,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 													"flag": {
 														Type:     schema.TypeBool,
 														Optional: true,
+													},
+													"type": {
+														Type:     schema.TypeString,
+														Optional: true,
+														Default:  "auto",
 													},
 												},
 											},
@@ -335,6 +440,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 														Type:     schema.TypeBool,
 														Optional: true,
 													},
+													"type": {
+														Type:     schema.TypeString,
+														Optional: true,
+														Default:  "auto",
+													},
 												},
 											},
 										},
@@ -353,6 +463,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 										"comment": {
 											Type:     schema.TypeString,
 											Required: true,
+										},
+										"criteria_match": {
+											Type:     schema.TypeString,
+											Optional: true,
+											Default:  "all",
 										},
 										"criteria": {
 											Type:     schema.TypeSet,
@@ -384,6 +499,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																"flag": {
 																	Type:     schema.TypeBool,
 																	Optional: true,
+																},
+																"type": {
+																	Type:     schema.TypeString,
+																	Optional: true,
+																	Default:  "auto",
 																},
 															},
 														},
@@ -422,6 +542,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																	Type:     schema.TypeBool,
 																	Optional: true,
 																},
+																"type": {
+																	Type:     schema.TypeString,
+																	Optional: true,
+																	Default:  "auto",
+																},
 															},
 														},
 													},
@@ -440,6 +565,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 													"comment": {
 														Type:     schema.TypeString,
 														Required: true,
+													},
+													"criteria_match": {
+														Type:     schema.TypeString,
+														Optional: true,
+														Default:  "all",
 													},
 													"criteria": {
 														Type:     schema.TypeSet,
@@ -471,6 +601,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																			"flag": {
 																				Type:     schema.TypeBool,
 																				Optional: true,
+																			},
+																			"type": {
+																				Type:     schema.TypeString,
+																				Optional: true,
+																				Default:  "auto",
 																			},
 																		},
 																	},
@@ -509,6 +644,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																				Type:     schema.TypeBool,
 																				Optional: true,
 																			},
+																			"type": {
+																				Type:     schema.TypeString,
+																				Optional: true,
+																				Default:  "auto",
+																			},
 																		},
 																	},
 																},
@@ -527,6 +667,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																"comment": {
 																	Type:     schema.TypeString,
 																	Required: true,
+																},
+																"criteria_match": {
+																	Type:     schema.TypeString,
+																	Optional: true,
+																	Default:  "all",
 																},
 																"criteria": {
 																	Type:     schema.TypeSet,
@@ -558,6 +703,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																						"flag": {
 																							Type:     schema.TypeBool,
 																							Optional: true,
+																						},
+																						"type": {
+																							Type:     schema.TypeString,
+																							Optional: true,
+																							Default:  "auto",
 																						},
 																					},
 																				},
@@ -596,6 +746,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																							Type:     schema.TypeBool,
 																							Optional: true,
 																						},
+																						"type": {
+																							Type:     schema.TypeString,
+																							Optional: true,
+																							Default:  "auto",
+																						},
 																					},
 																				},
 																			},
@@ -614,6 +769,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																			"comment": {
 																				Type:     schema.TypeString,
 																				Required: true,
+																			},
+																			"criteria_match": {
+																				Type:     schema.TypeString,
+																				Optional: true,
+																				Default:  "all",
 																			},
 																			"criteria": {
 																				Type:     schema.TypeSet,
@@ -645,6 +805,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																									"flag": {
 																										Type:     schema.TypeBool,
 																										Optional: true,
+																									},
+																									"type": {
+																										Type:     schema.TypeString,
+																										Optional: true,
+																										Default:  "auto",
 																									},
 																								},
 																							},
@@ -683,6 +848,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																										Type:     schema.TypeBool,
 																										Optional: true,
 																									},
+																									"type": {
+																										Type:     schema.TypeString,
+																										Optional: true,
+																										Default:  "auto",
+																									},
 																								},
 																							},
 																						},
@@ -701,6 +871,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																						"comment": {
 																							Type:     schema.TypeString,
 																							Required: true,
+																						},
+																						"criteria_match": {
+																							Type:     schema.TypeString,
+																							Optional: true,
+																							Default:  "all",
 																						},
 																						"criteria": {
 																							Type:     schema.TypeSet,
@@ -732,6 +907,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																												"flag": {
 																													Type:     schema.TypeBool,
 																													Optional: true,
+																												},
+																												"type": {
+																													Type:     schema.TypeString,
+																													Optional: true,
+																													Default:  "auto",
 																												},
 																											},
 																										},
@@ -770,6 +950,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																													Type:     schema.TypeBool,
 																													Optional: true,
 																												},
+																												"type": {
+																													Type:     schema.TypeString,
+																													Optional: true,
+																													Default:  "auto",
+																												},
 																											},
 																										},
 																									},
@@ -788,6 +973,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																									"comment": {
 																										Type:     schema.TypeString,
 																										Required: true,
+																									},
+																									"criteria_match": {
+																										Type:     schema.TypeString,
+																										Optional: true,
+																										Default:  "all",
 																									},
 																									"criteria": {
 																										Type:     schema.TypeSet,
@@ -819,6 +1009,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																															"flag": {
 																																Type:     schema.TypeBool,
 																																Optional: true,
+																															},
+																															"type": {
+																																Type:     schema.TypeString,
+																																Optional: true,
+																																Default:  "auto",
 																															},
 																														},
 																													},
@@ -857,6 +1052,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																Type:     schema.TypeBool,
 																																Optional: true,
 																															},
+																															"type": {
+																																Type:     schema.TypeString,
+																																Optional: true,
+																																Default:  "auto",
+																															},
 																														},
 																													},
 																												},
@@ -875,6 +1075,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																												"comment": {
 																													Type:     schema.TypeString,
 																													Required: true,
+																												},
+																												"criteria_match": {
+																													Type:     schema.TypeString,
+																													Optional: true,
+																													Default:  "all",
 																												},
 																												"criteria": {
 																													Type:     schema.TypeSet,
@@ -906,6 +1111,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																		"flag": {
 																																			Type:     schema.TypeBool,
 																																			Optional: true,
+																																		},
+																																		"type": {
+																																			Type:     schema.TypeString,
+																																			Optional: true,
+																																			Default:  "auto",
 																																		},
 																																	},
 																																},
@@ -944,6 +1154,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																			Type:     schema.TypeBool,
 																																			Optional: true,
 																																		},
+																																		"type": {
+																																			Type:     schema.TypeString,
+																																			Optional: true,
+																																			Default:  "auto",
+																																		},
 																																	},
 																																},
 																															},
@@ -962,6 +1177,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																															"comment": {
 																																Type:     schema.TypeString,
 																																Required: true,
+																															},
+																															"criteria_match": {
+																																Type:     schema.TypeString,
+																																Optional: true,
+																																Default:  "all",
 																															},
 																															"criteria": {
 																																Type:     schema.TypeSet,
@@ -993,6 +1213,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																					"flag": {
 																																						Type:     schema.TypeBool,
 																																						Optional: true,
+																																					},
+																																					"type": {
+																																						Type:     schema.TypeString,
+																																						Optional: true,
+																																						Default:  "auto",
 																																					},
 																																				},
 																																			},
@@ -1031,6 +1256,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																						Type:     schema.TypeBool,
 																																						Optional: true,
 																																					},
+																																					"type": {
+																																						Type:     schema.TypeString,
+																																						Optional: true,
+																																						Default:  "auto",
+																																					},
 																																				},
 																																			},
 																																		},
@@ -1049,6 +1279,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																		"comment": {
 																																			Type:     schema.TypeString,
 																																			Required: true,
+																																		},
+																																		"criteria_match": {
+																																			Type:     schema.TypeString,
+																																			Optional: true,
+																																			Default:  "all",
 																																		},
 																																		"criteria": {
 																																			Type:     schema.TypeSet,
@@ -1080,6 +1315,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																								"flag": {
 																																									Type:     schema.TypeBool,
 																																									Optional: true,
+																																								},
+																																								"type": {
+																																									Type:     schema.TypeString,
+																																									Optional: true,
+																																									Default:  "auto",
 																																								},
 																																							},
 																																						},
@@ -1118,6 +1358,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																									Type:     schema.TypeBool,
 																																									Optional: true,
 																																								},
+																																								"type": {
+																																									Type:     schema.TypeString,
+																																									Optional: true,
+																																									Default:  "auto",
+																																								},
 																																							},
 																																						},
 																																					},
@@ -1136,6 +1381,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																					"comment": {
 																																						Type:     schema.TypeString,
 																																						Required: true,
+																																					},
+																																					"criteria_match": {
+																																						Type:     schema.TypeString,
+																																						Optional: true,
+																																						Default:  "all",
 																																					},
 																																					"criteria": {
 																																						Type:     schema.TypeSet,
@@ -1167,6 +1417,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																											"flag": {
 																																												Type:     schema.TypeBool,
 																																												Optional: true,
+																																											},
+																																											"type": {
+																																												Type:     schema.TypeString,
+																																												Optional: true,
+																																												Default:  "auto",
 																																											},
 																																										},
 																																									},
@@ -1205,6 +1460,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																												Type:     schema.TypeBool,
 																																												Optional: true,
 																																											},
+																																											"type": {
+																																												Type:     schema.TypeString,
+																																												Optional: true,
+																																												Default:  "auto",
+																																											},
 																																										},
 																																									},
 																																								},
@@ -1223,6 +1483,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																								"comment": {
 																																									Type:     schema.TypeString,
 																																									Required: true,
+																																								},
+																																								"criteria_match": {
+																																									Type:     schema.TypeString,
+																																									Optional: true,
+																																									Default:  "all",
 																																								},
 																																								"criteria": {
 																																									Type:     schema.TypeSet,
@@ -1254,6 +1519,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																														"flag": {
 																																															Type:     schema.TypeBool,
 																																															Optional: true,
+																																														},
+																																														"type": {
+																																															Type:     schema.TypeString,
+																																															Optional: true,
+																																															Default:  "auto",
 																																														},
 																																													},
 																																												},
@@ -1291,6 +1561,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 																																														"flag": {
 																																															Type:     schema.TypeBool,
 																																															Optional: true,
+																																														},
+																																														"type": {
+																																															Type:     schema.TypeString,
+																																															Optional: true,
+																																															Default:  "auto",
 																																														},
 																																													},
 																																												},
