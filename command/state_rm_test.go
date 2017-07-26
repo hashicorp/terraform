@@ -47,9 +47,11 @@ func TestStateRm(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateRmCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -109,9 +111,11 @@ func TestStateRmNoArgs(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateRmCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -169,9 +173,11 @@ func TestStateRm_backupExplicit(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateRmCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -198,9 +204,11 @@ func TestStateRm_noState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateRmCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 

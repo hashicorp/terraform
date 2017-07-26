@@ -10,7 +10,6 @@ import (
 
 // StateMvCommand is a Command implementation that shows a single resource.
 type StateMvCommand struct {
-	Meta
 	StateMeta
 }
 
@@ -21,12 +20,13 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// We create two metas to track the two states
-	var meta1, meta2 Meta
+	var backupPathOut, statePathOut string
+
 	cmdFlags := c.Meta.flagSet("state mv")
-	cmdFlags.StringVar(&meta1.backupPath, "backup", "-", "backup")
-	cmdFlags.StringVar(&meta1.statePath, "state", "", "path")
-	cmdFlags.StringVar(&meta2.backupPath, "backup-out", "-", "backup")
-	cmdFlags.StringVar(&meta2.statePath, "state-out", "", "path")
+	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
+	cmdFlags.StringVar(&c.statePath, "state", "", "path")
+	cmdFlags.StringVar(&backupPathOut, "backup-out", "-", "backup")
+	cmdFlags.StringVar(&statePathOut, "state-out", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
@@ -36,13 +36,8 @@ func (c *StateMvCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
-	// Copy the `-state` flag for output if we weren't given a custom one
-	if meta2.statePath == "" {
-		meta2.statePath = meta1.statePath
-	}
-
 	// Read the from state
-	stateFrom, err := c.StateMeta.State(&meta1)
+	stateFrom, err := c.State()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return cli.RunResultHelp
@@ -62,8 +57,11 @@ func (c *StateMvCommand) Run(args []string) int {
 	// Read the destination state
 	stateTo := stateFrom
 	stateToReal := stateFromReal
-	if meta2.statePath != meta1.statePath {
-		stateTo, err = c.StateMeta.State(&meta2)
+
+	if statePathOut != "" {
+		c.statePath = statePathOut
+		c.backupPath = backupPathOut
+		stateTo, err = c.State()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 			return cli.RunResultHelp

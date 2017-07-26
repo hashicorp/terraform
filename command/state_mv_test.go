@@ -47,9 +47,11 @@ func TestStateMv(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -133,9 +135,11 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 	p := testProvider()
 	ui = new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -194,9 +198,11 @@ func TestStateMv_backupExplicit(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -244,9 +250,11 @@ func TestStateMv_stateOutNew(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -316,9 +324,11 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -357,9 +367,11 @@ func TestStateMv_noState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -418,9 +430,11 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -596,9 +610,11 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -677,9 +693,11 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
