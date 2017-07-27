@@ -40,7 +40,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	stateFrom, err := c.State()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
-		return cli.RunResultHelp
+		return 1
 	}
 
 	if err := stateFrom.RefreshState(); err != nil {
@@ -64,7 +64,7 @@ func (c *StateMvCommand) Run(args []string) int {
 		stateTo, err = c.State()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
-			return cli.RunResultHelp
+			return 1
 		}
 
 		if err := stateTo.RefreshState(); err != nil {
