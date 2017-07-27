@@ -31,27 +31,48 @@ type DiffFieldReader struct {
 	Schema map[string]*Schema
 }
 
+type readFieldCacheObject struct {
+	result FieldReadResult
+	err    error
+}
+
+var (
+	diffReadFieldCache map[string]readFieldCacheObject = make(map[string]readFieldCacheObject)
+)
+
 func (r *DiffFieldReader) ReadField(address []string) (FieldReadResult, error) {
+	cacheKey := strings.Join(address, ".")
+	if v, ok := diffReadFieldCache[cacheKey]; ok {
+		return v.result, v.err
+	}
+
 	schemaList := addrToSchema(address, r.Schema)
 	if len(schemaList) == 0 {
 		return FieldReadResult{}, nil
 	}
 
 	schema := schemaList[len(schemaList)-1]
+	var (
+		result FieldReadResult
+		err    error
+	)
 	switch schema.Type {
 	case TypeBool, TypeInt, TypeFloat, TypeString:
-		return r.readPrimitive(address, schema)
+		result, err = r.readPrimitive(address, schema)
 	case TypeList:
-		return readListField(r, address, schema)
+		result, err = readListField(r, address, schema)
 	case TypeMap:
-		return r.readMap(address, schema)
+		result, err = r.readMap(address, schema)
 	case TypeSet:
-		return r.readSet(address, schema)
+		result, err = r.readSet(address, schema)
 	case typeObject:
-		return readObjectField(r, address, schema.Elem.(map[string]*Schema))
+		result, err = readObjectField(r, address, schema.Elem.(map[string]*Schema))
 	default:
 		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
 	}
+
+	diffReadFieldCache[cacheKey] = readFieldCacheObject{result: result, err: err}
+	return diffReadFieldCache[cacheKey].result, diffReadFieldCache[cacheKey].err
 }
 
 func (r *DiffFieldReader) readMap(

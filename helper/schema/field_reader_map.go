@@ -12,7 +12,16 @@ type MapFieldReader struct {
 	Schema map[string]*Schema
 }
 
+var (
+	mapReadFieldCache map[string]readFieldCacheObject = make(map[string]readFieldCacheObject)
+)
+
 func (r *MapFieldReader) ReadField(address []string) (FieldReadResult, error) {
+	cacheKey := strings.Join(address, ".")
+	if v, ok := mapReadFieldCache[cacheKey]; ok {
+		return v.result, v.err
+	}
+
 	k := strings.Join(address, ".")
 	schemaList := addrToSchema(address, r.Schema)
 	if len(schemaList) == 0 {
@@ -20,20 +29,27 @@ func (r *MapFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	}
 
 	schema := schemaList[len(schemaList)-1]
+	var (
+		result FieldReadResult
+		err    error
+	)
 	switch schema.Type {
 	case TypeBool, TypeInt, TypeFloat, TypeString:
-		return r.readPrimitive(address, schema)
+		result, err = r.readPrimitive(address, schema)
 	case TypeList:
-		return readListField(r, address, schema)
+		result, err = readListField(r, address, schema)
 	case TypeMap:
-		return r.readMap(k, schema)
+		result, err = r.readMap(k, schema)
 	case TypeSet:
-		return r.readSet(address, schema)
+		result, err = r.readSet(address, schema)
 	case typeObject:
-		return readObjectField(r, address, schema.Elem.(map[string]*Schema))
+		result, err = readObjectField(r, address, schema.Elem.(map[string]*Schema))
 	default:
-		panic(fmt.Sprintf("Unknown type: %s", schema.Type))
+		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
 	}
+
+	mapReadFieldCache[cacheKey] = readFieldCacheObject{result: result, err: err}
+	return mapReadFieldCache[cacheKey].result, mapReadFieldCache[cacheKey].err
 }
 
 func (r *MapFieldReader) readMap(k string, schema *Schema) (FieldReadResult, error) {

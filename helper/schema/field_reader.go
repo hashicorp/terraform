@@ -3,6 +3,11 @@ package schema
 import (
 	"fmt"
 	"strconv"
+	"strings"
+)
+
+var (
+	schemaCache map[string][]*Schema = make(map[string][]*Schema)
 )
 
 // FieldReaders are responsible for decoding fields out of data into
@@ -45,6 +50,11 @@ func (r *FieldReadResult) ValueOrZero(s *Schema) interface{} {
 // and the given schema. It returns all the schemas that led to the final
 // schema. These are in order of the address (out to in).
 func addrToSchema(addr []string, schemaMap map[string]*Schema) []*Schema {
+	cacheKey := strings.Join(addr, ".")
+	if r, ok := schemaCache[cacheKey]; ok {
+		return r
+	}
+
 	current := &Schema{
 		Type: typeObject,
 		Elem: schemaMap,
@@ -53,7 +63,8 @@ func addrToSchema(addr []string, schemaMap map[string]*Schema) []*Schema {
 	// If we aren't given an address, then the user is requesting the
 	// full object, so we return the special value which is the full object.
 	if len(addr) == 0 {
-		return []*Schema{current}
+		schemaCache[cacheKey] = []*Schema{current}
+		return schemaCache[cacheKey]
 	}
 
 	result := make([]*Schema, 0, len(addr))
@@ -160,6 +171,8 @@ func addrToSchema(addr []string, schemaMap map[string]*Schema) []*Schema {
 			goto REPEAT
 		}
 	}
+
+	schemaCache[cacheKey] = result
 
 	return result
 }
