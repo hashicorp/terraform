@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -216,6 +217,110 @@ func TestStateRm_noState(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
+}
+
+func TestStateRm_needsInit(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-change"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateRmCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{"foo"}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error\noutput:", ui.OutputWriter)
+	}
+
+	if !strings.Contains(ui.ErrorWriter.String(), "Initialization") {
+		t.Fatal("expected initialization error, got:\n", ui.ErrorWriter)
+	}
+}
+
+func TestStateRm_backendState(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-unchanged"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+
+					"test_instance.bar": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// the local backend state file is "foo"
+	statePath := "local-state.tfstate"
+	backupPath := "local-state.backup"
+
+	f, err := os.Create(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	if err := terraform.WriteState(state, f); err != nil {
+		t.Fatal(err)
+	}
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateRmCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{
+		"-backup", backupPath,
+		"test_instance.foo",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, statePath, testStateRmOutput)
+
+	// Test backup
+	testStateOutput(t, backupPath, testStateRmOutputOriginal)
 }
 
 const testStateRmOutputOriginal = `
