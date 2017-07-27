@@ -276,13 +276,17 @@ func init() {
 
 		"state rm": func() (cli.Command, error) {
 			return &command.StateRmCommand{
-				Meta: meta,
+				StateMeta: command.StateMeta{
+					Meta: meta,
+				},
 			}, nil
 		},
 
 		"state mv": func() (cli.Command, error) {
 			return &command.StateMvCommand{
-				Meta: meta,
+				StateMeta: command.StateMeta{
+					Meta: meta,
+				},
 			}, nil
 		},
 
