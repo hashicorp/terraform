@@ -50,6 +50,31 @@ The following options apply to all of (or several of) the initialization steps:
 * `-upgrade` Opt to upgrade modules and plugins as part of their respective
   installation steps. See the seconds below for more details.
 
+## Copy a Source Module
+
+By default, `terraform init` assumes that the working directory already
+contains a configuration and will attempt to initialize that configuration.
+
+Optionally, init can be run against an empty directory with the
+`-with-module=MODULE-SOURCE` option, in which case the given module will be
+copied into the target directory before any other initialization steps are
+run.
+
+This special mode of operation supports two use-cases:
+
+* Given a version control source, it can serve as a shorthand for checking out
+  a configuration from version control and then initializing the work directory
+  for it.
+
+* If the source refers to an _example_ configuration, it can be copied into
+  a local directory to be used as a basis for a new configuration.
+
+For routine use it's recommended to check out configuration from version
+control separately, using the version control system's own commands. This way
+it's possible to pass extra flags to the version control system when necessary,
+and to perform other preparation steps (such as configuration generation, or
+activating credentials) before running `terraform init`.
+
 ## Backend Initialization
 
 During init, the root configuration directory is consulted for
