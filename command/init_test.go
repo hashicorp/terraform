@@ -55,6 +55,99 @@ func TestInit_multipleArgs(t *testing.T) {
 	}
 }
 
+func TestInit_fromModule_explicitDest(t *testing.T) {
+	dir := tempDir(t)
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-from-module=" + testFixturePath("init"),
+		dir,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "hello.tf")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestInit_fromModule_cwdDest(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	os.MkdirAll(td, os.ModePerm)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-from-module=" + testFixturePath("init"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(filepath.Join(td, "hello.tf")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+// https://github.com/hashicorp/terraform/issues/518
+func TestInit_fromModule_dstInSrc(t *testing.T) {
+	dir := tempDir(t)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Change to the temporary directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	if _, err := os.Create("issue518.tf"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-from-module=.",
+		"foo",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "foo", "issue518.tf")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestInit_get(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)

@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-getter"
+
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
@@ -33,6 +35,7 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
+	var flagFromModule string
 	var flagBackend, flagGet, flagUpgrade bool
 	var flagConfigExtra map[string]interface{}
 	var flagPluginPath FlagStringSlice
@@ -45,6 +48,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags := c.flagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
 	cmdFlags.Var((*variables.FlagAny)(&flagConfigExtra), "backend-config", "")
+	cmdFlags.StringVar(&flagFromModule, "from-module", "", "copy the source of the given module into the directory before init")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
 	cmdFlags.BoolVar(&c.getPlugins, "get-plugins", true, "")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
@@ -95,7 +99,7 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the path and source module to copy
+	// If an argument is provided then it overrides our working directory.
 	path := pwd
 	if len(args) == 1 {
 		path = args[0]
@@ -104,6 +108,30 @@ func (c *InitCommand) Run(args []string) int {
 	// This will track whether we outputted anything so that we know whether
 	// to output a newline before the success message
 	var header bool
+
+	if flagFromModule != "" {
+		src := flagFromModule
+
+		empty, err := config.IsEmptyDir(path)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error validating destination directory: %s", err))
+			return 1
+		}
+		if !empty {
+			c.Ui.Error(strings.TrimSpace(errInitCopyNotEmpty))
+			return 1
+		}
+
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			"[reset][bold]Copying configuration[reset] from %q...", src,
+		)))
+		header = true
+
+		if err := c.copyConfigFromModule(path, src, pwd); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error copying source module: %s", err))
+			return 1
+		}
+	}
 
 	// If our directory is empty, then we're done. We can't get or setup
 	// the backend with an empty directory.
@@ -230,6 +258,19 @@ func (c *InitCommand) Run(args []string) int {
 	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccess)))
 
 	return 0
+}
+
+func (c *InitCommand) copyConfigFromModule(dst, src, pwd string) error {
+	// errors from this function will be prefixed with "Error copying source module: "
+	// when returned to the user.
+	var err error
+
+	src, err = getter.Detect(src, pwd, getter.Detectors)
+	if err != nil {
+		return fmt.Errorf("invalid module source: %s", err)
+	}
+
+	return module.GetCopy(dst, src)
 }
 
 // Load the complete module tree, and fetch any missing providers.
@@ -430,6 +471,9 @@ Options:
                        equivalent to providing a "yes" to all confirmation
                        prompts.
 
+  -from-module=SOURCE  Copy the contents of the given module into the target
+                       directory before initialization.
+
   -get=true            Download any modules for this configuration.
 
   -get-plugins=true    Download any missing plugins for this configuration.
@@ -462,15 +506,15 @@ Options:
 }
 
 func (c *InitCommand) Synopsis() string {
-	return "Initialize a new or existing Terraform configuration"
+	return "Initialize a Terraform working directory"
 }
 
 const errInitCopyNotEmpty = `
-The destination path contains Terraform configuration files. The init command
-with a SOURCE parameter can only be used on a directory without existing
-Terraform files.
+The working directory already contains files. The -from-module option requires
+an empty directory into which a copy of the referenced module will be placed.
 
-Please resolve this issue and try again.
+To initialize the configuration already in this working directory, omit the
+-from-module option.
 `
 
 const outputInitEmpty = `
