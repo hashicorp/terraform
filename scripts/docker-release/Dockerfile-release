@@ -34,4 +34,6 @@ RUN echo Building image for Terraform ${TERRAFORM_VERSION} && \
     unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /bin && \
     rm -f terraform_${TERRAFORM_VERSION}_linux_amd64.zip terraform_${TERRAFORM_VERSION}_SHA256SUMS*
 
+LABEL "com.hashicorp.terraform.version"="${TERRAFORM_VERSION}"
+
 ENTRYPOINT ["/bin/terraform"]
