@@ -89,7 +89,7 @@ func (d *decoder) decode(name string, node ast.Node, result reflect.Value) error
 	switch k.Kind() {
 	case reflect.Bool:
 		return d.decodeBool(name, node, result)
-	case reflect.Float64:
+	case reflect.Float32, reflect.Float64:
 		return d.decodeFloat(name, node, result)
 	case reflect.Int, reflect.Int32, reflect.Int64:
 		return d.decodeInt(name, node, result)
@@ -143,7 +143,7 @@ func (d *decoder) decodeFloat(name string, node ast.Node, result reflect.Value) 
 				return err
 			}
 
-			result.Set(reflect.ValueOf(v))
+			result.Set(reflect.ValueOf(v).Convert(result.Type()))
 			return nil
 		}
 	}
