@@ -651,7 +651,7 @@ func activateProperty(property *papi.Property, d *schema.ResourceData) (*papi.Ac
 	log.Println("[DEBUG] Creating new activation")
 	activation := papi.NewActivation(papi.NewActivations())
 	activation.PropertyVersion = property.LatestVersion
-	activation.Network = papi.NetworkProduction
+	activation.Network = papi.NetworkValue(strings.ToUpper(d.Get("network").(string)))
 	for _, email := range d.Get("contact").(*schema.Set).List() {
 		activation.NotifyEmails = append(activation.NotifyEmails, email.(string))
 	}

@@ -1,6 +1,9 @@
 package akamai
 
-import "github.com/hashicorp/terraform/helper/schema"
+import (
+	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
+	"github.com/hashicorp/terraform/helper/schema"
+)
 
 var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 	"clone_from": &schema.Schema{
@@ -27,6 +30,11 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 				},
 			},
 		},
+	},
+	"network": &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		Default:  string(papi.NetworkStaging),
 	},
 	"group": &schema.Schema{
 		Type:     schema.TypeString,
