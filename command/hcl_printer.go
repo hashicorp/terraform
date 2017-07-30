@@ -27,7 +27,7 @@ func encodeHCL(i interface{}) ([]byte, error) {
 	fakeAssignment := append([]byte("X = "), hcl...)
 
 	// use the real hcl parser to verify our output, and format it canonically
-	hcl, err = printer.Format(fakeAssignment)
+	hcl, err = printer.Format(fakeAssignment, nil)
 	if err != nil {
 		return nil, err
 	}
