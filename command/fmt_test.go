@@ -455,6 +455,27 @@ output "foo" {
 }
 			`,
 		},
+		{
+			Name: "existing description, update and preserve position",
+			Input: `
+// Foo.
+//
+// Bar.
+variable "foo" {
+  default     = "bar"
+  description = "Change me!" // LineComment
+}
+			`,
+			Expected: `
+// Foo.
+//
+// Bar.
+variable "foo" {
+  default     = "bar"
+  description = "Foo." // LineComment
+}
+			`,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
