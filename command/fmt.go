@@ -25,18 +25,16 @@ const (
 // and outputs with leading comment data.
 //
 // The intended behaviour of this filter is to use it to take data from the
-// first contiguous block of text from a leading comment for a variable or
-// output, and either pre-populate, or update the description of an already
-// existing description field with the new data.
+// first paragraph of text from a leading comment for a variable or output, and
+// either pre-populate, or update the description of an already existing
+// description field with the new data.
 type populateFilter struct{}
 
 // Filter implements HCL's printer.Filter for populateFilter.
 func (f *populateFilter) Filter(n *ast.File) error {
 	for _, obj := range n.Node.(*ast.ObjectList).Items {
 		if obj.LeadComment != nil && obj.Keys[0].Token.Type == token.IDENT && (obj.Keys[0].Token.Text == "variable" || obj.Keys[0].Token.Text == "output") {
-			// Insert the first line of the lead comment into the description. The
-			// "first line" in this context means the first contiguous block before a
-			// blank in the comments (the "basic" description).
+			// Insert the first paragraph of the lead comment into the description.
 			var lines []string
 			for _, l := range obj.LeadComment.List {
 				// Split on line breaks and iterate on that. This may seem frivolous,
@@ -191,8 +189,8 @@ Options:
 
   -diff=false      Display diffs of formatting changes
   
-	-populate=false  Auto-populate variable and output descriptions with first
-	                 contiguous block of leading comment data
+  -populate=false  Auto-populate variable and output descriptions with first
+                   paragraph of leading comment data
 
 `
 	return strings.TrimSpace(helpText)
