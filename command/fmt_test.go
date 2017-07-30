@@ -433,6 +433,28 @@ variable "foo" {
 }
 			`,
 		},
+		{
+			Name: "basic single-line double slash, updating output",
+			Input: `
+// Foo.
+//
+// Bar.
+output "foo" {
+  value = "bar"
+}
+			`,
+			Expected: `
+
+// Foo.
+//
+// Bar.
+output "foo" {
+  description = "Foo."
+
+  value = "bar"
+}
+			`,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
