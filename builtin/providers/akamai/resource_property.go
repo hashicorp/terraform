@@ -1,6 +1,7 @@
 package akamai
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -73,7 +74,6 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
-
 		rules.Save()
 	}
 
@@ -462,12 +462,14 @@ func initRules(property *papi.Property, cpCode *papi.CpCode, d *schema.ResourceD
 		"tier2MobileCompressionMethod": "COMPRESS",
 		"tier2MobileCompressionValue":  60,
 	})
-	{
-	}
 	log.Println("[DEBUG] Saving rules")
 
 	err = rules.Save()
 	if err != nil {
+		errorJson, err := json.MarshalIndent(rules.Errors, "", "    ")
+		if err != nil {
+			log.Printf("[DEBUG] Rules.Errors: %s\n", string(errorJson))
+		}
 		return rules, err
 	}
 	log.Println("[DEBUG] Rules saved")
@@ -535,6 +537,10 @@ func updateRules(rules *papi.Rules, path string, rulesSet *schema.Set) error {
 		if ruleElem.Contains("rule") && ruleElem.GetSet("rule").Len() > 0 {
 			err := updateRules(rules, path+"/"+rule.Name, ruleElem.GetSet("rule"))
 			if err != nil {
+				errorJson, err := json.MarshalIndent(rules.Errors, "", "    ")
+				if err != nil {
+					log.Printf("[DEBUG] Update Rules.Errors: %s\n", string(errorJson))
+				}
 				return err
 			}
 		} else {
