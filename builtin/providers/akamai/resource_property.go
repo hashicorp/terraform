@@ -529,7 +529,7 @@ func updateRules(rules *papi.Rules, path string, rulesSet *schema.Set) error {
 
 		log.Printf("[DEBUG] Saving rule: %s\n\n", path+"/")
 		log.Printf("[DEBUG] Rule: %#v\n\n", rule)
-		err := rules.AddRule(path, rule)
+		err := rules.AddChildRule(path, rule)
 		if err != nil {
 			return err
 		}
