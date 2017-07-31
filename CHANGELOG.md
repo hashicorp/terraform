@@ -4,6 +4,10 @@ BUG FIXES:
 
 * provisioner/chef: fix panic [GH-15617]
 
+IMPROVEMENTS:
+
+* cli: Add a `-from-module` flag to `terraform init` to re-introduce the legacy `terraform init` behavior of fetching a module. [GH-15666]
+
 
 ## 0.10.0-rc1 (July 19, 2017)
 
