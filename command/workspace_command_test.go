@@ -9,6 +9,8 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/backend/remote-state/inmem"
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -211,9 +213,19 @@ func TestWorkspace_createInvalid(t *testing.T) {
 
 func TestWorkspace_createWithState(t *testing.T) {
 	td := tempDir(t)
-	os.MkdirAll(td, 0755)
+	copy.CopyDir(testFixturePath("inmem-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
+	defer inmem.Reset()
+
+	// init the backend
+	ui := new(cli.MockUi)
+	initCmd := &InitCommand{
+		Meta: Meta{Ui: ui},
+	}
+	if code := initCmd.Run([]string{}); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
 
 	// create a non-empty state
 	originalState := &terraform.State{
@@ -238,7 +250,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 	}
 
 	args := []string{"-state", "test.tfstate", "test"}
-	ui := new(cli.MockUi)
+	ui = new(cli.MockUi)
 	newCmd := &WorkspaceNewCommand{
 		Meta: Meta{Ui: ui},
 	}

@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -57,6 +58,7 @@ func TestUnlock_inmemBackend(t *testing.T) {
 	copy.CopyDir(testFixturePath("backend-inmem-locked"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
+	defer inmem.Reset()
 
 	// init backend
 	ui := new(cli.MockUi)
