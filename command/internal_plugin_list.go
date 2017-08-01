@@ -44,6 +44,7 @@ import (
 	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
+	netappprovider "github.com/hashicorp/terraform/builtin/providers/netapp"
 	newrelicprovider "github.com/hashicorp/terraform/builtin/providers/newrelic"
 	nomadprovider "github.com/hashicorp/terraform/builtin/providers/nomad"
 	ns1provider "github.com/hashicorp/terraform/builtin/providers/ns1"
@@ -124,6 +125,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"logentries":   logentriesprovider.Provider,
 	"mailgun":      mailgunprovider.Provider,
 	"mysql":        mysqlprovider.Provider,
+	"netapp":       netappprovider.Provider,
 	"newrelic":     newrelicprovider.Provider,
 	"nomad":        nomadprovider.Provider,
 	"ns1":          ns1provider.Provider,
