@@ -7,30 +7,14 @@ resource "akamai_property" "daveyshafikcom" {
   group = "Davey Shafik"
   contract = "ctr_C-1FRYVV3"
   contact = ["dshafik@akamai.com"]
-
-  hostname = ["test98.randomnoise.us"]
-
+  hostname = ["api.akamaideveloper.com"]
+  network = "production"
   cpcode = "409449"
 
   origin {
     is_secure = false
-    hostname = "www.randomnoise.us"
-  }
-
-  compress {
-    extensions    = ["css", "js"]
-    content_types = ["text/html", "text/css"]
-  }
-
-  cache {
-    match {
-      extensions = ["css", "js"]
-    }
-    max_age = "30d"
-    prefreshing = true
-    prefetch = true
-    query_params = true
-    query_params_sort = true
+    hostname = "developer.akamai.com"
+    forward_hostname = "ORIGIN_HOSTNAME"
   }
 
   rule {
@@ -57,62 +41,47 @@ resource "akamai_property" "daveyshafikcom" {
     }
 
     rule {
-      name = "Redirect to HTTPS"
-      comment = "Redirect to the same URL on HTTPS protocol, issuing a 301 response code (Moved Permanently). You may change the response code to 302 if needed."
+      name = "Fixup Path"
+      comment = "Prefix incoming path with /api, unless it's already there"
 
       criteria {
-        name = "requestProtocol"
-        option {
-          name = "value"
-          value = "HTTP"
-        }
-      }
+        name = "path"
 
-      criteria {
-        name = "hostname"
         option {
           name = "matchOperator"
-          value = "IS_NOT_ONE_OF"
+          value = "DOES_NOT_MATCH_ONE_OF"
         }
 
         option {
           name = "values"
-          values = ["staging.daveyshafik.com"]
+          values = ["/api/", "/api/*/"]
+        }
+
+        option {
+          name = "matchCaseSensitive"
+          flag = false
         }
       }
 
       behavior {
-        name = "redirect"
+        name = "rewriteUrl"
 
         option {
-          name = "mobileDefaultChoice"
-          value = "DEFAULT"
+          name = "behavior"
+          value = "PREPEND"
         }
+
         option {
-          name = "destinationProtocol"
-          value = "HTTPS"
+          name = "targetPathPrepend"
+          value = "/api/"
         }
+
         option {
-          name = "destinationHostname"
-          value = "OTHER"
+          name = "keepQueryString"
+          flag = true
         }
-        option {
-          name = "destinationHostnameOther"
-          value = "www.daveyshafik.com"
-        }
-        option {
-          name = "destinationPath"
-          value = "SAME_AS_REQUEST"
-        }
-        option {
-          name = "queryString"
-          value = "APPEND"
-        }
-        option {
-          name = "responseCode"
-          value = "301"
-          type = "int"
-        }
+
+
       }
     }
 
@@ -136,90 +105,6 @@ resource "akamai_property" "daveyshafikcom" {
         option {
           name = "enabled"
           flag = true
-        }
-      }
-
-      rule {
-        name = "Enable HTTP2"
-        comment = ""
-
-        criteria {
-          name = "hostname"
-
-          option {
-            name = "matchOperator"
-            value = "IS_ONE_OF"
-          }
-
-          option {
-            name = "values"
-            values = ["www.daveyshafik.com", "daveyshafik.com"]
-          }
-        }
-
-        behavior {
-          name = "spdy"
-
-          option {
-            name = "enabled"
-            value = ""
-            type = "string"
-          }
-        }
-
-        behavior {
-          name = "http2"
-
-          option {
-            name = "enabled"
-            value = ""
-            type = "string"
-          }
-        }
-
-        behavior {
-          name = "allowTransferEncoding"
-
-          option {
-            name = "enabled"
-            flag = true
-          }
-        }
-
-        behavior {
-          name = "adaptiveAcceleration"
-
-          option {
-            name = "titleHttp2ServerPush"
-            value = ""
-            type = "string"
-          }
-
-          option {
-            name = "enablePush"
-            flag = true
-          }
-
-          option {
-            name = "titlePreconnect"
-            value = ""
-            type = "string"
-          }
-
-          option {
-            name = "enablePreconnect"
-            flag = true
-          }
-
-          option {
-            name = "useDefaultPush"
-            flag = true
-          }
-
-          option {
-            name = "useDefaultPreconnect"
-            flag = true
-          }
         }
       }
 
@@ -312,29 +197,7 @@ resource "akamai_property" "daveyshafikcom" {
 
           option {
             name = "values"
-            values = [
-              "text/*",
-              "application/javascript",
-              "application/x-javascript",
-              "application/x-javascript*",
-              "application/json",
-              "application/x-json",
-              "application/*+json",
-              "application/*+xml",
-              "application/text",
-              "application/vnd.microsoft.icon",
-              "application/vnd-ms-fontobject",
-              "application/x-font-ttf",
-              "application/x-font-opentype",
-              "application/x-font-truetype",
-              "application/xmlfont/eot",
-              "application/xml",
-              "font/opentype",
-              "font/otf",
-              "font/eot",
-              "image/svg+xml",
-              "image/vnd.microsoft.icon"
-            ]
+            values = ["text/*", "application/javascript", "application/x-javascript", "application/x-javascript*", "application/json", "application/x-json", "application/*+json", "application/*+xml", "application/text", "application/vnd.microsoft.icon", "application/vnd-ms-fontobject", "application/x-font-ttf", "application/x-font-opentype", "application/x-font-truetype", "application/xmlfont/eot", "application/xml", "font/opentype", "font/otf", "font/eot", "image/svg+xml", "image/vnd.microsoft.icon"]
           }
 
           option {
@@ -358,82 +221,82 @@ resource "akamai_property" "daveyshafikcom" {
           }
         }
       }
+    }
 
-      rule {
-        name = "Offload"
-        comment = "Controls caching, which offloads traffic away from the origin. Most objects types are not cached. However, the child rules override this behavior for certain subsets of requests."
+    rule {
+      name = "Offload"
+      comment = "Controls caching, which offloads traffic away from the origin. Most objects types are not cached. However, the child rules override this behavior for certain subsets of requests."
 
-        behavior {
-          name = "removeVary"
+      behavior {
+        name = "removeVary"
 
-          option {
-            name = "enabled"
-            flag = true
-          }
+        option {
+          name = "enabled"
+          flag = true
+        }
+      }
+
+      behavior {
+        name = "caching"
+
+        option {
+          name = "behavior"
+          value = "MAX_AGE"
         }
 
-        behavior {
-          name = "caching"
-
-          option {
-            name = "behavior"
-            value = "MAX_AGE"
-          }
-
-          option {
-            name = "mustRevalidate"
-            flag = false
-            type = "bool"
-          }
-
-          option {
-            name = "ttl"
-            value = "1d"
-          }
+        option {
+          name = "mustRevalidate"
+          flag = false
+          type = "bool"
         }
 
-        behavior {
-          name = "cacheError"
+        option {
+          name = "ttl"
+          value = "1d"
+        }
+      }
 
-          option {
-            name = "enabled"
-            flag = true
-          }
+      behavior {
+        name = "cacheError"
 
-          option {
-            name = "ttl"
-            value = "10s"
-          }
-
-          option {
-            name = "preserveStale"
-            flag = true
-          }
+        option {
+          name = "enabled"
+          flag = true
         }
 
-        behavior {
-          name = "downstreamCache"
+        option {
+          name = "ttl"
+          value = "10s"
+        }
 
-          option {
-            name = "behavior"
-            value = "ALLOW"
-          }
+        option {
+          name = "preserveStale"
+          flag = true
+        }
+      }
 
-          option {
-            name = "allowBehavior"
-            value = "GREATER"
-          }
+      behavior {
+        name = "downstreamCache"
 
-          option {
-            name = "sendHeaders"
-            value = "CACHE_CONTROL_AND_EXPIRES"
-          }
+        option {
+          name = "behavior"
+          value = "ALLOW"
+        }
 
-          option {
-            name = "sendPrivate"
-            flag = false
-            type = "bool"
-          }
+        option {
+          name = "allowBehavior"
+          value = "GREATER"
+        }
+
+        option {
+          name = "sendHeaders"
+          value = "CACHE_CONTROL_AND_EXPIRES"
+        }
+
+        option {
+          name = "sendPrivate"
+          flag = false
+          type = "bool"
         }
       }
 
@@ -522,6 +385,7 @@ resource "akamai_property" "daveyshafikcom" {
           }
         }
       }
+
       rule {
         name = "Static Objects"
         comment = "Overrides the default caching behavior for images, music, and similar objects that are cached on the edge server. Because these object types are static, the TTL is long."
@@ -538,70 +402,7 @@ resource "akamai_property" "daveyshafikcom" {
 
           option {
             name = "values"
-            values = [
-              "aif",
-              "aiff",
-              "au",
-              "avi",
-              "bin",
-              "bmp",
-              "cab",
-              "carb",
-              "cct",
-              "cdf",
-              "class",
-              "doc",
-              "dcr",
-              "dtd",
-              "exe",
-              "flv",
-              "gcf",
-              "gff",
-              "gif",
-              "grv",
-              "hdml",
-              "hqx",
-              "ini",
-              "jpeg",
-              "jpg",
-              "mov",
-              "mp3",
-              "nc",
-              "pct",
-              "pdf",
-              "png",
-              "ppc",
-              "pws",
-              "swa",
-              "swf",
-              "txt",
-              "vbs",
-              "w32",
-              "wav",
-              "wbmp",
-              "wml",
-              "wmlc",
-              "wmls",
-              "wmlsc",
-              "xsd",
-              "zip",
-              "pict",
-              "tif",
-              "tiff",
-              "mid",
-              "midi",
-              "ttf",
-              "eot",
-              "woff",
-              "woff2",
-              "otf",
-              "svg",
-              "svgz",
-              "webp",
-              "jxr",
-              "jar",
-              "jp2"
-            ]
+            values = ["aif", "aiff", "au", "avi", "bin", "bmp", "cab", "carb", "cct", "cdf", "class", "doc", "dcr", "dtd", "exe", "flv", "gcf", "gff", "gif", "grv", "hdml", "hqx", "ini", "jpeg", "jpg", "mov", "mp3", "nc", "pct", "pdf", "png", "ppc", "pws", "swa", "swf", "txt", "vbs", "w32", "wav", "wbmp", "wml", "wmlc", "wmls", "wmlsc", "xsd", "zip", "pict", "tif", "tiff", "mid", "midi", "ttf", "eot", "woff", "woff2", "otf", "svg", "svgz", "webp", "jxr", "jar", "jp2"]
           }
 
           option {
@@ -679,6 +480,7 @@ resource "akamai_property" "daveyshafikcom" {
           }
         }
       }
+
       rule {
         name = "Uncacheable Responses"
         comment = "Overrides the default downstream caching behavior for uncacheable object types. Instructs the edge server to pass Cache-Control and/or Expire headers from the origin to the client."
