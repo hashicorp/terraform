@@ -570,7 +570,6 @@ func getOptions(v helper.Elem) (papi.OptionValue, error) {
 			case optionElem.Contains("values") && optionElem.GetSet("values").Len() > 0:
 				optionType = "set"
 			case optionElem.Contains("value") && optionElem.GetString("value") != "":
-				optionType = "string"
 			case optionElem.Contains("flag"):
 				optionType = "bool"
 			default:
@@ -579,6 +578,9 @@ func getOptions(v helper.Elem) (papi.OptionValue, error) {
 		}
 
 		switch {
+		case optionType == "auto":
+			value := numberify(optionElem.GetString("value"))
+			option[name] = value
 		case optionType == "string":
 			value := optionElem.GetString("value")
 			option[name] = value
