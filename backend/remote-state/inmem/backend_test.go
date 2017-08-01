@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 )
 
@@ -12,19 +11,8 @@ func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
 }
 
-// reset the states and locks between tests
-func reset() {
-	states = stateMap{
-		m: map[string]*remote.State{},
-	}
-
-	locks = lockMap{
-		m: map[string]*state.LockInfo{},
-	}
-}
-
 func TestBackendConfig(t *testing.T) {
-	defer reset()
+	defer Reset()
 	testID := "test_lock_id"
 
 	config := map[string]interface{}{
@@ -49,13 +37,13 @@ func TestBackendConfig(t *testing.T) {
 }
 
 func TestBackend(t *testing.T) {
-	defer reset()
+	defer Reset()
 	b := backend.TestBackendConfig(t, New(), nil).(*Backend)
 	backend.TestBackend(t, b, nil)
 }
 
 func TestBackendLocked(t *testing.T) {
-	defer reset()
+	defer Reset()
 	b1 := backend.TestBackendConfig(t, New(), nil).(*Backend)
 	b2 := backend.TestBackendConfig(t, New(), nil).(*Backend)
 
