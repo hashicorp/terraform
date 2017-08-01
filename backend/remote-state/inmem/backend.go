@@ -17,12 +17,26 @@ import (
 // we keep the states and locks in package-level variables, so that they can be
 // accessed from multiple instances of the backend. This better emulates
 // backend instances accessing a single remote data store.
-var states = stateMap{
-	m: map[string]*remote.State{},
+var (
+	states stateMap
+	locks  lockMap
+)
+
+func init() {
+	Reset()
 }
 
-var locks = lockMap{
-	m: map[string]*state.LockInfo{},
+// Reset clears out all existing state and lock data.
+// This is used to initialize the package during init, as well as between
+// tests.
+func Reset() {
+	states = stateMap{
+		m: map[string]*remote.State{},
+	}
+
+	locks = lockMap{
+		m: map[string]*state.LockInfo{},
+	}
 }
 
 // New creates a new backend for Inmem remote state.

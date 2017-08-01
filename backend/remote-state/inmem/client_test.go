@@ -13,7 +13,7 @@ func TestRemoteClient_impl(t *testing.T) {
 }
 
 func TestRemoteClient(t *testing.T) {
-	defer reset()
+	defer Reset()
 	b := backend.TestBackendConfig(t, New(), nil)
 
 	s, err := b.State(backend.DefaultStateName)
@@ -25,7 +25,7 @@ func TestRemoteClient(t *testing.T) {
 }
 
 func TestInmemLocks(t *testing.T) {
-	defer reset()
+	defer Reset()
 	s, err := backend.TestBackendConfig(t, New(), nil).State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
