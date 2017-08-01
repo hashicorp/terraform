@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // we keep the states and locks in package-level variables, so that they can be
@@ -124,6 +125,26 @@ func (b *Backend) State(name string) (state.State, error) {
 			},
 		}
 		states.m[name] = s
+
+		// to most closely replicate other implementations, we are going to
+		// take a lock and create a new state if it doesn't exist.
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "init"
+		lockID, err := s.Lock(lockInfo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to lock inmem state: %s", err)
+		}
+		defer s.Unlock(lockID)
+
+		// If we have no state, we have to create an empty state
+		if v := s.State(); v == nil {
+			if err := s.WriteState(terraform.NewState()); err != nil {
+				return nil, err
+			}
+			if err := s.PersistState(); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return s, nil
