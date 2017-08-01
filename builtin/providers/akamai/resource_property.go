@@ -74,7 +74,11 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
-		rules.Save()
+
+		err = rules.Save()
+		if err != nil {
+			return err
+		}
 	}
 
 	edgeHostnames, err := setEdgeHostnames(property, hostnameEdgeHostnameMap)
