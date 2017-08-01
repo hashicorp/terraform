@@ -249,7 +249,9 @@ func TestWorkspace_createWithState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	args := []string{"-state", "test.tfstate", "test"}
+	workspace := "test_workspace"
+
+	args := []string{"-state", "test.tfstate", workspace}
 	ui = new(cli.MockUi)
 	newCmd := &WorkspaceNewCommand{
 		Meta: Meta{Ui: ui},
@@ -265,7 +267,14 @@ func TestWorkspace_createWithState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newState := envState.State()
+	b := backend.TestBackendConfig(t, inmem.New(), nil)
+	sMgr, err := b.State(workspace)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newState := sMgr.State()
+
 	originalState.Version = newState.Version // the round-trip through the state manager implicitly populates version
 	if !originalState.Equal(newState) {
 		t.Fatalf("states not equal\norig: %s\nnew: %s", originalState, newState)
