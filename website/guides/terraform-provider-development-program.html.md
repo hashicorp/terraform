@@ -8,7 +8,7 @@ description: |-
 ---
 #Terraform Provider Development Program
 
-##Introduction
+## Introduction
 Terraform is used to create, manage, and manipulate infrastructure resources. Examples of resources include physical machines, VMs, network switches, containers, etc. Almost any infrastructure noun can be represented as a resource in Terraform.
  
 Terraform can broadly be divided into two parts – the Terraform core, which consists of the core functionality, and a provider layer, which provides a translation layer between Terraform core and the underlying infrastructure. A provider is responsible for understanding API interactions with the underlying infrastructure like a cloud (AWS, GCP, Azure), a PaaS service (Heroku), a SaaS (service DNSimple, CloudFlare), or on-prem resources (vSphere). It then exposes these as resources users can code to. Terraform presently supports more than 70 providers, a number that has more than doubled in the past 12 months.
@@ -16,7 +16,7 @@ Terraform can broadly be divided into two parts – the Terraform core, which co
 ~> **NOTE:** This document is intended for vendors and users who would like to build a Terraform provider to have their infrastructure supported via terraform.  The program is intended to be largely self-serve, with links to information sources, clearly defined steps, and checkpoints. This being said, we welcome you to contact us at <terraform-provider-dev@hashicorp.com> with any questions, or feedback.
 
 
-##Provider Development Process
+## Provider Development Process
 The Terraform provider development process can broadly be divided into the six steps described below.
 
 ![Process](docs/process.png)
@@ -30,14 +30,14 @@ The Terraform provider development process can broadly be divided into the six s
 
 Each of these steps are described in detail below. Vendors are encouraged to follow the tasks associated with each step to the fullest as it helps streamline the process and minimize rework.
 
-###1. Engage
+### 1. Engage
 Each new provider development cycle begins with the vendor providing some basic information about the infrastructure the provider is being built for, the name of the provider, relevant details about the project, via a simple [webform](https://goo.gl/forms/iqfz6H9UK91X9LQp2) (https://goo.gl/forms/iqfz6H9UK91X9LQp2).  This information is captured upfront and used for consistently tracking the provider through the various steps.
  
 All providers integrate into and operate with Terraform exactly the same way.  The table below is intended to help users understand who develops, maintains and tests a particular provider. All new providers should align to one of these two tiers.
 
 ![Engage-table](docs/engage-table.png)
 
-###2. Enable
+### 2. Enable
 In order to get started with the Terraform provider development process we recommend reviewing and following the articles included in the Provider Development Kit.
  
 Provider Development Kit:
@@ -51,7 +51,7 @@ Provider Development Kit:
  
 We’ve found the provider development to be fairly straightforward and simple when vendors pay close attention and follow to the above articles. Adopting the same structure and coding patterns helps expedite the review and release cycles.
 
-###3. Development & Test
+### 3. Development & Test
 The Terraform provider is written in the [Go](https://golang.org/) programming language. The best approach to architect a new provider project is to use the [AWS provider](https://github.com/terraform-providers/terraform-provider-aws) as a reference.  Given the wide surface area of this provider, almost all resource types and preferred code constructs are covered in it.
  
 It is recommended for vendors to first develop support for one or two resources and go through an initial review cycle before developing the code for the remaining resources.  This helps catch any issues early on in the process and avoids errors from getting multiplied. In addition, it is advised to follow existing conventions you see in the codebase, and ensure your code is formatted with go fmt.  This is needed as our TravisCI continuous Integration (CI) build will fail if go fmt has not been run on the code.
@@ -74,7 +74,7 @@ While developing the provider code yourself is certainly possible, you can also 
 | MustWin            | bd@mustwin.com               | www.mustwin.com      |
 | OpenCredo          | guy.richardson@opencredo.com | www.opencredo.com    |
 
-###4. Review
+### 4. Review
 Once the provider with one or two sample resources has been developed, an email should be sent to <terraform-provider-dev@hashicorp.com> along with a pointer to the public GitHub repo containing the code. HashiCorp will then review the resource code, acceptance tests, and the documentation for the sample resource(s) will be reviewed. When all the feedback has been addressed, support for the remaining resources can continue to be developed, along with the corresponding acceptance tests and documentation. The vendor is encouraged to send HashiCorp a rough list of resource names that are planned to be worked on along with the mapping to the underlying APIs, if possible.  This information can be provided via the [webform](https://goo.gl/forms/iqfz6H9UK91X9LQp2). It is preferred that the additional resources be developed and submitted as individual PRs in GitHub as that simplifies the review process.
  
 Once the provider has been completed another email should be sent to <terraform-provider-dev@hashicorp.com> along with a pointer to the public GitHub repo containing the code requesting the final code review. HashiCorp will review the code and provide feedback about any changes that may be required.  This is often an iterative process and can take some time to get done.
@@ -84,7 +84,7 @@ The vendor is also required to provide access credentials for the infrastructure
 >
 NOTE: It is strongly recommended to develop support for just one or two resources first and go through the review cycle before developing support for all the remaining resources. This approach helps catch any code construct issues early, and avoids the problem from multiplying across other resources.  In addition, one of the common gaps is often the lack of a complete set of acceptance tests, which results in wasted time. It is recommended that you make an extra pass through the provider code and ensure that each resource has an acceptance test associated with it.
 
-###5. Release
+### 5. Release
 At this stage, it is expected that the provider is fully developed, all tests and documentation are in place, and the acceptance tests are all passing.
 
 
@@ -95,14 +95,13 @@ Vendors whose providers are listed on terraform.io are permitted to use the Hash
 
 <img alt="hashicorp-tested-icon" src="/assets/images/docs/hashicorp-tested-icon.png" style="width: 101px;" />
 
-###6. Support
+### 6. Support
 Many vendors view the Release step above to be the end of the journey, while at HashiCorp we view it to be the start. Getting the provider built is just the first step in enabling users to use it against the infrastructure. Once this is done on-going effort is required to maintain the provider and address any issues in a timely manner. The expectation is to resolve all Critical issues within 48 hours and all other issues within 5 business days. HashiCorp Terraform has as extremely wide community of users and contributors and we encourage everyone to report issues however small, as well as help resolve them when possible.
  
 Vendors who choose to not support their provider and prefer to make it a community supported provider will not be listed on terraform.io.
 
-##Next Steps
+## Next Steps
 Below is an ordered checklist of steps that should be followed during the provider development process.
-
 
 [ ] Fill out provider development program engagement [webform](https://goo.gl/forms/iqfz6H9UK91X9LQp2) (https://goo.gl/forms/iqfz6H9UK91X9LQp2)
 
