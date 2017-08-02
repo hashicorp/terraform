@@ -57,6 +57,29 @@ If you get an error that `terraform` could not be found, your `PATH` environment
 variable was not set up properly. Please go back and ensure that your `PATH`
 variable contains the directory where Terraform was installed.
 
+## Initialization
+
+Terraform requires initialization in order to configure [backends](/docs/backends/config.html) and install the required
+[providers](/docs/configuration/providers.html). Running [`terraform init`](/docs/commands/init.html) is required after
+any provider or backend changes.
+
+```text
+$ tf init
+
+Initializing provider plugins...
+- Downloading plugin for provider "aws"...
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+```
+
 ## Next Steps
 
 Time to [build infrastructure](/intro/getting-started/build.html) using a
