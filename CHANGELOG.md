@@ -82,7 +82,7 @@ INTERNAL CHANGES:
 * helper/schema: Force field names to be alphanum lowercase + underscores ([#15562](https://github.com/hashicorp/terraform/issues/15562))
 
 
-## 0.10.0 from 0.10.0-rc1 (Unreleased)
+## 0.10.0-rc1 to 0.10.0 (Unreleased)
 
 BUG FIXES: 
 
