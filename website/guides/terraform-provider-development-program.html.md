@@ -3,11 +3,8 @@ layout: "guides"
 page_title: "Terraform Provider Development Program"
 sidebar_current: "guides-terraform-provider-development-program"
 description: |-
-  Terraform can broadly be divided into two parts – the Terraform core, which 
-  consists of the core functionality, and a provider layer, which provides a 
-  translation layer between Terraform core and the underlying infrastructure. Ths 
-  guide describes guidence on creating a provider and applying for inclusing with
-  Terraform
+  This guide provides steps to create a provider and apply for inclusing with
+  Terraform, in order for Vendors to have their platform supported by Terraform.
 ---
 #Terraform Provider Development Program
 
@@ -107,11 +104,11 @@ Vendors who choose to not support their provider and prefer to make it a communi
 Below is an ordered checklist of steps that should be followed during the provider development process.
 
 
- [ ] Fill out provider development program engagement [webform](https://goo.gl/forms/iqfz6H9UK91X9LQp2) (https://goo.gl/forms/iqfz6H9UK91X9LQp2)
+[ ] Fill out provider development program engagement [webform](https://goo.gl/forms/iqfz6H9UK91X9LQp2) (https://goo.gl/forms/iqfz6H9UK91X9LQp2)
 
- [ ] Refer to the example providers and model the new provider based on that
+[ ] Refer to the example providers and model the new provider based on that
 
- [ ] Create the new provider with one or two sample resources along with acceptance tests and documentation
+[ ] Create the new provider with one or two sample resources along with acceptance tests and documentation
 
 [ ] Send email to <terraform-provider-dev@hashicorp.com> to schedule an initial review
 
