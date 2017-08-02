@@ -1,4 +1,4 @@
-## 0.10.0 (Unreleased)
+## 0.10.0 (August 2, 2017)
 
 **This is the complete 0.9.11 to 0.10.0 CHANGELOG**
 
@@ -37,7 +37,7 @@ FEATURES:
 
 * **Separate Provider Releases:** Providers are now released independently from Terraform.
 * **Automatic Provider Installation:** The required providers will be automatically installed during `terraform init`.
-* **Provider Constraints:** Provider are now versioned, and version constraints may be declared in the configuration. 
+* **Provider Constraints:** Provider are now versioned, and version constraints may be declared in the configuration.
 
 PROVIDERS:
 
@@ -45,7 +45,7 @@ PROVIDERS:
 
 IMPROVEMENTS:
 
-* cli: Add a `-from-module` flag to `terraform init` to re-introduce the legacy `terraform init` behavior of fetching a module. [GH-15666]
+* cli: Add a `-from-module` flag to `terraform init` to re-introduce the legacy `terraform init` behavior of fetching a module. ([#15666](https://github.com/hashicorp/terraform/issues/15666))
 * backend/s3: Add `workspace_key_prefix` to allow a user-configurable prefix for workspaces in the S3 Backend. ([#15370](https://github.com/hashicorp/terraform/issues/15370))
 * cli: `terraform apply` now has an option `-auto-approve=false` that produces an interactive prompt to approve the generated plan. This will become the default workflow in a future Terraform version. ([#7251](https://github.com/hashicorp/terraform/issues/7251))
 * cli: `terraform workspace show` command prints the current workspace name in a way that's more convenient for processing in wrapper scripts. ([#15157](https://github.com/hashicorp/terraform/issues/15157))
@@ -60,7 +60,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* provisioner/chef: fix panic [GH-15617]
+* provisioner/chef: fix panic ([#15617](https://github.com/hashicorp/terraform/issues/15617))
 * Don't show a message about the path to the state file if the state is remote ([#15435](https://github.com/hashicorp/terraform/issues/15435))
 * Fix crash when `terraform graph` is run with no configuration ([#15588](https://github.com/hashicorp/terraform/issues/15588))
 * Handle correctly the `.exe` suffix on locally-compiled provider plugins on Windows systems. ([#15587](https://github.com/hashicorp/terraform/issues/15587))
@@ -82,15 +82,15 @@ INTERNAL CHANGES:
 * helper/schema: Force field names to be alphanum lowercase + underscores ([#15562](https://github.com/hashicorp/terraform/issues/15562))
 
 
-## 0.10.0-rc1 to 0.10.0 (Unreleased)
+## 0.10.0-rc1 to 0.10.0 (August 2, 2017)
 
-BUG FIXES: 
+BUG FIXES:
 
-* provisioner/chef: fix panic [GH-15617]
+* provisioner/chef: fix panic ([#15617](https://github.com/hashicorp/terraform/issues/15617))
 
 IMPROVEMENTS:
 
-* cli: Add a `-from-module` flag to `terraform init` to re-introduce the legacy `terraform init` behavior of fetching a module. [GH-15666]
+* cli: Add a `-from-module` flag to `terraform init` to re-introduce the legacy `terraform init` behavior of fetching a module. ([#15666](https://github.com/hashicorp/terraform/issues/15666))
 
 
 ## 0.10.0-rc1 (July 19, 2017)
