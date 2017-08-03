@@ -919,6 +919,22 @@
 			"revision": "e5527914aa42cae3063f52892e1ca4518da0e4ae"
 		},
 		{
+			"checksumSHA1": "sUY/zcJDOG367WcDYCPRyreB4sI=",
+			"path": "github.com/coreos/etcd/clientv3",
+			"revision": "c31bec0f29facff13f7c3e3d948e55dd6689ed42",
+			"revisionTime": "2017-07-19T15:37:30Z",
+			"version": "v3.2.4",
+			"versionExact": "v3.2.4"
+		},
+		{
+			"checksumSHA1": "HWGjJoAdeVaq4dqkSKF6iYQj1aY=",
+			"path": "github.com/coreos/etcd/clientv3/concurrency",
+			"revision": "c31bec0f29facff13f7c3e3d948e55dd6689ed42",
+			"revisionTime": "2017-07-19T15:37:30Z",
+			"version": "v3.2.4",
+			"versionExact": "v3.2.4"
+		},
+		{
 			"checksumSHA1": "mKIXx1kDwmVmdIpZ3pJtRBuUKso=",
 			"comment": "v2.3.0-alpha.0-652-ge552791",
 			"path": "github.com/coreos/etcd/pkg/pathutil",
