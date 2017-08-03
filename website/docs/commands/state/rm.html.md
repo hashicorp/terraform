@@ -17,7 +17,7 @@ and more.
 
 Usage: `terraform state rm [options] ADDRESS...`
 
-The command will remove all the items matched by the addresses given.
+Remove one or more items from the Terraform state.
 
 Items removed from the Terraform state are _not physically destroyed_.
 Items removed from the Terraform state are only no longer managed by
@@ -43,10 +43,13 @@ in [resource addressing format](/docs/commands/state/addressing.html).
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-backup=path` - Path to a backup file Defaults to the state path plus
-                   a timestamp with the ".backup" extension.
+* `-backup=path` - Path where Terraform should write the backup state. This
+  can't be disabled. If not set, Terraform will write it to the same path as
+  the statefile with a backup extension.
 
-* `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
+* `-state=path` - Path to a Terraform state file to use to look up
+  Terraform-managed resources. By default it will use the configured backend,
+  or the default "terraform.tfstate" if it exists.
 
 ## Example: Remove a Resource
 

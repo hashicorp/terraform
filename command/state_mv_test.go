@@ -47,9 +47,11 @@ func TestStateMv(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -133,9 +135,11 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 	p := testProvider()
 	ui = new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -194,9 +198,11 @@ func TestStateMv_backupExplicit(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -244,9 +250,11 @@ func TestStateMv_stateOutNew(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -316,9 +324,11 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -357,9 +367,11 @@ func TestStateMv_noState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -418,9 +430,11 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -596,9 +610,11 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -677,9 +693,11 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
 		},
 	}
 
@@ -703,6 +721,160 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 		t.Fatalf("bad: %#v", backups)
 	}
 	testStateOutput(t, backups[0], testStateMvNestedModule_stateOutOriginal)
+}
+
+func TestStateMv_withinBackend(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-unchanged"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+
+					"test_instance.baz": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// the local backend state file is "foo"
+	statePath := "local-state.tfstate"
+	backupPath := "local-state.backup"
+
+	f, err := os.Create(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	if err := terraform.WriteState(state, f); err != nil {
+		t.Fatal(err)
+	}
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{
+		"-backup", backupPath,
+		"test_instance.foo",
+		"test_instance.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, statePath, testStateMvOutput)
+	testStateOutput(t, backupPath, testStateMvOutputOriginal)
+}
+
+func TestStateMv_fromBackendToLocal(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-unchanged"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+
+					"test_instance.baz": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// the local backend state file is "foo"
+	statePath := "local-state.tfstate"
+
+	// real "local" state file
+	statePathOut := "real-local.tfstate"
+
+	f, err := os.Create(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	if err := terraform.WriteState(state, f); err != nil {
+		t.Fatal(err)
+	}
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{
+		"-state-out", statePathOut,
+		"test_instance.foo",
+		"test_instance.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, statePathOut, testStateMvCount_stateOutSrc)
+
+	// the backend state should be left with only baz
+	testStateOutput(t, statePath, testStateMvOriginal_backend)
 }
 
 const testStateMvOutputOriginal = `
@@ -942,4 +1114,11 @@ test_instance.foo:
 const testStateMvExisting_stateDstOriginal = `
 test_instance.qux:
   ID = bar
+`
+
+const testStateMvOriginal_backend = `
+test_instance.baz:
+  ID = foo
+  bar = value
+  foo = value
 `

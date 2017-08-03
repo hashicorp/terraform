@@ -10,7 +10,6 @@ import (
 
 // StateMvCommand is a Command implementation that shows a single resource.
 type StateMvCommand struct {
-	Meta
 	StateMeta
 }
 
@@ -21,12 +20,13 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// We create two metas to track the two states
-	var meta1, meta2 Meta
+	var backupPathOut, statePathOut string
+
 	cmdFlags := c.Meta.flagSet("state mv")
-	cmdFlags.StringVar(&meta1.backupPath, "backup", "-", "backup")
-	cmdFlags.StringVar(&meta1.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&meta2.backupPath, "backup-out", "-", "backup")
-	cmdFlags.StringVar(&meta2.statePath, "state-out", "", "path")
+	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
+	cmdFlags.StringVar(&c.statePath, "state", "", "path")
+	cmdFlags.StringVar(&backupPathOut, "backup-out", "-", "backup")
+	cmdFlags.StringVar(&statePathOut, "state-out", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
@@ -36,16 +36,11 @@ func (c *StateMvCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
-	// Copy the `-state` flag for output if we weren't given a custom one
-	if meta2.statePath == "" {
-		meta2.statePath = meta1.statePath
-	}
-
 	// Read the from state
-	stateFrom, err := c.StateMeta.State(&meta1)
+	stateFrom, err := c.State()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
-		return cli.RunResultHelp
+		return 1
 	}
 
 	if err := stateFrom.RefreshState(); err != nil {
@@ -62,11 +57,14 @@ func (c *StateMvCommand) Run(args []string) int {
 	// Read the destination state
 	stateTo := stateFrom
 	stateToReal := stateFromReal
-	if meta2.statePath != meta1.statePath {
-		stateTo, err = c.StateMeta.State(&meta2)
+
+	if statePathOut != "" {
+		c.statePath = statePathOut
+		c.backupPath = backupPathOut
+		stateTo, err = c.State()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
-			return cli.RunResultHelp
+			return 1
 		}
 
 		if err := stateTo.RefreshState(); err != nil {
@@ -185,28 +183,30 @@ func (c *StateMvCommand) addableResult(results []*terraform.StateFilterResult) i
 
 func (c *StateMvCommand) Help() string {
 	helpText := `
-Usage: terraform state mv [options] ADDRESS ADDRESS
+Usage: terraform state mv [options] SOURCE DESTINATION
 
-  Move an item in the state to another location or to a completely different
-  state file.
+ This command will move an item matched by the address given to the
+ destination address. This command can also move to a destination address
+ in a completely different state file.
 
-  This command is useful for module refactors (moving items into a module),
-  configuration refactors (moving items to a completely different or new
-  state file), or generally renaming of resources.
+ This can be used for simple resource renaming, moving items to and from
+ a module, moving entire modules, and more. And because this command can also
+ move data to a completely new state, it can also be used for refactoring
+ one configuration into multiple separately managed Terraform configurations.
 
-  This command creates a timestamped backup of the state on every invocation.
-  This can't be disabled. Due to the destructive nature of this command,
-  the backup is ensured by Terraform for safety reasons.
+ This command will output a backup copy of the state prior to saving any
+ changes. The backup cannot be disabled. Due to the destructive nature
+ of this command, backups are required.
 
-  If you're moving from one state file to a different state file, a backup
-  will be created for each state file.
+ If you're moving an item to a different state file, a backup will be created
+ for each state file.
 
 Options:
 
   -backup=PATH        Path where Terraform should write the backup for the original
                       state. This can't be disabled. If not set, Terraform
                       will write it to the same path as the statefile with
-                      a backup extension.
+                      a ".backup" extension.
 
   -backup-out=PATH    Path where Terraform should write the backup for the destination
                       state. This can't be disabled. If not set, Terraform
@@ -215,13 +215,12 @@ Options:
                       to be specified if -state-out is set to a different path
                       than -state.
 
-  -state=PATH         Path to a Terraform state file to use to look
-                      up Terraform-managed resources. By default it will
-                      use the state "terraform.tfstate" if it exists.
+  -state=PATH         Path to the source state file. Defaults to the configured
+                      backend, or "terraform.tfstate"
 
-  -state-out=PATH     Path to the destination state file to move the item
-                      to. This defaults to the same statefile. This will
-                      overwrite the destination state file.
+  -state-out=PATH     Path to the destination state file to write to. If this
+                      isn't specified, the source state file will be used. This
+                      can be a new or existing path.
 
 `
 	return strings.TrimSpace(helpText)
