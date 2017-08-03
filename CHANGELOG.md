@@ -1,5 +1,14 @@
 ## 0.10.1 (Unreleased)
 
+BUG FIXES:
+
+* Fix `terraform state rm` and `mv` comamnds to work correctly with remote state backends [GH-15652]
+
+INTERNAL CHANGES:
+
+* DiffFieldReader.ReadField caches results to optimize deeply nested schemas [GH-15663]
+
+
 ## 0.10.0 (August 2, 2017)
 
 **This is the complete 0.9.11 to 0.10.0 CHANGELOG**
