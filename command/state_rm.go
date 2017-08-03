@@ -9,7 +9,6 @@ import (
 
 // StateRmCommand is a Command implementation that shows a single resource.
 type StateRmCommand struct {
-	Meta
 	StateMeta
 }
 
@@ -20,8 +19,8 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	cmdFlags := c.Meta.flagSet("state show")
-	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "-", "backup")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
+	cmdFlags.StringVar(&c.statePath, "state", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
@@ -32,10 +31,10 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	state, err := c.StateMeta.State(&c.Meta)
+	state, err := c.State()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
-		return cli.RunResultHelp
+		return 1
 	}
 	if err := state.RefreshState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
