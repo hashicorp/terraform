@@ -1177,35 +1177,29 @@
 			"revisionTime": "2016-11-07T20:49:10Z"
 		},
 		{
-			"checksumSHA1": "jfELEMRhiTcppZmRH+ZwtkVS5Uw=",
-			"path": "github.com/hashicorp/consul/acl",
-			"revision": "144a5e5340893a5e726e831c648f26dc19fef1e7",
-			"revisionTime": "2017-03-10T23:35:18Z"
-		},
-		{
-			"checksumSHA1": "ygEjA1d52B1RDmZu8+1WTwkrYDQ=",
+			"checksumSHA1": "IYuLg7xUzsf/P9rMpdEh1n9rbIY=",
 			"comment": "v0.6.3-28-g3215b87",
 			"path": "github.com/hashicorp/consul/api",
-			"revision": "48d7b069ad443a48ffa93364048ff8909b5d1fa2",
-			"revisionTime": "2017-02-07T15:38:46Z"
+			"revision": "b79d951ced8c5f18fe73d35b2806f3435e40cd64",
+			"revisionTime": "2017-07-20T03:19:26Z",
+			"version": "v0.9.0",
+			"versionExact": "v0.9.0"
 		},
 		{
-			"checksumSHA1": "nomqbPd9j3XelMMcv7+vTEPsdr4=",
-			"path": "github.com/hashicorp/consul/consul/structs",
-			"revision": "48d7b069ad443a48ffa93364048ff8909b5d1fa2",
-			"revisionTime": "2017-02-07T15:38:46Z"
-		},
-		{
-			"checksumSHA1": "dgYoWTG7nIL9CUBuktDvMZqYDR8=",
+			"checksumSHA1": "++0PVBxbpylmllyCxSa7cdc6dDc=",
 			"path": "github.com/hashicorp/consul/testutil",
-			"revision": "48d7b069ad443a48ffa93364048ff8909b5d1fa2",
-			"revisionTime": "2017-02-07T15:38:46Z"
+			"revision": "b79d951ced8c5f18fe73d35b2806f3435e40cd64",
+			"revisionTime": "2017-07-20T03:19:26Z",
+			"version": "v0.9.0",
+			"versionExact": "v0.9.0"
 		},
 		{
-			"checksumSHA1": "ZPDLNuKJGZJFV9HlJ/V0O4/c/Ko=",
-			"path": "github.com/hashicorp/consul/types",
-			"revision": "48d7b069ad443a48ffa93364048ff8909b5d1fa2",
-			"revisionTime": "2017-02-07T15:38:46Z"
+			"checksumSHA1": "J8TTDc84MvAyXE/FrfgS+xc/b6s=",
+			"path": "github.com/hashicorp/consul/testutil/retry",
+			"revision": "b79d951ced8c5f18fe73d35b2806f3435e40cd64",
+			"revisionTime": "2017-07-20T03:19:26Z",
+			"version": "v0.9.0",
+			"versionExact": "v0.9.0"
 		},
 		{
 			"checksumSHA1": "cdOCt0Yb+hdErz8NAQqayxPmRsY=",
@@ -1382,12 +1376,6 @@
 			"path": "github.com/hashicorp/logutils",
 			"revision": "0dc08b1671f34c4250ce212759ebd880f743d883",
 			"revisionTime": "2015-06-09T07:04:31Z"
-		},
-		{
-			"checksumSHA1": "wpirHJV/6VEbbD+HyAP2/6Xc0ek=",
-			"path": "github.com/hashicorp/raft",
-			"revision": "aaad9f10266e089bd401e7a6487651a69275641b",
-			"revisionTime": "2016-11-10T00:52:40Z"
 		},
 		{
 			"checksumSHA1": "o8In5byYGDCY/mnTuV4Tfmci+3w=",
@@ -1658,6 +1646,12 @@
 			"checksumSHA1": "d1VHczIGt2bhYR0BNkTedIS/9uk=",
 			"path": "github.com/packer-community/winrmcp/winrmcp",
 			"revision": "3d184cea22ee1c41ec1697e0d830ff0c78f7ea97"
+		},
+		{
+			"checksumSHA1": "rJab1YdNhQooDiBWNnt7TLWPyBU=",
+			"path": "github.com/pkg/errors",
+			"revision": "c605e284fe17294bda444b34710735b29d1a9d90",
+			"revisionTime": "2017-05-05T04:36:39Z"
 		},
 		{
 			"checksumSHA1": "Yqr9OQ7AuIB1N0HMbSxqEoVQG+k=",
