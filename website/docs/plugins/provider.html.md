@@ -240,7 +240,7 @@ which cover all available settings.
 
 We recommend viewing schemas of existing or similar providers to learn
 best practices. A good starting place is the
-[core Terraform providers](https://github.com/hashicorp/terraform/tree/master/builtin/providers).
+[core Terraform providers](https://github.com/terraform-providers).
 
 ## Resource Data
 

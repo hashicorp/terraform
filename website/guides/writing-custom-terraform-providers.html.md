@@ -40,7 +40,7 @@ This post assumes familiarity with Golang and basic programming concepts.
 
 As a reminder, all of Terraform's core providers are open source. When stuck or
 looking for examples, please feel free to reference
-[the open source providers](https://github.com/hashicorp/terraform/tree/master/builtin/providers) for help.
+[the open source providers](https://github.com/terraform-providers) for help.
 
 ## The Provider Schema
 
