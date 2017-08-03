@@ -1258,6 +1258,51 @@ func TestResourceDataGetOkExists(t *testing.T) {
 			Value: 0,
 			Ok:    false,
 		},
+
+		{
+			Name: "bool-literal-empty",
+			Schema: map[string]*Schema{
+				"availability_zone": {
+					Type:     TypeBool,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+			Diff:  nil,
+
+			Key:   "availability_zone",
+			Value: false,
+			Ok:    false,
+		},
+
+		{
+			Name: "bool-literal-set",
+			Schema: map[string]*Schema{
+				"availability_zone": {
+					Type:     TypeBool,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": {
+						New: "true",
+					},
+				},
+			},
+
+			Key:   "availability_zone",
+			Value: true,
+			Ok:    true,
+		},
 	}
 
 	for _, tc := range cases {
