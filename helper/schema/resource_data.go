@@ -104,7 +104,7 @@ func (d *ResourceData) GetOk(key string) (interface{}, bool) {
 	return r.Value, exists
 }
 
-// GetOkRaw returns the data for a given key and whether or not the key
+// GetOkExists returns the data for a given key and whether or not the key
 // has been set to a non-zero value. This is only useful for determining
 // if boolean attributes have been set, if they are Optional but do not
 // have a Default value.
@@ -114,7 +114,7 @@ func (d *ResourceData) GetOk(key string) (interface{}, bool) {
 // without a default, to fully check for a literal assignment, regardless
 // of the zero-value for that type.
 // This should only be used if absolutely required/needed.
-func (d *ResourceData) GetOkRaw(key string) (interface{}, bool) {
+func (d *ResourceData) GetOkExists(key string) (interface{}, bool) {
 	r := d.getRaw(key, getSourceSet)
 	exists := r.Exists && !r.Computed
 	return r.Value, exists

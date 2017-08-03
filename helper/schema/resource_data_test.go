@@ -1082,7 +1082,7 @@ func TestResourceDataGetOk(t *testing.T) {
 	}
 }
 
-func TestResourceDataGetOkRaw(t *testing.T) {
+func TestResourceDataGetOkExists(t *testing.T) {
 	cases := []struct {
 		Name   string
 		Schema map[string]*Schema
@@ -1266,7 +1266,7 @@ func TestResourceDataGetOkRaw(t *testing.T) {
 			t.Fatalf("%s err: %s", tc.Name, err)
 		}
 
-		v, ok := d.GetOkRaw(tc.Key)
+		v, ok := d.GetOkExists(tc.Key)
 		if s, ok := v.(*Set); ok {
 			v = s.List()
 		}
