@@ -1271,11 +1271,18 @@ func TestResourceDataGetOkExists(t *testing.T) {
 			},
 
 			State: nil,
-			Diff:  nil,
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": {
+						Old: "",
+						New: "",
+					},
+				},
+			},
 
 			Key:   "availability_zone",
 			Value: false,
-			Ok:    false,
+			Ok:    true,
 		},
 
 		{
@@ -1305,23 +1312,25 @@ func TestResourceDataGetOkExists(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
-		if err != nil {
-			t.Fatalf("%s err: %s", tc.Name, err)
-		}
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+			if err != nil {
+				t.Fatalf("%s err: %s", tc.Name, err)
+			}
 
-		v, ok := d.GetOkExists(tc.Key)
-		if s, ok := v.(*Set); ok {
-			v = s.List()
-		}
+			v, ok := d.GetOkExists(tc.Key)
+			if s, ok := v.(*Set); ok {
+				v = s.List()
+			}
 
-		if !reflect.DeepEqual(v, tc.Value) {
-			t.Fatalf("Bad %s: \n%#v", tc.Name, v)
-		}
-		if ok != tc.Ok {
-			t.Fatalf("%s: expected ok: %t, got: %t", tc.Name, tc.Ok, ok)
-		}
+			if !reflect.DeepEqual(v, tc.Value) {
+				t.Fatalf("Bad %s: \n%#v", tc.Name, v)
+			}
+			if ok != tc.Ok {
+				t.Fatalf("%s: expected ok: %t, got: %t", tc.Name, tc.Ok, ok)
+			}
+		})
 	}
 }
 
