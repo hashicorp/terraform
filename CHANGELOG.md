@@ -4,6 +4,10 @@ BUG FIXES:
 
 * Fix `terraform state rm` and `mv` comamnds to work correctly with remote state backends [GH-15652]
 
+IMPROVEMENTS:
+
+* helper/schema: Add `GetOkExists` schema function [GH-15723]
+
 INTERNAL CHANGES:
 
 * DiffFieldReader.ReadField caches results to optimize deeply nested schemas [GH-15663]
