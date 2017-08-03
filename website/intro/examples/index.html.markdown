@@ -8,7 +8,7 @@ description: |-
 
 # Example Configurations
 
-These examples are designed to help you understand some
+The examples in this section illustrate some
 of the ways Terraform can be used.
 
 All examples are ready to run as-is. Terraform will
@@ -31,23 +31,21 @@ uses it isn't required.
 
 ## Examples
 
-All of the examples are in the
-["examples" directory within the Terraform source code](https://github.com/hashicorp/terraform/tree/master/examples). Each example (as well as the examples
-directory) has a README explaining the goal of the example.
+Our examples are distributed across several repos. [This README file in the Terraform repo has links to all of them.](https://github.com/hashicorp/terraform/tree/master/examples)
 
 To use these examples, Terraform must first be installed on your machine.
 You can install Terraform from the [downloads page](/downloads.html).
-Once installed, you can use two steps to view and run the examples.
+Once installed, you can download, view, and run the examples.
 
-To try these examples, first clone them with git as usual:
+To use an example, clone the repository that contains it and navigate to its directory. For example, to try the AWS two-tier architecture example:
 
 ```
-git clone https://github.com/hashicorp/terraform/examples/aws-two-tier
-cd aws-two-tier
+git clone https://github.com/terraform-providers/terraform-provider-aws.git
+cd terraform-provider-aws/examples/two-tier
 ```
 
-You can then use your own editor to read and browse the configurations.
-To try out the example, initialize and then apply:
+You can then use your preferred code editor to browse and read the configurations.
+To try out an example, run Terraform's init and apply commands while in the example's directory:
 
 ```
 $ terraform init
