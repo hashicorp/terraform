@@ -22,13 +22,21 @@ type ConfigFieldReader struct {
 	once      sync.Once
 }
 
+var (
+	configReadFieldCache map[string]readFieldCacheObject = make(map[string]readFieldCacheObject)
+)
+
 func (r *ConfigFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	r.once.Do(func() { r.indexMaps = make(map[string]map[string]int) })
 	return r.readField(address, false)
 }
 
-func (r *ConfigFieldReader) readField(
-	address []string, nested bool) (FieldReadResult, error) {
+func (r *ConfigFieldReader) readField(address []string, nested bool) (FieldReadResult, error) {
+	cacheKey := strings.Join(address, ".")
+	if v, ok := configReadFieldCache[cacheKey]; ok {
+		return v.result, v.err
+	}
+
 	schemaList := addrToSchema(address, r.Schema)
 	if len(schemaList) == 0 {
 		return FieldReadResult{}, nil
@@ -79,6 +87,10 @@ func (r *ConfigFieldReader) readField(
 
 	k := strings.Join(address, ".")
 	schema := schemaList[len(schemaList)-1]
+	var (
+		result FieldReadResult
+		err    error
+	)
 
 	// If we're getting the single element of a promoted list, then
 	// check to see if we have a single element we need to promote.
@@ -95,7 +107,7 @@ func (r *ConfigFieldReader) readField(
 
 	switch schema.Type {
 	case TypeBool, TypeFloat, TypeInt, TypeString:
-		return r.readPrimitive(k, schema)
+		result, err = r.readPrimitive(k, schema)
 	case TypeList:
 		// If we support promotion then we first check if we have a lone
 		// value that we must promote.
@@ -104,22 +116,26 @@ func (r *ConfigFieldReader) readField(
 			result, err := r.readPrimitive(k, schema.Elem.(*Schema))
 			if err == nil && result.Exists {
 				result.Value = []interface{}{result.Value}
+				configReadFieldCache[cacheKey] = readFieldCacheObject{result: result, err: nil}
 				return result, nil
 			}
 		}
 
-		return readListField(&nestedConfigFieldReader{r}, address, schema)
+		result, err = readListField(&nestedConfigFieldReader{r}, address, schema)
 	case TypeMap:
-		return r.readMap(k, schema)
+		result, err = r.readMap(k, schema)
 	case TypeSet:
-		return r.readSet(address, schema)
+		result, err = r.readSet(address, schema)
 	case typeObject:
-		return readObjectField(
+		result, err = readObjectField(
 			&nestedConfigFieldReader{r},
 			address, schema.Elem.(map[string]*Schema))
 	default:
 		panic(fmt.Sprintf("Unknown type: %s", schema.Type))
 	}
+
+	configReadFieldCache[cacheKey] = readFieldCacheObject{result: result, err: err}
+	return configReadFieldCache[cacheKey].result, configReadFieldCache[cacheKey].err
 }
 
 func (r *ConfigFieldReader) readMap(k string, schema *Schema) (FieldReadResult, error) {
