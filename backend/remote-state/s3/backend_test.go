@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -62,6 +63,28 @@ func TestBackendConfig(t *testing.T) {
 	}
 	if credentials.SecretAccessKey == "" {
 		t.Fatalf("No Secret Access Key was populated")
+	}
+}
+
+func TestBackendConfig_invalidKey(t *testing.T) {
+	testACC(t)
+	cfg := map[string]interface{}{
+		"region":         "us-west-1",
+		"bucket":         "tf-test",
+		"key":            "/leading-slash",
+		"encrypt":        true,
+		"dynamodb_table": "dynamoTable",
+	}
+
+	rawCfg, err := config.NewRawConfig(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resCfg := terraform.NewResourceConfig(rawCfg)
+
+	_, errs := New().Validate(resCfg)
+	if len(errs) != 1 {
+		t.Fatal("expected config validation error")
 	}
 }
 

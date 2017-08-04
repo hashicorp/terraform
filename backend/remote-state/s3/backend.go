@@ -2,6 +2,8 @@ package s3
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -25,6 +27,14 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The path to the state file inside the bucket",
+				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+					// s3 will strip leading slashes from an object, so while this will
+					// technically be accepted by s3, it will break our workspace hierarchy.
+					if strings.HasPrefix(v.(string), "/") {
+						return nil, []error{fmt.Errorf("key must not start with '/'")}
+					}
+					return nil, nil
+				},
 			},
 
 			"region": {
