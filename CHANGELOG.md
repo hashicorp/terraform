@@ -7,6 +7,7 @@ BUG FIXES:
 IMPROVEMENTS:
 
 * helper/schema: Add `GetOkExists` schema function [GH-15723]
+* helper/schema: Make 'id' a reserved field name [GH-15695]
 
 INTERNAL CHANGES:
 
