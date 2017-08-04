@@ -106,12 +106,6 @@
 			"revisionTime": "2015-08-27T00:49:46Z"
 		},
 		{
-			"checksumSHA1": "YfhpW3cu1CHWX7lUCRparOJ6Vy4=",
-			"path": "github.com/armon/go-metrics",
-			"revision": "93f237eba9b0602f3e73710416558854a81d9337",
-			"revisionTime": "2017-01-14T13:47:37Z"
-		},
-		{
 			"checksumSHA1": "gNO0JNpLzYOdInGeq7HqMZUzx9M=",
 			"path": "github.com/armon/go-radix",
 			"revision": "4239b77079c7b5d1243b7b4736304ce8ddb6f0f2",
