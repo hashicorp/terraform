@@ -22,10 +22,13 @@ var (
 	ErrWriteStdin = errors.New("cannot use write option with standard input")
 )
 
+// Options are options that can be passed to Run to affect the behaviour of the
+// formatter.
 type Options struct {
-	List  bool // list files whose formatting differs
-	Write bool // write result to (source) file instead of stdout
-	Diff  bool // display diffs of formatting changes
+	List    bool             // list files whose formatting differs
+	Write   bool             // write result to (source) file instead of stdout
+	Diff    bool             // display diffs of formatting changes
+	Filters []printer.Filter // Any externally-supplied filters for the printer
 }
 
 func isValidFile(f os.FileInfo, extensions []string) bool {
@@ -56,7 +59,7 @@ func processFile(filename string, in io.Reader, out io.Writer, stdin bool, opts 
 		return err
 	}
 
-	res, err := printer.Format(src)
+	res, err := printer.Format(src, opts.Filters)
 	if err != nil {
 		return fmt.Errorf("In %s: %s", filename, err)
 	}
@@ -100,6 +103,32 @@ func walkDir(path string, extensions []string, stdout io.Writer, opts Options) e
 	return filepath.Walk(path, visitFile)
 }
 
+// Run runs the formatter for the respective supplied input.
+//
+// The input can be:
+//
+//  * A list of files or directories supplied in paths. If one of these is a
+//    directory, they are scanned for files matching the supplied extensions,
+//    with the resulting files formatted.
+//  * An input stream supplied to stdin. This needs to be an io.Reader.
+//  * Options can be supplied to opts to modify the behaviour of the formatter.
+//    These are explained below and in the Options struct.
+//
+// What gets written to the io.Writer supplied to stdout depends on what is
+// supplied:
+//
+//  * If HCL is supplied on stdin, the resulting formatted text is written to
+//    stdout, unless Diff is supplied as an option, then the diff is written.
+//    Write should not be supplied as an option when using this functionality.
+//  * If paths are supplied, then the re-formatted code is written directly to
+//    those files unless a false Write value is supplied as an option.
+//    Regardless of Write, changed file paths are written to stdout.
+//  * The only exception to the last action is when Diff is supplied as an
+//    option, which in that case, each Diff is written to stdout instead.
+//
+// Finally, a list of printer.Filters can be supplied in the Filters field of
+// opts to supply any implementation-specific filters to dynamically alter the
+// output of the formatter.
 func Run(
 	paths, extensions []string,
 	stdin io.Reader,

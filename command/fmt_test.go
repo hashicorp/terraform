@@ -179,6 +179,333 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 	}
 }
 
+func TestFmtPopulate(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Input    string
+		Expected string
+	}{
+		{
+			Name: "basic single-line double slash with extra detail",
+			Input: `
+// Foo.
+//
+// Bar.
+variable "foo" {
+  default = "bar"
+}
+			`,
+			Expected: `
+// Foo.
+//
+// Bar.
+variable "foo" {
+  description = "Foo."
+
+  default = "bar"
+}
+			`,
+		},
+		{
+			Name: "double slash, multi-line first block",
+			Input: `
+// Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+// tempor incididunt ut labore et dolore magna aliqua.
+//
+// Bar.
+variable "foo" {
+  default = "bar"
+}
+			`,
+			Expected: `
+// Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+// tempor incididunt ut labore et dolore magna aliqua.
+//
+// Bar.
+variable "foo" {
+  description = "Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+
+  default = "bar"
+}
+			`,
+		},
+		{
+			Name: "slashes, fancy bordered comment",
+			Input: `
+///////////////////////////////////////////////////////////////////////////////
+// Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+// tempor incididunt ut labore et dolore magna aliqua.
+//
+// Bar.
+///////////////////////////////////////////////////////////////////////////////
+variable "foo" {
+  default = "bar"
+}
+			`,
+			Expected: `
+///////////////////////////////////////////////////////////////////////////////
+// Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+// tempor incididunt ut labore et dolore magna aliqua.
+//
+// Bar.
+///////////////////////////////////////////////////////////////////////////////
+variable "foo" {
+  description = "Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+
+  default = "bar"
+}
+			`,
+		},
+		{
+			Name: "basic single-line hash with extra detail",
+			Input: `
+# Foo.
+#
+# Bar.
+variable "foo" {
+  default = "bar"
+}
+			`,
+			Expected: `
+# Foo.
+#
+# Bar.
+variable "foo" {
+  description = "Foo."
+
+  default = "bar"
+}
+			`,
+		},
+		{
+			Name: "hash, multi-line first block",
+			Input: `
+# Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+# tempor incididunt ut labore et dolore magna aliqua.
+#
+# Bar.
+variable "foo" {
+  default = "bar"
+}
+			`,
+			Expected: `
+# Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+# tempor incididunt ut labore et dolore magna aliqua.
+#
+# Bar.
+variable "foo" {
+  description = "Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+
+  default = "bar"
+}
+			`,
+		},
+		{
+			Name: "slashes, fancy bordered comment",
+			Input: `
+###############################################################################
+# Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+# tempor incididunt ut labore et dolore magna aliqua.
+#
+# Bar.
+###############################################################################
+variable "foo" {
+  default = "bar"
+}
+			`,
+			Expected: `
+###############################################################################
+# Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+# tempor incididunt ut labore et dolore magna aliqua.
+#
+# Bar.
+###############################################################################
+variable "foo" {
+  description = "Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+
+  default = "bar"
+}
+			`,
+		},
+		{
+			Name: "basic single-line slash-star with extra detail",
+			Input: `
+/*
+ * Foo.
+ *
+ * Bar.
+ */
+variable "foo" {
+  default = "bar"
+}
+			`,
+			Expected: `
+/*
+ * Foo.
+ *
+ * Bar.
+ */
+variable "foo" {
+  description = "Foo."
+
+  default = "bar"
+}
+			`,
+		},
+		{
+			Name: "slash-star, multi-line",
+			Input: `
+/*
+ * Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+ * tempor incididunt ut labore et dolore magna aliqua.
+ *
+ * Bar.
+ */
+variable "foo" {
+  default = "bar"
+}
+			`,
+			Expected: `
+/*
+ * Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+ * tempor incididunt ut labore et dolore magna aliqua.
+ *
+ * Bar.
+ */
+variable "foo" {
+  description = "Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+
+  default = "bar"
+}
+			`,
+		},
+		{
+			Name: "slash-star, fancy bordered comment",
+			Input: `
+/*****************************************************************************
+ * Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+ * tempor incididunt ut labore et dolore magna aliqua.
+ *
+ * Bar.
+ *****************************************************************************/
+variable "foo" {
+  default = "bar"
+}
+			`,
+			Expected: `
+/*****************************************************************************
+ * Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+ * tempor incididunt ut labore et dolore magna aliqua.
+ *
+ * Bar.
+ *****************************************************************************/
+variable "foo" {
+  description = "Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+
+  default = "bar"
+}
+			`,
+		},
+		{
+			Name: "slash-star, with no prefix (legit slash-star use)",
+			Input: `
+/*
+Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+tempor incididunt ut labore et dolore magna aliqua.
+
+Bar.
+ */
+variable "foo" {
+  default = "bar"
+}
+			`,
+			Expected: `
+/*
+Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+tempor incididunt ut labore et dolore magna aliqua.
+
+Bar.
+ */
+variable "foo" {
+  description = "Foo. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+
+  default = "bar"
+}
+			`,
+		},
+		{
+			Name: "basic single-line double slash, updating output",
+			Input: `
+// Foo.
+//
+// Bar.
+output "foo" {
+  value = "bar"
+}
+			`,
+			Expected: `
+
+// Foo.
+//
+// Bar.
+output "foo" {
+  description = "Foo."
+
+  value = "bar"
+}
+			`,
+		},
+		{
+			Name: "existing description, update and preserve position",
+			Input: `
+// Foo.
+//
+// Bar.
+variable "foo" {
+  default     = "bar"
+  description = "Change me!" // LineComment
+}
+			`,
+			Expected: `
+// Foo.
+//
+// Bar.
+variable "foo" {
+  default     = "bar"
+  description = "Foo." // LineComment
+}
+			`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			input := new(bytes.Buffer)
+			input.WriteString(strings.TrimSpace(tc.Input))
+
+			ui := new(cli.MockUi)
+			c := &FmtCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+				},
+				input: input,
+			}
+
+			args := []string{"-populate=true", "-"}
+			if code := c.Run(args); code != 0 {
+				t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+			}
+
+			expected := []byte(strings.TrimSpace(tc.Expected) + "\n")
+			actual := ui.OutputWriter.Bytes()
+
+			if !bytes.Equal(expected, actual) {
+				t.Fatalf("expected:\n%sgot:\n%s", expected, actual)
+			}
+		})
+	}
+}
+
 var fmtFixture = struct {
 	filename      string
 	input, golden []byte
