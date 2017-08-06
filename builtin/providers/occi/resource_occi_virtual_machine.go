@@ -172,22 +172,25 @@ func resourceVirtualMachineDelete(d *schema.ResourceData, meta interface{}) erro
 		if cmdOut, err = exec.Command(cmd_name, cmd_args_unlink...).CombinedOutput(); err != nil {
 			return fmt.Errorf("Error while unlinking storage %s: %s", storage_link, cmdOut)
 		}
+		d.Set("storage_link", "")
 		time.Sleep(15 * time.Second) // temporary bugfix for unlink
 	}
-	// destroy VM
-	log.Printf("[INFO] Destroying VM with ID %s", vm_id)
-	cmd_args := []string{"-e", endpoint, "-n", "x509", "-x", proxy_file, "-X", "-a", "delete", "-r", vm_id}
-	if cmdOut, err = exec.Command(cmd_name, cmd_args...).CombinedOutput(); err != nil {
-		return fmt.Errorf("Error while destroying VM %s: %s", vm_id, cmdOut)
-	}
 
+	// if storage has been provisioned, destroy it
 	log.Printf("[INFO] Destroying storage with ID %s", storage_id)
-	// if storage has been provisioned, destroy it too
 	if storage_id != "" {
 		cmd_args_storage := []string{"-e", endpoint, "-n", "x509", "-x", proxy_file, "-X", "-a", "delete", "-r", storage_id}
 		if cmdOut, err = exec.Command(cmd_name, cmd_args_storage...).CombinedOutput(); err != nil {
 			return fmt.Errorf("Error while destroying storage %s: %s", storage_id, cmdOut)
 		}
+		d.Set("storage_id", "")
+	}
+
+	// destroy VM
+	log.Printf("[INFO] Destroying VM with ID %s", vm_id)
+	cmd_args := []string{"-e", endpoint, "-n", "x509", "-x", proxy_file, "-X", "-a", "delete", "-r", vm_id}
+	if cmdOut, err = exec.Command(cmd_name, cmd_args...).CombinedOutput(); err != nil {
+		return fmt.Errorf("Error while destroying VM %s: %s", vm_id, cmdOut)
 	}
 	return nil
 }
