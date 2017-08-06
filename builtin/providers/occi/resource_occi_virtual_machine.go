@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -126,7 +127,7 @@ func resourceVirtualMachineCreate(d *schema.ResourceData, meta interface{}) erro
 	storage_size := d.Get("storage_size").(int)
 	if storage_size > 0 {
 		log.Printf("[INFO] Linking storage with size %v", storage_size)
-		storage_params := strings.Join([]string{"occi.storage.size=", "'num(", strconv.Itoa(storage_size), ")',occi.core.title=storage_terraform", "_", strings.Split(compute, "/")[len(strings.Split(compute, "/")) - 1]}, "")
+		storage_params := strings.Join([]string{"occi.storage.size=", "'num(", strconv.Itoa(storage_size), ")',occi.core.title=storage_terraform", "_", strings.Split(compute, "/")[len(strings.Split(compute, "/"))-1]}, "")
 		cmd_args_storage := []string{"-e", endpoint, "-n", "x509", "-x", proxy_file, "-X", "-a", "create", "-r", "storage", "-t", storage_params, "-w", "3600"}
 		if cmdOut, err = exec.Command(cmd_name, cmd_args_storage...).CombinedOutput(); err != nil {
 			return fmt.Errorf("Error while creating storage: %s", cmdOut)
@@ -171,6 +172,7 @@ func resourceVirtualMachineDelete(d *schema.ResourceData, meta interface{}) erro
 		if cmdOut, err = exec.Command(cmd_name, cmd_args_unlink...).CombinedOutput(); err != nil {
 			return fmt.Errorf("Error while unlinking storage %s: %s", storage_link, cmdOut)
 		}
+		time.Sleep(15 * time.Second) // temporary bugfix for unlink
 	}
 	// destroy VM
 	log.Printf("[INFO] Destroying VM with ID %s", vm_id)
