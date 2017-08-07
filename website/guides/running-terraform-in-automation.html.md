@@ -104,7 +104,7 @@ such an automation setup:
   and CPU architecture as where it was created. For example, this means that
   it is not possible to create a plan on a Windows computer and then apply it
   on a Linux server.
-* Terraform expects the provider plugins that were used used to produce a
+* Terraform expects the provider plugins that were used to produce a
   plan to be available and identical when the plan is applied, to ensure
   that the plan is interpreted correctly. An error will be produced if
   Terraform or any plugins are upgraded between creating and applying a plan.
