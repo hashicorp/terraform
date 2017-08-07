@@ -106,12 +106,6 @@
 			"revisionTime": "2015-08-27T00:49:46Z"
 		},
 		{
-			"checksumSHA1": "YfhpW3cu1CHWX7lUCRparOJ6Vy4=",
-			"path": "github.com/armon/go-metrics",
-			"revision": "93f237eba9b0602f3e73710416558854a81d9337",
-			"revisionTime": "2017-01-14T13:47:37Z"
-		},
-		{
 			"checksumSHA1": "gNO0JNpLzYOdInGeq7HqMZUzx9M=",
 			"path": "github.com/armon/go-radix",
 			"revision": "4239b77079c7b5d1243b7b4736304ce8ddb6f0f2",
@@ -1230,12 +1224,6 @@
 			"revisionTime": "2017-02-07T21:55:32Z"
 		},
 		{
-			"checksumSHA1": "TNlVzNR1OaajcNi3CbQ3bGbaLGU=",
-			"path": "github.com/hashicorp/go-msgpack/codec",
-			"revision": "fa3f63826f7c23912c15263591e65d54d080b458",
-			"revisionTime": "2015-05-18T23:42:57Z"
-		},
-		{
 			"checksumSHA1": "lrSl49G23l6NhfilxPM0XFs5rZo=",
 			"path": "github.com/hashicorp/go-multierror",
 			"revision": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
@@ -1268,18 +1256,6 @@
 			"path": "github.com/hashicorp/go-version",
 			"revision": "e96d3840402619007766590ecea8dd7af1292276",
 			"revisionTime": "2016-10-31T18:26:05Z"
-		},
-		{
-			"checksumSHA1": "d9PxF1XQGLMJZRct2R8qVM/eYlE=",
-			"path": "github.com/hashicorp/golang-lru",
-			"revision": "0a025b7e63adc15a622f29b0b2c4c3848243bbf6",
-			"revisionTime": "2016-08-13T22:13:03Z"
-		},
-		{
-			"checksumSHA1": "9hffs0bAIU6CquiRhKQdzjHnKt0=",
-			"path": "github.com/hashicorp/golang-lru/simplelru",
-			"revision": "0a025b7e63adc15a622f29b0b2c4c3848243bbf6",
-			"revisionTime": "2016-08-13T22:13:03Z"
 		},
 		{
 			"checksumSHA1": "o3XZZdOnSnwQSpYw215QV75ZDeI=",
