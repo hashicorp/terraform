@@ -130,7 +130,7 @@ versions that comply with the version constraints given in configuration.
 To skip plugin installation, use `-get-plugins=false`.
 
 The automatic plugin installation behavior can be overridden by extracting
-the desired providers into a local directory and using the additonal option
+the desired providers into a local directory and using the additional option
 `-plugin-dir=PATH`. When this option is specified, _only_ the given directory
 is consulted, which prevents Terraform from making requests to the plugin
 repository or looking for plugins in other local directories.
