@@ -1,5 +1,8 @@
 // This package implements a provisioner for Terraform that executes a
 // saltstack state within the remote machine
+//
+// Adapted from gitub.com/hashicorp/packer/provisioner/salt-masterless
+
 package saltmasterless
 
 import (
@@ -219,10 +222,6 @@ func applyFn(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (p *provisioner) Cancel() {
-	os.Exit(0)
 }
 
 // Prepends sudo to supplied command if config says to
