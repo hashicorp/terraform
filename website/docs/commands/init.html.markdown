@@ -135,6 +135,13 @@ the desired providers into a local directory and using the additional option
 is consulted, which prevents Terraform from making requests to the plugin
 repository or looking for plugins in other local directories.
 
+In case you only want to override specific providers and have Terraform
+download all other providers from the plugin repository, you can place those
+specific provider plugins in a `terraform.d/plugins/os_arch/` directory inside
+the working directory (e.g. `terraform.d/plugins/darwin_amd64/` on Mac OS X).
+Upon `init` Terraform will then use all providers found in this directory and
+download all missing providers from the plugin repository.
+
 When plugins are automatically downloaded and installed, by default the
 contents are verified against an official HashiCorp release signature to
 ensure that they were not corrupted or tampered with during download. It is
