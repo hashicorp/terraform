@@ -67,7 +67,7 @@ Each provider has a section in the Terraform documentation. You'll want to add n
  
 While developing the provider code yourself is certainly possible, you can also choose to leverage one of the following development agencies who’ve developed Terraform providers in the past and are familiar with the requirements and process.
 
-| Partner            | Website                      | Email                |
+| Partner            | Email                        | Website              |
 |:-------------------|:-----------------------------|:---------------------|
 | Crest Data Systems | malhar@crestdatasys.com      | www.crestdatasys.com |
 | DigitalOnUs        | hashicorp@digitalonus.com    | www.digitalonus.com  |
