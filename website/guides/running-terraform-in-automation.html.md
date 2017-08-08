@@ -282,6 +282,11 @@ use of newer plugin versions that have not yet been installed into the
 local plugin directory. Which approach is more appropriate will depend on
 unique constraints within each organization.
 
+Plugins can also be provided along with the configuration by creating a
+`terraform.d/plugins/OS_ARCH` directory, which will be searched before
+automatically downloading additional plugins. The `-get-plugins=false` flag can
+be used to prevent Terraform from automatically downloading additional plugins. 
+
 ## Terraform Enterprise
 
 As an alternative to home-grown automation solutions, Hashicorp offers
