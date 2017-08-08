@@ -256,8 +256,13 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 		}).Build(RootModulePath)
 
 	case GraphTypeInput:
-		// The input graph is just a slightly modified plan graph
-		fallthrough
+		return (&InputGraphBuilder{
+			Module:    c.module,
+			Providers: c.components.ResourceProviders(),
+			Targets:   c.targets,
+			Validate:  opts.Validate,
+		}).Build(RootModulePath)
+
 	case GraphTypeValidate:
 		// The validate graph is just a slightly modified plan graph
 		fallthrough
@@ -273,10 +278,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 
 		// Some special cases for other graph types shared with plan currently
 		var b GraphBuilder = p
-		switch typ {
-		case GraphTypeInput:
-			b = InputGraphBuilder(p)
-		case GraphTypeValidate:
+		if typ == GraphTypeValidate {
 			// We need to set the provisioners so those can be validated
 			p.Provisioners = c.components.ResourceProvisioners()
 
