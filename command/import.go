@@ -123,15 +123,18 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Load the backend
 	b, err := c.Backend(&BackendOpts{
-		Config:     mod.Config(),
-		ForceLocal: true,
+		Config: mod.Config(),
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
 	}
 
-	// We require a local backend
+	// We require a backend.Local to build a context.
+	// This isn't necessarily a "local.Local" backend, which provides local
+	// operations, however that is the only current implementation. A
+	// "local.Local" backend also doesn't necessarily provide local state, as
+	// that may be delegated to a "remotestate.Backend".
 	local, ok := b.(backend.Local)
 	if !ok {
 		c.Ui.Error(ErrUnsupportedLocalOp)
