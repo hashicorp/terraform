@@ -21,6 +21,7 @@ func globalPluginDirs() []string {
 		log.Printf("[ERROR] Error finding global config directory: %s", err)
 	} else {
 		machineDir := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
+		ret = append(ret, filepath.Join(dir, "plugins"))
 		ret = append(ret, filepath.Join(dir, "plugins", machineDir))
 	}
 
