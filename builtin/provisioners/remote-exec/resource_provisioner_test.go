@@ -211,6 +211,16 @@ func TestResourceProvider_CollectScripts_scriptsEmpty(t *testing.T) {
 }
 
 func TestRetryFunc(t *testing.T) {
+	origMax := maxBackoffDelay
+	maxBackoffDelay = time.Second
+	origStart := initialBackoffDelay
+	initialBackoffDelay = 10 * time.Millisecond
+
+	defer func() {
+		maxBackoffDelay = origMax
+		initialBackoffDelay = origStart
+	}()
+
 	// succeed on the third try
 	errs := []error{io.EOF, &net.OpError{Err: errors.New("ERROR")}, nil}
 	count := 0
@@ -232,6 +242,29 @@ func TestRetryFunc(t *testing.T) {
 
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestRetryFuncBackoff(t *testing.T) {
+	origMax := maxBackoffDelay
+	maxBackoffDelay = time.Second
+	origStart := initialBackoffDelay
+	initialBackoffDelay = 100 * time.Millisecond
+
+	defer func() {
+		maxBackoffDelay = origMax
+		initialBackoffDelay = origStart
+	}()
+
+	count := 0
+
+	retryFunc(context.Background(), time.Second, func() error {
+		count++
+		return io.EOF
+	})
+
+	if count > 4 {
+		t.Fatalf("retry func failed to backoff. called %d times", count)
 	}
 }
 
