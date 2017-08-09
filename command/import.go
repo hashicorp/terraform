@@ -235,11 +235,12 @@ Options:
                       specifying aliases, such as "aws.eu". Defaults to the
                       normal provider prefix of the resource being imported.
 
-  -state=path         Path to read and save state (unless state-out
-                      is specified). Defaults to "terraform.tfstate".
+  -state=PATH         Path to the source state file. Defaults to the configured
+                      backend, or "terraform.tfstate"
 
-  -state-out=path     Path to write updated state file. By default, the
-                      "-state" path will be used.
+  -state-out=PATH     Path to the destination state file to write to. If this
+                      isn't specified, the source state file will be used. This
+                      can be a new or existing path.
 
   -var 'foo=bar'      Set a variable in the Terraform configuration. This
                       flag can be set multiple times. This is only useful
