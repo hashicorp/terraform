@@ -2862,6 +2862,27 @@ func TestSchemaMap_Input(t *testing.T) {
 		/*
 		 * String decode
 		 */
+		"InputFunc": {
+			Schema: map[string]*Schema{
+				"input_func": &Schema{
+					Type:     TypeString,
+					Required: true,
+					InputFunc: func(input terraform.UIInput, v interface{}, s string) (string, error) {
+						return input.Input(&terraform.InputOpts{
+							Id:      "input_func",
+							Default: "invalid",
+						})
+					},
+				},
+			},
+			Input: map[string]string{
+				"input_func": "valid",
+			},
+			Result: map[string]interface{}{
+				"input_func": "valid",
+			},
+			Err: false,
+		},
 
 		"no input on optional field with no config": {
 			Schema: map[string]*Schema{

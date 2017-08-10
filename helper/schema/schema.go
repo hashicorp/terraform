@@ -190,6 +190,12 @@ type Schema struct {
 	// secret fields. Future versions of Terraform may encrypt these
 	// values.
 	Sensitive bool
+
+	// InputFunc allows fields to request for user input as needed. It is
+	// always called regardless of Optional, Computed, or if a value if
+	// provided in the configuration for via Default. It is yielded the
+	// existing raw config value, if any, and the name of the field.
+	InputFunc SchemaInputFunc
 }
 
 // SchemaDiffSuppresFunc is a function which can be used to determine
@@ -242,6 +248,10 @@ type SchemaStateFunc func(interface{}) string
 // SchemaValidateFunc is a function used to validate a single field in the
 // schema.
 type SchemaValidateFunc func(interface{}, string) ([]string, []error)
+
+// SchemaInputFunc is a function used to request arbitrary input from the user
+// for a schema value.
+type SchemaInputFunc func(terraform.UIInput, interface{}, string) (string, error)
 
 func (s *Schema) GoString() string {
 	return fmt.Sprintf("*%#v", *s)
@@ -488,6 +498,18 @@ func (m schemaMap) Input(
 
 	for _, k := range keys {
 		v := m[k]
+
+		// InputFunc is always called when set, and it's up to the caller to
+		// determine if it's required.
+		if v.InputFunc != nil {
+			val, err := v.InputFunc(input, c.Raw[k], k)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %s", k, err)
+			}
+
+			c.Config[k] = val
+			continue
+		}
 
 		// Skip things that don't require config, if that is even valid
 		// for a provider schema.
