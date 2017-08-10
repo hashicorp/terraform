@@ -5940,8 +5940,11 @@ type CreateInstancesInput struct {
 	// BundleId is a required field
 	BundleId *string `locationName:"bundleId" type:"string" required:"true"`
 
-	// The name for your custom image.
-	CustomImageName *string `locationName:"customImageName" type:"string"`
+	// (Deprecated) The name for your custom image.
+	//
+	// In releases prior to June 12, 2017, this parameter was ignored by the API.
+	// It is now deprecated.
+	CustomImageName *string `locationName:"customImageName" deprecated:"true" type:"string"`
 
 	// The names to use for your new Lightsail instances. Separate multiple values
 	// using quotation marks and commas, for example: ["MyFirstInstance","MySecondInstance"]
@@ -8051,8 +8054,15 @@ func (s *GetOperationsForResourceInput) SetResourceName(v string) *GetOperations
 type GetOperationsForResourceOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Returns the number of pages of results that remain.
-	NextPageCount *string `locationName:"nextPageCount" type:"string"`
+	// (Deprecated) Returns the number of pages of results that remain.
+	//
+	// In releases prior to June 12, 2017, this parameter returned null by the API.
+	// It is now deprecated, and the API returns the nextPageToken parameter instead.
+	NextPageCount *string `locationName:"nextPageCount" deprecated:"true" type:"string"`
+
+	// An identifier that was returned from the previous call to this operation,
+	// which can be used to return the next set of items in the list.
+	NextPageToken *string `locationName:"nextPageToken" type:"string"`
 
 	// An array of key-value pairs containing information about the results of your
 	// get operations for resource request.
@@ -8072,6 +8082,12 @@ func (s GetOperationsForResourceOutput) GoString() string {
 // SetNextPageCount sets the NextPageCount field's value.
 func (s *GetOperationsForResourceOutput) SetNextPageCount(v string) *GetOperationsForResourceOutput {
 	s.NextPageCount = &v
+	return s
+}
+
+// SetNextPageToken sets the NextPageToken field's value.
+func (s *GetOperationsForResourceOutput) SetNextPageToken(v string) *GetOperationsForResourceOutput {
+	s.NextPageToken = &v
 	return s
 }
 
@@ -10488,6 +10504,9 @@ const (
 const (
 	// RegionNameUsEast1 is a RegionName enum value
 	RegionNameUsEast1 = "us-east-1"
+
+	// RegionNameUsEast2 is a RegionName enum value
+	RegionNameUsEast2 = "us-east-2"
 
 	// RegionNameUsWest1 is a RegionName enum value
 	RegionNameUsWest1 = "us-west-1"

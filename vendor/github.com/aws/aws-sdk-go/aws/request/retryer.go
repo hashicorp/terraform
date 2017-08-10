@@ -8,7 +8,7 @@ import (
 )
 
 // Retryer is an interface to control retry logic for a given service.
-// The default implementation used by most services is the service.DefaultRetryer
+// The default implementation used by most services is the client.DefaultRetryer
 // structure, which contains basic retry logic using exponential backoff.
 type Retryer interface {
 	RetryRules(*Request) time.Duration
