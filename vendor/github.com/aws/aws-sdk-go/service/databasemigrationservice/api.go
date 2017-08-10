@@ -558,6 +558,9 @@ func (c *DatabaseMigrationService) CreateReplicationTaskRequest(input *CreateRep
 // API operation CreateReplicationTask for usage and error information.
 //
 // Returned Error Codes:
+//   * ErrCodeAccessDeniedFault "AccessDeniedFault"
+//   AWS DMS was denied access to the endpoint.
+//
 //   * ErrCodeInvalidResourceStateFault "InvalidResourceStateFault"
 //   The resource is in a state that prevents it from being used for database
 //   migration.
@@ -7689,6 +7692,9 @@ type ImportCertificateInput struct {
 	//
 	// CertificateWallet is automatically base64 encoded/decoded by the SDK.
 	CertificateWallet []byte `type:"blob"`
+
+	// The tags associated with the certificate.
+	Tags []*Tag `locationNameList:"Tag" type:"list"`
 }
 
 // String returns the string representation
@@ -7729,6 +7735,12 @@ func (s *ImportCertificateInput) SetCertificatePem(v string) *ImportCertificateI
 // SetCertificateWallet sets the CertificateWallet field's value.
 func (s *ImportCertificateInput) SetCertificateWallet(v []byte) *ImportCertificateInput {
 	s.CertificateWallet = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *ImportCertificateInput) SetTags(v []*Tag) *ImportCertificateInput {
+	s.Tags = v
 	return s
 }
 
@@ -9926,6 +9938,14 @@ type TableStatistics struct {
 	// The number of delete actions performed on a table.
 	Deletes *int64 `type:"long"`
 
+	// The number of rows that failed conditional checks during the Full Load operation
+	// (valid only for DynamoDB as a target migrations).
+	FullLoadCondtnlChkFailedRows *int64 `type:"long"`
+
+	// The number of rows that failed to load during the Full Load operation (valid
+	// only for DynamoDB as a target migrations).
+	FullLoadErrorRows *int64 `type:"long"`
+
 	// The number of rows added during the Full Load operation.
 	FullLoadRows *int64 `type:"long"`
 
@@ -9967,6 +9987,18 @@ func (s *TableStatistics) SetDdls(v int64) *TableStatistics {
 // SetDeletes sets the Deletes field's value.
 func (s *TableStatistics) SetDeletes(v int64) *TableStatistics {
 	s.Deletes = &v
+	return s
+}
+
+// SetFullLoadCondtnlChkFailedRows sets the FullLoadCondtnlChkFailedRows field's value.
+func (s *TableStatistics) SetFullLoadCondtnlChkFailedRows(v int64) *TableStatistics {
+	s.FullLoadCondtnlChkFailedRows = &v
+	return s
+}
+
+// SetFullLoadErrorRows sets the FullLoadErrorRows field's value.
+func (s *TableStatistics) SetFullLoadErrorRows(v int64) *TableStatistics {
+	s.FullLoadErrorRows = &v
 	return s
 }
 
