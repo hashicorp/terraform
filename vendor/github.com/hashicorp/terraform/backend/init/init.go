@@ -13,6 +13,7 @@ import (
 	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
 	backendinmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
+	backendSwift "github.com/hashicorp/terraform/backend/remote-state/swift"
 )
 
 // backends is the list of available backends. This is a global variable
@@ -37,6 +38,7 @@ func init() {
 		"local":  func() backend.Backend { return &backendlocal.Local{} },
 		"consul": func() backend.Backend { return backendconsul.New() },
 		"inmem":  func() backend.Backend { return backendinmem.New() },
+		"swift":  func() backend.Backend { return backendSwift.New() },
 		"s3":     func() backend.Backend { return backendS3.New() },
 	}
 

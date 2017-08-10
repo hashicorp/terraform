@@ -28,6 +28,44 @@ func IntBetween(min, max int) schema.SchemaValidateFunc {
 	}
 }
 
+// IntAtLeast returns a SchemaValidateFunc which tests if the provided value
+// is of type int and is at least min (inclusive)
+func IntAtLeast(min int) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (s []string, es []error) {
+		v, ok := i.(int)
+		if !ok {
+			es = append(es, fmt.Errorf("expected type of %s to be int", k))
+			return
+		}
+
+		if v < min {
+			es = append(es, fmt.Errorf("expected %s to be at least (%d), got %d", k, min, v))
+			return
+		}
+
+		return
+	}
+}
+
+// IntAtMost returns a SchemaValidateFunc which tests if the provided value
+// is of type int and is at most max (inclusive)
+func IntAtMost(max int) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (s []string, es []error) {
+		v, ok := i.(int)
+		if !ok {
+			es = append(es, fmt.Errorf("expected type of %s to be int", k))
+			return
+		}
+
+		if v > max {
+			es = append(es, fmt.Errorf("expected %s to be at most (%d), got %d", k, max, v))
+			return
+		}
+
+		return
+	}
+}
+
 // StringInSlice returns a SchemaValidateFunc which tests if the provided value
 // is of type string and matches the value of an element in the valid slice
 // will test with in lower case if ignoreCase is true
