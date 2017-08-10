@@ -45,13 +45,6 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 			Addr:     n.ResourceAddr(),
 		},
 
-		// Switch up any node missing state to a plannable resource. This helps
-		// catch cases where data sources depend on the counts from this resource
-		// during a scale out.
-		&ResourceRefreshPlannableTransformer{
-			State: state,
-		},
-
 		// Add the count orphans to make sure these resources are accounted for
 		// during a scale in.
 		&OrphanResourceCountTransformer{
@@ -100,6 +93,9 @@ func (n *NodeRefreshableManagedResourceInstance) EvalTree() EvalNode {
 	// Eval info is different depending on what kind of resource this is
 	switch mode := n.Addr.Mode; mode {
 	case config.ManagedResourceMode:
+		if n.ResourceState == nil {
+			return n.evalTreeManagedResourceNoState()
+		}
 		return n.evalTreeManagedResource()
 
 	case config.DataResourceMode:
@@ -171,6 +167,91 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 				ResourceType: n.ResourceState.Type,
 				Provider:     n.ResourceState.Provider,
 				Dependencies: n.ResourceState.Dependencies,
+				State:        &state,
+			},
+		},
+	}
+}
+
+// evalTreeManagedResourceNoState produces an EvalSequence for refresh resource
+// nodes that don't have state attached. An example of where this functionality
+// is useful is when a resource that already exists in state is being scaled
+// out, ie: has its resource count increased. In this case, the scaled out node
+// needs to be available to other nodes (namely data sources) that may depend
+// on it for proper interpolation, or confusing "index out of range" errors can
+// occur.
+//
+// The steps in this sequence are very similar to the steps carried out in
+// plan, but nothing is done with the diff after it is created - it is dropped,
+// and its changes are not counted in the UI.
+func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState() EvalNode {
+	// Declare a bunch of variables that are used for state during
+	// evaluation. Most of this are written to by-address below.
+	var provider ResourceProvider
+	var state *InstanceState
+	var resourceConfig *ResourceConfig
+
+	addr := n.NodeAbstractResource.Addr
+	stateID := addr.stateId()
+	info := &InstanceInfo{
+		Id:         stateID,
+		Type:       addr.Type,
+		ModulePath: normalizeModulePath(addr.Path),
+	}
+
+	// Build the resource for eval
+	resource := &Resource{
+		Name:       addr.Name,
+		Type:       addr.Type,
+		CountIndex: addr.Index,
+	}
+	if resource.CountIndex < 0 {
+		resource.CountIndex = 0
+	}
+
+	// Determine the dependencies for the state.
+	stateDeps := n.StateReferences()
+
+	return &EvalSequence{
+		Nodes: []EvalNode{
+			&EvalInterpolate{
+				Config:   n.Config.RawConfig.Copy(),
+				Resource: resource,
+				Output:   &resourceConfig,
+			},
+			&EvalGetProvider{
+				Name:   n.ProvidedBy()[0],
+				Output: &provider,
+			},
+			// Re-run validation to catch any errors we missed, e.g. type
+			// mismatches on computed values.
+			&EvalValidateResource{
+				Provider:       &provider,
+				Config:         &resourceConfig,
+				ResourceName:   n.Config.Name,
+				ResourceType:   n.Config.Type,
+				ResourceMode:   n.Config.Mode,
+				IgnoreWarnings: true,
+			},
+			&EvalReadState{
+				Name:   stateID,
+				Output: &state,
+			},
+			&EvalDiff{
+				Name:        stateID,
+				Info:        info,
+				Config:      &resourceConfig,
+				Resource:    n.Config,
+				Provider:    &provider,
+				State:       &state,
+				OutputState: &state,
+				Stub:        true,
+			},
+			&EvalWriteState{
+				Name:         stateID,
+				ResourceType: n.Config.Type,
+				Provider:     n.Config.Provider,
+				Dependencies: stateDeps,
 				State:        &state,
 			},
 		},

@@ -32,8 +32,18 @@ func (s *InmemState) WriteState(state *terraform.State) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	state.IncrementSerialMaybe(s.state)
+	state = state.DeepCopy()
+
+	if s.state != nil {
+		state.Serial = s.state.Serial
+
+		if !s.state.MarshalEqual(state) {
+			state.Serial++
+		}
+	}
+
 	s.state = state
+
 	return nil
 }
 

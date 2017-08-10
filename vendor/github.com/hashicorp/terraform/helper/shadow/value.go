@@ -26,6 +26,14 @@ type Value struct {
 	valueSet bool
 }
 
+func (v *Value) Lock() {
+	v.lock.Lock()
+}
+
+func (v *Value) Unlock() {
+	v.lock.Unlock()
+}
+
 // Close closes the value. This can never fail. For a definition of
 // "close" see the struct docs.
 func (w *Value) Close() error {
