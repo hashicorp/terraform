@@ -1,6 +1,6 @@
 {
 	"comment": "",
-	"ignore": "appengine test github.com/hashicorp/nomad/",
+	"ignore": "appengine test github.com/hashicorp/nomad/ github.com/hashicorp/terraform/backend",
 	"package": [
 		{
 			"checksumSHA1": "ZLRh6zW4/DnVsGpgtt+ZiIaEFKc=",
