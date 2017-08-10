@@ -58,13 +58,6 @@ func resourceAwsEMRCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					// EMR uses a proprietary filesystem called EMRFS
-					// and both s3n & s3 protocols are mapped to that FS
-					// so they're equvivalent in this context (confirmed by AWS support)
-					old = strings.Replace(old, "s3n://", "s3://", -1)
-					return old == new
-				},
 			},
 			"master_public_dns": {
 				Type:     schema.TypeString,
