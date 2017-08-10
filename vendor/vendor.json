@@ -1820,10 +1820,12 @@
 			"revisionTime": "2016-09-27T10:08:44Z"
 		},
 		{
-			"checksumSHA1": "xG4fC10IB94QTZqilXGPYsuXY4Y=",
+			"checksumSHA1": "UxgAKjDS6mher0PL9dw61QnPQ7w=",
 			"path": "github.com/terraform-providers/terraform-provider-aws/aws",
-			"revision": "09d5c403db49e319daefa1eeaf9265f89c16f633",
-			"revisionTime": "2017-08-10T09:00:58Z"
+			"revision": "4bf6f8f8134705ab3aea5451a186e85c4fb10547",
+			"revisionTime": "2017-08-08T15:30:11Z",
+			"version": "v0.1.4",
+			"versionExact": "v0.1.4"
 		},
 		{
 			"checksumSHA1": "R+2QkZ1uCKhGJN7Nak++jdKx59I=",

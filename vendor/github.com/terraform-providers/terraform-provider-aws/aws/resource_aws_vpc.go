@@ -194,17 +194,27 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	resp, err := awsVpcDescribeVpcAttribute("enableDnsSupport", vpcid, conn)
+	// Attributes
+	attribute := "enableDnsSupport"
+	describeAttrOpts := &ec2.DescribeVpcAttributeInput{
+		Attribute: aws.String(attribute),
+		VpcId:     aws.String(vpcid),
+	}
+	resp, err := conn.DescribeVpcAttribute(describeAttrOpts)
 	if err != nil {
 		return err
 	}
-	d.Set("enable_dns_support", resp.EnableDnsSupport.Value)
-
-	resp, err = awsVpcDescribeVpcAttribute("enableDnsHostnames", vpcid, conn)
+	d.Set("enable_dns_support", *resp.EnableDnsSupport.Value)
+	attribute = "enableDnsHostnames"
+	describeAttrOpts = &ec2.DescribeVpcAttributeInput{
+		Attribute: &attribute,
+		VpcId:     &vpcid,
+	}
+	resp, err = conn.DescribeVpcAttribute(describeAttrOpts)
 	if err != nil {
 		return err
 	}
-	d.Set("enable_dns_hostnames", resp.EnableDnsHostnames.Value)
+	d.Set("enable_dns_hostnames", *resp.EnableDnsHostnames.Value)
 
 	describeClassiclinkOpts := &ec2.DescribeVpcClassicLinkInput{
 		VpcIds: []*string{&vpcid},
@@ -636,17 +646,4 @@ func resourceAwsVpcInstanceImport(
 	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	d.Set("assign_generated_ipv6_cidr_block", false)
 	return []*schema.ResourceData{d}, nil
-}
-
-func awsVpcDescribeVpcAttribute(attribute string, vpcId string, conn *ec2.EC2) (*ec2.DescribeVpcAttributeOutput, error) {
-	describeAttrOpts := &ec2.DescribeVpcAttributeInput{
-		Attribute: aws.String(attribute),
-		VpcId:     aws.String(vpcId),
-	}
-	resp, err := conn.DescribeVpcAttribute(describeAttrOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
 }
