@@ -2,7 +2,8 @@ package terraform
 
 import (
 	"sort"
-	"strings"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // Semaphore is a wrapper around a channel to provide
@@ -47,21 +48,8 @@ func (s Semaphore) Release() {
 	}
 }
 
-// resourceProvider returns the provider name for the given type.
-func resourceProvider(t, alias string) string {
-	if alias != "" {
-		return alias
-	}
-
-	idx := strings.IndexRune(t, '_')
-	if idx == -1 {
-		// If no underscores, the resource name is assumed to be
-		// also the provider name, e.g. if the provider exposes
-		// only a single resource of each type.
-		return t
-	}
-
-	return t[:idx]
+func resourceProvider(resourceType, explicitProvider string) string {
+	return config.ResourceProviderFullName(resourceType, explicitProvider)
 }
 
 // strSliceContains checks if a given string is contained in a slice
