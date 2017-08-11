@@ -56,7 +56,7 @@ By default, `terraform init` assumes that the working directory already
 contains a configuration and will attempt to initialize that configuration.
 
 Optionally, init can be run against an empty directory with the
-`-with-module=MODULE-SOURCE` option, in which case the given module will be
+`-from-module=MODULE-SOURCE` option, in which case the given module will be
 copied into the target directory before any other initialization steps are
 run.
 
