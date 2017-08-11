@@ -87,9 +87,8 @@ Options:
                       will write it to the same path as the statefile with
                       a backup extension.
 
-  -state=statefile    Path to a Terraform state file to use to look
-                      up Terraform-managed resources. By default it will
-                      use the state "terraform.tfstate" if it exists.
+  -state=PATH         Path to the source state file. Defaults to the configured
+                      backend, or "terraform.tfstate"
 
 `
 	return strings.TrimSpace(helpText)
