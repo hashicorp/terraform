@@ -719,3 +719,57 @@ func TestContext2Input_submoduleTriggersInvalidCount(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 }
+
+// In this case, a module variable can't be resolved from a data source until
+// it's refreshed, but it can't be refreshed during Input.
+func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
+	input := new(MockUIInput)
+	p := testProvider("null")
+	m := testModule(t, "input-module-data-vars")
+
+	p.ReadDataDiffFn = testDataDiffFn
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"data.null_data_source.bar": &ResourceState{
+						Type: "null_data_source",
+						Primary: &InstanceState{
+							ID: "-",
+							Attributes: map[string]string{
+								"foo.#": "1",
+								"foo.0": "a",
+								// foo.1 exists in the data source, but needs to be refreshed.
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"null": testProviderFuncFixed(p),
+			},
+		),
+		State:   state,
+		UIInput: input,
+	})
+
+	if err := ctx.Input(InputModeStd); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// ensure that plan works after Refresh
+	if _, err := ctx.Refresh(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}

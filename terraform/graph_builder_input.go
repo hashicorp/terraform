@@ -10,6 +10,9 @@ import (
 // and is based on the PlanGraphBuilder. The PlanGraphBuilder passed in will be
 // modified and should not be used for any other operations.
 func InputGraphBuilder(p *PlanGraphBuilder) GraphBuilder {
+	// convert this to an InputPlan
+	p.Input = true
+
 	// We're going to customize the concrete functions
 	p.CustomConcrete = true
 
