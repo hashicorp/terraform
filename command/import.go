@@ -123,15 +123,18 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Load the backend
 	b, err := c.Backend(&BackendOpts{
-		Config:     mod.Config(),
-		ForceLocal: true,
+		Config: mod.Config(),
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
 	}
 
-	// We require a local backend
+	// We require a backend.Local to build a context.
+	// This isn't necessarily a "local.Local" backend, which provides local
+	// operations, however that is the only current implementation. A
+	// "local.Local" backend also doesn't necessarily provide local state, as
+	// that may be delegated to a "remotestate.Backend".
 	local, ok := b.(backend.Local)
 	if !ok {
 		c.Ui.Error(ErrUnsupportedLocalOp)
@@ -232,11 +235,12 @@ Options:
                       specifying aliases, such as "aws.eu". Defaults to the
                       normal provider prefix of the resource being imported.
 
-  -state=path         Path to read and save state (unless state-out
-                      is specified). Defaults to "terraform.tfstate".
+  -state=PATH         Path to the source state file. Defaults to the configured
+                      backend, or "terraform.tfstate"
 
-  -state-out=path     Path to write updated state file. By default, the
-                      "-state" path will be used.
+  -state-out=PATH     Path to the destination state file to write to. If this
+                      isn't specified, the source state file will be used. This
+                      can be a new or existing path.
 
   -var 'foo=bar'      Set a variable in the Terraform configuration. This
                       flag can be set multiple times. This is only useful

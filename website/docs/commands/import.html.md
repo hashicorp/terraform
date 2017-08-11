@@ -53,12 +53,12 @@ The command-line flags are all optional. The list of available flags are:
   provider based on the prefix of the resource being imported. You usually
   don't need to specify this.
 
-* `-state=path` - The path to read and save state files (unless state-out is
-  specified). Ignored when [remote state](/docs/state/remote.html) is used.
+* `-state=path` - Path to the source state file to read from. Defaults to the
+  configured backend, or "terraform.tfstate".
 
-* `-state-out=path` - Path to write the final state file. By default, this is
-  the state path. Ignored when [remote state](/docs/state/remote.html) is
-  used.
+* `-state-out=path` - Path to the destination state file to write to. If this
+  isn't specified the source state file will be used. This can be a new or
+  existing path.
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as

@@ -110,6 +110,88 @@ func TestImport_providerConfig(t *testing.T) {
 	testStateOutput(t, statePath, testImportStr)
 }
 
+// "remote" state provided by the "local" backend
+func TestImport_remoteState(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("import-provider-remote-state"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	statePath := "imported.tfstate"
+
+	// init our backend
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	ic := &InitCommand{
+		Meta: m,
+		providerInstaller: &mockProviderInstaller{
+			Providers: map[string][]string{
+				"test": []string{"1.2.3"},
+			},
+
+			Dir: m.pluginDir(),
+		},
+	}
+
+	if code := ic.Run([]string{}); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter)
+	}
+
+	p := testProvider()
+	ui = new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	p.ImportStateFn = nil
+	p.ImportStateReturn = []*terraform.InstanceState{
+		&terraform.InstanceState{
+			ID: "yay",
+			Ephemeral: terraform.EphemeralState{
+				Type: "test_instance",
+			},
+		},
+	}
+
+	configured := false
+	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
+		configured = true
+
+		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
+			return fmt.Errorf("bad value: %#v", v)
+		}
+
+		return nil
+	}
+
+	args := []string{
+		"test_instance.foo",
+		"bar",
+	}
+	if code := c.Run(args); code != 0 {
+		fmt.Println(ui.OutputWriter)
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Verify that we were called
+	if !configured {
+		t.Fatal("Configure should be called")
+	}
+
+	if !p.ImportStateCalled {
+		t.Fatal("ImportState should be called")
+	}
+
+	testStateOutput(t, statePath, testImportStr)
+}
+
 func TestImport_providerConfigWithVar(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-provider-var"))()
 
