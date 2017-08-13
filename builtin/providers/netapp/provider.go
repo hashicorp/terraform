@@ -3,15 +3,15 @@ package netapp
 import (
 	"fmt"
 	"log"
-  "time"
+	"time"
 
-  "github.com/candidpartners/occm-sdk-go/api/workenv"
+	"github.com/candidpartners/occm-sdk-go/api/workenv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 const REQUEST_RESOLUTION_RETRY_COUNT = 60
-const REQUEST_RESOLUTION_WAIT_TIME =  2 * time.Second
+const REQUEST_RESOLUTION_WAIT_TIME = 2 * time.Second
 
 // Provider represents a resource provider in Terraform
 func Provider() terraform.ResourceProvider {
@@ -40,7 +40,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-      "netapp_cloud_volume": resourceCloudVolume(),
+			"netapp_cloud_volume": resourceCloudVolume(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -79,12 +79,12 @@ func GetWorkingEnvironments(apis *APIs) ([]workenv.VsaWorkingEnvironment, error)
 }
 
 func GetWorkingEnvironmentByName(apis *APIs, workEnvName string) (*workenv.VsaWorkingEnvironment, error) {
-  workEnvs, err := GetWorkingEnvironments(apis)
+	workEnvs, err := GetWorkingEnvironments(apis)
 	if err != nil {
 		return nil, err
 	}
 
-  log.Printf("[DEBUG] Reading working environment %s", workEnvName)
+	log.Printf("[DEBUG] Reading working environment %s", workEnvName)
 
 	var found *workenv.VsaWorkingEnvironment
 
@@ -99,18 +99,18 @@ func GetWorkingEnvironmentByName(apis *APIs, workEnvName string) (*workenv.VsaWo
 		return nil, fmt.Errorf("Working environment %s not found", workEnvName)
 	}
 
-  log.Printf("[DEBUG] Found working environment %s", workEnvName)
+	log.Printf("[DEBUG] Found working environment %s", workEnvName)
 
 	return found, nil
 }
 
 func GetWorkingEnvironmentById(apis *APIs, workEnvId string) (*workenv.VsaWorkingEnvironment, error) {
-  workEnvs, err := GetWorkingEnvironments(apis)
+	workEnvs, err := GetWorkingEnvironments(apis)
 	if err != nil {
 		return nil, err
 	}
 
-  log.Printf("[DEBUG] Reading working environment for ID %s", workEnvId)
+	log.Printf("[DEBUG] Reading working environment for ID %s", workEnvId)
 
 	var found *workenv.VsaWorkingEnvironment
 
@@ -129,28 +129,28 @@ func GetWorkingEnvironmentById(apis *APIs, workEnvId string) (*workenv.VsaWorkin
 }
 
 func WaitForRequest(apis *APIs, requestId string) error {
-  log.Printf("[DEBUG] Waiting for completion of request %s", requestId)
+	log.Printf("[DEBUG] Waiting for completion of request %s", requestId)
 
-  for i := 0; i < REQUEST_RESOLUTION_RETRY_COUNT; i++ {
-    summary, err := apis.AuditAPI.GetAuditSummary(requestId)
-  	if err != nil {
-  		return err
-  	}
+	for i := 0; i < REQUEST_RESOLUTION_RETRY_COUNT; i++ {
+		summary, err := apis.AuditAPI.GetAuditSummary(requestId)
+		if err != nil {
+			return err
+		}
 
-    log.Printf("[DEBUG] Received status for request %s: %s", requestId, summary.Status)
+		log.Printf("[DEBUG] Received status for request %s: %s", requestId, summary.Status)
 
-    if summary.Status == "Failed" {
-      log.Printf("[DEBUG] Failure detected, breaking wait loop")
-      return fmt.Errorf(summary.ErrorMessage)
-    }
+		if summary.Status == "Failed" {
+			log.Printf("[DEBUG] Failure detected, breaking wait loop")
+			return fmt.Errorf(summary.ErrorMessage)
+		}
 
-    if summary.Status == "Success" {
-      log.Printf("[DEBUG] Request completion detected, breaking wait loop")
-      return nil
-    }
+		if summary.Status == "Success" {
+			log.Printf("[DEBUG] Request completion detected, breaking wait loop")
+			return nil
+		}
 
-    time.Sleep(REQUEST_RESOLUTION_WAIT_TIME)
-  }
+		time.Sleep(REQUEST_RESOLUTION_WAIT_TIME)
+	}
 
-  return fmt.Errorf("Timed out waiting for request completion")
+	return fmt.Errorf("Timed out waiting for request completion")
 }

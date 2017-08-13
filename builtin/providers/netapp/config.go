@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-  "github.com/candidpartners/occm-sdk-go/api/audit"
+	"github.com/candidpartners/occm-sdk-go/api/audit"
 	"github.com/candidpartners/occm-sdk-go/api/auth"
 	"github.com/candidpartners/occm-sdk-go/api/client"
 	"github.com/candidpartners/occm-sdk-go/api/tenant"
@@ -19,7 +19,7 @@ type APIs struct {
 	*workenv.WorkingEnvironmentAPI
 	*vsa.VSAWorkingEnvironmentAPI
 	*awsha.AWSHAWorkingEnvironmentAPI
-  *audit.AuditAPI
+	*audit.AuditAPI
 }
 
 type Config struct {
@@ -58,7 +58,7 @@ func (c *Config) APIs() (*APIs, error) {
 		return nil, fmt.Errorf("Error creating AWS HA working environment API: %s", err)
 	}
 
-  auditApi, err := audit.New(context)
+	auditApi, err := audit.New(context)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating audit API: %s", err)
 	}
@@ -69,7 +69,7 @@ func (c *Config) APIs() (*APIs, error) {
 		WorkingEnvironmentAPI:      workenvApi,
 		VSAWorkingEnvironmentAPI:   vsaWorkenvApi,
 		AWSHAWorkingEnvironmentAPI: awsHaWorkenvApi,
-    AuditAPI:                   auditApi,
+		AuditAPI:                   auditApi,
 	}
 
 	log.Printf("[INFO] NetApp Client configured for user: %s", c.Email)

@@ -13,21 +13,21 @@ func dataSourceCloudWorkingEnvironment() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-      "public_id": {
+			"public_id": {
 				Type:     schema.TypeString,
-        Computed: true,
+				Computed: true,
 			},
-      "tenant_id": {
+			"tenant_id": {
 				Type:     schema.TypeString,
-        Computed: true,
+				Computed: true,
 			},
-      "svm_name": {
+			"svm_name": {
 				Type:     schema.TypeString,
-        Computed: true,
+				Computed: true,
 			},
-      "is_ha": {
+			"is_ha": {
 				Type:     schema.TypeString,
-        Computed: true,
+				Computed: true,
 			},
 		},
 	}
@@ -44,11 +44,11 @@ func dataSourceCloudWorkingEnvironmentRead(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(workenv.PublicId)
-  d.Set("public_id", workenv.PublicId)
+	d.Set("public_id", workenv.PublicId)
 	d.Set("name", workenv.Name)
-  d.Set("tenant_id", workenv.TenantId)
-  d.Set("svm_name", workenv.SvmName)
-  d.Set("is_ha", workenv.IsHA)
+	d.Set("tenant_id", workenv.TenantId)
+	d.Set("svm_name", workenv.SvmName)
+	d.Set("is_ha", workenv.IsHA)
 
 	return nil
 }
