@@ -1,0 +1,36 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-netapp-index") %>>
+          <a href="/docs/providers/netapp/index.html">NetApp Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-netapp-datasource") %>>
+          <a href="#">Data Sources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-netapp-datasource-cloud-workenv") %>>
+              <a href="/docs/providers/netapp/d/cloud_workenv.html">netapp_cloud_workenv</a>
+            </li>
+          </ul>
+        </li>
+
+        <li<%= sidebar_current("docs-netapp-resource-cloud-volume") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-netapp-resource-cloud-volume") %>>
+              <a href="/docs/providers/netapp/r/cloud_volume.html">netapp_cloud_volume</a>
+            </li>
+          </ul>
+        </li>
+
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+  <% end %>
