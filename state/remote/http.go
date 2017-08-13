@@ -115,14 +115,15 @@ func (c *HTTPClient) Lock(info *state.LockInfo) (string, error) {
 	}
 	c.lockID = ""
 
-	base := c.URL.String()
-	if base[len(base)-1] != byte('/') {
+	url := *c.URL
+	path := url.Path
+	if len(path) == 0 || path[len(path)-1] != byte('/') {
 		// add a trailing /
-		base = fmt.Sprintf("%s/", base)
+		path = fmt.Sprintf("%s/", path)
 	}
+	url.Path = fmt.Sprintf("%slock", path)
 
-	url := fmt.Sprintf("%slock", base)
-	resp, err := c.httpPost(url, info.Marshal(), "lock")
+	resp, err := c.httpPost(url.String(), info.Marshal(), "lock")
 	if err != nil {
 		return "", err
 	}
@@ -158,14 +159,22 @@ func (c *HTTPClient) Unlock(id string) error {
 		return nil
 	}
 
-	base := c.URL.String()
-	if base[len(base)-1] != byte('/') {
+	// copy the target URL
+	url := *c.URL
+	path := url.Path
+	if len(path) == 0 || path[len(path)-1] != byte('/') {
 		// add a trailing /
-		base = fmt.Sprintf("%s/", base)
+		path = fmt.Sprintf("%s/", path)
+	}
+	url.Path = fmt.Sprintf("%sunlock", path)
+
+	if c.SupportsLocking {
+		query := url.Query()
+		query.Set("ID", id)
+		url.RawQuery = query.Encode()
 	}
 
-	url := fmt.Sprintf("%sunlock", base)
-	resp, err := c.httpPost(url, []byte{}, "unlock")
+	resp, err := c.httpPost(url.String(), []byte{}, "unlock")
 	if err != nil {
 		return err
 	}
@@ -255,7 +264,7 @@ func (c *HTTPClient) Put(data []byte) error {
 
 	if c.SupportsLocking {
 		query := base.Query()
-		query.Set("lock_id", c.lockID)
+		query.Set("ID", c.lockID)
 		base.RawQuery = query.Encode()
 	}
 
