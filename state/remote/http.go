@@ -5,11 +5,15 @@ import (
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/hashicorp/terraform/state"
 )
 
 func httpFactory(conf map[string]string) (Client, error) {
@@ -44,9 +48,19 @@ func httpFactory(conf map[string]string) (Client, error) {
 		}
 	}
 
+	supportsLocking := false
+	if supportsLockingRaw, ok := conf["supports_locking"]; ok {
+		var err error
+		supportsLocking, err = strconv.ParseBool(supportsLockingRaw)
+		if err != nil {
+			return nil, fmt.Errorf("supports_locking must be boolean")
+		}
+	}
+
 	ret := &HTTPClient{
-		URL:    url,
-		Client: client,
+		URL:             url,
+		Client:          client,
+		SupportsLocking: supportsLocking,
 	}
 	if username, ok := conf["username"]; ok && username != "" {
 		ret.Username = username
@@ -59,10 +73,110 @@ func httpFactory(conf map[string]string) (Client, error) {
 
 // HTTPClient is a remote client that stores data in Consul or HTTP REST.
 type HTTPClient struct {
-	URL      *url.URL
-	Client   *http.Client
-	Username string
-	Password string
+	URL             *url.URL
+	Client          *http.Client
+	Username        string
+	Password        string
+	SupportsLocking bool
+	lockID          string
+}
+
+func (c *HTTPClient) httpPost(url string, data []byte, what string) (*http.Response, error) {
+
+	// Generate the MD5
+	hash := md5.Sum(data)
+	b64 := base64.StdEncoding.EncodeToString(hash[:])
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to make HTTP request: %s", err)
+	}
+
+	// Prepare the request
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-MD5", b64)
+	req.ContentLength = int64(len(data))
+	if c.Username != "" {
+		req.SetBasicAuth(c.Username, c.Password)
+	}
+
+	// Make the request
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to %s: %v", what, err)
+	}
+
+	return resp, nil
+}
+
+func (c *HTTPClient) Lock(info *state.LockInfo) (string, error) {
+	if !c.SupportsLocking {
+		return "", nil
+	}
+	c.lockID = ""
+
+	base := c.URL.String()
+	if base[len(base)-1] != byte('/') {
+		// add a trailing /
+		base = fmt.Sprintf("%s/", base)
+	}
+
+	url := fmt.Sprintf("%slock", base)
+	resp, err := c.httpPost(url, info.Marshal(), "lock")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		c.lockID = info.ID
+		return info.ID, nil
+	case http.StatusUnauthorized:
+		return "", fmt.Errorf("HTTP remote state endpoint requires auth")
+	case http.StatusForbidden:
+		return "", fmt.Errorf("HTTP remote state endpoint invalid auth")
+	case http.StatusConflict:
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return "", fmt.Errorf("HTTP remote state already locked, failed to read body")
+		}
+		existing := state.LockInfo{}
+		err = json.Unmarshal(body, &existing)
+		if err != nil {
+			return "", fmt.Errorf("HTTP remote state already locked, failed to unmarshal body")
+		}
+		return "", fmt.Errorf("HTTP remote state already locked: ID=%s", existing.ID)
+	default:
+		return "", fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
+	}
+}
+
+func (c *HTTPClient) Unlock(id string) error {
+	if !c.SupportsLocking {
+		return nil
+	}
+
+	base := c.URL.String()
+	if base[len(base)-1] != byte('/') {
+		// add a trailing /
+		base = fmt.Sprintf("%s/", base)
+	}
+
+	url := fmt.Sprintf("%sunlock", base)
+	resp, err := c.httpPost(url, []byte{}, "unlock")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return nil
+	default:
+		return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
+	}
 }
 
 func (c *HTTPClient) Get() (*Payload, error) {
@@ -139,9 +253,11 @@ func (c *HTTPClient) Put(data []byte) error {
 	// Copy the target URL
 	base := *c.URL
 
-	// Generate the MD5
-	hash := md5.Sum(data)
-	b64 := base64.StdEncoding.EncodeToString(hash[:])
+	if c.SupportsLocking {
+		query := base.Query()
+		query.Set("lock_id", c.lockID)
+		base.RawQuery = query.Encode()
+	}
 
 	/*
 		// Set the force query parameter if needed
@@ -152,23 +268,9 @@ func (c *HTTPClient) Put(data []byte) error {
 		}
 	*/
 
-	req, err := http.NewRequest("POST", base.String(), bytes.NewReader(data))
+	resp, err := c.httpPost(base.String(), data, "upload state")
 	if err != nil {
-		return fmt.Errorf("Failed to make HTTP request: %s", err)
-	}
-
-	// Prepare the request
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-MD5", b64)
-	req.ContentLength = int64(len(data))
-	if c.Username != "" {
-		req.SetBasicAuth(c.Username, c.Password)
-	}
-
-	// Make the request
-	resp, err := c.Client.Do(req)
-	if err != nil {
-		return fmt.Errorf("Failed to upload state: %v", err)
+		return err
 	}
 	defer resp.Body.Close()
 
