@@ -1159,6 +1159,60 @@
 			"revisionTime": "2017-02-02T18:38:21Z"
 		},
 		{
+			"checksumSHA1": "Tl8l2ZNrIb3wUYBrEvMuU6i5jqU=",
+			"path": "github.com/candidpartners/occm-sdk-go",
+			"revision": "96a303ee75e42b7518e44c2bd3210c3853412c30",
+			"revisionTime": "2017-08-13T04:19:42Z"
+		},
+		{
+			"checksumSHA1": "7k2wp+THSV4iV3RvP72AU2h5XpU=",
+			"path": "github.com/candidpartners/occm-sdk-go/api/audit",
+			"revision": "96a303ee75e42b7518e44c2bd3210c3853412c30",
+			"revisionTime": "2017-08-13T04:19:42Z"
+		},
+		{
+			"checksumSHA1": "kyhLzQGkVKolWULOJV1gNDIpYpQ=",
+			"path": "github.com/candidpartners/occm-sdk-go/api/auth",
+			"revision": "96a303ee75e42b7518e44c2bd3210c3853412c30",
+			"revisionTime": "2017-08-13T04:19:42Z"
+		},
+		{
+			"checksumSHA1": "DF0tVB7KjUEkdbSJLY1t2sT96uw=",
+			"path": "github.com/candidpartners/occm-sdk-go/api/client",
+			"revision": "96a303ee75e42b7518e44c2bd3210c3853412c30",
+			"revisionTime": "2017-08-13T04:19:42Z"
+		},
+		{
+			"checksumSHA1": "bMUSL/Ro/odbRSresJHmGQOvjIc=",
+			"path": "github.com/candidpartners/occm-sdk-go/api/tenant",
+			"revision": "96a303ee75e42b7518e44c2bd3210c3853412c30",
+			"revisionTime": "2017-08-13T04:19:42Z"
+		},
+		{
+			"checksumSHA1": "+AE7c74z3lfec9WGiQA3I8ZEnGo=",
+			"path": "github.com/candidpartners/occm-sdk-go/api/workenv",
+			"revision": "96a303ee75e42b7518e44c2bd3210c3853412c30",
+			"revisionTime": "2017-08-13T04:19:42Z"
+		},
+		{
+			"checksumSHA1": "4DUA1EG49Qg4AoqStH2FARPt8uE=",
+			"path": "github.com/candidpartners/occm-sdk-go/api/workenv/awsha",
+			"revision": "96a303ee75e42b7518e44c2bd3210c3853412c30",
+			"revisionTime": "2017-08-13T04:19:42Z"
+		},
+		{
+			"checksumSHA1": "0sR69hYF+lkWlOOHUjG72mfklds=",
+			"path": "github.com/candidpartners/occm-sdk-go/api/workenv/vsa",
+			"revision": "96a303ee75e42b7518e44c2bd3210c3853412c30",
+			"revisionTime": "2017-08-13T04:19:42Z"
+		},
+		{
+			"checksumSHA1": "FeiEu+l9TRRuVpOGozzYfjuoMcY=",
+			"path": "github.com/candidpartners/occm-sdk-go/util",
+			"revision": "96a303ee75e42b7518e44c2bd3210c3853412c30",
+			"revisionTime": "2017-08-13T04:19:42Z"
+		},
+		{
 			"checksumSHA1": "SPQcWDUN+wcTThipcR9EzX4t3E8=",
 			"path": "github.com/cenkalti/backoff",
 			"revision": "b02f2bbce11d7ea6b97f282ef1771b0fe2f65ef3",
@@ -2789,11 +2843,11 @@
 			"revisionTime": "2015-10-22T18:22:18Z"
 		},
 		{
-			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",
+			"checksumSHA1": "rJab1YdNhQooDiBWNnt7TLWPyBU=",
 			"comment": "v0.3.0",
 			"path": "github.com/pkg/errors",
-			"revision": "248dadf4e9068a0b3e79f02ed0a610d935de5302",
-			"revisionTime": "2016-10-29T09:36:37Z"
+			"revision": "c605e284fe17294bda444b34710735b29d1a9d90",
+			"revisionTime": "2017-05-05T04:36:39Z"
 		},
 		{
 			"checksumSHA1": "WPDz/Ed0OwaP7F/HvzZQ8OwT3fM=",
