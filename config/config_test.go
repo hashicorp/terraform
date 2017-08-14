@@ -737,6 +737,23 @@ func TestConfigProviderVersion(t *testing.T) {
 	}
 }
 
+func TestConfigZclOptIn(t *testing.T) {
+	c := testConfig(t, "zcl-opt-in")
+
+	if got, want := len(c.Variables), 1; got != want {
+		t.Fatalf("wrong number of variables %d; want %d", got, want)
+	}
+
+	v := c.Variables[0]
+
+	if got, want := v.Name, "foo"; got != want {
+		t.Errorf("wrong name %q; want %q", got, want)
+	}
+	if got, want := v.Description, "3"; got != want {
+		t.Errorf("wrong description %q; want %q", got, want)
+	}
+}
+
 func TestResourceProviderFullName(t *testing.T) {
 	type testCase struct {
 		ResourceName string

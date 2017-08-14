@@ -1,8 +1,11 @@
 package config
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
+	"os"
 )
 
 // configurable is an interface that must be implemented by any configuration
@@ -34,7 +37,31 @@ func loadTree(root string) (*importTree, error) {
 	var f fileLoaderFunc
 	switch ext(root) {
 	case ".tf", ".tf.json":
-		f = loadFileHcl
+
+		// While we're concurrently supporting both HCL/HIL and zcl, we'll
+		// sniff the file for a "#use-zcl-syntax" comment (which must be on
+		// a line of its own) to activate the experimental zcl-based loader.
+		r, err := os.Open(root)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open %s: %s", root, err)
+		}
+
+		sc := bufio.NewScanner(r)
+		marker := []byte("#use-experimental-syntax")
+		for sc.Scan() {
+			if bytes.Equal(bytes.TrimSpace(sc.Bytes()), marker) {
+				f = globalZclLoader.loadFile
+			}
+		}
+		r.Close()
+		if err := sc.Err(); err != nil {
+			return nil, err
+		}
+
+		if f == nil {
+			f = loadFileHcl
+		}
+
 	default:
 	}
 
