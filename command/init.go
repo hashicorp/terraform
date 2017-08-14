@@ -67,6 +67,11 @@ func (c *InitCommand) Run(args []string) int {
 	if len(flagPluginPath) > 0 {
 		c.pluginPath = flagPluginPath
 		c.getPlugins = false
+		log.Print("[DEBUG] Using `-plugin-dir` for plugin directories")
+	} else if v := os.Getenv(ProviderPluginDir); v != "" {
+		c.pluginPath = []string{v}
+		c.getPlugins = false
+		log.Printf("[DEBUG] Using `%s` for plugin directory", ProviderPluginDir)
 	}
 
 	// set getProvider if we don't have a test version already

@@ -953,6 +953,56 @@ func TestInit_pluginDirProviders(t *testing.T) {
 	}
 }
 
+// Test user-supplied -plugin-dir via env var
+func TestInit_pluginDirEnvVar(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make our vendor paths
+	pluginPath := "a"
+	if err := os.MkdirAll(pluginPath, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// add some dummy providers in our plugin dirs
+	for _, name := range []string{
+		"terraform-provider-exact_v1.2.3_x4",
+		"terraform-provider-greater_than_v2.3.4_x4",
+		"terraform-provider-between_v2.3.4_x4",
+	} {
+		if err := ioutil.WriteFile(filepath.Join(pluginPath, name), []byte("test bin"), 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := os.Setenv(ProviderPluginDir, pluginPath); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		err := os.Unsetenv(ProviderPluginDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	if code := c.Run([]string{}); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter)
+	}
+}
+
 // Test user-supplied -plugin-dir doesn't allow auto-install
 func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	td := tempDir(t)
