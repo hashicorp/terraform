@@ -383,11 +383,11 @@ func Test(t TestT, c TestCase) {
 		c.PreCheck()
 	}
 
-	ctxProviders, err := testProviderFactories(c)
+	providerResolver, err := testProviderResolver(c)
 	if err != nil {
 		t.Fatal(err)
 	}
-	opts := terraform.ContextOpts{Providers: ctxProviders}
+	opts := terraform.ContextOpts{ProviderResolver: providerResolver}
 
 	// A single state variable to track the lifecycle, starting with no state
 	var state *terraform.State
@@ -400,15 +400,22 @@ func Test(t TestT, c TestCase) {
 		var err error
 		log.Printf("[WARN] Test: Executing step %d", i)
 
-		// Determine the test mode to execute
-		if step.Config != "" {
-			state, err = testStepConfig(opts, state, step)
-		} else if step.ImportState {
-			state, err = testStepImportState(opts, state, step)
-		} else {
+		if step.Config == "" && !step.ImportState {
 			err = fmt.Errorf(
 				"unknown test mode for step. Please see TestStep docs\n\n%#v",
 				step)
+		} else {
+			if step.ImportState {
+				if step.Config == "" {
+					step.Config = testProviderConfig(c)
+				}
+
+				// Can optionally set step.Config in addition to
+				// step.ImportState, to provide config for the import.
+				state, err = testStepImportState(opts, state, step)
+			} else {
+				state, err = testStepConfig(opts, state, step)
+			}
 		}
 
 		// If there was an error, exit
@@ -496,16 +503,29 @@ func Test(t TestT, c TestCase) {
 	}
 }
 
-// testProviderFactories is a helper to build the ResourceProviderFactory map
+// testProviderConfig takes the list of Providers in a TestCase and returns a
+// config with only empty provider blocks. This is useful for Import, where no
+// config is provided, but the providers must be defined.
+func testProviderConfig(c TestCase) string {
+	var lines []string
+	for p := range c.Providers {
+		lines = append(lines, fmt.Sprintf("provider %q {}\n", p))
+	}
+
+	return strings.Join(lines, "")
+}
+
+// testProviderResolver is a helper to build a ResourceProviderResolver
 // with pre instantiated ResourceProviders, so that we can reset them for the
 // test, while only calling the factory function once.
 // Any errors are stored so that they can be returned by the factory in
 // terraform to match non-test behavior.
-func testProviderFactories(c TestCase) (map[string]terraform.ResourceProviderFactory, error) {
-	ctxProviders := c.ProviderFactories // make(map[string]terraform.ResourceProviderFactory)
+func testProviderResolver(c TestCase) (terraform.ResourceProviderResolver, error) {
+	ctxProviders := c.ProviderFactories
 	if ctxProviders == nil {
 		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
 	}
+
 	// add any fixed providers
 	for k, p := range c.Providers {
 		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
@@ -527,7 +547,7 @@ func testProviderFactories(c TestCase) (map[string]terraform.ResourceProviderFac
 		}
 	}
 
-	return ctxProviders, nil
+	return terraform.ResourceProviderResolverFixed(ctxProviders), nil
 }
 
 // UnitTest is a helper to force the acceptance testing harness to run in the

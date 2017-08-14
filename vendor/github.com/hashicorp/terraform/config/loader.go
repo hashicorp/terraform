@@ -194,7 +194,7 @@ func dirFiles(dir string) ([]string, []string, error) {
 			// Only care about files that are valid to load
 			name := fi.Name()
 			extValue := ext(name)
-			if extValue == "" || isIgnoredFile(name) {
+			if extValue == "" || IsIgnoredFile(name) {
 				continue
 			}
 
@@ -215,9 +215,9 @@ func dirFiles(dir string) ([]string, []string, error) {
 	return files, overrides, nil
 }
 
-// isIgnoredFile returns true or false depending on whether the
+// IsIgnoredFile returns true or false depending on whether the
 // provided file name is a file that should be ignored.
-func isIgnoredFile(name string) bool {
+func IsIgnoredFile(name string) bool {
 	return strings.HasPrefix(name, ".") || // Unix-like hidden files
 		strings.HasSuffix(name, "~") || // vim
 		strings.HasPrefix(name, "#") && strings.HasSuffix(name, "#") // emacs
