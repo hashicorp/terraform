@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/helper/experiment"
 )
 
 // InputMode defines what sort of input will be asked for when Input
@@ -465,7 +464,7 @@ func (c *Context) Input(mode InputMode) error {
 		}
 
 		// Do the walk
-		if _, err := c.walk(graph, nil, walkInput); err != nil {
+		if _, err := c.walk(graph, walkInput); err != nil {
 			return err
 		}
 	}
@@ -506,7 +505,7 @@ func (c *Context) Apply() (*State, error) {
 	}
 
 	// Walk the graph
-	walker, err := c.walk(graph, graph, operation)
+	walker, err := c.walk(graph, operation)
 	if len(walker.ValidationErrors) > 0 {
 		err = multierror.Append(err, walker.ValidationErrors...)
 	}
@@ -575,7 +574,7 @@ func (c *Context) Plan() (*Plan, error) {
 	}
 
 	// Do the walk
-	walker, err := c.walk(graph, graph, operation)
+	walker, err := c.walk(graph, operation)
 	if err != nil {
 		return nil, err
 	}
@@ -630,7 +629,7 @@ func (c *Context) Refresh() (*State, error) {
 	}
 
 	// Do the walk
-	if _, err := c.walk(graph, graph, walkRefresh); err != nil {
+	if _, err := c.walk(graph, walkRefresh); err != nil {
 		return nil, err
 	}
 
@@ -705,7 +704,7 @@ func (c *Context) Validate() ([]string, []error) {
 	}
 
 	// Walk
-	walker, err := c.walk(graph, graph, walkValidate)
+	walker, err := c.walk(graph, walkValidate)
 	if err != nil {
 		return nil, multierror.Append(errs, err).Errors
 	}
@@ -792,32 +791,10 @@ func (c *Context) releaseRun() {
 	c.runContext = nil
 }
 
-func (c *Context) walk(
-	graph, shadow *Graph, operation walkOperation) (*ContextGraphWalker, error) {
+func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalker, error) {
 	// Keep track of the "real" context which is the context that does
 	// the real work: talking to real providers, modifying real state, etc.
 	realCtx := c
-
-	// If we don't want shadowing, remove it
-	if !experiment.Enabled(experiment.X_shadow) {
-		shadow = nil
-	}
-
-	// Just log this so we can see it in a debug log
-	if !c.shadow {
-		log.Printf("[WARN] terraform: shadow graph disabled")
-		shadow = nil
-	}
-
-	// If we have a shadow graph, walk that as well
-	var shadowCtx *Context
-	var shadowCloser Shadow
-	if shadow != nil {
-		// Build the shadow context. In the process, override the real context
-		// with the one that is wrapped so that the shadow context can verify
-		// the results of the real.
-		realCtx, shadowCtx, shadowCloser = newShadowContext(c)
-	}
 
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 
@@ -836,90 +813,6 @@ func (c *Context) walk(
 	// Close the channel so the watcher stops, and wait for it to return.
 	close(watchStop)
 	<-watchWait
-
-	// If we have a shadow graph and we interrupted the real graph, then
-	// we just close the shadow and never verify it. It is non-trivial to
-	// recreate the exact execution state up until an interruption so this
-	// isn't supported with shadows at the moment.
-	if shadowCloser != nil && c.sh.Stopped() {
-		// Ignore the error result, there is nothing we could care about
-		shadowCloser.CloseShadow()
-
-		// Set it to nil so we don't do anything
-		shadowCloser = nil
-	}
-
-	// If we have a shadow graph, wait for that to complete.
-	if shadowCloser != nil {
-		// Build the graph walker for the shadow. We also wrap this in
-		// a panicwrap so that panics are captured. For the shadow graph,
-		// we just want panics to be normal errors rather than to crash
-		// Terraform.
-		shadowWalker := GraphWalkerPanicwrap(&ContextGraphWalker{
-			Context:   shadowCtx,
-			Operation: operation,
-		})
-
-		// Kick off the shadow walk. This will block on any operations
-		// on the real walk so it is fine to start first.
-		log.Printf("[INFO] Starting shadow graph walk: %s", operation.String())
-		shadowCh := make(chan error)
-		go func() {
-			shadowCh <- shadow.Walk(shadowWalker)
-		}()
-
-		// Notify the shadow that we're done
-		if err := shadowCloser.CloseShadow(); err != nil {
-			c.shadowErr = multierror.Append(c.shadowErr, err)
-		}
-
-		// Wait for the walk to end
-		log.Printf("[DEBUG] Waiting for shadow graph to complete...")
-		shadowWalkErr := <-shadowCh
-
-		// Get any shadow errors
-		if err := shadowCloser.ShadowError(); err != nil {
-			c.shadowErr = multierror.Append(c.shadowErr, err)
-		}
-
-		// Verify the contexts (compare)
-		if err := shadowContextVerify(realCtx, shadowCtx); err != nil {
-			c.shadowErr = multierror.Append(c.shadowErr, err)
-		}
-
-		// At this point, if we're supposed to fail on error, then
-		// we PANIC. Some tests just verify that there is an error,
-		// so simply appending it to realErr and returning could hide
-		// shadow problems.
-		//
-		// This must be done BEFORE appending shadowWalkErr since the
-		// shadowWalkErr may include expected errors.
-		//
-		// We only do this if we don't have a real error. In the case of
-		// a real error, we can't guarantee what nodes were and weren't
-		// traversed in parallel scenarios so we can't guarantee no
-		// shadow errors.
-		if c.shadowErr != nil && contextFailOnShadowError && realErr == nil {
-			panic(multierror.Prefix(c.shadowErr, "shadow graph:"))
-		}
-
-		// Now, if we have a walk error, we append that through
-		if shadowWalkErr != nil {
-			c.shadowErr = multierror.Append(c.shadowErr, shadowWalkErr)
-		}
-
-		if c.shadowErr == nil {
-			log.Printf("[INFO] Shadow graph success!")
-		} else {
-			log.Printf("[ERROR] Shadow graph error: %s", c.shadowErr)
-
-			// If we're supposed to fail on shadow errors, then report it
-			if contextFailOnShadowError {
-				realErr = multierror.Append(realErr, multierror.Prefix(
-					c.shadowErr, "shadow graph:"))
-			}
-		}
-	}
 
 	return walker, realErr
 }
