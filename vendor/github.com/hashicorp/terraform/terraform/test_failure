@@ -1,0 +1,9 @@
+--- FAIL: TestContext2Plan_moduleProviderInherit (0.01s)
+	context_plan_test.go:552: bad: []string{"child"}
+map[string]dag.Vertex{}
+"module.middle.null"
+map[string]dag.Vertex{}
+"module.middle.module.inner.null"
+map[string]dag.Vertex{}
+"aws"
+FAIL

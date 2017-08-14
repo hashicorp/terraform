@@ -6380,6 +6380,11 @@ type KeyMetadata struct {
 	// KeyId is a required field
 	KeyId *string `min:"1" type:"string" required:"true"`
 
+	// The CMK's manager. CMKs are either customer-managed or AWS-managed. For more
+	// information about the difference, see Customer Master Keys (http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#master_keys)
+	// in the AWS Key Management Service Developer Guide.
+	KeyManager *string `type:"string" enum:"KeyManagerType"`
+
 	// The state of the CMK.
 	//
 	// For more information about how key state affects the use of a CMK, see How
@@ -6460,6 +6465,12 @@ func (s *KeyMetadata) SetExpirationModel(v string) *KeyMetadata {
 // SetKeyId sets the KeyId field's value.
 func (s *KeyMetadata) SetKeyId(v string) *KeyMetadata {
 	s.KeyId = &v
+	return s
+}
+
+// SetKeyManager sets the KeyManager field's value.
+func (s *KeyMetadata) SetKeyManager(v string) *KeyMetadata {
+	s.KeyManager = &v
 	return s
 }
 
@@ -8133,6 +8144,14 @@ const (
 
 	// GrantOperationDescribeKey is a GrantOperation enum value
 	GrantOperationDescribeKey = "DescribeKey"
+)
+
+const (
+	// KeyManagerTypeAws is a KeyManagerType enum value
+	KeyManagerTypeAws = "AWS"
+
+	// KeyManagerTypeCustomer is a KeyManagerType enum value
+	KeyManagerTypeCustomer = "CUSTOMER"
 )
 
 const (
