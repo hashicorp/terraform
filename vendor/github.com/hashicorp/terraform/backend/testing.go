@@ -92,11 +92,20 @@ func testBackendStates(t *testing.T, b Backend) {
 		// start with a fresh state, and record the lineage being
 		// written to "bar"
 		barState := terraform.NewState()
+
+		// creating the named state may have created a lineage, so use that if it exists.
+		if s := bar.State(); s != nil && s.Lineage != "" {
+			barState.Lineage = s.Lineage
+		}
 		barLineage := barState.Lineage
 
 		// the foo lineage should be distinct from bar, and unchanged after
 		// modifying bar
 		fooState := terraform.NewState()
+		// creating the named state may have created a lineage, so use that if it exists.
+		if s := foo.State(); s != nil && s.Lineage != "" {
+			fooState.Lineage = s.Lineage
+		}
 		fooLineage := fooState.Lineage
 
 		// write a known state to foo
@@ -185,6 +194,24 @@ func testBackendStates(t *testing.T, b Backend) {
 	// Verify the default state can't be deleted
 	if err := b.DeleteState(DefaultStateName); err == nil {
 		t.Fatal("expected error")
+	}
+
+	// Create and delete the foo state again.
+	// Make sure that there are no leftover artifacts from a deleted state
+	// preventing re-creation.
+	foo, err = b.State("foo")
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	if err := foo.RefreshState(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if v := foo.State(); v.HasResources() {
+		t.Fatalf("should be empty: %s", v)
+	}
+	// and delete it again
+	if err := b.DeleteState("foo"); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
 	// Verify deletion

@@ -57,11 +57,16 @@ type ContextOpts struct {
 	Parallelism        int
 	State              *State
 	StateFutureAllowed bool
-	Providers          map[string]ResourceProviderFactory
+	ProviderResolver   ResourceProviderResolver
 	Provisioners       map[string]ResourceProvisionerFactory
 	Shadow             bool
 	Targets            []string
 	Variables          map[string]interface{}
+
+	// If non-nil, will apply as additional constraints on the provider
+	// plugins that will be requested from the provider resolver.
+	ProviderSHA256s    map[string][]byte
+	SkipProviderVerify bool
 
 	UIInput UIInput
 }
@@ -102,6 +107,7 @@ type Context struct {
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]interface{}
+	providerSHA256s     map[string][]byte
 	runLock             sync.Mutex
 	runCond             *sync.Cond
 	runContext          context.Context
@@ -166,13 +172,29 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 	//        set by environment variables if necessary. This includes
 	//        values taken from -var-file in addition.
 	variables := make(map[string]interface{})
-
 	if opts.Module != nil {
 		var err error
 		variables, err = Variables(opts.Module, opts.Variables)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// Bind available provider plugins to the constraints in config
+	var providers map[string]ResourceProviderFactory
+	if opts.ProviderResolver != nil {
+		var err error
+		deps := ModuleTreeDependencies(opts.Module, state)
+		reqd := deps.AllPluginRequirements()
+		if opts.ProviderSHA256s != nil && !opts.SkipProviderVerify {
+			reqd.LockExecutables(opts.ProviderSHA256s)
+		}
+		providers, err = resourceProviderFactories(opts.ProviderResolver, reqd)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		providers = make(map[string]ResourceProviderFactory)
 	}
 
 	diff := opts.Diff
@@ -182,7 +204,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 
 	return &Context{
 		components: &basicComponentFactory{
-			providers:    opts.Providers,
+			providers:    providers,
 			provisioners: opts.Provisioners,
 		},
 		destroy:   opts.Destroy,
@@ -198,6 +220,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]interface{}),
+		providerSHA256s:     opts.ProviderSHA256s,
 		sh:                  sh,
 	}, nil
 }
@@ -509,6 +532,9 @@ func (c *Context) Plan() (*Plan, error) {
 		Vars:    c.variables,
 		State:   c.state,
 		Targets: c.targets,
+
+		TerraformVersion: VersionString(),
+		ProviderSHA256s:  c.providerSHA256s,
 	}
 
 	var operation walkOperation

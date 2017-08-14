@@ -36,6 +36,11 @@ type State interface {
 // the state here must not error. Loading the state fresh (an operation that
 // can likely error) should be implemented by RefreshState. If a state hasn't
 // been loaded yet, it is okay for State to return nil.
+//
+// Each caller of this function must get a distinct copy of the state, and
+// it must also be distinct from any instance cached inside the reader, to
+// ensure that mutations of the returned state will not affect the values
+// returned to other callers.
 type StateReader interface {
 	State() *terraform.State
 }
@@ -43,6 +48,15 @@ type StateReader interface {
 // StateWriter is the interface that must be implemented by something that
 // can write a state. Writing the state can be cached or in-memory, as
 // full persistence should be implemented by StatePersister.
+//
+// Implementors that cache the state in memory _must_ take a copy of it
+// before returning, since the caller may continue to modify it once
+// control returns. The caller must ensure that the state instance is not
+// concurrently modified _during_ the call, or behavior is undefined.
+//
+// If an object implements StatePersister in conjunction with StateReader
+// then these methods must coordinate such that a subsequent read returns
+// a copy of the most recent write, even if it has not yet been persisted.
 type StateWriter interface {
 	WriteState(*terraform.State) error
 }
@@ -57,6 +71,10 @@ type StateRefresher interface {
 // StatePersister is implemented to truly persist a state. Whereas StateWriter
 // is allowed to perhaps be caching in memory, PersistState must write the
 // state to some durable storage.
+//
+// If an object implements StatePersister in conjunction with StateReader
+// and/or StateRefresher then these methods must coordinate such that
+// subsequent reads after a persist return an updated value.
 type StatePersister interface {
 	PersistState() error
 }

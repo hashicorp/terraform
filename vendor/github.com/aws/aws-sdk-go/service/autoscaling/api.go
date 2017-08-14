@@ -666,6 +666,9 @@ func (c *AutoScaling) CreateOrUpdateTagsRequest(input *CreateOrUpdateTagsInput) 
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
+//   * ErrCodeResourceInUseFault "ResourceInUse"
+//   The operation can't be performed because the resource is in use.
+//
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/CreateOrUpdateTags
 func (c *AutoScaling) CreateOrUpdateTags(input *CreateOrUpdateTagsInput) (*CreateOrUpdateTagsOutput, error) {
 	req, out := c.CreateOrUpdateTagsRequest(input)
@@ -1278,6 +1281,9 @@ func (c *AutoScaling) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Re
 //   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
+//
+//   * ErrCodeResourceInUseFault "ResourceInUse"
+//   The operation can't be performed because the resource is in use.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DeleteTags
 func (c *AutoScaling) DeleteTags(input *DeleteTagsInput) (*DeleteTagsOutput, error) {
@@ -3299,8 +3305,8 @@ func (c *AutoScaling) DetachInstancesRequest(input *DetachInstancesInput) (req *
 //
 // Removes one or more instances from the specified Auto Scaling group.
 //
-// After the instances are detached, you can manage them independent of the
-// Auto Scaling group.
+// After the instances are detached, you can manage them independently from
+// the rest of the Auto Scaling group.
 //
 // If you do not specify the option to decrement the desired capacity, Auto
 // Scaling launches instances to replace the ones that are detached.
@@ -3732,10 +3738,9 @@ func (c *AutoScaling) EnterStandbyRequest(input *EnterStandbyInput) (req *reques
 
 // EnterStandby API operation for Auto Scaling.
 //
-// Moves the specified instances into the standby state.
+// Moves the specified instances into Standby mode.
 //
-// For more information, see Temporarily Removing Instances from Your Auto Scaling
-// Group (http://docs.aws.amazon.com/autoscaling/latest/userguide/as-enter-exit-standby.html)
+// For more information, see Auto Scaling Lifecycle (http://docs.aws.amazon.com/autoscaling/latest/userguide/AutoScalingGroupLifecycle.html)
 // in the Auto Scaling User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -3904,10 +3909,9 @@ func (c *AutoScaling) ExitStandbyRequest(input *ExitStandbyInput) (req *request.
 
 // ExitStandby API operation for Auto Scaling.
 //
-// Moves the specified instances out of the standby state.
+// Moves the specified instances out of Standby mode.
 //
-// For more information, see Temporarily Removing Instances from Your Auto Scaling
-// Group (http://docs.aws.amazon.com/autoscaling/latest/userguide/as-enter-exit-standby.html)
+// For more information, see Auto Scaling Lifecycle (http://docs.aws.amazon.com/autoscaling/latest/userguide/AutoScalingGroupLifecycle.html)
 // in the Auto Scaling User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -5041,13 +5045,14 @@ func (c *AutoScaling) UpdateAutoScalingGroupRequest(input *UpdateAutoScalingGrou
 //
 // Updates the configuration for the specified Auto Scaling group.
 //
-// The new settings take effect on any scaling activities after this call returns.
-// Scaling activities that are currently in progress aren't affected.
-//
 // To update an Auto Scaling group with a launch configuration with InstanceMonitoring
-// set to false, you must first disable the collection of group metrics. Otherwise,
+// set to False, you must first disable the collection of group metrics. Otherwise,
 // you will get an error. If you have previously enabled the collection of group
 // metrics, you can disable it using DisableMetricsCollection.
+//
+// The new settings are registered upon the completion of this call. Any launch
+// configuration settings take effect on any triggers after this call returns.
+// Scaling activities that are currently in progress aren't affected.
 //
 // Note the following:
 //
@@ -5282,6 +5287,7 @@ func (s *Alarm) SetAlarmName(v string) *Alarm {
 	return s
 }
 
+// Contains the parameters for AttachInstances.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/AttachInstancesQuery
 type AttachInstancesInput struct {
 	_ struct{} `type:"structure"`
@@ -5348,6 +5354,7 @@ func (s AttachInstancesOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for AttachLoadBalancerTargetGroups.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/AttachLoadBalancerTargetGroupsType
 type AttachLoadBalancerTargetGroupsInput struct {
 	_ struct{} `type:"structure"`
@@ -5419,6 +5426,7 @@ func (s AttachLoadBalancerTargetGroupsOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for AttachLoadBalancers.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/AttachLoadBalancersType
 type AttachLoadBalancersInput struct {
 	_ struct{} `type:"structure"`
@@ -5475,6 +5483,7 @@ func (s *AttachLoadBalancersInput) SetLoadBalancerNames(v []*string) *AttachLoad
 	return s
 }
 
+// Contains the output of AttachLoadBalancers.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/AttachLoadBalancersResultType
 type AttachLoadBalancersOutput struct {
 	_ struct{} `type:"structure"`
@@ -5572,6 +5581,7 @@ func (s *BlockDeviceMapping) SetVirtualName(v string) *BlockDeviceMapping {
 	return s
 }
 
+// Contains the parameters for CompleteLifecycleAction.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/CompleteLifecycleActionType
 type CompleteLifecycleActionInput struct {
 	_ struct{} `type:"structure"`
@@ -5672,6 +5682,7 @@ func (s *CompleteLifecycleActionInput) SetLifecycleHookName(v string) *CompleteL
 	return s
 }
 
+// Contains the output of CompleteLifecycleAction.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/CompleteLifecycleActionAnswer
 type CompleteLifecycleActionOutput struct {
 	_ struct{} `type:"structure"`
@@ -5687,6 +5698,7 @@ func (s CompleteLifecycleActionOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for CreateAutoScalingGroup.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/CreateAutoScalingGroupType
 type CreateAutoScalingGroupInput struct {
 	_ struct{} `type:"structure"`
@@ -5710,8 +5722,7 @@ type CreateAutoScalingGroupInput struct {
 
 	// The number of EC2 instances that should be running in the group. This number
 	// must be greater than or equal to the minimum size of the group and less than
-	// or equal to the maximum size of the group. If you do not specify a desired
-	// capacity, the default is the minimum size of the group.
+	// or equal to the maximum size of the group.
 	DesiredCapacity *int64 `type:"integer"`
 
 	// The amount of time, in seconds, that Auto Scaling waits before checking the
@@ -5981,6 +5992,7 @@ func (s CreateAutoScalingGroupOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for CreateLaunchConfiguration.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/CreateLaunchConfigurationType
 type CreateLaunchConfigurationInput struct {
 	_ struct{} `type:"structure"`
@@ -6037,18 +6049,14 @@ type CreateLaunchConfigurationInput struct {
 	IamInstanceProfile *string `min:"1" type:"string"`
 
 	// The ID of the Amazon Machine Image (AMI) to use to launch your EC2 instances.
-	//
-	// If you do not specify InstanceId, you must specify ImageId.
-	//
 	// For more information, see Finding an AMI (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/finding-an-ami.html)
 	// in the Amazon Elastic Compute Cloud User Guide.
 	ImageId *string `min:"1" type:"string"`
 
-	// The ID of the instance to use to create the launch configuration. The new
-	// launch configuration derives attributes from the instance, with the exception
-	// of the block device mapping.
+	// The ID of the instance to use to create the launch configuration.
 	//
-	// If you do not specify InstanceId, you must specify both ImageId and InstanceType.
+	// The new launch configuration derives attributes from the instance, with the
+	// exception of the block device mapping.
 	//
 	// To create a launch configuration with a block device mapping or override
 	// any other instance attributes, specify them as part of the same request.
@@ -6059,15 +6067,11 @@ type CreateLaunchConfigurationInput struct {
 	InstanceId *string `min:"1" type:"string"`
 
 	// Enables detailed monitoring (true) or basic monitoring (false) for the Auto
-	// Scaling instances. The default is true.
+	// Scaling instances.
 	InstanceMonitoring *InstanceMonitoring `type:"structure"`
 
-	// The instance type of the EC2 instance.
-	//
-	// If you do not specify InstanceId, you must specify InstanceType.
-	//
-	// For information about available instance types, see Available Instance Types
-	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html#AvailableInstanceTypes)
+	// The instance type of the EC2 instance. For information about available instance
+	// types, see  Available Instance Types (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html#AvailableInstanceTypes)
 	// in the Amazon Elastic Compute Cloud User Guide.
 	InstanceType *string `min:"1" type:"string"`
 
@@ -6318,6 +6322,7 @@ func (s CreateLaunchConfigurationOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for CreateOrUpdateTags.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/CreateOrUpdateTagsType
 type CreateOrUpdateTagsInput struct {
 	_ struct{} `type:"structure"`
@@ -6382,6 +6387,103 @@ func (s CreateOrUpdateTagsOutput) GoString() string {
 	return s.String()
 }
 
+// Configures a customized metric for a target tracking policy.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/CustomizedMetricSpecification
+type CustomizedMetricSpecification struct {
+	_ struct{} `type:"structure"`
+
+	// The dimensions of the metric.
+	Dimensions []*MetricDimension `type:"list"`
+
+	// The name of the metric.
+	//
+	// MetricName is a required field
+	MetricName *string `type:"string" required:"true"`
+
+	// The namespace of the metric.
+	//
+	// Namespace is a required field
+	Namespace *string `type:"string" required:"true"`
+
+	// The statistic of the metric.
+	//
+	// Statistic is a required field
+	Statistic *string `type:"string" required:"true" enum:"MetricStatistic"`
+
+	// The unit of the metric.
+	Unit *string `type:"string"`
+}
+
+// String returns the string representation
+func (s CustomizedMetricSpecification) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CustomizedMetricSpecification) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CustomizedMetricSpecification) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CustomizedMetricSpecification"}
+	if s.MetricName == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricName"))
+	}
+	if s.Namespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("Namespace"))
+	}
+	if s.Statistic == nil {
+		invalidParams.Add(request.NewErrParamRequired("Statistic"))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDimensions sets the Dimensions field's value.
+func (s *CustomizedMetricSpecification) SetDimensions(v []*MetricDimension) *CustomizedMetricSpecification {
+	s.Dimensions = v
+	return s
+}
+
+// SetMetricName sets the MetricName field's value.
+func (s *CustomizedMetricSpecification) SetMetricName(v string) *CustomizedMetricSpecification {
+	s.MetricName = &v
+	return s
+}
+
+// SetNamespace sets the Namespace field's value.
+func (s *CustomizedMetricSpecification) SetNamespace(v string) *CustomizedMetricSpecification {
+	s.Namespace = &v
+	return s
+}
+
+// SetStatistic sets the Statistic field's value.
+func (s *CustomizedMetricSpecification) SetStatistic(v string) *CustomizedMetricSpecification {
+	s.Statistic = &v
+	return s
+}
+
+// SetUnit sets the Unit field's value.
+func (s *CustomizedMetricSpecification) SetUnit(v string) *CustomizedMetricSpecification {
+	s.Unit = &v
+	return s
+}
+
+// Contains the parameters for DeleteAutoScalingGroup.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DeleteAutoScalingGroupType
 type DeleteAutoScalingGroupInput struct {
 	_ struct{} `type:"structure"`
@@ -6450,6 +6552,7 @@ func (s DeleteAutoScalingGroupOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeleteLaunchConfiguration.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/LaunchConfigurationNameType
 type DeleteLaunchConfigurationInput struct {
 	_ struct{} `type:"structure"`
@@ -6507,6 +6610,7 @@ func (s DeleteLaunchConfigurationOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeleteLifecycleHook.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DeleteLifecycleHookType
 type DeleteLifecycleHookInput struct {
 	_ struct{} `type:"structure"`
@@ -6566,6 +6670,7 @@ func (s *DeleteLifecycleHookInput) SetLifecycleHookName(v string) *DeleteLifecyc
 	return s
 }
 
+// Contains the output of DeleteLifecycleHook.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DeleteLifecycleHookAnswer
 type DeleteLifecycleHookOutput struct {
 	_ struct{} `type:"structure"`
@@ -6581,6 +6686,7 @@ func (s DeleteLifecycleHookOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeleteNotificationConfiguration.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DeleteNotificationConfigurationType
 type DeleteNotificationConfigurationInput struct {
 	_ struct{} `type:"structure"`
@@ -6656,6 +6762,7 @@ func (s DeleteNotificationConfigurationOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeletePolicy.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DeletePolicyType
 type DeletePolicyInput struct {
 	_ struct{} `type:"structure"`
@@ -6725,6 +6832,7 @@ func (s DeletePolicyOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeleteScheduledAction.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DeleteScheduledActionType
 type DeleteScheduledActionInput struct {
 	_ struct{} `type:"structure"`
@@ -6799,6 +6907,7 @@ func (s DeleteScheduledActionOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DeleteTags.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DeleteTagsType
 type DeleteTagsInput struct {
 	_ struct{} `type:"structure"`
@@ -6878,6 +6987,7 @@ func (s DescribeAccountLimitsInput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeAccountLimits.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeAccountLimitsAnswer
 type DescribeAccountLimitsOutput struct {
 	_ struct{} `type:"structure"`
@@ -6946,6 +7056,7 @@ func (s DescribeAdjustmentTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DescribeAdjustmentTypes.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeAdjustmentTypesAnswer
 type DescribeAdjustmentTypesOutput struct {
 	_ struct{} `type:"structure"`
@@ -6970,6 +7081,7 @@ func (s *DescribeAdjustmentTypesOutput) SetAdjustmentTypes(v []*AdjustmentType) 
 	return s
 }
 
+// Contains the parameters for DescribeAutoScalingGroups.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/GroupNamesType
 type DescribeAutoScalingGroupsInput struct {
 	_ struct{} `type:"structure"`
@@ -7015,6 +7127,7 @@ func (s *DescribeAutoScalingGroupsInput) SetNextToken(v string) *DescribeAutoSca
 	return s
 }
 
+// Contains the output for DescribeAutoScalingGroups.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/GroupsType
 type DescribeAutoScalingGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -7051,6 +7164,7 @@ func (s *DescribeAutoScalingGroupsOutput) SetNextToken(v string) *DescribeAutoSc
 	return s
 }
 
+// Contains the parameters for DescribeAutoScalingInstances.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeAutoScalingInstancesType
 type DescribeAutoScalingInstancesInput struct {
 	_ struct{} `type:"structure"`
@@ -7097,6 +7211,7 @@ func (s *DescribeAutoScalingInstancesInput) SetNextToken(v string) *DescribeAuto
 	return s
 }
 
+// Contains the output of DescribeAutoScalingInstances.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/InstancesType
 type DescribeAutoScalingInstancesOutput struct {
 	_ struct{} `type:"structure"`
@@ -7146,6 +7261,7 @@ func (s DescribeAutoScalingNotificationTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeAutoScalingNotificationTypes.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeAutoScalingNotificationTypesAnswer
 type DescribeAutoScalingNotificationTypesOutput struct {
 	_ struct{} `type:"structure"`
@@ -7170,6 +7286,7 @@ func (s *DescribeAutoScalingNotificationTypesOutput) SetAutoScalingNotificationT
 	return s
 }
 
+// Contains the parameters for DescribeLaunchConfigurations.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/LaunchConfigurationNamesType
 type DescribeLaunchConfigurationsInput struct {
 	_ struct{} `type:"structure"`
@@ -7215,6 +7332,7 @@ func (s *DescribeLaunchConfigurationsInput) SetNextToken(v string) *DescribeLaun
 	return s
 }
 
+// Contains the output of DescribeLaunchConfigurations.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/LaunchConfigurationsType
 type DescribeLaunchConfigurationsOutput struct {
 	_ struct{} `type:"structure"`
@@ -7266,6 +7384,7 @@ func (s DescribeLifecycleHookTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeLifecycleHookTypes.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeLifecycleHookTypesAnswer
 type DescribeLifecycleHookTypesOutput struct {
 	_ struct{} `type:"structure"`
@@ -7290,6 +7409,7 @@ func (s *DescribeLifecycleHookTypesOutput) SetLifecycleHookTypes(v []*string) *D
 	return s
 }
 
+// Contains the parameters for DescribeLifecycleHooks.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeLifecycleHooksType
 type DescribeLifecycleHooksInput struct {
 	_ struct{} `type:"structure"`
@@ -7342,6 +7462,7 @@ func (s *DescribeLifecycleHooksInput) SetLifecycleHookNames(v []*string) *Descri
 	return s
 }
 
+// Contains the output of DescribeLifecycleHooks.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeLifecycleHooksAnswer
 type DescribeLifecycleHooksOutput struct {
 	_ struct{} `type:"structure"`
@@ -7366,6 +7487,7 @@ func (s *DescribeLifecycleHooksOutput) SetLifecycleHooks(v []*LifecycleHook) *De
 	return s
 }
 
+// Contains the parameters for DescribeLoadBalancerTargetGroups.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeLoadBalancerTargetGroupsRequest
 type DescribeLoadBalancerTargetGroupsInput struct {
 	_ struct{} `type:"structure"`
@@ -7428,6 +7550,7 @@ func (s *DescribeLoadBalancerTargetGroupsInput) SetNextToken(v string) *Describe
 	return s
 }
 
+// Contains the output of DescribeLoadBalancerTargetGroups.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeLoadBalancerTargetGroupsResponse
 type DescribeLoadBalancerTargetGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -7462,6 +7585,7 @@ func (s *DescribeLoadBalancerTargetGroupsOutput) SetNextToken(v string) *Describ
 	return s
 }
 
+// Contains the parameters for DescribeLoadBalancers.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeLoadBalancersRequest
 type DescribeLoadBalancersInput struct {
 	_ struct{} `type:"structure"`
@@ -7524,6 +7648,7 @@ func (s *DescribeLoadBalancersInput) SetNextToken(v string) *DescribeLoadBalance
 	return s
 }
 
+// Contains the output of DescribeLoadBalancers.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeLoadBalancersResponse
 type DescribeLoadBalancersOutput struct {
 	_ struct{} `type:"structure"`
@@ -7573,6 +7698,7 @@ func (s DescribeMetricCollectionTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeMetricsCollectionTypes.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeMetricCollectionTypesAnswer
 type DescribeMetricCollectionTypesOutput struct {
 	_ struct{} `type:"structure"`
@@ -7606,6 +7732,7 @@ func (s *DescribeMetricCollectionTypesOutput) SetMetrics(v []*MetricCollectionTy
 	return s
 }
 
+// Contains the parameters for DescribeNotificationConfigurations.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeNotificationConfigurationsType
 type DescribeNotificationConfigurationsInput struct {
 	_ struct{} `type:"structure"`
@@ -7650,6 +7777,7 @@ func (s *DescribeNotificationConfigurationsInput) SetNextToken(v string) *Descri
 	return s
 }
 
+// Contains the output from DescribeNotificationConfigurations.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeNotificationConfigurationsAnswer
 type DescribeNotificationConfigurationsOutput struct {
 	_ struct{} `type:"structure"`
@@ -7686,6 +7814,7 @@ func (s *DescribeNotificationConfigurationsOutput) SetNotificationConfigurations
 	return s
 }
 
+// Contains the parameters for DescribePolicies.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribePoliciesType
 type DescribePoliciesInput struct {
 	_ struct{} `type:"structure"`
@@ -7764,6 +7893,7 @@ func (s *DescribePoliciesInput) SetPolicyTypes(v []*string) *DescribePoliciesInp
 	return s
 }
 
+// Contains the output of DescribePolicies.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/PoliciesType
 type DescribePoliciesOutput struct {
 	_ struct{} `type:"structure"`
@@ -7798,6 +7928,7 @@ func (s *DescribePoliciesOutput) SetScalingPolicies(v []*ScalingPolicy) *Describ
 	return s
 }
 
+// Contains the parameters for DescribeScalingActivities.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeScalingActivitiesType
 type DescribeScalingActivitiesInput struct {
 	_ struct{} `type:"structure"`
@@ -7868,6 +7999,7 @@ func (s *DescribeScalingActivitiesInput) SetNextToken(v string) *DescribeScaling
 	return s
 }
 
+// Contains the output of DescribeScalingActivities.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/ActivitiesType
 type DescribeScalingActivitiesOutput struct {
 	_ struct{} `type:"structure"`
@@ -7920,6 +8052,7 @@ func (s DescribeScalingProcessTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeScalingProcessTypes.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/ProcessesType
 type DescribeScalingProcessTypesOutput struct {
 	_ struct{} `type:"structure"`
@@ -7944,6 +8077,7 @@ func (s *DescribeScalingProcessTypesOutput) SetProcesses(v []*ProcessType) *Desc
 	return s
 }
 
+// Contains the parameters for DescribeScheduledActions.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeScheduledActionsType
 type DescribeScheduledActionsInput struct {
 	_ struct{} `type:"structure"`
@@ -8036,6 +8170,7 @@ func (s *DescribeScheduledActionsInput) SetStartTime(v time.Time) *DescribeSched
 	return s
 }
 
+// Contains the output of DescribeScheduledActions.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/ScheduledActionsType
 type DescribeScheduledActionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -8070,6 +8205,7 @@ func (s *DescribeScheduledActionsOutput) SetScheduledUpdateGroupActions(v []*Sch
 	return s
 }
 
+// Contains the parameters for DescribeTags.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeTagsType
 type DescribeTagsInput struct {
 	_ struct{} `type:"structure"`
@@ -8114,6 +8250,7 @@ func (s *DescribeTagsInput) SetNextToken(v string) *DescribeTagsInput {
 	return s
 }
 
+// Contains the output of DescribeTags.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/TagsType
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
@@ -8163,6 +8300,7 @@ func (s DescribeTerminationPolicyTypesInput) GoString() string {
 	return s.String()
 }
 
+// Contains the output of DescribeTerminationPolicyTypes.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DescribeTerminationPolicyTypesAnswer
 type DescribeTerminationPolicyTypesOutput struct {
 	_ struct{} `type:"structure"`
@@ -8188,6 +8326,7 @@ func (s *DescribeTerminationPolicyTypesOutput) SetTerminationPolicyTypes(v []*st
 	return s
 }
 
+// Contains the parameters for DetachInstances.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DetachInstancesQuery
 type DetachInstancesInput struct {
 	_ struct{} `type:"structure"`
@@ -8254,6 +8393,7 @@ func (s *DetachInstancesInput) SetShouldDecrementDesiredCapacity(v bool) *Detach
 	return s
 }
 
+// Contains the output of DetachInstances.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DetachInstancesAnswer
 type DetachInstancesOutput struct {
 	_ struct{} `type:"structure"`
@@ -8349,6 +8489,7 @@ func (s DetachLoadBalancerTargetGroupsOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DetachLoadBalancers.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DetachLoadBalancersType
 type DetachLoadBalancersInput struct {
 	_ struct{} `type:"structure"`
@@ -8405,6 +8546,7 @@ func (s *DetachLoadBalancersInput) SetLoadBalancerNames(v []*string) *DetachLoad
 	return s
 }
 
+// Contains the output for DetachLoadBalancers.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DetachLoadBalancersResultType
 type DetachLoadBalancersOutput struct {
 	_ struct{} `type:"structure"`
@@ -8420,6 +8562,7 @@ func (s DetachLoadBalancersOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for DisableMetricsCollection.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/DisableMetricsCollectionQuery
 type DisableMetricsCollectionInput struct {
 	_ struct{} `type:"structure"`
@@ -8616,6 +8759,7 @@ func (s *Ebs) SetVolumeType(v string) *Ebs {
 	return s
 }
 
+// Contains the parameters for EnableMetricsCollection.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/EnableMetricsCollectionQuery
 type EnableMetricsCollectionInput struct {
 	_ struct{} `type:"structure"`
@@ -8767,6 +8911,7 @@ func (s *EnabledMetric) SetMetric(v string) *EnabledMetric {
 	return s
 }
 
+// Contains the parameters for EnteStandby.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/EnterStandbyQuery
 type EnterStandbyInput struct {
 	_ struct{} `type:"structure"`
@@ -8836,6 +8981,7 @@ func (s *EnterStandbyInput) SetShouldDecrementDesiredCapacity(v bool) *EnterStan
 	return s
 }
 
+// Contains the output of EnterStandby.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/EnterStandbyAnswer
 type EnterStandbyOutput struct {
 	_ struct{} `type:"structure"`
@@ -8860,6 +9006,7 @@ func (s *EnterStandbyOutput) SetActivities(v []*Activity) *EnterStandbyOutput {
 	return s
 }
 
+// Contains the parameters for ExecutePolicy.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/ExecutePolicyType
 type ExecutePolicyInput struct {
 	_ struct{} `type:"structure"`
@@ -8976,6 +9123,7 @@ func (s ExecutePolicyOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for ExitStandby.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/ExitStandbyQuery
 type ExitStandbyInput struct {
 	_ struct{} `type:"structure"`
@@ -9027,6 +9175,7 @@ func (s *ExitStandbyInput) SetInstanceIds(v []*string) *ExitStandbyInput {
 	return s
 }
 
+// Contains the parameters for ExitStandby.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/ExitStandbyAnswer
 type ExitStandbyOutput struct {
 	_ struct{} `type:"structure"`
@@ -9509,12 +9658,12 @@ func (s *InstanceDetails) SetProtectedFromScaleIn(v bool) *InstanceDetails {
 	return s
 }
 
-// Describes whether detailed monitoring is enabled for the Auto Scaling instances.
+// Describes whether instance monitoring is enabled.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/InstanceMonitoring
 type InstanceMonitoring struct {
 	_ struct{} `type:"structure"`
 
-	// If true, detailed monitoring is enabled. Otherwise, basic monitoring is enabled.
+	// If True, instance monitoring is enabled.
 	Enabled *bool `type:"boolean"`
 }
 
@@ -10028,6 +10177,60 @@ func (s *MetricCollectionType) SetMetric(v string) *MetricCollectionType {
 	return s
 }
 
+// Describes the dimension of a metric.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/MetricDimension
+type MetricDimension struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the dimension.
+	//
+	// Name is a required field
+	Name *string `type:"string" required:"true"`
+
+	// The value of the dimension.
+	//
+	// Value is a required field
+	Value *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s MetricDimension) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MetricDimension) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MetricDimension) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MetricDimension"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *MetricDimension) SetName(v string) *MetricDimension {
+	s.Name = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *MetricDimension) SetValue(v string) *MetricDimension {
+	s.Value = &v
+	return s
+}
+
 // Describes a granularity of a metric.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/MetricGranularityType
 type MetricGranularityType struct {
@@ -10107,6 +10310,79 @@ func (s *NotificationConfiguration) SetTopicARN(v string) *NotificationConfigura
 	return s
 }
 
+// Configures a predefined metric for a target tracking policy. The following
+// predefined metrics are available:
+//
+//    * ASGAverageCPUUtilization - average CPU utilization of the Auto Scaling
+//    group
+//
+//    * ASGAverageNetworkIn - average number of bytes received on all network
+//    interfaces by the Auto Scaling group
+//
+//    * ASGAverageNetworkOut - average number of bytes sent out on all network
+//    interfaces by the Auto Scaling group
+//
+//    * ALBRequestCountPerTarget - number of requests completed per target in
+//    an Application Load Balancer target group
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/PredefinedMetricSpecification
+type PredefinedMetricSpecification struct {
+	_ struct{} `type:"structure"`
+
+	// The metric type.
+	//
+	// PredefinedMetricType is a required field
+	PredefinedMetricType *string `type:"string" required:"true" enum:"MetricType"`
+
+	// Identifies the resource associated with the metric type. For predefined metric
+	// types ASGAverageCPUUtilization, ASGAverageNetworkIn and ASGAverageNetworkOut,
+	// the parameter must not be specified as the resource associated with the metric
+	// type is the Auto Scaling group. For predefined metric type ALBRequestCountPerTarget,
+	// the parameter must be specified in the format app/load-balancer-name/load-balancer-id/targetgroup/target-group-name/target-group-id,
+	// where app/load-balancer-name/load-balancer-id is the final portion of the
+	// load balancer ARN, and targetgroup/target-group-name/target-group-id is the
+	// final portion of the target group ARN. The target group must be attached
+	// to the Auto Scaling group.
+	ResourceLabel *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s PredefinedMetricSpecification) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PredefinedMetricSpecification) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PredefinedMetricSpecification) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PredefinedMetricSpecification"}
+	if s.PredefinedMetricType == nil {
+		invalidParams.Add(request.NewErrParamRequired("PredefinedMetricType"))
+	}
+	if s.ResourceLabel != nil && len(*s.ResourceLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPredefinedMetricType sets the PredefinedMetricType field's value.
+func (s *PredefinedMetricSpecification) SetPredefinedMetricType(v string) *PredefinedMetricSpecification {
+	s.PredefinedMetricType = &v
+	return s
+}
+
+// SetResourceLabel sets the ResourceLabel field's value.
+func (s *PredefinedMetricSpecification) SetResourceLabel(v string) *PredefinedMetricSpecification {
+	s.ResourceLabel = &v
+	return s
+}
+
 // Describes a process type.
 //
 // For more information, see Auto Scaling Processes (http://docs.aws.amazon.com/autoscaling/latest/userguide/as-suspend-resume-processes.html#process-types)
@@ -10153,6 +10429,7 @@ func (s *ProcessType) SetProcessName(v string) *ProcessType {
 	return s
 }
 
+// Contains the parameters for PutLifecycleHook.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/PutLifecycleHookType
 type PutLifecycleHookInput struct {
 	_ struct{} `type:"structure"`
@@ -10298,6 +10575,7 @@ func (s *PutLifecycleHookInput) SetRoleARN(v string) *PutLifecycleHookInput {
 	return s
 }
 
+// Contains the output of PutLifecycleHook.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/PutLifecycleHookAnswer
 type PutLifecycleHookOutput struct {
 	_ struct{} `type:"structure"`
@@ -10313,6 +10591,7 @@ func (s PutLifecycleHookOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for PutNotificationConfiguration.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/PutNotificationConfigurationType
 type PutNotificationConfigurationInput struct {
 	_ struct{} `type:"structure"`
@@ -10403,18 +10682,19 @@ func (s PutNotificationConfigurationOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for PutScalingPolicy.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/PutScalingPolicyType
 type PutScalingPolicyInput struct {
 	_ struct{} `type:"structure"`
 
-	// The adjustment type. Valid values are ChangeInCapacity, ExactCapacity, and
-	// PercentChangeInCapacity.
+	// The adjustment type. The valid values are ChangeInCapacity, ExactCapacity,
+	// and PercentChangeInCapacity.
+	//
+	// This parameter is supported if the policy type is SimpleScaling or StepScaling.
 	//
 	// For more information, see Dynamic Scaling (http://docs.aws.amazon.com/autoscaling/latest/userguide/as-scale-based-on-demand.html)
 	// in the Auto Scaling User Guide.
-	//
-	// AdjustmentType is a required field
-	AdjustmentType *string `min:"1" type:"string" required:"true"`
+	AdjustmentType *string `min:"1" type:"string"`
 
 	// The name or ARN of the group.
 	//
@@ -10425,7 +10705,7 @@ type PutScalingPolicyInput struct {
 	// the next scaling activity can start. If this parameter is not specified,
 	// the default cooldown period for the group applies.
 	//
-	// This parameter is not supported unless the policy type is SimpleScaling.
+	// This parameter is supported if the policy type is SimpleScaling.
 	//
 	// For more information, see Auto Scaling Cooldowns (http://docs.aws.amazon.com/autoscaling/latest/userguide/Cooldown.html)
 	// in the Auto Scaling User Guide.
@@ -10435,20 +10715,22 @@ type PutScalingPolicyInput struct {
 	// to the CloudWatch metrics. The default is to use the value specified for
 	// the default cooldown period for the group.
 	//
-	// This parameter is not supported if the policy type is SimpleScaling.
+	// This parameter is supported if the policy type is StepScaling or TargetTrackingScaling.
 	EstimatedInstanceWarmup *int64 `type:"integer"`
 
-	// The aggregation type for the CloudWatch metrics. Valid values are Minimum,
+	// The aggregation type for the CloudWatch metrics. The valid values are Minimum,
 	// Maximum, and Average. If the aggregation type is null, the value is treated
 	// as Average.
 	//
-	// This parameter is not supported if the policy type is SimpleScaling.
+	// This parameter is supported if the policy type is StepScaling.
 	MetricAggregationType *string `min:"1" type:"string"`
 
 	// The minimum number of instances to scale. If the value of AdjustmentType
 	// is PercentChangeInCapacity, the scaling policy changes the DesiredCapacity
 	// of the Auto Scaling group by at least this many instances. Otherwise, the
 	// error is ValidationError.
+	//
+	// This parameter is supported if the policy type is SimpleScaling or StepScaling.
 	MinAdjustmentMagnitude *int64 `type:"integer"`
 
 	// Available for backward compatibility. Use MinAdjustmentMagnitude instead.
@@ -10459,8 +10741,8 @@ type PutScalingPolicyInput struct {
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
-	// The policy type. Valid values are SimpleScaling and StepScaling. If the policy
-	// type is null, the value is treated as SimpleScaling.
+	// The policy type. The valid values are SimpleScaling, StepScaling, and TargetTrackingScaling.
+	// If the policy type is null, the value is treated as SimpleScaling.
 	PolicyType *string `min:"1" type:"string"`
 
 	// The amount by which to scale, based on the specified adjustment type. A positive
@@ -10477,6 +10759,12 @@ type PutScalingPolicyInput struct {
 	// This parameter is required if the policy type is StepScaling and not supported
 	// otherwise.
 	StepAdjustments []*StepAdjustment `type:"list"`
+
+	// The configuration of a target tracking policy.
+	//
+	// This parameter is required if the policy type is TargetTrackingScaling and
+	// not supported otherwise.
+	TargetTrackingConfiguration *TargetTrackingConfiguration `type:"structure"`
 }
 
 // String returns the string representation
@@ -10492,9 +10780,6 @@ func (s PutScalingPolicyInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *PutScalingPolicyInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "PutScalingPolicyInput"}
-	if s.AdjustmentType == nil {
-		invalidParams.Add(request.NewErrParamRequired("AdjustmentType"))
-	}
 	if s.AdjustmentType != nil && len(*s.AdjustmentType) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("AdjustmentType", 1))
 	}
@@ -10524,6 +10809,11 @@ func (s *PutScalingPolicyInput) Validate() error {
 			if err := v.Validate(); err != nil {
 				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "StepAdjustments", i), err.(request.ErrInvalidParams))
 			}
+		}
+	}
+	if s.TargetTrackingConfiguration != nil {
+		if err := s.TargetTrackingConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("TargetTrackingConfiguration", err.(request.ErrInvalidParams))
 		}
 	}
 
@@ -10599,9 +10889,20 @@ func (s *PutScalingPolicyInput) SetStepAdjustments(v []*StepAdjustment) *PutScal
 	return s
 }
 
+// SetTargetTrackingConfiguration sets the TargetTrackingConfiguration field's value.
+func (s *PutScalingPolicyInput) SetTargetTrackingConfiguration(v *TargetTrackingConfiguration) *PutScalingPolicyInput {
+	s.TargetTrackingConfiguration = v
+	return s
+}
+
+// Contains the output of PutScalingPolicy.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/PolicyARNType
 type PutScalingPolicyOutput struct {
 	_ struct{} `type:"structure"`
+
+	// The CloudWatch alarms created for the target tracking policy. This parameter
+	// will be empty if the policy type is anything other than TargetTrackingScaling.
+	Alarms []*Alarm `type:"list"`
 
 	// The Amazon Resource Name (ARN) of the policy.
 	PolicyARN *string `min:"1" type:"string"`
@@ -10617,12 +10918,19 @@ func (s PutScalingPolicyOutput) GoString() string {
 	return s.String()
 }
 
+// SetAlarms sets the Alarms field's value.
+func (s *PutScalingPolicyOutput) SetAlarms(v []*Alarm) *PutScalingPolicyOutput {
+	s.Alarms = v
+	return s
+}
+
 // SetPolicyARN sets the PolicyARN field's value.
 func (s *PutScalingPolicyOutput) SetPolicyARN(v string) *PutScalingPolicyOutput {
 	s.PolicyARN = &v
 	return s
 }
 
+// Contains the parameters for PutScheduledUpdateGroupAction.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/PutScheduledUpdateGroupActionType
 type PutScheduledUpdateGroupActionInput struct {
 	_ struct{} `type:"structure"`
@@ -10772,6 +11080,7 @@ func (s PutScheduledUpdateGroupActionOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for RecordLifecycleActionHeartbeat.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/RecordLifecycleActionHeartbeatType
 type RecordLifecycleActionHeartbeatInput struct {
 	_ struct{} `type:"structure"`
@@ -10857,6 +11166,7 @@ func (s *RecordLifecycleActionHeartbeatInput) SetLifecycleHookName(v string) *Re
 	return s
 }
 
+// Contains the output of RecordLifecycleActionHeartBeat.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/RecordLifecycleActionHeartbeatAnswer
 type RecordLifecycleActionHeartbeatOutput struct {
 	_ struct{} `type:"structure"`
@@ -10903,7 +11213,7 @@ type ScalingPolicy struct {
 	AutoScalingGroupName *string `min:"1" type:"string"`
 
 	// The amount of time, in seconds, after a scaling activity completes before
-	// any further dynamic scaling activities can start.
+	// any further trigger-related scaling activities can start.
 	Cooldown *int64 `type:"integer"`
 
 	// The estimated time, in seconds, until a newly launched instance can contribute
@@ -10940,6 +11250,9 @@ type ScalingPolicy struct {
 	// A set of adjustments that enable you to scale based on the size of the alarm
 	// breach.
 	StepAdjustments []*StepAdjustment `type:"list"`
+
+	// A target tracking policy.
+	TargetTrackingConfiguration *TargetTrackingConfiguration `type:"structure"`
 }
 
 // String returns the string representation
@@ -11030,6 +11343,13 @@ func (s *ScalingPolicy) SetStepAdjustments(v []*StepAdjustment) *ScalingPolicy {
 	return s
 }
 
+// SetTargetTrackingConfiguration sets the TargetTrackingConfiguration field's value.
+func (s *ScalingPolicy) SetTargetTrackingConfiguration(v *TargetTrackingConfiguration) *ScalingPolicy {
+	s.TargetTrackingConfiguration = v
+	return s
+}
+
+// Contains the parameters for SuspendProcesses and ResumeProcesses.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/ScalingProcessQuery
 type ScalingProcessQuery struct {
 	_ struct{} `type:"structure"`
@@ -11209,6 +11529,7 @@ func (s *ScheduledUpdateGroupAction) SetTime(v time.Time) *ScheduledUpdateGroupA
 	return s
 }
 
+// Contains the parameters for SetDesiredCapacity.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/SetDesiredCapacityType
 type SetDesiredCapacityInput struct {
 	_ struct{} `type:"structure"`
@@ -11292,6 +11613,7 @@ func (s SetDesiredCapacityOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for SetInstanceHealth.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/SetInstanceHealthQuery
 type SetInstanceHealthInput struct {
 	_ struct{} `type:"structure"`
@@ -11383,6 +11705,7 @@ func (s SetInstanceHealthOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for SetInstanceProtection.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/SetInstanceProtectionQuery
 type SetInstanceProtectionInput struct {
 	_ struct{} `type:"structure"`
@@ -11454,6 +11777,7 @@ func (s *SetInstanceProtectionInput) SetProtectedFromScaleIn(v bool) *SetInstanc
 	return s
 }
 
+// Contains the output of SetInstanceProtection.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/SetInstanceProtectionAnswer
 type SetInstanceProtectionOutput struct {
 	_ struct{} `type:"structure"`
@@ -11759,6 +12083,87 @@ func (s *TagDescription) SetValue(v string) *TagDescription {
 	return s
 }
 
+// Represents a target tracking policy configuration.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/TargetTrackingConfiguration
+type TargetTrackingConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// A customized metric.
+	CustomizedMetricSpecification *CustomizedMetricSpecification `type:"structure"`
+
+	// If the parameter is true, then scale-in will be disabled for the target tracking
+	// policy, i.e. the target tracking policy will not scale in the Auto Scaling
+	// group. The default value is false.
+	DisableScaleIn *bool `type:"boolean"`
+
+	// A predefined metric. You can specify either a predefined metric or a customized
+	// metric.
+	PredefinedMetricSpecification *PredefinedMetricSpecification `type:"structure"`
+
+	// The target value for the metric.
+	//
+	// TargetValue is a required field
+	TargetValue *float64 `type:"double" required:"true"`
+}
+
+// String returns the string representation
+func (s TargetTrackingConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TargetTrackingConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TargetTrackingConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TargetTrackingConfiguration"}
+	if s.TargetValue == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetValue"))
+	}
+	if s.CustomizedMetricSpecification != nil {
+		if err := s.CustomizedMetricSpecification.Validate(); err != nil {
+			invalidParams.AddNested("CustomizedMetricSpecification", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.PredefinedMetricSpecification != nil {
+		if err := s.PredefinedMetricSpecification.Validate(); err != nil {
+			invalidParams.AddNested("PredefinedMetricSpecification", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCustomizedMetricSpecification sets the CustomizedMetricSpecification field's value.
+func (s *TargetTrackingConfiguration) SetCustomizedMetricSpecification(v *CustomizedMetricSpecification) *TargetTrackingConfiguration {
+	s.CustomizedMetricSpecification = v
+	return s
+}
+
+// SetDisableScaleIn sets the DisableScaleIn field's value.
+func (s *TargetTrackingConfiguration) SetDisableScaleIn(v bool) *TargetTrackingConfiguration {
+	s.DisableScaleIn = &v
+	return s
+}
+
+// SetPredefinedMetricSpecification sets the PredefinedMetricSpecification field's value.
+func (s *TargetTrackingConfiguration) SetPredefinedMetricSpecification(v *PredefinedMetricSpecification) *TargetTrackingConfiguration {
+	s.PredefinedMetricSpecification = v
+	return s
+}
+
+// SetTargetValue sets the TargetValue field's value.
+func (s *TargetTrackingConfiguration) SetTargetValue(v float64) *TargetTrackingConfiguration {
+	s.TargetValue = &v
+	return s
+}
+
+// Contains the parameters for TerminateInstanceInAutoScalingGroup.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/TerminateInstanceInAutoScalingGroupType
 type TerminateInstanceInAutoScalingGroupInput struct {
 	_ struct{} `type:"structure"`
@@ -11816,6 +12221,7 @@ func (s *TerminateInstanceInAutoScalingGroupInput) SetShouldDecrementDesiredCapa
 	return s
 }
 
+// Contains the output of TerminateInstancesInAutoScalingGroup.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/ActivityType
 type TerminateInstanceInAutoScalingGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -11840,6 +12246,7 @@ func (s *TerminateInstanceInAutoScalingGroupOutput) SetActivity(v *Activity) *Te
 	return s
 }
 
+// Contains the parameters for UpdateAutoScalingGroup.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/autoscaling-2011-01-01/UpdateAutoScalingGroupType
 type UpdateAutoScalingGroupInput struct {
 	_ struct{} `type:"structure"`
@@ -12086,6 +12493,37 @@ const (
 
 	// LifecycleStateStandby is a LifecycleState enum value
 	LifecycleStateStandby = "Standby"
+)
+
+const (
+	// MetricStatisticAverage is a MetricStatistic enum value
+	MetricStatisticAverage = "Average"
+
+	// MetricStatisticMinimum is a MetricStatistic enum value
+	MetricStatisticMinimum = "Minimum"
+
+	// MetricStatisticMaximum is a MetricStatistic enum value
+	MetricStatisticMaximum = "Maximum"
+
+	// MetricStatisticSampleCount is a MetricStatistic enum value
+	MetricStatisticSampleCount = "SampleCount"
+
+	// MetricStatisticSum is a MetricStatistic enum value
+	MetricStatisticSum = "Sum"
+)
+
+const (
+	// MetricTypeAsgaverageCpuutilization is a MetricType enum value
+	MetricTypeAsgaverageCpuutilization = "ASGAverageCPUUtilization"
+
+	// MetricTypeAsgaverageNetworkIn is a MetricType enum value
+	MetricTypeAsgaverageNetworkIn = "ASGAverageNetworkIn"
+
+	// MetricTypeAsgaverageNetworkOut is a MetricType enum value
+	MetricTypeAsgaverageNetworkOut = "ASGAverageNetworkOut"
+
+	// MetricTypeAlbrequestCountPerTarget is a MetricType enum value
+	MetricTypeAlbrequestCountPerTarget = "ALBRequestCountPerTarget"
 )
 
 const (

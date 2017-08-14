@@ -18,11 +18,11 @@ import (
 func TestLocal(t *testing.T) *Local {
 	tempDir := testTempDir(t)
 	return &Local{
-		StatePath:       filepath.Join(tempDir, "state.tfstate"),
-		StateOutPath:    filepath.Join(tempDir, "state.tfstate"),
-		StateBackupPath: filepath.Join(tempDir, "state.tfstate.bak"),
-		StateEnvDir:     filepath.Join(tempDir, "state.tfstate.d"),
-		ContextOpts:     &terraform.ContextOpts{},
+		StatePath:         filepath.Join(tempDir, "state.tfstate"),
+		StateOutPath:      filepath.Join(tempDir, "state.tfstate"),
+		StateBackupPath:   filepath.Join(tempDir, "state.tfstate.bak"),
+		StateWorkspaceDir: filepath.Join(tempDir, "state.tfstate.d"),
+		ContextOpts:       &terraform.ContextOpts{},
 	}
 }
 
@@ -47,14 +47,13 @@ func TestLocalProvider(t *testing.T, b *Local, name string) *terraform.MockResou
 	if b.ContextOpts == nil {
 		b.ContextOpts = &terraform.ContextOpts{}
 	}
-	if b.ContextOpts.Providers == nil {
-		b.ContextOpts.Providers = make(map[string]terraform.ResourceProviderFactory)
-	}
 
 	// Setup our provider
-	b.ContextOpts.Providers[name] = func() (terraform.ResourceProvider, error) {
-		return p, nil
-	}
+	b.ContextOpts.ProviderResolver = terraform.ResourceProviderResolverFixed(
+		map[string]terraform.ResourceProviderFactory{
+			name: terraform.ResourceProviderFactoryFixed(p),
+		},
+	)
 
 	return p
 }
