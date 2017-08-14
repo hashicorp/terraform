@@ -1495,7 +1495,7 @@ aws_instance.foo:
   num = 2
 `
 
-const testTerraformPlanTaintIgnoreChangesStr = `
+const testTerraformPlanTaintNoStoreStr = `
 DIFF:
 
 DESTROY/CREATE: aws_instance.foo
@@ -1557,7 +1557,7 @@ STATE:
 <no state>
 `
 
-const testTerraformPlanIgnoreChangesStr = `
+const testTerraformPlanNoStoreStr = `
 DIFF:
 
 UPDATE: aws_instance.foo
@@ -1570,7 +1570,7 @@ aws_instance.foo:
   ami = ami-abcd1234
 `
 
-const testTFPlanDiffIgnoreChangesWithFlatmaps = `
+const testTFPlanDiffNoStoreWithFlatmapsStr = `
 UPDATE: aws_instance.foo
   lst.#:   "1" => "2"
   lst.0:   "j" => "j"
@@ -1581,7 +1581,7 @@ UPDATE: aws_instance.foo
   type:    "" => "aws_instance"
 `
 
-const testTerraformPlanIgnoreChangesWildcardStr = `
+const testTerraformPlanNoStoreWildcardStr = `
 DIFF:
 
 

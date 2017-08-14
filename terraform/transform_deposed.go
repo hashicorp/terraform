@@ -1,20 +1,26 @@
 package terraform
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/config"
+)
 
 // DeposedTransformer is a GraphTransformer that adds deposed resources
 // to the graph.
-type DeposedTransformer struct {
+type DeposedResourceTransformer struct {
 	// State is the global state. We'll automatically find the correct
 	// ModuleState based on the Graph.Path that is being transformed.
 	State *State
 
-	// View, if non-empty, is the ModuleState.View used around the state
-	// to find deposed resources.
-	View string
+	// State ID to search for deposed resources
+	ResourceId string
+
+	// Config to apply to any found deposed resources
+	ResourceConfig *config.Resource
 }
 
-func (t *DeposedTransformer) Transform(g *Graph) error {
+func (t *DeposedResourceTransformer) Transform(g *Graph) error {
 	state := t.State.ModuleByPath(g.Path)
 	if state == nil {
 		// If there is no state for our module there can't be any deposed
@@ -22,17 +28,10 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	// If we have a view, apply it now
-	if t.View != "" {
-		state = state.View(t.View)
-	}
+	state = state.View(t.ResourceId)
 
 	// Go through all the resources in our state to look for deposed resources
 	for k, rs := range state.Resources {
-		// If we have no deposed resources, then move on
-		if len(rs.Deposed) == 0 {
-			continue
-		}
 		deposed := rs.Deposed
 
 		for i, _ := range deposed {
@@ -41,6 +40,7 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 				ResourceName: k,
 				ResourceType: rs.Type,
 				Provider:     rs.Provider,
+				Config:       t.ResourceConfig,
 			})
 		}
 	}
@@ -54,6 +54,7 @@ type graphNodeDeposedResource struct {
 	ResourceName string
 	ResourceType string
 	Provider     string
+	Config       *config.Resource
 }
 
 func (n *graphNodeDeposedResource) Name() string {
@@ -96,11 +97,14 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 					Output:   &state,
 				},
 				&EvalWriteStateDeposed{
-					Name:         n.ResourceName,
-					ResourceType: n.ResourceType,
-					Provider:     n.Provider,
-					State:        &state,
-					Index:        n.Index,
+					EvalWriteState: EvalWriteState{
+						Name:         n.ResourceName,
+						ResourceType: n.ResourceType,
+						Provider:     n.Provider,
+						Config:       n.Config,
+						State:        &state,
+					},
+					Index: n.Index,
 				},
 			},
 		},
@@ -145,11 +149,14 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				// was successfully destroyed it will be pruned. If it was not, it will
 				// be caught on the next run.
 				&EvalWriteStateDeposed{
-					Name:         n.ResourceName,
-					ResourceType: n.ResourceType,
-					Provider:     n.Provider,
-					State:        &state,
-					Index:        n.Index,
+					EvalWriteState: EvalWriteState{
+						Name:         n.ResourceName,
+						ResourceType: n.ResourceType,
+						Provider:     n.Provider,
+						Config:       n.Config,
+						State:        &state,
+					},
+					Index: n.Index,
 				},
 				&EvalApplyPost{
 					Info:  info,

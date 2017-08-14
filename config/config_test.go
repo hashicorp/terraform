@@ -361,6 +361,13 @@ func TestConfigValidate_ignoreChanges(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_noStore(t *testing.T) {
+	c := testConfig(t, "validate-no-store")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestConfigValidate_ignoreChangesBad(t *testing.T) {
 	c := testConfig(t, "validate-ignore-changes-bad")
 	if err := c.Validate(); err == nil {
@@ -368,8 +375,22 @@ func TestConfigValidate_ignoreChangesBad(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_noStoreBad(t *testing.T) {
+	c := testConfig(t, "validate-no-store-bad")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_ignoreChangesInterpolate(t *testing.T) {
 	c := testConfig(t, "validate-ignore-changes-interpolate")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
+func TestConfigValidate_noStoreInterpolate(t *testing.T) {
+	c := testConfig(t, "validate-no-store-interpolate")
 	if err := c.Validate(); err == nil {
 		t.Fatal("should not be valid")
 	}

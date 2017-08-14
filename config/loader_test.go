@@ -844,7 +844,7 @@ func TestLoadFile_ignoreChanges(t *testing.T) {
 
 	actual := resourcesStr(c.Resources)
 	print(actual)
-	if actual != strings.TrimSpace(ignoreChangesResourcesStr) {
+	if actual != strings.TrimSpace(noStoreResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 
@@ -876,6 +876,54 @@ func TestLoadFile_ignoreChanges(t *testing.T) {
 
 	// Should not populate ignore changes
 	if len(r.Lifecycle.IgnoreChanges) > 0 {
+		t.Fatalf("Bad: %#v", r)
+	}
+}
+
+func TestLoadFile_noStore(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "no-store.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	print(actual)
+	if actual != strings.TrimSpace(noStoreResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	// Check for the flag value
+	r := c.Resources[0]
+	if r.Name != "web" && r.Type != "aws_instance" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	// Should populate no store
+	if len(r.Lifecycle.NoStore) == 0 {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	r = c.Resources[1]
+	if r.Name != "bar" && r.Type != "aws_instance" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	// Should not populate no store
+	if len(r.Lifecycle.NoStore) > 0 {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	r = c.Resources[2]
+	if r.Name != "baz" && r.Type != "aws_instance" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	// Should not populate no store
+	if len(r.Lifecycle.NoStore) > 0 {
 		t.Fatalf("Bad: %#v", r)
 	}
 }
@@ -1292,7 +1340,7 @@ aws_instance.web (x1)
   ami
 `
 
-const ignoreChangesResourcesStr = `
+const noStoreResourcesStr = `
 aws_instance.bar (x1)
   ami
 aws_instance.baz (x1)

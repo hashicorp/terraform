@@ -160,8 +160,8 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		})
 	}
 
-	// filter out ignored resources
-	if err := n.processIgnoreChanges(diff); err != nil {
+	// filter out resources that aren't stored in the state
+	if err := n.processNoStore(diff); err != nil {
 		return nil, err
 	}
 
@@ -193,13 +193,16 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
-func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
+func (n *EvalDiff) processNoStore(diff *InstanceDiff) error {
+	// If we don't store an attribute in the state, it can't be meaningfully diffed in most cases.
+
 	if diff == nil || n.Resource == nil || n.Resource.Id() == "" {
 		return nil
 	}
-	ignoreChanges := n.Resource.Lifecycle.IgnoreChanges
+	// The deprecated IgnoreChanges is included in this logic for legacy reasons
+	noStore := append(n.Resource.Lifecycle.IgnoreChanges, n.Resource.Lifecycle.NoStore...)
 
-	if len(ignoreChanges) == 0 {
+	if len(noStore) == 0 {
 		return nil
 	}
 
@@ -209,17 +212,18 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 		return nil
 	}
 
-	// If the resource has been tainted then we don't process ignore changes
-	// since we MUST recreate the entire resource.
+	// If the resource has been tainted then we MUST recreate the entire resource, regardless
 	if diff.GetDestroyTainted() {
 		return nil
 	}
+
+	// In all other cases, no_store attributes need to be ignored.
 
 	attrs := diff.CopyAttributes()
 
 	// get the complete set of keys we want to ignore
 	ignorableAttrKeys := make(map[string]bool)
-	for _, ignoredKey := range ignoreChanges {
+	for _, ignoredKey := range noStore {
 		for k := range attrs {
 			if ignoredKey == "*" || strings.HasPrefix(k, ignoredKey) {
 				ignorableAttrKeys[k] = true
@@ -274,7 +278,7 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 	// Here we undo the two reactions to RequireNew in EvalDiff - the "id"
 	// attribute diff and the Destroy boolean field
 	log.Printf("[DEBUG] Removing 'id' diff and setting Destroy to false " +
-		"because after ignore_changes, this diff no longer requires replacement")
+		"because after no_store, this diff no longer requires replacement")
 	diff.DelAttribute("id")
 	diff.SetDestroy(false)
 

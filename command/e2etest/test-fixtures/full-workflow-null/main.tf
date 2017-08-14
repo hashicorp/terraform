@@ -17,6 +17,16 @@ resource "null_resource" "test" {
   }
 }
 
+resource "null_resource" "no_store" {
+  triggers = {
+    secret_key = "SECRET"
+  }
+
+  lifecycle {
+    no_store = ["triggers"]
+  }
+}
+
 output "greeting" {
   value = "${null_resource.test.triggers["greeting"]}"
 }

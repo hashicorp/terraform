@@ -160,6 +160,7 @@ func (n *NodeApplyableResource) evalTreeDataResource(
 				ResourceType: n.Config.Type,
 				Provider:     n.Config.Provider,
 				Dependencies: stateDeps,
+				Config:       n.Config,
 				State:        &state,
 			},
 
@@ -310,6 +311,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				ResourceType: n.Config.Type,
 				Provider:     n.Config.Provider,
 				Dependencies: stateDeps,
+				Config:       n.Config,
 				State:        &state,
 			},
 			&EvalApplyProvisioners{
@@ -334,6 +336,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 					ResourceType: n.Config.Type,
 					Provider:     n.Config.Provider,
 					Dependencies: stateDeps,
+					Config:       n.Config,
 					State:        &state,
 				},
 			},

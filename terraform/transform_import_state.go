@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // ImportStateTransformer is a GraphTransformer that adds nodes to the
@@ -213,6 +215,7 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 
 	// The eval sequence
 	var provider ResourceProvider
+	var config config.Resource
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalGetProvider{
@@ -234,6 +237,7 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 				Name:         key.String(),
 				ResourceType: info.Type,
 				Provider:     resourceProvider(info.Type, n.Provider),
+				Config:       &config,
 				State:        &state,
 			},
 		},

@@ -2,6 +2,9 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // EvalReadState is an EvalNode implementation that reads the
@@ -132,14 +135,14 @@ type EvalWriteState struct {
 	ResourceType string
 	Provider     string
 	Dependencies []string
+	Config       *config.Resource
 	State        **InstanceState
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
-	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider, n.Dependencies,
-		func(rs *ResourceState) error {
-			rs.Primary = *n.State
-			return nil
+	return writeInstanceToState(ctx, n,
+		func(rs *ResourceState) **InstanceState {
+			return &rs.Primary
 		},
 	)
 }
@@ -147,39 +150,30 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 // EvalWriteStateDeposed is an EvalNode implementation that writes
 // an InstanceState out to the Deposed list of a resource in the state.
 type EvalWriteStateDeposed struct {
-	Name         string
-	ResourceType string
-	Provider     string
-	Dependencies []string
-	State        **InstanceState
+	EvalWriteState
 	// Index indicates which instance in the Deposed list to target, or -1 to append.
 	Index int
 }
 
 func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
-	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider, n.Dependencies,
-		func(rs *ResourceState) error {
+	return writeInstanceToState(ctx, &n.EvalWriteState,
+		func(rs *ResourceState) **InstanceState {
 			if n.Index == -1 {
-				rs.Deposed = append(rs.Deposed, *n.State)
-			} else {
-				rs.Deposed[n.Index] = *n.State
+				rs.Deposed = append(rs.Deposed, nil)
+				return &rs.Deposed[len(rs.Deposed)-1]
 			}
-			return nil
+			return &rs.Deposed[n.Index]
 		},
 	)
 }
 
 // Pulls together the common tasks of the EvalWriteState nodes.  All the args
-// are passed directly down from the EvalNode along with a `writer` function
-// which is yielded the *ResourceState and is responsible for writing an
-// InstanceState to the proper field in the ResourceState.
+// are passed directly down from the EvalNode along with a `getTarget` function
+// that extracts the proper location to write the instance to.
 func writeInstanceToState(
 	ctx EvalContext,
-	resourceName string,
-	resourceType string,
-	provider string,
-	dependencies []string,
-	writerFn func(*ResourceState) error,
+	spec *EvalWriteState,
+	getTarget func(*ResourceState) **InstanceState,
 ) (*InstanceState, error) {
 	state, lock := ctx.State()
 	if state == nil {
@@ -197,19 +191,33 @@ func writeInstanceToState(
 	}
 
 	// Look for the resource state.
-	rs := mod.Resources[resourceName]
+	rs := mod.Resources[spec.Name]
 	if rs == nil {
 		rs = &ResourceState{}
 		rs.init()
-		mod.Resources[resourceName] = rs
+		mod.Resources[spec.Name] = rs
 	}
-	rs.Type = resourceType
-	rs.Dependencies = dependencies
-	rs.Provider = provider
+	rs.Type = spec.ResourceType
+	rs.Dependencies = spec.Dependencies
+	rs.Provider = spec.Provider
 
-	if err := writerFn(rs); err != nil {
-		return nil, err
+	// We don't want to write no_store attributes into the state
+	if *spec.State != nil && spec.Config != nil {
+		for _, pattern := range spec.Config.Lifecycle.NoStore {
+			if pattern == "*" {
+				(*spec.State).Attributes = make(map[string]string)
+				break
+			}
+			for key := range (*spec.State).Attributes {
+				if strings.HasPrefix(key, pattern) {
+					delete((*spec.State).Attributes, key)
+				}
+			}
+		}
 	}
+
+	target := getTarget(rs)
+	*target = *spec.State
 
 	return nil, nil
 }

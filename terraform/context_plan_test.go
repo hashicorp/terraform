@@ -2625,7 +2625,54 @@ func TestContext2Apply_taintIgnoreChanges(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(plan.String())
-	expected := strings.TrimSpace(testTerraformPlanTaintIgnoreChangesStr)
+	expected := strings.TrimSpace(testTerraformPlanTaintNoStoreStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContext2Apply_taintNoStore(t *testing.T) {
+	m := testModule(t, "plan-taint-no-store")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"vars": "foo",
+								"type": "aws_instance",
+							},
+							Tainted: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanTaintNoStoreStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -3146,7 +3193,56 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(plan.String())
-	expected := strings.TrimSpace(testTerraformPlanIgnoreChangesStr)
+	expected := strings.TrimSpace(testTerraformPlanNoStoreStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	}
+}
+
+func TestContext2Plan_noStore(t *testing.T) {
+	m := testModule(t, "plan-no-store")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "bar",
+							Attributes: map[string]string{"ami": "ami-abcd1234"},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Variables: map[string]interface{}{
+			"foo": "ami-1234abcd",
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(plan.Diff.RootModule().Resources) < 1 {
+		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanNoStoreStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
@@ -3199,7 +3295,60 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(plan.String())
-	expected := strings.TrimSpace(testTerraformPlanIgnoreChangesWildcardStr)
+	expected := strings.TrimSpace(testTerraformPlanNoStoreWildcardStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	}
+}
+
+func TestContext2Plan_noStoreWildcard(t *testing.T) {
+	m := testModule(t, "plan-no-store-wildcard")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"ami":           "ami-abcd1234",
+								"instance_type": "t2.micro",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Variables: map[string]interface{}{
+			"foo": "ami-1234abcd",
+			"bar": "t2.small",
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(plan.Diff.RootModule().Resources) > 0 {
+		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanNoStoreWildcardStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
@@ -3431,7 +3580,7 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(plan.Diff.String())
-	expected := strings.TrimSpace(testTFPlanDiffIgnoreChangesWithFlatmaps)
+	expected := strings.TrimSpace(testTFPlanDiffNoStoreWithFlatmapsStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
@@ -3577,6 +3726,59 @@ aws_instance.foo.0:
 aws_instance.foo.1:
   ID = foo1
 `)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	}
+}
+
+// Make sure no_store doesn't interfere with set/list/map diffs.
+// If a resource was being replaced by a RequiresNew attribute that gets
+// ignored, we need to filter the diff properly to properly update rather than
+// replace.
+func TestContext2Plan_noStoreWithFlatmaps(t *testing.T) {
+	m := testModule(t, "plan-no-store-with-flatmaps")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"user_data":   "x",
+								"require_new": "",
+								"set.#":       "1",
+								"set.0.a":     "1",
+								"lst.#":       "1",
+								"lst.0":       "j",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.Diff.String())
+	expected := strings.TrimSpace(testTFPlanDiffNoStoreWithFlatmapsStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}

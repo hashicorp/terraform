@@ -370,7 +370,7 @@ The supported built-in functions are:
 
   * `timestamp()` - Returns a UTC timestamp string in RFC 3339 format. This string will change with every
    invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the
-   [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
+   [`no_store`](/docs/configuration/resources.html#no_store) lifecycle attribute.
 
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
 
@@ -378,7 +378,7 @@ The supported built-in functions are:
 
   * `upper(string)` - Returns a copy of the string with all Unicode letters mapped to their upper case.
 
-  * `uuid()` - Returns a UUID string in RFC 4122 v4 format. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
+  * `uuid()` - Returns a UUID string in RFC 4122 v4 format. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`no_store`](/docs/configuration/resources.html#no_store) lifecycle attribute.
 
   * `values(map)` - Returns a list of the map values, in the order of the keys
     returned by the `keys` function. This function only works on flat maps and

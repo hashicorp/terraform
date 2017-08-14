@@ -3,6 +3,8 @@ package terraform
 import (
 	"sync"
 	"testing"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 func TestEvalRequireState(t *testing.T) {
@@ -144,10 +146,12 @@ func TestEvalWriteState(t *testing.T) {
 	ctx.PathPath = rootModulePath
 
 	is := &InstanceState{ID: "i-abc123"}
+	cfg := &config.Resource{}
 	node := &EvalWriteState{
 		Name:         "restype.resname",
 		ResourceType: "restype",
 		State:        &is,
+		Config:       cfg,
 	}
 	_, err := node.Eval(ctx)
 	if err != nil {
@@ -168,11 +172,15 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 	ctx.PathPath = rootModulePath
 
 	is := &InstanceState{ID: "i-abc123"}
+	cfg := &config.Resource{}
 	node := &EvalWriteStateDeposed{
-		Name:         "restype.resname",
-		ResourceType: "restype",
-		State:        &is,
-		Index:        -1,
+		EvalWriteState: EvalWriteState{
+			Name:         "restype.resname",
+			ResourceType: "restype",
+			State:        &is,
+			Config:       cfg,
+		},
+		Index: -1,
 	}
 	_, err := node.Eval(ctx)
 	if err != nil {

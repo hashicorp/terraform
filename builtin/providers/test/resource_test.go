@@ -42,11 +42,37 @@ func TestResource_ignoreChangesRequired(t *testing.T) {
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
         required = "yep"
-	required_map = {
-	    key = "value"
-	}
+        required_map = {
+            key = "value"
+        }
         lifecycle {
                 ignore_changes = ["required"]
+        }
+}
+                               `),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
+// Targeted test in TestContext2Apply_noStoreCreate
+func TestResource_noStoreRequired(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+        required = "yep"
+        required_map = {
+            key = "value"
+        }
+        lifecycle {
+                no_store = ["required"]
         }
 }
                                `),
@@ -101,6 +127,49 @@ resource "test_resource" "foo" {
 	})
 }
 
+func TestResource_noStoreEmpty(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map = {
+	    key = "value"
+	}
+	optional_force_new = "one"
+	lifecycle {
+		no_store = []
+	}
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map {
+	    key = "value"
+	}
+	optional_force_new = "two"
+	lifecycle {
+		no_store = []
+	}
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func TestResource_ignoreChangesForceNew(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,
@@ -133,6 +202,49 @@ resource "test_resource" "foo" {
 	optional_force_new = "two"
 	lifecycle {
 		ignore_changes = ["optional_force_new"]
+	}
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
+func TestResource_noStoreForceNew(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map {
+	    key = "value"
+	}
+	optional_force_new = "one"
+	lifecycle {
+		no_store = ["optional_force_new"]
+	}
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map = {
+	    key = "value"
+	}
+	optional_force_new = "two"
+	lifecycle {
+		no_store = ["optional_force_new"]
 	}
 }
 				`),
@@ -180,6 +292,53 @@ resource "test_resource" "foo" {
   optional_bool      = true
   lifecycle {
     ignore_changes = ["optional_force_new"]
+  }
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
+// Covers specific scenario in #6005, handled by normalizing boolean strings in
+// helper/schema
+func TestResource_noStoreForceNewBoolean(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required           = "yep"
+  required_map = {
+    key = "value"
+  }
+  optional_force_new = "one"
+  optional_bool      = true
+  lifecycle {
+    no_store = ["optional_force_new"]
+  }
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required           = "yep"
+  required_map = {
+    key = "value"
+  }
+  optional_force_new = "two"
+  optional_bool      = true
+  lifecycle {
+    no_store = ["optional_force_new"]
   }
 }
 				`),
@@ -294,6 +453,54 @@ resource "test_resource" "foo" {
 	})
 }
 
+func TestResource_noStoreMap(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map = {
+	  key = "value"
+	}
+	optional_computed_map {
+		foo = "bar"
+	}
+	lifecycle {
+		no_store = ["optional_computed_map"]
+	}
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	required           = "yep"
+	required_map = {
+	  key = "value"
+	}
+	optional_computed_map {
+		foo = "bar"
+		no  = "update"
+	}
+	lifecycle {
+		no_store = ["optional_computed_map"]
+	}
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func TestResource_ignoreChangesDependent(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,
@@ -349,6 +556,61 @@ resource "test_resource" "bar" {
 	})
 }
 
+func TestResource_noStoreDependent(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	count = 2
+	required = "yep"
+	required_map { key = "value" }
+
+	optional_force_new = "one"
+	lifecycle {
+		no_store = ["optional_force_new"]
+	}
+}
+resource "test_resource" "bar" {
+	count = 2
+	required = "yep"
+	required_map { key = "value" }
+	optional = "${element(test_resource.foo.*.id, count.index)}"
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+	count = 2
+	required = "yep"
+	required_map { key = "value" }
+
+	optional_force_new = "two"
+	lifecycle {
+		no_store= ["optional_force_new"]
+	}
+}
+resource "test_resource" "bar" {
+	count = 2
+	required = "yep"
+	required_map { key = "value" }
+	optional = "${element(test_resource.foo.*.id, count.index)}"
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func TestResource_ignoreChangesStillReplaced(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,
@@ -383,6 +645,51 @@ resource "test_resource" "foo" {
   optional_bool      = false
   lifecycle {
     ignore_changes = ["optional_bool"]
+  }
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
+func TestResource_noStoreStillReplaced(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "yep"
+  required_map = {
+    key = "value"
+  }
+  optional_force_new = "one"
+  optional_bool      = true
+  lifecycle {
+    no_store = ["optional_bool"]
+  }
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required     = "yep"
+  required_map = {
+    key = "value"
+  }
+  optional_force_new = "two"
+  optional_bool      = false
+  lifecycle {
+    no_store = ["optional_bool"]
   }
 }
 				`),

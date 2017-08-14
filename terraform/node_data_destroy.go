@@ -16,7 +16,8 @@ func (n *NodeDestroyableDataResource) EvalTree() EvalNode {
 	// Just destroy it.
 	var state *InstanceState
 	return &EvalWriteState{
-		Name:  stateId,
-		State: &state, // state is nil here
+		Name:   stateId,
+		Config: n.NodeAbstractResource.Config,
+		State:  &state, // state is nil here
 	}
 }

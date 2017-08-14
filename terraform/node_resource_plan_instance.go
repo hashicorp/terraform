@@ -114,6 +114,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(
 				ResourceType: n.Config.Type,
 				Provider:     n.Config.Provider,
 				Dependencies: stateDeps,
+				Config:       n.Config,
 				State:        &state,
 			},
 
@@ -179,6 +180,7 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(
 				ResourceType: n.Config.Type,
 				Provider:     n.Config.Provider,
 				Dependencies: stateDeps,
+				Config:       n.Config,
 				State:        &state,
 			},
 			&EvalWriteDiff{

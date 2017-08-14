@@ -80,17 +80,28 @@ There are **meta-parameters** available to all resources:
     destruction of a given resource. When this is set to `true`, any plan that
     includes a destroy of this resource will return an error message.
 
-  - `ignore_changes` (list of strings) - Customizes how diffs are evaluated for
-    resources, allowing individual attributes to be ignored through changes. As
-    an example, this can be used to ignore dynamic changes to the resource from
-    external resources. Other meta-parameters cannot be ignored.
+  - `no_store` (list of strings) - Specifies resource attributes that will not
+    be stored in the state file. Any changes to these attributes after resource
+    creation will not be detected. This can be used for attributes that are
+    managed externally. Other meta-parameters cannot be `no_store`.
 
-        ~> Ignored attribute names can be matched by their name, not state ID.
-        For example, if an `aws_route_table` has two routes defined and the
-        `ignore_changes` list contains "route", both routes will be ignored.
-        Additionally you can also use a single entry with a wildcard (e.g. `"*"`)
-        which will match all attribute names. Using a partial string together
-        with a wildcard (e.g. `"rout*"`) is **not** supported.
+        ~> `no_store` attribute names can be matched by their name, not state
+        ID. For example, if an `aws_route_table` has two routes defined and the
+        `no_store` list contains "route", both routes will be excluded from the
+        state file. Additionally you can also use a single entry with a
+        wildcard (e.g. `"*"`) which will match all attribute names. Using a
+        partial string together with a wildcard (e.g. `"rout*"`) is **not**
+        supported.
+
+        ~> If using `no_store` to protect sensitive data like secret keys,
+        you'll need to make sure the data doesn't leak into the state file
+        through interpolations, by adding `no_store` to other attributes as
+        appropriate.  Note that `no_store` doesn't affect what is included in
+        plan files. It currently doesn't affect the
+        [`import`](/docs/commands/import.html) command, which manipulates the
+        state file directly.
+
+  - `ignore_changes` (list of strings) DEPRECATED: Use `no_store` instead.
 
 ### Timeouts
 

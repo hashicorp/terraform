@@ -101,9 +101,10 @@ func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	steps := make([]GraphTransformer, 0, 5)
 
 	// We want deposed resources in the state to be destroyed
-	steps = append(steps, &DeposedTransformer{
-		State: state,
-		View:  n.Addr.stateId(),
+	steps = append(steps, &DeposedResourceTransformer{
+		State:          state,
+		ResourceId:     n.Addr.stateId(),
+		ResourceConfig: n.Config,
 	})
 
 	// Target
@@ -274,6 +275,7 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 					ResourceType: n.Addr.Type,
 					Provider:     rs.Provider,
 					Dependencies: rs.Dependencies,
+					Config:       n.Config,
 					State:        &state,
 				},
 				&EvalApplyPost{

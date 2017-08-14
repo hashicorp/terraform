@@ -50,8 +50,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "1 to add, 0 to change, 0 to destroy") {
-		t.Errorf("incorrect plan tally; want 1 to add:\n%s", stdout)
+	if !strings.Contains(stdout, "2 to add, 0 to change, 0 to destroy") {
+		t.Errorf("incorrect plan tally; want 2 to add:\n%s", stdout)
 	}
 
 	plan, err := tf.Plan("tfplan")
@@ -65,8 +65,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	if len(stateResources) != 1 || stateResources["data.template_file.test"] == nil {
 		t.Errorf("incorrect state in plan; want just data.template_file.test to have been rendered, but have:\n%s", spew.Sdump(stateResources))
 	}
-	if len(diffResources) != 1 || diffResources["null_resource.test"] == nil {
-		t.Errorf("incorrect diff in plan; want just null_resource.test to have been rendered, but have:\n%s", spew.Sdump(diffResources))
+	if len(diffResources) != 2 || diffResources["null_resource.test"] == nil || diffResources["null_resource.no_store"] == nil {
+		t.Errorf("incorrect diff in plan; want just null_resource.test and null_resource.no_store to have been rendered, but have:\n%s", spew.Sdump(diffResources))
 	}
 
 	//// APPLY
@@ -75,9 +75,11 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "Resources: 1 added, 0 changed, 0 destroyed") {
-		t.Errorf("incorrect apply tally; want 1 added:\n%s", stdout)
+	if !strings.Contains(stdout, "Resources: 2 added, 0 changed, 0 destroyed") {
+		t.Errorf("incorrect apply tally; want 2 added:\n%s", stdout)
 	}
+
+	scanStateFilesForSecrets(tf, t)
 
 	state, err := tf.LocalState()
 	if err != nil {
@@ -93,6 +95,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 
 	wantResources := []string{
 		"data.template_file.test",
+		"null_resource.no_store",
 		"null_resource.test",
 	}
 
@@ -106,9 +109,11 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "Resources: 2 destroyed") {
-		t.Errorf("incorrect destroy tally; want 2 destroyed:\n%s", stdout)
+	if !strings.Contains(stdout, "Resources: 3 destroyed") {
+		t.Errorf("incorrect destroy tally; want 3 destroyed:\n%s", stdout)
 	}
+
+	scanStateFilesForSecrets(tf, t)
 
 	state, err = tf.LocalState()
 	if err != nil {
@@ -120,4 +125,19 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Errorf("wrong resources in state after destroy; want none, but still have:%s", spew.Sdump(stateResources))
 	}
 
+}
+
+func scanStateFilesForSecrets(tf *terraform, t *testing.T) {
+	fileNames := []string{"terraform.tfstate", "terraform.tfstate.backup"}
+	for _, name := range fileNames {
+		if tf.FileExists(name) {
+			contents, err := tf.ReadFile(name)
+			if err != nil {
+				t.Fatalf("error reading file %s: %s", name, err)
+			}
+			if strings.Contains(string(contents), "SECRET") {
+				t.Errorf("secret leaked in file %s", name)
+			}
+		}
+	}
 }

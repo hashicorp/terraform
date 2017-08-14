@@ -113,6 +113,7 @@ type ResourceLifecycle struct {
 	CreateBeforeDestroy bool     `mapstructure:"create_before_destroy"`
 	PreventDestroy      bool     `mapstructure:"prevent_destroy"`
 	IgnoreChanges       []string `mapstructure:"ignore_changes"`
+	NoStore             []string `mapstructure:"no_store"`
 }
 
 // Copy returns a copy of this ResourceLifecycle
@@ -121,8 +122,10 @@ func (r *ResourceLifecycle) Copy() *ResourceLifecycle {
 		CreateBeforeDestroy: r.CreateBeforeDestroy,
 		PreventDestroy:      r.PreventDestroy,
 		IgnoreChanges:       make([]string, len(r.IgnoreChanges)),
+		NoStore:             make([]string, len(r.NoStore)),
 	}
 	copy(n.IgnoreChanges, r.IgnoreChanges)
+	copy(n.NoStore, r.NoStore)
 	return n
 }
 
@@ -648,6 +651,29 @@ func (c *Config) Validate() error {
 		} else if len(rc.Interpolations) > 0 {
 			errs = append(errs, fmt.Errorf(
 				"%s: lifecycle ignore_changes cannot contain interpolations",
+				n))
+		}
+
+		// Verify no_store contains valid entries
+		for _, v := range r.Lifecycle.NoStore {
+			if strings.Contains(v, "*") && v != "*" {
+				errs = append(errs, fmt.Errorf(
+					"%s: no_store does not support using a partial string "+
+						"together with a wildcard: %s", n, v))
+			}
+		}
+
+		// Verify no_store has no interpolations
+		rc, err = NewRawConfig(map[string]interface{}{
+			"root": r.Lifecycle.NoStore,
+		})
+		if err != nil {
+			errs = append(errs, fmt.Errorf(
+				"%s: lifecycle no_store error: %s",
+				n, err))
+		} else if len(rc.Interpolations) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"%s: lifecycle no_store cannot contain interpolations",
 				n))
 		}
 
