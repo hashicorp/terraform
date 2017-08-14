@@ -1005,7 +1005,7 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 		t.Fatalf("error attmepting to Build PlanGraphBuilder: %s", err)
 	}
 	defer c.acquireRun("validate-test")()
-	walker, err := c.walk(graph, graph, walkValidate)
+	walker, err := c.walk(graph, walkValidate)
 	if err != nil {
 		t.Fatal(err)
 	}
