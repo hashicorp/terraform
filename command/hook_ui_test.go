@@ -1,7 +1,6 @@
 package command
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
 	"time"
@@ -12,11 +11,7 @@ import (
 )
 
 func TestUiHookPreApply_periodicTimer(t *testing.T) {
-	ui := &cli.MockUi{
-		InputReader:  bytes.NewReader([]byte{}),
-		ErrorWriter:  bytes.NewBuffer([]byte{}),
-		OutputWriter: bytes.NewBuffer([]byte{}),
-	}
+	ui := cli.NewMockUi()
 	h := &UiHook{
 		Colorize: &colorstring.Colorize{
 			Colors:  colorstring.DefaultColors,
@@ -88,11 +83,7 @@ data.aws_availability_zones.available: Still destroying... (ID: 2017-03-05 10:56
 }
 
 func TestUiHookPreApply_destroy(t *testing.T) {
-	ui := &cli.MockUi{
-		InputReader:  bytes.NewReader([]byte{}),
-		ErrorWriter:  bytes.NewBuffer([]byte{}),
-		OutputWriter: bytes.NewBuffer([]byte{}),
-	}
+	ui := cli.NewMockUi()
 	h := &UiHook{
 		Colorize: &colorstring.Colorize{
 			Colors:  colorstring.DefaultColors,
@@ -152,11 +143,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 }
 
 func TestUiHookPostApply_emptyState(t *testing.T) {
-	ui := &cli.MockUi{
-		InputReader:  bytes.NewReader([]byte{}),
-		ErrorWriter:  bytes.NewBuffer([]byte{}),
-		OutputWriter: bytes.NewBuffer([]byte{}),
-	}
+	ui := cli.NewMockUi()
 	h := &UiHook{
 		Colorize: &colorstring.Colorize{
 			Colors:  colorstring.DefaultColors,

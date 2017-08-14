@@ -1,0 +1,21 @@
+{
+    "Vendor": true,
+    "DisableAll": true,
+    "Enable": [
+        "gofmt",
+        "goimports",
+        "interfacer",
+        "goconst",
+        "misspell",
+        "unconvert",
+        "gosimple",
+        "golint",
+        "structcheck",
+        "deadcode",
+        "vet"
+    ],
+    "Exclude": [
+        "initTests is unused"
+    ],
+    "Deadline": "2m"
+}
