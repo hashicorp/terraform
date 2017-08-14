@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/armon/go-radix"
+	"github.com/posener/complete"
 )
 
 // CLI contains the state necessary to run subcommands and parse the
@@ -25,7 +26,7 @@ import (
 //
 //   * We use longest prefix matching to find a matching subcommand. This
 //     means if you register "foo bar" and the user executes "cli foo qux",
-//     the "foo" commmand will be executed with the arg "qux". It is up to
+//     the "foo" command will be executed with the arg "qux". It is up to
 //     you to handle these args. One option is to just return the special
 //     help return code `RunResultHelp` to display help and exit.
 //
@@ -66,6 +67,36 @@ type CLI struct {
 	// Version of the CLI.
 	Version string
 
+	// Autocomplete enables or disables subcommand auto-completion support.
+	// This is enabled by default when NewCLI is called. Otherwise, this
+	// must enabled explicitly.
+	//
+	// Autocomplete requires the "Name" option to be set on CLI. This name
+	// should be set exactly to the binary name that is autocompleted.
+	//
+	// Autocompletion is supported via the github.com/posener/complete
+	// library. This library supports both bash and zsh. To add support
+	// for other shells, please see that library.
+	//
+	// AutocompleteInstall and AutocompleteUninstall are the global flag
+	// names for installing and uninstalling the autocompletion handlers
+	// for the user's shell. The flag should omit the hyphen(s) in front of
+	// the value. Both single and double hyphens will automatically be supported
+	// for the flag name. These default to `autocomplete-install` and
+	// `autocomplete-uninstall` respectively.
+	//
+	// AutocompleteNoDefaultFlags is a boolean which controls if the default auto-
+	// complete flags like -help and -version are added to the output.
+	//
+	// AutocompleteGlobalFlags are a mapping of global flags for
+	// autocompletion. The help and version flags are automatically added.
+	Autocomplete               bool
+	AutocompleteInstall        string
+	AutocompleteUninstall      string
+	AutocompleteNoDefaultFlags bool
+	AutocompleteGlobalFlags    complete.Flags
+	autocompleteInstaller      autocompleteInstaller // For tests
+
 	// HelpFunc and HelpWriter are used to output help information, if
 	// requested.
 	//
@@ -78,23 +109,32 @@ type CLI struct {
 	HelpFunc   HelpFunc
 	HelpWriter io.Writer
 
+	//---------------------------------------------------------------
+	// Internal fields set automatically
+
 	once           sync.Once
+	autocomplete   *complete.Complete
 	commandTree    *radix.Tree
 	commandNested  bool
-	isHelp         bool
 	subcommand     string
 	subcommandArgs []string
 	topFlags       []string
 
-	isVersion bool
+	// These are true when special global flags are set. We can/should
+	// probably use a bitset for this one day.
+	isHelp                  bool
+	isVersion               bool
+	isAutocompleteInstall   bool
+	isAutocompleteUninstall bool
 }
 
 // NewClI returns a new CLI instance with sensible defaults.
 func NewCLI(app, version string) *CLI {
 	return &CLI{
-		Name:     app,
-		Version:  version,
-		HelpFunc: BasicHelpFunc(app),
+		Name:         app,
+		Version:      version,
+		HelpFunc:     BasicHelpFunc(app),
+		Autocomplete: true,
 	}
 
 }
@@ -117,10 +157,58 @@ func (c *CLI) IsVersion() bool {
 func (c *CLI) Run() (int, error) {
 	c.once.Do(c.init)
 
+	// If this is a autocompletion request, satisfy it. This must be called
+	// first before anything else since its possible to be autocompleting
+	// -help or -version or other flags and we want to show completions
+	// and not actually write the help or version.
+	if c.Autocomplete && c.autocomplete.Complete() {
+		return 0, nil
+	}
+
 	// Just show the version and exit if instructed.
 	if c.IsVersion() && c.Version != "" {
 		c.HelpWriter.Write([]byte(c.Version + "\n"))
-		return 1, nil
+		return 0, nil
+	}
+
+	// Just print the help when only '-h' or '--help' is passed.
+	if c.IsHelp() && c.Subcommand() == "" {
+		c.HelpWriter.Write([]byte(c.HelpFunc(c.Commands) + "\n"))
+		return 0, nil
+	}
+
+	// If we're attempting to install or uninstall autocomplete then handle
+	if c.Autocomplete {
+		// Autocomplete requires the "Name" to be set so that we know what
+		// command to setup the autocomplete on.
+		if c.Name == "" {
+			return 1, fmt.Errorf(
+				"internal error: CLI.Name must be specified for autocomplete to work")
+		}
+
+		// If both install and uninstall flags are specified, then error
+		if c.isAutocompleteInstall && c.isAutocompleteUninstall {
+			return 1, fmt.Errorf(
+				"Either the autocomplete install or uninstall flag may " +
+					"be specified, but not both.")
+		}
+
+		// If the install flag is specified, perform the install or uninstall
+		if c.isAutocompleteInstall {
+			if err := c.autocompleteInstaller.Install(c.Name); err != nil {
+				return 1, err
+			}
+
+			return 0, nil
+		}
+
+		if c.isAutocompleteUninstall {
+			if err := c.autocompleteInstaller.Uninstall(c.Name); err != nil {
+				return 1, err
+			}
+
+			return 0, nil
+		}
 	}
 
 	// Attempt to get the factory function for creating the command
@@ -133,13 +221,13 @@ func (c *CLI) Run() (int, error) {
 
 	command, err := raw.(CommandFactory)()
 	if err != nil {
-		return 0, err
+		return 1, err
 	}
 
 	// If we've been instructed to just print the help, then print it
 	if c.IsHelp() {
 		c.commandHelp(command)
-		return 1, nil
+		return 0, nil
 	}
 
 	// If there is an invalid flag, then error
@@ -250,7 +338,7 @@ func (c *CLI) init() {
 		c.commandTree.Walk(walkFn)
 
 		// Insert any that we're missing
-		for k, _ := range toInsert {
+		for k := range toInsert {
 			var f CommandFactory = func() (Command, error) {
 				return &MockCommand{
 					HelpText:  "This command is accessed by using one of the subcommands below.",
@@ -262,8 +350,111 @@ func (c *CLI) init() {
 		}
 	}
 
+	// Setup autocomplete if we have it enabled. We have to do this after
+	// the command tree is setup so we can use the radix tree to easily find
+	// all subcommands.
+	if c.Autocomplete {
+		c.initAutocomplete()
+	}
+
 	// Process the args
 	c.processArgs()
+}
+
+func (c *CLI) initAutocomplete() {
+	if c.AutocompleteInstall == "" {
+		c.AutocompleteInstall = defaultAutocompleteInstall
+	}
+
+	if c.AutocompleteUninstall == "" {
+		c.AutocompleteUninstall = defaultAutocompleteUninstall
+	}
+
+	if c.autocompleteInstaller == nil {
+		c.autocompleteInstaller = &realAutocompleteInstaller{}
+	}
+
+	// Build the root command
+	cmd := c.initAutocompleteSub("")
+
+	// For the root, we add the global flags to the "Flags". This way
+	// they don't show up on every command.
+	if !c.AutocompleteNoDefaultFlags {
+		cmd.Flags = map[string]complete.Predictor{
+			"-" + c.AutocompleteInstall:   complete.PredictNothing,
+			"-" + c.AutocompleteUninstall: complete.PredictNothing,
+			"-help":    complete.PredictNothing,
+			"-version": complete.PredictNothing,
+		}
+	}
+	cmd.GlobalFlags = c.AutocompleteGlobalFlags
+
+	c.autocomplete = complete.New(c.Name, cmd)
+}
+
+// initAutocompleteSub creates the complete.Command for a subcommand with
+// the given prefix. This will continue recursively for all subcommands.
+// The prefix "" (empty string) can be used for the root command.
+func (c *CLI) initAutocompleteSub(prefix string) complete.Command {
+	var cmd complete.Command
+	walkFn := func(k string, raw interface{}) bool {
+		if len(prefix) > 0 {
+			// If we have a prefix, trim the prefix + 1 (for the space)
+			// Example: turns "sub one" to "one" with prefix "sub"
+			k = k[len(prefix)+1:]
+		}
+
+		// Keep track of the full key so that we can nest further if necessary
+		fullKey := k
+
+		if idx := strings.LastIndex(k, " "); idx >= 0 {
+			// If there is a space, we trim up to the space
+			k = k[:idx]
+		}
+
+		if idx := strings.LastIndex(k, " "); idx >= 0 {
+			// This catches the scenario just in case where we see "sub one"
+			// before "sub". This will let us properly setup the subcommand
+			// regardless.
+			k = k[idx+1:]
+		}
+
+		if _, ok := cmd.Sub[k]; ok {
+			// If we already tracked this subcommand then ignore
+			return false
+		}
+
+		if cmd.Sub == nil {
+			cmd.Sub = complete.Commands(make(map[string]complete.Command))
+		}
+		subCmd := c.initAutocompleteSub(fullKey)
+
+		// Instantiate the command so that we can check if the command is
+		// a CommandAutocomplete implementation. If there is an error
+		// creating the command, we just ignore it since that will be caught
+		// later.
+		impl, err := raw.(CommandFactory)()
+		if err != nil {
+			impl = nil
+		}
+
+		// Check if it implements ComandAutocomplete. If so, setup the autocomplete
+		if c, ok := impl.(CommandAutocomplete); ok {
+			subCmd.Args = c.AutocompleteArgs()
+			subCmd.Flags = c.AutocompleteFlags()
+		}
+
+		cmd.Sub[k] = subCmd
+		return false
+	}
+
+	walkPrefix := prefix
+	if walkPrefix != "" {
+		walkPrefix += " "
+	}
+
+	c.commandTree.WalkPrefix(walkPrefix, walkFn)
+	return cmd
 }
 
 func (c *CLI) commandHelp(command Command) {
@@ -388,14 +579,33 @@ func (c *CLI) helpCommands(prefix string) map[string]CommandFactory {
 
 func (c *CLI) processArgs() {
 	for i, arg := range c.Args {
-		if c.subcommand == "" {
-			// Check for version and help flags if not in a subcommand
-			if arg == "-v" || arg == "-version" || arg == "--version" {
-				c.isVersion = true
+		if arg == "--" {
+			break
+		}
+
+		// Check for help flags.
+		if arg == "-h" || arg == "-help" || arg == "--help" {
+			c.isHelp = true
+			continue
+		}
+
+		// Check for autocomplete flags
+		if c.Autocomplete {
+			if arg == "-"+c.AutocompleteInstall || arg == "--"+c.AutocompleteInstall {
+				c.isAutocompleteInstall = true
 				continue
 			}
-			if arg == "-h" || arg == "-help" || arg == "--help" {
-				c.isHelp = true
+
+			if arg == "-"+c.AutocompleteUninstall || arg == "--"+c.AutocompleteUninstall {
+				c.isAutocompleteUninstall = true
+				continue
+			}
+		}
+
+		if c.subcommand == "" {
+			// Check for version flags if not in a subcommand.
+			if arg == "-v" || arg == "-version" || arg == "--version" {
+				c.isVersion = true
 				continue
 			}
 
@@ -444,11 +654,16 @@ func (c *CLI) processArgs() {
 	}
 }
 
+// defaultAutocompleteInstall and defaultAutocompleteUninstall are the
+// default values for the autocomplete install and uninstall flags.
+const defaultAutocompleteInstall = "autocomplete-install"
+const defaultAutocompleteUninstall = "autocomplete-uninstall"
+
 const defaultHelpTemplate = `
 {{.Help}}{{if gt (len .Subcommands) 0}}
 
 Subcommands:
-{{ range $value := .Subcommands }}
+{{- range $value := .Subcommands }}
     {{ $value.NameAligned }}    {{ $value.Synopsis }}{{ end }}
-{{ end }}
+{{- end }}
 `
