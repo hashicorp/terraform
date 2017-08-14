@@ -581,8 +581,8 @@ resource "netapp_cloud_volume" "awsha-nfs-volume" {
   export_policy = ["12.13.14.15/32"]
   provider_volume_type = "st1"
   thin_provisioning = true
-  compression = true
-  deduplication = true
+  compression = false
+  deduplication = false
 }
 `
 const testAccCloudVolume_nfs_awsha_tier_change = `
@@ -601,8 +601,8 @@ resource "netapp_cloud_volume" "awsha-nfs-volume" {
   export_policy = ["12.13.14.15/32"]
   provider_volume_type = "gp2"
   thin_provisioning = true
-  compression = true
-  deduplication = true
+  compression = false
+  deduplication = false
 }
 `
 const testAccCloudVolume_nfs_awsha_data_change = `
@@ -621,8 +621,8 @@ resource "netapp_cloud_volume" "awsha-nfs-volume" {
   export_policy = ["22.13.14.15/32"]
   provider_volume_type = "st1"
   thin_provisioning = true
-  compression = true
-  deduplication = true
+  compression = false
+  deduplication = false
 }
 `
 const testAccCloudVolume_cifs_vsa = `
