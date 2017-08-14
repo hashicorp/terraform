@@ -68,12 +68,10 @@ func resourceCloudVolume() *schema.Resource {
 			"initial_size": {
 				Type:     schema.TypeFloat,
 				Optional: true,
-				ForceNew: true,
 			},
 			"initial_size_unit": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					"GB",
 					"TB",
