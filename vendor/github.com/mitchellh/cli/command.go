@@ -1,5 +1,9 @@
 package cli
 
+import (
+	"github.com/posener/complete"
+)
+
 const (
 	// RunResultHelp is a value that can be returned from Run to signal
 	// to the CLI to render the help output.
@@ -24,6 +28,22 @@ type Command interface {
 	// Synopsis should return a one-line, short synopsis of the command.
 	// This should be less than 50 characters ideally.
 	Synopsis() string
+}
+
+// CommandAutocomplete is an extension of Command that enables fine-grained
+// autocompletion. Subcommand autocompletion will work even if this interface
+// is not implemented. By implementing this interface, more advanced
+// autocompletion is enabled.
+type CommandAutocomplete interface {
+	// AutocompleteArgs returns the argument predictor for this command.
+	// If argument completion is not supported, this should return
+	// complete.PredictNothing.
+	AutocompleteArgs() complete.Predictor
+
+	// AutocompleteFlags returns a mapping of supported flags and autocomplete
+	// options for this command. The map key for the Flags map should be the
+	// complete flag such as "-foo" or "--foo".
+	AutocompleteFlags() complete.Flags
 }
 
 // CommandHelpTemplate is an extension of Command that also has a function
