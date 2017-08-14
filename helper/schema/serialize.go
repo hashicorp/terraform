@@ -85,6 +85,9 @@ func SerializeValueForHash(buf *bytes.Buffer, val interface{}, schema *Schema) {
 // to hash complex substructures when used in sets, and so the serialization
 // is not reversible.
 func SerializeResourceForHash(buf *bytes.Buffer, val interface{}, resource *Resource) {
+	if val == nil {
+		return
+	}
 	sm := resource.Schema
 	m := val.(map[string]interface{})
 	var keys []string

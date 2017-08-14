@@ -77,3 +77,12 @@ func (n *LiteralNode) String() string {
 func (n *LiteralNode) Type(Scope) (Type, error) {
 	return n.Typex, nil
 }
+
+// IsUnknown returns true either if the node's value is itself unknown
+// of if it is a collection containing any unknown elements, deeply.
+func (n *LiteralNode) IsUnknown() bool {
+	return IsUnknown(Variable{
+		Type:  n.Typex,
+		Value: n.Value,
+	})
+}

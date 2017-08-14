@@ -16,7 +16,10 @@ type UnlockCommand struct {
 }
 
 func (c *UnlockCommand) Run(args []string) int {
-	args = c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 
 	force := false
 	cmdFlags := c.Meta.flagSet("force-unlock")
@@ -43,16 +46,22 @@ func (c *UnlockCommand) Run(args []string) int {
 		return 1
 	}
 
+	conf, err := c.Config(configPath)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+		return 1
+	}
+
 	// Load the backend
 	b, err := c.Backend(&BackendOpts{
-		ConfigPath: configPath,
+		Config: conf,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
 	}
 
-	env := c.Env()
+	env := c.Workspace()
 	st, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))

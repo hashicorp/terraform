@@ -66,8 +66,8 @@ func WithWaiterRequestOptions(opts ...Option) WaiterOption {
 	}
 }
 
-// A Waiter provides the functionality to performing blocking call which will
-// wait for an resource state to be satisfied a service.
+// A Waiter provides the functionality to perform a blocking call which will
+// wait for a resource state to be satisfied by a service.
 //
 // This type should not be used directly. The API operations provided in the
 // service packages prefixed with "WaitUntil" should be used instead.

@@ -17,6 +17,20 @@ type hclConfigurable struct {
 	Root *ast.File
 }
 
+var ReservedResourceFields = []string{
+	"connection",
+	"count",
+	"depends_on",
+	"lifecycle",
+	"provider",
+	"provisioner",
+}
+
+var ReservedProviderFields = []string{
+	"alias",
+	"version",
+}
+
 func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
 		"atlas":     struct{}{},
@@ -327,6 +341,10 @@ func loadAtlasHcl(list *ast.ObjectList) (*AtlasConfig, error) {
 // represents exactly one module definition in the HCL configuration.
 // We leave it up to another pass to merge them together.
 func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
+	if err := assertAllBlocksHaveNames("module", list); err != nil {
+		return nil, err
+	}
+
 	list = list.Children()
 	if len(list.Items) == 0 {
 		return nil, nil
@@ -391,11 +409,11 @@ func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
 // LoadOutputsHcl recurses into the given HCL object and turns
 // it into a mapping of outputs.
 func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
-	list = list.Children()
-	if len(list.Items) == 0 {
-		return nil, fmt.Errorf(
-			"'output' must be followed by exactly one string: a name")
+	if err := assertAllBlocksHaveNames("output", list); err != nil {
+		return nil, err
 	}
+
+	list = list.Children()
 
 	// Go through each object and turn it into an actual result.
 	result := make([]*Output, 0, len(list.Items))
@@ -450,11 +468,11 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 // LoadVariablesHcl recurses into the given HCL object and turns
 // it into a list of variables.
 func loadVariablesHcl(list *ast.ObjectList) ([]*Variable, error) {
-	list = list.Children()
-	if len(list.Items) == 0 {
-		return nil, fmt.Errorf(
-			"'variable' must be followed by exactly one strings: a name")
+	if err := assertAllBlocksHaveNames("variable", list); err != nil {
+		return nil, err
 	}
+
+	list = list.Children()
 
 	// hclVariable is the structure each variable is decoded into
 	type hclVariable struct {
@@ -531,6 +549,10 @@ func loadVariablesHcl(list *ast.ObjectList) ([]*Variable, error) {
 // LoadProvidersHcl recurses into the given HCL object and turns
 // it into a mapping of provider configs.
 func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
+	if err := assertAllBlocksHaveNames("provider", list); err != nil {
+		return nil, err
+	}
+
 	list = list.Children()
 	if len(list.Items) == 0 {
 		return nil, nil
@@ -554,6 +576,7 @@ func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
 		}
 
 		delete(config, "alias")
+		delete(config, "version")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
@@ -575,9 +598,22 @@ func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
 			}
 		}
 
+		// If we have a version field then extract it
+		var version string
+		if a := listVal.Filter("version"); len(a.Items) > 0 {
+			err := hcl.DecodeObject(&version, a.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading version for provider[%s]: %s",
+					n,
+					err)
+			}
+		}
+
 		result = append(result, &ProviderConfig{
 			Name:      n,
 			Alias:     alias,
+			Version:   version,
 			RawConfig: rawConfig,
 		})
 	}
@@ -592,6 +628,10 @@ func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
 // represents exactly one data definition in the HCL configuration.
 // We leave it up to another pass to merge them together.
 func loadDataResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
+	if err := assertAllBlocksHaveNames("data", list); err != nil {
+		return nil, err
+	}
+
 	list = list.Children()
 	if len(list.Items) == 0 {
 		return nil, nil
@@ -901,6 +941,10 @@ func loadManagedResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 }
 
 func loadProvisionersHcl(list *ast.ObjectList, connInfo map[string]interface{}) ([]*Provisioner, error) {
+	if err := assertAllBlocksHaveNames("provisioner", list); err != nil {
+		return nil, err
+	}
+
 	list = list.Children()
 	if len(list.Items) == 0 {
 		return nil, nil
@@ -1022,6 +1066,29 @@ func hclObjectMap(os *hclobj.Object) map[string]ast.ListNode {
 	return objects
 }
 */
+
+// assertAllBlocksHaveNames returns an error if any of the items in
+// the given object list are blocks without keys (like "module {}")
+// or simple assignments (like "module = 1"). It returns nil if
+// neither of these things are true.
+//
+// The given name is used in any generated error messages, and should
+// be the name of the block we're dealing with. The given list should
+// be the result of calling .Filter on an object list with that same
+// name.
+func assertAllBlocksHaveNames(name string, list *ast.ObjectList) error {
+	if elem := list.Elem(); len(elem.Items) != 0 {
+		switch et := elem.Items[0].Val.(type) {
+		case *ast.ObjectType:
+			pos := et.Lbrace
+			return fmt.Errorf("%s: %q must be followed by a name", pos, name)
+		default:
+			pos := elem.Items[0].Val.Pos()
+			return fmt.Errorf("%s: %q must be a configuration block", pos, name)
+		}
+	}
+	return nil
+}
 
 func checkHCLKeys(node ast.Node, valid []string) error {
 	var list *ast.ObjectList

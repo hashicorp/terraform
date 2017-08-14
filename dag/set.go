@@ -81,6 +81,20 @@ func (s *Set) Difference(other *Set) *Set {
 	return result
 }
 
+// Filter returns a set that contains the elements from the receiver
+// where the given callback returns true.
+func (s *Set) Filter(cb func(interface{}) bool) *Set {
+	result := new(Set)
+
+	for _, v := range s.m {
+		if cb(v) {
+			result.Add(v)
+		}
+	}
+
+	return result
+}
+
 // Len is the number of items in the set.
 func (s *Set) Len() int {
 	if s == nil {

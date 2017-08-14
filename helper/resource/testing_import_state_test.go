@@ -40,6 +40,7 @@ func TestTest_importState(t *testing.T) {
 
 		Steps: []TestStep{
 			TestStep{
+				Config:           testConfigStrProvider,
 				ResourceName:     "test_instance.foo",
 				ImportState:      true,
 				ImportStateId:    "foo",
@@ -89,6 +90,7 @@ func TestTest_importStateFail(t *testing.T) {
 
 		Steps: []TestStep{
 			TestStep{
+				Config:           testConfigStrProvider,
 				ResourceName:     "test_instance.foo",
 				ImportState:      true,
 				ImportStateId:    "foo",
@@ -163,6 +165,7 @@ func TestTest_importStateDetectId(t *testing.T) {
 				Config: testConfigStr,
 			},
 			TestStep{
+				Config:           testConfigStr,
 				ResourceName:     "test_instance.foo",
 				ImportState:      true,
 				ImportStateCheck: checkFn,
@@ -236,6 +239,7 @@ func TestTest_importStateIdPrefix(t *testing.T) {
 				Config: testConfigStr,
 			},
 			{
+				Config:              testConfigStr,
 				ResourceName:        "test_instance.foo",
 				ImportState:         true,
 				ImportStateCheck:    checkFn,
@@ -309,6 +313,7 @@ func TestTest_importStateVerify(t *testing.T) {
 				Config: testConfigStr,
 			},
 			TestStep{
+				Config:            testConfigStr,
 				ResourceName:      "test_instance.foo",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -371,6 +376,7 @@ func TestTest_importStateVerifyFail(t *testing.T) {
 				Config: testConfigStr,
 			},
 			TestStep{
+				Config:            testConfigStr,
 				ResourceName:      "test_instance.foo",
 				ImportState:       true,
 				ImportStateVerify: true,

@@ -1,0 +1,29 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <ul class="nav docs-sidenav">
+      <li<%= sidebar_current("downloads-terraform") %>>
+        <a href="/downloads.html">Download Terraform</a>
+      </li>
+
+      <li<%= sidebar_current("upgrade-guides") %>>
+        <a href="/upgrade-guides/index.html">Upgrade Guides</a>
+        <ul class="nav">
+          <li<%= sidebar_current("upgrade-guides-0-10") %>>
+            <a href="/upgrade-guides/0-10.html">Upgrading to v0.10</a>
+          </li>
+          <li<%= sidebar_current("upgrade-guides-0-9") %>>
+            <a href="/upgrade-guides/0-9.html">Upgrading to v0.9</a>
+          </li>
+          <li<%= sidebar_current("upgrade-guides-0-8") %>>
+            <a href="/upgrade-guides/0-8.html">Upgrading to v0.8</a>
+          </li>
+          <li<%= sidebar_current("upgrade-guides-0-7") %>>
+            <a href="/upgrade-guides/0-7.html">Upgrading to v0.7</a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  <% end %>
+
+  <%= yield %>
+<% end %>

@@ -108,10 +108,6 @@ func wrappedMain() int {
 
 	// Load the configuration
 	config := BuiltinConfig
-	if err := config.Discover(Ui); err != nil {
-		Ui.Error(fmt.Sprintf("Error discovering plugins: %s", err))
-		return 1
-	}
 
 	// Load the configuration file if we have one, that can be used to
 	// define extra providers and provisioners.
@@ -185,9 +181,9 @@ func wrappedMain() int {
 		HelpWriter: os.Stdout,
 	}
 
-	// Initialize the TFConfig settings for the commands...
-	ContextOpts.Providers = config.ProviderFactories()
-	ContextOpts.Provisioners = config.ProvisionerFactories()
+	// Pass in the overriding plugin paths from config
+	PluginOverrides.Providers = config.Providers
+	PluginOverrides.Provisioners = config.Provisioners
 
 	exitCode, err := cliRunner.Run()
 	if err != nil {
@@ -258,6 +254,15 @@ func copyOutput(r io.Reader, doneCh chan<- struct{}) {
 	if runtime.GOOS == "windows" {
 		stdout = colorable.NewColorableStdout()
 		stderr = colorable.NewColorableStderr()
+
+		// colorable is not concurrency-safe when stdout and stderr are the
+		// same console, so we need to add some synchronization to ensure that
+		// we can't be concurrently writing to both stderr and stdout at
+		// once, or else we get intermingled writes that create gibberish
+		// in the console.
+		wrapped := synchronizedWriters(stdout, stderr)
+		stdout = wrapped[0]
+		stderr = wrapped[1]
 	}
 
 	var wg sync.WaitGroup

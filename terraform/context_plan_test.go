@@ -17,8 +17,13 @@ func TestContext2Plan_basic(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		ProviderSHA256s: map[string][]byte{
+			"aws": []byte("placeholder"),
 		},
 	})
 
@@ -29,6 +34,10 @@ func TestContext2Plan_basic(t *testing.T) {
 
 	if len(plan.Diff.RootModule().Resources) < 2 {
 		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
+	}
+
+	if !reflect.DeepEqual(plan.ProviderSHA256s, ctx.providerSHA256s) {
+		t.Errorf("wrong ProviderSHA256s %#v; want %#v", plan.ProviderSHA256s, ctx.providerSHA256s)
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -64,9 +73,11 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -98,9 +109,11 @@ func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		Variables: map[string]interface{}{
 			"in": "a,b,c",
 		},
@@ -141,9 +154,11 @@ func TestContext2Plan_emptyDiff(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -164,9 +179,11 @@ func TestContext2Plan_escapedVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -187,9 +204,11 @@ func TestContext2Plan_minimal(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -210,9 +229,11 @@ func TestContext2Plan_modules(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -234,9 +255,11 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -259,9 +282,11 @@ func TestContext2Plan_moduleDeadlock(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Module: m,
-			Providers: map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
+			ProviderResolver: ResourceProviderResolverFixed(
+				map[string]ResourceProviderFactory{
+					"aws": testProviderFuncFixed(p),
+				},
+			),
 		})
 
 		plan, err := ctx.Plan()
@@ -294,9 +319,11 @@ func TestContext2Plan_moduleInput(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -317,9 +344,11 @@ func TestContext2Plan_moduleInputComputed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -340,9 +369,11 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		Variables: map[string]interface{}{
 			"foo": "52",
 		},
@@ -366,9 +397,11 @@ func TestContext2Plan_moduleMultiVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -404,9 +437,11 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -467,9 +502,11 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		Provisioners: map[string]ResourceProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
@@ -514,33 +551,35 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 	m := testModule(t, "plan-module-provider-inherit")
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": func() (ResourceProvider, error) {
-				l.Lock()
-				defer l.Unlock()
-
-				p := testProvider("aws")
-				p.ConfigureFn = func(c *ResourceConfig) error {
-					if v, ok := c.Get("from"); !ok || v.(string) != "root" {
-						return fmt.Errorf("bad")
-					}
-
-					return nil
-				}
-				p.DiffFn = func(
-					info *InstanceInfo,
-					state *InstanceState,
-					c *ResourceConfig) (*InstanceDiff, error) {
-					v, _ := c.Get("from")
-
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": func() (ResourceProvider, error) {
 					l.Lock()
 					defer l.Unlock()
-					calls = append(calls, v.(string))
-					return testDiffFn(info, state, c)
-				}
-				return p, nil
+
+					p := testProvider("aws")
+					p.ConfigureFn = func(c *ResourceConfig) error {
+						if v, ok := c.Get("from"); !ok || v.(string) != "root" {
+							return fmt.Errorf("bad")
+						}
+
+						return nil
+					}
+					p.DiffFn = func(
+						info *InstanceInfo,
+						state *InstanceState,
+						c *ResourceConfig) (*InstanceDiff, error) {
+						v, _ := c.Get("from")
+
+						l.Lock()
+						defer l.Unlock()
+						calls = append(calls, v.(string))
+						return testDiffFn(info, state, c)
+					}
+					return p, nil
+				},
 			},
-		},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -564,36 +603,38 @@ func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
 	m := testModule(t, "plan-module-provider-inherit-deep")
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": func() (ResourceProvider, error) {
-				l.Lock()
-				defer l.Unlock()
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": func() (ResourceProvider, error) {
+					l.Lock()
+					defer l.Unlock()
 
-				var from string
-				p := testProvider("aws")
-				p.ConfigureFn = func(c *ResourceConfig) error {
-					v, ok := c.Get("from")
-					if !ok || v.(string) != "root" {
-						return fmt.Errorf("bad")
+					var from string
+					p := testProvider("aws")
+					p.ConfigureFn = func(c *ResourceConfig) error {
+						v, ok := c.Get("from")
+						if !ok || v.(string) != "root" {
+							return fmt.Errorf("bad")
+						}
+
+						from = v.(string)
+						return nil
 					}
 
-					from = v.(string)
-					return nil
-				}
+					p.DiffFn = func(
+						info *InstanceInfo,
+						state *InstanceState,
+						c *ResourceConfig) (*InstanceDiff, error) {
+						if from != "root" {
+							return nil, fmt.Errorf("bad resource")
+						}
 
-				p.DiffFn = func(
-					info *InstanceInfo,
-					state *InstanceState,
-					c *ResourceConfig) (*InstanceDiff, error) {
-					if from != "root" {
-						return nil, fmt.Errorf("bad resource")
+						return testDiffFn(info, state, c)
 					}
-
-					return testDiffFn(info, state, c)
-				}
-				return p, nil
+					return p, nil
+				},
 			},
-		},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -610,36 +651,38 @@ func TestContext2Plan_moduleProviderDefaults(t *testing.T) {
 	m := testModule(t, "plan-module-provider-defaults")
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": func() (ResourceProvider, error) {
-				l.Lock()
-				defer l.Unlock()
-
-				p := testProvider("aws")
-				p.ConfigureFn = func(c *ResourceConfig) error {
-					if v, ok := c.Get("from"); !ok || v.(string) != "root" {
-						return fmt.Errorf("bad")
-					}
-					if v, ok := c.Get("to"); ok && v.(string) == "child" {
-						toCount++
-					}
-
-					return nil
-				}
-				p.DiffFn = func(
-					info *InstanceInfo,
-					state *InstanceState,
-					c *ResourceConfig) (*InstanceDiff, error) {
-					v, _ := c.Get("from")
-
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": func() (ResourceProvider, error) {
 					l.Lock()
 					defer l.Unlock()
-					calls = append(calls, v.(string))
-					return testDiffFn(info, state, c)
-				}
-				return p, nil
+
+					p := testProvider("aws")
+					p.ConfigureFn = func(c *ResourceConfig) error {
+						if v, ok := c.Get("from"); !ok || v.(string) != "root" {
+							return fmt.Errorf("bad")
+						}
+						if v, ok := c.Get("to"); ok && v.(string) == "child" {
+							toCount++
+						}
+
+						return nil
+					}
+					p.DiffFn = func(
+						info *InstanceInfo,
+						state *InstanceState,
+						c *ResourceConfig) (*InstanceDiff, error) {
+						v, _ := c.Get("from")
+
+						l.Lock()
+						defer l.Unlock()
+						calls = append(calls, v.(string))
+						return testDiffFn(info, state, c)
+					}
+					return p, nil
+				},
 			},
-		},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -668,30 +711,32 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	m := testModule(t, "plan-module-provider-defaults-var")
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": func() (ResourceProvider, error) {
-				l.Lock()
-				defer l.Unlock()
-
-				p := testProvider("aws")
-				p.ConfigureFn = func(c *ResourceConfig) error {
-					var buf bytes.Buffer
-					if v, ok := c.Get("from"); ok {
-						buf.WriteString(v.(string) + "\n")
-					}
-					if v, ok := c.Get("to"); ok {
-						buf.WriteString(v.(string) + "\n")
-					}
-
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": func() (ResourceProvider, error) {
 					l.Lock()
 					defer l.Unlock()
-					calls = append(calls, buf.String())
-					return nil
-				}
-				p.DiffFn = testDiffFn
-				return p, nil
+
+					p := testProvider("aws")
+					p.ConfigureFn = func(c *ResourceConfig) error {
+						var buf bytes.Buffer
+						if v, ok := c.Get("from"); ok {
+							buf.WriteString(v.(string) + "\n")
+						}
+						if v, ok := c.Get("to"); ok {
+							buf.WriteString(v.(string) + "\n")
+						}
+
+						l.Lock()
+						defer l.Unlock()
+						calls = append(calls, buf.String())
+						return nil
+					}
+					p.DiffFn = testDiffFn
+					return p, nil
+				},
 			},
-		},
+		),
 		Variables: map[string]interface{}{
 			"foo": "root",
 		},
@@ -717,9 +762,11 @@ func TestContext2Plan_moduleProviderVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -740,9 +787,11 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -763,9 +812,11 @@ func TestContext2Plan_moduleVarWrongTypeBasic(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -776,13 +827,15 @@ func TestContext2Plan_moduleVarWrongTypeBasic(t *testing.T) {
 
 func TestContext2Plan_moduleVarWrongTypeNested(t *testing.T) {
 	m := testModule(t, "plan-module-wrong-var-type-nested")
-	p := testProvider("aws")
+	p := testProvider("null")
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"null": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -797,9 +850,11 @@ func TestContext2Plan_moduleVarWithDefaultValue(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"null": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"null": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -814,9 +869,11 @@ func TestContext2Plan_moduleVarComputed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -837,9 +894,11 @@ func TestContext2Plan_nil(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -872,9 +931,11 @@ func TestContext2Plan_preventDestroy_bad(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -907,9 +968,11 @@ func TestContext2Plan_preventDestroy_good(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -942,9 +1005,11 @@ func TestContext2Plan_preventDestroy_countBad(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -983,9 +1048,11 @@ func TestContext2Plan_preventDestroy_countGood(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -1024,9 +1091,11 @@ func TestContext2Plan_preventDestroy_countGoodNoChange(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -1063,9 +1132,11 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -1100,9 +1171,11 @@ func TestContext2Plan_provisionerCycle(t *testing.T) {
 	pr := testProvisioner()
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		Provisioners: map[string]ResourceProvisionerFactory{
 			"local-exec": testProvisionerFuncFixed(pr),
 		},
@@ -1120,9 +1193,11 @@ func TestContext2Plan_computed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1143,9 +1218,11 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1190,9 +1267,11 @@ func TestContext2Plan_computedDataCountResource(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1266,9 +1345,11 @@ func TestContext2Plan_dataSourceTypeMismatch(t *testing.T) {
 				},
 			},
 		},
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -1314,9 +1395,11 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -1379,9 +1462,11 @@ func TestContext2Plan_computedList(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1404,9 +1489,11 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1427,9 +1514,11 @@ func TestContext2Plan_count(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1454,9 +1543,11 @@ func TestContext2Plan_countComputed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -1471,9 +1562,11 @@ func TestContext2Plan_countComputedModule(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -1491,9 +1584,11 @@ func TestContext2Plan_countModuleStatic(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1525,9 +1620,11 @@ func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1559,9 +1656,11 @@ func TestContext2Plan_countIndex(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1582,9 +1681,11 @@ func TestContext2Plan_countIndexZero(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1605,9 +1706,11 @@ func TestContext2Plan_countVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		Variables: map[string]interface{}{
 			"count": "3",
 		},
@@ -1631,9 +1734,11 @@ func TestContext2Plan_countZero(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1655,9 +1760,11 @@ func TestContext2Plan_countOneIndex(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -1709,9 +1816,11 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -1752,9 +1861,11 @@ func TestContext2Plan_countIncreaseFromNotSet(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -1795,9 +1906,11 @@ func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -1853,9 +1966,11 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -1866,6 +1981,109 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanCountIncreaseFromOneCorruptedStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+// A common pattern in TF configs is to have a set of resources with the same
+// count and to use count.index to create correspondences between them:
+//
+//    foo_id = "${foo.bar.*.id[count.index]}"
+//
+// This test is for the situation where some instances already exist and the
+// count is increased. In that case, we should see only the create diffs
+// for the new instances and not any update diffs for the existing ones.
+func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
+	m := testModule(t, "plan-count-splat-reference")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"name": "foo 0",
+							},
+						},
+					},
+					"aws_instance.foo.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"name": "foo 1",
+							},
+						},
+					},
+					"aws_instance.bar.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo_name": "foo 0",
+							},
+						},
+					},
+					"aws_instance.bar.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo_name": "foo 1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+CREATE: aws_instance.bar.2
+  foo_name: "" => "foo 2"
+  type:     "" => "aws_instance"
+CREATE: aws_instance.foo.2
+  name: "" => "foo 2"
+  type: "" => "aws_instance"
+
+STATE:
+
+aws_instance.bar.0:
+  ID = bar
+  foo_name = foo 0
+aws_instance.bar.1:
+  ID = bar
+  foo_name = foo 1
+aws_instance.foo.0:
+  ID = bar
+  name = foo 0
+aws_instance.foo.1:
+  ID = bar
+  name = foo 1
+`)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -1898,9 +2116,11 @@ func TestContext2Plan_destroy(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State:   s,
 		Destroy: true,
 	})
@@ -1953,9 +2173,11 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State:   s,
 		Destroy: true,
 	})
@@ -2005,9 +2227,11 @@ func TestContext2Plan_moduleDestroyCycle(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State:   s,
 		Destroy: true,
 	})
@@ -2055,9 +2279,11 @@ func TestContext2Plan_moduleDestroyMultivar(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State:   s,
 		Destroy: true,
 	})
@@ -2085,9 +2311,11 @@ func TestContext2Plan_pathVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -2120,6 +2348,7 @@ func TestContext2Plan_diffVar(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
 							Attributes: map[string]string{
@@ -2133,9 +2362,11 @@ func TestContext2Plan_diffVar(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -2177,9 +2408,11 @@ func TestContext2Plan_hook(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Hooks:  []Hook{h},
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -2216,9 +2449,11 @@ func TestContext2Plan_orphan(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -2242,9 +2477,11 @@ func TestContext2Plan_shadowUuid(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -2263,6 +2500,7 @@ func TestContext2Plan_state(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
 						},
@@ -2273,9 +2511,11 @@ func TestContext2Plan_state(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -2324,9 +2564,11 @@ func TestContext2Plan_taint(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -2369,9 +2611,11 @@ func TestContext2Apply_taintIgnoreChanges(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -2418,9 +2662,11 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -2458,9 +2704,11 @@ func TestContext2Plan_targeted(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		Targets: []string{"aws_instance.foo"},
 	})
 
@@ -2494,9 +2742,11 @@ func TestContext2Plan_targetedCrossModule(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		Targets: []string{"module.B"},
 	})
 
@@ -2533,9 +2783,11 @@ func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"null": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"null": testProviderFuncFixed(p),
+			},
+		),
 		Targets: []string{"module.child2"},
 	})
 
@@ -2566,9 +2818,11 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -2623,9 +2877,11 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -2681,9 +2937,11 @@ func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		Targets: []string{"aws_instance.blue", "module.blue_mod"},
 	})
 
@@ -2732,9 +2990,11 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -2805,9 +3065,11 @@ func TestContext2Plan_provider(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		Variables: map[string]interface{}{
 			"foo": "bar",
 		},
@@ -2827,9 +3089,11 @@ func TestContext2Plan_varListErr(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	_, err := ctx.Plan()
@@ -2849,6 +3113,7 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID:         "bar",
 							Attributes: map[string]string{"ami": "ami-abcd1234"},
@@ -2860,9 +3125,11 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		Variables: map[string]interface{}{
 			"foo": "ami-1234abcd",
 		},
@@ -2895,6 +3162,7 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
 							Attributes: map[string]string{
@@ -2909,9 +3177,11 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		Variables: map[string]interface{}{
 			"foo": "ami-1234abcd",
 			"bar": "t2.small",
@@ -2964,9 +3234,11 @@ func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	if _, err := ctx.Plan(); err != nil {
@@ -2993,9 +3265,11 @@ func TestContext2Plan_computedValueInMap(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	if _, err := ctx.Plan(); err != nil {
@@ -3020,9 +3294,11 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	if _, err := ctx.Plan(); err != nil {
@@ -3047,9 +3323,11 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -3085,9 +3363,11 @@ func TestContext2Plan_listOrder(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 	})
 
 	plan, err := ctx.Plan()
@@ -3137,9 +3417,11 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
 		State: s,
 	})
 
@@ -3150,6 +3432,151 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 
 	actual := strings.TrimSpace(plan.Diff.String())
 	expected := strings.TrimSpace(testTFPlanDiffIgnoreChangesWithFlatmaps)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	}
+}
+
+// TestContext2Plan_resourceNestedCount ensures resource sets that depend on
+// the count of another resource set (ie: count of a data source that depends
+// on another data source's instance count - data.x.foo.*.id) get properly
+// normalized to the indexes they should be. This case comes up when there is
+// an existing state (after an initial apply).
+func TestContext2Plan_resourceNestedCount(t *testing.T) {
+	m := testModule(t, "nested-resource-count-plan")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	p.RefreshFn = func(i *InstanceInfo, is *InstanceState) (*InstanceState, error) {
+		return is, nil
+	}
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo0",
+							Attributes: map[string]string{
+								"id": "foo0",
+							},
+						},
+					},
+					"aws_instance.foo.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo1",
+							Attributes: map[string]string{
+								"id": "foo1",
+							},
+						},
+					},
+					"aws_instance.bar.0": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"aws_instance.foo.*"},
+						Primary: &InstanceState{
+							ID: "bar0",
+							Attributes: map[string]string{
+								"id": "bar0",
+							},
+						},
+					},
+					"aws_instance.bar.1": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"aws_instance.foo.*"},
+						Primary: &InstanceState{
+							ID: "bar1",
+							Attributes: map[string]string{
+								"id": "bar1",
+							},
+						},
+					},
+					"aws_instance.baz.0": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"aws_instance.bar.*"},
+						Primary: &InstanceState{
+							ID: "baz0",
+							Attributes: map[string]string{
+								"id": "baz0",
+							},
+						},
+					},
+					"aws_instance.baz.1": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"aws_instance.bar.*"},
+						Primary: &InstanceState{
+							ID: "baz1",
+							Attributes: map[string]string{
+								"id": "baz1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: s,
+	})
+
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		t.Fatalf("warnings generated on validate: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("errors generated on validate: %#v", e)
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("refresh err: %s", err)
+	}
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("plan err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+
+
+STATE:
+
+aws_instance.bar.0:
+  ID = bar0
+
+  Dependencies:
+    aws_instance.foo.*
+aws_instance.bar.1:
+  ID = bar1
+
+  Dependencies:
+    aws_instance.foo.*
+aws_instance.baz.0:
+  ID = baz0
+
+  Dependencies:
+    aws_instance.bar.*
+aws_instance.baz.1:
+  ID = baz1
+
+  Dependencies:
+    aws_instance.bar.*
+aws_instance.foo.0:
+  ID = foo0
+aws_instance.foo.1:
+  ID = foo1
+`)
 	if actual != expected {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}

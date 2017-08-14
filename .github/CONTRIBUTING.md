@@ -37,6 +37,7 @@ The current list of HashiCorp Providers is as follows:
  * `aws`
  * `azurerm`
  * `google`
+ * `opc`
 
 Our testing standards are the same for both HashiCorp and Community providers,
 and HashiCorp runs full acceptance test suites for every provider nightly to

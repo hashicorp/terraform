@@ -23,8 +23,8 @@ func TestStatePush_empty(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StatePushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -52,8 +52,8 @@ func TestStatePush_replaceMatch(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StatePushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -88,8 +88,8 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StatePushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -117,8 +117,8 @@ func TestStatePush_lineageMismatch(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StatePushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -146,8 +146,8 @@ func TestStatePush_serialNewer(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StatePushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -175,8 +175,8 @@ func TestStatePush_serialOlder(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StatePushCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 

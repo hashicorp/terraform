@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -23,6 +24,7 @@ import (
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // stringSliceToVariableValue converts a string slice into the value
@@ -57,6 +59,8 @@ func Funcs() map[string]ast.Function {
 		"base64decode": interpolationFuncBase64Decode(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64sha256": interpolationFuncBase64Sha256(),
+		"base64sha512": interpolationFuncBase64Sha512(),
+		"bcrypt":       interpolationFuncBcrypt(),
 		"ceil":         interpolationFuncCeil(),
 		"chomp":        interpolationFuncChomp(),
 		"cidrhost":     interpolationFuncCidrHost(),
@@ -66,6 +70,7 @@ func Funcs() map[string]ast.Function {
 		"coalescelist": interpolationFuncCoalesceList(),
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
+		"contains":     interpolationFuncContains(),
 		"dirname":      interpolationFuncDirname(),
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
@@ -79,6 +84,7 @@ func Funcs() map[string]ast.Function {
 		"jsonencode":   interpolationFuncJSONEncode(),
 		"length":       interpolationFuncLength(),
 		"list":         interpolationFuncList(),
+		"log":          interpolationFuncLog(),
 		"lower":        interpolationFuncLower(),
 		"map":          interpolationFuncMap(),
 		"max":          interpolationFuncMax(),
@@ -86,10 +92,12 @@ func Funcs() map[string]ast.Function {
 		"merge":        interpolationFuncMerge(),
 		"min":          interpolationFuncMin(),
 		"pathexpand":   interpolationFuncPathExpand(),
+		"pow":          interpolationFuncPow(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
+		"sha512":       interpolationFuncSha512(),
 		"signum":       interpolationFuncSignum(),
 		"slice":        interpolationFuncSlice(),
 		"sort":         interpolationFuncSort(),
@@ -349,6 +357,22 @@ func interpolationFuncCoalesceList() ast.Function {
 	}
 }
 
+// interpolationFuncContains returns true if an element is in the list
+// and return false otherwise
+func interpolationFuncContains() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeString},
+		ReturnType: ast.TypeBool,
+		Callback: func(args []interface{}) (interface{}, error) {
+			_, err := interpolationFuncIndex().Callback(args)
+			if err != nil {
+				return false, nil
+			}
+			return true, nil
+		},
+	}
+}
+
 // interpolationFuncConcat implements the "concat" function that concatenates
 // multiple lists.
 func interpolationFuncConcat() ast.Function {
@@ -386,6 +410,17 @@ func interpolationFuncConcat() ast.Function {
 			}
 
 			return outputList, nil
+		},
+	}
+}
+
+// interpolationFuncPow returns base x exponential of y.
+func interpolationFuncPow() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeFloat, ast.TypeFloat},
+		ReturnType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return math.Pow(args[0].(float64), args[1].(float64)), nil
 		},
 	}
 }
@@ -482,6 +517,17 @@ func interpolationFuncCeil() ast.Function {
 		ReturnType: ast.TypeInt,
 		Callback: func(args []interface{}) (interface{}, error) {
 			return int(math.Ceil(args[0].(float64))), nil
+		},
+	}
+}
+
+// interpolationFuncLog returns the logarithnm.
+func interpolationFuncLog() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeFloat, ast.TypeFloat},
+		ReturnType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return math.Log(args[0].(float64)) / math.Log(args[1].(float64)), nil
 		},
 	}
 }
@@ -1240,6 +1286,20 @@ func interpolationFuncSha256() ast.Function {
 	}
 }
 
+func interpolationFuncSha512() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			h := sha512.New()
+			h.Write([]byte(s))
+			hash := hex.EncodeToString(h.Sum(nil))
+			return hash, nil
+		},
+	}
+}
+
 func interpolationFuncTrimSpace() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString},
@@ -1262,6 +1322,55 @@ func interpolationFuncBase64Sha256() ast.Function {
 			shaSum := h.Sum(nil)
 			encoded := base64.StdEncoding.EncodeToString(shaSum[:])
 			return encoded, nil
+		},
+	}
+}
+
+func interpolationFuncBase64Sha512() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			h := sha512.New()
+			h.Write([]byte(s))
+			shaSum := h.Sum(nil)
+			encoded := base64.StdEncoding.EncodeToString(shaSum[:])
+			return encoded, nil
+		},
+	}
+}
+
+func interpolationFuncBcrypt() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeString},
+		Variadic:     true,
+		VariadicType: ast.TypeString,
+		ReturnType:   ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			defaultCost := 10
+
+			if len(args) > 1 {
+				costStr := args[1].(string)
+				cost, err := strconv.Atoi(costStr)
+				if err != nil {
+					return "", err
+				}
+
+				defaultCost = cost
+			}
+
+			if len(args) > 2 {
+				return "", fmt.Errorf("bcrypt() takes no more than two arguments")
+			}
+
+			input := args[0].(string)
+			out, err := bcrypt.GenerateFromPassword([]byte(input), defaultCost)
+			if err != nil {
+				return "", fmt.Errorf("error occured generating password %s", err.Error())
+			}
+
+			return string(out), nil
 		},
 	}
 }

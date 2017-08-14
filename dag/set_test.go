@@ -54,3 +54,45 @@ func TestSetDifference(t *testing.T) {
 		})
 	}
 }
+
+func TestSetFilter(t *testing.T) {
+	cases := []struct {
+		Input    []interface{}
+		Expected []interface{}
+	}{
+		{
+			[]interface{}{1, 2, 3},
+			[]interface{}{1, 2, 3},
+		},
+
+		{
+			[]interface{}{4, 5, 6},
+			[]interface{}{4},
+		},
+
+		{
+			[]interface{}{7, 8, 9},
+			[]interface{}{},
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%#v", i, tc.Input), func(t *testing.T) {
+			var input, expected Set
+			for _, v := range tc.Input {
+				input.Add(v)
+			}
+			for _, v := range tc.Expected {
+				expected.Add(v)
+			}
+
+			actual := input.Filter(func(v interface{}) bool {
+				return v.(int) < 5
+			})
+			match := actual.Intersection(&expected)
+			if match.Len() != expected.Len() {
+				t.Fatalf("bad: %#v", actual.List())
+			}
+		})
+	}
+}

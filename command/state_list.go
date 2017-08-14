@@ -16,7 +16,10 @@ type StateListCommand struct {
 }
 
 func (c *StateListCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := c.Meta.flagSet("state list")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
@@ -32,7 +35,7 @@ func (c *StateListCommand) Run(args []string) int {
 		return 1
 	}
 
-	env := c.Env()
+	env := c.Workspace()
 	// Get the state
 	state, err := b.State(env)
 	if err != nil {

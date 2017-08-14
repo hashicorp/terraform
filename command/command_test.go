@@ -69,23 +69,27 @@ func testFixturePath(name string) string {
 	return filepath.Join(fixtureDir, name)
 }
 
-func testCtxConfig(p terraform.ResourceProvider) *terraform.ContextOpts {
-	return &terraform.ContextOpts{
-		Providers: map[string]terraform.ResourceProviderFactory{
-			"test": func() (terraform.ResourceProvider, error) {
-				return p, nil
+func metaOverridesForProvider(p terraform.ResourceProvider) *testingOverrides {
+	return &testingOverrides{
+		ProviderResolver: terraform.ResourceProviderResolverFixed(
+			map[string]terraform.ResourceProviderFactory{
+				"test": func() (terraform.ResourceProvider, error) {
+					return p, nil
+				},
 			},
-		},
+		),
 	}
 }
 
-func testCtxConfigWithShell(p terraform.ResourceProvider, pr terraform.ResourceProvisioner) *terraform.ContextOpts {
-	return &terraform.ContextOpts{
-		Providers: map[string]terraform.ResourceProviderFactory{
-			"test": func() (terraform.ResourceProvider, error) {
-				return p, nil
+func metaOverridesForProviderAndProvisioner(p terraform.ResourceProvider, pr terraform.ResourceProvisioner) *testingOverrides {
+	return &testingOverrides{
+		ProviderResolver: terraform.ResourceProviderResolverFixed(
+			map[string]terraform.ResourceProviderFactory{
+				"test": func() (terraform.ResourceProvider, error) {
+					return p, nil
+				},
 			},
-		},
+		),
 		Provisioners: map[string]terraform.ResourceProvisionerFactory{
 			"shell": func() (terraform.ResourceProvisioner, error) {
 				return pr, nil
@@ -156,7 +160,6 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 // testState returns a test State structure that we use for a lot of tests.
 func testState() *terraform.State {
 	state := &terraform.State{
-		Version: 2,
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
 				Path: []string{"root"},
@@ -173,20 +176,7 @@ func testState() *terraform.State {
 		},
 	}
 	state.Init()
-
-	// Write and read the state so that it is properly initialized. We
-	// do this since we didn't call the normal NewState constructor.
-	var buf bytes.Buffer
-	if err := terraform.WriteState(state, &buf); err != nil {
-		panic(err)
-	}
-
-	result, err := terraform.ReadState(&buf)
-	if err != nil {
-		panic(err)
-	}
-
-	return result
+	return state
 }
 
 func testStateFile(t *testing.T, s *terraform.State) string {
@@ -248,9 +238,9 @@ func testStateRead(t *testing.T, path string) *terraform.State {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	defer f.Close()
 
 	newState, err := terraform.ReadState(f)
-	f.Close()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

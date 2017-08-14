@@ -59,6 +59,11 @@ func (h *UiHook) PreApply(
 	d *terraform.InstanceDiff) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
+	// if there's no diff, there's nothing to output
+	if d.Empty() {
+		return terraform.HookActionContinue, nil
+	}
+
 	id := n.HumanId()
 
 	op := uiResourceModify

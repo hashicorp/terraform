@@ -3353,6 +3353,48 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			},
 			true,
 		},
+
+		"invalid field name format #1": {
+			map[string]*Schema{
+				"with space": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+			true,
+		},
+
+		"invalid field name format #2": {
+			map[string]*Schema{
+				"WithCapitals": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+			true,
+		},
+
+		"invalid field name format of a Deprecated field": {
+			map[string]*Schema{
+				"WithCapitals": &Schema{
+					Type:       TypeString,
+					Optional:   true,
+					Deprecated: "Use with_underscores instead",
+				},
+			},
+			false,
+		},
+
+		"invalid field name format of a Removed field": {
+			map[string]*Schema{
+				"WithCapitals": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Removed:  "Use with_underscores instead",
+				},
+			},
+			false,
+		},
 	}
 
 	for tn, tc := range cases {
@@ -3942,6 +3984,62 @@ func TestSchemaMap_Validate(t *testing.T) {
 						"from": 80,
 					},
 				},
+			},
+
+			Err: false,
+		},
+
+		"Good sub-resource, interpolated value": {
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{
+					`${map("from", "80")}`,
+				},
+			},
+
+			Vars: map[string]string{},
+
+			Err: false,
+		},
+
+		"Good sub-resource, computed value": {
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{
+					`${map("from", var.port)}`,
+				},
+			},
+
+			Vars: map[string]string{
+				"var.port": config.UnknownVariableValue,
 			},
 
 			Err: false,

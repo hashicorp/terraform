@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	terraformAWS "github.com/hashicorp/terraform/builtin/providers/aws"
+	terraformAWS "github.com/terraform-providers/terraform-provider-aws/aws"
 )
 
 const RecoveryLogKeySuffix string = "-recovery-log"
@@ -85,6 +85,14 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "DynamoDB table for state locking",
 				Default:     "",
+				Deprecated:  "please use the dynamodb_table attribute",
+			},
+
+			"dynamodb_table": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "DynamoDB table for state locking and consistency",
+				Default:     "",
 			},
 
 			"profile": {
@@ -135,6 +143,13 @@ func New() backend.Backend {
 				Description: "The permissions applied when assuming a role.",
 				Default:     "",
 			},
+
+			"workspace_key_prefix": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The prefix applied to the non-default state path inside the bucket",
+				Default:     "env:",
+			},
 		},
 	}
 
@@ -150,15 +165,16 @@ type Backend struct {
 	s3Client  *s3.S3
 	dynClient *dynamodb.DynamoDB
 
-	bucketName            string
-	keyName               string
+	bucketName           string
+	keyName              string
 	recoveryLogKeyName    string
 	lostResourcesKeyName  string
 	lostResourcesPathName string
-	serverSideEncryption  bool
-	acl                   string
-	kmsKeyID              string
-	lockTable             string
+	serverSideEncryption bool
+	acl                  string
+	kmsKeyID             string
+	ddbTable             string
+	workspaceKeyPrefix   string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -177,7 +193,13 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.serverSideEncryption = data.Get("encrypt").(bool)
 	b.acl = data.Get("acl").(string)
 	b.kmsKeyID = data.Get("kms_key_id").(string)
-	b.lockTable = data.Get("lock_table").(string)
+	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
+
+	b.ddbTable = data.Get("dynamodb_table").(string)
+	if b.ddbTable == "" {
+		// try the depracted field
+		b.ddbTable = data.Get("lock_table").(string)
+	}
 
 	cfg := &terraformAWS.Config{
 		AccessKey:             data.Get("access_key").(string),

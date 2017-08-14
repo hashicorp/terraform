@@ -133,6 +133,64 @@ func TestResourceApply_Timeout_state(t *testing.T) {
 	}
 }
 
+// Regression test to ensure that the meta data is read from state, if a
+// resource is destroyed and the timeout meta is no longer available from the
+// config
+func TestResourceApply_Timeout_destroy(t *testing.T) {
+	timeouts := &ResourceTimeout{
+		Create: DefaultTimeout(40 * time.Minute),
+		Update: DefaultTimeout(80 * time.Minute),
+		Delete: DefaultTimeout(40 * time.Minute),
+	}
+
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+		Timeouts: timeouts,
+	}
+
+	called := false
+	var delTimeout time.Duration
+	r.Delete = func(d *ResourceData, m interface{}) error {
+		delTimeout = d.Timeout(TimeoutDelete)
+		called = true
+		return nil
+	}
+
+	s := &terraform.InstanceState{
+		ID: "bar",
+	}
+
+	if err := timeouts.StateEncode(s); err != nil {
+		t.Fatalf("Error encoding to state: %s", err)
+	}
+
+	d := &terraform.InstanceDiff{
+		Destroy: true,
+	}
+
+	actual, err := r.Apply(s, d, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !called {
+		t.Fatal("delete not called")
+	}
+
+	if *timeouts.Delete != delTimeout {
+		t.Fatalf("timeouts don't match, expected (%#v), got (%#v)", timeouts.Delete, delTimeout)
+	}
+
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestResourceDiff_Timeout_diff(t *testing.T) {
 	r := &Resource{
 		Schema: map[string]*Schema{
@@ -648,11 +706,75 @@ func TestResourceInternalValidate(t *testing.T) {
 			true,
 			true,
 		},
+
+		8: { // Reserved name at root should be disallowed
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Read:   func(d *ResourceData, meta interface{}) error { return nil },
+				Update: func(d *ResourceData, meta interface{}) error { return nil },
+				Delete: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"count": {
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+			},
+			true,
+			true,
+		},
+
+		9: { // Reserved name at nested levels should be allowed
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Read:   func(d *ResourceData, meta interface{}) error { return nil },
+				Update: func(d *ResourceData, meta interface{}) error { return nil },
+				Delete: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"parent_list": &Schema{
+						Type:     TypeString,
+						Optional: true,
+						Elem: &Resource{
+							Schema: map[string]*Schema{
+								"provisioner": {
+									Type:     TypeString,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			true,
+			false,
+		},
+
+		10: { // Provider reserved name should be allowed in resource
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Read:   func(d *ResourceData, meta interface{}) error { return nil },
+				Update: func(d *ResourceData, meta interface{}) error { return nil },
+				Delete: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"alias": &Schema{
+						Type:     TypeString,
+						Optional: true,
+					},
+				},
+			},
+			true,
+			false,
+		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
-			err := tc.In.InternalValidate(schemaMap{}, tc.Writable)
+			sm := schemaMap{}
+			if tc.In != nil {
+				sm = schemaMap(tc.In.Schema)
+			}
+
+			err := tc.In.InternalValidate(sm, tc.Writable)
 			if err != nil != tc.Err {
 				t.Fatalf("%d: bad: %s", i, err)
 			}

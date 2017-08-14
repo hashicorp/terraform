@@ -11,53 +11,12 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
-// AWS CodeBuild is a fully managed build service in the cloud. AWS CodeBuild
-// compiles your source code, runs unit tests, and produces artifacts that are
-// ready to deploy. AWS CodeBuild eliminates the need to provision, manage,
-// and scale your own build servers. It provides prepackaged build environments
-// for the most popular programming languages and build tools, such as Apach
-// Maven, Gradle, and more. You can also fully customize build environments
-// in AWS CodeBuild to use your own build tools. AWS CodeBuild scales automatically
-// to meet peak build requests, and you pay only for the build time you consume.
-// For more information about AWS CodeBuild, see the AWS CodeBuild User Guide.
+// CodeBuild provides the API operation methods for making requests to
+// AWS CodeBuild. See this package's package overview docs
+// for details on the service.
 //
-// AWS CodeBuild supports these operations:
-//
-//    * BatchGetProjects: Gets information about one or more build projects.
-//    A build project defines how AWS CodeBuild will run a build. This includes
-//    information such as where to get the source code to build, the build environment
-//    to use, the build commands to run, and where to store the build output.
-//    A build environment represents a combination of operating system, programming
-//    language runtime, and tools that AWS CodeBuild will use to run a build.
-//    Also, you can add tags to build projects to help manage your resources
-//    and costs.
-//
-//    * CreateProject: Creates a build project.
-//
-//    * DeleteProject: Deletes a build project.
-//
-//    * ListProjects: Gets a list of build project names, with each build project
-//    name representing a single build project.
-//
-//    * UpdateProject: Changes the settings of an existing build project.
-//
-//    * BatchGetBuilds: Gets information about one or more builds.
-//
-//    * ListBuilds: Gets a list of build IDs, with each build ID representing
-//    a single build.
-//
-//    * ListBuildsForProject: Gets a list of build IDs for the specified build
-//    project, with each build ID representing a single build.
-//
-//    * StartBuild: Starts running a build.
-//
-//    * StopBuild: Attempts to stop running a build.
-//
-//    * ListCuratedEnvironmentImages: Gets information about Docker images that
-//    are managed by AWS CodeBuild.
-// The service client's operations are safe to be used concurrently.
-// It is not safe to mutate any of the client's properties though.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06
+// CodeBuild methods are safe to use concurrently. It is not safe to
+// modify mutate any of the struct's properties though.
 type CodeBuild struct {
 	*client.Client
 }

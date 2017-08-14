@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
@@ -32,9 +34,10 @@ type Meta struct {
 	// command with a Meta field. These are expected to be set externally
 	// (not from within the command itself).
 
-	Color       bool                   // True if output should be colored
-	ContextOpts *terraform.ContextOpts // Opts copied to initialize
-	Ui          cli.Ui                 // Ui for output
+	Color            bool             // True if output should be colored
+	GlobalPluginDirs []string         // Additional paths to search for plugins
+	PluginOverrides  *PluginOverrides // legacy overrides from .terraformrc file
+	Ui               cli.Ui           // Ui for output
 
 	// ExtraHooks are extra hooks to add to the context.
 	ExtraHooks []terraform.Hook
@@ -43,8 +46,20 @@ type Meta struct {
 	// Protected: commands can set these
 	//----------------------------------------------------------
 
-	// Modify the data directory location. Defaults to DefaultDataDir
+	// Modify the data directory location. This should be accessed through the
+	// DataDir method.
 	dataDir string
+
+	// pluginPath is a user defined set of directories to look for plugins.
+	// This is set during init with the `-plugin-dir` flag, saved to a file in
+	// the data directory.
+	// This overrides all other search paths when discovering plugins.
+	pluginPath []string
+
+	ignorePluginChecksum bool
+
+	// Override certain behavior for tests within this package
+	testingOverrides *testingOverrides
 
 	//----------------------------------------------------------
 	// Private: do not set these
@@ -107,6 +122,23 @@ type Meta struct {
 	stateLockTimeout time.Duration
 	forceInitCopy    bool
 	reconfigure      bool
+
+	// errWriter is the write side of a pipe for the FlagSet output. We need to
+	// keep track of this to close previous pipes between tests. Normal
+	// operation never needs to close this.
+	errWriter *io.PipeWriter
+	// done chan to wait for the scanner goroutine
+	errScannerDone chan struct{}
+}
+
+type PluginOverrides struct {
+	Providers    map[string]string
+	Provisioners map[string]string
+}
+
+type testingOverrides struct {
+	ProviderResolver terraform.ResourceProviderResolver
+	Provisioners     map[string]terraform.ResourceProvisionerFactory
 }
 
 // initStatePaths is used to initialize the default values for
@@ -138,6 +170,7 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 }
 
 // DataDir returns the directory where local data will be stored.
+// Defaults to DefaultsDataDir in the current working directory.
 func (m *Meta) DataDir() string {
 	dataDir := DefaultDataDir
 	if m.dataDir != "" {
@@ -195,18 +228,15 @@ func (m *Meta) StdinPiped() bool {
 	return fi.Mode()&os.ModeNamedPipe != 0
 }
 
+const (
+	ProviderSkipVerifyEnvVar = "TF_SKIP_PROVIDER_VERIFY"
+)
+
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
 	var opts terraform.ContextOpts
-	if v := m.ContextOpts; v != nil {
-		opts = *v
-	}
-
 	opts.Hooks = []terraform.Hook{m.uiHook(), &terraform.DebugHook{}}
-	if m.ContextOpts != nil {
-		opts.Hooks = append(opts.Hooks, m.ContextOpts.Hooks...)
-	}
 	opts.Hooks = append(opts.Hooks, m.ExtraHooks...)
 
 	vs := make(map[string]interface{})
@@ -226,8 +256,24 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	opts.Parallelism = m.parallelism
 	opts.Shadow = m.shadow
 
+	// If testingOverrides are set, we'll skip the plugin discovery process
+	// and just work with what we've been given, thus allowing the tests
+	// to provide mock providers and provisioners.
+	if m.testingOverrides != nil {
+		opts.ProviderResolver = m.testingOverrides.ProviderResolver
+		opts.Provisioners = m.testingOverrides.Provisioners
+	} else {
+		opts.ProviderResolver = m.providerResolver()
+		opts.Provisioners = m.provisionerFactories()
+	}
+
+	opts.ProviderSHA256s = m.providerPluginsLock().Read()
+	if v := os.Getenv(ProviderSkipVerifyEnvVar); v != "" {
+		opts.SkipProviderVerify = true
+	}
+
 	opts.Meta = &terraform.ContextMeta{
-		Env: m.Env(),
+		Env: m.Workspace(),
 	}
 
 	return &opts
@@ -255,9 +301,23 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	// This is kind of a hack, but it does the job. Basically: create
 	// a pipe, use a scanner to break it into lines, and output each line
 	// to the UI. Do this forever.
+
+	// If a previous pipe exists, we need to close that first.
+	// This should only happen in testing.
+	if m.errWriter != nil {
+		m.errWriter.Close()
+	}
+
+	if m.errScannerDone != nil {
+		<-m.errScannerDone
+	}
+
 	errR, errW := io.Pipe()
 	errScanner := bufio.NewScanner(errR)
+	m.errWriter = errW
+	m.errScannerDone = make(chan struct{})
 	go func() {
+		defer close(m.errScannerDone)
 		for errScanner.Scan() {
 			m.Ui.Error(errScanner.Text())
 		}
@@ -290,7 +350,7 @@ func (m *Meta) moduleStorage(root string) getter.Storage {
 // slice.
 //
 // vars says whether or not we support variables.
-func (m *Meta) process(args []string, vars bool) []string {
+func (m *Meta) process(args []string, vars bool) ([]string, error) {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
 	if m.oldUi != nil {
@@ -323,24 +383,48 @@ func (m *Meta) process(args []string, vars bool) []string {
 	// the args...
 	m.autoKey = ""
 	if vars {
+		var preArgs []string
+
 		if _, err := os.Stat(DefaultVarsFilename); err == nil {
 			m.autoKey = "var-file-default"
-			args = append(args, "", "")
-			copy(args[2:], args[0:])
-			args[0] = "-" + m.autoKey
-			args[1] = DefaultVarsFilename
+			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename)
 		}
 
 		if _, err := os.Stat(DefaultVarsFilename + ".json"); err == nil {
 			m.autoKey = "var-file-default"
-			args = append(args, "", "")
-			copy(args[2:], args[0:])
-			args[0] = "-" + m.autoKey
-			args[1] = DefaultVarsFilename + ".json"
+			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename+".json")
 		}
+
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+
+		fis, err := ioutil.ReadDir(wd)
+		if err != nil {
+			return nil, err
+		}
+
+		// make sure we add the files in order
+		sort.Slice(fis, func(i, j int) bool {
+			return fis[i].Name() < fis[j].Name()
+		})
+
+		for _, fi := range fis {
+			name := fi.Name()
+			// Ignore directories, non-var-files, and ignored files
+			if fi.IsDir() || !isAutoVarFile(name) || config.IsIgnoredFile(name) {
+				continue
+			}
+
+			m.autoKey = "var-file-default"
+			preArgs = append(preArgs, "-"+m.autoKey, name)
+		}
+
+		args = append(preArgs, args...)
 	}
 
-	return args
+	return args, nil
 }
 
 // uiHook returns the UiHook to use with the context.
@@ -353,8 +437,8 @@ func (m *Meta) uiHook() *UiHook {
 
 // confirm asks a yes/no confirmation.
 func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
-	if !m.input {
-		return false, errors.New("input disabled")
+	if !m.Input() {
+		return false, errors.New("input is disabled")
 	}
 	for {
 		v, err := m.UIInput().Input(opts)
@@ -434,43 +518,60 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 	return true
 }
 
-// Env returns the name of the currently configured environment, corresponding
+// WorkspaceNameEnvVar is the name of the environment variable that can be used
+// to set the name of the Terraform workspace, overriding the workspace chosen
+// by `terraform workspace select`.
+//
+// Note that this environment variable is ignored by `terraform workspace new`
+// and `terraform workspace delete`.
+const WorkspaceNameEnvVar = "TF_WORKSPACE"
+
+// Workspace returns the name of the currently configured workspace, corresponding
 // to the desired named state.
-func (m *Meta) Env() string {
-	dataDir := m.dataDir
-	if m.dataDir == "" {
-		dataDir = DefaultDataDir
+func (m *Meta) Workspace() string {
+	current, _ := m.WorkspaceOverridden()
+	return current
+}
+
+// WorkspaceOverridden returns the name of the currently configured workspace,
+// corresponding to the desired named state, as well as a bool saying whether
+// this was set via the TF_WORKSPACE environment variable.
+func (m *Meta) WorkspaceOverridden() (string, bool) {
+	if envVar := os.Getenv(WorkspaceNameEnvVar); envVar != "" {
+		return envVar, true
 	}
 
-	envData, err := ioutil.ReadFile(filepath.Join(dataDir, local.DefaultEnvFile))
+	envData, err := ioutil.ReadFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
 	current := string(bytes.TrimSpace(envData))
 	if current == "" {
 		current = backend.DefaultStateName
 	}
 
 	if err != nil && !os.IsNotExist(err) {
-		// always return the default if we can't get an environment name
-		log.Printf("[ERROR] failed to read current environment: %s", err)
+		// always return the default if we can't get a workspace name
+		log.Printf("[ERROR] failed to read current workspace: %s", err)
 	}
 
-	return current
+	return current, false
 }
 
-// SetEnv saves the named environment to the local filesystem.
-func (m *Meta) SetEnv(name string) error {
-	dataDir := m.dataDir
-	if m.dataDir == "" {
-		dataDir = DefaultDataDir
-	}
-
-	err := os.MkdirAll(dataDir, 0755)
+// SetWorkspace saves the given name as the current workspace in the local
+// filesystem.
+func (m *Meta) SetWorkspace(name string) error {
+	err := os.MkdirAll(m.DataDir(), 0755)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(dataDir, local.DefaultEnvFile), []byte(name), 0644)
+	err = ioutil.WriteFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile), []byte(name), 0644)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// isAutoVarFile determines if the file ends with .auto.tfvars or .auto.tfvars.json
+func isAutoVarFile(path string) bool {
+	return strings.HasSuffix(path, ".auto.tfvars") ||
+		strings.HasSuffix(path, ".auto.tfvars.json")
 }

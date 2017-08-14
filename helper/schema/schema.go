@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -661,12 +662,23 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 		if v.ValidateFunc != nil {
 			switch v.Type {
 			case TypeList, TypeSet:
-				return fmt.Errorf("ValidateFunc is not yet supported on lists or sets.")
+				return fmt.Errorf("%s: ValidateFunc is not yet supported on lists or sets.", k)
+			}
+		}
+
+		if v.Deprecated == "" && v.Removed == "" {
+			if !isValidFieldName(k) {
+				return fmt.Errorf("%s: Field name may only contain lowercase alphanumeric characters & underscores.", k)
 			}
 		}
 	}
 
 	return nil
+}
+
+func isValidFieldName(name string) bool {
+	re := regexp.MustCompile("^[a-z0-9_]+$")
+	return re.MatchString(name)
 }
 
 func (m schemaMap) diff(
@@ -1373,8 +1385,8 @@ func (m schemaMap) validateObject(
 	k string,
 	schema map[string]*Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
-	raw, _ := c.GetRaw(k)
-	if _, ok := raw.(map[string]interface{}); !ok {
+	raw, _ := c.Get(k)
+	if _, ok := raw.(map[string]interface{}); !ok && !c.IsComputed(k) {
 		return nil, []error{fmt.Errorf(
 			"%s: expected object, got %s",
 			k, reflect.ValueOf(raw).Kind())}

@@ -8,8 +8,19 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func TestResourceProvisioner_impl(t *testing.T) {
+	var _ terraform.ResourceProvisioner = Provisioner()
+}
+
+func TestProvisioner(t *testing.T) {
+	if err := Provisioner().(*schema.Provisioner).InternalValidate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
 
 func TestResourceProvider_Apply(t *testing.T) {
 	defer os.Remove("test_out")
@@ -19,6 +30,7 @@ func TestResourceProvider_Apply(t *testing.T) {
 
 	output := new(terraform.MockUIOutput)
 	p := Provisioner()
+
 	if err := p.Apply(output, nil, c); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -73,8 +85,8 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"command": "echo foo",
 	})
-	p := Provisioner()
-	warn, errs := p.Validate(c)
+
+	warn, errs := Provisioner().Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
@@ -85,8 +97,8 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 
 func TestResourceProvider_Validate_missing(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{})
-	p := Provisioner()
-	warn, errs := p.Validate(c)
+
+	warn, errs := Provisioner().Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
@@ -95,9 +107,7 @@ func TestResourceProvider_Validate_missing(t *testing.T) {
 	}
 }
 
-func testConfig(
-	t *testing.T,
-	c map[string]interface{}) *terraform.ResourceConfig {
+func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
 	r, err := config.NewRawConfig(c)
 	if err != nil {
 		t.Fatalf("bad: %s", err)

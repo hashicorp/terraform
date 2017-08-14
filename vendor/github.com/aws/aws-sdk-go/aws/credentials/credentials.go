@@ -14,7 +14,7 @@
 //
 // Example of using the environment variable credentials.
 //
-//     creds := NewEnvCredentials()
+//     creds := credentials.NewEnvCredentials()
 //
 //     // Retrieve the credentials value
 //     credValue, err := creds.Get()
@@ -26,7 +26,7 @@
 // This may be helpful to proactively expire credentials and refresh them sooner
 // than they would naturally expire on their own.
 //
-//     creds := NewCredentials(&EC2RoleProvider{})
+//     creds := credentials.NewCredentials(&ec2rolecreds.EC2RoleProvider{})
 //     creds.Expire()
 //     credsValue, err := creds.Get()
 //     // New credentials will be retrieved instead of from cache.
@@ -43,7 +43,7 @@
 //     func (m *MyProvider) Retrieve() (Value, error) {...}
 //     func (m *MyProvider) IsExpired() bool {...}
 //
-//     creds := NewCredentials(&MyProvider{})
+//     creds := credentials.NewCredentials(&MyProvider{})
 //     credValue, err := creds.Get()
 //
 package credentials
@@ -60,7 +60,9 @@ import (
 // when making service API calls. For example, when accessing public
 // s3 buckets.
 //
-//     svc := s3.New(&aws.Config{Credentials: AnonymousCredentials})
+//     svc := s3.New(session.Must(session.NewSession(&aws.Config{
+//       Credentials: credentials.AnonymousCredentials,
+//     })))
 //     // Access public S3 buckets.
 //
 // @readonly
