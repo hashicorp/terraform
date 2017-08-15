@@ -2,7 +2,7 @@
 
 BUG FIXES:
 
-* Fix `terraform state rm` and `mv` comamnds to work correctly with remote state backends [GH-15652]
+* Fix `terraform state rm` and `mv` commands to work correctly with remote state backends [GH-15652]
 
 IMPROVEMENTS:
 
