@@ -75,6 +75,7 @@ func (c *InitCommand) Run(args []string) int {
 			Dir: c.pluginDir(),
 			PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
 			SkipVerify:            !flagVerifyPlugins,
+			Ui:                    c.Ui,
 		}
 	}
 
@@ -310,8 +311,12 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 
 	var errs error
 	if c.getPlugins {
+		if len(missing) > 0 {
+			c.Ui.Output(fmt.Sprintf(" - Checking for available provider plugins on %s...",
+				discovery.GetReleaseHost()))
+		}
+
 		for provider, reqd := range missing {
-			c.Ui.Output(fmt.Sprintf("- Downloading plugin for provider %q...", provider))
 			_, err := c.providerInstaller.Get(provider, reqd.Versions)
 
 			if err != nil {

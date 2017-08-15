@@ -13,6 +13,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/mitchellh/cli"
 )
 
 const testProviderFile = "test provider binary"
@@ -149,6 +151,7 @@ func TestProviderInstallerGet(t *testing.T) {
 		Dir: tmpDir,
 		PluginProtocolVersion: 5,
 		SkipVerify:            true,
+		Ui:                    cli.NewMockUi(),
 	}
 	_, err = i.Get("test", AllVersions)
 	if err != ErrorNoVersionCompatible {
@@ -159,6 +162,7 @@ func TestProviderInstallerGet(t *testing.T) {
 		Dir: tmpDir,
 		PluginProtocolVersion: 3,
 		SkipVerify:            true,
+		Ui:                    cli.NewMockUi(),
 	}
 
 	{
@@ -230,6 +234,7 @@ func TestProviderInstallerPurgeUnused(t *testing.T) {
 		Dir: tmpDir,
 		PluginProtocolVersion: 3,
 		SkipVerify:            true,
+		Ui:                    cli.NewMockUi(),
 	}
 	purged, err := i.PurgeUnused(map[string]PluginMeta{
 		"test": PluginMeta{
