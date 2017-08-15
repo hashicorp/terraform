@@ -1395,22 +1395,6 @@
 			"versionExact": "v0.10.0"
 		},
 		{
-			"checksumSHA1": "e0+AZz2lfoRwTl5bHi8TL9fJ1LE=",
-			"path": "github.com/hashicorp/terraform/builtin/providers/aws",
-			"revision": "8d560482c34e865458fd884cb0790b4f73f09ad1",
-			"revisionTime": "2017-06-08T00:14:54Z",
-			"version": "v0.10.0",
-			"versionExact": "v0.10.0"
-		},
-		{
-			"checksumSHA1": "HP5en9I9Z97tXu8ONtgd5vs8KUI=",
-			"path": "github.com/hashicorp/terraform/builtin/providers/openstack",
-			"revision": "8d560482c34e865458fd884cb0790b4f73f09ad1",
-			"revisionTime": "2017-06-08T00:14:54Z",
-			"version": "v0.10.0",
-			"versionExact": "v0.10.0"
-		},
-		{
 			"checksumSHA1": "HWbnuaEFdfRFeKxZdlYUWZm+DU0=",
 			"path": "github.com/hashicorp/terraform/command/clistate",
 			"revision": "2041053ee9444fa8175a298093b55a89586a1823",
