@@ -95,6 +95,98 @@ The [get command](/docs/commands/get.html) will automatically get all nested mod
 
 You don't have to worry about conflicting versions of modules, since Terraform builds isolated subtrees of all dependencies. For example, one module might use version 1.0 of module `foo` and another module might use version 2.0, and this will all work fine within Terraform since the modules are created separately.
 
-## Standard Structure
+## Standard Module Structure
 
-TODO
+The standard module structure is a file and folder layout we recommend for
+reusable modules. Terraform tooling is built to understand the standard
+module structure and use that structure to generate documentation, index
+modules for the registry, and more.
+
+The standard module expects the structure documented below. The list may appear
+long, but everything is optional except for the root module. All items are
+documented in detail. Most modules don't need to do any work to follow the
+standard structure.
+
+* **Root module**. This is the **only required element** for the standard
+  module structure. Terraform files must exist in the root directory of
+  the module. This should be the primary entrypoint for the module and is
+  expected to be opinionated. For the
+  [Consul module](#)
+  the root module sets up a complete Consul cluster. A lot of assumptions
+  are made, however, and it is fully expected that advanced users will use
+  specific nested modules to more carefully control what they want.
+
+* **README**. The root module and any nested modules should have README
+  files. This file should be named `README` or `README.md`. The latter will
+  be treated as markdown. The README doesn't need to document inputs or
+  outputs of the module because tooling will automatically generate this.
+
+
+* **main.tf, variables.tf, outputs.tf**. These are the recommended filenames for
+  a minimal module, even if they're empty. `main.tf` should be the primary
+  entrypoint. For a simple module, this may be where all the resources are
+  created. For a complex module, resource creation may be split into multiple
+  files but all nested module usage should be in the main file. `variables.tf`
+  and `outputs.tf` should contain the declarations for variables and outputs,
+  respectively.
+
+* **Variables and outputs should have descriptions.** All variables and
+  outputs should have one or two sentence descriptions that explain their
+  purpose. This is used for documentation. See the documentation for
+  [variable configuration](/docs/configuration/variables.html) and
+  [output configuration](/docs/configuration/outputs.html) for more details.
+
+* **Nested modules**. Nested modules should exist under the `modules/`
+  subdirectory. Any nested module with a `README.md` is considered usable
+  by an external user. If a README doesn't exist, it is considered for internal
+  use only. These are purely advisory; Terraform will not actively deny usage
+  of internal modules. Nested modules should be used to split complex behavior
+  into multiple small modules that advanced users can carefully pick and
+  choose. For example, the
+  [Consul module](#)
+  has a nested module for creating the Cluster that is separate from the
+  module to setup necessary IAM policies. This allows a user to bring in their
+  own IAM policy choices.
+
+* **Examples**. Examples of using the module should exist under the
+  `examples/` subdirectory. Each example may have a README to explain the
+  goal and usage of the example.
+
+A minimal recommended module following the standard structure is shown below.
+While the root module is the only required element, we recommend below as
+a minimum structure:
+
+```sh
+$ tree minimal-module/
+.
+├── README.md
+├── main.tf
+├── variables.tf
+├── outputs.tf
+```
+
+A complete example of a module following the standard structure is shown below.
+This example includes all optional elements and is therefore the most
+complex a module can become:
+
+```sh
+$ tree complete-module/
+.
+├── README.md
+├── main.tf
+├── variables.tf
+├── outputs.tf
+├── ...
+├── modules/
+│   ├── nestedA/
+│   │   ├── variables.tf
+│   │   ├── main.tf
+│   │   ├── outputs.tf
+│   ├── nestedB/
+│   ├── .../
+├── examples/
+│   ├── exampleA/
+│   │   ├── main.tf
+│   ├── exampleB/
+│   ├── .../
+```
