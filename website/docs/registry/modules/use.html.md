@@ -3,7 +3,7 @@ layout: "registry"
 page_title: "Finding and Using Modules from the Terraform Registry"
 sidebar_current: "docs-registry-use"
 description: |-
-  The Terraform Registry is a repository of modules written by the Terraform community.
+  The Terraform Registry makes it simple to find and use modules.
 ---
 
 # Finding and Using Modules
