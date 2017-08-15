@@ -1,23 +1,23 @@
-## 0.10.1 (Unreleased)
+## 0.10.1 (August 15, 2017)
 
 BUG FIXES:
 
-* Fix `terraform state rm` and `mv` commands to work correctly with remote state backends [GH-15652]
-* Fix errors when interpolations fail during input [GH-15780]
-* Backoff retried in remote-execution provisioner [GH-15772]
-* Load plugins from `~/.terraform.d/plugins/OS_ARCH/` and `.terraformrc` [GH-15769]
-* The `import` command was ignoring the remote state configuration [GH-15768]
-* Don't allow leading slashes in s3 bucket names for remote state [GH-15738]
+* Fix `terraform state rm` and `mv` commands to work correctly with remote state backends ([#15652](https://github.com/hashicorp/terraform/issues/15652))
+* Fix errors when interpolations fail during input ([#15780](https://github.com/hashicorp/terraform/issues/15780))
+* Backoff retried in remote-execution provisioner ([#15772](https://github.com/hashicorp/terraform/issues/15772))
+* Load plugins from `~/.terraform.d/plugins/OS_ARCH/` and `.terraformrc` ([#15769](https://github.com/hashicorp/terraform/issues/15769))
+* The `import` command was ignoring the remote state configuration ([#15768](https://github.com/hashicorp/terraform/issues/15768))
+* Don't allow leading slashes in s3 bucket names for remote state ([#15738](https://github.com/hashicorp/terraform/issues/15738))
 
 IMPROVEMENTS:
 
-* helper/schema: Add `GetOkExists` schema function [GH-15723]
-* helper/schema: Make 'id' a reserved field name [GH-15695]
-* command/init: Display version + source when initializing plugins [GH-15804]
+* helper/schema: Add `GetOkExists` schema function ([#15723](https://github.com/hashicorp/terraform/issues/15723))
+* helper/schema: Make 'id' a reserved field name ([#15695](https://github.com/hashicorp/terraform/issues/15695))
+* command/init: Display version + source when initializing plugins ([#15804](https://github.com/hashicorp/terraform/issues/15804))
 
 INTERNAL CHANGES:
 
-* DiffFieldReader.ReadField caches results to optimize deeply nested schemas [GH-15663]
+* DiffFieldReader.ReadField caches results to optimize deeply nested schemas ([#15663](https://github.com/hashicorp/terraform/issues/15663))
 
 
 ## 0.10.0 (August 2, 2017)
