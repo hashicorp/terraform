@@ -8,6 +8,7 @@ IMPROVEMENTS:
 
 * helper/schema: Add `GetOkExists` schema function [GH-15723]
 * helper/schema: Make 'id' a reserved field name [GH-15695]
+* command/init: Display version + source when initializing plugins [GH-15804]
 
 INTERNAL CHANGES:
 
