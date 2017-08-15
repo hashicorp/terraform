@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -303,12 +304,22 @@ func (p *Provider) Resources() []terraform.ResourceType {
 		}
 
 		result = append(result, terraform.ResourceType{
-			Name:       k,
-			Importable: resource.Importer != nil,
+			Name:            k,
+			Importable:      resource.Importer != nil,
+			SchemaAvailable: true,
 		})
 	}
 
 	return result
+}
+
+// ResourceTypeSchema implementation of terraform.ResourceProvider interface.
+func (p *Provider) ResourceTypeSchema(name string) (*configschema.Block, error) {
+	r, exists := p.ResourcesMap[name]
+	if !exists {
+		return nil, fmt.Errorf("no resource type named %q", name)
+	}
+	return schemaMap(r.Schema).BlockSchema(), nil
 }
 
 func (p *Provider) ImportState(
@@ -409,9 +420,19 @@ func (p *Provider) DataSources() []terraform.DataSource {
 	result := make([]terraform.DataSource, 0, len(keys))
 	for _, k := range keys {
 		result = append(result, terraform.DataSource{
-			Name: k,
+			Name:            k,
+			SchemaAvailable: true,
 		})
 	}
 
 	return result
+}
+
+// DataSourceSchema implementation of terraform.ResourceProvider interface.
+func (p *Provider) DataSourceSchema(name string) (*configschema.Block, error) {
+	r, exists := p.DataSourcesMap[name]
+	if !exists {
+		return nil, fmt.Errorf("no data source named %q", name)
+	}
+	return schemaMap(r.Schema).BlockSchema(), nil
 }

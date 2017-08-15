@@ -4,6 +4,7 @@ import (
 	"net/rpc"
 
 	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -245,6 +246,17 @@ func (p *ResourceProvider) Resources() []terraform.ResourceType {
 	return result
 }
 
+func (p *ResourceProvider) ResourceTypeSchema(name string) (*configschema.Block, error) {
+	var result ResourceProviderConfigSchemaResponse
+
+	err := p.Client.Call("Plugin.ResourceTypeSchema", new(interface{}), &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result.Schema, result.Error
+}
+
 func (p *ResourceProvider) ReadDataDiff(
 	info *terraform.InstanceInfo,
 	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
@@ -295,6 +307,17 @@ func (p *ResourceProvider) DataSources() []terraform.DataSource {
 	}
 
 	return result
+}
+
+func (p *ResourceProvider) DataSourceSchema(name string) (*configschema.Block, error) {
+	var result ResourceProviderConfigSchemaResponse
+
+	err := p.Client.Call("Plugin.DataSourceSchema", new(interface{}), &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result.Schema, result.Error
 }
 
 func (p *ResourceProvider) Close() error {
@@ -405,6 +428,11 @@ type ResourceProviderValidateResourceArgs struct {
 type ResourceProviderValidateResourceResponse struct {
 	Warnings []string
 	Errors   []*plugin.BasicError
+}
+
+type ResourceProviderConfigSchemaResponse struct {
+	Schema *configschema.Block
+	Error  *plugin.BasicError
 }
 
 func (s *ResourceProviderServer) Stop(
@@ -533,6 +561,16 @@ func (s *ResourceProviderServer) Resources(
 	return nil
 }
 
+func (s *ResourceProviderServer) ResourceTypeSchema(
+	name string,
+	result *ResourceProviderConfigSchemaResponse,
+) error {
+	schema, err := s.Provider.ResourceTypeSchema(name)
+	result.Schema = schema
+	result.Error = plugin.NewBasicError(err)
+	return nil
+}
+
 func (s *ResourceProviderServer) ValidateDataSource(
 	args *ResourceProviderValidateResourceArgs,
 	reply *ResourceProviderValidateResourceResponse) error {
@@ -574,5 +612,15 @@ func (s *ResourceProviderServer) DataSources(
 	nothing interface{},
 	result *[]terraform.DataSource) error {
 	*result = s.Provider.DataSources()
+	return nil
+}
+
+func (s *ResourceProviderServer) DataSourceSchema(
+	name string,
+	result *ResourceProviderConfigSchemaResponse,
+) error {
+	schema, err := s.Provider.DataSourceSchema(name)
+	result.Schema = schema
+	result.Error = plugin.NewBasicError(err)
 	return nil
 }

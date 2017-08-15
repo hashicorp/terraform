@@ -104,8 +104,8 @@ func TestProviderResources(t *testing.T) {
 				},
 			},
 			Result: []terraform.ResourceType{
-				terraform.ResourceType{Name: "bar"},
-				terraform.ResourceType{Name: "foo"},
+				terraform.ResourceType{Name: "bar", SchemaAvailable: true},
+				terraform.ResourceType{Name: "foo", SchemaAvailable: true},
 			},
 		},
 
@@ -118,9 +118,9 @@ func TestProviderResources(t *testing.T) {
 				},
 			},
 			Result: []terraform.ResourceType{
-				terraform.ResourceType{Name: "bar", Importable: true},
-				terraform.ResourceType{Name: "baz"},
-				terraform.ResourceType{Name: "foo"},
+				terraform.ResourceType{Name: "bar", Importable: true, SchemaAvailable: true},
+				terraform.ResourceType{Name: "baz", SchemaAvailable: true},
+				terraform.ResourceType{Name: "foo", SchemaAvailable: true},
 			},
 		},
 	}
@@ -151,8 +151,8 @@ func TestProviderDataSources(t *testing.T) {
 				},
 			},
 			Result: []terraform.DataSource{
-				terraform.DataSource{Name: "bar"},
-				terraform.DataSource{Name: "foo"},
+				terraform.DataSource{Name: "bar", SchemaAvailable: true},
+				terraform.DataSource{Name: "foo", SchemaAvailable: true},
 			},
 		},
 	}

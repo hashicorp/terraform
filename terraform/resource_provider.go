@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
 
@@ -78,6 +79,17 @@ type ResourceProvider interface {
 	* Functions related to individual resources
 	*********************************************************************/
 
+	// ResourceTypeSchema returns the config schema for the resource type
+	// matching the given name, which in turn implies the shape of the data
+	// structure used to represent its state.
+	//
+	// Currently not all resources support schema, for historical reasons.
+	// Call Resources first, and use the SchemaAvailable flag to determine
+	// if this method is supported. Avoid calling this method for resource
+	// types where SchemaAvailable is false, since the provider may not
+	// support this method at all in that case.
+	ResourceTypeSchema(name string) (*configschema.Block, error)
+
 	// ValidateResource is called once at the beginning with the raw
 	// configuration (no interpolation done) and can return a list of warnings
 	// and/or errors.
@@ -135,6 +147,17 @@ type ResourceProvider interface {
 	* Functions related to data resources
 	*********************************************************************/
 
+	// DataSourceSchema returns the config schema for the data source
+	// matching the given name, which in turn implies the shape of the data
+	// structure used to represent its state.
+	//
+	// Currently not all data sources support schema, for historical reasons.
+	// Call DataSources first, and use the SchemaAvailable flag to determine
+	// if this method is supported. Avoid calling this method for data sources
+	// where SchemaAvailable is false, since the provider may not support
+	// this method at all in that case.
+	DataSourceSchema(name string) (*configschema.Block, error)
+
 	// ValidateDataSource is called once at the beginning with the raw
 	// configuration (no interpolation done) and can return a list of warnings
 	// and/or errors.
@@ -183,11 +206,15 @@ type ResourceProviderCloser interface {
 type ResourceType struct {
 	Name       string // Name of the resource, example "instance" (no provider prefix)
 	Importable bool   // Whether this resource supports importing
+
+	SchemaAvailable bool // Whether the ResourceTypeSchema method is supported for this resource type
 }
 
 // DataSource is a data source that a resource provider implements.
 type DataSource struct {
 	Name string
+
+	SchemaAvailable bool // Whether the DataSourceSchema method is supported for this data source
 }
 
 // ResourceProviderResolver is an interface implemented by objects that are

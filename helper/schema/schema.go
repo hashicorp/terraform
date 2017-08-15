@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 )
@@ -535,6 +536,14 @@ func (m schemaMap) Input(
 	}
 
 	return c, nil
+}
+
+// BlockSchema transforms the schema into a configschema.Block describing
+// the configuration schema that the core code can use to parse a configuration
+// body.
+func (m schemaMap) BlockSchema() *configschema.Block {
+	// TODO: Implement
+	return nil
 }
 
 // Validate validates the configuration against this schema mapping.
