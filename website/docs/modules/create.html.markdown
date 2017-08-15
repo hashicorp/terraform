@@ -14,6 +14,11 @@ the Terraform files you're applying comprise what is called the _root module_. T
 
 Therefore, you can enter the source of any module, satisfy any required variables, run `terraform apply`, and expect it to work.
 
+Modules that are created for reuse should follow the
+[standard structure](#standard-structure). This structure enables tooling
+such as the [Terraform Registry](/docs/registry/index.html) to inspect and
+generate documentation, read examples, and more.
+
 ## An Example Module
 
 Within a folder containing Terraform configurations, create a subfolder called `child`. In this subfolder, make one empty `main.tf` file. Then, back in the root folder containing the `child` folder, add this to one of your Terraform configuration files:
@@ -89,3 +94,7 @@ variables and outputs you require.
 The [get command](/docs/commands/get.html) will automatically get all nested modules.
 
 You don't have to worry about conflicting versions of modules, since Terraform builds isolated subtrees of all dependencies. For example, one module might use version 1.0 of module `foo` and another module might use version 2.0, and this will all work fine within Terraform since the modules are created separately.
+
+## Standard Structure
+
+TODO
