@@ -3,6 +3,11 @@
 BUG FIXES:
 
 * Fix `terraform state rm` and `mv` commands to work correctly with remote state backends [GH-15652]
+* Fix errors when interpolations fail during input [GH-15780]
+* Backoff retried in remote-execution provisioner [GH-15772]
+* Load plugins from `~/.terraform.d/plugins/OS_ARCH/` and `.terraformrc` [GH-15769]
+* The `import` command was ignoring the remote state configuration [GH-15768]
+* Don't allow leading slashes in s3 bucket names for remote state [GH-15738]
 
 IMPROVEMENTS:
 
