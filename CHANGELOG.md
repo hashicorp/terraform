@@ -4,6 +4,10 @@ NEW FEATURES:
 
 * **`flatten` interpolation function**: turns a list of lists, or list of lists of lists, etc into a flat list of primitive values [GH-15278]
 
+IMPROVEMENTS:
+
+* The "creation complete" (and similar) messages from `terraform apply` now include a total elapsed time for each operation. [GH-15548]
+
 ## 0.10.2 (August 16, 2017)
 
 BUG FIXES:
