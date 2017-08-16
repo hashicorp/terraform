@@ -1,3 +1,9 @@
+## 0.10.2 (Unreleased)
+
+BUG FIXES:
+
+* tools/terraform-bundle: Add missing Ui to ProviderInstaller (fix crash) [GH-15826]
+
 ## 0.10.1 (August 15, 2017)
 
 BUG FIXES:
