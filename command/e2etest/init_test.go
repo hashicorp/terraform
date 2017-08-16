@@ -1,8 +1,11 @@
 package e2etest
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/e2e"
 )
 
 func TestInitProviders(t *testing.T) {
@@ -15,7 +18,8 @@ func TestInitProviders(t *testing.T) {
 	// is to test the interaction with the real repository.
 	skipIfCannotAccessNetwork(t)
 
-	tf := newTerraform("template-provider")
+	fixturePath := filepath.Join("test-fixtures", "template-provider")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
 	stdout, stderr, err := tf.Run("init")
