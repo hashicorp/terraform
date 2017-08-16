@@ -12,7 +12,7 @@ const Version = "0.10.2"
 // A pre-release marker for the version. If this is "" (empty string)
 // then it means that it is a final release. Otherwise, this is a pre-release
 // such as "dev" (in development), "beta", "rc1", etc.
-var VersionPrerelease = "dev"
+var VersionPrerelease = ""
 
 // SemVersion is an instance of version.Version. This has the secondary
 // benefit of verifying during tests and init time that our version is a

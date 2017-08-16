@@ -1,8 +1,8 @@
-## 0.10.2 (Unreleased)
+## 0.10.2 (August 16, 2017)
 
 BUG FIXES:
 
-* tools/terraform-bundle: Add missing Ui to ProviderInstaller (fix crash) [GH-15826]
+* tools/terraform-bundle: Add missing Ui to ProviderInstaller (fix crash) ([#15826](https://github.com/hashicorp/terraform/issues/15826))
 * go-plugin: crash when server emits non-key-value JSON ([go-plugin#43](https://github.com/hashicorp/go-plugin/pull/43))
 
 ## 0.10.1 (August 15, 2017)
