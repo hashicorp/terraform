@@ -19,8 +19,6 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-const releasesBaseURL = "https://releases.hashicorp.com"
-
 type PackageCommand struct {
 	ui cli.Ui
 }
@@ -94,16 +92,20 @@ func (c *PackageCommand) Run(args []string) int {
 		Ui:   c.ui,
 	}
 
+	if len(config.Providers) > 0 {
+		c.ui.Output(fmt.Sprintf("Checking for available provider plugins on %s...",
+			discovery.GetReleaseHost()))
+	}
+
 	for name, constraints := range config.Providers {
-		c.ui.Info(fmt.Sprintf("Fetching provider %q...", name))
 		for _, constraint := range constraints {
-			meta, err := installer.Get(name, constraint.MustParse())
+			c.ui.Output(fmt.Sprintf("- Resolving %q provider (%s)...",
+				name, constraint))
+			_, err := installer.Get(name, constraint.MustParse())
 			if err != nil {
-				c.ui.Error(fmt.Sprintf("Failed to resolve %s provider %s: %s", name, constraint, err))
+				c.ui.Error(fmt.Sprintf("- Failed to resolve %s provider %s: %s", name, constraint, err))
 				return 1
 			}
-
-			c.ui.Info(fmt.Sprintf("- %q resolved to %s", constraint, meta.Version))
 		}
 	}
 
@@ -184,7 +186,7 @@ func (c *PackageCommand) bundleFilename(version discovery.VersionStr, time time.
 func (c *PackageCommand) coreURL(version discovery.VersionStr, osName, archName string) string {
 	return fmt.Sprintf(
 		"%s/terraform/%s/terraform_%s_%s_%s.zip",
-		releasesBaseURL, version, version, osName, archName,
+		discovery.GetReleaseHost(), version, version, osName, archName,
 	)
 }
 
