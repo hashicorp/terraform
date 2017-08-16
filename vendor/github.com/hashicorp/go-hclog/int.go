@@ -17,8 +17,8 @@ var (
 	_levelToBracket = map[Level]string{
 		Debug: "[DEBUG]",
 		Trace: "[TRACE]",
-		Info:  "[INFO ]",
-		Warn:  "[WARN ]",
+		Info:  "[INFO] ",
+		Warn:  "[WARN] ",
 		Error: "[ERROR]",
 	}
 )
