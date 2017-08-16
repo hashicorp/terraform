@@ -94,6 +94,8 @@ func (p *MockResourceProvider) Close() error {
 
 func (p *MockResourceProvider) Input(
 	input UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+	p.Lock()
+	defer p.Unlock()
 	p.InputCalled = true
 	p.InputInput = input
 	p.InputConfig = c
