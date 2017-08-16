@@ -43,7 +43,7 @@ func (c *MockCommunicator) ScriptPath() string {
 // Start implementation of communicator.Communicator interface
 func (c *MockCommunicator) Start(r *remote.Cmd) error {
 	if !c.Commands[r.Command] {
-		return fmt.Errorf("Command not found!")
+		return fmt.Errorf("Command %q not found!", r.Command)
 	}
 
 	r.SetExited(0)
@@ -80,7 +80,7 @@ func (c *MockCommunicator) UploadScript(path string, input io.Reader) error {
 func (c *MockCommunicator) UploadDir(dst string, src string) error {
 	v, ok := c.UploadDirs[src]
 	if !ok {
-		return fmt.Errorf("Directory not found!")
+		return fmt.Errorf("Directory %q not found!", src)
 	}
 
 	if v != dst {

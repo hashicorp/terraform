@@ -4,6 +4,7 @@
 package command
 
 import (
+	ansiblelocalprovisioner "github.com/hashicorp/terraform/builtin/provisioners/ansible-local"
 	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
 	localexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
@@ -16,6 +17,7 @@ import (
 var InternalProviders = map[string]plugin.ProviderFunc{}
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
+	"ansible-local":   ansiblelocalprovisioner.Provisioner,
 	"chef":            chefprovisioner.Provisioner,
 	"file":            fileprovisioner.Provisioner,
 	"local-exec":      localexecprovisioner.Provisioner,
