@@ -26,14 +26,47 @@ func init() {
 // necessary to make a change: the state, diff, config, backend config, etc.
 // This is so that it can run alone without any other data.
 type Plan struct {
-	Diff    *Diff
-	Module  *module.Tree
-	State   *State
-	Vars    map[string]interface{}
+	// Diff describes the resource actions that must be taken when this
+	// plan is applied.
+	Diff *Diff
+
+	// Module represents the entire configuration that was present when this
+	// plan was created.
+	Module *module.Tree
+
+	// State is the Terraform state that was current when this plan was
+	// created.
+	//
+	// It is not allowed to apply a plan that has a stale state, since its
+	// diff could be outdated.
+	State *State
+
+	// Vars retains the variables that were set when creating the plan, so
+	// that the same variables can be applied during apply.
+	Vars map[string]interface{}
+
+	// Targets, if non-empty, contains a set of resource address strings that
+	// identify graph nodes that were selected as targets for plan.
+	//
+	// When targets are set, any graph node that is not directly targeted or
+	// indirectly targeted via dependencies is excluded from the graph.
 	Targets []string
 
+	// TerraformVersion is the version of Terraform that was used to create
+	// this plan.
+	//
+	// It is not allowed to apply a plan created with a different version of
+	// Terraform, since the other fields of this structure may be interpreted
+	// in different ways between versions.
 	TerraformVersion string
-	ProviderSHA256s  map[string][]byte
+
+	// ProviderSHA256s is a map giving the SHA256 hashes of the exact binaries
+	// used as plugins for each provider during plan.
+	//
+	// These must match between plan and apply to ensure that the diff is
+	// correctly interpreted, since different provider versions may have
+	// different attributes or attribute value constraints.
+	ProviderSHA256s map[string][]byte
 
 	// Backend is the backend that this plan should use and store data with.
 	Backend *BackendState
