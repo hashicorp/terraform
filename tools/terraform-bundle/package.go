@@ -91,6 +91,7 @@ func (c *PackageCommand) Run(args []string) int {
 
 		OS:   osName,
 		Arch: archName,
+		Ui:   c.ui,
 	}
 
 	for name, constraints := range config.Providers {
