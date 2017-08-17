@@ -10,6 +10,7 @@ import (
 	backendatlas "github.com/hashicorp/terraform/backend/atlas"
 	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
 	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
 	backendinmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
@@ -34,12 +35,14 @@ func init() {
 	// Our hardcoded backends. We don't need to acquire a lock here
 	// since init() code is serial and can't spawn goroutines.
 	backends = map[string]func() backend.Backend{
-		"atlas":  func() backend.Backend { return &backendatlas.Backend{} },
-		"local":  func() backend.Backend { return &backendlocal.Local{} },
-		"consul": func() backend.Backend { return backendconsul.New() },
-		"inmem":  func() backend.Backend { return backendinmem.New() },
-		"swift":  func() backend.Backend { return backendSwift.New() },
-		"s3":     func() backend.Backend { return backendS3.New() },
+		"atlas":   func() backend.Backend { return &backendatlas.Backend{} },
+		"local":   func() backend.Backend { return &backendlocal.Local{} },
+		"consul":  func() backend.Backend { return backendconsul.New() },
+		"inmem":   func() backend.Backend { return backendinmem.New() },
+		"swift":   func() backend.Backend { return backendSwift.New() },
+		"s3":      func() backend.Backend { return backendS3.New() },
+		"azure":   func() backend.Backend { return backendAzure.New() },
+		"azurerm": func() backend.Backend { return backendAzure.New() },
 	}
 
 	// Add the legacy remote backends that haven't yet been convertd to
