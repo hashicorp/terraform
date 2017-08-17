@@ -15,6 +15,12 @@
 			"revisionTime": "2017-01-18T16:13:56Z"
 		},
 		{
+			"checksumSHA1": "iJ8ZV+uhUAtNn91pkKjfIY0z+44=",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/resources/resources",
+			"revision": "5841475edc7c8725d79885d635aa8956f97fdf0e",
+			"revisionTime": "2017-05-10T22:14:13Z"
+		},
+		{
 			"checksumSHA1": "QiYT2buD7yqmgxfl/ESn8yJmQTY=",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/storage",
 			"revision": "5841475edc7c8725d79885d635aa8956f97fdf0e",
@@ -61,6 +67,14 @@
 			"checksumSHA1": "LSF/pNrjhIxl6jiS6bKooBFCOxI=",
 			"comment": "v8.0.0",
 			"path": "github.com/Azure/go-autorest/autorest/date",
+			"revision": "58f6f26e200fa5dfb40c9cd1c83f3e2c860d779d",
+			"revisionTime": "2017-04-28T17:52:31Z",
+			"version": "v8.0.0",
+			"versionExact": "v8.0.0"
+		},
+		{
+			"checksumSHA1": "Ev8qCsbFjDlMlX0N2tYAhYQFpUc=",
+			"path": "github.com/Azure/go-autorest/autorest/to",
 			"revision": "58f6f26e200fa5dfb40c9cd1c83f3e2c860d779d",
 			"revisionTime": "2017-04-28T17:52:31Z",
 			"version": "v8.0.0",
