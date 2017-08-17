@@ -1,12 +1,12 @@
 ---
 layout: "backend-types"
-page_title: "Backend Type: azure"
-sidebar_current: "docs-backends-types-standard-azure"
+page_title: "Backend Type: azurerm"
+sidebar_current: "docs-backends-types-standard-azurerm"
 description: |-
   Terraform can store state remotely in Azure Storage.
 ---
 
-# azure
+# azurerm
 
 **Kind: Standard (with state locking)**
 
@@ -16,7 +16,7 @@ Stores the state as a given key in a given bucket on [Microsoft Azure Storage](h
 
 ```hcl
 terraform {
-  backend "azure" {
+  backend "azurerm" {
     storage_account_name = "abcd1234"
     container_name       = "tfstate"
     key                  = "prod.terraform.tfstate"
@@ -31,7 +31,7 @@ Note that for the access credentials we recommend using a
 
 ```hcl
 data "terraform_remote_state" "foo" {
-  backend = "azure"
+  backend = "azurerm"
   config {
     storage_account_name = "terraform123abc"
     container_name       = "terraform-state"
