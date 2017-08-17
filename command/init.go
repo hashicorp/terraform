@@ -312,7 +312,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	var errs error
 	if c.getPlugins {
 		if len(missing) > 0 {
-			c.Ui.Output(fmt.Sprintf(" - Checking for available provider plugins on %s...",
+			c.Ui.Output(fmt.Sprintf("- Checking for available provider plugins on %s...",
 				discovery.GetReleaseHost()))
 		}
 
