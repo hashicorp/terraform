@@ -2,7 +2,8 @@ Terraform
 =========
 
 - Website: https://www.terraform.io
-- [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
+- [![Build Status](https://img.shields.io/travis/hashicorp/terraform/master.svg?style=flat-square)](https://travis-ci.org/hashicorp/terraform)
+[![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fhashicorp%2Fterraform.svg?type=shield)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fhashicorp%2Fterraform?ref=badge_shield)
 - Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
 
