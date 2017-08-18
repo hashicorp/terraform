@@ -6,7 +6,8 @@ NEW FEATURES:
 
 IMPROVEMENTS:
 
-* The "creation complete" (and similar) messages from `terraform apply` now include a total elapsed time for each operation. [GH-15548]
+* cli: The "creation complete" (and similar) messages from `terraform apply` now include a total elapsed time for each operation. [GH-15548]
+* config: The `jsonencode` interpolation function now accepts nested list and map structures, where before it would accept only strings, lists of strings, and maps of strings. [GH-14884]
 
 ## 0.10.2 (August 16, 2017)
 
