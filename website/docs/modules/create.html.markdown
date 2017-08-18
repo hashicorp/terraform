@@ -190,3 +190,24 @@ $ tree complete-module/
 │   ├── exampleB/
 │   ├── .../
 ```
+
+## Publishing Modules
+
+If you've built a module that you intend to be reused, we recommend
+[publishing the module](/docs/registry/module/publish.html) on the
+[Terraform Registry](https://registry.terraform.io). This will version
+your module, generate documentation, and more.
+
+Published modules can be easily consumed by Terraform, and in Terraform
+0.11 you'll also be able to constrain module versions for safe and predictable
+updates. The following example shows how easy it is to consume a module
+from the registry:
+
+```hcl
+module "consul" {
+  source = "hashicorp/consul/aws"
+}
+```
+
+You can also gain all the benefits of the registry for private modules
+by signing up for a [private registry](/docs/registry/private.html).
