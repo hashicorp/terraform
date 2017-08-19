@@ -30,8 +30,22 @@ func TestHTTPClient(t *testing.T) {
 	client := &HTTPClient{URL: url, Client: cleanhttp.DefaultClient()}
 	testClient(t, client)
 
-	a := &HTTPClient{URL: url, Client: cleanhttp.DefaultClient(), SupportsLocking: true}
-	b := &HTTPClient{URL: url, Client: cleanhttp.DefaultClient(), SupportsLocking: true}
+	a := &HTTPClient{
+		URL:          url,
+		LockURL:      url,
+		LockMethod:   "LOCK",
+		UnlockURL:    url,
+		UnlockMethod: "UNLOCK",
+		Client:       cleanhttp.DefaultClient(),
+	}
+	b := &HTTPClient{
+		URL:          url,
+		LockURL:      url,
+		LockMethod:   "LOCK",
+		UnlockURL:    url,
+		UnlockMethod: "UNLOCK",
+		Client:       cleanhttp.DefaultClient(),
+	}
 	TestRemoteLocks(t, a, b)
 }
 
@@ -45,25 +59,20 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		w.Write(h.Data)
 	case "POST":
-		switch r.URL.Path {
-		case "/":
-			// state
-			buf := new(bytes.Buffer)
-			if _, err := io.Copy(buf, r.Body); err != nil {
-				w.WriteHeader(500)
-			}
-
-			h.Data = buf.Bytes()
-		case "/lock":
-			if h.Locked {
-				w.WriteHeader(409)
-			} else {
-				h.Locked = true
-			}
-		case "/unlock":
-			h.Locked = false
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, r.Body); err != nil {
+			w.WriteHeader(500)
 		}
 
+		h.Data = buf.Bytes()
+	case "LOCK":
+		if h.Locked {
+			w.WriteHeader(409)
+		} else {
+			h.Locked = true
+		}
+	case "UNLOCK":
+		h.Locked = false
 	case "DELETE":
 		h.Data = nil
 		w.WriteHeader(200)
