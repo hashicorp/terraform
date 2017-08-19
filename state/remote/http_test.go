@@ -27,11 +27,14 @@ func TestHTTPClient(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Test basic get/store
 	client := &HTTPClient{URL: url, Client: cleanhttp.DefaultClient()}
 	testClient(t, client)
 
+	// Test locking and alternative StoreMethod
 	a := &HTTPClient{
 		URL:          url,
+		StoreMethod:  "PUT",
 		LockURL:      url,
 		LockMethod:   "LOCK",
 		UnlockURL:    url,
@@ -40,6 +43,7 @@ func TestHTTPClient(t *testing.T) {
 	}
 	b := &HTTPClient{
 		URL:          url,
+		StoreMethod:  "PUT",
 		LockURL:      url,
 		LockMethod:   "LOCK",
 		UnlockURL:    url,
@@ -47,6 +51,78 @@ func TestHTTPClient(t *testing.T) {
 		Client:       cleanhttp.DefaultClient(),
 	}
 	TestRemoteLocks(t, a, b)
+
+}
+
+func assertError(t *testing.T, err error, expected string) {
+	if err == nil {
+		t.Fatalf("Expected empty config to err")
+	} else if err.Error() != expected {
+		t.Fatalf("Expected err.Error() to be \"%s\", got \"%s\"", expected, err.Error())
+	}
+}
+
+func TestHTTPClientFactory(t *testing.T) {
+	// missing address
+	_, err := httpFactory(map[string]string{})
+	assertError(t, err, "missing 'address' configuration")
+
+	// defaults
+	conf := map[string]string{
+		"address": "http://127.0.0.1:8888/foo",
+	}
+	c, err := httpFactory(conf)
+	client, _ := c.(*HTTPClient)
+	if client == nil || err != nil {
+		t.Fatal("Unexpected failure, address")
+	}
+	if client.URL.String() != conf["address"] {
+		t.Fatalf("Expected address \"%s\", got \"%s\"", conf["address"], client.URL.String())
+	}
+	if client.StoreMethod != "POST" {
+		t.Fatalf("Expected store_method \"%s\", got \"%s\"", "POST", client.StoreMethod)
+	}
+	if client.LockURL != nil || client.LockMethod != "LOCK" {
+		t.Fatal("Unexpected lock_address or lock_method")
+	}
+	if client.UnlockURL != nil || client.UnlockMethod != "UNLOCK" {
+		t.Fatal("Unexpected unlock_address or unlock_method")
+	}
+	if client.Username != "" || client.Password != "" {
+		t.Fatal("Unexpected username or password")
+	}
+
+	// custom
+	conf = map[string]string{
+		"address":        "http://127.0.0.1:8888/foo",
+		"store_method":   "BLAH",
+		"lock_address":   "http://127.0.0.1:8888/bar",
+		"lock_method":    "BLIP",
+		"unlock_address": "http://127.0.0.1:8888/baz",
+		"unlock_method":  "BLOOP",
+		"username":       "user",
+		"password":       "pass",
+	}
+	c, err = httpFactory(conf)
+	client, _ = c.(*HTTPClient)
+	if client == nil || err != nil {
+		t.Fatal("Unexpected failure, store_method")
+	}
+	if client.StoreMethod != "BLAH" {
+		t.Fatalf("Expected store_method \"%s\", got \"%s\"", "BLAH", client.StoreMethod)
+	}
+	if client.LockURL.String() != conf["lock_address"] || client.LockMethod != "BLIP" {
+		t.Fatalf("Unexpected lock_address \"%s\" vs \"%s\" or lock_method \"%s\" vs \"%s\"", client.LockURL.String(),
+			conf["lock_address"], client.LockMethod, conf["lock_method"])
+	}
+	if client.UnlockURL.String() != conf["unlock_address"] || client.UnlockMethod != "BLOOP" {
+		t.Fatalf("Unexpected unlock_address \"%s\" vs \"%s\" or unlock_method \"%s\" vs \"%s\"", client.UnlockURL.String(),
+			conf["unlock_address"], client.UnlockMethod, conf["unlock_method"])
+	}
+	if client.Username != "user" || client.Password != "pass" {
+		t.Fatalf("Unexpected username \"%s\" vs \"%s\" or password \"%s\" vs \"%s\"", client.Username, conf["username"],
+			client.Password, conf["password"])
+	}
 }
 
 type testHTTPHandler struct {
@@ -58,7 +134,7 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		w.Write(h.Data)
-	case "POST":
+	case "POST", "PUT":
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, r.Body); err != nil {
 			w.WriteHeader(500)
@@ -67,7 +143,7 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		h.Data = buf.Bytes()
 	case "LOCK":
 		if h.Locked {
-			w.WriteHeader(409)
+			w.WriteHeader(423)
 		} else {
 			h.Locked = true
 		}

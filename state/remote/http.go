@@ -35,9 +35,9 @@ func httpFactory(conf map[string]string) (Client, error) {
 	}
 
 	var lockURL *url.URL
-	lockAddress, ok := conf["lock_address"]
-	if ok {
-		lockURL, err := url.Parse(lockAddress)
+	if lockAddress, ok := conf["lock_address"]; ok {
+		var err error
+		lockURL, err = url.Parse(lockAddress)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse lockAddress URL: %s", err)
 		}
@@ -53,9 +53,9 @@ func httpFactory(conf map[string]string) (Client, error) {
 	}
 
 	var unlockURL *url.URL
-	unlockAddress, ok := conf["unlock_address"]
-	if ok {
-		unlockURL, err := url.Parse(unlockAddress)
+	if unlockAddress, ok := conf["unlock_address"]; ok {
+		var err error
+		unlockURL, err = url.Parse(unlockAddress)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse unlockAddress URL: %s", err)
 		}
@@ -97,9 +97,11 @@ func httpFactory(conf map[string]string) (Client, error) {
 		UnlockURL:    unlockURL,
 		UnlockMethod: unlockMethod,
 
-		Client:   client,
 		Username: conf["username"],
 		Password: conf["password"],
+
+		// accessible only for testing use
+		Client: client,
 	}
 
 	return ret, nil
@@ -185,7 +187,7 @@ func (c *HTTPClient) Lock(info *state.LockInfo) (string, error) {
 		return "", fmt.Errorf("HTTP remote state endpoint requires auth")
 	case http.StatusForbidden:
 		return "", fmt.Errorf("HTTP remote state endpoint invalid auth")
-	case http.StatusConflict:
+	case http.StatusConflict, http.StatusLocked:
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
