@@ -22,16 +22,16 @@ func httpFactory(conf map[string]string) (Client, error) {
 		return nil, fmt.Errorf("missing 'address' configuration")
 	}
 
-	storeURL, err := url.Parse(address)
+	updateURL, err := url.Parse(address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse address URL: %s", err)
 	}
-	if storeURL.Scheme != "http" && storeURL.Scheme != "https" {
+	if updateURL.Scheme != "http" && updateURL.Scheme != "https" {
 		return nil, fmt.Errorf("address must be HTTP or HTTPS")
 	}
-	storeMethod, ok := conf["store_method"]
+	updateMethod, ok := conf["update_method"]
 	if !ok {
-		storeMethod = "POST"
+		updateMethod = "POST"
 	}
 
 	var lockURL *url.URL
@@ -89,8 +89,8 @@ func httpFactory(conf map[string]string) (Client, error) {
 	}
 
 	ret := &HTTPClient{
-		URL:         storeURL,
-		StoreMethod: storeMethod,
+		URL:          updateURL,
+		UpdateMethod: updateMethod,
 
 		LockURL:      lockURL,
 		LockMethod:   lockMethod,
@@ -109,9 +109,9 @@ func httpFactory(conf map[string]string) (Client, error) {
 
 // HTTPClient is a remote client that stores data in Consul or HTTP REST.
 type HTTPClient struct {
-	// Store & Retrieve
-	URL         *url.URL
-	StoreMethod string
+	// Update & Retrieve
+	URL          *url.URL
+	UpdateMethod string
 
 	// Locking
 	LockURL      *url.URL
@@ -302,8 +302,8 @@ func (c *HTTPClient) Put(data []byte) error {
 	*/
 
 	var method string = "POST"
-	if c.StoreMethod != "" {
-		method = c.StoreMethod
+	if c.UpdateMethod != "" {
+		method = c.UpdateMethod
 	}
 	resp, err := c.httpRequest(method, &base, &data, "upload state")
 	if err != nil {

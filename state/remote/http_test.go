@@ -27,14 +27,14 @@ func TestHTTPClient(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Test basic get/store
+	// Test basic get/update
 	client := &HTTPClient{URL: url, Client: cleanhttp.DefaultClient()}
 	testClient(t, client)
 
-	// Test locking and alternative StoreMethod
+	// Test locking and alternative UpdateMethod
 	a := &HTTPClient{
 		URL:          url,
-		StoreMethod:  "PUT",
+		UpdateMethod: "PUT",
 		LockURL:      url,
 		LockMethod:   "LOCK",
 		UnlockURL:    url,
@@ -43,7 +43,7 @@ func TestHTTPClient(t *testing.T) {
 	}
 	b := &HTTPClient{
 		URL:          url,
-		StoreMethod:  "PUT",
+		UpdateMethod: "PUT",
 		LockURL:      url,
 		LockMethod:   "LOCK",
 		UnlockURL:    url,
@@ -79,8 +79,8 @@ func TestHTTPClientFactory(t *testing.T) {
 	if client.URL.String() != conf["address"] {
 		t.Fatalf("Expected address \"%s\", got \"%s\"", conf["address"], client.URL.String())
 	}
-	if client.StoreMethod != "POST" {
-		t.Fatalf("Expected store_method \"%s\", got \"%s\"", "POST", client.StoreMethod)
+	if client.UpdateMethod != "POST" {
+		t.Fatalf("Expected update_method \"%s\", got \"%s\"", "POST", client.UpdateMethod)
 	}
 	if client.LockURL != nil || client.LockMethod != "LOCK" {
 		t.Fatal("Unexpected lock_address or lock_method")
@@ -95,7 +95,7 @@ func TestHTTPClientFactory(t *testing.T) {
 	// custom
 	conf = map[string]string{
 		"address":        "http://127.0.0.1:8888/foo",
-		"store_method":   "BLAH",
+		"update_method":  "BLAH",
 		"lock_address":   "http://127.0.0.1:8888/bar",
 		"lock_method":    "BLIP",
 		"unlock_address": "http://127.0.0.1:8888/baz",
@@ -106,10 +106,10 @@ func TestHTTPClientFactory(t *testing.T) {
 	c, err = httpFactory(conf)
 	client, _ = c.(*HTTPClient)
 	if client == nil || err != nil {
-		t.Fatal("Unexpected failure, store_method")
+		t.Fatal("Unexpected failure, update_method")
 	}
-	if client.StoreMethod != "BLAH" {
-		t.Fatalf("Expected store_method \"%s\", got \"%s\"", "BLAH", client.StoreMethod)
+	if client.UpdateMethod != "BLAH" {
+		t.Fatalf("Expected update_method \"%s\", got \"%s\"", "BLAH", client.UpdateMethod)
 	}
 	if client.LockURL.String() != conf["lock_address"] || client.LockMethod != "BLIP" {
 		t.Fatalf("Unexpected lock_address \"%s\" vs \"%s\" or lock_method \"%s\" vs \"%s\"", client.LockURL.String(),
