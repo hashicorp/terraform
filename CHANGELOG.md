@@ -1,5 +1,9 @@
 ## 0.10.3 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* LGPL Dependencies Removed [GH-15862]
+
 NEW FEATURES:
 
 * **`flatten` interpolation function**: turns a list of lists, or list of lists of lists, etc into a flat list of primitive values [GH-15278]
