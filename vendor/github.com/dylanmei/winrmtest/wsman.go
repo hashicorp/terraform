@@ -8,8 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/masterzen/winrm/soap"
-	"github.com/masterzen/xmlpath"
+	"github.com/antchfx/xquery/xml"
 	"github.com/satori/go.uuid"
 )
 
@@ -57,7 +56,7 @@ func (w *wsman) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Add("Content-Type", "application/soap+xml")
 
 	defer r.Body.Close()
-	env, err := xmlpath.Parse(r.Body)
+	env, err := xmlquery.Parse(r.Body)
 
 	if err != nil {
 		return
@@ -130,41 +129,32 @@ func (w *wsman) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func readAction(env *xmlpath.Node) string {
-	xpath, err := xmlpath.CompileWithNamespace(
-		"//a:Action", soap.GetAllNamespaces())
-
-	if err != nil {
+func readAction(env *xmlquery.Node) string {
+	xpath := xmlquery.FindOne(env, "//a:Action")
+	if xpath == nil {
 		return ""
 	}
 
-	action, _ := xpath.String(env)
-	return action
+	return xpath.InnerText()
 }
 
-func readCommand(env *xmlpath.Node) string {
-	xpath, err := xmlpath.CompileWithNamespace(
-		"//rsp:Command", soap.GetAllNamespaces())
-
-	if err != nil {
+func readCommand(env *xmlquery.Node) string {
+	xpath := xmlquery.FindOne(env, "//rsp:Command")
+	if xpath == nil {
 		return ""
 	}
 
-	command, _ := xpath.String(env)
-	if unquoted, err := strconv.Unquote(command); err == nil {
+	if unquoted, err := strconv.Unquote(xpath.InnerText()); err == nil {
 		return unquoted
 	}
-	return command
+	return xpath.InnerText()
 }
 
-func readCommandIDFromDesiredStream(env *xmlpath.Node) string {
-	xpath, err := xmlpath.CompileWithNamespace(
-		"//rsp:DesiredStream/@CommandId", soap.GetAllNamespaces())
-
-	if err != nil {
+func readCommandIDFromDesiredStream(env *xmlquery.Node) string {
+	xpath := xmlquery.FindOne(env, "//rsp:DesiredStream")
+	if xpath == nil {
 		return ""
 	}
 
-	id, _ := xpath.String(env)
-	return id
+	return xpath.SelectAttr("CommandId")
 }
