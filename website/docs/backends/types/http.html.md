@@ -12,19 +12,20 @@ description: |-
 
 Stores the state using a simple [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) client.
 
-State will be fetched via GET, updated via POST, and purged with DELETE.
+State will be fetched via GET, updated via POST, and purged with DELETE. The method used for updating is configurable.
 
-If locking is enabled a lock POST request will be made by appending `/lock` to the configured address with the lock info in the
-body as json. The endpiont should return a 409 Conflict with the holding lock info when it's already taken, 200 OK for success.
-Any other status will be considered an error. Unlocking works simillarly, appending `/unlock` and adding the `ID` of the lock
-being freed as a query parameter. An `ID` query parameter will also be added when sending state updates.
+When locking support is enabled it will use LOCK and UNLOCK requests providing the lock info in the body. The endpoint should
+return a 423: Locked or 409: Conflict with the holding lock info when it's already taken, 200: OK for success. Any other status
+will be considered an error. The ID of the holding lock info will be added as a query parameter to state updates requests.
 
 ## Example Usage
 
 ```hcl
 terraform {
   backend "http" {
-    address = "http://myrest.api.com"
+    address = "http://myrest.api.com/foo"
+    lock_address = "http://myrest.api.com/foo"
+    unlock_address = "http://myrest.api.com/foo"
   }
 }
 ```
@@ -45,9 +46,17 @@ data "terraform_remote_state" "foo" {
 The following configuration options are supported:
 
  * `address` - (Required) The address of the REST endpoint
+ * `update_method` - (Optional) HTTP method to use when updating state.
+   Defaults to `POST`.
+ * `lock_address` - (Optional) The address of the lock REST endpoint.
+   Defaults to disabled.
+ * `lock_method` - (Optional) The HTTP method to use when locking.
+   Defaults to `LOCK`.
+ * `unlock_address` - (Optional) The address of the unlock REST endpoint.
+   Defaults to disabled.
+ * `unlock_method` - (Optional) The HTTP method to use when unlocking.
+   Defaults to `UNLOCK`.
  * `username` - (Optional) The username for HTTP basic authentication
  * `password` - (Optional) The password for HTTP basic authentication
  * `skip_cert_verification` - (Optional) Whether to skip TLS verification.
-   Defaults to `false`.
- * `supports_locking` - (Optional) Whether to enable locking related calls
    Defaults to `false`.
