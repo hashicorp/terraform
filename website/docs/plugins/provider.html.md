@@ -8,6 +8,13 @@ description: |-
 
 # Provider Plugins
 
+~> **Advanced topic!** Plugin development is a highly advanced
+topic in Terraform, and is not required knowledge for day-to-day usage.
+If you don't plan on writing any plugins, this section of the documentation is 
+not necessary to read. For general use of Terraform, please see our
+[Intro to Terraform](/intro/index.html) and [Getting
+Started](/intro/getting-started/install.html) guides.
+
 A provider in Terraform is responsible for the lifecycle of a resource:
 create, read, update, delete. An example of a provider is AWS, which
 can manage resources of type `aws_instance`, `aws_eip`, `aws_elb`, etc.
@@ -21,11 +28,6 @@ The primary reasons to care about provider plugins are:
 
   * You want to write a completely new provider for custom, internal
     systems such as a private inventory management system.
-
-~> **Advanced topic!** Plugin development is a highly advanced
-topic in Terraform, and is not required knowledge for day-to-day usage.
-If you don't plan on writing any plugins, we recommend not reading
-this section of the documentation.
 
 If you're interested in provider development, then read on. The remainder
 of this page will assume you're familiar with
