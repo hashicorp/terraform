@@ -64,7 +64,8 @@ func TestResourceProvider_stop(t *testing.T) {
 		defer close(doneCh)
 		// The functionality of p.Apply is tested in TestResourceProvider_Apply.
 		// Because p.Apply is called in a goroutine, trying to t.Fatal() on its
-		// result would be ignored.
+		// result would be ignored or would cause a panic if the parent goroutine
+		// has already completed.
 		_ = p.Apply(output, nil, c)
 	}()
 
