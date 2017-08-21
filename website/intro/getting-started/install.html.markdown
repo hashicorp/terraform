@@ -57,6 +57,17 @@ If you get an error that `terraform` could not be found, your `PATH` environment
 variable was not set up properly. Please go back and ensure that your `PATH`
 variable contains the directory where Terraform was installed.
 
+## Installing Terraform Providers
+
+Terraform uses a plugin based architecture to support the numerous infrastructure 
+and service providers. As of Terraform version 0.10.0, each "Provider" is it's 
+own encapsulated binary distributed separately from Terraform itself. The core 
+Terraform binary downloaded and installed above will automatically download and 
+install any Provider binary needed for you, so you don't have to find and install 
+them yourself. A list of currently supported Providers can be found on 
+[our Providers page](/docs/providers/index.html).
+
+
 ## Next Steps
 
 Time to [build infrastructure](/intro/getting-started/build.html) using a
