@@ -60,7 +60,7 @@ variable contains the directory where Terraform was installed.
 ## Installing Terraform Providers
 
 Terraform uses a plugin based architecture to support the numerous infrastructure 
-and service providers. As of Terraform version 0.10.0, each "Provider" is it's 
+and service providers available. As of Terraform version 0.10.0, each "Provider" is it's 
 own encapsulated binary distributed separately from Terraform itself. The core 
 Terraform binary downloaded and installed above will automatically download and 
 install any Provider binary needed for you, so you don't have to find and install 
