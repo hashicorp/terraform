@@ -57,9 +57,6 @@ If you get an error that `terraform` could not be found, your `PATH` environment
 variable was not set up properly. Please go back and ensure that your `PATH`
 variable contains the directory where Terraform was installed.
 
-~> **Note:** Terraform Providers are seperate binaries and are installed 
-automatically by Terraform based on your configuraiton files. 
-
 ## Next Steps
 
 Time to [build infrastructure](/intro/getting-started/build.html) using a
