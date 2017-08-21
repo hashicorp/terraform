@@ -8,14 +8,16 @@ description: |-
 
 # Plugin Basics
 
-This page documents the basics of how the plugin system in Terraform
-works, and how to setup a basic development environment for plugin development
-if you're writing a Terraform plugin.
-
 ~> **Advanced topic!** Plugin development is a highly advanced
 topic in Terraform, and is not required knowledge for day-to-day usage.
 If you don't plan on writing any plugins, we recommend not reading
-this section of the documentation.
+this section of the documentation. For general use of Terraform, please see our
+[Intro to Terraform](/intro/index.html) and [Getting
+Started](/intro/getting-started/install.html) guides.
+
+This page documents the basics of how the plugin system in Terraform
+works, and how to setup a basic development environment for plugin development
+if you're writing a Terraform plugin.
 
 ## How it Works
 
