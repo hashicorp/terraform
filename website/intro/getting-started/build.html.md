@@ -121,8 +121,13 @@ an existing configuration from version control -- is `terraform init`, which
 initializes various local settings and data that will be used by subsequent
 commands.
 
-In particular, this command will install the plugins for the providers in
-use within the configuration, which in this case is just the `aws` provider:
+Terraform uses a plugin based architecture to support the numerous infrastructure 
+and service providers available. As of Terraform version 0.10.0, each "Provider" is it's 
+own encapsulated binary distributed separately from Terraform itself. The
+`terraform init` command will automatically download and install any Provider
+binary for the providers in use within the configuration, which in this case is 
+just the `aws` provider:
+
 
 ```
 $ terraform init
