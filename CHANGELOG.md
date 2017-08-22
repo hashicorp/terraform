@@ -9,6 +9,7 @@ NEW FEATURES:
 * **Local Values**: this new configuration language feature allows assigning a symbolic local name to an expression so it can be used multiple times in configuration without repetition. See [the documentation](https://github.com/hashicorp/terraform/blob/master/website/docs/configuration/locals.html.md) for how to define and use local values. [GH-15449]
 * **`base64gzip` interpolation function**: compresses a string with gzip and then base64-encodes the result [GH-3858]
 * **`flatten` interpolation function**: turns a list of lists, or list of lists of lists, etc into a flat list of primitive values [GH-15278]
+* **`urlencode` interpolation function**: applies standard URL encoding to a string so that it can be embedded in a URL without making it invalid and without any of the characters being interpreted as part of the URL structure [GH-15871]
 
 IMPROVEMENTS:
 
