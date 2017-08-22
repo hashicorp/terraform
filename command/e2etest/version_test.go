@@ -2,9 +2,11 @@ package e2etest
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/e2e"
 	tfcore "github.com/hashicorp/terraform/terraform"
 )
 
@@ -16,7 +18,8 @@ func TestVersion(t *testing.T) {
 
 	t.Parallel()
 
-	tf := newTerraform("empty")
+	fixturePath := filepath.Join("test-fixtures", "empty")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
 	stdout, stderr, err := tf.Run("version")
