@@ -5,11 +5,15 @@ import (
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/hashicorp/terraform/state"
 )
 
 func httpFactory(conf map[string]string) (Client, error) {
@@ -18,12 +22,52 @@ func httpFactory(conf map[string]string) (Client, error) {
 		return nil, fmt.Errorf("missing 'address' configuration")
 	}
 
-	url, err := url.Parse(address)
+	updateURL, err := url.Parse(address)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse HTTP URL: %s", err)
+		return nil, fmt.Errorf("failed to parse address URL: %s", err)
 	}
-	if url.Scheme != "http" && url.Scheme != "https" {
+	if updateURL.Scheme != "http" && updateURL.Scheme != "https" {
 		return nil, fmt.Errorf("address must be HTTP or HTTPS")
+	}
+	updateMethod, ok := conf["update_method"]
+	if !ok {
+		updateMethod = "POST"
+	}
+
+	var lockURL *url.URL
+	if lockAddress, ok := conf["lock_address"]; ok {
+		var err error
+		lockURL, err = url.Parse(lockAddress)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse lockAddress URL: %s", err)
+		}
+		if lockURL.Scheme != "http" && lockURL.Scheme != "https" {
+			return nil, fmt.Errorf("lockAddress must be HTTP or HTTPS")
+		}
+	} else {
+		lockURL = nil
+	}
+	lockMethod, ok := conf["lock_method"]
+	if !ok {
+		lockMethod = "LOCK"
+	}
+
+	var unlockURL *url.URL
+	if unlockAddress, ok := conf["unlock_address"]; ok {
+		var err error
+		unlockURL, err = url.Parse(unlockAddress)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse unlockAddress URL: %s", err)
+		}
+		if unlockURL.Scheme != "http" && unlockURL.Scheme != "https" {
+			return nil, fmt.Errorf("unlockAddress must be HTTP or HTTPS")
+		}
+	} else {
+		unlockURL = nil
+	}
+	unlockMethod, ok := conf["unlock_method"]
+	if !ok {
+		unlockMethod = "UNLOCK"
 	}
 
 	client := &http.Client{}
@@ -45,39 +89,142 @@ func httpFactory(conf map[string]string) (Client, error) {
 	}
 
 	ret := &HTTPClient{
-		URL:    url,
+		URL:          updateURL,
+		UpdateMethod: updateMethod,
+
+		LockURL:      lockURL,
+		LockMethod:   lockMethod,
+		UnlockURL:    unlockURL,
+		UnlockMethod: unlockMethod,
+
+		Username: conf["username"],
+		Password: conf["password"],
+
+		// accessible only for testing use
 		Client: client,
 	}
-	if username, ok := conf["username"]; ok && username != "" {
-		ret.Username = username
-	}
-	if password, ok := conf["password"]; ok && password != "" {
-		ret.Password = password
-	}
+
 	return ret, nil
 }
 
 // HTTPClient is a remote client that stores data in Consul or HTTP REST.
 type HTTPClient struct {
-	URL      *url.URL
+	// Update & Retrieve
+	URL          *url.URL
+	UpdateMethod string
+
+	// Locking
+	LockURL      *url.URL
+	LockMethod   string
+	UnlockURL    *url.URL
+	UnlockMethod string
+
+	// HTTP
 	Client   *http.Client
 	Username string
 	Password string
+
+	lockID       string
+	jsonLockInfo []byte
 }
 
-func (c *HTTPClient) Get() (*Payload, error) {
-	req, err := http.NewRequest("GET", c.URL.String(), nil)
-	if err != nil {
-		return nil, err
+func (c *HTTPClient) httpRequest(method string, url *url.URL, data *[]byte, what string) (*http.Response, error) {
+	// If we have data we need a reader
+	var reader io.Reader = nil
+	if data != nil {
+		reader = bytes.NewReader(*data)
 	}
 
-	// Prepare the request
+	// Create the request
+	req, err := http.NewRequest(method, url.String(), reader)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to make %s HTTP request: %s", what, err)
+	}
+	// Setup basic auth
 	if c.Username != "" {
 		req.SetBasicAuth(c.Username, c.Password)
 	}
 
+	// Work with data/body
+	if data != nil {
+		req.Header.Set("Content-Type", "application/json")
+		req.ContentLength = int64(len(*data))
+
+		// Generate the MD5
+		hash := md5.Sum(*data)
+		b64 := base64.StdEncoding.EncodeToString(hash[:])
+		req.Header.Set("Content-MD5", b64)
+	}
+
 	// Make the request
 	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to %s: %v", what, err)
+	}
+
+	return resp, nil
+}
+
+func (c *HTTPClient) Lock(info *state.LockInfo) (string, error) {
+	if c.LockURL == nil {
+		return "", nil
+	}
+	c.lockID = ""
+
+	jsonLockInfo := info.Marshal()
+	resp, err := c.httpRequest(c.LockMethod, c.LockURL, &jsonLockInfo, "lock")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		c.lockID = info.ID
+		c.jsonLockInfo = jsonLockInfo
+		return info.ID, nil
+	case http.StatusUnauthorized:
+		return "", fmt.Errorf("HTTP remote state endpoint requires auth")
+	case http.StatusForbidden:
+		return "", fmt.Errorf("HTTP remote state endpoint invalid auth")
+	case http.StatusConflict, http.StatusLocked:
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return "", fmt.Errorf("HTTP remote state already locked, failed to read body")
+		}
+		existing := state.LockInfo{}
+		err = json.Unmarshal(body, &existing)
+		if err != nil {
+			return "", fmt.Errorf("HTTP remote state already locked, failed to unmarshal body")
+		}
+		return "", fmt.Errorf("HTTP remote state already locked: ID=%s", existing.ID)
+	default:
+		return "", fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
+	}
+}
+
+func (c *HTTPClient) Unlock(id string) error {
+	if c.UnlockURL == nil {
+		return nil
+	}
+
+	resp, err := c.httpRequest(c.UnlockMethod, c.UnlockURL, &c.jsonLockInfo, "unlock")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return nil
+	default:
+		return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
+	}
+}
+
+func (c *HTTPClient) Get() (*Payload, error) {
+	resp, err := c.httpRequest("GET", c.URL, nil, "get state")
 	if err != nil {
 		return nil, err
 	}
@@ -139,9 +286,11 @@ func (c *HTTPClient) Put(data []byte) error {
 	// Copy the target URL
 	base := *c.URL
 
-	// Generate the MD5
-	hash := md5.Sum(data)
-	b64 := base64.StdEncoding.EncodeToString(hash[:])
+	if c.lockID != "" {
+		query := base.Query()
+		query.Set("ID", c.lockID)
+		base.RawQuery = query.Encode()
+	}
 
 	/*
 		// Set the force query parameter if needed
@@ -152,23 +301,13 @@ func (c *HTTPClient) Put(data []byte) error {
 		}
 	*/
 
-	req, err := http.NewRequest("POST", base.String(), bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("Failed to make HTTP request: %s", err)
+	var method string = "POST"
+	if c.UpdateMethod != "" {
+		method = c.UpdateMethod
 	}
-
-	// Prepare the request
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-MD5", b64)
-	req.ContentLength = int64(len(data))
-	if c.Username != "" {
-		req.SetBasicAuth(c.Username, c.Password)
-	}
-
-	// Make the request
-	resp, err := c.Client.Do(req)
+	resp, err := c.httpRequest(method, &base, &data, "upload state")
 	if err != nil {
-		return fmt.Errorf("Failed to upload state: %v", err)
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -182,20 +321,10 @@ func (c *HTTPClient) Put(data []byte) error {
 }
 
 func (c *HTTPClient) Delete() error {
-	req, err := http.NewRequest("DELETE", c.URL.String(), nil)
-	if err != nil {
-		return fmt.Errorf("Failed to make HTTP request: %s", err)
-	}
-
-	// Prepare the request
-	if c.Username != "" {
-		req.SetBasicAuth(c.Username, c.Password)
-	}
-
 	// Make the request
-	resp, err := c.Client.Do(req)
+	resp, err := c.httpRequest("DELETE", c.URL, nil, "delete state")
 	if err != nil {
-		return fmt.Errorf("Failed to delete state: %s", err)
+		return err
 	}
 	defer resp.Body.Close()
 
