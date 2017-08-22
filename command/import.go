@@ -41,7 +41,7 @@ func (c *ImportCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.provider, "provider", "", "provider")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.BoolVar(&c.Meta.ignoreMissingConfig, "ignore-missing-config", false, "ignore missing config")
+	cmdFlags.BoolVar(&c.Meta.allowMissingConfig, "allow-missing-config", false, "allow missing config")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -104,7 +104,7 @@ func (c *ImportCommand) Run(args []string) int {
 			break
 		}
 	}
-	if !c.Meta.ignoreMissingConfig && rc == nil {
+	if !c.Meta.allowMissingConfig && rc == nil {
 		modulePath := addr.WholeModuleAddress().String()
 		if modulePath == "" {
 			modulePath = "the root module"
@@ -183,8 +183,8 @@ func (c *ImportCommand) Run(args []string) int {
 
 	c.Ui.Output(c.Colorize().Color("[reset][green]\n" + importCommandSuccessMsg))
 
-	if c.Meta.ignoreMissingConfig && rc == nil {
-		c.Ui.Output(c.Colorize().Color("[reset][yellow]\n" + importCommandIgnoreMissingResourceMsg))
+	if c.Meta.allowMissingConfig && rc == nil {
+		c.Ui.Output(c.Colorize().Color("[reset][yellow]\n" + importCommandAllowMissingResourceMsg))
 	}
 
 	return 0
@@ -230,7 +230,7 @@ Options:
                           If no config files are present, they must be provided
                           via the input prompts or env vars.
 
-  -ignore-missing-config  Allow import when no resource configuration block exists.
+  -allow-missing-config   Allow import when no resource configuration block exists.
 
   -input=true             Ask for input for variables if not directly set.
 
@@ -311,7 +311,7 @@ The resources that were imported are shown above. These resources are now in
 your Terraform state and will henceforth be managed by Terraform.
 `
 
-const importCommandIgnoreMissingResourceMsg = `Import does not generate resource configuration, you must create a resource
+const importCommandAllowMissingResourceMsg = `Import does not generate resource configuration, you must create a resource
 configuration block that matches the current or desired state manually.
 
 If there is no matching resource configuration block for the imported

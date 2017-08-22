@@ -403,7 +403,7 @@ func TestImport_customProvider(t *testing.T) {
 	testStateOutput(t, statePath, testImportCustomProviderStr)
 }
 
-func TestImport_ignoreMissingResourceConfig(t *testing.T) {
+func TestImport_allowMissingResourceConfig(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
 
 	statePath := testTempFile(t)
@@ -429,7 +429,7 @@ func TestImport_ignoreMissingResourceConfig(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
-		"-ignore-missing-config",
+		"-allow-missing-config",
 		"test_instance.foo",
 		"bar",
 	}

@@ -131,7 +131,7 @@ type Meta struct {
 	errScannerDone chan struct{}
 
 	// Used with the import command to allow import of state when no matching config exists.
-	ignoreMissingConfig bool
+	allowMissingConfig bool
 }
 
 type PluginOverrides struct {
