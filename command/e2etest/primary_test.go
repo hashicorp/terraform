@@ -1,12 +1,14 @@
 package e2etest
 
 import (
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/terraform/e2e"
 )
 
 // The tests in this file are for the "primary workflow", which includes
@@ -24,7 +26,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	tf := newTerraform("full-workflow-null")
+	fixturePath := filepath.Join("test-fixtures", "full-workflow-null")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
 	//// INIT
