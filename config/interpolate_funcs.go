@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -111,6 +112,7 @@ func Funcs() map[string]ast.Function {
 		"title":        interpolationFuncTitle(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
+		"urlencode":    interpolationFuncURLEncode(),
 		"zipmap":       interpolationFuncZipMap(),
 	}
 }
@@ -1514,6 +1516,17 @@ func interpolationFuncFlatten() ast.Function {
 
 			var outputList []ast.Variable
 			return flattener(outputList, inputList), nil
+		},
+	}
+}
+
+func interpolationFuncURLEncode() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			return url.QueryEscape(s), nil
 		},
 	}
 }
