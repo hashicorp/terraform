@@ -129,6 +129,9 @@ type Meta struct {
 	errWriter *io.PipeWriter
 	// done chan to wait for the scanner goroutine
 	errScannerDone chan struct{}
+
+	// Used with the import command to allow import of state when no matching config exists.
+	ignoreMissingConfig bool
 }
 
 type PluginOverrides struct {
