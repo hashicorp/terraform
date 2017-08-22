@@ -2557,3 +2557,30 @@ func TestInterpolateFuncFlatten(t *testing.T) {
 		},
 	})
 }
+
+func TestInterpolateFuncURLEncode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${urlencode("abc123-_")}`,
+				"abc123-_",
+				false,
+			},
+			{
+				`${urlencode("foo:bar@localhost?foo=bar&bar=baz")}`,
+				"foo%3Abar%40localhost%3Ffoo%3Dbar%26bar%3Dbaz",
+				false,
+			},
+			{
+				`${urlencode("mailto:email?subject=this+is+my+subject")}`,
+				"mailto%3Aemail%3Fsubject%3Dthis%2Bis%2Bmy%2Bsubject",
+				false,
+			},
+			{
+				`${urlencode("foo/bar")}`,
+				"foo%2Fbar",
+				false,
+			},
+		},
+	})
+}
