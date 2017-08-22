@@ -58,26 +58,36 @@ func TestResourceProvider_stop(t *testing.T) {
 	output := new(terraform.MockUIOutput)
 	p := Provisioner()
 
-	var err error
 	doneCh := make(chan struct{})
+	startTime := time.Now()
 	go func() {
 		defer close(doneCh)
-		err = p.Apply(output, nil, c)
+		// The functionality of p.Apply is tested in TestResourceProvider_Apply.
+		// Because p.Apply is called in a goroutine, trying to t.Fatal() on its
+		// result would be ignored or would cause a panic if the parent goroutine
+		// has already completed.
+		_ = p.Apply(output, nil, c)
 	}()
 
+	mustExceed := (50 * time.Millisecond)
 	select {
 	case <-doneCh:
-		t.Fatal("should not finish quickly")
-	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("expected to finish sometime after %s finished in %s", mustExceed, time.Since(startTime))
+	case <-time.After(mustExceed):
+		t.Logf("correctly took longer than %s", mustExceed)
 	}
 
 	// Stop it
+	stopTime := time.Now()
 	p.Stop()
 
+	maxTempl := "expected to finish under %s, finished in %s"
+	finishWithin := (2 * time.Second)
 	select {
 	case <-doneCh:
-	case <-time.After(2 * time.Second):
-		t.Fatal("should finish")
+		t.Logf(maxTempl, finishWithin, time.Since(stopTime))
+	case <-time.After(finishWithin):
+		t.Fatalf(maxTempl, finishWithin, time.Since(stopTime))
 	}
 }
 
