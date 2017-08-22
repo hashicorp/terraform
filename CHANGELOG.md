@@ -13,6 +13,7 @@ IMPROVEMENTS:
 
 * cli: The "creation complete" (and similar) messages from `terraform apply` now include a total elapsed time for each operation. [GH-15548]
 * config: The `jsonencode` interpolation function now accepts nested list and map structures, where before it would accept only strings, lists of strings, and maps of strings. [GH-14884]
+* HTTP remote backend: now has optional support for locking, with special support from the target server. Additionally, the update operation can now optionally be implemented via `PUT` rather than `POST`. [GH-15793]
 
 ## 0.10.2 (August 16, 2017)
 
