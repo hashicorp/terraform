@@ -66,6 +66,15 @@ The command-line flags are all optional. The list of available flags are:
   `-state` path will be used. Ignored when
   [remote state](/docs/state/remote.html) is used.
 
+## Example: Tainting a Single Resource
+
+This example will taint a single resource:
+
+```
+$ terraform taint aws_security_group.allow_all
+The resource aws_security_group.allow_all in the module root has been marked as tainted!
+```
+
 ## Example: Tainting a Resource within a Module
 
 This example will only taint a resource within a module:
