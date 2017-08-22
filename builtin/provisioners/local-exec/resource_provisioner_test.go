@@ -125,3 +125,23 @@ func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfi
 
 	return terraform.NewResourceConfig(r)
 }
+
+func TestResourceProvider_ApplyCustomInterpreter(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"interpreter": []interface{}{"echo", "is"},
+		"command":     "not really an interpreter",
+	})
+
+	output := new(terraform.MockUIOutput)
+	p := Provisioner()
+
+	if err := p.Apply(output, nil, c); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	got := strings.TrimSpace(output.OutputMessage)
+	want := "is not really an interpreter"
+	if got != want {
+		t.Errorf("wrong output\ngot:  %s\nwant: %s", got, want)
+	}
+}
