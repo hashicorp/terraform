@@ -16,14 +16,18 @@ var Decompressors map[string]Decompressor
 func init() {
 	tbzDecompressor := new(TarBzip2Decompressor)
 	tgzDecompressor := new(TarGzipDecompressor)
+	txzDecompressor := new(TarXzDecompressor)
 
 	Decompressors = map[string]Decompressor{
 		"bz2":     new(Bzip2Decompressor),
 		"gz":      new(GzipDecompressor),
+		"xz":      new(XzDecompressor),
 		"tar.bz2": tbzDecompressor,
 		"tar.gz":  tgzDecompressor,
+		"tar.xz":  txzDecompressor,
 		"tbz2":    tbzDecompressor,
 		"tgz":     tgzDecompressor,
+		"txz":     txzDecompressor,
 		"zip":     new(ZipDecompressor),
 	}
 }
