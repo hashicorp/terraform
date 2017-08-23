@@ -121,6 +121,10 @@ standard structure.
   be treated as markdown. The README doesn't need to document inputs or
   outputs of the module because tooling will automatically generate this.
 
+* **LICENSE**. The license under which this module is available. If you are
+  publishing a module publicly, many organizations will not adopt a module
+  unless a clear license is present. We recommend always having a license
+  file, even if the license is non-public.
 
 * **main.tf, variables.tf, outputs.tf**. These are the recommended filenames for
   a minimal module, even if they're empty. `main.tf` should be the primary
