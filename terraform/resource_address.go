@@ -362,40 +362,41 @@ func (addr *ResourceAddress) Less(other *ResourceAddress) bool {
 
 	switch {
 
-	case len(addr.Path) < len(other.Path):
-		return true
+	case len(addr.Path) != len(other.Path):
+		return len(addr.Path) < len(other.Path)
 
 	case !reflect.DeepEqual(addr.Path, other.Path):
 		// If the two paths are the same length but don't match, we'll just
 		// cheat and compare the string forms since it's easier than
-		// comparing all of the path segments in turn.
+		// comparing all of the path segments in turn, and lexicographic
+		// comparison is correct for the module path portion.
 		addrStr := addr.String()
 		otherStr := other.String()
 		return addrStr < otherStr
 
-	case addr.Mode == config.DataResourceMode && other.Mode != config.DataResourceMode:
-		return true
+	case addr.Mode != other.Mode:
+		return addr.Mode == config.DataResourceMode
 
-	case addr.Type < other.Type:
-		return true
+	case addr.Type != other.Type:
+		return addr.Type < other.Type
 
-	case addr.Name < other.Name:
-		return true
+	case addr.Name != other.Name:
+		return addr.Name < other.Name
 
-	case addr.Index < other.Index:
+	case addr.Index != other.Index:
 		// Since "Index" is -1 for an un-indexed address, this also conveniently
 		// sorts unindexed addresses before indexed ones, should they both
 		// appear for some reason.
-		return true
+		return addr.Index < other.Index
 
-	case other.InstanceTypeSet && !addr.InstanceTypeSet:
-		return true
+	case addr.InstanceTypeSet != other.InstanceTypeSet:
+		return !addr.InstanceTypeSet
 
-	case addr.InstanceType < other.InstanceType:
+	case addr.InstanceType != other.InstanceType:
 		// InstanceType is actually an enum, so this is just an arbitrary
 		// sort based on the enum numeric values, and thus not particularly
 		// meaningful.
-		return true
+		return addr.InstanceType < other.InstanceType
 
 	default:
 		return false

@@ -1235,6 +1235,11 @@ func TestResourceAddressLess(t *testing.T) {
 		},
 		{
 			"module.baz.foo.bar",
+			"zzz.bar", // would sort after "module" in lexicographical sort
+			false,
+		},
+		{
+			"module.baz.foo.bar",
 			"module.baz.foo.bar",
 			false,
 		},
@@ -1242,6 +1247,11 @@ func TestResourceAddressLess(t *testing.T) {
 			"module.baz.foo.bar",
 			"module.boz.foo.bar",
 			true,
+		},
+		{
+			"module.boz.foo.bar",
+			"module.baz.foo.bar",
+			false,
 		},
 		{
 			"a.b",
@@ -1254,9 +1264,19 @@ func TestResourceAddressLess(t *testing.T) {
 			true,
 		},
 		{
+			"c.b",
+			"b.c",
+			false,
+		},
+		{
 			"a.b[9]",
 			"a.b[10]",
 			true,
+		},
+		{
+			"b.b[9]",
+			"a.b[10]",
+			false,
 		},
 		{
 			"a.b",
