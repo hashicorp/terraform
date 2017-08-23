@@ -1,32 +1,28 @@
-# PROVIDER ISSUES
-
-**PLEASE NOTE:** Terraform has split out the builtin Providers into their own repositories. For any Provider issues, please open all issues and pull requests in the corresponding repository. An index of supported Providers can be found here:
-
-- https://github.com/terraform-providers
-
-All other issues (that appear to affect multiple or all providers) may be an issue with Terraform's core, and should be opened here. 
-
-------
-
 Hi there,
 
 Thank you for opening an issue. Please note that we try to keep the Terraform issue tracker reserved for bug reports and feature requests. For general usage questions, please see: https://www.terraform.io/community.html.
 
+If your issue relates to a specific Terraform provider, please open it in the provider's own repository. The index of providers is at https://github.com/terraform-providers .
+
 ### Terraform Version
-Run `terraform -v` to show the version. If you are not running the latest version of Terraform, please upgrade because your issue may have already been fixed.
+Run `terraform -v` to show the version. If you are not running the latest version of Terraform, please try upgrading because your issue may have already been fixed.
 
 ### Terraform Configuration Files
 ```hcl
-# Copy-paste your Terraform configurations here - for large Terraform configs,
-# please use a service like Dropbox and share a link to the ZIP file. For
-# security, you can also encrypt the files using our GPG public key.
+# Copy-paste your Terraform configurations here.
+#
+# For large Terraform configs, please use a service like Dropbox and
+# share a link to the ZIP file. For security, you can also encrypt the
+# files using our GPG public key.
 ```
 
 ### Debug Output
-Please provider a link to a GitHub Gist containing the complete debug output: https://www.terraform.io/docs/internals/debugging.html. Please do NOT paste the debug output in the issue; just paste a link to the Gist.
+Full debug output can be obtained by running Terraform with the environment variable `TF_LOG=trace`. Please create a GitHub Gist containing the debug output. Please do _not_ paste the debug output in the issue, since debug output is long.
 
-### Panic Output
-If Terraform produced a panic, please provide a link to a GitHub Gist containing the output of the `crash.log`.
+Debug output may contain sensitive information. Please review it before posting publicly, and if you are concerned feel free to encrypt the files using the HashiCorp security public key.
+
+### Crash Output
+If the console output indicates that Terraform crashed, please share a link to a GitHub Gist containing the output of the `crash.log` file.
 
 ### Expected Behavior
 What should have happened?
@@ -35,12 +31,13 @@ What should have happened?
 What actually happened?
 
 ### Steps to Reproduce
-Please list the steps required to reproduce the issue, for example:
-1. `terraform apply`
+Please list the full steps required to reproduce the issue, for example:
+1. `terraform init`
+2. `terraform apply`
 
 ### Important Factoids
-Are there anything atypical about your accounts that we should know? For example: Running in EC2 Classic? Custom version of OpenStack? Tight ACLs?
+Are there anything atypical about your situation that we should know? For example: is Terraform running in a wrapper script or in a CI system? Are you passing any unusual command line options or environment variables to opt-in to non-default behavior?
 
 ### References
 Are there any other GitHub issues (open or closed) or Pull Requests that should be linked here? For example:
-- GH-1234
+- #6017
