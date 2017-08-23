@@ -17,6 +17,7 @@ IMPROVEMENTS:
 * cli: The "creation complete" (and similar) messages from `terraform apply` now include a total elapsed time for each operation. [GH-15548]
 * config: The `jsonencode` interpolation function now accepts nested list and map structures, where before it would accept only strings, lists of strings, and maps of strings. [GH-14884]
 * provisioner/local-exec: now possible to specify a custom "interpreter", overriding the default of either `bash -c` (on Unix) or `cmd.exe /C` (on Windows) [GH-15166]
+* backend/consul: can now set the path to a specific CA certificate file, client certificate file, and client key file that will be used when configuring the underlying Consul client. [GH-15405]
 * backend/http: now has optional support for locking, with special support from the target server. Additionally, the update operation can now optionally be implemented via `PUT` rather than `POST`. [GH-15793]
 
 ## 0.10.2 (August 16, 2017)
