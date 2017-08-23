@@ -28,7 +28,7 @@ func (g *S3Getter) ClientMode(u *url.URL) (ClientMode, error) {
 	}
 
 	// Create client config
-	config := g.getAWSConfig(region, creds)
+	config := g.getAWSConfig(region, u, creds)
 	sess := session.New(config)
 	client := s3.New(sess)
 
@@ -84,7 +84,7 @@ func (g *S3Getter) Get(dst string, u *url.URL) error {
 		return err
 	}
 
-	config := g.getAWSConfig(region, creds)
+	config := g.getAWSConfig(region, u, creds)
 	sess := session.New(config)
 	client := s3.New(sess)
 
@@ -139,7 +139,7 @@ func (g *S3Getter) GetFile(dst string, u *url.URL) error {
 		return err
 	}
 
-	config := g.getAWSConfig(region, creds)
+	config := g.getAWSConfig(region, u, creds)
 	sess := session.New(config)
 	client := s3.New(sess)
 	return g.getObject(client, dst, bucket, path, version)
@@ -174,7 +174,7 @@ func (g *S3Getter) getObject(client *s3.S3, dst, bucket, key, version string) er
 	return err
 }
 
-func (g *S3Getter) getAWSConfig(region string, creds *credentials.Credentials) *aws.Config {
+func (g *S3Getter) getAWSConfig(region string, url *url.URL, creds *credentials.Credentials) *aws.Config {
 	conf := &aws.Config{}
 	if creds == nil {
 		// Grab the metadata URL
@@ -195,6 +195,14 @@ func (g *S3Getter) getAWSConfig(region string, creds *credentials.Credentials) *
 			})
 	}
 
+	if creds != nil {
+		conf.Endpoint = &url.Host
+		conf.S3ForcePathStyle = aws.Bool(true)
+		if url.Scheme == "http" {
+			conf.DisableSSL = aws.Bool(true)
+		}
+	}
+
 	conf.Credentials = creds
 	if region != "" {
 		conf.Region = aws.String(region)
@@ -204,29 +212,48 @@ func (g *S3Getter) getAWSConfig(region string, creds *credentials.Credentials) *
 }
 
 func (g *S3Getter) parseUrl(u *url.URL) (region, bucket, path, version string, creds *credentials.Credentials, err error) {
-	// Expected host style: s3.amazonaws.com. They always have 3 parts,
-	// although the first may differ if we're accessing a specific region.
-	hostParts := strings.Split(u.Host, ".")
-	if len(hostParts) != 3 {
-		err = fmt.Errorf("URL is not a valid S3 URL")
-		return
-	}
+	// This just check whether we are dealing with S3 or
+	// any other S3 compliant service. S3 has a predictable
+	// url as others do not
+	if strings.Contains(u.Host, "amazonaws.com") {
+		// Expected host style: s3.amazonaws.com. They always have 3 parts,
+		// although the first may differ if we're accessing a specific region.
+		hostParts := strings.Split(u.Host, ".")
+		if len(hostParts) != 3 {
+			err = fmt.Errorf("URL is not a valid S3 URL")
+			return
+		}
 
-	// Parse the region out of the first part of the host
-	region = strings.TrimPrefix(strings.TrimPrefix(hostParts[0], "s3-"), "s3")
-	if region == "" {
-		region = "us-east-1"
-	}
+		// Parse the region out of the first part of the host
+		region = strings.TrimPrefix(strings.TrimPrefix(hostParts[0], "s3-"), "s3")
+		if region == "" {
+			region = "us-east-1"
+		}
 
-	pathParts := strings.SplitN(u.Path, "/", 3)
-	if len(pathParts) != 3 {
-		err = fmt.Errorf("URL is not a valid S3 URL")
-		return
-	}
+		pathParts := strings.SplitN(u.Path, "/", 3)
+		if len(pathParts) != 3 {
+			err = fmt.Errorf("URL is not a valid S3 URL")
+			return
+		}
 
-	bucket = pathParts[1]
-	path = pathParts[2]
-	version = u.Query().Get("version")
+		bucket = pathParts[1]
+		path = pathParts[2]
+		version = u.Query().Get("version")
+
+	} else {
+		pathParts := strings.SplitN(u.Path, "/", 3)
+		if len(pathParts) != 3 {
+			err = fmt.Errorf("URL is not a valid S3 complaint URL")
+			return
+		}
+		bucket = pathParts[1]
+		path = pathParts[2]
+		version = u.Query().Get("version")
+		region = u.Query().Get("region")
+		if region == "" {
+			region = "us-east-1"
+		}
+	}
 
 	_, hasAwsId := u.Query()["aws_access_key_id"]
 	_, hasAwsSecret := u.Query()["aws_access_key_secret"]

@@ -154,9 +154,11 @@ The following archive formats are supported:
 
   * `tar.gz` and `tgz`
   * `tar.bz2` and `tbz2`
+  * `tar.xz` and `txz`
   * `zip`
   * `gz`
   * `bz2`
+  * `xz`
 
 For example, an example URL is shown below:
 
@@ -222,13 +224,17 @@ None
 
 ### HTTP (`http`)
 
-None
+#### Basic Authentication
+
+To use HTTP basic authentication with go-getter, simply prepend `username:password@` to the
+hostname in the URL such as `https://Aladdin:OpenSesame@www.example.com/index.html`. All special
+characters, including the username and password, must be URL encoded.
 
 ### S3 (`s3`)
 
 S3 takes various access configurations in the URL. Note that it will also
-read these from standard AWS environment variables if they're set. If
-the query parameters are present, these take priority.
+read these from standard AWS environment variables if they're set. S3 compliant servers like Minio
+are also supported. If the query parameters are present, these take priority.
 
   * `aws_access_key_id` - AWS access key.
   * `aws_access_key_secret` - AWS access key secret.
@@ -240,6 +246,14 @@ If you use go-getter and want to use an EC2 IAM Instance Profile to avoid
 using credentials, then just omit these and the profile, if available will
 be used automatically.
 
+### Using S3 with Minio
+ If you use go-gitter for Minio support, you must consider the following:
+
+  * `aws_access_key_id` (required) - Minio access key.
+  * `aws_access_key_secret` (required) - Minio access key secret.
+  * `region` (optional - defaults to us-east-1) - Region identifier to use.
+  * `version` (optional - fefaults to Minio default) - Configuration file format.
+
 #### S3 Bucket Examples
 
 S3 has several addressing schemes used to reference your bucket. These are
@@ -250,4 +264,5 @@ Some examples for these addressing schemes:
 - s3::https://s3-eu-west-1.amazonaws.com/bucket/foo
 - bucket.s3.amazonaws.com/foo
 - bucket.s3-eu-west-1.amazonaws.com/foo/bar
+- "s3::http://127.0.0.1:9000/test-bucket/hello.txt?aws_access_key_id=KEYID&aws_access_key_secret=SECRETKEY&region=us-east-2"
 

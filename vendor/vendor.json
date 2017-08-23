@@ -1353,16 +1353,16 @@
 			"revisionTime": "2017-02-11T01:34:15Z"
 		},
 		{
-			"checksumSHA1": "nsL2kI426RMuq1jw15e7igFqdIY=",
+			"checksumSHA1": "Glhu9BTy826XCLfMw7rexQ5mKeY=",
 			"path": "github.com/hashicorp/go-getter",
-			"revision": "c3d66e76678dce180a7b452653472f949aedfbcd",
-			"revisionTime": "2017-02-07T21:55:32Z"
+			"revision": "6aae8e4e2dee8131187c6a54b52664796e5a02b0",
+			"revisionTime": "2017-07-13T01:23:01Z"
 		},
 		{
 			"checksumSHA1": "9J+kDr29yDrwsdu2ULzewmqGjpA=",
 			"path": "github.com/hashicorp/go-getter/helper/url",
-			"revision": "c3d66e76678dce180a7b452653472f949aedfbcd",
-			"revisionTime": "2017-02-07T21:55:32Z"
+			"revision": "6aae8e4e2dee8131187c6a54b52664796e5a02b0",
+			"revisionTime": "2017-07-13T01:23:01Z"
 		},
 		{
 			"checksumSHA1": "miVF4/7JP0lRwZvFJGKwZWk7aAQ=",
@@ -1857,6 +1857,30 @@
 			"path": "github.com/terraform-providers/terraform-provider-openstack/openstack",
 			"revision": "4080a521c6ea4872f38bae658ac17b774eefcfe1",
 			"revisionTime": "2017-06-13T14:56:00Z"
+		},
+		{
+			"checksumSHA1": "z2kAtVle4NFV2OExI85fZoTcsI4=",
+			"path": "github.com/ulikunitz/xz",
+			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
+			"revisionTime": "2017-06-05T21:53:11Z"
+		},
+		{
+			"checksumSHA1": "vjnTkzNrMs5Xj6so/fq0mQ6dT1c=",
+			"path": "github.com/ulikunitz/xz/internal/hash",
+			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
+			"revisionTime": "2017-06-05T21:53:11Z"
+		},
+		{
+			"checksumSHA1": "m0pm57ASBK/CTdmC0ppRHO17mBs=",
+			"path": "github.com/ulikunitz/xz/internal/xlog",
+			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
+			"revisionTime": "2017-06-05T21:53:11Z"
+		},
+		{
+			"checksumSHA1": "2vZw6zc8xuNlyVz2QKvdlNSZQ1U=",
+			"path": "github.com/ulikunitz/xz/lzma",
+			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
+			"revisionTime": "2017-06-05T21:53:11Z"
 		},
 		{
 			"checksumSHA1": "iHiMTBffQvWYlOLu3130JXuQpgQ=",
