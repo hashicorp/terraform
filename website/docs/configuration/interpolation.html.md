@@ -46,7 +46,7 @@ return list elements by index: `${var.subnets[idx]}`.
 
 #### Attributes of your own resource
 
-The syntax is `self.ATTRIBUTE`. For example `${self.private_ip_address}`
+The syntax is `self.ATTRIBUTE`. For example `${self.private_ip}`
 will interpolate that resource's private IP address.
 
 -> **Note**: The `self.ATTRIBUTE` syntax is only allowed and valid within
