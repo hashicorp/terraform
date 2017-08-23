@@ -23,6 +23,12 @@ const (
 	DiffUpdate
 	DiffDestroy
 	DiffDestroyCreate
+
+	// DiffRefresh is only used in the UI for displaying diffs.
+	// Managed resource reads never appear in plan, and when data source
+	// reads appear they are represented as DiffCreate in core before
+	// transforming to DiffRefresh in the UI layer.
+	DiffRefresh // TODO: Actually use DiffRefresh in core too, for less confusion
 )
 
 // multiVal matches the index key to a flatmapped set, list or map
