@@ -96,28 +96,16 @@ func (b *Local) opApply(
 			return
 		}
 
-		trivialPlan := plan.Diff == nil || plan.Diff.Empty()
+		dispPlan := format.NewPlan(plan)
+		trivialPlan := dispPlan.Empty()
 		hasUI := op.UIOut != nil && op.UIIn != nil
-		if hasUI && ((op.Destroy && !op.DestroyForce) ||
-			(!op.Destroy && !op.AutoApprove && !trivialPlan)) {
+		mustConfirm := hasUI && ((op.Destroy && !op.DestroyForce) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
+		if mustConfirm {
 			var desc, query string
 			if op.Destroy {
 				// Default destroy message
-				desc = "Terraform will delete all your managed infrastructure, as shown above.\n" +
+				desc = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
 					"There is no undo. Only 'yes' will be accepted to confirm."
-
-				// If targets are specified, list those to user
-				if op.Targets != nil {
-					var descBuffer bytes.Buffer
-					descBuffer.WriteString("Terraform will delete the following infrastructure:\n")
-					for _, target := range op.Targets {
-						descBuffer.WriteString("\t")
-						descBuffer.WriteString(target)
-						descBuffer.WriteString("\n")
-					}
-					descBuffer.WriteString("There is no undo. Only 'yes' will be accepted to confirm")
-					desc = descBuffer.String()
-				}
 				query = "Do you really want to destroy?"
 			} else {
 				desc = "Terraform will apply the changes described above.\n" +
@@ -132,11 +120,7 @@ func (b *Local) opApply(
 				} else {
 					op.UIOut.Output("\n" + strings.TrimSpace(approvePlanHeader) + "\n")
 				}
-				op.UIOut.Output(format.Plan(&format.PlanOpts{
-					Plan:        plan,
-					Color:       b.Colorize(),
-					ModuleDepth: -1,
-				}))
+				op.UIOut.Output(dispPlan.Format(b.Colorize()))
 			}
 
 			v, err := op.UIIn.Input(&terraform.InputOpts{
