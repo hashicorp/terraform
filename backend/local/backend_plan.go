@@ -133,7 +133,8 @@ func (b *Local) opPlan(
 
 	// Perform some output tasks if we have a CLI to output to.
 	if b.CLI != nil {
-		if plan.Diff.Empty() {
+		dispPlan := format.NewPlan(plan)
+		if dispPlan.Empty() {
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planNoChanges)))
 			return
 		}
@@ -146,18 +147,14 @@ func (b *Local) opPlan(
 				path))
 		}
 
-		b.CLI.Output(format.Plan(&format.PlanOpts{
-			Plan:        plan,
-			Color:       b.Colorize(),
-			ModuleDepth: -1,
-		}))
+		b.CLI.Output(dispPlan.Format(b.Colorize()))
 
+		stats := dispPlan.Stats()
 		b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
 			"[reset][bold]Plan:[reset] "+
 				"%d to add, %d to change, %d to destroy.",
-			countHook.ToAdd+countHook.ToRemoveAndAdd,
-			countHook.ToChange,
-			countHook.ToRemove+countHook.ToRemoveAndAdd)))
+			stats.ToAdd, stats.ToChange, stats.ToDestroy,
+		)))
 	}
 }
 
