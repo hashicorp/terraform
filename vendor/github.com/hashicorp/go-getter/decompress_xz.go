@@ -1,21 +1,22 @@
 package getter
 
 import (
-	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/ulikunitz/xz"
 )
 
-// GzipDecompressor is an implementation of Decompressor that can
-// decompress gzip files.
-type GzipDecompressor struct{}
+// XzDecompressor is an implementation of Decompressor that can
+// decompress xz files.
+type XzDecompressor struct{}
 
-func (d *GzipDecompressor) Decompress(dst, src string, dir bool) error {
+func (d *XzDecompressor) Decompress(dst, src string, dir bool) error {
 	// Directory isn't supported at all
 	if dir {
-		return fmt.Errorf("gzip-compressed files can only unarchive to a single file")
+		return fmt.Errorf("xz-compressed files can only unarchive to a single file")
 	}
 
 	// If we're going into a directory we should make that first
@@ -30,12 +31,11 @@ func (d *GzipDecompressor) Decompress(dst, src string, dir bool) error {
 	}
 	defer f.Close()
 
-	// gzip compression is second
-	gzipR, err := gzip.NewReader(f)
+	// xz compression is second
+	xzR, err := xz.NewReader(f)
 	if err != nil {
 		return err
 	}
-	defer gzipR.Close()
 
 	// Copy it out
 	dstF, err := os.Create(dst)
@@ -44,6 +44,6 @@ func (d *GzipDecompressor) Decompress(dst, src string, dir bool) error {
 	}
 	defer dstF.Close()
 
-	_, err = io.Copy(dstF, gzipR)
+	_, err = io.Copy(dstF, xzR)
 	return err
 }
