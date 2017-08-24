@@ -88,6 +88,46 @@ func (i *InstanceInfo) HumanId() string {
 		i.Id)
 }
 
+// ResourceAddress returns the address of the resource that the receiver is describing.
+func (i *InstanceInfo) ResourceAddress() *ResourceAddress {
+	// GROSS: for tainted and deposed instances, their status gets appended
+	// to i.Id to create a unique id for the graph node. Historically these
+	// ids were displayed to the user, so it's designed to be human-readable:
+	//   "aws_instance.bar.0 (deposed #0)"
+	//
+	// So here we detect such suffixes and try to interpret them back to
+	// their original meaning so we can then produce a ResourceAddress
+	// with a suitable InstanceType.
+	id := i.Id
+	instanceType := TypeInvalid
+	if idx := strings.Index(id, " ("); idx != -1 {
+		remain := id[idx:]
+		id = id[:idx]
+
+		switch {
+		case strings.Contains(remain, "tainted"):
+			instanceType = TypeTainted
+		case strings.Contains(remain, "deposed"):
+			instanceType = TypeDeposed
+		}
+	}
+
+	addr, err := parseResourceAddressInternal(id)
+	if err != nil {
+		// should never happen, since that would indicate a bug in the
+		// code that constructed this InstanceInfo.
+		panic(fmt.Errorf("InstanceInfo has invalid Id %s", id))
+	}
+	if len(i.ModulePath) > 1 {
+		addr.Path = i.ModulePath[1:] // trim off "root" prefix, which is implied
+	}
+	if instanceType != TypeInvalid {
+		addr.InstanceTypeSet = true
+		addr.InstanceType = instanceType
+	}
+	return addr
+}
+
 func (i *InstanceInfo) uniqueId() string {
 	prefix := i.HumanId()
 	if v := i.uniqueExtra; v != "" {
