@@ -1689,11 +1689,6 @@
 			"revisionTime": "2017-08-14T13:39:27Z"
 		},
 		{
-			"checksumSHA1": "bx+egnFe0OB0BZBcgZcaqsvcmS4=",
-			"path": "github.com/masterzen/xmlpath",
-			"revision": "13f4951698adc0fa9c1dda3e275d489a24201161"
-		},
-		{
 			"checksumSHA1": "rCffFCN6TpDAN3Jylyo8RFzhQ9E=",
 			"path": "github.com/mattn/go-colorable",
 			"revision": "9cbef7c35391cca05f15f8181dc0b18bc9736dbb"
