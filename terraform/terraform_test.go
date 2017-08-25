@@ -48,6 +48,8 @@ func TestMain(m *testing.M) {
 }
 
 func tempDir(t *testing.T) string {
+	t.Helper()
+
 	dir, err := ioutil.TempDir("", "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -63,6 +65,8 @@ func tempDir(t *testing.T) string {
 // a function to defer to reset the old value.
 // the old value that should be set via a defer.
 func tempEnv(t *testing.T, k string, v string) func() {
+	t.Helper()
+
 	old, oldOk := os.LookupEnv(k)
 	os.Setenv(k, v)
 	return func() {
@@ -75,6 +79,8 @@ func tempEnv(t *testing.T, k string, v string) func() {
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
+	t.Helper()
+
 	c, err := config.LoadFile(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -84,6 +90,8 @@ func testConfig(t *testing.T, name string) *config.Config {
 }
 
 func testModule(t *testing.T, name string) *module.Tree {
+	t.Helper()
+
 	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -100,6 +108,8 @@ func testModule(t *testing.T, name string) *module.Tree {
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
 func testModuleInline(t *testing.T, config map[string]string) *module.Tree {
+	t.Helper()
+
 	cfgPath, err := ioutil.TempDir("", "tf-test")
 	if err != nil {
 		t.Errorf("Error creating temporary directory for config: %s", err)
@@ -146,6 +156,8 @@ func testModuleInline(t *testing.T, config map[string]string) *module.Tree {
 }
 
 func testStringMatch(t *testing.T, s fmt.Stringer, expected string) {
+	t.Helper()
+
 	actual := strings.TrimSpace(s.String())
 	expected = strings.TrimSpace(expected)
 	if actual != expected {
