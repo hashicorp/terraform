@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"net"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -138,9 +139,20 @@ func CIDRNetwork(min, max int) schema.SchemaValidateFunc {
 	}
 }
 
+// ValidateJsonString is a SchemaValidateFunc which tests to make sure the
+// supplied string is valid JSON.
 func ValidateJsonString(v interface{}, k string) (ws []string, errors []error) {
 	if _, err := structure.NormalizeJsonString(v); err != nil {
 		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+	}
+	return
+}
+
+// ValidateRegexp returns a SchemaValidateFunc which tests to make sure the
+// supplied string is a valid regular expression.
+func ValidateRegexp(v interface{}, k string) (ws []string, errors []error) {
+	if _, err := regexp.Compile(v.(string)); err != nil {
+		errors = append(errors, fmt.Errorf("%q: %s", k, err))
 	}
 	return
 }
