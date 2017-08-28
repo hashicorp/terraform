@@ -159,6 +159,7 @@ func ValidateListUniqueStrings(v interface{}, k string) (ws []string, errors []e
 			}
 		}
 	}
+	return
 }
 
 // ValidateRegexp returns a SchemaValidateFunc which tests to make sure the
