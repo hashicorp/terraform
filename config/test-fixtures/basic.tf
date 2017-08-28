@@ -85,6 +85,11 @@ output "web_ip" {
     value = "${aws_instance.web.private_ip}"
 }
 
+output "web_id" {
+    description = "The ID"
+    value = "${aws_instance.web.id}"
+}
+
 atlas {
     name = "mitchellh/foo"
 }
