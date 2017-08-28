@@ -122,7 +122,7 @@ type Context struct {
 func NewContext(opts *ContextOpts) (*Context, error) {
 	// Validate the version requirement if it is given
 	if opts.Module != nil {
-		if err := checkRequiredVersion(opts.Module); err != nil {
+		if err := CheckRequiredVersion(opts.Module); err != nil {
 			return nil, err
 		}
 	}

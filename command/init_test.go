@@ -855,6 +855,27 @@ func TestInit_getProviderHaveLegacyVersion(t *testing.T) {
 	}
 }
 
+func TestInit_getProviderCheckRequiredVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-check-required-version"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
 func TestInit_providerLockFile(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
