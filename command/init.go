@@ -288,6 +288,11 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		return err
 	}
 
+	if err := terraform.CheckRequiredVersion(mod); err != nil {
+		c.Ui.Error(err.Error())
+		return err
+	}
+
 	var available discovery.PluginMetaSet
 	if upgrade {
 		// If we're in upgrade mode, we ignore any auto-installed plugins
