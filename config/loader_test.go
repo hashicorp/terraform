@@ -1058,6 +1058,11 @@ aws_instance.test (x1)
 `
 
 const basicOutputsStr = `
+web_id
+  vars
+    resource: aws_instance.web.id
+  description
+    The ID
 web_ip
   vars
     resource: aws_instance.web.private_ip

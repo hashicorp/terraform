@@ -499,6 +499,7 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 
 		// Delete special keys
 		delete(config, "depends_on")
+		delete(config, "description")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
@@ -520,10 +521,23 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 			}
 		}
 
+		// If we have a description field, then filter that
+		var description string
+		if o := listVal.Filter("description"); len(o.Items) > 0 {
+			err := hcl.DecodeObject(&description, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading description for output %q: %s",
+					n,
+					err)
+			}
+		}
+
 		result = append(result, &Output{
-			Name:      n,
-			RawConfig: rawConfig,
-			DependsOn: dependsOn,
+			Name:        n,
+			RawConfig:   rawConfig,
+			DependsOn:   dependsOn,
+			Description: description,
 		})
 	}
 
