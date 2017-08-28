@@ -110,6 +110,12 @@ This special argument applies to _all_ providers.
 view the specified version constraints for all providers used in the
 current configuration.
 
+When `terraform init` is re-run with providers already installed, it will
+use an already-installed provider that meets the constraints in preference
+to downloading a new version. To upgrade to the latest acceptable version
+of each provider, run `terraform init -upgrade`. This command also upgrades
+to the latest versions of all Terraform modules.
+
 ## Multiple Provider Instances
 
 You can define multiple instances of the same provider in order to support
