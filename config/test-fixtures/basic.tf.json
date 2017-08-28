@@ -88,6 +88,10 @@
     },
 
     "output": {
+        "web_id": {
+            "description": "The ID",
+            "value": "${aws_instance.web.id}"
+        },
         "web_ip": {
             "value": "${aws_instance.web.private_ip}"
         }

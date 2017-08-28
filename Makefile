@@ -1,4 +1,4 @@
-TEST?=$$(go list ./... | grep -v '/terraform/vendor/' | grep -v '/builtin/bins/')
+TEST?=./...
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
 default: test vet
@@ -27,10 +27,11 @@ plugin-dev: generate
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
 # test runs the unit tests
+# we run this one package at a time here because running the entire suite in
+# one command creates memory usage issues when running in Travis-CI.
 test: fmtcheck generate
 	go test -i $(TEST) || exit 1
-	echo $(TEST) | \
-		xargs -t -n4 go test $(TESTARGS) -timeout=60s -parallel=4
+	go list $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=60s -parallel=4
 
 # testacc runs acceptance tests
 testacc: fmtcheck generate
@@ -64,8 +65,8 @@ cover:
 # vet runs the Go source code static analysis tool `vet` to find
 # any common errors.
 vet:
-	@echo 'go vet $$(go list ./... | grep -v /terraform/vendor/)'
-	@go vet $$(go list ./... | grep -v /terraform/vendor/) ; if [ $$? -eq 1 ]; then \
+	@echo 'go vet ./...'
+	@go vet ./... ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
@@ -78,7 +79,7 @@ generate:
 	@which stringer > /dev/null; if [ $$? -ne 0 ]; then \
 	  go get -u golang.org/x/tools/cmd/stringer; \
 	fi
-	go generate $$(go list ./... | grep -v /terraform/vendor/)
+	go generate ./...
 	@go fmt command/internal_plugin_list.go > /dev/null
 
 fmt:

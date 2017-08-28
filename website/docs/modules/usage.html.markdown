@@ -84,7 +84,7 @@ Additionally, because these map directly to variables, module configuration can 
 
 ## Outputs
 
-Modules can also specify their own [outputs](/docs/configuration/outputs.html). These outputs can be referenced in other places in your configuration, for example:
+Modules encapsulate their resources. A resource in one module cannot directly depend on resources or attributes in other modules, unless those are exported through [outputs](/docs/configuration/outputs.html). These outputs can be referenced in other places in your configuration, for example:
 
 ```hcl
 resource "aws_instance" "client" {
