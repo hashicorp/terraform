@@ -25,6 +25,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * cli: `terraform init` now verifies the required Terraform version from the root module config. Previously this was verified only on subsequent commands, after initialization. [GH-15935]
+* cli: `terraform validate` now consults `terraform.tfvars`, if present, to set variable values. This is now consistent with the behavior of other commands. [GH-15938]
 
 ## 0.10.2 (August 16, 2017)
 
