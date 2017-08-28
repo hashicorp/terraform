@@ -38,6 +38,10 @@ where PROVIDER is the primary provider to associate with the module and
 NAME is a unique name for the module. The name may contain hyphens. Example:
 `terraform-aws-consul` or `terraform-google-vault`.
 
+* **Repostory description.** The GitHub repository description is used
+to populate the short description of the module. This should be a simple
+one sentence description of the module.
+
 * **Standard Module Structure.** The module must adhere to the
 [standard module structure](/docs/modules/create.html#standard-module-structure).
 This allows the registry to inspect your module and generate documentation,

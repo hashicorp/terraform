@@ -198,7 +198,7 @@ $ tree complete-module/
 ## Publishing Modules
 
 If you've built a module that you intend to be reused, we recommend
-[publishing the module](/docs/registry/module/publish.html) on the
+[publishing the module](/docs/registry/modules/publish.html) on the
 [Terraform Registry](https://registry.terraform.io). This will version
 your module, generate documentation, and more.
 
