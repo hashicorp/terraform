@@ -22,6 +22,11 @@ IMPROVEMENTS:
 * backend/consul: can now set the path to a specific CA certificate file, client certificate file, and client key file that will be used when configuring the underlying Consul client. [GH-15405]
 * backend/http: now has optional support for locking, with special support from the target server. Additionally, the update operation can now optionally be implemented via `PUT` rather than `POST`. [GH-15793]
 
+BUG FIXES:
+
+* cli: `terraform init` now verifies the required Terraform version from the root module config. Previously this was verified only on subsequent commands, after initialization. [GH-15935]
+* cli: `terraform validate` now consults `terraform.tfvars`, if present, to set variable values. This is now consistent with the behavior of other commands. [GH-15938]
+
 ## 0.10.2 (August 16, 2017)
 
 BUG FIXES:

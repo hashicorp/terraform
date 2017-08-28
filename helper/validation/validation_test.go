@@ -111,6 +111,20 @@ func TestValidationStringInSlice(t *testing.T) {
 	})
 }
 
+func TestValidationRegexp(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: ".*foo.*",
+			f:   ValidateRegexp,
+		},
+		{
+			val:         "foo(bar",
+			f:           ValidateRegexp,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta("error parsing regexp: missing closing ): `foo(bar`")),
+		},
+	})
+}
+
 func TestValidateJsonString(t *testing.T) {
 	type testCases struct {
 		Value    string

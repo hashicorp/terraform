@@ -143,6 +143,10 @@ func outputsStr(os []*Output) string {
 				result += fmt.Sprintf("    %s: %s\n", kind, str)
 			}
 		}
+
+		if o.Description != "" {
+			result += fmt.Sprintf("  description\n    %s\n", o.Description)
+		}
 	}
 
 	return strings.TrimSpace(result)

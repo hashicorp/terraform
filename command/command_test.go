@@ -54,6 +54,8 @@ func TestMain(m *testing.M) {
 }
 
 func tempDir(t *testing.T) string {
+	t.Helper()
+
 	dir, err := ioutil.TempDir("", "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -99,6 +101,8 @@ func metaOverridesForProviderAndProvisioner(p terraform.ResourceProvider, pr ter
 }
 
 func testModule(t *testing.T, name string) *module.Tree {
+	t.Helper()
+
 	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -114,6 +118,8 @@ func testModule(t *testing.T, name string) *module.Tree {
 
 // testPlan returns a non-nil noop plan.
 func testPlan(t *testing.T) *terraform.Plan {
+	t.Helper()
+
 	state := terraform.NewState()
 	state.RootModule().Outputs["foo"] = &terraform.OutputState{
 		Type:  "string",
@@ -127,6 +133,8 @@ func testPlan(t *testing.T) *terraform.Plan {
 }
 
 func testPlanFile(t *testing.T, plan *terraform.Plan) string {
+	t.Helper()
+
 	path := testTempFile(t)
 
 	f, err := os.Create(path)
@@ -143,6 +151,8 @@ func testPlanFile(t *testing.T, plan *terraform.Plan) string {
 }
 
 func testReadPlan(t *testing.T, path string) *terraform.Plan {
+	t.Helper()
+
 	f, err := os.Open(path)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -180,6 +190,8 @@ func testState() *terraform.State {
 }
 
 func testStateFile(t *testing.T, s *terraform.State) string {
+	t.Helper()
+
 	path := testTempFile(t)
 
 	f, err := os.Create(path)
@@ -198,6 +210,8 @@ func testStateFile(t *testing.T, s *terraform.State) string {
 // testStateFileDefault writes the state out to the default statefile
 // in the cwd. Use `testCwd` to change into a temp cwd.
 func testStateFileDefault(t *testing.T, s *terraform.State) string {
+	t.Helper()
+
 	f, err := os.Create(DefaultStateFilename)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -214,6 +228,8 @@ func testStateFileDefault(t *testing.T, s *terraform.State) string {
 // testStateFileRemote writes the state out to the remote statefile
 // in the cwd. Use `testCwd` to change into a temp cwd.
 func testStateFileRemote(t *testing.T, s *terraform.State) string {
+	t.Helper()
+
 	path := filepath.Join(DefaultDataDir, DefaultStateFilename)
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		t.Fatalf("err: %s", err)
@@ -234,6 +250,8 @@ func testStateFileRemote(t *testing.T, s *terraform.State) string {
 
 // testStateRead reads the state from a file
 func testStateRead(t *testing.T, path string) *terraform.State {
+	t.Helper()
+
 	f, err := os.Open(path)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -251,6 +269,8 @@ func testStateRead(t *testing.T, path string) *terraform.State {
 // testStateOutput tests that the state at the given path contains
 // the expected state string.
 func testStateOutput(t *testing.T, path string, expected string) {
+	t.Helper()
+
 	newState := testStateRead(t, path)
 	actual := strings.TrimSpace(newState.String())
 	expected = strings.TrimSpace(expected)
@@ -277,10 +297,14 @@ func testProvider() *terraform.MockResourceProvider {
 }
 
 func testTempFile(t *testing.T) string {
+	t.Helper()
+
 	return filepath.Join(testTempDir(t), "state.tfstate")
 }
 
 func testTempDir(t *testing.T) string {
+	t.Helper()
+
 	d, err := ioutil.TempDir("", "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -292,6 +316,8 @@ func testTempDir(t *testing.T) string {
 // testRename renames the path to new and returns a function to defer to
 // revert the rename.
 func testRename(t *testing.T, base, path, new string) func() {
+	t.Helper()
+
 	if base != "" {
 		path = filepath.Join(base, path)
 		new = filepath.Join(base, new)
@@ -310,6 +336,8 @@ func testRename(t *testing.T, base, path, new string) func() {
 // testChdir changes the directory and returns a function to defer to
 // revert the old cwd.
 func testChdir(t *testing.T, new string) func() {
+	t.Helper()
+
 	old, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -328,6 +356,8 @@ func testChdir(t *testing.T, new string) func() {
 // testCwd is used to change the current working directory
 // into a test directory that should be remoted after
 func testCwd(t *testing.T) (string, string) {
+	t.Helper()
+
 	tmp, err := ioutil.TempDir("", "tf")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -347,6 +377,8 @@ func testCwd(t *testing.T) (string, string) {
 
 // testFixCwd is used to as a defer to testDir
 func testFixCwd(t *testing.T, tmp, cwd string) {
+	t.Helper()
+
 	if err := os.Chdir(cwd); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -362,6 +394,8 @@ func testFixCwd(t *testing.T, tmp, cwd string) {
 // The returned function should be deferred to properly clean up and restore
 // the original stdin.
 func testStdinPipe(t *testing.T, src io.Reader) func() {
+	t.Helper()
+
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -390,6 +424,8 @@ func testStdinPipe(t *testing.T, src io.Reader) func() {
 // not useful since the commands are configured to write to a cli.Ui, not
 // Stdout directly. Commands like `console` though use the raw stdout.
 func testStdoutCapture(t *testing.T, dst io.Writer) func() {
+	t.Helper()
+
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -424,6 +460,8 @@ func testStdoutCapture(t *testing.T, dst io.Writer) func() {
 // in order to interactive prompts. The returned function must be called
 // in a defer to clean up.
 func testInteractiveInput(t *testing.T, answers []string) func() {
+	t.Helper()
+
 	// Disable test mode so input is called
 	test = false
 
@@ -443,6 +481,8 @@ func testInteractiveInput(t *testing.T, answers []string) func() {
 // for calls to Input when the right question is asked. The key is the
 // question "Id" that is used.
 func testInputMap(t *testing.T, answers map[string]string) func() {
+	t.Helper()
+
 	// Disable test mode so input is called
 	test = false
 
@@ -465,6 +505,8 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 // backend. This returns the complete state that can be saved. Use
 // `testStateFileRemote` to write the returned state.
 func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State, *httptest.Server) {
+	t.Helper()
+
 	var b64md5 string
 	buf := bytes.NewBuffer(nil)
 
@@ -507,6 +549,8 @@ func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State
 // testRemoteState is used to make a test HTTP server to return a given
 // state file that can be used for testing legacy remote state.
 func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.RemoteState, *httptest.Server) {
+	t.Helper()
+
 	var b64md5 string
 	buf := bytes.NewBuffer(nil)
 
