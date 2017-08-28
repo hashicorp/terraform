@@ -1,9 +1,11 @@
 package command
 
 import (
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
@@ -25,6 +27,28 @@ func setupTest(fixturepath string, args ...string) (*cli.MockUi, int) {
 func TestValidateCommand(t *testing.T) {
 	if ui, code := setupTest("validate-valid"); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestValidateCommandWithTfvarsFile(t *testing.T) {
+	// Create a temporary working directory that is empty because this test
+	// requires scanning the current working directory by validate command.
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("validate-valid/with-tfvars-file"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &ValidateCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }
 
