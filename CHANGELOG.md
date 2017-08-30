@@ -21,6 +21,7 @@ IMPROVEMENTS:
 * provisioner/local-exec: now possible to specify a custom "interpreter", overriding the default of either `bash -c` (on Unix) or `cmd.exe /C` (on Windows) [GH-15166]
 * backend/consul: can now set the path to a specific CA certificate file, client certificate file, and client key file that will be used when configuring the underlying Consul client. [GH-15405]
 * backend/http: now has optional support for locking, with special support from the target server. Additionally, the update operation can now optionally be implemented via `PUT` rather than `POST`. [GH-15793]
+* helper/resource: Add `TestStep.SkipFunc` [GH-15957]
 
 BUG FIXES:
 
