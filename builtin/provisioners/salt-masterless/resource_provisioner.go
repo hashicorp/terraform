@@ -86,7 +86,7 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"minion_config": &schema.Schema{
+			"minion_config_file": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -361,13 +361,13 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 	}
 
 	var minionConfig string
-	minionConfigTmp, ok := c.Get("minion_config")
+	minionConfigTmp, ok := c.Get("minion_config_file")
 	if !ok {
 		minionConfig = ""
 	} else {
 		minionConfig = minionConfigTmp.(string)
 	}
-	err = validateFileConfig(minionConfig, "minion_config", false)
+	err = validateFileConfig(minionConfig, "minion_config_file", false)
 	if err != nil {
 		es = append(es, err)
 	}
@@ -390,7 +390,7 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 
 	if minionConfig != "" && (remoteStateTree != "" || remotePillarRoots != "") {
 		es = append(es,
-			errors.New("remote_state_tree and remote_pillar_roots only apply when minion_config is not used"))
+			errors.New("remote_state_tree and remote_pillar_roots only apply when minion_config_file is not used"))
 	}
 
 	if len(es) > 0 {
@@ -406,7 +406,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		LogLevel:          d.Get("log_level").(string),
 		SaltCallArgs:      d.Get("salt_call_args").(string),
 		CmdArgs:           d.Get("cmd_args").(string),
-		MinionConfig:      d.Get("minion_config").(string),
+		MinionConfig:      d.Get("minion_config_file").(string),
 		CustomState:       d.Get("custom_state").(string),
 		DisableSudo:       d.Get("disable_sudo").(bool),
 		BootstrapArgs:     d.Get("bootstrap_args").(string),
@@ -429,7 +429,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	}
 
 	if p.MinionConfig == "" {
-		// pass --file-root and --pillar-root if no minion_config is supplied
+		// pass --file-root and --pillar-root if no minion_config_file is supplied
 		if p.RemoteStateTree != "" {
 			cmdArgs.WriteString(" --file-root=")
 			cmdArgs.WriteString(p.RemoteStateTree)

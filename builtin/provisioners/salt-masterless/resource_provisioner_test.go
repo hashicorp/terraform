@@ -150,8 +150,8 @@ func TestProvisionerPrepare_MinionConfig(t *testing.T) {
 	defer os.RemoveAll(dir) // clean up
 
 	c := testConfig(t, map[string]interface{}{
-		"local_state_tree": dir,
-		"minion_config":    "i/dont/exist",
+		"local_state_tree":   dir,
+		"minion_config_file": "i/dont/exist",
 	})
 
 	warns, errs := Provisioner().Validate(c)
@@ -171,8 +171,8 @@ func TestProvisionerPrepare_MinionConfig(t *testing.T) {
 	defer os.Remove(tf.Name())
 
 	c = testConfig(t, map[string]interface{}{
-		"local_state_tree": dir,
-		"minion_config":    tf.Name(),
+		"local_state_tree":   dir,
+		"minion_config_file": tf.Name(),
 	})
 
 	warns, errs = Provisioner().Validate(c)
@@ -192,9 +192,9 @@ func TestProvisionerPrepare_MinionConfig_RemoteStateTree(t *testing.T) {
 	}
 
 	c := testConfig(t, map[string]interface{}{
-		"local_state_tree":  dir,
-		"minion_config":     "i/dont/exist",
-		"remote_state_tree": "i/dont/exist/remote_state_tree",
+		"local_state_tree":   dir,
+		"minion_config_file": "i/dont/exist",
+		"remote_state_tree":  "i/dont/exist/remote_state_tree",
 	})
 
 	warns, errs := Provisioner().Validate(c)
@@ -214,7 +214,7 @@ func TestProvisionerPrepare_MinionConfig_RemotePillarRoots(t *testing.T) {
 
 	c := testConfig(t, map[string]interface{}{
 		"local_state_tree":    dir,
-		"minion_config":       "i/dont/exist",
+		"minion_config_file":  "i/dont/exist",
 		"remote_pillar_roots": "i/dont/exist/remote_pillar_roots",
 	})
 
@@ -235,7 +235,7 @@ func TestProvisionerPrepare_LocalPillarRoots(t *testing.T) {
 
 	c := testConfig(t, map[string]interface{}{
 		"local_state_tree":   dir,
-		"minion_config":      "i/dont/exist",
+		"minion_config_file": "i/dont/exist",
 		"local_pillar_roots": "i/dont/exist/local_pillar_roots",
 	})
 
