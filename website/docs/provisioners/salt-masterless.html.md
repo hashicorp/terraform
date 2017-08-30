@@ -64,7 +64,7 @@ Optional:
 -   `custom_state` (string) - A state to be run instead of `state.highstate`.
     Defaults to `state.highstate` if unspecified.
 
--   `minion_config` (string) - The path to your local [minion config
+-   `minion_config_file` (string) - The path to your local [minion config
     file](http://docs.saltstack.com/ref/configuration/minion.html). This will be
     uploaded to the `/etc/salt` on the remote. This option overrides the
     `remote_state_tree` or `remote_pillar_roots` options.
