@@ -1685,7 +1685,20 @@ func (s *InstanceState) Equal(other *InstanceState) bool {
 		// We only do the deep check if both are non-nil. If one is nil
 		// we treat it as equal since their lengths are both zero (check
 		// above).
-		if !reflect.DeepEqual(s.Meta, other.Meta) {
+		//
+		// Since this can contain numeric values that may change types during
+		// serialization, let's compare the serialized values.
+		sMeta, err := json.Marshal(s.Meta)
+		if err != nil {
+			// marshaling primitives shouldn't ever error out
+			panic(err)
+		}
+		otherMeta, err := json.Marshal(other.Meta)
+		if err != nil {
+			panic(err)
+		}
+
+		if !bytes.Equal(sMeta, otherMeta) {
 			return false
 		}
 	}
