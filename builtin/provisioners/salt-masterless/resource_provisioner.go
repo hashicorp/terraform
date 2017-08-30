@@ -116,6 +116,7 @@ func applyFn(ctx context.Context) error {
 
 	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
 	d := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
+	connState := ctx.Value(schema.ProvRawStateKey).(*terraform.InstanceState)
 
 	p, err := decodeConfig(d)
 	if err != nil {
@@ -123,7 +124,7 @@ func applyFn(ctx context.Context) error {
 	}
 
 	// Get a new communicator
-	comm, err := communicator.New(d.State())
+	comm, err := communicator.New(connState)
 	if err != nil {
 		return err
 	}
