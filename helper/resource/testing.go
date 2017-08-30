@@ -308,6 +308,10 @@ type TestStep struct {
 	// are tested alongside real resources
 	PreventPostDestroyRefresh bool
 
+	// SkipFunc is called before applying config, but after PreConfig
+	// This is useful for defining test steps with platform-dependent checks
+	SkipFunc func() (bool, error)
+
 	//---------------------------------------------------------------
 	// ImportState testing
 	//---------------------------------------------------------------
@@ -398,7 +402,18 @@ func Test(t TestT, c TestCase) {
 	errored := false
 	for i, step := range c.Steps {
 		var err error
-		log.Printf("[WARN] Test: Executing step %d", i)
+		log.Printf("[DEBUG] Test: Executing step %d", i)
+
+		if step.SkipFunc != nil {
+			skip, err := step.SkipFunc()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if skip {
+				log.Printf("[WARN] Skipping step %d", i)
+				continue
+			}
+		}
 
 		if step.Config == "" && !step.ImportState {
 			err = fmt.Errorf(
