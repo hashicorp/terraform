@@ -13,8 +13,8 @@ listed on the official Terraform website. The program is intended to be largely
 self-serve, with links to information sources, clearly defined steps, and
 checkpoints.
 
--> **Building your own provider?** If you're building your own
-provider and aren't interested in having HashiCorp officially maintain
+-> **Building your own provider?** If you're building your own provider and
+aren't interested in having HashiCorp officially approve and regularly test
 the provider, refer to the
 [Writing Custom Providers guide](/guides/writing-custom-terraform-providers.html).
 
@@ -36,7 +36,7 @@ and tests a particular provider.
 
 ![Provider Engagement Table](/assets/images/docs/engage-table.png)
 
-This document is primarily intended for the "HashiCorp/Vendors" row in
+-> **Note:** This document is primarily intended for the "HashiCorp/Vendors" row in
 the table above. Community contributors who’re interested in contributing to
 existing providers or building new providers should refer to the
 [Writing Custom Providers guide](/guides/writing-custom-terraform-providers.html).
@@ -201,7 +201,7 @@ Below is an ordered checklist of steps that should be followed during the
 provider development process. This just reiterates the steps already documented
 in the section above.
 
-* Fill out provider development program engagement [webform](https://goo.gl/forms/iqfz6H9UK91X9LQp2) (https://goo.gl/forms/iqfz6H9UK91X9LQp2)
+* Fill out provider development program engagement [webform](https://goo.gl/forms/iqfz6H9UK91X9LQp2)
 
 * Refer to the example providers and model the new provider based on that
 
