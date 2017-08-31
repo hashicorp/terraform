@@ -134,21 +134,15 @@ func (b *Backend) clientRaw() (*consulapi.Client, error) {
 		config.Datacenter = v.(string)
 	}
 
-	tlsConfig := &consulapi.TLSConfig{}
 	if v, ok := data.GetOk("ca_file"); ok && v.(string) != "" {
-		tlsConfig.CAFile = v.(string)
+		config.TLSConfig.CAFile = v.(string)
 	}
 	if v, ok := data.GetOk("cert_file"); ok && v.(string) != "" {
-		tlsConfig.CertFile = v.(string)
+		config.TLSConfig.CertFile = v.(string)
 	}
 	if v, ok := data.GetOk("key_file"); ok && v.(string) != "" {
-		tlsConfig.KeyFile = v.(string)
+		config.TLSConfig.KeyFile = v.(string)
 	}
-	cc, err := consulapi.SetupTLSConfig(tlsConfig)
-	if err != nil {
-		return nil, err
-	}
-	config.Transport.TLSClientConfig = cc
 
 	if v, ok := data.GetOk("http_auth"); ok && v.(string) != "" {
 		auth := v.(string)
