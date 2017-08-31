@@ -1,10 +1,17 @@
 package module
 
 import (
+	"fmt"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/hashicorp/go-getter"
+
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 )
 
 // GetMode is an enum that describes how modules are loaded.
@@ -68,4 +75,97 @@ func getStorage(s getter.Storage, key string, src string, mode GetMode) (string,
 
 	// Get the directory where the module is.
 	return s.Dir(key)
+}
+
+const (
+	registryAPI   = "https://registry.terraform.io/v1/modules/"
+	xTerraformGet = "X-Terraform-Get"
+)
+
+var detectors = []getter.Detector{
+	new(getter.GitHubDetector),
+	new(getter.BitBucketDetector),
+	new(getter.S3Detector),
+	new(registryDetector),
+	new(getter.FileDetector),
+}
+
+// these prefixes can't be registry IDs
+// "http", "./", "/", "getter::"
+var skipRegistry = regexp.MustCompile(`^(http|\./|/|[A-Za-z0-9]+::)`).MatchString
+
+// registryDetector implements getter.Detector to detect Terraform Registry modules.
+// If a path looks like a registry module identifier, attempt to locate it in
+// the registry. If it's not found, pass it on in case it can be found by
+// other means.
+type registryDetector struct {
+	// override the default registry URL
+	api string
+
+	client *http.Client
+}
+
+func (d registryDetector) Detect(src, _ string) (string, bool, error) {
+	// the namespace can't start with "http", a relative or absolute path, or
+	// contain a go-getter "forced getter"
+	if skipRegistry(src) {
+		return "", false, nil
+	}
+
+	// there are 3 parts to a registry ID
+	if len(strings.Split(src, "/")) != 3 {
+		return "", false, nil
+	}
+
+	return d.lookupModule(src)
+}
+
+// Lookup the module in the registry.
+// Since existing module sources may match a registry ID format, we only log
+// registry errors and continue discovery.
+func (d registryDetector) lookupModule(src string) (string, bool, error) {
+	if d.api == "" {
+		d.api = registryAPI
+	}
+
+	if d.client == nil {
+		d.client = cleanhttp.DefaultClient()
+	}
+
+	// src is already partially validated in Detect. We know it's a path, and
+	// if it can be parsed as a URL we will hand it off to the registry to
+	// determine if it's truly valid.
+	resp, err := d.client.Get(fmt.Sprintf("%s/%s/download", d.api, src))
+	if err != nil {
+		log.Println("[WARN] error looking up module %q: %s", src, err)
+		return "", false, nil
+	}
+	defer resp.Body.Close()
+
+	// there should be no body, but save it for logging
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("[WARN] error reading response body from registry: %s", err)
+		return "", false, nil
+	}
+
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusNoContent:
+		// OK
+	case http.StatusNotFound:
+		log.Printf("[INFO] module %q not found in registry", src)
+		return "", false, nil
+	default:
+		// anything else is an error:
+		log.Printf("[WARN] error getting download location for %q: %s resp:%s", src, resp.Status, body)
+		return "", false, nil
+	}
+
+	// the download location is in the X-Terraform-Get header
+	location := resp.Header.Get(xTerraformGet)
+	if location == "" {
+		return "", false, fmt.Errorf("failed to get download URL for %q: %s resp:%s", src, resp.Status, body)
+	}
+
+	return location, true, nil
 }

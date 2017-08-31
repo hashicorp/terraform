@@ -180,7 +180,7 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		// Split out the subdir if we have one
 		source, subDir := getter.SourceDirSubdir(m.Source)
 
-		source, err := getter.Detect(source, t.config.Dir, getter.Detectors)
+		source, err := getter.Detect(source, t.config.Dir, detectors)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
