@@ -8,11 +8,3 @@ locals {
   result_2 = "${local.result_1}"
   result_3 = "${local.result_2} world"
 }
-
-output "result_1" {
-  value = "${local.result_1}"
-}
-
-output "result_3" {
-  value = "${local.result_3}"
-}
