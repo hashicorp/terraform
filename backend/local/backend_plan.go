@@ -146,8 +146,10 @@ func (b *Local) opPlan(
 				path))
 		}
 
+		planDiff := op.PlanDiff
 		b.CLI.Output(format.Plan(&format.PlanOpts{
 			Plan:        plan,
+			PlanDiff:    planDiff,
 			Color:       b.Colorize(),
 			ModuleDepth: -1,
 		}))

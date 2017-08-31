@@ -108,6 +108,7 @@ type Operation struct {
 	// PlanOutBackend is the backend to store with the plan. This is the
 	// backend that will be used when applying the plan.
 	PlanId         string
+	PlanDiff       bool   // PlanDiff will only output differing attributes
 	PlanRefresh    bool   // PlanRefresh will do a refresh before a plan
 	PlanOutPath    string // PlanOutPath is the path to save the plan
 	PlanOutBackend *terraform.BackendState

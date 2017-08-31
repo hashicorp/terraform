@@ -37,6 +37,8 @@ The command-line flags are all optional. The list of available flags are:
   * 1 = Error
   * 2 = Succeeded with non-empty diff (changes present)
 
+* `-diff` - Only output differing attributes.
+
 * `-input=true` - Ask for input for variables if not directly set.
 
 * `-lock=true` - Lock the state file when locking is supported.
