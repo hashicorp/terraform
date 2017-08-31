@@ -46,6 +46,12 @@ func (c *ValidateCommand) Run(args []string) int {
 			"Unable to locate directory %v\n", err.Error()))
 	}
 
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		return 1
+	}
+
 	rtnCode := c.validate(dir, checkVars)
 
 	return rtnCode
