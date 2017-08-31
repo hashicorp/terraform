@@ -653,6 +653,22 @@ func TestNameRegexp(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_localValuesMultiFile(t *testing.T) {
+	c, err := LoadDir(filepath.Join(fixtureDir, "validate-local-multi-file"))
+	if err != nil {
+		t.Fatalf("unexpected error during load: %s", err)
+	}
+	if err := c.Validate(); err != nil {
+		t.Fatalf("unexpected error from validate: %s", err)
+	}
+	if len(c.Locals) != 1 {
+		t.Fatalf("got 0 locals; want 1")
+	}
+	if got, want := c.Locals[0].Name, "test"; got != want {
+		t.Errorf("wrong local name\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
+
 func TestProviderConfigName(t *testing.T) {
 	pcs := []*ProviderConfig{
 		&ProviderConfig{Name: "aw"},
