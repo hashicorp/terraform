@@ -2,7 +2,6 @@ package consul
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	consulapi "github.com/hashicorp/consul/api"
@@ -149,7 +148,7 @@ func (b *Backend) clientRaw() (*consulapi.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	config.HttpClient.Transport.(*http.Transport).TLSClientConfig = cc
+	config.Transport.TLSClientConfig = cc
 
 	if v, ok := data.GetOk("http_auth"); ok && v.(string) != "" {
 		auth := v.(string)
