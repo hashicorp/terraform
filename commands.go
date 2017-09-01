@@ -38,6 +38,7 @@ func initCommands(config *Config) {
 		Ui:               Ui,
 
 		RunningInAutomation: inAutomation,
+		PluginCacheDir:      config.PluginCacheDir,
 	}
 
 	// The command list is included in the terraform -help
