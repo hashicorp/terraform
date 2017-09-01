@@ -122,7 +122,7 @@ initializes various local settings and data that will be used by subsequent
 commands.
 
 Terraform uses a plugin based architecture to support the numerous infrastructure 
-and service providers available. As of Terraform version 0.10.0, each "Provider" is it's 
+and service providers available. As of Terraform version 0.10.0, each "Provider" is its
 own encapsulated binary distributed separately from Terraform itself. The
 `terraform init` command will automatically download and install any Provider
 binary for the providers in use within the configuration, which in this case is 
