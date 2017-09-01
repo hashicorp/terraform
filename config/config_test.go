@@ -312,6 +312,13 @@ func TestConfigValidate_countUserVar(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_countLocalValue(t *testing.T) {
+	c := testConfig(t, "validate-local-value-count")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestConfigValidate_countVar(t *testing.T) {
 	c := testConfig(t, "validate-count-var")
 	if err := c.Validate(); err != nil {

@@ -1294,6 +1294,39 @@ func TestContext2Plan_computedDataCountResource(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_localValueCount(t *testing.T) {
+	m := testModule(t, "plan-local-value-count")
+	p := testProvider("test")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if got := len(plan.Diff.Modules); got != 1 {
+		t.Fatalf("got %d modules; want 1", got)
+	}
+
+	moduleDiff := plan.Diff.Modules[0]
+
+	// make sure we created 3 "bar"s
+	for i := 0; i < 3; i++ {
+		resource := fmt.Sprintf("test_resource.foo.%d", i)
+		if _, ok := moduleDiff.Resources[resource]; !ok {
+			t.Fatalf("missing diff for %s", resource)
+		}
+	}
+}
+
 // Higher level test at TestResource_dataSourceListPlanPanic
 func TestContext2Plan_dataSourceTypeMismatch(t *testing.T) {
 	m := testModule(t, "plan-data-source-type-mismatch")
