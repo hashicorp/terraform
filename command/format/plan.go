@@ -221,9 +221,37 @@ func (p *Plan) Stats() PlanStats {
 	return ret
 }
 
+// ActionCounts returns the number of diffs for each action type
+func (p *Plan) ActionCounts() map[terraform.DiffChangeType]int {
+	ret := map[terraform.DiffChangeType]int{}
+	for _, r := range p.Resources {
+		ret[r.Action]++
+	}
+	return ret
+}
+
 // Empty returns true if there is at least one resource diff in the receiving plan.
 func (p *Plan) Empty() bool {
 	return len(p.Resources) == 0
+}
+
+// DiffActionSymbol returns a string that, once passed through a
+// colorstring.Colorize, will produce a result that can be written
+// to a terminal to produce a symbol made of three printable
+// characters, possibly interspersed with VT100 color codes.
+func DiffActionSymbol(action terraform.DiffChangeType) string {
+	switch action {
+	case terraform.DiffDestroyCreate:
+		return "[red]-[reset]/[green]+[reset]"
+	case terraform.DiffCreate:
+		return "  [green]+[reset]"
+	case terraform.DiffDestroy:
+		return "  [red]-[reset]"
+	case terraform.DiffRefresh:
+		return " [cyan]<=[reset]"
+	default:
+		return "  [yellow]~[reset]"
+	}
 }
 
 // formatPlanInstanceDiff writes the text representation of the given instance diff
@@ -235,31 +263,27 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 	// for change, red for delete), and symbol, and output the
 	// resource header.
 	color := "yellow"
-	symbol := "  ~"
+	symbol := DiffActionSymbol(r.Action)
 	oldValues := true
 	switch r.Action {
 	case terraform.DiffDestroyCreate:
 		color = "yellow"
-		symbol = "[red]-[reset]/[green]+[reset][yellow]"
 	case terraform.DiffCreate:
 		color = "green"
-		symbol = "  +"
 		oldValues = false
 	case terraform.DiffDestroy:
 		color = "red"
-		symbol = "  -"
 	case terraform.DiffRefresh:
-		symbol = " <="
 		color = "cyan"
 		oldValues = false
 	}
 
 	var extraStr string
 	if r.Tainted {
-		extraStr = extraStr + colorizer.Color(" (tainted)")
+		extraStr = extraStr + " (tainted)"
 	}
 	if r.Deposed {
-		extraStr = extraStr + colorizer.Color(" (deposed)")
+		extraStr = extraStr + " (deposed)"
 	}
 	if r.Action == terraform.DiffDestroyCreate {
 		extraStr = extraStr + colorizer.Color(" [red][bold](new resource required)")
@@ -267,8 +291,8 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 
 	buf.WriteString(
 		colorizer.Color(fmt.Sprintf(
-			"[%s]%s %s%s\n",
-			color, symbol, addrStr, extraStr,
+			"[%s]%s [%s]%s%s\n",
+			color, symbol, color, addrStr, extraStr,
 		)),
 	)
 

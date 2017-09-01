@@ -1,6 +1,7 @@
 package local
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -95,6 +96,9 @@ func (b *Local) opPlan(
 			runningOp.Err = errwrap.Wrapf("Error refreshing state: {{err}}", err)
 			return
 		}
+		if b.CLI != nil {
+			b.CLI.Output("\n------------------------------------------------------------------------")
+		}
 	}
 
 	// Perform the plan
@@ -135,27 +139,60 @@ func (b *Local) opPlan(
 	if b.CLI != nil {
 		dispPlan := format.NewPlan(plan)
 		if dispPlan.Empty() {
-			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planNoChanges)))
+			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
 			return
 		}
 
+		b.renderPlan(dispPlan)
+
+		b.CLI.Output("\n------------------------------------------------------------------------")
+
 		if path := op.PlanOutPath; path == "" {
-			b.CLI.Output(strings.TrimSpace(planHeaderNoOutput) + "\n")
+			b.CLI.Output(fmt.Sprintf(
+				"\n" + strings.TrimSpace(planHeaderNoOutput) + "\n",
+			))
 		} else {
 			b.CLI.Output(fmt.Sprintf(
-				strings.TrimSpace(planHeaderYesOutput)+"\n",
-				path))
+				"\n"+strings.TrimSpace(planHeaderYesOutput)+"\n",
+				path, path,
+			))
 		}
-
-		b.CLI.Output(dispPlan.Format(b.Colorize()))
-
-		stats := dispPlan.Stats()
-		b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
-			"[reset][bold]Plan:[reset] "+
-				"%d to add, %d to change, %d to destroy.",
-			stats.ToAdd, stats.ToChange, stats.ToDestroy,
-		)))
 	}
+}
+
+func (b *Local) renderPlan(dispPlan *format.Plan) {
+
+	headerBuf := &bytes.Buffer{}
+	fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(planHeaderIntro))
+	counts := dispPlan.ActionCounts()
+	if counts[terraform.DiffCreate] > 0 {
+		fmt.Fprintf(headerBuf, "%s create\n", format.DiffActionSymbol(terraform.DiffCreate))
+	}
+	if counts[terraform.DiffUpdate] > 0 {
+		fmt.Fprintf(headerBuf, "%s update in-place\n", format.DiffActionSymbol(terraform.DiffUpdate))
+	}
+	if counts[terraform.DiffDestroy] > 0 {
+		fmt.Fprintf(headerBuf, "%s destroy\n", format.DiffActionSymbol(terraform.DiffDestroy))
+	}
+	if counts[terraform.DiffDestroyCreate] > 0 {
+		fmt.Fprintf(headerBuf, "%s destroy and then create replacement\n", format.DiffActionSymbol(terraform.DiffDestroyCreate))
+	}
+	if counts[terraform.DiffRefresh] > 0 {
+		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(terraform.DiffRefresh))
+	}
+
+	b.CLI.Output(b.Colorize().Color(headerBuf.String()))
+
+	b.CLI.Output("Terraform will perform the following actions:\n")
+
+	b.CLI.Output(dispPlan.Format(b.Colorize()))
+
+	stats := dispPlan.Stats()
+	b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
+		"[reset][bold]Plan:[reset] "+
+			"%d to add, %d to change, %d to destroy.",
+		stats.ToAdd, stats.ToChange, stats.ToDestroy,
+	)))
 }
 
 const planErrNoConfig = `
@@ -168,37 +205,30 @@ flag or create a single empty configuration file. Otherwise, please create
 a Terraform configuration file in the path being executed and try again.
 `
 
-const planHeaderNoOutput = `
-The Terraform execution plan has been generated and is shown below.
-Resources are shown in alphabetical order for quick scanning. Green resources
-will be created (or destroyed and then created if an existing resource
-exists), yellow resources are being changed in-place, and red resources
-will be destroyed. Cyan entries are data sources to be read.
+const planHeaderIntro = `
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+`
 
-Note: You didn't specify an "-out" parameter to save this plan, so when
-"apply" is called, Terraform can't guarantee this is what will execute.
+const planHeaderNoOutput = `
+Note: You didn't specify an "-out" parameter to save this plan, so Terraform
+can't guarantee that exactly these actions will be performed if
+"terraform apply" is subsequently run.
 `
 
 const planHeaderYesOutput = `
-The Terraform execution plan has been generated and is shown below.
-Resources are shown in alphabetical order for quick scanning. Green resources
-will be created (or destroyed and then created if an existing resource
-exists), yellow resources are being changed in-place, and red resources
-will be destroyed. Cyan entries are data sources to be read.
+This plan was saved to: %s
 
-Your plan was also saved to the path below. Call the "apply" subcommand
-with this plan file and Terraform will exactly execute this execution
-plan.
-
-Path: %s
+To perform exactly these actions, run the following command to apply:
+    terraform apply %q
 `
 
 const planNoChanges = `
 [reset][bold][green]No changes. Infrastructure is up-to-date.[reset][green]
 
 This means that Terraform did not detect any differences between your
-configuration and real physical resources that exist. As a result, Terraform
-doesn't need to do anything.
+configuration and real physical resources that exist. As a result, no
+actions need to be performed.
 `
 
 const planRefreshing = `
