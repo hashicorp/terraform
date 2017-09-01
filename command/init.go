@@ -71,10 +71,11 @@ func (c *InitCommand) Run(args []string) int {
 		c.getPlugins = false
 	}
 
-	// set getProvider if we don't have a test version already
+	// set providerInstaller if we don't have a test version already
 	if c.providerInstaller == nil {
 		c.providerInstaller = &discovery.ProviderInstaller{
-			Dir: c.pluginDir(),
+			Dir:   c.pluginDir(),
+			Cache: c.pluginCache(),
 			PluginProtocolVersion: plugin.Handshake.ProtocolVersion,
 			SkipVerify:            !flagVerifyPlugins,
 			Ui:                    c.Ui,
