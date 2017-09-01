@@ -557,6 +557,7 @@ func (c *Config) Validate() error {
 			case *ResourceVariable:
 			case *TerraformVariable:
 			case *UserVariable:
+			case *LocalVariable:
 
 			default:
 				errs = append(errs, fmt.Errorf(
