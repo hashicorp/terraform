@@ -6,7 +6,7 @@ description: |-
   Terraform can store state remotely in Azure Storage.
 ---
 
-# azurerm
+# azurerm (formerly azure)
 
 **Kind: Standard (with state locking)**
 
