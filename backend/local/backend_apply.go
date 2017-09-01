@@ -108,19 +108,15 @@ func (b *Local) opApply(
 					"There is no undo. Only 'yes' will be accepted to confirm."
 				query = "Do you really want to destroy?"
 			} else {
-				desc = "Terraform will apply the changes described above.\n" +
+				desc = "Terraform will perform the actions described above.\n" +
 					"Only 'yes' will be accepted to approve."
-				query = "Do you want to apply these changes?"
+				query = "Do you want to perform these actions?"
 			}
 
 			if !trivialPlan {
 				// Display the plan of what we are going to apply/destroy.
-				if op.Destroy {
-					op.UIOut.Output("\n" + strings.TrimSpace(approveDestroyPlanHeader) + "\n")
-				} else {
-					op.UIOut.Output("\n" + strings.TrimSpace(approvePlanHeader) + "\n")
-				}
-				op.UIOut.Output(dispPlan.Format(b.Colorize()))
+				b.renderPlan(dispPlan)
+				b.CLI.Output("")
 			}
 
 			v, err := op.UIIn.Input(&terraform.InputOpts{
@@ -336,18 +332,4 @@ const earlyStateWriteErrorFmt = `Error saving current state: %s
 Terraform encountered an error attempting to save the state before canceling
 the current operation. Once the operation is complete another attempt will be
 made to save the final state.
-`
-
-const approvePlanHeader = `
-The Terraform execution plan has been generated and is shown below.
-Resources are shown in alphabetical order for quick scanning. Green resources
-will be created (or destroyed and then created if an existing resource
-exists), yellow resources are being changed in-place, and red resources
-will be destroyed. Cyan entries are data sources to be read.
-`
-
-const approveDestroyPlanHeader = `
-The Terraform destroy plan has been generated and is shown below.
-Resources are shown in alphabetical order for quick scanning.
-Resources shown in red will be destroyed.
 `
