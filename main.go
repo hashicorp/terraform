@@ -138,6 +138,13 @@ func wrappedMain() int {
 		config = *config.Merge(usrcfg)
 	}
 
+	if envConfig := EnvConfig(); envConfig != nil {
+		// envConfig takes precedence
+		config = *envConfig.Merge(&config)
+	}
+
+	log.Printf("[DEBUG] CLI Config is %#v", config)
+
 	// In tests, Commands may already be set to provide mock commands
 	if Commands == nil {
 		initCommands(&config)
