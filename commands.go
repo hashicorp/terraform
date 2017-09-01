@@ -25,15 +25,7 @@ const (
 	OutputPrefix = "o:"
 )
 
-func init() {
-	Ui = &cli.PrefixedUi{
-		AskPrefix:    OutputPrefix,
-		OutputPrefix: OutputPrefix,
-		InfoPrefix:   OutputPrefix,
-		ErrorPrefix:  ErrorPrefix,
-		Ui:           &cli.BasicUi{Writer: os.Stdout},
-	}
-
+func initCommands(config *Config) {
 	var inAutomation bool
 	if v := os.Getenv(runningInAutomationEnvName); v != "" {
 		inAutomation = true
