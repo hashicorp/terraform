@@ -168,6 +168,17 @@ func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
 	return dirs
 }
 
+func (m *Meta) pluginCache() discovery.PluginCache {
+	dir := m.PluginCacheDir
+	if dir == "" {
+		return nil // cache disabled
+	}
+
+	dir = filepath.Join(dir, pluginMachineName)
+
+	return discovery.NewLocalPluginCache(dir)
+}
+
 // providerPluginSet returns the set of valid providers that were discovered in
 // the defined search paths.
 func (m *Meta) providerPluginSet() discovery.PluginMetaSet {

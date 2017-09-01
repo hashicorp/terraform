@@ -55,6 +55,10 @@ type Meta struct {
 	// the specific commands being run.
 	RunningInAutomation bool
 
+	// PluginCacheDir, if non-empty, enables caching of downloaded plugins
+	// into the given directory.
+	PluginCacheDir string
+
 	//----------------------------------------------------------
 	// Protected: commands can set these
 	//----------------------------------------------------------
