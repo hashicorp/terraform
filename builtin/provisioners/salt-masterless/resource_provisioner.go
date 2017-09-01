@@ -30,6 +30,7 @@ type provisioner struct {
 	DisableSudo       bool
 	CustomState       string
 	MinionConfig      string
+	GrainsFile        string
 	LocalPillarRoots  string
 	RemoteStateTree   string
 	RemotePillarRoots string
@@ -89,6 +90,10 @@ func Provisioner() terraform.ResourceProvisioner {
 				Optional: true,
 			},
 			"minion_config_file": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"grains_file": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -206,6 +211,26 @@ func applyFn(ctx context.Context) error {
 		dst = "/etc/salt/minion"
 		if err = p.moveFile(o, comm, dst, src); err != nil {
 			return fmt.Errorf("Unable to move %s/minion to /etc/salt/minion: %s", p.TempConfigDir, err)
+		}
+	}
+
+	if p.GrainsFile != "" {
+		o.Output(fmt.Sprintf("Uploading grains file: %s", p.GrainsFile))
+		src = p.GrainsFile
+		dst = filepath.ToSlash(filepath.Join(p.TempConfigDir, "grains"))
+		if err = p.uploadFile(o, comm, dst, src); err != nil {
+			return fmt.Errorf("Error uploading local grains file to remote: %s", err)
+		}
+
+		// move grains file into /etc/salt
+		o.Output(fmt.Sprintf("Make sure directory %s exists", "/etc/salt"))
+		if err := p.createDir(o, comm, "/etc/salt"); err != nil {
+			return fmt.Errorf("Error creating remote salt configuration directory: %s", err)
+		}
+		src = filepath.ToSlash(filepath.Join(p.TempConfigDir, "grains"))
+		dst = "/etc/salt/grains"
+		if err = p.moveFile(o, comm, dst, src); err != nil {
+			return fmt.Errorf("Unable to move %s/grains to /etc/salt/grains: %s", p.TempConfigDir, err)
 		}
 	}
 
@@ -428,6 +453,18 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 		es = append(es, err)
 	}
 
+	var grainsFile string
+	grainsFileTmp, ok := c.Get("grains_file")
+	if !ok {
+		grainsFile = ""
+	} else {
+		grainsFile = grainsFileTmp.(string)
+	}
+	err = validateFileConfig(grainsFile, "grains_file", false)
+	if err != nil {
+		es = append(es, err)
+	}
+
 	var remoteStateTree string
 	remoteStateTreeTmp, ok := c.Get("remote_state_tree")
 	if !ok {
@@ -463,6 +500,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		SaltCallArgs:      d.Get("salt_call_args").(string),
 		CmdArgs:           d.Get("cmd_args").(string),
 		MinionConfig:      d.Get("minion_config_file").(string),
+		GrainsFile:        d.Get("grains_file").(string),
 		CustomState:       d.Get("custom_state").(string),
 		DisableSudo:       d.Get("disable_sudo").(bool),
 		BootstrapArgs:     d.Get("bootstrap_args").(string),
