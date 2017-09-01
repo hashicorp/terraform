@@ -306,14 +306,14 @@ Then the value of `foo` will be `baz` since it was the last value seen.
 However, for maps, the values are merged:
 
 ```shell
-$ terraform apply -var 'foo={foo="bar"}' -var 'foo={bar="baz"}'
+$ terraform apply -var 'foo={quux="bar"}' -var 'foo={bar="baz"}'
 ```
 
 The resulting value of `foo` will be:
 
 ```shell
 {
-  foo = "bar"
+  quux = "bar"
   bar = "baz"
 }
 ```
