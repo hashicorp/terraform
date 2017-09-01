@@ -145,10 +145,15 @@ func formatPlanModuleExpand(
 		// determine the longest key so that we can align them all.
 		keyLen := 0
 		keys := make([]string, 0, len(rdiff.Attributes))
-		for key, _ := range rdiff.Attributes {
+		prefixChanged := make(map[string]bool)
+		for key, attr := range rdiff.Attributes {
 			// Skip the ID since we do that specially
 			if key == "id" {
 				continue
+			}
+
+			if attr.Old != attr.New || attr.NewComputed {
+				prefixChanged[prefix(key)] = true
 			}
 
 			keys = append(keys, key)
@@ -169,6 +174,12 @@ func formatPlanModuleExpand(
 
 			if attrDiff.Sensitive {
 				v = "<sensitive>"
+			}
+
+			// If nothing changed, skip display. Prefix tracking helps display useful context for values that
+			// did change
+			if attrDiff.Old == attrDiff.New && !prefixChanged[prefix(attrK)] {
+				continue
 			}
 
 			updateMsg := ""
@@ -239,4 +250,13 @@ func formatPlanModuleSingle(
 		"    %d resource(s)",
 		len(m.Resources)))
 	buf.WriteString(opts.Color.Color("[reset]\n"))
+}
+
+func prefix(key string) string {
+	parts := strings.Split(key, ".")
+	if len(parts) > 1 {
+		return strings.Join(parts[:len(parts)-1], ".")
+	}
+
+	return key
 }
