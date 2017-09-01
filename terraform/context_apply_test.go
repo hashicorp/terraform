@@ -1519,6 +1519,7 @@ func TestContext2Apply_destroyData(t *testing.T) {
 			},
 		},
 	}
+	hook := &testHook{}
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -1528,6 +1529,7 @@ func TestContext2Apply_destroyData(t *testing.T) {
 		),
 		State:   state,
 		Destroy: true,
+		Hooks:   []Hook{hook},
 	})
 
 	if p, err := ctx.Plan(); err != nil {
@@ -1547,6 +1549,15 @@ func TestContext2Apply_destroyData(t *testing.T) {
 
 	if got := len(newState.Modules[0].Resources); got != 0 {
 		t.Fatalf("state has %d resources after destroy; want 0", got)
+	}
+
+	wantHookCalls := []*testHookCall{
+		{"PreDiff", "data.null_data_source.testing"},
+		{"PostDiff", "data.null_data_source.testing"},
+		{"PostStateUpdate", ""},
+	}
+	if !reflect.DeepEqual(hook.Calls, wantHookCalls) {
+		t.Errorf("wrong hook calls\ngot: %swant: %s", spew.Sdump(hook.Calls), spew.Sdump(wantHookCalls))
 	}
 }
 
