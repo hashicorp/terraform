@@ -1,6 +1,8 @@
 ## 0.10.4 (Unreleased)
 
+BUG FIXES:
 
+* config: local values now work properly in resource `count` and in modules with more than one `.tf` file [GH-15995] [GH-15982]
 
 ## 0.10.3 (August 30, 2017)
 
