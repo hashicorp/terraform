@@ -1,7 +1,11 @@
 package e2etest
 
 import (
+	"bytes"
+	"fmt"
+	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -44,4 +48,56 @@ func TestInitProviders(t *testing.T) {
 		t.Errorf("provider pinning recommendation is missing from output:\n%s", stdout)
 	}
 
+}
+
+func TestInitProviders_pluginCache(t *testing.T) {
+	t.Parallel()
+
+	// This test reaches out to releases.hashicorp.com to access plugin
+	// metadata, and download the null plugin, though the template plugin
+	// should come from local cache.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("test-fixtures", "plugin-cache")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
+	defer tf.Close()
+
+	// Our fixture dir has a generic os_arch dir, which we need to customize
+	// to the actual OS/arch where this test is running in order to get the
+	// desired result.
+	fixtMachineDir := tf.Path("cache/os_arch")
+	wantMachineDir := tf.Path("cache", fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH))
+	os.Rename(fixtMachineDir, wantMachineDir)
+
+	cmd := tf.Cmd("init")
+	cmd.Env = append(cmd.Env, "TF_PLUGIN_CACHE_DIR=./cache")
+	cmd.Stdin = nil
+	cmd.Stderr = &bytes.Buffer{}
+
+	err := cmd.Run()
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+
+	stderr := cmd.Stderr.(*bytes.Buffer).String()
+	if stderr != "" {
+		t.Errorf("unexpected stderr output:\n%s", stderr)
+	}
+
+	path := fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-template_v0.1.0_x4", runtime.GOOS, runtime.GOARCH)
+	content, err := tf.ReadFile(path)
+	if err != nil {
+		t.Fatalf("failed to read installed plugin from %s: %s", path, err)
+	}
+	if strings.TrimSpace(string(content)) != "this is not a real plugin" {
+		t.Errorf("template plugin was not installed from local cache")
+	}
+
+	if !tf.FileExists(fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-null_v0.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
+		t.Errorf("null plugin was not installed")
+	}
+
+	if !tf.FileExists(fmt.Sprintf("cache/%s_%s/terraform-provider-null_v0.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
+		t.Errorf("null plugin is not in cache after install")
+	}
 }
