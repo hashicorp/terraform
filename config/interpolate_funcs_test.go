@@ -2615,6 +2615,82 @@ func TestInterpolateFuncURLEncode(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncTranspose(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.map": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"key1": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeString, Value: "a"},
+							{Type: ast.TypeString, Value: "b"},
+						},
+					},
+					"key2": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeString, Value: "a"},
+							{Type: ast.TypeString, Value: "b"},
+							{Type: ast.TypeString, Value: "c"},
+						},
+					},
+					"key3": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeString, Value: "c"},
+						},
+					},
+					"key4": ast.Variable{
+						Type:  ast.TypeList,
+						Value: []ast.Variable{},
+					},
+				}},
+			"var.badmap": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"key1": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeList, Value: []ast.Variable{}},
+							{Type: ast.TypeList, Value: []ast.Variable{}},
+						},
+					},
+				}},
+			"var.worsemap": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"key1": ast.Variable{
+						Type:  ast.TypeString,
+						Value: "not-a-list",
+					},
+				}},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${transpose(var.map)}`,
+				map[string]interface{}{
+					"a": []interface{}{"key1", "key2"},
+					"b": []interface{}{"key1", "key2"},
+					"c": []interface{}{"key2", "key3"},
+				},
+				false,
+			},
+			{
+				`${transpose(var.badmap)}`,
+				nil,
+				true,
+			},
+			{
+				`${transpose(var.worsemap)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncAbs(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
