@@ -392,6 +392,8 @@ The supported built-in functions are:
 
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
 
+  * `transpose(map)` - Swaps the keys and list values in a map of lists of strings. For example, transpose(map("a", list("1", "2"), "b", list("2", "3")) produces a value equivalent to map("1", list("a"), "2", list("a", "b"), "3", list("b")).
+
   * `trimspace(string)` - Returns a copy of the string with all leading and trailing white spaces removed.
 
   * `upper(string)` - Returns a copy of the string with all Unicode letters mapped to their upper case.
