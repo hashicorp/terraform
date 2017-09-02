@@ -112,6 +112,7 @@ func Funcs() map[string]ast.Function {
 		"substr":       interpolationFuncSubstr(),
 		"timestamp":    interpolationFuncTimestamp(),
 		"title":        interpolationFuncTitle(),
+		"transpose":    interpolationFuncTranspose(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
 		"urlencode":    interpolationFuncURLEncode(),
@@ -1544,6 +1545,53 @@ func interpolationFuncURLEncode() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			s := args[0].(string)
 			return url.QueryEscape(s), nil
+		},
+	}
+}
+
+// interpolationFuncTranspose implements the "transpose" function
+// that converts a map (string,list) to a map (string,list) where
+// the unique values of the original lists become the keys of the
+// new map and the keys of the original map become values for the
+// corresponding new keys.
+func interpolationFuncTranspose() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeMap},
+		ReturnType: ast.TypeMap,
+		Callback: func(args []interface{}) (interface{}, error) {
+
+			inputMap := args[0].(map[string]ast.Variable)
+			outputMap := make(map[string]ast.Variable)
+			tmpMap := make(map[string][]string)
+
+			for inKey, inVal := range inputMap {
+				if inVal.Type != ast.TypeList {
+					return nil, fmt.Errorf("transpose requires a map of lists of strings")
+				}
+				values := inVal.Value.([]ast.Variable)
+				for _, listVal := range values {
+					if listVal.Type != ast.TypeString {
+						return nil, fmt.Errorf("transpose requires the given map values to be lists of strings")
+					}
+					outKey := listVal.Value.(string)
+					if _, ok := tmpMap[outKey]; !ok {
+						tmpMap[outKey] = make([]string, 0)
+					}
+					outVal := tmpMap[outKey]
+					outVal = append(outVal, inKey)
+					sort.Strings(outVal)
+					tmpMap[outKey] = outVal
+				}
+			}
+
+			for outKey, outVal := range tmpMap {
+				values := make([]ast.Variable, 0)
+				for _, v := range outVal {
+					values = append(values, ast.Variable{Type: ast.TypeString, Value: v})
+				}
+				outputMap[outKey] = ast.Variable{Type: ast.TypeList, Value: values}
+			}
+			return outputMap, nil
 		},
 	}
 }
