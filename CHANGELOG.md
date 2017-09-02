@@ -1,8 +1,13 @@
 ## 0.10.4 (Unreleased)
 
+IMPROVEMENTS:
+* `terraform apply` now uses the standard resource address syntax to refer to resources in its log [GH-15884]
+* `terraform plan` output has some minor adjustments to improve readability and accessibility for those who can't see its colors [GH-15884]
+
 BUG FIXES:
 
 * config: local values now work properly in resource `count` and in modules with more than one `.tf` file [GH-15995] [GH-15982]
+* cli: removed some inconsistencies in how data sources are counted and tallied in plan vs. apply and apply vs. destroy. In particular, data sources are no longer incorrectly counted as destroyed in `terraform destroy` [GH-15884]
 
 ## 0.10.3 (August 30, 2017)
 
