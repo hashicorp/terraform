@@ -395,11 +395,8 @@ The supported built-in functions are:
   * `transpose(map)` - Returns map of (string,list) from a map (string,list)
     where the unique values of the original lists become the keys of the new
     map and the keys of the original map become values for the corresponding
-    new keys.
-    
-    Example:
-    * `transpose(map("us-east", list("a", "b", "c"), "us-west", list("a", "b")))`
-  
+    new keys. Example: `${transpose(map("a", list("1", "2"), "b", list("2", "3")))}` returns `${map("1", list("a"), "2", list("a", "b"), "3", list("b"))}`.
+
   * `trimspace(string)` - Returns a copy of the string with all leading and trailing white spaces removed.
 
   * `upper(string)` - Returns a copy of the string with all Unicode letters mapped to their upper case.
