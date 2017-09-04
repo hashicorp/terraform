@@ -17,66 +17,66 @@ import (
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"storage_account_name": &schema.Schema{
+			"storage_account_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the storage account.",
 			},
 
-			"container_name": &schema.Schema{
+			"container_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The container name.",
 			},
 
-			"key": &schema.Schema{
+			"key": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The blob key.",
 			},
 
-			"environment": &schema.Schema{
+			"environment": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Azure cloud environment.",
 				Default:     "",
 			},
 
-			"access_key": &schema.Schema{
+			"access_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The access key.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_ACCESS_KEY", ""),
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The resource group name.",
 			},
 
-			"arm_subscription_id": &schema.Schema{
+			"arm_subscription_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Subscription ID.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_SUBSCRIPTION_ID", ""),
 			},
 
-			"arm_client_id": &schema.Schema{
+			"arm_client_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Client ID.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_ID", ""),
 			},
 
-			"arm_client_secret": &schema.Schema{
+			"arm_client_secret": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Client Secret.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_SECRET", ""),
 			},
 
-			"arm_tenant_id": &schema.Schema{
+			"arm_tenant_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Tenant ID.",
