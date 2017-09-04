@@ -3,7 +3,9 @@ package azure
 import (
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/state/remote"
 )
 
@@ -66,4 +68,76 @@ func TestRemoteClientLocks(t *testing.T) {
 	}
 
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
+}
+
+func TestPutMaintainsMetaData(t *testing.T) {
+	testACC(t)
+
+	keyName := "testState"
+	headerName := "acceptancetest"
+	expectedValue := "f3b56bad-33ad-4b93-a600-7a66e9cbd1eb"
+	res := setupResources(t, keyName)
+	defer destroyResources(t, res.resourceGroupName)
+
+	config := getBackendConfig(t, res)
+	blobClient, err := getBlobClient(config)
+	if err != nil {
+		t.Fatalf("Error getting Blob Client: %+v", err)
+	}
+
+	containerReference := blobClient.GetContainerReference(res.containerName)
+	blobReference := containerReference.GetBlobReference(keyName)
+
+	err = blobReference.CreateBlockBlob(&storage.PutBlobOptions{})
+	if err != nil {
+		t.Fatalf("Error Creating Block Blob: %+v", err)
+	}
+
+	err = blobReference.GetMetadata(&storage.GetBlobMetadataOptions{})
+	if err != nil {
+		t.Fatalf("Error loading MetaData: %+v", err)
+	}
+
+	blobReference.Metadata[headerName] = expectedValue
+	err = blobReference.SetMetadata(&storage.SetBlobMetadataOptions{})
+	if err != nil {
+		t.Fatalf("Error setting MetaData: %+v", err)
+	}
+
+	// update the metadata using the Backend
+	remoteClient := RemoteClient{
+		keyName:       res.keyName,
+		containerName: res.containerName,
+		blobClient:    blobClient,
+	}
+
+	bytes := []byte(acctest.RandString(20))
+	err = remoteClient.Put(bytes)
+	if err != nil {
+		t.Fatalf("Error putting data: %+v", err)
+	}
+
+	// Verify it still exists
+	err = blobReference.GetMetadata(&storage.GetBlobMetadataOptions{})
+	if err != nil {
+		t.Fatalf("Error loading MetaData: %+v", err)
+	}
+
+	if blobReference.Metadata[headerName] != expectedValue {
+		t.Fatalf("%q was not set to %q in the MetaData: %+v", headerName, expectedValue, blobReference.Metadata)
+	}
+}
+
+func getBackendConfig(t *testing.T, res testResources) BackendConfig {
+	clients := getTestClient(t)
+	return BackendConfig{
+		ClientID:       clients.clientID,
+		ClientSecret:   clients.clientSecret,
+		Environment:    clients.environment.Name,
+		SubscriptionID: clients.subscriptionID,
+		TenantID:       clients.tenantID,
+
+		ResourceGroupName:  res.resourceGroupName,
+		StorageAccountName: res.storageAccountName,
+	}
 }
