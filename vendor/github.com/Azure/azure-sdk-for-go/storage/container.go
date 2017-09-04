@@ -414,6 +414,9 @@ func (c *Container) ListBlobs(params ListBlobsParameters) (BlobListResponse, err
 	defer resp.body.Close()
 
 	err = xmlUnmarshal(resp.body, &out)
+	for i := range out.Blobs {
+		out.Blobs[i].Container = c
+	}
 	return out, err
 }
 
