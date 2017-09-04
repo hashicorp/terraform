@@ -45,7 +45,7 @@ func TestBackendConfig(t *testing.T, b Backend, c map[string]interface{}) Backen
 // error ErrNamedStatesNotSupported, then it will not test that.
 //
 // If you want to test locking, two backends must be given. If b2 is nil,
-// then state lockign won't be tested.
+// then state locking won't be tested.
 func TestBackend(t *testing.T, b1, b2 Backend) {
 	t.Helper()
 
