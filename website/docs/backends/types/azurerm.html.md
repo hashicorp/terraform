@@ -3,10 +3,11 @@ layout: "backend-types"
 page_title: "Backend Type: azurerm"
 sidebar_current: "docs-backends-types-standard-azurerm"
 description: |-
-  Terraform can store state remotely in Azure Storage.
+  Terraform can store state remotely in Azure Blob Storage.
+
 ---
 
-# azurerm
+# azurerm (formerly azure)
 
 **Kind: Standard (with state locking)**
 
