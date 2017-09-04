@@ -33,6 +33,11 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	containerReference := c.blobClient.GetContainerReference(c.containerName)
 	blobReference := containerReference.GetBlobReference(c.keyName)
 	options := &storage.GetBlobOptions{}
+
+	if c.leaseID != "" {
+		options.LeaseID = c.leaseID
+	}
+
 	blob, err := blobReference.Get(options)
 	if err != nil {
 		if storErr, ok := err.(storage.AzureStorageServiceError); ok {
@@ -63,6 +68,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
+	getOptions := &storage.GetBlobMetadataOptions{}
 	setOptions := &storage.SetBlobPropertiesOptions{}
 	putOptions := &storage.PutBlobOptions{}
 
@@ -73,13 +79,26 @@ func (c *RemoteClient) Put(data []byte) error {
 	blobReference.Properties.ContentLength = int64(len(data))
 
 	if c.leaseID != "" {
+		getOptions.LeaseID = c.leaseID
 		setOptions.LeaseID = c.leaseID
 		putOptions.LeaseID = c.leaseID
 	}
 
+	exists, err := blobReference.Exists()
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		err = blobReference.GetMetadata(getOptions)
+		if err != nil {
+			return err
+		}
+	}
+
 	reader := bytes.NewReader(data)
 
-	err := blobReference.CreateBlockBlobFromReader(reader, putOptions)
+	err = blobReference.CreateBlockBlobFromReader(reader, putOptions)
 	if err != nil {
 		return err
 	}
@@ -177,7 +196,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 
 	raw := blobReference.Metadata[lockInfoMetaKey]
 	if raw == "" {
-		return nil, fmt.Errorf("blob metadata %s was empty", lockInfoMetaKey)
+		return nil, fmt.Errorf("blob metadata %q was empty", lockInfoMetaKey)
 	}
 
 	data, err := base64.StdEncoding.DecodeString(raw)
@@ -198,7 +217,9 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 func (c *RemoteClient) writeLockInfo(info *state.LockInfo) error {
 	containerReference := c.blobClient.GetContainerReference(c.containerName)
 	blobReference := containerReference.GetBlobReference(c.keyName)
-	err := blobReference.GetMetadata(&storage.GetBlobMetadataOptions{})
+	err := blobReference.GetMetadata(&storage.GetBlobMetadataOptions{
+		LeaseID: c.leaseID,
+	})
 	if err != nil {
 		return err
 	}
@@ -214,7 +235,6 @@ func (c *RemoteClient) writeLockInfo(info *state.LockInfo) error {
 		LeaseID: c.leaseID,
 	}
 	return blobReference.SetMetadata(opts)
-
 }
 
 func (c *RemoteClient) Unlock(id string) error {
