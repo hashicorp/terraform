@@ -140,7 +140,7 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	return readVolume(d, result)
+	return resourceAwsEbsVolumeRead(d, meta)
 }
 
 func resourceAWSEbsVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -297,9 +297,7 @@ func readVolume(d *schema.ResourceData, volume *ec2.Volume) error {
 		}
 	}
 
-	if volume.Tags != nil {
-		d.Set("tags", tagsToMap(volume.Tags))
-	}
+	d.Set("tags", tagsToMap(volume.Tags))
 
 	return nil
 }

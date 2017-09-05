@@ -16,19 +16,18 @@ const opCancelExportTask = "CancelExportTask"
 
 // CancelExportTaskRequest generates a "aws/request.Request" representing the
 // client's request for the CancelExportTask operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CancelExportTask for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CancelExportTask method directly
-// instead.
+// See CancelExportTask for more information on using the CancelExportTask
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CancelExportTaskRequest method.
 //    req, resp := client.CancelExportTaskRequest(params)
@@ -109,19 +108,18 @@ const opCreateExportTask = "CreateExportTask"
 
 // CreateExportTaskRequest generates a "aws/request.Request" representing the
 // client's request for the CreateExportTask operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateExportTask for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateExportTask method directly
-// instead.
+// See CreateExportTask for more information on using the CreateExportTask
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateExportTaskRequest method.
 //    req, resp := client.CreateExportTaskRequest(params)
@@ -215,19 +213,18 @@ const opCreateLogGroup = "CreateLogGroup"
 
 // CreateLogGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateLogGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateLogGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateLogGroup method directly
-// instead.
+// See CreateLogGroup for more information on using the CreateLogGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateLogGroupRequest method.
 //    req, resp := client.CreateLogGroupRequest(params)
@@ -320,19 +317,18 @@ const opCreateLogStream = "CreateLogStream"
 
 // CreateLogStreamRequest generates a "aws/request.Request" representing the
 // client's request for the CreateLogStream operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateLogStream for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateLogStream method directly
-// instead.
+// See CreateLogStream for more information on using the CreateLogStream
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateLogStreamRequest method.
 //    req, resp := client.CreateLogStreamRequest(params)
@@ -422,19 +418,18 @@ const opDeleteDestination = "DeleteDestination"
 
 // DeleteDestinationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDestination operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDestination for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDestination method directly
-// instead.
+// See DeleteDestination for more information on using the DeleteDestination
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDestinationRequest method.
 //    req, resp := client.DeleteDestinationRequest(params)
@@ -515,19 +510,18 @@ const opDeleteLogGroup = "DeleteLogGroup"
 
 // DeleteLogGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteLogGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteLogGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteLogGroup method directly
-// instead.
+// See DeleteLogGroup for more information on using the DeleteLogGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteLogGroupRequest method.
 //    req, resp := client.DeleteLogGroupRequest(params)
@@ -607,19 +601,18 @@ const opDeleteLogStream = "DeleteLogStream"
 
 // DeleteLogStreamRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteLogStream operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteLogStream for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteLogStream method directly
-// instead.
+// See DeleteLogStream for more information on using the DeleteLogStream
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteLogStreamRequest method.
 //    req, resp := client.DeleteLogStreamRequest(params)
@@ -699,19 +692,18 @@ const opDeleteMetricFilter = "DeleteMetricFilter"
 
 // DeleteMetricFilterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteMetricFilter operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteMetricFilter for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteMetricFilter method directly
-// instead.
+// See DeleteMetricFilter for more information on using the DeleteMetricFilter
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteMetricFilterRequest method.
 //    req, resp := client.DeleteMetricFilterRequest(params)
@@ -790,19 +782,18 @@ const opDeleteRetentionPolicy = "DeleteRetentionPolicy"
 
 // DeleteRetentionPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRetentionPolicy operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteRetentionPolicy for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteRetentionPolicy method directly
-// instead.
+// See DeleteRetentionPolicy for more information on using the DeleteRetentionPolicy
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteRetentionPolicyRequest method.
 //    req, resp := client.DeleteRetentionPolicyRequest(params)
@@ -884,19 +875,18 @@ const opDeleteSubscriptionFilter = "DeleteSubscriptionFilter"
 
 // DeleteSubscriptionFilterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSubscriptionFilter operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteSubscriptionFilter for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteSubscriptionFilter method directly
-// instead.
+// See DeleteSubscriptionFilter for more information on using the DeleteSubscriptionFilter
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteSubscriptionFilterRequest method.
 //    req, resp := client.DeleteSubscriptionFilterRequest(params)
@@ -975,19 +965,18 @@ const opDescribeDestinations = "DescribeDestinations"
 
 // DescribeDestinationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDestinations operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDestinations for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDestinations method directly
-// instead.
+// See DescribeDestinations for more information on using the DescribeDestinations
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDestinationsRequest method.
 //    req, resp := client.DescribeDestinationsRequest(params)
@@ -1115,19 +1104,18 @@ const opDescribeExportTasks = "DescribeExportTasks"
 
 // DescribeExportTasksRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeExportTasks operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeExportTasks for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeExportTasks method directly
-// instead.
+// See DescribeExportTasks for more information on using the DescribeExportTasks
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeExportTasksRequest method.
 //    req, resp := client.DescribeExportTasksRequest(params)
@@ -1199,19 +1187,18 @@ const opDescribeLogGroups = "DescribeLogGroups"
 
 // DescribeLogGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLogGroups operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeLogGroups for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeLogGroups method directly
-// instead.
+// See DescribeLogGroups for more information on using the DescribeLogGroups
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeLogGroupsRequest method.
 //    req, resp := client.DescribeLogGroupsRequest(params)
@@ -1339,19 +1326,18 @@ const opDescribeLogStreams = "DescribeLogStreams"
 
 // DescribeLogStreamsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeLogStreams operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeLogStreams for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeLogStreams method directly
-// instead.
+// See DescribeLogStreams for more information on using the DescribeLogStreams
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeLogStreamsRequest method.
 //    req, resp := client.DescribeLogStreamsRequest(params)
@@ -1486,19 +1472,18 @@ const opDescribeMetricFilters = "DescribeMetricFilters"
 
 // DescribeMetricFiltersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMetricFilters operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeMetricFilters for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeMetricFilters method directly
-// instead.
+// See DescribeMetricFilters for more information on using the DescribeMetricFilters
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeMetricFiltersRequest method.
 //    req, resp := client.DescribeMetricFiltersRequest(params)
@@ -1630,19 +1615,18 @@ const opDescribeSubscriptionFilters = "DescribeSubscriptionFilters"
 
 // DescribeSubscriptionFiltersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSubscriptionFilters operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeSubscriptionFilters for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeSubscriptionFilters method directly
-// instead.
+// See DescribeSubscriptionFilters for more information on using the DescribeSubscriptionFilters
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeSubscriptionFiltersRequest method.
 //    req, resp := client.DescribeSubscriptionFiltersRequest(params)
@@ -1774,19 +1758,18 @@ const opFilterLogEvents = "FilterLogEvents"
 
 // FilterLogEventsRequest generates a "aws/request.Request" representing the
 // client's request for the FilterLogEvents operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See FilterLogEvents for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the FilterLogEvents method directly
-// instead.
+// See FilterLogEvents for more information on using the FilterLogEvents
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the FilterLogEventsRequest method.
 //    req, resp := client.FilterLogEventsRequest(params)
@@ -1924,19 +1907,18 @@ const opGetLogEvents = "GetLogEvents"
 
 // GetLogEventsRequest generates a "aws/request.Request" representing the
 // client's request for the GetLogEvents operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetLogEvents for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetLogEvents method directly
-// instead.
+// See GetLogEvents for more information on using the GetLogEvents
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetLogEventsRequest method.
 //    req, resp := client.GetLogEventsRequest(params)
@@ -2072,19 +2054,18 @@ const opListTagsLogGroup = "ListTagsLogGroup"
 
 // ListTagsLogGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsLogGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTagsLogGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTagsLogGroup method directly
-// instead.
+// See ListTagsLogGroup for more information on using the ListTagsLogGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTagsLogGroupRequest method.
 //    req, resp := client.ListTagsLogGroupRequest(params)
@@ -2157,19 +2138,18 @@ const opPutDestination = "PutDestination"
 
 // PutDestinationRequest generates a "aws/request.Request" representing the
 // client's request for the PutDestination operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutDestination for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutDestination method directly
-// instead.
+// See PutDestination for more information on using the PutDestination
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutDestinationRequest method.
 //    req, resp := client.PutDestinationRequest(params)
@@ -2253,19 +2233,18 @@ const opPutDestinationPolicy = "PutDestinationPolicy"
 
 // PutDestinationPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutDestinationPolicy operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutDestinationPolicy for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutDestinationPolicy method directly
-// instead.
+// See PutDestinationPolicy for more information on using the PutDestinationPolicy
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutDestinationPolicyRequest method.
 //    req, resp := client.PutDestinationPolicyRequest(params)
@@ -2344,19 +2323,18 @@ const opPutLogEvents = "PutLogEvents"
 
 // PutLogEventsRequest generates a "aws/request.Request" representing the
 // client's request for the PutLogEvents operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutLogEvents for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutLogEvents method directly
-// instead.
+// See PutLogEvents for more information on using the PutLogEvents
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutLogEventsRequest method.
 //    req, resp := client.PutLogEventsRequest(params)
@@ -2461,19 +2439,18 @@ const opPutMetricFilter = "PutMetricFilter"
 
 // PutMetricFilterRequest generates a "aws/request.Request" representing the
 // client's request for the PutMetricFilter operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutMetricFilter for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutMetricFilter method directly
-// instead.
+// See PutMetricFilter for more information on using the PutMetricFilter
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutMetricFilterRequest method.
 //    req, resp := client.PutMetricFilterRequest(params)
@@ -2560,19 +2537,18 @@ const opPutRetentionPolicy = "PutRetentionPolicy"
 
 // PutRetentionPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutRetentionPolicy operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutRetentionPolicy for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutRetentionPolicy method directly
-// instead.
+// See PutRetentionPolicy for more information on using the PutRetentionPolicy
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutRetentionPolicyRequest method.
 //    req, resp := client.PutRetentionPolicyRequest(params)
@@ -2653,19 +2629,18 @@ const opPutSubscriptionFilter = "PutSubscriptionFilter"
 
 // PutSubscriptionFilterRequest generates a "aws/request.Request" representing the
 // client's request for the PutSubscriptionFilter operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutSubscriptionFilter for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutSubscriptionFilter method directly
-// instead.
+// See PutSubscriptionFilter for more information on using the PutSubscriptionFilter
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutSubscriptionFilterRequest method.
 //    req, resp := client.PutSubscriptionFilterRequest(params)
@@ -2767,19 +2742,18 @@ const opTagLogGroup = "TagLogGroup"
 
 // TagLogGroupRequest generates a "aws/request.Request" representing the
 // client's request for the TagLogGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See TagLogGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the TagLogGroup method directly
-// instead.
+// See TagLogGroup for more information on using the TagLogGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the TagLogGroupRequest method.
 //    req, resp := client.TagLogGroupRequest(params)
@@ -2859,19 +2833,18 @@ const opTestMetricFilter = "TestMetricFilter"
 
 // TestMetricFilterRequest generates a "aws/request.Request" representing the
 // client's request for the TestMetricFilter operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See TestMetricFilter for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the TestMetricFilter method directly
-// instead.
+// See TestMetricFilter for more information on using the TestMetricFilter
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the TestMetricFilterRequest method.
 //    req, resp := client.TestMetricFilterRequest(params)
@@ -2944,19 +2917,18 @@ const opUntagLogGroup = "UntagLogGroup"
 
 // UntagLogGroupRequest generates a "aws/request.Request" representing the
 // client's request for the UntagLogGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UntagLogGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UntagLogGroup method directly
-// instead.
+// See UntagLogGroup for more information on using the UntagLogGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UntagLogGroupRequest method.
 //    req, resp := client.UntagLogGroupRequest(params)

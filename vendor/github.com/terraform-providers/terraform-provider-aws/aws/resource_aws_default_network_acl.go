@@ -27,11 +27,11 @@ func resourceAwsDefaultNetworkAcl() *schema.Resource {
 		Update: resourceAwsDefaultNetworkAclUpdate,
 
 		Schema: map[string]*schema.Schema{
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"default_network_acl_id": &schema.Schema{
+			"default_network_acl_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -43,7 +43,7 @@ func resourceAwsDefaultNetworkAcl() *schema.Resource {
 			// can't actually remove them, this will be a continual plan until the
 			// Subnets are themselves destroyed or reassigned to a different Network
 			// ACL
-			"subnet_ids": &schema.Schema{
+			"subnet_ids": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -52,41 +52,45 @@ func resourceAwsDefaultNetworkAcl() *schema.Resource {
 			// We want explicit management of Rules here, so we do not allow them to be
 			// computed. Instead, an empty config will enforce just that; removal of the
 			// rules
-			"ingress": &schema.Schema{
+			"ingress": {
 				Type:     schema.TypeSet,
 				Required: false,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"from_port": &schema.Schema{
+						"from_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"to_port": &schema.Schema{
+						"to_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"rule_no": &schema.Schema{
+						"rule_no": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"action": &schema.Schema{
+						"action": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"cidr_block": &schema.Schema{
+						"cidr_block": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"icmp_type": &schema.Schema{
+						"ipv6_cidr_block": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"icmp_type": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"icmp_code": &schema.Schema{
+						"icmp_code": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
@@ -94,41 +98,45 @@ func resourceAwsDefaultNetworkAcl() *schema.Resource {
 				},
 				Set: resourceAwsNetworkAclEntryHash,
 			},
-			"egress": &schema.Schema{
+			"egress": {
 				Type:     schema.TypeSet,
 				Required: false,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"from_port": &schema.Schema{
+						"from_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"to_port": &schema.Schema{
+						"to_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"rule_no": &schema.Schema{
+						"rule_no": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"action": &schema.Schema{
+						"action": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"cidr_block": &schema.Schema{
+						"cidr_block": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"icmp_type": &schema.Schema{
+						"ipv6_cidr_block": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"icmp_type": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"icmp_code": &schema.Schema{
+						"icmp_code": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},

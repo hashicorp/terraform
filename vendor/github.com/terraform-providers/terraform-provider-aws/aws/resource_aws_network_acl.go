@@ -6,6 +6,7 @@ import (
 	"log"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -71,6 +72,12 @@ func resourceAwsNetworkAcl() *schema.Resource {
 						"action": {
 							Type:     schema.TypeString,
 							Required: true,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								if strings.ToLower(old) == strings.ToLower(new) {
+									return true
+								}
+								return false
+							},
 						},
 						"protocol": {
 							Type:     schema.TypeString,
@@ -118,6 +125,12 @@ func resourceAwsNetworkAcl() *schema.Resource {
 						"action": {
 							Type:     schema.TypeString,
 							Required: true,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								if strings.ToLower(old) == strings.ToLower(new) {
+									return true
+								}
+								return false
+							},
 						},
 						"protocol": {
 							Type:     schema.TypeString,
@@ -528,7 +541,7 @@ func resourceAwsNetworkAclEntryHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["rule_no"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["action"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(m["action"].(string))))
 
 	// The AWS network ACL API only speaks protocol numbers, and that's
 	// all we store. Never hash a protocol name.

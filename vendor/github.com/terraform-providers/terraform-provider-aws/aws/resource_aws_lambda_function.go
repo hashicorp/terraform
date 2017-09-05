@@ -62,7 +62,6 @@ func resourceAwsLambdaFunction() *schema.Resource {
 			"dead_letter_config": {
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				MinItems: 0,
 				MaxItems: 1,
 				Elem: &schema.Resource{
@@ -115,20 +114,18 @@ func resourceAwsLambdaFunction() *schema.Resource {
 			"vpc_config": {
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"subnet_ids": {
 							Type:     schema.TypeSet,
 							Required: true,
-							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
 						"security_group_ids": {
 							Type:     schema.TypeSet,
 							Required: true,
-							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
@@ -275,9 +272,12 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if v, ok := d.GetOk("vpc_config"); ok {
-		config, err := validateVPCConfig(v)
-		if err != nil {
-			return err
+
+		configs := v.([]interface{})
+		config, ok := configs[0].(map[string]interface{})
+
+		if !ok {
+			return errors.New("vpc_config is <nil>")
 		}
 
 		if config != nil {
@@ -600,6 +600,32 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 			configUpdate = true
 		}
 	}
+	if d.HasChange("vpc_config") {
+		vpcConfigRaw := d.Get("vpc_config").([]interface{})
+		vpcConfig, ok := vpcConfigRaw[0].(map[string]interface{})
+		if !ok {
+			return errors.New("vpc_config is <nil>")
+		}
+
+		if vpcConfig != nil {
+			var subnetIds []*string
+			for _, id := range vpcConfig["subnet_ids"].(*schema.Set).List() {
+				subnetIds = append(subnetIds, aws.String(id.(string)))
+			}
+
+			var securityGroupIds []*string
+			for _, id := range vpcConfig["security_group_ids"].(*schema.Set).List() {
+				securityGroupIds = append(securityGroupIds, aws.String(id.(string)))
+			}
+
+			configReq.VpcConfig = &lambda.VpcConfig{
+				SubnetIds:        subnetIds,
+				SecurityGroupIds: securityGroupIds,
+			}
+			configUpdate = true
+		}
+	}
+
 	if d.HasChange("runtime") {
 		configReq.Runtime = aws.String(d.Get("runtime").(string))
 		configUpdate = true
@@ -665,34 +691,6 @@ func readEnvironmentVariables(ev map[string]interface{}) map[string]string {
 	}
 
 	return variables
-}
-
-func validateVPCConfig(v interface{}) (map[string]interface{}, error) {
-	configs := v.([]interface{})
-	if len(configs) > 1 {
-		return nil, errors.New("Only a single vpc_config block is expected")
-	}
-
-	config, ok := configs[0].(map[string]interface{})
-
-	if !ok {
-		return nil, errors.New("vpc_config is <nil>")
-	}
-
-	// if subnet_ids and security_group_ids are both empty then the VPC is optional
-	if config["subnet_ids"].(*schema.Set).Len() == 0 && config["security_group_ids"].(*schema.Set).Len() == 0 {
-		return nil, nil
-	}
-
-	if config["subnet_ids"].(*schema.Set).Len() == 0 {
-		return nil, errors.New("vpc_config.subnet_ids cannot be empty")
-	}
-
-	if config["security_group_ids"].(*schema.Set).Len() == 0 {
-		return nil, errors.New("vpc_config.security_group_ids cannot be empty")
-	}
-
-	return config, nil
 }
 
 func validateRuntime(v interface{}, k string) (ws []string, errors []error) {

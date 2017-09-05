@@ -36,7 +36,8 @@ func resourceAwsEMRCluster() *schema.Resource {
 			},
 			"master_instance_type": {
 				Type:     schema.TypeString,
-				Required: true,
+				Required: false,
+				Optional: true,
 				ForceNew: true,
 			},
 			"core_instance_type": {
@@ -48,7 +49,6 @@ func resourceAwsEMRCluster() *schema.Resource {
 			"core_instance_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  1,
 			},
 			"cluster_state": {
 				Type:     schema.TypeString,
@@ -58,6 +58,13 @@ func resourceAwsEMRCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// EMR uses a proprietary filesystem called EMRFS
+					// and both s3n & s3 protocols are mapped to that FS
+					// so they're equvivalent in this context (confirmed by AWS support)
+					old = strings.Replace(old, "s3n://", "s3://", -1)
+					return old == new
+				},
 			},
 			"master_public_dns": {
 				Type:     schema.TypeString,
@@ -123,6 +130,67 @@ func resourceAwsEMRCluster() *schema.Resource {
 					},
 				},
 			},
+			"instance_group": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"bid_price": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Required: false,
+						},
+						"ebs_config": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							ForceNew: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"iops": {
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+									"size": {
+										Type:     schema.TypeInt,
+										Required: true,
+									},
+									"type": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validateAwsEmrEbsVolumeType,
+									},
+									"volumes_per_instance": {
+										Type:     schema.TypeInt,
+										Optional: true,
+										Default:  1,
+									},
+								},
+							},
+						},
+						"instance_count": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  0,
+						},
+						"instance_role": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateAwsEmrInstanceGroupRole,
+						},
+						"instance_type": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
+			},
 			"bootstrap_action": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -180,13 +248,6 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 	conn := meta.(*AWSClient).emrconn
 
 	log.Printf("[DEBUG] Creating EMR cluster")
-	masterInstanceType := d.Get("master_instance_type").(string)
-	coreInstanceType := masterInstanceType
-	if v, ok := d.GetOk("core_instance_type"); ok {
-		coreInstanceType = v.(string)
-	}
-	coreInstanceCount := d.Get("core_instance_count").(int)
-
 	applications := d.Get("applications").(*schema.Set).List()
 
 	keepJobFlowAliveWhenNoSteps := true
@@ -199,12 +260,19 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 		terminationProtection = v.(bool)
 	}
 	instanceConfig := &emr.JobFlowInstancesConfig{
-		MasterInstanceType: aws.String(masterInstanceType),
-		SlaveInstanceType:  aws.String(coreInstanceType),
-		InstanceCount:      aws.Int64(int64(coreInstanceCount)),
-
 		KeepJobFlowAliveWhenNoSteps: aws.Bool(keepJobFlowAliveWhenNoSteps),
 		TerminationProtected:        aws.Bool(terminationProtection),
+	}
+
+	if v, ok := d.GetOk("master_instance_type"); ok {
+		instanceConfig.MasterInstanceType = aws.String(v.(string))
+		instanceConfig.SlaveInstanceType = aws.String(v.(string))
+	}
+	if v, ok := d.GetOk("core_instance_type"); ok {
+		instanceConfig.SlaveInstanceType = aws.String(v.(string))
+	}
+	if v, ok := d.GetOk("core_instance_count"); ok {
+		instanceConfig.InstanceCount = aws.Int64(int64(v.(int)))
 	}
 
 	var instanceProfile string
@@ -252,6 +320,10 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 		if v, ok := attributes["service_access_security_group"]; ok {
 			instanceConfig.ServiceAccessSecurityGroup = aws.String(v.(string))
 		}
+	}
+	if v, ok := d.GetOk("instance_group"); ok {
+		instanceGroupConfigs := v.(*schema.Set).List()
+		instanceConfig.InstanceGroups = expandInstanceGroupConfigs(instanceGroupConfigs)
 	}
 
 	emrApps := expandApplications(applications)
@@ -360,11 +432,14 @@ func resourceAwsEMRClusterRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("cluster_state", cluster.Status.State)
 	}
 
-	instanceGroups, err := fetchAllEMRInstanceGroups(meta, d.Id())
+	instanceGroups, err := fetchAllEMRInstanceGroups(emrconn, d.Id())
 	if err == nil {
 		coreGroup := findGroup(instanceGroups, "CORE")
 		if coreGroup != nil {
 			d.Set("core_instance_type", coreGroup.InstanceType)
+		}
+		if err := d.Set("instance_group", flattenInstanceGroups(instanceGroups)); err != nil {
+			log.Printf("[ERR] Error setting EMR instance groups: %s", err)
 		}
 	}
 
@@ -414,7 +489,7 @@ func resourceAwsEMRClusterUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("core_instance_count") {
 		d.SetPartial("core_instance_count")
 		log.Printf("[DEBUG] Modify EMR cluster")
-		groups, err := fetchAllEMRInstanceGroups(meta, d.Id())
+		groups, err := fetchAllEMRInstanceGroups(conn, d.Id())
 		if err != nil {
 			log.Printf("[DEBUG] Error finding all instance groups: %s", err)
 			return err
@@ -611,6 +686,41 @@ func flattenEc2Attributes(ia *emr.Ec2InstanceAttributes) []map[string]interface{
 	return result
 }
 
+func flattenInstanceGroups(igs []*emr.InstanceGroup) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0)
+
+	for _, ig := range igs {
+		attrs := make(map[string]interface{})
+		if ig.BidPrice != nil {
+			attrs["bid_price"] = *ig.BidPrice
+		} else {
+			attrs["bid_price"] = ""
+		}
+		ebsConfig := make([]map[string]interface{}, 0)
+		for _, ebs := range ig.EbsBlockDevices {
+			ebsAttrs := make(map[string]interface{})
+			if ebs.VolumeSpecification.Iops != nil {
+				ebsAttrs["iops"] = *ebs.VolumeSpecification.Iops
+			} else {
+				ebsAttrs["iops"] = ""
+			}
+			ebsAttrs["size"] = *ebs.VolumeSpecification.SizeInGB
+			ebsAttrs["type"] = *ebs.VolumeSpecification.VolumeType
+			ebsAttrs["volumes_per_instance"] = 1
+
+			ebsConfig = append(ebsConfig, ebsAttrs)
+		}
+		attrs["ebs_config"] = ebsConfig
+		attrs["instance_count"] = *ig.RequestedInstanceCount
+		attrs["instance_role"] = *ig.InstanceGroupType
+		attrs["instance_type"] = *ig.InstanceType
+		attrs["name"] = *ig.Name
+		result = append(result, attrs)
+	}
+
+	return result
+}
+
 func flattenBootstrapArguments(actions []*emr.Command) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0)
 
@@ -748,6 +858,60 @@ func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActi
 	}
 
 	return actionsOut
+}
+
+func expandInstanceGroupConfigs(instanceGroupConfigs []interface{}) []*emr.InstanceGroupConfig {
+	configsOut := []*emr.InstanceGroupConfig{}
+
+	for _, raw := range instanceGroupConfigs {
+		configAttributes := raw.(map[string]interface{})
+		configInstanceRole := configAttributes["instance_role"].(string)
+		configInstanceCount := configAttributes["instance_count"].(int)
+		configInstanceType := configAttributes["instance_type"].(string)
+		configName := configAttributes["name"].(string)
+		config := &emr.InstanceGroupConfig{
+			Name:          aws.String(configName),
+			InstanceRole:  aws.String(configInstanceRole),
+			InstanceType:  aws.String(configInstanceType),
+			InstanceCount: aws.Int64(int64(configInstanceCount)),
+		}
+
+		if bidPrice, ok := configAttributes["bid_price"]; ok {
+			if bidPrice != "" {
+				config.BidPrice = aws.String(bidPrice.(string))
+				config.Market = aws.String("SPOT")
+			} else {
+				config.Market = aws.String("ON_DEMAND")
+			}
+		}
+
+		if rawEbsConfigs, ok := configAttributes["ebs_config"]; ok {
+			ebsConfig := &emr.EbsConfiguration{}
+
+			ebsBlockDeviceConfigs := make([]*emr.EbsBlockDeviceConfig, 0)
+			for _, rawEbsConfig := range rawEbsConfigs.(*schema.Set).List() {
+				rawEbsConfig := rawEbsConfig.(map[string]interface{})
+				ebsBlockDeviceConfig := &emr.EbsBlockDeviceConfig{
+					VolumesPerInstance: aws.Int64(int64(rawEbsConfig["volumes_per_instance"].(int))),
+					VolumeSpecification: &emr.VolumeSpecification{
+						SizeInGB:   aws.Int64(int64(rawEbsConfig["size"].(int))),
+						VolumeType: aws.String(rawEbsConfig["type"].(string)),
+					},
+				}
+				if v, ok := rawEbsConfig["iops"].(int); ok && v != 0 {
+					ebsBlockDeviceConfig.VolumeSpecification.Iops = aws.Int64(int64(v))
+				}
+				ebsBlockDeviceConfigs = append(ebsBlockDeviceConfigs, ebsBlockDeviceConfig)
+			}
+			ebsConfig.EbsBlockDeviceConfigs = ebsBlockDeviceConfigs
+
+			config.EbsConfiguration = ebsConfig
+		}
+
+		configsOut = append(configsOut, config)
+	}
+
+	return configsOut
 }
 
 func expandConfigures(input string) []*emr.Configuration {

@@ -345,6 +345,11 @@ func resourceAwsDbInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"ca_cert_identifier": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -400,6 +405,13 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 		if attr, ok := d.GetOk("db_subnet_group_name"); ok {
 			opts.DBSubnetGroupName = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("kms_key_id"); ok {
+			opts.KmsKeyId = aws.String(attr.(string))
+			if arnParts := strings.Split(v.(string), ":"); len(arnParts) >= 4 {
+				opts.SourceRegion = aws.String(arnParts[3])
+			}
 		}
 
 		if attr, ok := d.GetOk("monitoring_role_arn"); ok {
@@ -808,7 +820,6 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		sgn.Add(*v.DBSecurityGroupName)
 	}
 	d.Set("security_group_names", sgn)
-
 	// replica things
 
 	var replicas []string
@@ -820,6 +831,8 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("replicate_source_db", v.ReadReplicaSourceDBInstanceIdentifier)
+
+	d.Set("ca_cert_identifier", v.CACertificateIdentifier)
 
 	return nil
 }

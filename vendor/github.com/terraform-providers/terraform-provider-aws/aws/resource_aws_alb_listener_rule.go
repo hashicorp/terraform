@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -57,7 +58,7 @@ func resourceAwsAlbListenerRule() *schema.Resource {
 				},
 			},
 			"condition": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -97,7 +98,7 @@ func resourceAwsAlbListenerRuleCreate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	conditions := d.Get("condition").([]interface{})
+	conditions := d.Get("condition").(*schema.Set).List()
 	params.Conditions = make([]*elbv2.RuleCondition, len(conditions))
 	for i, condition := range conditions {
 		conditionMap := condition.(map[string]interface{})
@@ -147,6 +148,10 @@ func resourceAwsAlbListenerRuleRead(d *schema.ResourceData, meta interface{}) er
 	rule := resp.Rules[0]
 
 	d.Set("arn", rule.RuleArn)
+
+	// The listener arn isn't in the response but can be derived from the rule arn
+	d.Set("listener_arn", albListenerARNFromRuleARN(*rule.RuleArn))
+
 	// Rules are evaluated in priority order, from the lowest value to the highest value. The default rule has the lowest priority.
 	if *rule.Priority == "default" {
 		d.Set("priority", 99999)
@@ -226,7 +231,7 @@ func resourceAwsAlbListenerRuleUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("condition") {
-		conditions := d.Get("condition").([]interface{})
+		conditions := d.Get("condition").(*schema.Set).List()
 		params.Conditions = make([]*elbv2.RuleCondition, len(conditions))
 		for i, condition := range conditions {
 			conditionMap := condition.(map[string]interface{})
@@ -285,6 +290,22 @@ func validateAwsListenerRuleField(v interface{}, k string) (ws []string, errors 
 		errors = append(errors, fmt.Errorf("%q must be a maximum of 64 characters", k))
 	}
 	return
+}
+
+// from arn:
+// arn:aws:elasticloadbalancing:us-east-1:012345678912:listener-rule/app/name/0123456789abcdef/abcdef0123456789/456789abcedf1234
+// select submatches:
+// (arn:aws:elasticloadbalancing:us-east-1:012345678912:listener)-rule(/app/name/0123456789abcdef/abcdef0123456789)/456789abcedf1234
+// concat to become:
+// arn:aws:elasticloadbalancing:us-east-1:012345678912:listener/app/name/0123456789abcdef/abcdef0123456789
+var albListenerARNFromRuleARNRegexp = regexp.MustCompile(`^(arn:.+:listener)-rule(/.+)/[^/]+$`)
+
+func albListenerARNFromRuleARN(ruleArn string) string {
+	if arnComponents := albListenerARNFromRuleARNRegexp.FindStringSubmatch(ruleArn); len(arnComponents) > 1 {
+		return arnComponents[1] + arnComponents[2]
+	}
+
+	return ""
 }
 
 func isRuleNotFound(err error) bool {

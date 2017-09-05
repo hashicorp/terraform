@@ -76,6 +76,11 @@ func resourceAwsApiGatewayMethod() *schema.Resource {
 				ConflictsWith: []string{"request_parameters"},
 				Deprecated:    "Use field request_parameters instead",
 			},
+
+			"request_validator_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -121,6 +126,10 @@ func resourceAwsApiGatewayMethodCreate(d *schema.ResourceData, meta interface{})
 		input.AuthorizerId = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("request_validator_id"); ok {
+		input.RequestValidatorId = aws.String(v.(string))
+	}
+
 	_, err := conn.PutMethod(&input)
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Method: %s", err)
@@ -156,6 +165,7 @@ func resourceAwsApiGatewayMethodRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("authorization_type", out.AuthorizationType)
 	d.Set("authorizer_id", out.AuthorizerId)
 	d.Set("request_models", aws.StringValueMap(out.RequestModels))
+	d.Set("request_validator_id", out.RequestValidatorId)
 
 	return nil
 }
@@ -223,6 +233,22 @@ func resourceAwsApiGatewayMethodUpdate(d *schema.ResourceData, meta interface{})
 			Op:    aws.String("replace"),
 			Path:  aws.String("/apiKeyRequired"),
 			Value: aws.String(fmt.Sprintf("%t", d.Get("api_key_required").(bool))),
+		})
+	}
+
+	if d.HasChange("request_validator_id") {
+		var request_validator_id *string
+		if v, ok := d.GetOk("request_validator_id"); ok {
+			// requestValidatorId cannot be an empty string; it must either be nil
+			// or it must have some value. Otherwise, updating fails.
+			if s := v.(string); len(s) > 0 {
+				request_validator_id = &s
+			}
+		}
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/requestValidatorId"),
+			Value: request_validator_id,
 		})
 	}
 

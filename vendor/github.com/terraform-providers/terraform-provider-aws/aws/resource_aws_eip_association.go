@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -96,7 +97,22 @@ func resourceAwsEipAssociationCreate(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	d.SetId(*resp.AssociationId)
+	log.Printf("[DEBUG] EIP Assoc Response: %s", resp)
+
+	supportedPlatforms := meta.(*AWSClient).supportedplatforms
+	if len(supportedPlatforms) > 0 && !hasEc2Classic(supportedPlatforms) && resp.AssociationId == nil {
+		// We expect no association ID in EC2 Classic
+		// but still error out if ID is missing and we _know_ it's NOT EC2 Classic
+		return fmt.Errorf("Received no EIP Association ID in account that doesn't support EC2 Classic (%q): %s",
+			supportedPlatforms, resp)
+	}
+
+	if resp.AssociationId == nil {
+		// This is required field for EC2 Classic per docs
+		d.SetId(*request.PublicIp)
+	} else {
+		d.SetId(*resp.AssociationId)
+	}
 
 	return resourceAwsEipAssociationRead(d, meta)
 }
@@ -104,13 +120,9 @@ func resourceAwsEipAssociationCreate(d *schema.ResourceData, meta interface{}) e
 func resourceAwsEipAssociationRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	request := &ec2.DescribeAddressesInput{
-		Filters: []*ec2.Filter{
-			&ec2.Filter{
-				Name:   aws.String("association-id"),
-				Values: []*string{aws.String(d.Id())},
-			},
-		},
+	request, err := describeAddressesById(d.Id(), meta.(*AWSClient).supportedplatforms)
+	if err != nil {
+		return err
 	}
 
 	response, err := conn.DescribeAddresses(request)
@@ -130,8 +142,23 @@ func resourceAwsEipAssociationRead(d *schema.ResourceData, meta interface{}) err
 func resourceAwsEipAssociationDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	opts := &ec2.DisassociateAddressInput{
-		AssociationId: aws.String(d.Id()),
+	var opts *ec2.DisassociateAddressInput
+	// We assume EC2 Classic if ID is a valid IPv4 address
+	ip := net.ParseIP(d.Id())
+	if ip != nil {
+		supportedPlatforms := meta.(*AWSClient).supportedplatforms
+		if len(supportedPlatforms) > 0 && !hasEc2Classic(supportedPlatforms) {
+			return fmt.Errorf("Received IPv4 address as ID in account that doesn't support EC2 Classic (%q)",
+				supportedPlatforms)
+		}
+
+		opts = &ec2.DisassociateAddressInput{
+			PublicIp: aws.String(d.Id()),
+		}
+	} else {
+		opts = &ec2.DisassociateAddressInput{
+			AssociationId: aws.String(d.Id()),
+		}
 	}
 
 	_, err := conn.DisassociateAddress(opts)
@@ -160,4 +187,37 @@ func readAwsEipAssociation(d *schema.ResourceData, address *ec2.Address) error {
 	}
 
 	return nil
+}
+
+func describeAddressesById(id string, supportedPlatforms []string) (*ec2.DescribeAddressesInput, error) {
+	// We assume EC2 Classic if ID is a valid IPv4 address
+	ip := net.ParseIP(id)
+	if ip != nil {
+		if len(supportedPlatforms) > 0 && !hasEc2Classic(supportedPlatforms) {
+			return nil, fmt.Errorf("Received IPv4 address as ID in account that doesn't support EC2 Classic (%q)",
+				supportedPlatforms)
+		}
+
+		return &ec2.DescribeAddressesInput{
+			Filters: []*ec2.Filter{
+				&ec2.Filter{
+					Name:   aws.String("public-ip"),
+					Values: []*string{aws.String(id)},
+				},
+				&ec2.Filter{
+					Name:   aws.String("domain"),
+					Values: []*string{aws.String("standard")},
+				},
+			},
+		}, nil
+	}
+
+	return &ec2.DescribeAddressesInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("association-id"),
+				Values: []*string{aws.String(id)},
+			},
+		},
+	}, nil
 }

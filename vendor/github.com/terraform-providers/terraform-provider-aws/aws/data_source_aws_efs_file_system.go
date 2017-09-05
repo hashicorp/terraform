@@ -22,11 +22,19 @@ func dataSourceAwsEfsFileSystem() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateMaxLength(64),
 			},
+			"encrypted": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"file_system_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+			},
+			"kms_key_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"performance_mode": {
 				Type:     schema.TypeString,
@@ -108,6 +116,8 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("creation_token", fs.CreationToken)
 	d.Set("performance_mode", fs.PerformanceMode)
 	d.Set("file_system_id", fs.FileSystemId)
+	d.Set("encrypted", fs.Encrypted)
+	d.Set("kms_key_id", fs.KmsKeyId)
 
 	return nil
 }

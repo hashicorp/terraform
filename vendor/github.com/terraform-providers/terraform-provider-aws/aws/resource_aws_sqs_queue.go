@@ -13,19 +13,22 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/hashicorp/terraform/helper/resource"
 )
 
 var AttributeMap = map[string]string{
-	"delay_seconds":               "DelaySeconds",
-	"max_message_size":            "MaximumMessageSize",
-	"message_retention_seconds":   "MessageRetentionPeriod",
-	"receive_wait_time_seconds":   "ReceiveMessageWaitTimeSeconds",
-	"visibility_timeout_seconds":  "VisibilityTimeout",
-	"policy":                      "Policy",
-	"redrive_policy":              "RedrivePolicy",
-	"arn":                         "QueueArn",
-	"fifo_queue":                  "FifoQueue",
-	"content_based_deduplication": "ContentBasedDeduplication",
+	"delay_seconds":                     "DelaySeconds",
+	"max_message_size":                  "MaximumMessageSize",
+	"message_retention_seconds":         "MessageRetentionPeriod",
+	"receive_wait_time_seconds":         "ReceiveMessageWaitTimeSeconds",
+	"visibility_timeout_seconds":        "VisibilityTimeout",
+	"policy":                            "Policy",
+	"redrive_policy":                    "RedrivePolicy",
+	"arn":                               "QueueArn",
+	"fifo_queue":                        "FifoQueue",
+	"content_based_deduplication":       "ContentBasedDeduplication",
+	"kms_master_key_id":                 "KmsMasterKeyId",
+	"kms_data_key_reuse_period_seconds": "KmsDataKeyReusePeriodSeconds",
 }
 
 // A number of these are marked as computed because if you don't
@@ -43,8 +46,15 @@ func resourceAwsSqsQueue() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Computed:      true,
+				ConflictsWith: []string{"name_prefix"},
+			},
+			"name_prefix": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"delay_seconds": {
@@ -103,6 +113,15 @@ func resourceAwsSqsQueue() *schema.Resource {
 				Default:  false,
 				Optional: true,
 			},
+			"kms_master_key_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"kms_data_key_reuse_period_seconds": {
+				Type:     schema.TypeInt,
+				Computed: true,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -110,7 +129,15 @@ func resourceAwsSqsQueue() *schema.Resource {
 func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 	sqsconn := meta.(*AWSClient).sqsconn
 
-	name := d.Get("name").(string)
+	var name string
+	if v, ok := d.GetOk("name"); ok {
+		name = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		name = resource.PrefixedUniqueId(v.(string))
+	} else {
+		name = resource.UniqueId()
+	}
+
 	fq := d.Get("fifo_queue").(bool)
 	cbd := d.Get("content_based_deduplication").(bool)
 

@@ -120,6 +120,11 @@ func resourceAwsS3BucketObject() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+			"website_redirect": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -206,6 +211,10 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		putInput.Tagging = aws.String(values.Encode())
 	}
 
+	if v, ok := d.GetOk("website_redirect"); ok {
+		putInput.WebsiteRedirectLocation = aws.String(v.(string))
+	}
+
 	resp, err := s3conn.PutObject(putInput)
 	if err != nil {
 		return fmt.Errorf("Error putting object in S3 bucket (%s): %s", bucket, err)
@@ -251,6 +260,7 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("content_type", resp.ContentType)
 	d.Set("version_id", resp.VersionId)
 	d.Set("server_side_encryption", resp.ServerSideEncryption)
+	d.Set("website_redirect", resp.WebsiteRedirectLocation)
 
 	// Only set non-default KMS key ID (one that doesn't match default)
 	if resp.SSEKMSKeyId != nil {
