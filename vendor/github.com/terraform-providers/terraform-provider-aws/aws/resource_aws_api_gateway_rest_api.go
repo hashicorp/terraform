@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -35,6 +36,11 @@ func resourceAwsApiGatewayRestApi() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
+			"body": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 
 			"root_resource_id": {
@@ -75,6 +81,18 @@ func resourceAwsApiGatewayRestApiCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	d.SetId(*gateway.Id)
+
+	if body, ok := d.GetOk("body"); ok {
+		log.Printf("[DEBUG] Initializing API Gateway from OpenAPI spec %s", d.Id())
+		_, err := conn.PutRestApi(&apigateway.PutRestApiInput{
+			RestApiId: gateway.Id,
+			Mode:      aws.String(apigateway.PutModeOverwrite),
+			Body:      []byte(body.(string)),
+		})
+		if err != nil {
+			return errwrap.Wrapf("Error creating API Gateway specification: {{err}}", err)
+		}
+	}
 
 	if err = resourceAwsApiGatewayRestApiRefreshResources(d, meta); err != nil {
 		return err
@@ -154,6 +172,20 @@ func resourceAwsApiGatewayRestApiUpdateOperations(d *schema.ResourceData) []*api
 func resourceAwsApiGatewayRestApiUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 	log.Printf("[DEBUG] Updating API Gateway %s", d.Id())
+
+	if d.HasChange("body") {
+		if body, ok := d.GetOk("body"); ok {
+			log.Printf("[DEBUG] Updating API Gateway from OpenAPI spec: %s", d.Id())
+			_, err := conn.PutRestApi(&apigateway.PutRestApiInput{
+				RestApiId: aws.String(d.Id()),
+				Mode:      aws.String(apigateway.PutModeOverwrite),
+				Body:      []byte(body.(string)),
+			})
+			if err != nil {
+				return errwrap.Wrapf("Error updating API Gateway specification: {{err}}", err)
+			}
+		}
+	}
 
 	_, err := conn.UpdateRestApi(&apigateway.UpdateRestApiInput{
 		RestApiId:       aws.String(d.Id()),

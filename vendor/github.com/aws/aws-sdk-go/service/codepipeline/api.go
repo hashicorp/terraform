@@ -17,19 +17,18 @@ const opAcknowledgeJob = "AcknowledgeJob"
 
 // AcknowledgeJobRequest generates a "aws/request.Request" representing the
 // client's request for the AcknowledgeJob operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AcknowledgeJob for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AcknowledgeJob method directly
-// instead.
+// See AcknowledgeJob for more information on using the AcknowledgeJob
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AcknowledgeJobRequest method.
 //    req, resp := client.AcknowledgeJobRequest(params)
@@ -104,19 +103,18 @@ const opAcknowledgeThirdPartyJob = "AcknowledgeThirdPartyJob"
 
 // AcknowledgeThirdPartyJobRequest generates a "aws/request.Request" representing the
 // client's request for the AcknowledgeThirdPartyJob operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AcknowledgeThirdPartyJob for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AcknowledgeThirdPartyJob method directly
-// instead.
+// See AcknowledgeThirdPartyJob for more information on using the AcknowledgeThirdPartyJob
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AcknowledgeThirdPartyJobRequest method.
 //    req, resp := client.AcknowledgeThirdPartyJobRequest(params)
@@ -194,19 +192,18 @@ const opCreateCustomActionType = "CreateCustomActionType"
 
 // CreateCustomActionTypeRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCustomActionType operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateCustomActionType for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateCustomActionType method directly
-// instead.
+// See CreateCustomActionType for more information on using the CreateCustomActionType
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateCustomActionTypeRequest method.
 //    req, resp := client.CreateCustomActionTypeRequest(params)
@@ -279,19 +276,18 @@ const opCreatePipeline = "CreatePipeline"
 
 // CreatePipelineRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePipeline operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreatePipeline for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreatePipeline method directly
-// instead.
+// See CreatePipeline for more information on using the CreatePipeline
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreatePipelineRequest method.
 //    req, resp := client.CreatePipelineRequest(params)
@@ -378,19 +374,18 @@ const opDeleteCustomActionType = "DeleteCustomActionType"
 
 // DeleteCustomActionTypeRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCustomActionType operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteCustomActionType for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteCustomActionType method directly
-// instead.
+// See DeleteCustomActionType for more information on using the DeleteCustomActionType
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteCustomActionTypeRequest method.
 //    req, resp := client.DeleteCustomActionTypeRequest(params)
@@ -464,19 +459,18 @@ const opDeletePipeline = "DeletePipeline"
 
 // DeletePipelineRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePipeline operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeletePipeline for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeletePipeline method directly
-// instead.
+// See DeletePipeline for more information on using the DeletePipeline
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeletePipelineRequest method.
 //    req, resp := client.DeletePipelineRequest(params)
@@ -546,19 +540,18 @@ const opDisableStageTransition = "DisableStageTransition"
 
 // DisableStageTransitionRequest generates a "aws/request.Request" representing the
 // client's request for the DisableStageTransition operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DisableStageTransition for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DisableStageTransition method directly
-// instead.
+// See DisableStageTransition for more information on using the DisableStageTransition
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DisableStageTransitionRequest method.
 //    req, resp := client.DisableStageTransitionRequest(params)
@@ -635,19 +628,18 @@ const opEnableStageTransition = "EnableStageTransition"
 
 // EnableStageTransitionRequest generates a "aws/request.Request" representing the
 // client's request for the EnableStageTransition operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See EnableStageTransition for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the EnableStageTransition method directly
-// instead.
+// See EnableStageTransition for more information on using the EnableStageTransition
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the EnableStageTransitionRequest method.
 //    req, resp := client.EnableStageTransitionRequest(params)
@@ -723,19 +715,18 @@ const opGetJobDetails = "GetJobDetails"
 
 // GetJobDetailsRequest generates a "aws/request.Request" representing the
 // client's request for the GetJobDetails operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetJobDetails for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetJobDetails method directly
-// instead.
+// See GetJobDetails for more information on using the GetJobDetails
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetJobDetailsRequest method.
 //    req, resp := client.GetJobDetailsRequest(params)
@@ -811,19 +802,18 @@ const opGetPipeline = "GetPipeline"
 
 // GetPipelineRequest generates a "aws/request.Request" representing the
 // client's request for the GetPipeline operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetPipeline for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetPipeline method directly
-// instead.
+// See GetPipeline for more information on using the GetPipeline
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetPipelineRequest method.
 //    req, resp := client.GetPipelineRequest(params)
@@ -900,19 +890,18 @@ const opGetPipelineExecution = "GetPipelineExecution"
 
 // GetPipelineExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the GetPipelineExecution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetPipelineExecution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetPipelineExecution method directly
-// instead.
+// See GetPipelineExecution for more information on using the GetPipelineExecution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetPipelineExecutionRequest method.
 //    req, resp := client.GetPipelineExecutionRequest(params)
@@ -989,19 +978,18 @@ const opGetPipelineState = "GetPipelineState"
 
 // GetPipelineStateRequest generates a "aws/request.Request" representing the
 // client's request for the GetPipelineState operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetPipelineState for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetPipelineState method directly
-// instead.
+// See GetPipelineState for more information on using the GetPipelineState
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetPipelineStateRequest method.
 //    req, resp := client.GetPipelineStateRequest(params)
@@ -1073,19 +1061,18 @@ const opGetThirdPartyJobDetails = "GetThirdPartyJobDetails"
 
 // GetThirdPartyJobDetailsRequest generates a "aws/request.Request" representing the
 // client's request for the GetThirdPartyJobDetails operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetThirdPartyJobDetails for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetThirdPartyJobDetails method directly
-// instead.
+// See GetThirdPartyJobDetails for more information on using the GetThirdPartyJobDetails
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetThirdPartyJobDetailsRequest method.
 //    req, resp := client.GetThirdPartyJobDetailsRequest(params)
@@ -1168,19 +1155,18 @@ const opListActionTypes = "ListActionTypes"
 
 // ListActionTypesRequest generates a "aws/request.Request" representing the
 // client's request for the ListActionTypes operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListActionTypes for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListActionTypes method directly
-// instead.
+// See ListActionTypes for more information on using the ListActionTypes
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListActionTypesRequest method.
 //    req, resp := client.ListActionTypesRequest(params)
@@ -1249,23 +1235,108 @@ func (c *CodePipeline) ListActionTypesWithContext(ctx aws.Context, input *ListAc
 	return out, req.Send()
 }
 
+const opListPipelineExecutions = "ListPipelineExecutions"
+
+// ListPipelineExecutionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListPipelineExecutions operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListPipelineExecutions for more information on using the ListPipelineExecutions
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListPipelineExecutionsRequest method.
+//    req, resp := client.ListPipelineExecutionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelineExecutions
+func (c *CodePipeline) ListPipelineExecutionsRequest(input *ListPipelineExecutionsInput) (req *request.Request, output *ListPipelineExecutionsOutput) {
+	op := &request.Operation{
+		Name:       opListPipelineExecutions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListPipelineExecutionsInput{}
+	}
+
+	output = &ListPipelineExecutionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListPipelineExecutions API operation for AWS CodePipeline.
+//
+// Gets a summary of the most recent executions for a pipeline.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodePipeline's
+// API operation ListPipelineExecutions for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   The validation was specified in an invalid format.
+//
+//   * ErrCodePipelineNotFoundException "PipelineNotFoundException"
+//   The specified pipeline was specified in an invalid format or cannot be found.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The next token was specified in an invalid format. Make sure that the next
+//   token you provided is the token returned by a previous call.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelineExecutions
+func (c *CodePipeline) ListPipelineExecutions(input *ListPipelineExecutionsInput) (*ListPipelineExecutionsOutput, error) {
+	req, out := c.ListPipelineExecutionsRequest(input)
+	return out, req.Send()
+}
+
+// ListPipelineExecutionsWithContext is the same as ListPipelineExecutions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListPipelineExecutions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CodePipeline) ListPipelineExecutionsWithContext(ctx aws.Context, input *ListPipelineExecutionsInput, opts ...request.Option) (*ListPipelineExecutionsOutput, error) {
+	req, out := c.ListPipelineExecutionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListPipelines = "ListPipelines"
 
 // ListPipelinesRequest generates a "aws/request.Request" representing the
 // client's request for the ListPipelines operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListPipelines for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListPipelines method directly
-// instead.
+// See ListPipelines for more information on using the ListPipelines
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListPipelinesRequest method.
 //    req, resp := client.ListPipelinesRequest(params)
@@ -1334,19 +1405,18 @@ const opPollForJobs = "PollForJobs"
 
 // PollForJobsRequest generates a "aws/request.Request" representing the
 // client's request for the PollForJobs operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PollForJobs for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PollForJobs method directly
-// instead.
+// See PollForJobs for more information on using the PollForJobs
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PollForJobsRequest method.
 //    req, resp := client.PollForJobsRequest(params)
@@ -1422,19 +1492,18 @@ const opPollForThirdPartyJobs = "PollForThirdPartyJobs"
 
 // PollForThirdPartyJobsRequest generates a "aws/request.Request" representing the
 // client's request for the PollForThirdPartyJobs operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PollForThirdPartyJobs for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PollForThirdPartyJobs method directly
-// instead.
+// See PollForThirdPartyJobs for more information on using the PollForThirdPartyJobs
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PollForThirdPartyJobsRequest method.
 //    req, resp := client.PollForThirdPartyJobsRequest(params)
@@ -1510,19 +1579,18 @@ const opPutActionRevision = "PutActionRevision"
 
 // PutActionRevisionRequest generates a "aws/request.Request" representing the
 // client's request for the PutActionRevision operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutActionRevision for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutActionRevision method directly
-// instead.
+// See PutActionRevision for more information on using the PutActionRevision
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutActionRevisionRequest method.
 //    req, resp := client.PutActionRevisionRequest(params)
@@ -1599,19 +1667,18 @@ const opPutApprovalResult = "PutApprovalResult"
 
 // PutApprovalResultRequest generates a "aws/request.Request" representing the
 // client's request for the PutApprovalResult operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutApprovalResult for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutApprovalResult method directly
-// instead.
+// See PutApprovalResult for more information on using the PutApprovalResult
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutApprovalResultRequest method.
 //    req, resp := client.PutApprovalResultRequest(params)
@@ -1695,19 +1762,18 @@ const opPutJobFailureResult = "PutJobFailureResult"
 
 // PutJobFailureResultRequest generates a "aws/request.Request" representing the
 // client's request for the PutJobFailureResult operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutJobFailureResult for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutJobFailureResult method directly
-// instead.
+// See PutJobFailureResult for more information on using the PutJobFailureResult
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutJobFailureResultRequest method.
 //    req, resp := client.PutJobFailureResultRequest(params)
@@ -1784,19 +1850,18 @@ const opPutJobSuccessResult = "PutJobSuccessResult"
 
 // PutJobSuccessResultRequest generates a "aws/request.Request" representing the
 // client's request for the PutJobSuccessResult operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutJobSuccessResult for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutJobSuccessResult method directly
-// instead.
+// See PutJobSuccessResult for more information on using the PutJobSuccessResult
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutJobSuccessResultRequest method.
 //    req, resp := client.PutJobSuccessResultRequest(params)
@@ -1873,19 +1938,18 @@ const opPutThirdPartyJobFailureResult = "PutThirdPartyJobFailureResult"
 
 // PutThirdPartyJobFailureResultRequest generates a "aws/request.Request" representing the
 // client's request for the PutThirdPartyJobFailureResult operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutThirdPartyJobFailureResult for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutThirdPartyJobFailureResult method directly
-// instead.
+// See PutThirdPartyJobFailureResult for more information on using the PutThirdPartyJobFailureResult
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutThirdPartyJobFailureResultRequest method.
 //    req, resp := client.PutThirdPartyJobFailureResultRequest(params)
@@ -1965,19 +2029,18 @@ const opPutThirdPartyJobSuccessResult = "PutThirdPartyJobSuccessResult"
 
 // PutThirdPartyJobSuccessResultRequest generates a "aws/request.Request" representing the
 // client's request for the PutThirdPartyJobSuccessResult operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutThirdPartyJobSuccessResult for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutThirdPartyJobSuccessResult method directly
-// instead.
+// See PutThirdPartyJobSuccessResult for more information on using the PutThirdPartyJobSuccessResult
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutThirdPartyJobSuccessResultRequest method.
 //    req, resp := client.PutThirdPartyJobSuccessResultRequest(params)
@@ -2057,19 +2120,18 @@ const opRetryStageExecution = "RetryStageExecution"
 
 // RetryStageExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the RetryStageExecution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RetryStageExecution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RetryStageExecution method directly
-// instead.
+// See RetryStageExecution for more information on using the RetryStageExecution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RetryStageExecutionRequest method.
 //    req, resp := client.RetryStageExecutionRequest(params)
@@ -2153,19 +2215,18 @@ const opStartPipelineExecution = "StartPipelineExecution"
 
 // StartPipelineExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the StartPipelineExecution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See StartPipelineExecution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StartPipelineExecution method directly
-// instead.
+// See StartPipelineExecution for more information on using the StartPipelineExecution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StartPipelineExecutionRequest method.
 //    req, resp := client.StartPipelineExecutionRequest(params)
@@ -2237,19 +2298,18 @@ const opUpdatePipeline = "UpdatePipeline"
 
 // UpdatePipelineRequest generates a "aws/request.Request" representing the
 // client's request for the UpdatePipeline operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdatePipeline for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdatePipeline method directly
-// instead.
+// See UpdatePipeline for more information on using the UpdatePipeline
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdatePipelineRequest method.
 //    req, resp := client.UpdatePipelineRequest(params)
@@ -3624,9 +3684,7 @@ func (s *ArtifactRevision) SetRevisionUrl(v string) *ArtifactRevision {
 	return s
 }
 
-// The Amazon S3 location where artifacts are stored for the pipeline. If this
-// Amazon S3 bucket is created manually, it must meet the requirements for AWS
-// CodePipeline. For more information, see the Concepts (http://docs.aws.amazon.com/codepipeline/latest/userguide/concepts.html#CPS3Bucket).
+// The Amazon S3 bucket where artifacts are stored for the pipeline.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ArtifactStore
 type ArtifactStore struct {
 	_ struct{} `type:"structure"`
@@ -3636,8 +3694,11 @@ type ArtifactStore struct {
 	// key for Amazon S3 is used.
 	EncryptionKey *EncryptionKey `locationName:"encryptionKey" type:"structure"`
 
-	// The location for storing the artifacts for a pipeline, such as an S3 bucket
-	// or folder.
+	// The Amazon S3 bucket used for storing the artifacts for a pipeline. You can
+	// specify the name of an S3 bucket but not a folder within the bucket. A folder
+	// to contain the pipeline artifacts is created for you based on the name of
+	// the pipeline. You can use any Amazon S3 bucket in the same AWS Region as
+	// the pipeline to store your pipeline artifacts.
 	//
 	// Location is a required field
 	Location *string `locationName:"location" min:"3" type:"string" required:"true"`
@@ -3778,12 +3839,12 @@ type CreateCustomActionTypeInput struct {
 	// see Create a Custom Action for a Pipeline (http://docs.aws.amazon.com/codepipeline/latest/userguide/how-to-create-custom-action.html).
 	ConfigurationProperties []*ActionConfigurationProperty `locationName:"configurationProperties" type:"list"`
 
-	// Returns information about the details of an artifact.
+	// The details of the input artifact for the action, such as its commit ID.
 	//
 	// InputArtifactDetails is a required field
 	InputArtifactDetails *ArtifactDetails `locationName:"inputArtifactDetails" type:"structure" required:"true"`
 
-	// Returns information about the details of an artifact.
+	// The details of the output artifact of the action, such as its commit ID.
 	//
 	// OutputArtifactDetails is a required field
 	OutputArtifactDetails *ArtifactDetails `locationName:"outputArtifactDetails" type:"structure" required:"true"`
@@ -5400,6 +5461,111 @@ func (s *ListActionTypesOutput) SetNextToken(v string) *ListActionTypesOutput {
 	return s
 }
 
+// Represents the input of a list pipeline executions action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelineExecutionsInput
+type ListPipelineExecutionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of results to return in a single call. To retrieve the
+	// remaining results, make another call with the returned nextToken value. The
+	// available pipeline execution history is limited to the most recent 12 months,
+	// based on pipeline execution start times. Default value is 100.
+	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
+
+	// The token that was returned from the previous list pipeline executions call,
+	// which can be used to return the next set of pipeline executions in the list.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// The name of the pipeline for which you want to get execution summary information.
+	//
+	// PipelineName is a required field
+	PipelineName *string `locationName:"pipelineName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListPipelineExecutionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListPipelineExecutionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListPipelineExecutionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListPipelineExecutionsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.PipelineName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PipelineName"))
+	}
+	if s.PipelineName != nil && len(*s.PipelineName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PipelineName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListPipelineExecutionsInput) SetMaxResults(v int64) *ListPipelineExecutionsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPipelineExecutionsInput) SetNextToken(v string) *ListPipelineExecutionsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPipelineName sets the PipelineName field's value.
+func (s *ListPipelineExecutionsInput) SetPipelineName(v string) *ListPipelineExecutionsInput {
+	s.PipelineName = &v
+	return s
+}
+
+// Represents the output of a list pipeline executions action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelineExecutionsOutput
+type ListPipelineExecutionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A token that can be used in the next list pipeline executions call to return
+	// the next set of pipeline executions. To view all items in the list, continue
+	// to call this operation with each subsequent token until no more nextToken
+	// values are returned.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// A list of executions in the history of a pipeline.
+	PipelineExecutionSummaries []*PipelineExecutionSummary `locationName:"pipelineExecutionSummaries" type:"list"`
+}
+
+// String returns the string representation
+func (s ListPipelineExecutionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListPipelineExecutionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPipelineExecutionsOutput) SetNextToken(v string) *ListPipelineExecutionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPipelineExecutionSummaries sets the PipelineExecutionSummaries field's value.
+func (s *ListPipelineExecutionsOutput) SetPipelineExecutionSummaries(v []*PipelineExecutionSummary) *ListPipelineExecutionsOutput {
+	s.PipelineExecutionSummaries = v
+	return s
+}
+
 // Represents the input of a list pipelines action.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/ListPipelinesInput
 type ListPipelinesInput struct {
@@ -5563,9 +5729,8 @@ func (s *PipelineContext) SetStage(v *StageContext) *PipelineContext {
 type PipelineDeclaration struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon S3 location where artifacts are stored for the pipeline. If this
-	// Amazon S3 bucket is created manually, it must meet the requirements for AWS
-	// CodePipeline. For more information, see the Concepts (http://docs.aws.amazon.com/codepipeline/latest/userguide/concepts.html#CPS3Bucket).
+	// Represents the context of an action within the stage of a pipeline to a job
+	// worker.
 	//
 	// ArtifactStore is a required field
 	ArtifactStore *ArtifactStore `locationName:"artifactStore" type:"structure" required:"true"`
@@ -5702,7 +5867,7 @@ type PipelineExecution struct {
 	//    to be completed, a newer pipeline execution caught up and continued through
 	//    the pipeline instead.
 	//
-	//    * Failed: The pipeline did not complete successfully.
+	//    * Failed: The pipeline execution did not complete successfully.
 	Status *string `locationName:"status" type:"string" enum:"PipelineExecutionStatus"`
 }
 
@@ -5742,6 +5907,69 @@ func (s *PipelineExecution) SetPipelineVersion(v int64) *PipelineExecution {
 
 // SetStatus sets the Status field's value.
 func (s *PipelineExecution) SetStatus(v string) *PipelineExecution {
+	s.Status = &v
+	return s
+}
+
+// Summary information about a pipeline execution.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/PipelineExecutionSummary
+type PipelineExecutionSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time of the last change to the pipeline execution, in timestamp
+	// format.
+	LastUpdateTime *time.Time `locationName:"lastUpdateTime" type:"timestamp" timestampFormat:"unix"`
+
+	// The ID of the pipeline execution.
+	PipelineExecutionId *string `locationName:"pipelineExecutionId" type:"string"`
+
+	// The date and time when the pipeline execution began, in timestamp format.
+	StartTime *time.Time `locationName:"startTime" type:"timestamp" timestampFormat:"unix"`
+
+	// The status of the pipeline execution.
+	//
+	//    * InProgress: The pipeline execution is currently running.
+	//
+	//    * Succeeded: The pipeline execution completed successfully.
+	//
+	//    * Superseded: While this pipeline execution was waiting for the next stage
+	//    to be completed, a newer pipeline execution caught up and continued through
+	//    the pipeline instead.
+	//
+	//    * Failed: The pipeline execution did not complete successfully.
+	Status *string `locationName:"status" type:"string" enum:"PipelineExecutionStatus"`
+}
+
+// String returns the string representation
+func (s PipelineExecutionSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PipelineExecutionSummary) GoString() string {
+	return s.String()
+}
+
+// SetLastUpdateTime sets the LastUpdateTime field's value.
+func (s *PipelineExecutionSummary) SetLastUpdateTime(v time.Time) *PipelineExecutionSummary {
+	s.LastUpdateTime = &v
+	return s
+}
+
+// SetPipelineExecutionId sets the PipelineExecutionId field's value.
+func (s *PipelineExecutionSummary) SetPipelineExecutionId(v string) *PipelineExecutionSummary {
+	s.PipelineExecutionId = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *PipelineExecutionSummary) SetStartTime(v time.Time) *PipelineExecutionSummary {
+	s.StartTime = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *PipelineExecutionSummary) SetStatus(v string) *PipelineExecutionSummary {
 	s.Status = &v
 	return s
 }

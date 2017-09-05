@@ -36,6 +36,13 @@ const (
 	// You can have at most 2,000 active associations.
 	ErrCodeAssociationLimitExceeded = "AssociationLimitExceeded"
 
+	// ErrCodeAssociationVersionLimitExceeded for service response error code
+	// "AssociationVersionLimitExceeded".
+	//
+	// You have reached the maximum number versions allowed for an association.
+	// Each association has a limit of 1,000 versions.
+	ErrCodeAssociationVersionLimitExceeded = "AssociationVersionLimitExceeded"
+
 	// ErrCodeAutomationDefinitionNotFoundException for service response error code
 	// "AutomationDefinitionNotFoundException".
 	//
@@ -61,6 +68,13 @@ const (
 	// There is no automation execution information for the requested automation
 	// execution ID.
 	ErrCodeAutomationExecutionNotFoundException = "AutomationExecutionNotFoundException"
+
+	// ErrCodeComplianceTypeCountLimitExceededException for service response error code
+	// "ComplianceTypeCountLimitExceededException".
+	//
+	// You specified too many custom compliance types. You can specify a maximum
+	// of 10 different types.
+	ErrCodeComplianceTypeCountLimitExceededException = "ComplianceTypeCountLimitExceededException"
 
 	// ErrCodeCustomSchemaCountLimitExceededException for service response error code
 	// "CustomSchemaCountLimitExceededException".
@@ -116,6 +130,31 @@ const (
 	// You cannot specify an instance ID in more than one association.
 	ErrCodeDuplicateInstanceId = "DuplicateInstanceId"
 
+	// ErrCodeFeatureNotAvailableException for service response error code
+	// "FeatureNotAvailableException".
+	//
+	// You attempted to register a LAMBDA or STEP_FUNCTION task in a region where
+	// the corresponding service is not available.
+	ErrCodeFeatureNotAvailableException = "FeatureNotAvailableException"
+
+	// ErrCodeHierarchyLevelLimitExceededException for service response error code
+	// "HierarchyLevelLimitExceededException".
+	//
+	// A hierarchy can have a maximum of five levels. For example:
+	//
+	// /Finance/Prod/IAD/OS/WinServ2016/license15
+	//
+	// For more information, see Working with Systems Manager Parameters (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-working.html).
+	ErrCodeHierarchyLevelLimitExceededException = "HierarchyLevelLimitExceededException"
+
+	// ErrCodeHierarchyTypeMismatchException for service response error code
+	// "HierarchyTypeMismatchException".
+	//
+	// Parameter Store does not support changing a parameter type in a hierarchy.
+	// For example, you can't change a parameter from a String type to a SecureString
+	// type. You must create a new, unique parameter.
+	ErrCodeHierarchyTypeMismatchException = "HierarchyTypeMismatchException"
+
 	// ErrCodeIdempotentParameterMismatch for service response error code
 	// "IdempotentParameterMismatch".
 	//
@@ -143,6 +182,20 @@ const (
 	// or ActivationCode and try again.
 	ErrCodeInvalidActivationId = "InvalidActivationId"
 
+	// ErrCodeInvalidAllowedPatternException for service response error code
+	// "InvalidAllowedPatternException".
+	//
+	// The request does not meet the regular expression requirement.
+	ErrCodeInvalidAllowedPatternException = "InvalidAllowedPatternException"
+
+	// ErrCodeInvalidAssociationVersion for service response error code
+	// "InvalidAssociationVersion".
+	//
+	// The version you specified is not valid. Use ListAssociationVersions to view
+	// all versions of an association according to the association ID. Or, use the
+	// $LATEST parameter to view the latest version of the association.
+	ErrCodeInvalidAssociationVersion = "InvalidAssociationVersion"
+
 	// ErrCodeInvalidAutomationExecutionParametersException for service response error code
 	// "InvalidAutomationExecutionParametersException".
 	//
@@ -150,6 +203,12 @@ const (
 	// incorrect. For example, they may not match the set of parameters permitted
 	// for the specified Automation document.
 	ErrCodeInvalidAutomationExecutionParametersException = "InvalidAutomationExecutionParametersException"
+
+	// ErrCodeInvalidAutomationSignalException for service response error code
+	// "InvalidAutomationSignalException".
+	//
+	// The signal is not valid for the current Automation execution.
+	ErrCodeInvalidAutomationSignalException = "InvalidAutomationSignalException"
 
 	// ErrCodeInvalidCommandId for service response error code
 	// "InvalidCommandId".
@@ -199,6 +258,13 @@ const (
 	// The specified key is not valid.
 	ErrCodeInvalidFilterKey = "InvalidFilterKey"
 
+	// ErrCodeInvalidFilterOption for service response error code
+	// "InvalidFilterOption".
+	//
+	// The specified filter option is not valid. Valid options are Equals and BeginsWith.
+	// For Path filter, valid options are Recursive and OneLevel.
+	ErrCodeInvalidFilterOption = "InvalidFilterOption"
+
 	// ErrCodeInvalidFilterValue for service response error code
 	// "InvalidFilterValue".
 	//
@@ -228,6 +294,13 @@ const (
 	//
 	// The specified filter value is not valid.
 	ErrCodeInvalidInstanceInformationFilterValue = "InvalidInstanceInformationFilterValue"
+
+	// ErrCodeInvalidInventoryItemContextException for service response error code
+	// "InvalidInventoryItemContextException".
+	//
+	// You specified invalid keys or values in the Context attribute for InventoryItem.
+	// Verify the keys and values, and try again.
+	ErrCodeInvalidInventoryItemContextException = "InvalidInventoryItemContextException"
 
 	// ErrCodeInvalidItemContentException for service response error code
 	// "InvalidItemContentException".
@@ -385,6 +458,36 @@ const (
 	// The parameter could not be found. Verify the name and try again.
 	ErrCodeParameterNotFound = "ParameterNotFound"
 
+	// ErrCodeParameterPatternMismatchException for service response error code
+	// "ParameterPatternMismatchException".
+	//
+	// The parameter name is not valid.
+	ErrCodeParameterPatternMismatchException = "ParameterPatternMismatchException"
+
+	// ErrCodeResourceDataSyncAlreadyExistsException for service response error code
+	// "ResourceDataSyncAlreadyExistsException".
+	//
+	// A sync configuration with the same name already exists.
+	ErrCodeResourceDataSyncAlreadyExistsException = "ResourceDataSyncAlreadyExistsException"
+
+	// ErrCodeResourceDataSyncCountExceededException for service response error code
+	// "ResourceDataSyncCountExceededException".
+	//
+	// You have exceeded the allowed maximum sync configurations.
+	ErrCodeResourceDataSyncCountExceededException = "ResourceDataSyncCountExceededException"
+
+	// ErrCodeResourceDataSyncInvalidConfigurationException for service response error code
+	// "ResourceDataSyncInvalidConfigurationException".
+	//
+	// The specified sync configuration is invalid.
+	ErrCodeResourceDataSyncInvalidConfigurationException = "ResourceDataSyncInvalidConfigurationException"
+
+	// ErrCodeResourceDataSyncNotFoundException for service response error code
+	// "ResourceDataSyncNotFoundException".
+	//
+	// The specified sync name was not found.
+	ErrCodeResourceDataSyncNotFoundException = "ResourceDataSyncNotFoundException"
+
 	// ErrCodeResourceInUseException for service response error code
 	// "ResourceInUseException".
 	//
@@ -404,6 +507,19 @@ const (
 	//
 	// The updated status is the same as the current status.
 	ErrCodeStatusUnchanged = "StatusUnchanged"
+
+	// ErrCodeSubTypeCountLimitExceededException for service response error code
+	// "SubTypeCountLimitExceededException".
+	//
+	// The sub-type count exceeded the limit for the inventory type.
+	ErrCodeSubTypeCountLimitExceededException = "SubTypeCountLimitExceededException"
+
+	// ErrCodeTargetInUseException for service response error code
+	// "TargetInUseException".
+	//
+	// You specified the Safe option for the DeregisterTargetFromMaintenanceWindow
+	// operation, but the target is still referenced in a task.
+	ErrCodeTargetInUseException = "TargetInUseException"
 
 	// ErrCodeTooManyTagsError for service response error code
 	// "TooManyTagsError".
@@ -425,6 +541,14 @@ const (
 	// The size of inventory data has exceeded the total size limit for the resource.
 	ErrCodeTotalSizeLimitExceededException = "TotalSizeLimitExceededException"
 
+	// ErrCodeUnsupportedInventoryItemContextException for service response error code
+	// "UnsupportedInventoryItemContextException".
+	//
+	// The Context attribute that you specified for the InventoryItem is not allowed
+	// for this inventory type. You can only use the Context attribute with inventory
+	// types like AWS:ComplianceItem.
+	ErrCodeUnsupportedInventoryItemContextException = "UnsupportedInventoryItemContextException"
+
 	// ErrCodeUnsupportedInventorySchemaVersionException for service response error code
 	// "UnsupportedInventorySchemaVersionException".
 	//
@@ -432,6 +556,14 @@ const (
 	// service. Check output of GetInventorySchema to see the available schema version
 	// for each type.
 	ErrCodeUnsupportedInventorySchemaVersionException = "UnsupportedInventorySchemaVersionException"
+
+	// ErrCodeUnsupportedOperatingSystem for service response error code
+	// "UnsupportedOperatingSystem".
+	//
+	// The operating systems you specified is not supported, or the operation is
+	// not supported for the operating system. Valid operating systems include:
+	// Windows, AmazonLinux, RedhatEnterpriseLinux, and Ubuntu.
+	ErrCodeUnsupportedOperatingSystem = "UnsupportedOperatingSystem"
 
 	// ErrCodeUnsupportedParameterType for service response error code
 	// "UnsupportedParameterType".

@@ -3,9 +3,11 @@ package aws
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -116,7 +118,21 @@ func resourceAwsCloudTrailCreate(d *schema.ResourceData, meta interface{}) error
 		input.SnsTopicName = aws.String(v.(string))
 	}
 
-	t, err := conn.CreateTrail(&input)
+	var t *cloudtrail.CreateTrailOutput
+	err := resource.Retry(15*time.Second, func() *resource.RetryError {
+		var err error
+		t, err = conn.CreateTrail(&input)
+		if err != nil {
+			if isAWSErr(err, cloudtrail.ErrCodeInvalidCloudWatchLogsRoleArnException, "Access denied.") {
+				return resource.RetryableError(err)
+			}
+			if isAWSErr(err, cloudtrail.ErrCodeInvalidCloudWatchLogsLogGroupArnException, "Access denied.") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -227,10 +243,10 @@ func resourceAwsCloudTrailUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("s3_key_prefix") {
 		input.S3KeyPrefix = aws.String(d.Get("s3_key_prefix").(string))
 	}
-	if d.HasChange("cloud_watch_logs_role_arn") {
+	if d.HasChange("cloud_watch_logs_role_arn") || d.HasChange("cloud_watch_logs_group_arn") {
+		// Both of these need to be provided together
+		// in the update call otherwise API complains
 		input.CloudWatchLogsRoleArn = aws.String(d.Get("cloud_watch_logs_role_arn").(string))
-	}
-	if d.HasChange("cloud_watch_logs_group_arn") {
 		input.CloudWatchLogsLogGroupArn = aws.String(d.Get("cloud_watch_logs_group_arn").(string))
 	}
 	if d.HasChange("include_global_service_events") {
@@ -250,7 +266,21 @@ func resourceAwsCloudTrailUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	log.Printf("[DEBUG] Updating CloudTrail: %s", input)
-	t, err := conn.UpdateTrail(&input)
+	var t *cloudtrail.UpdateTrailOutput
+	err := resource.Retry(15*time.Second, func() *resource.RetryError {
+		var err error
+		t, err = conn.UpdateTrail(&input)
+		if err != nil {
+			if isAWSErr(err, cloudtrail.ErrCodeInvalidCloudWatchLogsRoleArnException, "Access denied.") {
+				return resource.RetryableError(err)
+			}
+			if isAWSErr(err, cloudtrail.ErrCodeInvalidCloudWatchLogsLogGroupArnException, "Access denied.") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}

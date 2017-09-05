@@ -41,6 +41,7 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 			"size": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "Large",
 				ForceNew: true,
 			},
 			"alias": &schema.Schema{
@@ -60,6 +61,7 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
+			"tags": tagsSchema(),
 			"vpc_settings": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -390,6 +392,10 @@ func resourceAwsDirectoryServiceDirectoryUpdate(d *schema.ResourceData, meta int
 		}
 	}
 
+	if err := setTagsDS(dsconn, d, d.Id()); err != nil {
+		return err
+	}
+
 	return resourceAwsDirectoryServiceDirectoryRead(d, meta)
 }
 
@@ -436,6 +442,14 @@ func resourceAwsDirectoryServiceDirectoryRead(d *schema.ResourceData, meta inter
 	d.Set("vpc_settings", flattenDSVpcSettings(dir.VpcSettings))
 	d.Set("connect_settings", flattenDSConnectSettings(dir.DnsIpAddrs, dir.ConnectSettings))
 	d.Set("enable_sso", *dir.SsoEnabled)
+
+	tagList, err := dsconn.ListTagsForResource(&directoryservice.ListTagsForResourceInput{
+		ResourceId: aws.String(d.Id()),
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to get Directory service tags (id: %s): %s", d.Id(), err)
+	}
+	d.Set("tags", tagsToMapDS(tagList.Tags))
 
 	return nil
 }

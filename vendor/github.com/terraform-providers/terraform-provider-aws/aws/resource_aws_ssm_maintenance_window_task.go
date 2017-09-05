@@ -61,10 +61,12 @@ func resourceAwsSsmMaintenanceWindowTask() *schema.Resource {
 						"key": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 						"values": {
 							Type:     schema.TypeList,
 							Required: true,
+							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 					},
@@ -109,10 +111,12 @@ func resourceAwsSsmMaintenanceWindowTask() *schema.Resource {
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 						"values": {
 							Type:     schema.TypeList,
 							Required: true,
+							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 					},

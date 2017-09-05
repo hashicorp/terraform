@@ -12,15 +12,16 @@ import (
 
 func resourceAwsSsmParameter() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsSsmParameterCreate,
+		Create: resourceAwsSsmParameterPut,
 		Read:   resourceAwsSsmParameterRead,
-		Update: resourceAwsSsmParameterUpdate,
+		Update: resourceAwsSsmParameterPut,
 		Delete: resourceAwsSsmParameterDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"type": {
 				Type:         schema.TypeString,
@@ -38,12 +39,13 @@ func resourceAwsSsmParameter() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"overwrite": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
-}
-
-func resourceAwsSsmParameterCreate(d *schema.ResourceData, meta interface{}) error {
-	return putAwsSSMParameter(d, meta)
 }
 
 func resourceAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error {
@@ -76,10 +78,6 @@ func resourceAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceAwsSsmParameterUpdate(d *schema.ResourceData, meta interface{}) error {
-	return putAwsSSMParameter(d, meta)
-}
-
 func resourceAwsSsmParameterDelete(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
@@ -99,7 +97,7 @@ func resourceAwsSsmParameterDelete(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func putAwsSSMParameter(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsSsmParameterPut(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
 	log.Printf("[INFO] Creating SSM Parameter: %s", d.Get("name").(string))
@@ -108,7 +106,7 @@ func putAwsSSMParameter(d *schema.ResourceData, meta interface{}) error {
 		Name:      aws.String(d.Get("name").(string)),
 		Type:      aws.String(d.Get("type").(string)),
 		Value:     aws.String(d.Get("value").(string)),
-		Overwrite: aws.Bool(!d.IsNewResource()),
+		Overwrite: aws.Bool(d.Get("overwrite").(bool)),
 	}
 	if keyID, ok := d.GetOk("key_id"); ok {
 		log.Printf("[DEBUG] Setting key_id for SSM Parameter %s: %s", d.Get("name").(string), keyID.(string))

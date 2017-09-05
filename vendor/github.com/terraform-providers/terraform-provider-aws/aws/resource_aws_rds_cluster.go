@@ -97,7 +97,8 @@ func resourceAwsRDSCluster() *schema.Resource {
 
 			"engine": {
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
+				Default:  "aurora",
 			},
 
 			"storage_encrypted": {
@@ -222,6 +223,13 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Optional: true,
 			},
 
+			"iam_roles": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"iam_database_authentication_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -267,7 +275,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		opts := rds.RestoreDBClusterFromSnapshotInput{
 			DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
 			SnapshotIdentifier:  aws.String(d.Get("snapshot_identifier").(string)),
-			Engine:              aws.String("aurora"),
+			Engine:              aws.String(d.Get("engine").(string)),
 			Tags:                tags,
 		}
 
@@ -291,10 +299,19 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			opts.Port = aws.Int64(int64(attr.(int)))
 		}
 
-		var sgUpdate bool
+		// Check if any of the parameters that require a cluster modification after creation are set
+		var clusterUpdate bool
 		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
-			sgUpdate = true
+			clusterUpdate = true
 			opts.VpcSecurityGroupIds = expandStringList(attr.List())
+		}
+
+		if _, ok := d.GetOk("db_cluster_parameter_group_name"); ok {
+			clusterUpdate = true
+		}
+
+		if _, ok := d.GetOk("backup_retention_period"); ok {
+			clusterUpdate = true
 		}
 
 		log.Printf("[DEBUG] RDS Cluster restore from snapshot configuration: %s", opts)
@@ -303,12 +320,13 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			return fmt.Errorf("Error creating RDS Cluster: %s", err)
 		}
 
-		if sgUpdate {
-			log.Printf("[INFO] RDS Cluster is restoring from snapshot with default security, but custom security should be set, will now update after snapshot is restored!")
+		if clusterUpdate {
+			log.Printf("[INFO] RDS Cluster is restoring from snapshot with default db_cluster_parameter_group_name, backup_retention_period and vpc_security_group_ids" +
+				"but custom values should be set, will now update after snapshot is restored!")
 
 			d.SetId(d.Get("cluster_identifier").(string))
 
-			log.Printf("[INFO] RDS Cluster Instance ID: %s", d.Id())
+			log.Printf("[INFO] RDS Cluster ID: %s", d.Id())
 
 			log.Println("[INFO] Waiting for RDS Cluster to be available")
 
@@ -327,7 +345,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 				return err
 			}
 
-			err = resourceAwsRDSClusterInstanceUpdate(d, meta)
+			err = resourceAwsRDSClusterUpdate(d, meta)
 			if err != nil {
 				return err
 			}
@@ -335,7 +353,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 	} else if _, ok := d.GetOk("replication_source_identifier"); ok {
 		createOpts := &rds.CreateDBClusterInput{
 			DBClusterIdentifier:         aws.String(d.Get("cluster_identifier").(string)),
-			Engine:                      aws.String("aurora"),
+			Engine:                      aws.String(d.Get("engine").(string)),
 			StorageEncrypted:            aws.Bool(d.Get("storage_encrypted").(bool)),
 			ReplicationSourceIdentifier: aws.String(d.Get("replication_source_identifier").(string)),
 			Tags: tags,
@@ -397,7 +415,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 		createOpts := &rds.CreateDBClusterInput{
 			DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
-			Engine:              aws.String("aurora"),
+			Engine:              aws.String(d.Get("engine").(string)),
 			MasterUserPassword:  aws.String(d.Get("master_password").(string)),
 			MasterUsername:      aws.String(d.Get("master_username").(string)),
 			StorageEncrypted:    aws.Bool(d.Get("storage_encrypted").(bool)),
@@ -480,6 +498,15 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("[WARN] Error waiting for RDS Cluster state to be \"available\": %s", err)
 	}
 
+	if v, ok := d.GetOk("iam_roles"); ok {
+		for _, role := range v.(*schema.Set).List() {
+			err := setIamRoleToRdsCluster(d.Id(), role.(string), conn)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return resourceAwsRDSClusterRead(d, meta)
 }
 
@@ -560,6 +587,15 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("[DEBUG] Error saving RDS Cluster Members to state for RDS Cluster (%s): %s", d.Id(), err)
 	}
 
+	var roles []string
+	for _, r := range dbc.AssociatedRoles {
+		roles = append(roles, *r.RoleArn)
+	}
+
+	if err := d.Set("iam_roles", roles); err != nil {
+		return fmt.Errorf("[DEBUG] Error saving IAM Roles to state for RDS Cluster (%s): %s", d.Id(), err)
+	}
+
 	// Fetch and save tags
 	arn, err := buildRDSClusterARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
@@ -623,9 +659,48 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if requestUpdate {
-		_, err := conn.ModifyDBCluster(req)
+		err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+			_, err := conn.ModifyDBCluster(req)
+			if err != nil {
+				awsErr, ok := err.(awserr.Error)
+				if ok && awsErr.Code() == rds.ErrCodeInvalidDBClusterStateFault {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
 		if err != nil {
-			return fmt.Errorf("[WARN] Error modifying RDS Cluster (%s): %s", d.Id(), err)
+			return fmt.Errorf("Failed to modify RDS Cluster (%s): %s", d.Id(), err)
+		}
+	}
+
+	if d.HasChange("iam_roles") {
+		oraw, nraw := d.GetChange("iam_roles")
+		if oraw == nil {
+			oraw = new(schema.Set)
+		}
+		if nraw == nil {
+			nraw = new(schema.Set)
+		}
+
+		os := oraw.(*schema.Set)
+		ns := nraw.(*schema.Set)
+		removeRoles := os.Difference(ns)
+		enableRoles := ns.Difference(os)
+
+		for _, role := range enableRoles.List() {
+			err := setIamRoleToRdsCluster(d.Id(), role.(string), conn)
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, role := range removeRoles.List() {
+			err := removeIamRoleFromRdsCluster(d.Id(), role.(string), conn)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -737,4 +812,30 @@ func buildRDSClusterARN(identifier, partition, accountid, region string) (string
 	arn := fmt.Sprintf("arn:%s:rds:%s:%s:cluster:%s", partition, region, accountid, identifier)
 	return arn, nil
 
+}
+
+func setIamRoleToRdsCluster(clusterIdentifier string, roleArn string, conn *rds.RDS) error {
+	params := &rds.AddRoleToDBClusterInput{
+		DBClusterIdentifier: aws.String(clusterIdentifier),
+		RoleArn:             aws.String(roleArn),
+	}
+	_, err := conn.AddRoleToDBCluster(params)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func removeIamRoleFromRdsCluster(clusterIdentifier string, roleArn string, conn *rds.RDS) error {
+	params := &rds.RemoveRoleFromDBClusterInput{
+		DBClusterIdentifier: aws.String(clusterIdentifier),
+		RoleArn:             aws.String(roleArn),
+	}
+	_, err := conn.RemoveRoleFromDBCluster(params)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
