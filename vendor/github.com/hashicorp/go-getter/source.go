@@ -1,6 +1,8 @@
 package getter
 
 import (
+	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -33,4 +35,23 @@ func SourceDirSubdir(src string) (string, string) {
 	}
 
 	return src, subdir
+}
+
+// SubdirGlob returns the actual subdir with globbing processed.
+//
+// dst should be a destination directory that is already populated (the
+// download is complete) and subDir should be the set subDir. If subDir
+// is an empty string, this returns an empty string.
+//
+// The returned path is the full absolute path.
+func SubdirGlob(dst, subDir string) (string, error) {
+	matches, err := filepath.Glob(filepath.Join(dst, subDir))
+	if err != nil {
+		return "", err
+	}
+	if len(matches) > 1 {
+		return "", fmt.Errorf("subdir %q matches multiple paths", subDir)
+	}
+
+	return matches[0], nil
 }
