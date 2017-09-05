@@ -6,78 +6,8 @@
 package command
 
 import (
-	alicloudprovider "github.com/r3labs/terraform/builtin/providers/alicloud"
-	archiveprovider "github.com/r3labs/terraform/builtin/providers/archive"
-	arukasprovider "github.com/r3labs/terraform/builtin/providers/arukas"
-	atlasprovider "github.com/r3labs/terraform/builtin/providers/atlas"
-	awsprovider "github.com/r3labs/terraform/builtin/providers/aws"
 	azureprovider "github.com/r3labs/terraform/builtin/providers/azure"
 	azurermprovider "github.com/r3labs/terraform/builtin/providers/azurerm"
-	bitbucketprovider "github.com/r3labs/terraform/builtin/providers/bitbucket"
-	chefprovider "github.com/r3labs/terraform/builtin/providers/chef"
-	circonusprovider "github.com/r3labs/terraform/builtin/providers/circonus"
-	clcprovider "github.com/r3labs/terraform/builtin/providers/clc"
-	cloudflareprovider "github.com/r3labs/terraform/builtin/providers/cloudflare"
-	cloudstackprovider "github.com/r3labs/terraform/builtin/providers/cloudstack"
-	cobblerprovider "github.com/r3labs/terraform/builtin/providers/cobbler"
-	consulprovider "github.com/r3labs/terraform/builtin/providers/consul"
-	datadogprovider "github.com/r3labs/terraform/builtin/providers/datadog"
-	digitaloceanprovider "github.com/r3labs/terraform/builtin/providers/digitalocean"
-	dmeprovider "github.com/r3labs/terraform/builtin/providers/dme"
-	dnsprovider "github.com/r3labs/terraform/builtin/providers/dns"
-	dnsimpleprovider "github.com/r3labs/terraform/builtin/providers/dnsimple"
-	dockerprovider "github.com/r3labs/terraform/builtin/providers/docker"
-	dynprovider "github.com/r3labs/terraform/builtin/providers/dyn"
-	externalprovider "github.com/r3labs/terraform/builtin/providers/external"
-	fastlyprovider "github.com/r3labs/terraform/builtin/providers/fastly"
-	githubprovider "github.com/r3labs/terraform/builtin/providers/github"
-	gitlabprovider "github.com/r3labs/terraform/builtin/providers/gitlab"
-	googleprovider "github.com/r3labs/terraform/builtin/providers/google"
-	grafanaprovider "github.com/r3labs/terraform/builtin/providers/grafana"
-	herokuprovider "github.com/r3labs/terraform/builtin/providers/heroku"
-	httpprovider "github.com/r3labs/terraform/builtin/providers/http"
-	icinga2provider "github.com/r3labs/terraform/builtin/providers/icinga2"
-	ignitionprovider "github.com/r3labs/terraform/builtin/providers/ignition"
-	influxdbprovider "github.com/r3labs/terraform/builtin/providers/influxdb"
-	kubernetesprovider "github.com/r3labs/terraform/builtin/providers/kubernetes"
-	libratoprovider "github.com/r3labs/terraform/builtin/providers/librato"
-	localprovider "github.com/r3labs/terraform/builtin/providers/local"
-	logentriesprovider "github.com/r3labs/terraform/builtin/providers/logentries"
-	mailgunprovider "github.com/r3labs/terraform/builtin/providers/mailgun"
-	mysqlprovider "github.com/r3labs/terraform/builtin/providers/mysql"
-	newrelicprovider "github.com/r3labs/terraform/builtin/providers/newrelic"
-	nomadprovider "github.com/r3labs/terraform/builtin/providers/nomad"
-	ns1provider "github.com/r3labs/terraform/builtin/providers/ns1"
-	nullprovider "github.com/r3labs/terraform/builtin/providers/null"
-	oneandoneprovider "github.com/r3labs/terraform/builtin/providers/oneandone"
-	openstackprovider "github.com/r3labs/terraform/builtin/providers/openstack"
-	opsgenieprovider "github.com/r3labs/terraform/builtin/providers/opsgenie"
-	ovhprovider "github.com/r3labs/terraform/builtin/providers/ovh"
-	packetprovider "github.com/r3labs/terraform/builtin/providers/packet"
-	pagerdutyprovider "github.com/r3labs/terraform/builtin/providers/pagerduty"
-	postgresqlprovider "github.com/r3labs/terraform/builtin/providers/postgresql"
-	powerdnsprovider "github.com/r3labs/terraform/builtin/providers/powerdns"
-	profitbricksprovider "github.com/r3labs/terraform/builtin/providers/profitbricks"
-	rabbitmqprovider "github.com/r3labs/terraform/builtin/providers/rabbitmq"
-	rancherprovider "github.com/r3labs/terraform/builtin/providers/rancher"
-	randomprovider "github.com/r3labs/terraform/builtin/providers/random"
-	rundeckprovider "github.com/r3labs/terraform/builtin/providers/rundeck"
-	scalewayprovider "github.com/r3labs/terraform/builtin/providers/scaleway"
-	softlayerprovider "github.com/r3labs/terraform/builtin/providers/softlayer"
-	spotinstprovider "github.com/r3labs/terraform/builtin/providers/spotinst"
-	statuscakeprovider "github.com/r3labs/terraform/builtin/providers/statuscake"
-	templateprovider "github.com/r3labs/terraform/builtin/providers/template"
-	terraformprovider "github.com/r3labs/terraform/builtin/providers/terraform"
-	testprovider "github.com/r3labs/terraform/builtin/providers/test"
-	tlsprovider "github.com/r3labs/terraform/builtin/providers/tls"
-	tritonprovider "github.com/r3labs/terraform/builtin/providers/triton"
-	ultradnsprovider "github.com/r3labs/terraform/builtin/providers/ultradns"
-	vaultprovider "github.com/r3labs/terraform/builtin/providers/vault"
-	vcdprovider "github.com/r3labs/terraform/builtin/providers/vcd"
-	vsphereprovider "github.com/r3labs/terraform/builtin/providers/vsphere"
-	fileprovisioner "github.com/r3labs/terraform/builtin/provisioners/file"
-	localexecprovisioner "github.com/r3labs/terraform/builtin/provisioners/local-exec"
-	remoteexecprovisioner "github.com/r3labs/terraform/builtin/provisioners/remote-exec"
 
 	"github.com/r3labs/terraform/plugin"
 	"github.com/r3labs/terraform/terraform"
@@ -90,82 +20,11 @@ import (
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
-	"alicloud":     alicloudprovider.Provider,
-	"archive":      archiveprovider.Provider,
-	"arukas":       arukasprovider.Provider,
-	"atlas":        atlasprovider.Provider,
-	"aws":          awsprovider.Provider,
-	"azure":        azureprovider.Provider,
-	"azurerm":      azurermprovider.Provider,
-	"bitbucket":    bitbucketprovider.Provider,
-	"chef":         chefprovider.Provider,
-	"circonus":     circonusprovider.Provider,
-	"clc":          clcprovider.Provider,
-	"cloudflare":   cloudflareprovider.Provider,
-	"cloudstack":   cloudstackprovider.Provider,
-	"cobbler":      cobblerprovider.Provider,
-	"consul":       consulprovider.Provider,
-	"datadog":      datadogprovider.Provider,
-	"digitalocean": digitaloceanprovider.Provider,
-	"dme":          dmeprovider.Provider,
-	"dns":          dnsprovider.Provider,
-	"dnsimple":     dnsimpleprovider.Provider,
-	"docker":       dockerprovider.Provider,
-	"dyn":          dynprovider.Provider,
-	"external":     externalprovider.Provider,
-	"fastly":       fastlyprovider.Provider,
-	"github":       githubprovider.Provider,
-	"gitlab":       gitlabprovider.Provider,
-	"google":       googleprovider.Provider,
-	"grafana":      grafanaprovider.Provider,
-	"heroku":       herokuprovider.Provider,
-	"http":         httpprovider.Provider,
-	"icinga2":      icinga2provider.Provider,
-	"ignition":     ignitionprovider.Provider,
-	"influxdb":     influxdbprovider.Provider,
-	"kubernetes":   kubernetesprovider.Provider,
-	"librato":      libratoprovider.Provider,
-	"local":        localprovider.Provider,
-	"logentries":   logentriesprovider.Provider,
-	"mailgun":      mailgunprovider.Provider,
-	"mysql":        mysqlprovider.Provider,
-	"newrelic":     newrelicprovider.Provider,
-	"nomad":        nomadprovider.Provider,
-	"ns1":          ns1provider.Provider,
-	"null":         nullprovider.Provider,
-	"oneandone":    oneandoneprovider.Provider,
-	"openstack":    openstackprovider.Provider,
-	"opsgenie":     opsgenieprovider.Provider,
-	"ovh":          ovhprovider.Provider,
-	"packet":       packetprovider.Provider,
-	"pagerduty":    pagerdutyprovider.Provider,
-	"postgresql":   postgresqlprovider.Provider,
-	"powerdns":     powerdnsprovider.Provider,
-	"profitbricks": profitbricksprovider.Provider,
-	"rabbitmq":     rabbitmqprovider.Provider,
-	"rancher":      rancherprovider.Provider,
-	"random":       randomprovider.Provider,
-	"rundeck":      rundeckprovider.Provider,
-	"scaleway":     scalewayprovider.Provider,
-	"softlayer":    softlayerprovider.Provider,
-	"spotinst":     spotinstprovider.Provider,
-	"statuscake":   statuscakeprovider.Provider,
-	"template":     templateprovider.Provider,
-	"terraform":    terraformprovider.Provider,
-	"test":         testprovider.Provider,
-	"tls":          tlsprovider.Provider,
-	"triton":       tritonprovider.Provider,
-	"ultradns":     ultradnsprovider.Provider,
-	"vault":        vaultprovider.Provider,
-	"vcd":          vcdprovider.Provider,
-	"vsphere":      vsphereprovider.Provider,
+	"azure":   azureprovider.Provider,
+	"azurerm": azurermprovider.Provider,
 }
 
-var InternalProvisioners = map[string]plugin.ProvisionerFunc{
-	"file":        fileprovisioner.Provisioner,
-	"local-exec":  localexecprovisioner.Provisioner,
-	"remote-exec": remoteexecprovisioner.Provisioner,
-}
+var InternalProvisioners = map[string]plugin.ProvisionerFunc{}
 
 func init() {
 	// Legacy provisioners that don't match our heuristics for auto-finding

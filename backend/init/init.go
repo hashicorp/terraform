@@ -12,7 +12,6 @@ import (
 	backendlocal "github.com/r3labs/terraform/backend/local"
 	backendconsul "github.com/r3labs/terraform/backend/remote-state/consul"
 	backendinmem "github.com/r3labs/terraform/backend/remote-state/inmem"
-	backendS3 "github.com/r3labs/terraform/backend/remote-state/s3"
 )
 
 // backends is the list of available backends. This is a global variable
@@ -37,7 +36,6 @@ func init() {
 		"local":  func() backend.Backend { return &backendlocal.Local{} },
 		"consul": func() backend.Backend { return backendconsul.New() },
 		"inmem":  func() backend.Backend { return backendinmem.New() },
-		"s3":     func() backend.Backend { return backendS3.New() },
 	}
 
 	// Add the legacy remote backends that haven't yet been convertd to
