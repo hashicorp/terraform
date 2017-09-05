@@ -7,31 +7,30 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSsmPatchBaseline() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSsmPatchBaselineCreate,
 		Read:   resourceAwsSsmPatchBaselineRead,
+		Update: resourceAwsSsmPatchBaselineUpdate,
 		Delete: resourceAwsSsmPatchBaselineDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"global_filter": {
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				MaxItems: 4,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -51,7 +50,6 @@ func resourceAwsSsmPatchBaseline() *schema.Resource {
 			"approval_rule": {
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"approve_after_days": {
@@ -84,7 +82,6 @@ func resourceAwsSsmPatchBaseline() *schema.Resource {
 			"approved_patches": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -92,9 +89,23 @@ func resourceAwsSsmPatchBaseline() *schema.Resource {
 			"rejected_patches": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
+			},
+
+			"operating_system": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Default:      "WINDOWS",
+				ValidateFunc: validation.StringInSlice([]string{"WINDOWS", "AMAZON_LINUX", "UBUNTU", "REDHAT_ENTERPRISE_LINUX"}, false),
+			},
+
+			"approved_patches_compliance_level": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "UNSPECIFIED",
+				ValidateFunc: validation.StringInSlice([]string{"CRITICAL", "HIGH", "MEDIUM", "LOW", "INFORMATIONAL", "UNSPECIFIED"}, false),
 			},
 		},
 	}
@@ -105,6 +116,8 @@ func resourceAwsSsmPatchBaselineCreate(d *schema.ResourceData, meta interface{})
 
 	params := &ssm.CreatePatchBaselineInput{
 		Name: aws.String(d.Get("name").(string)),
+		ApprovedPatchesComplianceLevel: aws.String(d.Get("approved_patches_compliance_level").(string)),
+		OperatingSystem:                aws.String(d.Get("operating_system").(string)),
 	}
 
 	if v, ok := d.GetOk("description"); ok {
@@ -136,6 +149,48 @@ func resourceAwsSsmPatchBaselineCreate(d *schema.ResourceData, meta interface{})
 	return resourceAwsSsmPatchBaselineRead(d, meta)
 }
 
+func resourceAwsSsmPatchBaselineUpdate(d *schema.ResourceData, meta interface{}) error {
+	ssmconn := meta.(*AWSClient).ssmconn
+
+	params := &ssm.UpdatePatchBaselineInput{
+		BaselineId: aws.String(d.Id()),
+	}
+
+	if d.HasChange("name") {
+		params.Name = aws.String(d.Get("name").(string))
+	}
+
+	if d.HasChange("description") {
+		params.Description = aws.String(d.Get("description").(string))
+	}
+
+	if d.HasChange("approved_patches") {
+		params.ApprovedPatches = expandStringList(d.Get("approved_patches").(*schema.Set).List())
+	}
+
+	if d.HasChange("rejected_patches") {
+		params.RejectedPatches = expandStringList(d.Get("rejected_patches").(*schema.Set).List())
+	}
+
+	if d.HasChange("approved_patches_compliance_level") {
+		params.ApprovedPatchesComplianceLevel = aws.String(d.Get("approved_patches_compliance_level").(string))
+	}
+
+	if d.HasChange("approval_rule") {
+		params.ApprovalRules = expandAwsSsmPatchRuleGroup(d)
+	}
+
+	if d.HasChange("global_filter") {
+		params.GlobalFilters = expandAwsSsmPatchFilterGroup(d)
+	}
+
+	_, err := ssmconn.UpdatePatchBaseline(params)
+	if err != nil {
+		return err
+	}
+
+	return resourceAwsSsmPatchBaselineRead(d, meta)
+}
 func resourceAwsSsmPatchBaselineRead(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
@@ -150,6 +205,8 @@ func resourceAwsSsmPatchBaselineRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("name", resp.Name)
 	d.Set("description", resp.Description)
+	d.Set("operating_system", resp.OperatingSystem)
+	d.Set("approved_patches_compliance_level", resp.ApprovedPatchesComplianceLevel)
 	d.Set("approved_patches", flattenStringList(resp.ApprovedPatches))
 	d.Set("rejected_patches", flattenStringList(resp.RejectedPatches))
 

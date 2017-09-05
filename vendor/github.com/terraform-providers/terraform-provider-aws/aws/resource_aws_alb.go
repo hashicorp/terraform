@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -399,6 +400,62 @@ func resourceAwsAlbDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	if _, err := albconn.DeleteLoadBalancer(&deleteElbOpts); err != nil {
 		return fmt.Errorf("Error deleting ALB: %s", err)
+	}
+
+	err := cleanupALBNetworkInterfaces(meta.(*AWSClient).ec2conn, d.Id())
+	if err != nil {
+		log.Printf("[WARN] Failed to cleanup ENIs for ALB %q: %#v", d.Id(), err)
+	}
+
+	return nil
+}
+
+// ALB automatically creates ENI(s) on creation
+// but the cleanup is asynchronous and may take time
+// which then blocks IGW, SG or VPC on deletion
+// So we make the cleanup "synchronous" here
+func cleanupALBNetworkInterfaces(conn *ec2.EC2, albArn string) error {
+	re := regexp.MustCompile("([^/]+/[^/]+/[^/]+)$")
+	matches := re.FindStringSubmatch(albArn)
+	if len(matches) != 2 {
+		return fmt.Errorf("Unexpected ARN format: %q", albArn)
+	}
+
+	// e.g. app/example-alb/b26e625cdde161e6
+	name := matches[1]
+
+	out, err := conn.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("attachment.instance-owner-id"),
+				Values: []*string{aws.String("amazon-elb")},
+			},
+			{
+				Name:   aws.String("description"),
+				Values: []*string{aws.String("ELB " + name)},
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] Found %d ENIs to cleanup for ALB %q",
+		len(out.NetworkInterfaces), name)
+
+	if len(out.NetworkInterfaces) == 0 {
+		// Nothing to cleanup
+		return nil
+	}
+
+	err = detachNetworkInterfaces(conn, out.NetworkInterfaces)
+	if err != nil {
+		return err
+	}
+
+	err = deleteNetworkInterfaces(conn, out.NetworkInterfaces)
+	if err != nil {
+		return err
 	}
 
 	return nil

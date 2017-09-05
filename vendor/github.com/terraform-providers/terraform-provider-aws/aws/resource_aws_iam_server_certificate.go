@@ -76,9 +76,9 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if len(value) > 30 {
+					if len(value) > 102 {
 						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 30 characters, name is limited to 128", k))
+							"%q cannot be longer than 102 characters, name is limited to 128", k))
 					}
 					return
 				},
@@ -172,7 +172,7 @@ func resourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interface{
 func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	log.Printf("[INFO] Deleting IAM Server Certificate: %s", d.Id())
-	err := resource.Retry(10*time.Minute, func() *resource.RetryError {
+	err := resource.Retry(15*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteServerCertificate(&iam.DeleteServerCertificateInput{
 			ServerCertificateName: aws.String(d.Get("name").(string)),
 		})

@@ -41,6 +41,74 @@ func cloudWatchLoggingOptionsSchema() *schema.Schema {
 	}
 }
 
+func processingConfigurationSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"enabled": {
+					Type:     schema.TypeBool,
+					Optional: true,
+				},
+				"processors": {
+					Type:     schema.TypeList,
+					Optional: true,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"parameters": {
+								Type:     schema.TypeList,
+								Optional: true,
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"parameter_name": {
+											Type:     schema.TypeString,
+											Required: true,
+											ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+												value := v.(string)
+												if value != "LambdaArn" && value != "NumberOfRetries" {
+													errors = append(errors, fmt.Errorf(
+														"%q must be one of 'LambdaArn', 'NumberOfRetries'", k))
+												}
+												return
+											},
+										},
+										"parameter_value": {
+											Type:     schema.TypeString,
+											Required: true,
+											ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+												value := v.(string)
+												if len(value) < 1 || len(value) > 512 {
+													errors = append(errors, fmt.Errorf(
+														"%q must be at least one character long and at most 512 characters long", k))
+												}
+												return
+											},
+										},
+									},
+								},
+							},
+							"type": {
+								Type:     schema.TypeString,
+								Required: true,
+								ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+									value := v.(string)
+									if value != "Lambda" {
+										errors = append(errors, fmt.Errorf(
+											"%q must be 'Lambda'", k))
+									}
+									return
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsKinesisFirehoseDeliveryStreamCreate,
@@ -75,9 +143,9 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 				},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if value != "s3" && value != "redshift" && value != "elasticsearch" {
+					if value != "s3" && value != "extended_s3" && value != "redshift" && value != "elasticsearch" {
 						errors = append(errors, fmt.Errorf(
-							"%q must be one of 's3', 'redshift', 'elasticsearch'", k))
+							"%q must be one of 's3', 'extended_s3', 'redshift', 'elasticsearch'", k))
 					}
 					return
 				},
@@ -85,7 +153,7 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 
 			"s3_configuration": {
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -129,6 +197,59 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 						},
 
 						"cloudwatch_logging_options": cloudWatchLoggingOptionsSchema(),
+					},
+				},
+			},
+
+			"extended_s3_configuration": {
+				Type:          schema.TypeList,
+				Optional:      true,
+				ConflictsWith: []string{"s3_configuration"},
+				MaxItems:      1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"bucket_arn": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"buffer_size": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  5,
+						},
+
+						"buffer_interval": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  300,
+						},
+
+						"compression_format": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "UNCOMPRESSED",
+						},
+
+						"kms_key_arn": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateArn,
+						},
+
+						"role_arn": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"prefix": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"cloudwatch_logging_options": cloudWatchLoggingOptionsSchema(),
+
+						"processing_configuration": processingConfigurationSchema(),
 					},
 				},
 			},
@@ -346,6 +467,29 @@ func createS3Config(d *schema.ResourceData) *firehose.S3DestinationConfiguration
 	return configuration
 }
 
+func createExtendedS3Config(d *schema.ResourceData) *firehose.ExtendedS3DestinationConfiguration {
+	s3 := d.Get("extended_s3_configuration").([]interface{})[0].(map[string]interface{})
+
+	configuration := &firehose.ExtendedS3DestinationConfiguration{
+		BucketARN: aws.String(s3["bucket_arn"].(string)),
+		RoleARN:   aws.String(s3["role_arn"].(string)),
+		BufferingHints: &firehose.BufferingHints{
+			IntervalInSeconds: aws.Int64(int64(s3["buffer_interval"].(int))),
+			SizeInMBs:         aws.Int64(int64(s3["buffer_size"].(int))),
+		},
+		Prefix:                  extractPrefixConfiguration(s3),
+		CompressionFormat:       aws.String(s3["compression_format"].(string)),
+		EncryptionConfiguration: extractEncryptionConfiguration(s3),
+		ProcessingConfiguration: extractProcessingConfiguration(s3),
+	}
+
+	if _, ok := s3["cloudwatch_logging_options"]; ok {
+		configuration.CloudWatchLoggingOptions = extractCloudWatchLoggingConfiguration(s3)
+	}
+
+	return configuration
+}
+
 func updateS3Config(d *schema.ResourceData) *firehose.S3DestinationUpdate {
 	s3 := d.Get("s3_configuration").([]interface{})[0].(map[string]interface{})
 
@@ -367,6 +511,75 @@ func updateS3Config(d *schema.ResourceData) *firehose.S3DestinationUpdate {
 	}
 
 	return configuration
+}
+
+func updateExtendedS3Config(d *schema.ResourceData) *firehose.ExtendedS3DestinationUpdate {
+	s3 := d.Get("extended_s3_configuration").([]interface{})[0].(map[string]interface{})
+
+	configuration := &firehose.ExtendedS3DestinationUpdate{
+		BucketARN: aws.String(s3["bucket_arn"].(string)),
+		RoleARN:   aws.String(s3["role_arn"].(string)),
+		BufferingHints: &firehose.BufferingHints{
+			IntervalInSeconds: aws.Int64((int64)(s3["buffer_interval"].(int))),
+			SizeInMBs:         aws.Int64((int64)(s3["buffer_size"].(int))),
+		},
+		Prefix:                   extractPrefixConfiguration(s3),
+		CompressionFormat:        aws.String(s3["compression_format"].(string)),
+		EncryptionConfiguration:  extractEncryptionConfiguration(s3),
+		CloudWatchLoggingOptions: extractCloudWatchLoggingConfiguration(s3),
+		ProcessingConfiguration:  extractProcessingConfiguration(s3),
+	}
+
+	if _, ok := s3["cloudwatch_logging_options"]; ok {
+		configuration.CloudWatchLoggingOptions = extractCloudWatchLoggingConfiguration(s3)
+	}
+
+	return configuration
+}
+
+func extractProcessingConfiguration(s3 map[string]interface{}) *firehose.ProcessingConfiguration {
+	processingConfiguration := s3["processing_configuration"].([]interface{})[0].(map[string]interface{})
+
+	return &firehose.ProcessingConfiguration{
+		Enabled:    aws.Bool(processingConfiguration["enabled"].(bool)),
+		Processors: extractProcessors(processingConfiguration["processors"].([]interface{})),
+	}
+}
+
+func extractProcessors(processingConfigurationProcessors []interface{}) []*firehose.Processor {
+	processors := []*firehose.Processor{}
+
+	for _, processor := range processingConfigurationProcessors {
+		processors = append(processors, extractProcessor(processor.(map[string]interface{})))
+	}
+
+	return processors
+}
+
+func extractProcessor(processingConfigurationProcessor map[string]interface{}) *firehose.Processor {
+	return &firehose.Processor{
+		Type:       aws.String(processingConfigurationProcessor["type"].(string)),
+		Parameters: extractProcessorParameters(processingConfigurationProcessor["parameters"].([]interface{})),
+	}
+}
+
+func extractProcessorParameters(processorParameters []interface{}) []*firehose.ProcessorParameter {
+	parameters := []*firehose.ProcessorParameter{}
+
+	for _, attr := range processorParameters {
+		parameters = append(parameters, extractProcessorParameter(attr.(map[string]interface{})))
+	}
+
+	return parameters
+}
+
+func extractProcessorParameter(processorParameter map[string]interface{}) *firehose.ProcessorParameter {
+	parameter := &firehose.ProcessorParameter{
+		ParameterName:  aws.String(processorParameter["parameter_name"].(string)),
+		ParameterValue: aws.String(processorParameter["parameter_value"].(string)),
+	}
+
+	return parameter
 }
 
 func extractEncryptionConfiguration(s3 map[string]interface{}) *firehose.EncryptionConfiguration {
@@ -577,29 +790,41 @@ func extractCopyCommandConfiguration(redshift map[string]interface{}) *firehose.
 }
 
 func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta interface{}) error {
+	validateError := validateAwsKinesisFirehoseSchema(d)
+
+	if validateError != nil {
+		return validateError
+	}
+
 	conn := meta.(*AWSClient).firehoseconn
 
 	sn := d.Get("name").(string)
-	s3Config := createS3Config(d)
 
 	createInput := &firehose.CreateDeliveryStreamInput{
 		DeliveryStreamName: aws.String(sn),
 	}
 
-	if d.Get("destination").(string) == "s3" {
-		createInput.S3DestinationConfiguration = s3Config
-	} else if d.Get("destination").(string) == "elasticsearch" {
-		esConfig, err := createElasticsearchConfig(d, s3Config)
-		if err != nil {
-			return err
-		}
-		createInput.ElasticsearchDestinationConfiguration = esConfig
+	if d.Get("destination").(string) == "extended_s3" {
+		extendedS3Config := createExtendedS3Config(d)
+		createInput.ExtendedS3DestinationConfiguration = extendedS3Config
 	} else {
-		rc, err := createRedshiftConfig(d, s3Config)
-		if err != nil {
-			return err
+		s3Config := createS3Config(d)
+
+		if d.Get("destination").(string) == "s3" {
+			createInput.S3DestinationConfiguration = s3Config
+		} else if d.Get("destination").(string) == "elasticsearch" {
+			esConfig, err := createElasticsearchConfig(d, s3Config)
+			if err != nil {
+				return err
+			}
+			createInput.ElasticsearchDestinationConfiguration = esConfig
+		} else {
+			rc, err := createRedshiftConfig(d, s3Config)
+			if err != nil {
+				return err
+			}
+			createInput.RedshiftDestinationConfiguration = rc
 		}
-		createInput.RedshiftDestinationConfiguration = rc
 	}
 
 	var lastError error
@@ -653,11 +878,47 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 	return resourceAwsKinesisFirehoseDeliveryStreamRead(d, meta)
 }
 
+func validateAwsKinesisFirehoseSchema(d *schema.ResourceData) error {
+
+	_, s3Exists := d.GetOk("s3_configuration")
+	_, extendedS3Exists := d.GetOk("extended_s3_configuration")
+
+	if d.Get("destination").(string) == "extended_s3" {
+		if !extendedS3Exists {
+			return fmt.Errorf(
+				"When destination is 'extended_s3', extended_s3_configuration is required",
+			)
+		} else if s3Exists {
+			return fmt.Errorf(
+				"When destination is 'extended_s3', s3_configuration must not be set",
+			)
+		}
+	} else {
+		if !s3Exists {
+			return fmt.Errorf(
+				"When destination is %s, s3_configuration is required",
+				d.Get("destination").(string),
+			)
+		} else if extendedS3Exists {
+			return fmt.Errorf(
+				"extended_s3_configuration can only be used when destination is 'extended_s3'",
+			)
+		}
+	}
+
+	return nil
+}
+
 func resourceAwsKinesisFirehoseDeliveryStreamUpdate(d *schema.ResourceData, meta interface{}) error {
+	validateError := validateAwsKinesisFirehoseSchema(d)
+
+	if validateError != nil {
+		return validateError
+	}
+
 	conn := meta.(*AWSClient).firehoseconn
 
 	sn := d.Get("name").(string)
-	s3Config := updateS3Config(d)
 
 	updateInput := &firehose.UpdateDestinationInput{
 		DeliveryStreamName:             aws.String(sn),
@@ -665,20 +926,27 @@ func resourceAwsKinesisFirehoseDeliveryStreamUpdate(d *schema.ResourceData, meta
 		DestinationId:                  aws.String(d.Get("destination_id").(string)),
 	}
 
-	if d.Get("destination").(string) == "s3" {
-		updateInput.S3DestinationUpdate = s3Config
-	} else if d.Get("destination").(string) == "elasticsearch" {
-		esUpdate, err := updateElasticsearchConfig(d, s3Config)
-		if err != nil {
-			return err
-		}
-		updateInput.ElasticsearchDestinationUpdate = esUpdate
+	if d.Get("destination").(string) == "extended_s3" {
+		extendedS3Config := updateExtendedS3Config(d)
+		updateInput.ExtendedS3DestinationUpdate = extendedS3Config
 	} else {
-		rc, err := updateRedshiftConfig(d, s3Config)
-		if err != nil {
-			return err
+		s3Config := updateS3Config(d)
+
+		if d.Get("destination").(string) == "s3" {
+			updateInput.S3DestinationUpdate = s3Config
+		} else if d.Get("destination").(string) == "elasticsearch" {
+			esUpdate, err := updateElasticsearchConfig(d, s3Config)
+			if err != nil {
+				return err
+			}
+			updateInput.ElasticsearchDestinationUpdate = esUpdate
+		} else {
+			rc, err := updateRedshiftConfig(d, s3Config)
+			if err != nil {
+				return err
+			}
+			updateInput.RedshiftDestinationUpdate = rc
 		}
-		updateInput.RedshiftDestinationUpdate = rc
 	}
 
 	_, err := conn.UpdateDestination(updateInput)

@@ -17,19 +17,18 @@ const opAddRoleToDBCluster = "AddRoleToDBCluster"
 
 // AddRoleToDBClusterRequest generates a "aws/request.Request" representing the
 // client's request for the AddRoleToDBCluster operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AddRoleToDBCluster for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AddRoleToDBCluster method directly
-// instead.
+// See AddRoleToDBCluster for more information on using the AddRoleToDBCluster
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AddRoleToDBClusterRequest method.
 //    req, resp := client.AddRoleToDBClusterRequest(params)
@@ -112,19 +111,18 @@ const opAddSourceIdentifierToSubscription = "AddSourceIdentifierToSubscription"
 
 // AddSourceIdentifierToSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the AddSourceIdentifierToSubscription operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AddSourceIdentifierToSubscription for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AddSourceIdentifierToSubscription method directly
-// instead.
+// See AddSourceIdentifierToSubscription for more information on using the AddSourceIdentifierToSubscription
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AddSourceIdentifierToSubscriptionRequest method.
 //    req, resp := client.AddSourceIdentifierToSubscriptionRequest(params)
@@ -195,19 +193,18 @@ const opAddTagsToResource = "AddTagsToResource"
 
 // AddTagsToResourceRequest generates a "aws/request.Request" representing the
 // client's request for the AddTagsToResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AddTagsToResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AddTagsToResource method directly
-// instead.
+// See AddTagsToResource for more information on using the AddTagsToResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AddTagsToResourceRequest method.
 //    req, resp := client.AddTagsToResourceRequest(params)
@@ -288,19 +285,18 @@ const opApplyPendingMaintenanceAction = "ApplyPendingMaintenanceAction"
 
 // ApplyPendingMaintenanceActionRequest generates a "aws/request.Request" representing the
 // client's request for the ApplyPendingMaintenanceAction operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ApplyPendingMaintenanceAction for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ApplyPendingMaintenanceAction method directly
-// instead.
+// See ApplyPendingMaintenanceAction for more information on using the ApplyPendingMaintenanceAction
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ApplyPendingMaintenanceActionRequest method.
 //    req, resp := client.ApplyPendingMaintenanceActionRequest(params)
@@ -369,19 +365,18 @@ const opAuthorizeDBSecurityGroupIngress = "AuthorizeDBSecurityGroupIngress"
 
 // AuthorizeDBSecurityGroupIngressRequest generates a "aws/request.Request" representing the
 // client's request for the AuthorizeDBSecurityGroupIngress operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AuthorizeDBSecurityGroupIngress for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AuthorizeDBSecurityGroupIngress method directly
-// instead.
+// See AuthorizeDBSecurityGroupIngress for more information on using the AuthorizeDBSecurityGroupIngress
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AuthorizeDBSecurityGroupIngressRequest method.
 //    req, resp := client.AuthorizeDBSecurityGroupIngressRequest(params)
@@ -418,9 +413,9 @@ func (c *RDS) AuthorizeDBSecurityGroupIngressRequest(input *AuthorizeDBSecurityG
 // EC2SecurityGroupId for VPC, or (EC2SecurityGroupOwnerId and either EC2SecurityGroupName
 // or EC2SecurityGroupId for non-VPC).
 //
-// You cannot authorize ingress from an EC2 security group in one region to
-// an Amazon RDS DB instance in another. You cannot authorize ingress from a
-// VPC security group in one VPC to an Amazon RDS DB instance in another.
+// You cannot authorize ingress from an EC2 security group in one AWS Region
+// to an Amazon RDS DB instance in another. You cannot authorize ingress from
+// a VPC security group in one VPC to an Amazon RDS DB instance in another.
 //
 // For an overview of CIDR ranges, go to the Wikipedia Tutorial (http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
 //
@@ -471,19 +466,18 @@ const opCopyDBClusterParameterGroup = "CopyDBClusterParameterGroup"
 
 // CopyDBClusterParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CopyDBClusterParameterGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CopyDBClusterParameterGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CopyDBClusterParameterGroup method directly
-// instead.
+// See CopyDBClusterParameterGroup for more information on using the CopyDBClusterParameterGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CopyDBClusterParameterGroupRequest method.
 //    req, resp := client.CopyDBClusterParameterGroupRequest(params)
@@ -558,19 +552,18 @@ const opCopyDBClusterSnapshot = "CopyDBClusterSnapshot"
 
 // CopyDBClusterSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CopyDBClusterSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CopyDBClusterSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CopyDBClusterSnapshot method directly
-// instead.
+// See CopyDBClusterSnapshot for more information on using the CopyDBClusterSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CopyDBClusterSnapshotRequest method.
 //    req, resp := client.CopyDBClusterSnapshotRequest(params)
@@ -604,59 +597,60 @@ func (c *RDS) CopyDBClusterSnapshotRequest(input *CopyDBClusterSnapshotInput) (r
 // To copy a DB cluster snapshot from a shared manual DB cluster snapshot, SourceDBClusterSnapshotIdentifier
 // must be the Amazon Resource Name (ARN) of the shared DB cluster snapshot.
 //
-// You can copy an encrypted DB cluster snapshot from another AWS region. In
-// that case, the region where you call the CopyDBClusterSnapshot action is
-// the destination region for the encrypted DB cluster snapshot to be copied
-// to. To copy an encrypted DB cluster snapshot from another region, you must
-// provide the following values:
+// You can copy an encrypted DB cluster snapshot from another AWS Region. In
+// that case, the AWS Region where you call the CopyDBClusterSnapshot action
+// is the destination AWS Region for the encrypted DB cluster snapshot to be
+// copied to. To copy an encrypted DB cluster snapshot from another AWS Region,
+// you must provide the following values:
 //
 //    * KmsKeyId - The AWS Key Management System (KMS) key identifier for the
 //    key to use to encrypt the copy of the DB cluster snapshot in the destination
-//    region.
+//    AWS Region.
 //
 //    * PreSignedUrl - A URL that contains a Signature Version 4 signed request
-//    for the CopyDBClusterSnapshot action to be called in the source region
+//    for the CopyDBClusterSnapshot action to be called in the source AWS Region
 //    where the DB cluster snapshot will be copied from. The pre-signed URL
 //    must be a valid request for the CopyDBClusterSnapshot API action that
-//    can be executed in the source region that contains the encrypted DB cluster
-//    snapshot to be copied.
+//    can be executed in the source AWS Region that contains the encrypted DB
+//    cluster snapshot to be copied.
 //
 // The pre-signed URL request must contain the following parameter values:
 //
 // KmsKeyId - The KMS key identifier for the key to use to encrypt the copy
-//    of the DB cluster snapshot in the destination region. This is the same
-//    identifier for both the CopyDBClusterSnapshot action that is called in
-//    the destination region, and the action contained in the pre-signed URL.
+//    of the DB cluster snapshot in the destination AWS Region. This is the
+//    same identifier for both the CopyDBClusterSnapshot action that is called
+//    in the destination AWS Region, and the action contained in the pre-signed
+//    URL.
 //
-// DestinationRegion - The name of the region that the DB cluster snapshot will
-//    be created in.
+// DestinationRegion - The name of the AWS Region that the DB cluster snapshot
+//    will be created in.
 //
 // SourceDBClusterSnapshotIdentifier - The DB cluster snapshot identifier for
 //    the encrypted DB cluster snapshot to be copied. This identifier must be
-//    in the Amazon Resource Name (ARN) format for the source region. For example,
-//    if you are copying an encrypted DB cluster snapshot from the us-west-2
-//    region, then your SourceDBClusterSnapshotIdentifier looks like the following
-//    example: arn:aws:rds:us-west-2:123456789012:cluster-snapshot:aurora-cluster1-snapshot-20161115.
+//    in the Amazon Resource Name (ARN) format for the source AWS Region. For
+//    example, if you are copying an encrypted DB cluster snapshot from the
+//    us-west-2 region, then your SourceDBClusterSnapshotIdentifier looks like
+//    the following example: arn:aws:rds:us-west-2:123456789012:cluster-snapshot:aurora-cluster1-snapshot-20161115.
 //
 // To learn how to generate a Signature Version 4 signed request, see  Authenticating
 //    Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
 //    and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 //
 //    * TargetDBClusterSnapshotIdentifier - The identifier for the new copy
-//    of the DB cluster snapshot in the destination region.
+//    of the DB cluster snapshot in the destination AWS Region.
 //
 //    * SourceDBClusterSnapshotIdentifier - The DB cluster snapshot identifier
 //    for the encrypted DB cluster snapshot to be copied. This identifier must
-//    be in the ARN format for the source region and is the same value as the
-//    SourceDBClusterSnapshotIdentifier in the pre-signed URL.
+//    be in the ARN format for the source AWS Region and is the same value as
+//    the SourceDBClusterSnapshotIdentifier in the pre-signed URL.
 //
 // To cancel the copy operation once it is in progress, delete the target DB
 // cluster snapshot identified by TargetDBClusterSnapshotIdentifier while that
 // DB cluster snapshot is in "copying" status.
 //
-// For more information on copying encrypted DB cluster snapshots from one region
-// to another, see  Copying a DB Cluster Snapshot in the Same Account, Either
-// in the Same Region or Across Regions (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html#USER_CopyDBClusterSnapshot.CrossRegion)
+// For more information on copying encrypted DB cluster snapshots from one AWS
+// Region to another, see  Copying a DB Cluster Snapshot in the Same Account,
+// Either in the Same Region or Across Regions (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html#USER_CopyDBClusterSnapshot.CrossRegion)
 // in the Amazon RDS User Guide.
 //
 // For more information on Amazon Aurora, see Aurora on Amazon RDS (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html)
@@ -714,19 +708,18 @@ const opCopyDBParameterGroup = "CopyDBParameterGroup"
 
 // CopyDBParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CopyDBParameterGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CopyDBParameterGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CopyDBParameterGroup method directly
-// instead.
+// See CopyDBParameterGroup for more information on using the CopyDBParameterGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CopyDBParameterGroupRequest method.
 //    req, resp := client.CopyDBParameterGroupRequest(params)
@@ -801,19 +794,18 @@ const opCopyDBSnapshot = "CopyDBSnapshot"
 
 // CopyDBSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CopyDBSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CopyDBSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CopyDBSnapshot method directly
-// instead.
+// See CopyDBSnapshot for more information on using the CopyDBSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CopyDBSnapshotRequest method.
 //    req, resp := client.CopyDBSnapshotRequest(params)
@@ -845,61 +837,13 @@ func (c *RDS) CopyDBSnapshotRequest(input *CopyDBSnapshotInput) (req *request.Re
 // Copies the specified DB snapshot. The source DB snapshot must be in the "available"
 // state.
 //
-// To copy a DB snapshot from a shared manual DB snapshot, SourceDBSnapshotIdentifier
-// must be the Amazon Resource Name (ARN) of the shared DB snapshot.
+// You can copy a snapshot from one AWS Region to another. In that case, the
+// AWS Region where you call the CopyDBSnapshot action is the destination AWS
+// Region for the DB snapshot copy.
 //
-// You can copy an encrypted DB snapshot from another AWS region. In that case,
-// the region where you call the CopyDBSnapshot action is the destination region
-// for the encrypted DB snapshot to be copied to. To copy an encrypted DB snapshot
-// from another region, you must provide the following values:
+// You cannot copy an encrypted, shared DB snapshot from one AWS Region to another.
 //
-//    * KmsKeyId - The AWS Key Management System (KMS) key identifier for the
-//    key to use to encrypt the copy of the DB snapshot in the destination region.
-//
-//    * PreSignedUrl - A URL that contains a Signature Version 4 signed request
-//    for the CopyDBSnapshot action to be called in the source region where
-//    the DB snapshot will be copied from. The presigned URL must be a valid
-//    request for the CopyDBSnapshot API action that can be executed in the
-//    source region that contains the encrypted DB snapshot to be copied.
-//
-// The presigned URL request must contain the following parameter values:
-//
-// DestinationRegion - The AWS Region that the encrypted DB snapshot will be
-//    copied to. This region is the same one where the CopyDBSnapshot action
-//    is called that contains this presigned URL.
-//
-// For example, if you copy an encrypted DB snapshot from the us-west-2 region
-//    to the us-east-1 region, then you will call the CopyDBSnapshot action
-//    in the us-east-1 region and provide a presigned URL that contains a call
-//    to the CopyDBSnapshot action in the us-west-2 region. For this example,
-//    the DestinationRegion in the presigned URL must be set to the us-east-1
-//    region.
-//
-// KmsKeyId - The KMS key identifier for the key to use to encrypt the copy
-//    of the DB snapshot in the destination region. This identifier is the same
-//    for both the CopyDBSnapshot action that is called in the destination region,
-//    and the action contained in the presigned URL.
-//
-// SourceDBSnapshotIdentifier - The DB snapshot identifier for the encrypted
-//    snapshot to be copied. This identifier must be in the Amazon Resource
-//    Name (ARN) format for the source region. For example, if you copy an encrypted
-//    DB snapshot from the us-west-2 region, then your SourceDBSnapshotIdentifier
-//    looks like this example: arn:aws:rds:us-west-2:123456789012:snapshot:mysql-instance1-snapshot-20161115.
-//
-// To learn how to generate a Signature Version 4 signed request, see  Authenticating
-//    Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
-//    and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
-//
-//    * TargetDBSnapshotIdentifier - The identifier for the new copy of the
-//    DB snapshot in the destination region.
-//
-//    * SourceDBSnapshotIdentifier - The DB snapshot identifier for the encrypted
-//    snapshot to be copied. This identifier must be in the ARN format for the
-//    source region and is the same value as the SourceDBSnapshotIdentifier
-//    in the presigned URL.
-//
-// For more information on copying encrypted snapshots from one region to another,
-// see  Copying a DB Snapshot (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html#USER_CopyDBSnapshot)
+// For more information about copying snapshots, see Copying a DB Snapshot (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopyDBSnapshot.html)
 // in the Amazon RDS User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -951,19 +895,18 @@ const opCopyOptionGroup = "CopyOptionGroup"
 
 // CopyOptionGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CopyOptionGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CopyOptionGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CopyOptionGroup method directly
-// instead.
+// See CopyOptionGroup for more information on using the CopyOptionGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CopyOptionGroupRequest method.
 //    req, resp := client.CopyOptionGroupRequest(params)
@@ -1037,19 +980,18 @@ const opCreateDBCluster = "CreateDBCluster"
 
 // CreateDBClusterRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDBCluster operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDBCluster for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDBCluster method directly
-// instead.
+// See CreateDBCluster for more information on using the CreateDBCluster
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDBClusterRequest method.
 //    req, resp := client.CreateDBClusterRequest(params)
@@ -1175,19 +1117,18 @@ const opCreateDBClusterParameterGroup = "CreateDBClusterParameterGroup"
 
 // CreateDBClusterParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDBClusterParameterGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDBClusterParameterGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDBClusterParameterGroup method directly
-// instead.
+// See CreateDBClusterParameterGroup for more information on using the CreateDBClusterParameterGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDBClusterParameterGroupRequest method.
 //    req, resp := client.CreateDBClusterParameterGroupRequest(params)
@@ -1286,19 +1227,18 @@ const opCreateDBClusterSnapshot = "CreateDBClusterSnapshot"
 
 // CreateDBClusterSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDBClusterSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDBClusterSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDBClusterSnapshot method directly
-// instead.
+// See CreateDBClusterSnapshot for more information on using the CreateDBClusterSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDBClusterSnapshotRequest method.
 //    req, resp := client.CreateDBClusterSnapshotRequest(params)
@@ -1380,19 +1320,18 @@ const opCreateDBInstance = "CreateDBInstance"
 
 // CreateDBInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDBInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDBInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDBInstance method directly
-// instead.
+// See CreateDBInstance for more information on using the CreateDBInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDBInstanceRequest method.
 //    req, resp := client.CreateDBInstanceRequest(params)
@@ -1520,19 +1459,18 @@ const opCreateDBInstanceReadReplica = "CreateDBInstanceReadReplica"
 
 // CreateDBInstanceReadReplicaRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDBInstanceReadReplica operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDBInstanceReadReplica for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDBInstanceReadReplica method directly
-// instead.
+// See CreateDBInstanceReadReplica for more information on using the CreateDBInstanceReadReplica
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDBInstanceReadReplicaRequest method.
 //    req, resp := client.CreateDBInstanceReadReplicaRequest(params)
@@ -1561,8 +1499,9 @@ func (c *RDS) CreateDBInstanceReadReplicaRequest(input *CreateDBInstanceReadRepl
 
 // CreateDBInstanceReadReplica API operation for Amazon Relational Database Service.
 //
-// Creates a DB instance for a DB instance running MySQL, MariaDB, or PostgreSQL
-// that acts as a Read Replica of a source DB instance.
+// Creates a new DB instance that acts as a Read Replica for an existing source
+// DB instance. You can create a Read Replica for a DB instance running MySQL,
+// MariaDB, or PostgreSQL.
 //
 // Amazon Aurora does not support this action. You must call the CreateDBInstance
 // action to create a DB instance for an Aurora DB cluster.
@@ -1574,60 +1513,8 @@ func (c *RDS) CreateDBInstanceReadReplicaRequest(input *CreateDBInstanceReadRepl
 //
 // The source DB instance must have backup retention enabled.
 //
-// You can create an encrypted Read Replica in a different AWS Region than the
-// source DB instance. In that case, the region where you call the CreateDBInstanceReadReplica
-// action is the destination region of the encrypted Read Replica. The source
-// DB instance must be encrypted.
-//
-// To create an encrypted Read Replica in another AWS Region, you must provide
-// the following values:
-//
-//    * KmsKeyId - The AWS Key Management System (KMS) key identifier for the
-//    key to use to encrypt the Read Replica in the destination region.
-//
-//    * PreSignedUrl - A URL that contains a Signature Version 4 signed request
-//    for the  CreateDBInstanceReadReplica API action in the AWS region that
-//    contains the source DB instance. The PreSignedUrl parameter must be used
-//    when encrypting a Read Replica from another AWS region.
-//
-// The presigned URL must be a valid request for the CreateDBInstanceReadReplica
-//    API action that can be executed in the source region that contains the
-//    encrypted DB instance. The presigned URL request must contain the following
-//    parameter values:
-//
-// DestinationRegion - The AWS Region that the Read Replica is created in. This
-//    region is the same one where the CreateDBInstanceReadReplica action is
-//    called that contains this presigned URL.
-//
-//  For example, if you create an encrypted Read Replica in the us-east-1 region,
-//    and the source DB instance is in the west-2 region, then you call the
-//    CreateDBInstanceReadReplica action in the us-east-1 region and provide
-//    a presigned URL that contains a call to the CreateDBInstanceReadReplica
-//    action in the us-west-2 region. For this example, the DestinationRegion
-//    in the presigned URL must be set to the us-east-1 region.
-//
-// KmsKeyId - The KMS key identifier for the key to use to encrypt the Read
-//    Replica in the destination region. This is the same identifier for both
-//    the CreateDBInstanceReadReplica action that is called in the destination
-//    region, and the action contained in the presigned URL.
-//
-// SourceDBInstanceIdentifier - The DB instance identifier for the encrypted
-//    Read Replica to be created. This identifier must be in the Amazon Resource
-//    Name (ARN) format for the source region. For example, if you create an
-//    encrypted Read Replica from a DB instance in the us-west-2 region, then
-//    your SourceDBInstanceIdentifier would look like this example:  arn:aws:rds:us-west-2:123456789012:instance:mysql-instance1-instance-20161115.
-//
-// To learn how to generate a Signature Version 4 signed request, see  Authenticating
-//    Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
-//    and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
-//
-//    * DBInstanceIdentifier - The identifier for the encrypted Read Replica
-//    in the destination region.
-//
-//    * SourceDBInstanceIdentifier - The DB instance identifier for the encrypted
-//    Read Replica. This identifier must be in the ARN format for the source
-//    region and is the same value as the SourceDBInstanceIdentifier in the
-//    presigned URL.
+// For more information, see Working with PostgreSQL, MySQL, and MariaDB Read
+// Replicas (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1724,19 +1611,18 @@ const opCreateDBParameterGroup = "CreateDBParameterGroup"
 
 // CreateDBParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDBParameterGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDBParameterGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDBParameterGroup method directly
-// instead.
+// See CreateDBParameterGroup for more information on using the CreateDBParameterGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDBParameterGroupRequest method.
 //    req, resp := client.CreateDBParameterGroupRequest(params)
@@ -1828,19 +1714,18 @@ const opCreateDBSecurityGroup = "CreateDBSecurityGroup"
 
 // CreateDBSecurityGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDBSecurityGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDBSecurityGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDBSecurityGroup method directly
-// instead.
+// See CreateDBSecurityGroup for more information on using the CreateDBSecurityGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDBSecurityGroupRequest method.
 //    req, resp := client.CreateDBSecurityGroupRequest(params)
@@ -1917,19 +1802,18 @@ const opCreateDBSnapshot = "CreateDBSnapshot"
 
 // CreateDBSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDBSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDBSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDBSnapshot method directly
-// instead.
+// See CreateDBSnapshot for more information on using the CreateDBSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDBSnapshotRequest method.
 //    req, resp := client.CreateDBSnapshotRequest(params)
@@ -2006,19 +1890,18 @@ const opCreateDBSubnetGroup = "CreateDBSubnetGroup"
 
 // CreateDBSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDBSubnetGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDBSubnetGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDBSubnetGroup method directly
-// instead.
+// See CreateDBSubnetGroup for more information on using the CreateDBSubnetGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDBSubnetGroupRequest method.
 //    req, resp := client.CreateDBSubnetGroupRequest(params)
@@ -2048,7 +1931,7 @@ func (c *RDS) CreateDBSubnetGroupRequest(input *CreateDBSubnetGroupInput) (req *
 // CreateDBSubnetGroup API operation for Amazon Relational Database Service.
 //
 // Creates a new DB subnet group. DB subnet groups must contain at least one
-// subnet in at least two AZs in the region.
+// subnet in at least two AZs in the AWS Region.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2102,19 +1985,18 @@ const opCreateEventSubscription = "CreateEventSubscription"
 
 // CreateEventSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateEventSubscription operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateEventSubscription for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateEventSubscription method directly
-// instead.
+// See CreateEventSubscription for more information on using the CreateEventSubscription
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateEventSubscriptionRequest method.
 //    req, resp := client.CreateEventSubscriptionRequest(params)
@@ -2217,19 +2099,18 @@ const opCreateOptionGroup = "CreateOptionGroup"
 
 // CreateOptionGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateOptionGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateOptionGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateOptionGroup method directly
-// instead.
+// See CreateOptionGroup for more information on using the CreateOptionGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateOptionGroupRequest method.
 //    req, resp := client.CreateOptionGroupRequest(params)
@@ -2300,19 +2181,18 @@ const opDeleteDBCluster = "DeleteDBCluster"
 
 // DeleteDBClusterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDBCluster operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDBCluster for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDBCluster method directly
-// instead.
+// See DeleteDBCluster for more information on using the DeleteDBCluster
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDBClusterRequest method.
 //    req, resp := client.DeleteDBClusterRequest(params)
@@ -2397,19 +2277,18 @@ const opDeleteDBClusterParameterGroup = "DeleteDBClusterParameterGroup"
 
 // DeleteDBClusterParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDBClusterParameterGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDBClusterParameterGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDBClusterParameterGroup method directly
-// instead.
+// See DeleteDBClusterParameterGroup for more information on using the DeleteDBClusterParameterGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDBClusterParameterGroupRequest method.
 //    req, resp := client.DeleteDBClusterParameterGroupRequest(params)
@@ -2488,19 +2367,18 @@ const opDeleteDBClusterSnapshot = "DeleteDBClusterSnapshot"
 
 // DeleteDBClusterSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDBClusterSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDBClusterSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDBClusterSnapshot method directly
-// instead.
+// See DeleteDBClusterSnapshot for more information on using the DeleteDBClusterSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDBClusterSnapshotRequest method.
 //    req, resp := client.DeleteDBClusterSnapshotRequest(params)
@@ -2577,19 +2455,18 @@ const opDeleteDBInstance = "DeleteDBInstance"
 
 // DeleteDBInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDBInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDBInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDBInstance method directly
-// instead.
+// See DeleteDBInstance for more information on using the DeleteDBInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDBInstanceRequest method.
 //    req, resp := client.DeleteDBInstanceRequest(params)
@@ -2693,19 +2570,18 @@ const opDeleteDBParameterGroup = "DeleteDBParameterGroup"
 
 // DeleteDBParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDBParameterGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDBParameterGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDBParameterGroup method directly
-// instead.
+// See DeleteDBParameterGroup for more information on using the DeleteDBParameterGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDBParameterGroupRequest method.
 //    req, resp := client.DeleteDBParameterGroupRequest(params)
@@ -2781,19 +2657,18 @@ const opDeleteDBSecurityGroup = "DeleteDBSecurityGroup"
 
 // DeleteDBSecurityGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDBSecurityGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDBSecurityGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDBSecurityGroup method directly
-// instead.
+// See DeleteDBSecurityGroup for more information on using the DeleteDBSecurityGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDBSecurityGroupRequest method.
 //    req, resp := client.DeleteDBSecurityGroupRequest(params)
@@ -2868,19 +2743,18 @@ const opDeleteDBSnapshot = "DeleteDBSnapshot"
 
 // DeleteDBSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDBSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDBSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDBSnapshot method directly
-// instead.
+// See DeleteDBSnapshot for more information on using the DeleteDBSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDBSnapshotRequest method.
 //    req, resp := client.DeleteDBSnapshotRequest(params)
@@ -2954,19 +2828,18 @@ const opDeleteDBSubnetGroup = "DeleteDBSubnetGroup"
 
 // DeleteDBSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDBSubnetGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDBSubnetGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDBSubnetGroup method directly
-// instead.
+// See DeleteDBSubnetGroup for more information on using the DeleteDBSubnetGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDBSubnetGroupRequest method.
 //    req, resp := client.DeleteDBSubnetGroupRequest(params)
@@ -3044,19 +2917,18 @@ const opDeleteEventSubscription = "DeleteEventSubscription"
 
 // DeleteEventSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteEventSubscription operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteEventSubscription for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteEventSubscription method directly
-// instead.
+// See DeleteEventSubscription for more information on using the DeleteEventSubscription
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteEventSubscriptionRequest method.
 //    req, resp := client.DeleteEventSubscriptionRequest(params)
@@ -3128,19 +3000,18 @@ const opDeleteOptionGroup = "DeleteOptionGroup"
 
 // DeleteOptionGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteOptionGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteOptionGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteOptionGroup method directly
-// instead.
+// See DeleteOptionGroup for more information on using the DeleteOptionGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteOptionGroupRequest method.
 //    req, resp := client.DeleteOptionGroupRequest(params)
@@ -3213,19 +3084,18 @@ const opDescribeAccountAttributes = "DescribeAccountAttributes"
 
 // DescribeAccountAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAccountAttributes operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeAccountAttributes for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeAccountAttributes method directly
-// instead.
+// See DescribeAccountAttributes for more information on using the DescribeAccountAttributes
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeAccountAttributesRequest method.
 //    req, resp := client.DescribeAccountAttributesRequest(params)
@@ -3293,19 +3163,18 @@ const opDescribeCertificates = "DescribeCertificates"
 
 // DescribeCertificatesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCertificates operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeCertificates for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeCertificates method directly
-// instead.
+// See DescribeCertificates for more information on using the DescribeCertificates
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeCertificatesRequest method.
 //    req, resp := client.DescribeCertificatesRequest(params)
@@ -3373,19 +3242,18 @@ const opDescribeDBClusterParameterGroups = "DescribeDBClusterParameterGroups"
 
 // DescribeDBClusterParameterGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBClusterParameterGroups operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBClusterParameterGroups for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBClusterParameterGroups method directly
-// instead.
+// See DescribeDBClusterParameterGroups for more information on using the DescribeDBClusterParameterGroups
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBClusterParameterGroupsRequest method.
 //    req, resp := client.DescribeDBClusterParameterGroupsRequest(params)
@@ -3458,19 +3326,18 @@ const opDescribeDBClusterParameters = "DescribeDBClusterParameters"
 
 // DescribeDBClusterParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBClusterParameters operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBClusterParameters for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBClusterParameters method directly
-// instead.
+// See DescribeDBClusterParameters for more information on using the DescribeDBClusterParameters
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBClusterParametersRequest method.
 //    req, resp := client.DescribeDBClusterParametersRequest(params)
@@ -3542,19 +3409,18 @@ const opDescribeDBClusterSnapshotAttributes = "DescribeDBClusterSnapshotAttribut
 
 // DescribeDBClusterSnapshotAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBClusterSnapshotAttributes operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBClusterSnapshotAttributes for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBClusterSnapshotAttributes method directly
-// instead.
+// See DescribeDBClusterSnapshotAttributes for more information on using the DescribeDBClusterSnapshotAttributes
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBClusterSnapshotAttributesRequest method.
 //    req, resp := client.DescribeDBClusterSnapshotAttributesRequest(params)
@@ -3633,19 +3499,18 @@ const opDescribeDBClusterSnapshots = "DescribeDBClusterSnapshots"
 
 // DescribeDBClusterSnapshotsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBClusterSnapshots operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBClusterSnapshots for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBClusterSnapshots method directly
-// instead.
+// See DescribeDBClusterSnapshots for more information on using the DescribeDBClusterSnapshots
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBClusterSnapshotsRequest method.
 //    req, resp := client.DescribeDBClusterSnapshotsRequest(params)
@@ -3717,19 +3582,18 @@ const opDescribeDBClusters = "DescribeDBClusters"
 
 // DescribeDBClustersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBClusters operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBClusters for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBClusters method directly
-// instead.
+// See DescribeDBClusters for more information on using the DescribeDBClusters
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBClustersRequest method.
 //    req, resp := client.DescribeDBClustersRequest(params)
@@ -3801,19 +3665,18 @@ const opDescribeDBEngineVersions = "DescribeDBEngineVersions"
 
 // DescribeDBEngineVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBEngineVersions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBEngineVersions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBEngineVersions method directly
-// instead.
+// See DescribeDBEngineVersions for more information on using the DescribeDBEngineVersions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBEngineVersionsRequest method.
 //    req, resp := client.DescribeDBEngineVersionsRequest(params)
@@ -3932,19 +3795,18 @@ const opDescribeDBInstances = "DescribeDBInstances"
 
 // DescribeDBInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBInstances operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBInstances for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBInstances method directly
-// instead.
+// See DescribeDBInstances for more information on using the DescribeDBInstances
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBInstancesRequest method.
 //    req, resp := client.DescribeDBInstancesRequest(params)
@@ -4068,19 +3930,18 @@ const opDescribeDBLogFiles = "DescribeDBLogFiles"
 
 // DescribeDBLogFilesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBLogFiles operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBLogFiles for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBLogFiles method directly
-// instead.
+// See DescribeDBLogFiles for more information on using the DescribeDBLogFiles
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBLogFilesRequest method.
 //    req, resp := client.DescribeDBLogFilesRequest(params)
@@ -4204,19 +4065,18 @@ const opDescribeDBParameterGroups = "DescribeDBParameterGroups"
 
 // DescribeDBParameterGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBParameterGroups operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBParameterGroups for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBParameterGroups method directly
-// instead.
+// See DescribeDBParameterGroups for more information on using the DescribeDBParameterGroups
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBParameterGroupsRequest method.
 //    req, resp := client.DescribeDBParameterGroupsRequest(params)
@@ -4342,19 +4202,18 @@ const opDescribeDBParameters = "DescribeDBParameters"
 
 // DescribeDBParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBParameters operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBParameters for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBParameters method directly
-// instead.
+// See DescribeDBParameters for more information on using the DescribeDBParameters
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBParametersRequest method.
 //    req, resp := client.DescribeDBParametersRequest(params)
@@ -4478,19 +4337,18 @@ const opDescribeDBSecurityGroups = "DescribeDBSecurityGroups"
 
 // DescribeDBSecurityGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBSecurityGroups operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBSecurityGroups for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBSecurityGroups method directly
-// instead.
+// See DescribeDBSecurityGroups for more information on using the DescribeDBSecurityGroups
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBSecurityGroupsRequest method.
 //    req, resp := client.DescribeDBSecurityGroupsRequest(params)
@@ -4616,19 +4474,18 @@ const opDescribeDBSnapshotAttributes = "DescribeDBSnapshotAttributes"
 
 // DescribeDBSnapshotAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBSnapshotAttributes operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBSnapshotAttributes for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBSnapshotAttributes method directly
-// instead.
+// See DescribeDBSnapshotAttributes for more information on using the DescribeDBSnapshotAttributes
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBSnapshotAttributesRequest method.
 //    req, resp := client.DescribeDBSnapshotAttributesRequest(params)
@@ -4707,19 +4564,18 @@ const opDescribeDBSnapshots = "DescribeDBSnapshots"
 
 // DescribeDBSnapshotsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBSnapshots operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBSnapshots for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBSnapshots method directly
-// instead.
+// See DescribeDBSnapshots for more information on using the DescribeDBSnapshots
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBSnapshotsRequest method.
 //    req, resp := client.DescribeDBSnapshotsRequest(params)
@@ -4843,19 +4699,18 @@ const opDescribeDBSubnetGroups = "DescribeDBSubnetGroups"
 
 // DescribeDBSubnetGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDBSubnetGroups operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDBSubnetGroups for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDBSubnetGroups method directly
-// instead.
+// See DescribeDBSubnetGroups for more information on using the DescribeDBSubnetGroups
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDBSubnetGroupsRequest method.
 //    req, resp := client.DescribeDBSubnetGroupsRequest(params)
@@ -4982,19 +4837,18 @@ const opDescribeEngineDefaultClusterParameters = "DescribeEngineDefaultClusterPa
 
 // DescribeEngineDefaultClusterParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEngineDefaultClusterParameters operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeEngineDefaultClusterParameters for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeEngineDefaultClusterParameters method directly
-// instead.
+// See DescribeEngineDefaultClusterParameters for more information on using the DescribeEngineDefaultClusterParameters
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeEngineDefaultClusterParametersRequest method.
 //    req, resp := client.DescribeEngineDefaultClusterParametersRequest(params)
@@ -5061,19 +4915,18 @@ const opDescribeEngineDefaultParameters = "DescribeEngineDefaultParameters"
 
 // DescribeEngineDefaultParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEngineDefaultParameters operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeEngineDefaultParameters for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeEngineDefaultParameters method directly
-// instead.
+// See DescribeEngineDefaultParameters for more information on using the DescribeEngineDefaultParameters
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeEngineDefaultParametersRequest method.
 //    req, resp := client.DescribeEngineDefaultParametersRequest(params)
@@ -5193,19 +5046,18 @@ const opDescribeEventCategories = "DescribeEventCategories"
 
 // DescribeEventCategoriesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEventCategories operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeEventCategories for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeEventCategories method directly
-// instead.
+// See DescribeEventCategories for more information on using the DescribeEventCategories
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeEventCategoriesRequest method.
 //    req, resp := client.DescribeEventCategoriesRequest(params)
@@ -5271,19 +5123,18 @@ const opDescribeEventSubscriptions = "DescribeEventSubscriptions"
 
 // DescribeEventSubscriptionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEventSubscriptions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeEventSubscriptions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeEventSubscriptions method directly
-// instead.
+// See DescribeEventSubscriptions for more information on using the DescribeEventSubscriptions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeEventSubscriptionsRequest method.
 //    req, resp := client.DescribeEventSubscriptionsRequest(params)
@@ -5411,19 +5262,18 @@ const opDescribeEvents = "DescribeEvents"
 
 // DescribeEventsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEvents operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeEvents for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeEvents method directly
-// instead.
+// See DescribeEvents for more information on using the DescribeEvents
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeEventsRequest method.
 //    req, resp := client.DescribeEventsRequest(params)
@@ -5546,19 +5396,18 @@ const opDescribeOptionGroupOptions = "DescribeOptionGroupOptions"
 
 // DescribeOptionGroupOptionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeOptionGroupOptions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeOptionGroupOptions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeOptionGroupOptions method directly
-// instead.
+// See DescribeOptionGroupOptions for more information on using the DescribeOptionGroupOptions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeOptionGroupOptionsRequest method.
 //    req, resp := client.DescribeOptionGroupOptionsRequest(params)
@@ -5677,19 +5526,18 @@ const opDescribeOptionGroups = "DescribeOptionGroups"
 
 // DescribeOptionGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeOptionGroups operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeOptionGroups for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeOptionGroups method directly
-// instead.
+// See DescribeOptionGroups for more information on using the DescribeOptionGroups
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeOptionGroupsRequest method.
 //    req, resp := client.DescribeOptionGroupsRequest(params)
@@ -5813,19 +5661,18 @@ const opDescribeOrderableDBInstanceOptions = "DescribeOrderableDBInstanceOptions
 
 // DescribeOrderableDBInstanceOptionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeOrderableDBInstanceOptions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeOrderableDBInstanceOptions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeOrderableDBInstanceOptions method directly
-// instead.
+// See DescribeOrderableDBInstanceOptions for more information on using the DescribeOrderableDBInstanceOptions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeOrderableDBInstanceOptionsRequest method.
 //    req, resp := client.DescribeOrderableDBInstanceOptionsRequest(params)
@@ -5944,19 +5791,18 @@ const opDescribePendingMaintenanceActions = "DescribePendingMaintenanceActions"
 
 // DescribePendingMaintenanceActionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribePendingMaintenanceActions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribePendingMaintenanceActions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribePendingMaintenanceActions method directly
-// instead.
+// See DescribePendingMaintenanceActions for more information on using the DescribePendingMaintenanceActions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribePendingMaintenanceActionsRequest method.
 //    req, resp := client.DescribePendingMaintenanceActionsRequest(params)
@@ -6025,19 +5871,18 @@ const opDescribeReservedDBInstances = "DescribeReservedDBInstances"
 
 // DescribeReservedDBInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReservedDBInstances operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeReservedDBInstances for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeReservedDBInstances method directly
-// instead.
+// See DescribeReservedDBInstances for more information on using the DescribeReservedDBInstances
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeReservedDBInstancesRequest method.
 //    req, resp := client.DescribeReservedDBInstancesRequest(params)
@@ -6162,19 +6007,18 @@ const opDescribeReservedDBInstancesOfferings = "DescribeReservedDBInstancesOffer
 
 // DescribeReservedDBInstancesOfferingsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeReservedDBInstancesOfferings operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeReservedDBInstancesOfferings for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeReservedDBInstancesOfferings method directly
-// instead.
+// See DescribeReservedDBInstancesOfferings for more information on using the DescribeReservedDBInstancesOfferings
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeReservedDBInstancesOfferingsRequest method.
 //    req, resp := client.DescribeReservedDBInstancesOfferingsRequest(params)
@@ -6298,19 +6142,18 @@ const opDescribeSourceRegions = "DescribeSourceRegions"
 
 // DescribeSourceRegionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSourceRegions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeSourceRegions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeSourceRegions method directly
-// instead.
+// See DescribeSourceRegions for more information on using the DescribeSourceRegions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeSourceRegionsRequest method.
 //    req, resp := client.DescribeSourceRegionsRequest(params)
@@ -6339,7 +6182,7 @@ func (c *RDS) DescribeSourceRegionsRequest(input *DescribeSourceRegionsInput) (r
 
 // DescribeSourceRegions API operation for Amazon Relational Database Service.
 //
-// Returns a list of the source AWS regions where the current AWS region can
+// Returns a list of the source AWS regions where the current AWS Region can
 // create a Read Replica or copy a DB snapshot from. This API action supports
 // pagination.
 //
@@ -6375,19 +6218,18 @@ const opDownloadDBLogFilePortion = "DownloadDBLogFilePortion"
 
 // DownloadDBLogFilePortionRequest generates a "aws/request.Request" representing the
 // client's request for the DownloadDBLogFilePortion operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DownloadDBLogFilePortion for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DownloadDBLogFilePortion method directly
-// instead.
+// See DownloadDBLogFilePortion for more information on using the DownloadDBLogFilePortion
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DownloadDBLogFilePortionRequest method.
 //    req, resp := client.DownloadDBLogFilePortionRequest(params)
@@ -6514,19 +6356,18 @@ const opFailoverDBCluster = "FailoverDBCluster"
 
 // FailoverDBClusterRequest generates a "aws/request.Request" representing the
 // client's request for the FailoverDBCluster operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See FailoverDBCluster for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the FailoverDBCluster method directly
-// instead.
+// See FailoverDBCluster for more information on using the FailoverDBCluster
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the FailoverDBClusterRequest method.
 //    req, resp := client.FailoverDBClusterRequest(params)
@@ -6613,19 +6454,18 @@ const opListTagsForResource = "ListTagsForResource"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTagsForResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTagsForResource method directly
-// instead.
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTagsForResourceRequest method.
 //    req, resp := client.ListTagsForResourceRequest(params)
@@ -6702,19 +6542,18 @@ const opModifyDBCluster = "ModifyDBCluster"
 
 // ModifyDBClusterRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyDBCluster operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ModifyDBCluster for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ModifyDBCluster method directly
-// instead.
+// See ModifyDBCluster for more information on using the ModifyDBCluster
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ModifyDBClusterRequest method.
 //    req, resp := client.ModifyDBClusterRequest(params)
@@ -6820,19 +6659,18 @@ const opModifyDBClusterParameterGroup = "ModifyDBClusterParameterGroup"
 
 // ModifyDBClusterParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyDBClusterParameterGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ModifyDBClusterParameterGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ModifyDBClusterParameterGroup method directly
-// instead.
+// See ModifyDBClusterParameterGroup for more information on using the ModifyDBClusterParameterGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ModifyDBClusterParameterGroupRequest method.
 //    req, resp := client.ModifyDBClusterParameterGroupRequest(params)
@@ -6925,19 +6763,18 @@ const opModifyDBClusterSnapshotAttribute = "ModifyDBClusterSnapshotAttribute"
 
 // ModifyDBClusterSnapshotAttributeRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyDBClusterSnapshotAttribute operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ModifyDBClusterSnapshotAttribute for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ModifyDBClusterSnapshotAttribute method directly
-// instead.
+// See ModifyDBClusterSnapshotAttribute for more information on using the ModifyDBClusterSnapshotAttribute
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ModifyDBClusterSnapshotAttributeRequest method.
 //    req, resp := client.ModifyDBClusterSnapshotAttributeRequest(params)
@@ -7028,19 +6865,18 @@ const opModifyDBInstance = "ModifyDBInstance"
 
 // ModifyDBInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyDBInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ModifyDBInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ModifyDBInstance method directly
-// instead.
+// See ModifyDBInstance for more information on using the ModifyDBInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ModifyDBInstanceRequest method.
 //    req, resp := client.ModifyDBInstanceRequest(params)
@@ -7162,19 +6998,18 @@ const opModifyDBParameterGroup = "ModifyDBParameterGroup"
 
 // ModifyDBParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyDBParameterGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ModifyDBParameterGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ModifyDBParameterGroup method directly
-// instead.
+// See ModifyDBParameterGroup for more information on using the ModifyDBParameterGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ModifyDBParameterGroupRequest method.
 //    req, resp := client.ModifyDBParameterGroupRequest(params)
@@ -7264,19 +7099,18 @@ const opModifyDBSnapshot = "ModifyDBSnapshot"
 
 // ModifyDBSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyDBSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ModifyDBSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ModifyDBSnapshot method directly
-// instead.
+// See ModifyDBSnapshot for more information on using the ModifyDBSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ModifyDBSnapshotRequest method.
 //    req, resp := client.ModifyDBSnapshotRequest(params)
@@ -7349,19 +7183,18 @@ const opModifyDBSnapshotAttribute = "ModifyDBSnapshotAttribute"
 
 // ModifyDBSnapshotAttributeRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyDBSnapshotAttribute operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ModifyDBSnapshotAttribute for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ModifyDBSnapshotAttribute method directly
-// instead.
+// See ModifyDBSnapshotAttribute for more information on using the ModifyDBSnapshotAttribute
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ModifyDBSnapshotAttributeRequest method.
 //    req, resp := client.ModifyDBSnapshotAttributeRequest(params)
@@ -7452,19 +7285,18 @@ const opModifyDBSubnetGroup = "ModifyDBSubnetGroup"
 
 // ModifyDBSubnetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyDBSubnetGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ModifyDBSubnetGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ModifyDBSubnetGroup method directly
-// instead.
+// See ModifyDBSubnetGroup for more information on using the ModifyDBSubnetGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ModifyDBSubnetGroupRequest method.
 //    req, resp := client.ModifyDBSubnetGroupRequest(params)
@@ -7494,7 +7326,7 @@ func (c *RDS) ModifyDBSubnetGroupRequest(input *ModifyDBSubnetGroupInput) (req *
 // ModifyDBSubnetGroup API operation for Amazon Relational Database Service.
 //
 // Modifies an existing DB subnet group. DB subnet groups must contain at least
-// one subnet in at least two AZs in the region.
+// one subnet in at least two AZs in the AWS Region.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -7548,19 +7380,18 @@ const opModifyEventSubscription = "ModifyEventSubscription"
 
 // ModifyEventSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyEventSubscription operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ModifyEventSubscription for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ModifyEventSubscription method directly
-// instead.
+// See ModifyEventSubscription for more information on using the ModifyEventSubscription
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ModifyEventSubscriptionRequest method.
 //    req, resp := client.ModifyEventSubscriptionRequest(params)
@@ -7651,19 +7482,18 @@ const opModifyOptionGroup = "ModifyOptionGroup"
 
 // ModifyOptionGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyOptionGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ModifyOptionGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ModifyOptionGroup method directly
-// instead.
+// See ModifyOptionGroup for more information on using the ModifyOptionGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ModifyOptionGroupRequest method.
 //    req, resp := client.ModifyOptionGroupRequest(params)
@@ -7734,19 +7564,18 @@ const opPromoteReadReplica = "PromoteReadReplica"
 
 // PromoteReadReplicaRequest generates a "aws/request.Request" representing the
 // client's request for the PromoteReadReplica operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PromoteReadReplica for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PromoteReadReplica method directly
-// instead.
+// See PromoteReadReplica for more information on using the PromoteReadReplica
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PromoteReadReplicaRequest method.
 //    req, resp := client.PromoteReadReplicaRequest(params)
@@ -7822,19 +7651,18 @@ const opPromoteReadReplicaDBCluster = "PromoteReadReplicaDBCluster"
 
 // PromoteReadReplicaDBClusterRequest generates a "aws/request.Request" representing the
 // client's request for the PromoteReadReplicaDBCluster operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PromoteReadReplicaDBCluster for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PromoteReadReplicaDBCluster method directly
-// instead.
+// See PromoteReadReplicaDBCluster for more information on using the PromoteReadReplicaDBCluster
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PromoteReadReplicaDBClusterRequest method.
 //    req, resp := client.PromoteReadReplicaDBClusterRequest(params)
@@ -7905,19 +7733,18 @@ const opPurchaseReservedDBInstancesOffering = "PurchaseReservedDBInstancesOfferi
 
 // PurchaseReservedDBInstancesOfferingRequest generates a "aws/request.Request" representing the
 // client's request for the PurchaseReservedDBInstancesOffering operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PurchaseReservedDBInstancesOffering for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PurchaseReservedDBInstancesOffering method directly
-// instead.
+// See PurchaseReservedDBInstancesOffering for more information on using the PurchaseReservedDBInstancesOffering
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PurchaseReservedDBInstancesOfferingRequest method.
 //    req, resp := client.PurchaseReservedDBInstancesOfferingRequest(params)
@@ -7991,19 +7818,18 @@ const opRebootDBInstance = "RebootDBInstance"
 
 // RebootDBInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the RebootDBInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RebootDBInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RebootDBInstance method directly
-// instead.
+// See RebootDBInstance for more information on using the RebootDBInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RebootDBInstanceRequest method.
 //    req, resp := client.RebootDBInstanceRequest(params)
@@ -8090,19 +7916,18 @@ const opRemoveRoleFromDBCluster = "RemoveRoleFromDBCluster"
 
 // RemoveRoleFromDBClusterRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveRoleFromDBCluster operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RemoveRoleFromDBCluster for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RemoveRoleFromDBCluster method directly
-// instead.
+// See RemoveRoleFromDBCluster for more information on using the RemoveRoleFromDBCluster
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RemoveRoleFromDBClusterRequest method.
 //    req, resp := client.RemoveRoleFromDBClusterRequest(params)
@@ -8181,19 +8006,18 @@ const opRemoveSourceIdentifierFromSubscription = "RemoveSourceIdentifierFromSubs
 
 // RemoveSourceIdentifierFromSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveSourceIdentifierFromSubscription operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RemoveSourceIdentifierFromSubscription for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RemoveSourceIdentifierFromSubscription method directly
-// instead.
+// See RemoveSourceIdentifierFromSubscription for more information on using the RemoveSourceIdentifierFromSubscription
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RemoveSourceIdentifierFromSubscriptionRequest method.
 //    req, resp := client.RemoveSourceIdentifierFromSubscriptionRequest(params)
@@ -8264,19 +8088,18 @@ const opRemoveTagsFromResource = "RemoveTagsFromResource"
 
 // RemoveTagsFromResourceRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTagsFromResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RemoveTagsFromResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RemoveTagsFromResource method directly
-// instead.
+// See RemoveTagsFromResource for more information on using the RemoveTagsFromResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RemoveTagsFromResourceRequest method.
 //    req, resp := client.RemoveTagsFromResourceRequest(params)
@@ -8355,19 +8178,18 @@ const opResetDBClusterParameterGroup = "ResetDBClusterParameterGroup"
 
 // ResetDBClusterParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ResetDBClusterParameterGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ResetDBClusterParameterGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ResetDBClusterParameterGroup method directly
-// instead.
+// See ResetDBClusterParameterGroup for more information on using the ResetDBClusterParameterGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ResetDBClusterParameterGroupRequest method.
 //    req, resp := client.ResetDBClusterParameterGroupRequest(params)
@@ -8452,19 +8274,18 @@ const opResetDBParameterGroup = "ResetDBParameterGroup"
 
 // ResetDBParameterGroupRequest generates a "aws/request.Request" representing the
 // client's request for the ResetDBParameterGroup operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ResetDBParameterGroup for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ResetDBParameterGroup method directly
-// instead.
+// See ResetDBParameterGroup for more information on using the ResetDBParameterGroup
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ResetDBParameterGroupRequest method.
 //    req, resp := client.ResetDBParameterGroupRequest(params)
@@ -8543,19 +8364,18 @@ const opRestoreDBClusterFromS3 = "RestoreDBClusterFromS3"
 
 // RestoreDBClusterFromS3Request generates a "aws/request.Request" representing the
 // client's request for the RestoreDBClusterFromS3 operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RestoreDBClusterFromS3 for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RestoreDBClusterFromS3 method directly
-// instead.
+// See RestoreDBClusterFromS3 for more information on using the RestoreDBClusterFromS3
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RestoreDBClusterFromS3Request method.
 //    req, resp := client.RestoreDBClusterFromS3Request(params)
@@ -8671,19 +8491,18 @@ const opRestoreDBClusterFromSnapshot = "RestoreDBClusterFromSnapshot"
 
 // RestoreDBClusterFromSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the RestoreDBClusterFromSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RestoreDBClusterFromSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RestoreDBClusterFromSnapshot method directly
-// instead.
+// See RestoreDBClusterFromSnapshot for more information on using the RestoreDBClusterFromSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RestoreDBClusterFromSnapshotRequest method.
 //    req, resp := client.RestoreDBClusterFromSnapshotRequest(params)
@@ -8812,19 +8631,18 @@ const opRestoreDBClusterToPointInTime = "RestoreDBClusterToPointInTime"
 
 // RestoreDBClusterToPointInTimeRequest generates a "aws/request.Request" representing the
 // client's request for the RestoreDBClusterToPointInTime operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RestoreDBClusterToPointInTime for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RestoreDBClusterToPointInTime method directly
-// instead.
+// See RestoreDBClusterToPointInTime for more information on using the RestoreDBClusterToPointInTime
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RestoreDBClusterToPointInTimeRequest method.
 //    req, resp := client.RestoreDBClusterToPointInTimeRequest(params)
@@ -8858,6 +8676,13 @@ func (c *RDS) RestoreDBClusterToPointInTimeRequest(input *RestoreDBClusterToPoin
 // days. The target DB cluster is created from the source DB cluster with the
 // same configuration as the original DB cluster, except that the new DB cluster
 // is created with the default DB security group.
+//
+// This action only restores the DB cluster, not the DB instances for that DB
+// cluster. You must invoke the CreateDBInstance action to create DB instances
+// for the restored DB cluster, specifying the identifier of the restored DB
+// cluster in DBClusterIdentifier. You can create DB instances only after the
+// RestoreDBClusterToPointInTime action has completed and the DB cluster is
+// available.
 //
 // For more information on Amazon Aurora, see Aurora on Amazon RDS (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html)
 // in the Amazon RDS User Guide.
@@ -8950,19 +8775,18 @@ const opRestoreDBInstanceFromDBSnapshot = "RestoreDBInstanceFromDBSnapshot"
 
 // RestoreDBInstanceFromDBSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the RestoreDBInstanceFromDBSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RestoreDBInstanceFromDBSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RestoreDBInstanceFromDBSnapshot method directly
-// instead.
+// See RestoreDBInstanceFromDBSnapshot for more information on using the RestoreDBInstanceFromDBSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RestoreDBInstanceFromDBSnapshotRequest method.
 //    req, resp := client.RestoreDBInstanceFromDBSnapshotRequest(params)
@@ -9108,19 +8932,18 @@ const opRestoreDBInstanceToPointInTime = "RestoreDBInstanceToPointInTime"
 
 // RestoreDBInstanceToPointInTimeRequest generates a "aws/request.Request" representing the
 // client's request for the RestoreDBInstanceToPointInTime operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RestoreDBInstanceToPointInTime for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RestoreDBInstanceToPointInTime method directly
-// instead.
+// See RestoreDBInstanceToPointInTime for more information on using the RestoreDBInstanceToPointInTime
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RestoreDBInstanceToPointInTimeRequest method.
 //    req, resp := client.RestoreDBInstanceToPointInTimeRequest(params)
@@ -9263,19 +9086,18 @@ const opRevokeDBSecurityGroupIngress = "RevokeDBSecurityGroupIngress"
 
 // RevokeDBSecurityGroupIngressRequest generates a "aws/request.Request" representing the
 // client's request for the RevokeDBSecurityGroupIngress operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RevokeDBSecurityGroupIngress for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RevokeDBSecurityGroupIngress method directly
-// instead.
+// See RevokeDBSecurityGroupIngress for more information on using the RevokeDBSecurityGroupIngress
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RevokeDBSecurityGroupIngressRequest method.
 //    req, resp := client.RevokeDBSecurityGroupIngressRequest(params)
@@ -9356,19 +9178,18 @@ const opStartDBInstance = "StartDBInstance"
 
 // StartDBInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the StartDBInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See StartDBInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StartDBInstance method directly
-// instead.
+// See StartDBInstance for more information on using the StartDBInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StartDBInstanceRequest method.
 //    req, resp := client.StartDBInstanceRequest(params)
@@ -9476,19 +9297,18 @@ const opStopDBInstance = "StopDBInstance"
 
 // StopDBInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the StopDBInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See StopDBInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StopDBInstance method directly
-// instead.
+// See StopDBInstance for more information on using the StopDBInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StopDBInstanceRequest method.
 //    req, resp := client.StopDBInstanceRequest(params)
@@ -10214,12 +10034,12 @@ type CopyDBClusterParameterGroupInput struct {
 	//
 	//    * Must specify a valid DB cluster parameter group.
 	//
-	//    * If the source DB cluster parameter group is in the same region as the
-	//    copy, specify a valid DB parameter group identifier, for example my-db-cluster-param-group,
+	//    * If the source DB cluster parameter group is in the same AWS Region as
+	//    the copy, specify a valid DB parameter group identifier, for example my-db-cluster-param-group,
 	//    or a valid ARN.
 	//
-	//    * If the source DB parameter group is in a different region than the copy,
-	//    specify a valid DB cluster parameter group ARN, for example arn:aws:rds:us-east-1:123456789012:cluster-pg:custom-cluster-group1.
+	//    * If the source DB parameter group is in a different AWS Region than the
+	//    copy, specify a valid DB cluster parameter group ARN, for example arn:aws:rds:us-east-1:123456789012:cluster-pg:custom-cluster-group1.
 	//
 	// SourceDBClusterParameterGroupIdentifier is a required field
 	SourceDBClusterParameterGroupIdentifier *string `type:"string" required:"true"`
@@ -10359,38 +10179,38 @@ type CopyDBClusterSnapshotInput struct {
 	// If you copy an encrypted DB cluster snapshot that is shared from another
 	// AWS account, then you must specify a value for KmsKeyId.
 	//
-	// To copy an encrypted DB cluster snapshot to another region, you must set
-	// KmsKeyId to the KMS key ID you want to use to encrypt the copy of the DB
-	// cluster snapshot in the destination region. KMS encryption keys are specific
-	// to the region that they are created in, and you cannot use encryption keys
-	// from one region in another region.
+	// To copy an encrypted DB cluster snapshot to another AWS Region, you must
+	// set KmsKeyId to the KMS key ID you want to use to encrypt the copy of the
+	// DB cluster snapshot in the destination AWS Region. KMS encryption keys are
+	// specific to the AWS Region that they are created in, and you cannot use encryption
+	// keys from one AWS Region in another AWS Region.
 	KmsKeyId *string `type:"string"`
 
 	// The URL that contains a Signature Version 4 signed request for the CopyDBClusterSnapshot
-	// API action in the AWS region that contains the source DB cluster snapshot
+	// API action in the AWS Region that contains the source DB cluster snapshot
 	// to copy. The PreSignedUrl parameter must be used when copying an encrypted
-	// DB cluster snapshot from another AWS region.
+	// DB cluster snapshot from another AWS Region.
 	//
 	// The pre-signed URL must be a valid request for the CopyDBSClusterSnapshot
-	// API action that can be executed in the source region that contains the encrypted
-	// DB cluster snapshot to be copied. The pre-signed URL request must contain
-	// the following parameter values:
+	// API action that can be executed in the source AWS Region that contains the
+	// encrypted DB cluster snapshot to be copied. The pre-signed URL request must
+	// contain the following parameter values:
 	//
 	//    * KmsKeyId - The KMS key identifier for the key to use to encrypt the
-	//    copy of the DB cluster snapshot in the destination region. This is the
-	//    same identifier for both the CopyDBClusterSnapshot action that is called
-	//    in the destination region, and the action contained in the pre-signed
-	//    URL.
+	//    copy of the DB cluster snapshot in the destination AWS Region. This is
+	//    the same identifier for both the CopyDBClusterSnapshot action that is
+	//    called in the destination AWS Region, and the action contained in the
+	//    pre-signed URL.
 	//
-	//    * DestinationRegion - The name of the region that the DB cluster snapshot
+	//    * DestinationRegion - The name of the AWS Region that the DB cluster snapshot
 	//    will be created in.
 	//
 	//    * SourceDBClusterSnapshotIdentifier - The DB cluster snapshot identifier
 	//    for the encrypted DB cluster snapshot to be copied. This identifier must
-	//    be in the Amazon Resource Name (ARN) format for the source region. For
-	//    example, if you are copying an encrypted DB cluster snapshot from the
-	//    us-west-2 region, then your SourceDBClusterSnapshotIdentifier looks like
-	//    the following example: arn:aws:rds:us-west-2:123456789012:cluster-snapshot:aurora-cluster1-snapshot-20161115.
+	//    be in the Amazon Resource Name (ARN) format for the source AWS Region.
+	//    For example, if you are copying an encrypted DB cluster snapshot from
+	//    the us-west-2 region, then your SourceDBClusterSnapshotIdentifier looks
+	//    like the following example: arn:aws:rds:us-west-2:123456789012:cluster-snapshot:aurora-cluster1-snapshot-20161115.
 	//
 	// To learn how to generate a Signature Version 4 signed request, see  Authenticating
 	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
@@ -10400,7 +10220,7 @@ type CopyDBClusterSnapshotInput struct {
 	// The identifier of the DB cluster snapshot to copy. This parameter is not
 	// case-sensitive.
 	//
-	// You cannot copy an encrypted, shared DB cluster snapshot from one AWS region
+	// You cannot copy an encrypted, shared DB cluster snapshot from one AWS Region
 	// to another.
 	//
 	// Constraints:
@@ -10413,10 +10233,10 @@ type CopyDBClusterSnapshotInput struct {
 	//
 	//    * Must specify a valid system snapshot in the "available" state.
 	//
-	//    * If the source snapshot is in the same region as the copy, specify a
-	//    valid DB snapshot identifier.
+	//    * If the source snapshot is in the same AWS Region as the copy, specify
+	//    a valid DB snapshot identifier.
 	//
-	//    * If the source snapshot is in a different region than the copy, specify
+	//    * If the source snapshot is in a different AWS Region than the copy, specify
 	//    a valid DB cluster snapshot ARN. For more information, go to  Copying
 	//    a DB Snapshot or DB Cluster Snapshot (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html).
 	//
@@ -10695,81 +10515,91 @@ type CopyDBSnapshotInput struct {
 	// Resource Name (ARN), KMS key identifier, or the KMS key alias for the KMS
 	// encryption key.
 	//
-	// If you copy an unencrypted DB snapshot and specify a value for the KmsKeyId
-	// parameter, Amazon RDS encrypts the target DB snapshot using the specified
-	// KMS encryption key.
-	//
 	// If you copy an encrypted DB snapshot from your AWS account, you can specify
-	// a value for KmsKeyId to encrypt the copy with a new KMS encryption key. If
-	// you don't specify a value for KmsKeyId, then the copy of the DB snapshot
-	// is encrypted with the same KMS key as the source DB snapshot.
-	//
-	// If you copy an encrypted snapshot to a different AWS region, then you must
-	// specify a KMS key for the destination AWS region.
+	// a value for this parameter to encrypt the copy with a new KMS encryption
+	// key. If you don't specify a value for this parameter, then the copy of the
+	// DB snapshot is encrypted with the same KMS key as the source DB snapshot.
 	//
 	// If you copy an encrypted DB snapshot that is shared from another AWS account,
-	// then you must specify a value for KmsKeyId.
+	// then you must specify a value for this parameter.
 	//
-	// To copy an encrypted DB snapshot to another region, you must set KmsKeyId
-	// to the KMS key ID used to encrypt the copy of the DB snapshot in the destination
-	// region. KMS encryption keys are specific to the region that they are created
-	// in, and you cannot use encryption keys from one region in another region.
+	// If you specify this parameter when you copy an unencrypted snapshot, the
+	// copy is encrypted.
+	//
+	// If you copy an encrypted snapshot to a different AWS Region, then you must
+	// specify a KMS key for the destination AWS Region. KMS encryption keys are
+	// specific to the AWS Region that they are created in, and you cannot use encryption
+	// keys from one AWS Region in another AWS Region.
 	KmsKeyId *string `type:"string"`
 
+	// The name of an option group to associate with the copy of the snapshot.
+	//
+	// Specify this option if you are copying a snapshot from one AWS Region to
+	// another, and your DB instance uses a nondefault option group. If your source
+	// DB instance uses Transparent Data Encryption for Oracle or Microsoft SQL
+	// Server, you must specify this option when copying across regions. For more
+	// information, see Option Group Considerations (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html#USER_CopySnapshot.Options).
+	OptionGroupName *string `type:"string"`
+
 	// The URL that contains a Signature Version 4 signed request for the CopyDBSnapshot
-	// API action in the AWS region that contains the source DB snapshot to copy.
-	// The PreSignedUrl parameter must be used when copying an encrypted DB snapshot
-	// from another AWS region.
+	// API action in the source AWS Region that contains the source DB snapshot
+	// to copy.
+	//
+	// You must specify this parameter when you copy an encrypted DB snapshot from
+	// another AWS Region by using the Amazon RDS API. You can specify the source
+	// region option instead of this parameter when you copy an encrypted DB snapshot
+	// from another AWS Region by using the AWS CLI.
 	//
 	// The presigned URL must be a valid request for the CopyDBSnapshot API action
-	// that can be executed in the source region that contains the encrypted DB
-	// snapshot to be copied. The presigned URL request must contain the following
+	// that can be executed in the source AWS Region that contains the encrypted
+	// DB snapshot to be copied. The presigned URL request must contain the following
 	// parameter values:
 	//
 	//    * DestinationRegion - The AWS Region that the encrypted DB snapshot will
-	//    be copied to. This region is the same one where the CopyDBSnapshot action
-	//    is called that contains this presigned URL.
+	//    be copied to. This AWS Region is the same one where the CopyDBSnapshot
+	//    action is called that contains this presigned URL.
 	//
 	// For example, if you copy an encrypted DB snapshot from the us-west-2 region
-	//    to the us-east-1 region, then you will call the CopyDBSnapshot action
-	//    in the us-east-1 region and provide a presigned URL that contains a call
-	//    to the CopyDBSnapshot action in the us-west-2 region. For this example,
-	//    the DestinationRegion in the presigned URL must be set to the us-east-1
-	//    region.
+	//    to the us-east-1 region, then you call the CopyDBSnapshot action in the
+	//    us-east-1 region and provide a presigned URL that contains a call to the
+	//    CopyDBSnapshot action in the us-west-2 region. For this example, the DestinationRegion
+	//    in the presigned URL must be set to the us-east-1 region.
 	//
 	//    * KmsKeyId - The KMS key identifier for the key to use to encrypt the
-	//    copy of the DB snapshot in the destination region. This is the same identifier
-	//    for both the CopyDBSnapshot action that is called in the destination region,
-	//    and the action contained in the presigned URL.
+	//    copy of the DB snapshot in the destination AWS Region. This is the same
+	//    identifier for both the CopyDBSnapshot action that is called in the destination
+	//    AWS Region, and the action contained in the presigned URL.
 	//
 	//    * SourceDBSnapshotIdentifier - The DB snapshot identifier for the encrypted
 	//    snapshot to be copied. This identifier must be in the Amazon Resource
-	//    Name (ARN) format for the source region. For example, if you are copying
+	//    Name (ARN) format for the source AWS Region. For example, if you are copying
 	//    an encrypted DB snapshot from the us-west-2 region, then your SourceDBSnapshotIdentifier
 	//    looks like the following example: arn:aws:rds:us-west-2:123456789012:snapshot:mysql-instance1-snapshot-20161115.
 	//
-	// To learn how to generate a Signature Version 4 signed request, see  Authenticating
+	//
+	// To learn how to generate a Signature Version 4 signed request, see Authenticating
 	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
-	// and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+	// and Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 	PreSignedUrl *string `type:"string"`
 
 	// The identifier for the source DB snapshot.
 	//
-	// If you are copying from a shared manual DB snapshot, this must be the ARN
-	// of the shared DB snapshot.
+	// If the source snapshot is in the same AWS Region as the copy, specify a valid
+	// DB snapshot identifier. For example, you might specify rds:mysql-instance1-snapshot-20130805.
 	//
-	// You cannot copy an encrypted, shared DB snapshot from one AWS region to another.
+	// If the source snapshot is in a different AWS Region than the copy, specify
+	// a valid DB snapshot ARN. For example, you might specify arn:aws:rds:us-west-2:123456789012:snapshot:mysql-instance1-snapshot-20130805.
+	//
+	// If you are copying from a shared manual DB snapshot, this parameter must
+	// be the Amazon Resource Name (ARN) of the shared DB snapshot.
+	//
+	// If you are copying an encrypted snapshot this parameter must be in the ARN
+	// format for the source AWS Region, and must match the SourceDBSnapshotIdentifier
+	// in the PreSignedUrl parameter.
 	//
 	// Constraints:
 	//
 	//    * Must specify a valid system snapshot in the "available" state.
-	//
-	//    * If the source snapshot is in the same region as the copy, specify a
-	//    valid DB snapshot identifier.
-	//
-	//    * If the source snapshot is in a different region than the copy, specify
-	//    a valid DB snapshot ARN. For more information, go to  Copying a DB Snapshot
-	//    or DB Cluster Snapshot (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html).
 	//
 	// Example: rds:mydb-2012-04-02-00-01
 	//
@@ -10786,7 +10616,7 @@ type CopyDBSnapshotInput struct {
 	// A list of tags.
 	Tags []*Tag `locationNameList:"Tag" type:"list"`
 
-	// The identifier for the copied snapshot.
+	// The identifier for the copy of the snapshot.
 	//
 	// Constraints:
 	//
@@ -10845,6 +10675,12 @@ func (s *CopyDBSnapshotInput) SetDestinationRegion(v string) *CopyDBSnapshotInpu
 // SetKmsKeyId sets the KmsKeyId field's value.
 func (s *CopyDBSnapshotInput) SetKmsKeyId(v string) *CopyDBSnapshotInput {
 	s.KmsKeyId = &v
+	return s
+}
+
+// SetOptionGroupName sets the OptionGroupName field's value.
+func (s *CopyDBSnapshotInput) SetOptionGroupName(v string) *CopyDBSnapshotInput {
+	s.OptionGroupName = &v
 	return s
 }
 
@@ -10919,12 +10755,12 @@ type CopyOptionGroupInput struct {
 	//
 	//    * Must specify a valid option group.
 	//
-	//    * If the source option group is in the same region as the copy, specify
+	//    * If the source option group is in the same AWS Region as the copy, specify
 	//    a valid option group identifier, for example my-option-group, or a valid
 	//    ARN.
 	//
-	//    * If the source option group is in a different region than the copy, specify
-	//    a valid option group ARN, for example arn:aws:rds:us-west-2:123456789012:og:special-options.
+	//    * If the source option group is in a different AWS Region than the copy,
+	//    specify a valid option group ARN, for example arn:aws:rds:us-west-2:123456789012:og:special-options.
 	//
 	// SourceOptionGroupIdentifier is a required field
 	SourceOptionGroupIdentifier *string `type:"string" required:"true"`
@@ -11127,11 +10963,11 @@ type CreateDBClusterInput struct {
 	// If the StorageEncrypted parameter is true, and you do not specify a value
 	// for the KmsKeyId parameter, then Amazon RDS will use your default encryption
 	// key. AWS KMS creates the default encryption key for your AWS account. Your
-	// AWS account has a different default encryption key for each AWS region.
+	// AWS account has a different default encryption key for each AWS Region.
 	//
-	// If you create a Read Replica of an encrypted DB cluster in another region,
-	// you must set KmsKeyId to a KMS key ID that is valid in the destination region.
-	// This key is used to encrypt the Read Replica in that region.
+	// If you create a Read Replica of an encrypted DB cluster in another AWS Region,
+	// you must set KmsKeyId to a KMS key ID that is valid in the destination AWS
+	// Region. This key is used to encrypt the Read Replica in that AWS Region.
 	KmsKeyId *string `type:"string"`
 
 	// The password for the master database user. This password can contain any
@@ -11164,27 +11000,28 @@ type CreateDBClusterInput struct {
 	Port *int64 `type:"integer"`
 
 	// A URL that contains a Signature Version 4 signed request for the CreateDBCluster
-	// action to be called in the source region where the DB cluster will be replicated
-	// from. You only need to specify PreSignedUrl when you are performing cross-region
-	// replication from an encrypted DB cluster.
+	// action to be called in the source AWS Region where the DB cluster will be
+	// replicated from. You only need to specify PreSignedUrl when you are performing
+	// cross-region replication from an encrypted DB cluster.
 	//
 	// The pre-signed URL must be a valid request for the CreateDBCluster API action
-	// that can be executed in the source region that contains the encrypted DB
-	// cluster to be copied.
+	// that can be executed in the source AWS Region that contains the encrypted
+	// DB cluster to be copied.
 	//
 	// The pre-signed URL request must contain the following parameter values:
 	//
 	//    * KmsKeyId - The KMS key identifier for the key to use to encrypt the
-	//    copy of the DB cluster in the destination region. This should refer to
-	//    the same KMS key for both the CreateDBCluster action that is called in
-	//    the destination region, and the action contained in the pre-signed URL.
+	//    copy of the DB cluster in the destination AWS Region. This should refer
+	//    to the same KMS key for both the CreateDBCluster action that is called
+	//    in the destination AWS Region, and the action contained in the pre-signed
+	//    URL.
 	//
-	//    * DestinationRegion - The name of the region that Aurora Read Replica
+	//    * DestinationRegion - The name of the AWS Region that Aurora Read Replica
 	//    will be created in.
 	//
 	//    * ReplicationSourceIdentifier - The DB cluster identifier for the encrypted
 	//    DB cluster to be copied. This identifier must be in the Amazon Resource
-	//    Name (ARN) format for the source region. For example, if you are copying
+	//    Name (ARN) format for the source AWS Region. For example, if you are copying
 	//    an encrypted DB cluster from the us-west-2 region, then your ReplicationSourceIdentifier
 	//    would look like Example: arn:aws:rds:us-west-2:123456789012:cluster:aurora-cluster1.
 	//
@@ -11197,7 +11034,7 @@ type CreateDBClusterInput struct {
 	// backups are enabled using the BackupRetentionPeriod parameter.
 	//
 	// Default: A 30-minute window selected at random from an 8-hour block of time
-	// per region. To see the time blocks available, see  Adjusting the Preferred
+	// per AWS Region. To see the time blocks available, see  Adjusting the Preferred
 	// Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html)
 	// in the Amazon RDS User Guide.
 	//
@@ -11218,7 +11055,7 @@ type CreateDBClusterInput struct {
 	// Format: ddd:hh24:mi-ddd:hh24:mi
 	//
 	// Default: A 30-minute window selected at random from an 8-hour block of time
-	// per region, occurring on a random day of the week. To see the time blocks
+	// per AWS Region, occurring on a random day of the week. To see the time blocks
 	// available, see  Adjusting the Preferred Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html)
 	// in the Amazon RDS User Guide.
 	//
@@ -11704,24 +11541,65 @@ type CreateDBInstanceInput struct {
 	//
 	// MySQL
 	//
-	// Constraints: Must be an integer from 5 to 6144.
+	// Constraints to the amount of storage for each storage type are the following:
+	//
+	//    * General Purpose (SSD) storage (gp2): Must be an integer from 5 to 6144.
+	//
+	//    * Provisioned IOPS storage (io1): Must be an integer from 100 to 6144.
+	//
+	//    * Magnetic storage (standard): Must be an integer from 5 to 3072.
 	//
 	// MariaDB
 	//
-	// Constraints: Must be an integer from 5 to 6144.
+	// Constraints to the amount of storage for each storage type are the following:
+	//
+	//    * General Purpose (SSD) storage (gp2): Must be an integer from 5 to 6144.
+	//
+	//    * Provisioned IOPS storage (io1): Must be an integer from 100 to 6144.
+	//
+	//    * Magnetic storage (standard): Must be an integer from 5 to 3072.
 	//
 	// PostgreSQL
 	//
-	// Constraints: Must be an integer from 5 to 6144.
+	// Constraints to the amount of storage for each storage type are the following:
+	//
+	//    * General Purpose (SSD) storage (gp2): Must be an integer from 5 to 6144.
+	//
+	//    * Provisioned IOPS storage (io1): Must be an integer from 100 to 6144.
+	//
+	//    * Magnetic storage (standard): Must be an integer from 5 to 3072.
 	//
 	// Oracle
 	//
-	// Constraints: Must be an integer from 10 to 6144.
+	// Constraints to the amount of storage for each storage type are the following:
+	//
+	//    * General Purpose (SSD) storage (gp2): Must be an integer from 10 to 6144.
+	//
+	//    * Provisioned IOPS storage (io1): Must be an integer from 100 to 6144.
+	//
+	//    * Magnetic storage (standard): Must be an integer from 10 to 3072.
 	//
 	// SQL Server
 	//
-	// Constraints: Must be an integer from 200 to 4096 (Standard Edition and Enterprise
-	// Edition) or from 20 to 4096 (Express Edition and Web Edition)
+	// Constraints to the amount of storage for each storage type are the following:
+	//
+	//    * General Purpose (SSD) storage (gp2):
+	//
+	// Enterprise and Standard editions: Must be an integer from 200 to 16384.
+	//
+	// Web and Express editions: Must be an integer from 20 to 16384.
+	//
+	//    * Provisioned IOPS storage (io1):
+	//
+	// Enterprise and Standard editions: Must be an integer from 200 to 16384.
+	//
+	// Web and Express editions: Must be an integer from 100 to 16384.
+	//
+	//    * Magnetic storage (standard):
+	//
+	// Enterprise and Standard editions: Must be an integer from 200 to 1024.
+	//
+	// Web and Express editions: Must be an integer from 20 to 1024.
 	AllocatedStorage *int64 `type:"integer"`
 
 	// Indicates that minor engine upgrades will be applied automatically to the
@@ -11734,18 +11612,24 @@ type CreateDBInstanceInput struct {
 	// For information on regions and Availability Zones, see Regions and Availability
 	// Zones (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html).
 	//
-	// Default: A random, system-chosen Availability Zone in the endpoint's region.
+	// Default: A random, system-chosen Availability Zone in the endpoint's AWS
+	// Region.
 	//
 	// Example: us-east-1d
 	//
 	// Constraint: The AvailabilityZone parameter cannot be specified if the MultiAZ
 	// parameter is set to true. The specified Availability Zone must be in the
-	// same region as the current endpoint.
+	// same AWS Region as the current endpoint.
 	AvailabilityZone *string `type:"string"`
 
 	// The number of days for which automated backups are retained. Setting this
 	// parameter to a positive number enables backups. Setting this parameter to
 	// 0 disables automated backups.
+	//
+	// Amazon Aurora
+	//
+	// Not applicable. The retention period for automated backups is managed by
+	// the DB cluster. For more information, see CreateDBCluster.
 	//
 	// Default: 1
 	//
@@ -11758,6 +11642,11 @@ type CreateDBInstanceInput struct {
 
 	// For supported engines, indicates that the DB instance should be associated
 	// with the specified CharacterSet.
+	//
+	// Amazon Aurora
+	//
+	// Not applicable. The character set is managed by the DB cluster. For more
+	// information, see CreateDBCluster.
 	CharacterSetName *string `type:"string"`
 
 	// True to copy all tags from the DB instance to snapshots of the DB instance;
@@ -11788,8 +11677,7 @@ type CreateDBInstanceInput struct {
 	//
 	// Constraints:
 	//
-	//    * Must contain from 1 to 63 alphanumeric characters or hyphens (1 to 15
-	//    for SQL Server).
+	//    * Must contain from 1 to 63 alphanumeric characters or hyphens.
 	//
 	//    * First character must be a letter.
 	//
@@ -11904,7 +11792,14 @@ type CreateDBInstanceInput struct {
 	// True to enable mapping of AWS Identity and Access Management (IAM) accounts
 	// to database accounts; otherwise false.
 	//
-	// You can enable IAM database authentication for the following database engines
+	// You can enable IAM database authentication for the following database engines:
+	//
+	// Amazon Aurora
+	//
+	// Not applicable. Mapping AWS IAM accounts to database accounts is managed
+	// by the DB cluster. For more information, see CreateDBCluster.
+	//
+	// MySQL
 	//
 	//    * For MySQL 5.6, minor version 5.6.34 or higher
 	//
@@ -11915,11 +11810,33 @@ type CreateDBInstanceInput struct {
 
 	// The name of the database engine to be used for this instance.
 	//
-	// Valid Values: mysql | mariadb | oracle-se1 | oracle-se2 | oracle-se | oracle-ee
-	// | sqlserver-ee | sqlserver-se | sqlserver-ex | sqlserver-web | postgres |
-	// aurora
+	// Not every database engine is available for every AWS Region.
 	//
-	// Not every database engine is available for every AWS region.
+	// Valid Values:
+	//
+	//    * aurora
+	//
+	//    * mariadb
+	//
+	//    * mysql
+	//
+	//    * oracle-ee
+	//
+	//    * oracle-se2
+	//
+	//    * oracle-se1
+	//
+	//    * oracle-se
+	//
+	//    * postgres
+	//
+	//    * sqlserver-ee
+	//
+	//    * sqlserver-se
+	//
+	//    * sqlserver-ex
+	//
+	//    * sqlserver-web
 	//
 	// Engine is a required field
 	Engine *string `type:"string" required:"true"`
@@ -11928,148 +11845,140 @@ type CreateDBInstanceInput struct {
 	//
 	// The following are the database engines and major and minor versions that
 	// are available with Amazon RDS. Not every database engine is available for
-	// every AWS region.
+	// every AWS Region.
 	//
 	// Amazon Aurora
 	//
-	//    * Version 5.6 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-2, eu-west-1, us-east-1, us-east-2, us-west-2):
-	//    5.6.10a
+	// Not applicable. The version number of the database engine to be used by the
+	// DB instance is managed by the DB cluster. For more information, see CreateDBCluster.
 	//
 	// MariaDB
 	//
-	//    * Version 10.1 (available in these AWS regions: us-east-2): 10.1.16
+	//    * 10.1.23 (supported in all AWS regions)
 	//
-	//    * Version 10.1 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-west-1, us-west-2): 10.1.14
+	//    * 10.1.19 (supported in all AWS regions)
 	//
-	//    * Version 10.0 (available in all AWS regions): 10.0.24
+	//    * 10.1.14 (supported in all regions except us-east-2)
 	//
-	//    * Version 10.0 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-gov-west-1, us-west-1, us-west-2): 10.0.17
+	// 10.0.31 (supported in all AWS regions)
+	//
+	//    * 10.0.28 (supported in all AWS regions)
+	//
+	//    * 10.0.24 (supported in all AWS regions)
+	//
+	//    * 10.0.17 (supported in all regions except us-east-2, ca-central-1, eu-west-2)
 	//
 	// Microsoft SQL Server 2016
 	//
-	//    * 13.00.2164.0.v1 (supported for all editions, and all AWS regions except
-	//    sa-east-1)
+	// 13.00.4422.0.v1 (supported for all editions, and all AWS regions)
+	//
+	//    * 13.00.2164.0.v1 (supported for all editions, and all AWS regions)
 	//
 	// Microsoft SQL Server 2014
+	//
+	// 12.00.5546.0.v1 (supported for all editions, and all AWS regions)
 	//
 	//    * 12.00.5000.0.v1 (supported for all editions, and all AWS regions)
 	//
 	//    * 12.00.4422.0.v1 (supported for all editions except Enterprise Edition,
-	//    and all AWS regions except us-east-2)
+	//    and all AWS regions except ca-central-1 and eu-west-2)
 	//
 	// Microsoft SQL Server 2012
+	//
+	// 11.00.6594.0.v1 (supported for all editions, and all AWS regions)
 	//
 	//    * 11.00.6020.0.v1 (supported for all editions, and all AWS regions)
 	//
 	//    * 11.00.5058.0.v1 (supported for all editions, and all AWS regions except
-	//    us-east-2)
+	//    us-east-2, ca-central-1, and eu-west-2)
 	//
 	//    * 11.00.2100.60.v1 (supported for all editions, and all AWS regions except
-	//    us-east-2)
+	//    us-east-2, ca-central-1, and eu-west-2)
 	//
 	// Microsoft SQL Server 2008 R2
 	//
-	//    * 10.50.6529.0.v1 (supported for all editions, and all AWS regions except
-	//    us-east-2)
+	// 10.50.6529.0.v1 (supported for all editions, and all AWS regions except us-east-2,
+	// ca-central-1, and eu-west-2)
 	//
 	//    * 10.50.6000.34.v1 (supported for all editions, and all AWS regions except
-	//    us-east-2)
+	//    us-east-2, ca-central-1, and eu-west-2)
 	//
 	//    * 10.50.2789.0.v1 (supported for all editions, and all AWS regions except
-	//    us-east-2)
+	//    us-east-2, ca-central-1, and eu-west-2)
 	//
 	// MySQL
 	//
-	//    * Version 5.7 (available in all AWS regions): 5.7.11
+	// 5.7.17 (supported in all AWS regions)
 	//
-	//    * Version 5.7 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-gov-west-1, us-west-1, us-west-2): 5.7.10
+	//    * 5.7.16 (supported in all AWS regions)
 	//
-	//    * Version 5.6 (available in all AWS regions): 5.6.29
+	//    * 5.7.11 (supported in all AWS regions)
 	//
-	//    * Version 5.6 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-gov-west-1, us-west-1, us-west-2): 5.6.27
+	//    * 5.6.35 (supported in all AWS regions)
 	//
-	//    * Version 5.6 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1,
-	//    us-gov-west-1, us-west-1, us-west-2): 5.6.23
+	//    * 5.6.34 (supported in all AWS regions)
 	//
-	//    * Version 5.6 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-gov-west-1,
-	//    us-west-1, us-west-2): 5.6.19a | 5.6.19b | 5.6.21 | 5.6.21b | 5.6.22
+	//    * 5.6.29 (supported in all AWS regions)
 	//
-	//    * Version 5.5 (available in all AWS regions): 5.5.46
+	//    * 5.6.27 (supported in all regions except us-east-2, ca-central-1, eu-west-2)
 	//
-	//    * Version 5.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	//    us-west-2): 5.1.73a | 5.1.73b
+	// 5.5.54(supported in all AWS regions)
+	//
+	// 5.5.53(supported in all AWS regions)
+	//
+	// 5.5.46(supported in all AWS regions)
 	//
 	// Oracle 12c
 	//
-	//    * 12.1.0.2.v8 (supported for EE in all AWS regions, and SE2 in all AWS
-	//    regions except us-gov-west-1)
+	// 12.1.0.2.v8(supported for EE in all AWS regions, and SE2 in all AWS regions except us-gov-west-1)
 	//
-	//    * 12.1.0.2.v7 (supported for EE in all AWS regions, and SE2 in all AWS
-	//    regions except us-gov-west-1)
+	// 12.1.0.2.v7(supported for EE in all AWS regions, and SE2 in all AWS regions except us-gov-west-1)
 	//
-	//    * 12.1.0.2.v6 (supported for EE in all AWS regions, and SE2 in all AWS
-	//    regions except us-gov-west-1)
+	// 12.1.0.2.v6(supported for EE in all AWS regions, and SE2 in all AWS regions except us-gov-west-1)
 	//
-	//    * 12.1.0.2.v5 (supported for EE in all AWS regions, and SE2 in all AWS
-	//    regions except us-gov-west-1)
+	// 12.1.0.2.v5(supported for EE in all AWS regions, and SE2 in all AWS regions except us-gov-west-1)
 	//
-	//    * 12.1.0.2.v4 (supported for EE in all AWS regions, and SE2 in all AWS
-	//    regions except us-gov-west-1)
+	// 12.1.0.2.v4(supported for EE in all AWS regions, and SE2 in all AWS regions except us-gov-west-1)
 	//
-	//    * 12.1.0.2.v3 (supported for EE in all AWS regions, and SE2 in all AWS
-	//    regions except us-gov-west-1)
+	// 12.1.0.2.v3(supported for EE in all AWS regions, and SE2 in all AWS regions except us-gov-west-1)
 	//
-	//    * 12.1.0.2.v2 (supported for EE in all AWS regions, and SE2 in all AWS
-	//    regions except us-gov-west-1)
+	// 12.1.0.2.v2(supported for EE in all AWS regions, and SE2 in all AWS regions except us-gov-west-1)
 	//
-	//    * 12.1.0.2.v1 (supported for EE in all AWS regions, and SE2 in all AWS
-	//    regions except us-gov-west-1)
+	// 12.1.0.2.v1(supported for EE in all AWS regions, and SE2 in all AWS regions except us-gov-west-1)
 	//
 	// Oracle 11g
 	//
-	//    * 11.2.0.4.v12 (supported for EE, SE1, and SE, in all AWS regions)
+	// 11.2.0.4.v12(supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * 11.2.0.4.v11 (supported for EE, SE1, and SE, in all AWS regions)
+	// 11.2.0.4.v11(supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * 11.2.0.4.v10 (supported for EE, SE1, and SE, in all AWS regions)
+	// 11.2.0.4.v10(supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * 11.2.0.4.v9 (supported for EE, SE1, and SE, in all AWS regions)
+	// 11.2.0.4.v9(supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * 11.2.0.4.v8 (supported for EE, SE1, and SE, in all AWS regions)
+	// 11.2.0.4.v8(supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * 11.2.0.4.v7 (supported for EE, SE1, and SE, in all AWS regions)
+	// 11.2.0.4.v7(supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * 11.2.0.4.v6 (supported for EE, SE1, and SE, in all AWS regions)
+	// 11.2.0.4.v6(supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * 11.2.0.4.v5 (supported for EE, SE1, and SE, in all AWS regions)
+	// 11.2.0.4.v5(supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * 11.2.0.4.v4 (supported for EE, SE1, and SE, in all AWS regions)
+	// 11.2.0.4.v4(supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * 11.2.0.4.v3 (supported for EE, SE1, and SE, in all AWS regions)
+	// 11.2.0.4.v3(supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * 11.2.0.4.v1 (supported for EE, SE1, and SE, in all AWS regions)
+	// 11.2.0.4.v1(supported for EE, SE1, and SE, in all AWS regions)
 	//
 	// PostgreSQL
 	//
-	//    * Version 9.6.x: 9.6.1 | 9.6.2
+	// Version 9.6.x: 9.6.1 | 9.6.2
 	//
-	//    * Version 9.5.x:9.5.6 | 9.5.4 | 9.5.2
+	// Version 9.5.x:9.5.6 | 9.5.4 | 9.5.2
 	//
-	//    * Version 9.4.x:9.4.11 | 9.4.9 | 9.4.7
+	// Version 9.4.x:9.4.11 | 9.4.9 | 9.4.7
 	//
-	//    * Version 9.3.x:9.3.16 | 9.3.14 | 9.3.12
+	// Version 9.3.x:9.3.16 | 9.3.14 | 9.3.12
 	EngineVersion *string `type:"string"`
 
 	// The amount of Provisioned IOPS (input/output operations per second) to be
@@ -12088,10 +11997,15 @@ type CreateDBInstanceInput struct {
 	// the KMS encryption key used to encrypt the new DB instance, then you can
 	// use the KMS key alias instead of the ARN for the KM encryption key.
 	//
+	// Amazon Aurora
+	//
+	// Not applicable. The KMS key identifier is managed by the DB cluster. For
+	// more information, see CreateDBCluster.
+	//
 	// If the StorageEncrypted parameter is true, and you do not specify a value
 	// for the KmsKeyId parameter, then Amazon RDS will use your default encryption
 	// key. AWS KMS creates the default encryption key for your AWS account. Your
-	// AWS account has a different default encryption key for each AWS region.
+	// AWS account has a different default encryption key for each AWS Region.
 	KmsKeyId *string `type:"string"`
 
 	// License model information for this DB instance.
@@ -12099,13 +12013,13 @@ type CreateDBInstanceInput struct {
 	// Valid values: license-included | bring-your-own-license | general-public-license
 	LicenseModel *string `type:"string"`
 
-	// The password for the master database user. Can be any printable ASCII character
-	// except "/", """, or "@".
+	// The password for the master user. Can be any printable ASCII character except
+	// "/", """, or "@".
 	//
 	// Amazon Aurora
 	//
-	// Not applicable. You specify the password for the master database user when
-	// you create your DB cluster.
+	// Not applicable. The password for the master user is managed by the DB cluster.
+	// For more information, see CreateDBCluster.
 	//
 	// MariaDB
 	//
@@ -12128,12 +12042,12 @@ type CreateDBInstanceInput struct {
 	// Constraints: Must contain from 8 to 128 characters.
 	MasterUserPassword *string `type:"string"`
 
-	// The name for the master database user.
+	// The name for the master user.
 	//
 	// Amazon Aurora
 	//
-	// Not applicable. You specify the name for the master database user when you
-	// create your DB cluster.
+	// Not applicable. The name for the master user is managed by the DB cluster.
+	// For more information, see CreateDBCluster.
 	//
 	// MariaDB
 	//
@@ -12267,8 +12181,13 @@ type CreateDBInstanceInput struct {
 	// backups are enabled, using the BackupRetentionPeriod parameter. For more
 	// information, see DB Instance Backups (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.BackingUpAndRestoringAmazonRDSInstances.html).
 	//
+	// Amazon Aurora
+	//
+	// Not applicable. The daily time range for creating automated backups is managed
+	// by the DB cluster. For more information, see CreateDBCluster.
+	//
 	// Default: A 30-minute window selected at random from an 8-hour block of time
-	// per region. To see the time blocks available, see  Adjusting the Preferred
+	// per AWS Region. To see the time blocks available, see  Adjusting the Preferred
 	// DB Instance Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html#AdjustingTheMaintenanceWindow).
 	//
 	// Constraints:
@@ -12289,7 +12208,7 @@ type CreateDBInstanceInput struct {
 	// Format: ddd:hh24:mi-ddd:hh24:mi
 	//
 	// Default: A 30-minute window selected at random from an 8-hour block of time
-	// per region, occurring on a random day of the week. To see the time blocks
+	// per AWS Region, occurring on a random day of the week. To see the time blocks
 	// available, see  Adjusting the Preferred Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html)
 	// in the Amazon RDS User Guide.
 	//
@@ -12327,6 +12246,11 @@ type CreateDBInstanceInput struct {
 
 	// Specifies whether the DB instance is encrypted.
 	//
+	// Amazon Aurora
+	//
+	// Not applicable. The encryption for DB instances is managed by the DB cluster.
+	// For more information, see CreateDBCluster.
+	//
 	// Default: false
 	StorageEncrypted *bool `type:"boolean"`
 
@@ -12354,6 +12278,11 @@ type CreateDBInstanceInput struct {
 	Timezone *string `type:"string"`
 
 	// A list of EC2 VPC security groups to associate with this DB instance.
+	//
+	// Amazon Aurora
+	//
+	// Not applicable. The associated list of EC2 VPC security groups is managed
+	// by the DB cluster. For more information, see CreateDBCluster.
 	//
 	// Default: The default EC2 VPC security group for the DB subnet group's VPC.
 	VpcSecurityGroupIds []*string `locationNameList:"VpcSecurityGroupId" type:"list"`
@@ -12634,6 +12563,10 @@ type CreateDBInstanceOutput struct {
 	//
 	//    * ModifyDBInstance
 	//
+	//    * StopDBInstance
+	//
+	//    * StartDBInstance
+	//
 	// This data type is used as a response element in the DescribeDBInstances action.
 	DBInstance *DBInstance `type:"structure"`
 }
@@ -12666,7 +12599,8 @@ type CreateDBInstanceReadReplicaInput struct {
 
 	// The Amazon EC2 Availability Zone that the Read Replica will be created in.
 	//
-	// Default: A random, system-chosen Availability Zone in the endpoint's region.
+	// Default: A random, system-chosen Availability Zone in the endpoint's AWS
+	// Region.
 	//
 	// Example: us-east-1d
 	AvailabilityZone *string `type:"string"`
@@ -12701,12 +12635,12 @@ type CreateDBInstanceReadReplicaInput struct {
 	// Constraints:
 	//
 	//    * Can only be specified if the source DB instance identifier specifies
-	//    a DB instance in another region.
+	//    a DB instance in another AWS Region.
 	//
-	//    * The specified DB subnet group must be in the same region in which the
-	//    operation is running.
+	//    * The specified DB subnet group must be in the same AWS Region in which
+	//    the operation is running.
 	//
-	//    * All Read Replicas in one region that are created from the same source
+	//    * All Read Replicas in one AWS Region that are created from the same source
 	//    DB instance must either:>
 	//
 	// Specify DB subnet groups from the same VPC. All these Read Replicas will
@@ -12746,19 +12680,17 @@ type CreateDBInstanceReadReplicaInput struct {
 	// Resource Name (ARN), KMS key identifier, or the KMS key alias for the KMS
 	// encryption key.
 	//
-	// If you create an unencrypted Read Replica and specify a value for the KmsKeyId
-	// parameter, Amazon RDS encrypts the target Read Replica using the specified
-	// KMS encryption key.
+	// If you specify this parameter when you create a Read Replica from an unencrypted
+	// DB instance, the Read Replica is encrypted.
 	//
-	// If you create an encrypted Read Replica from your AWS account, you can specify
-	// a value for KmsKeyId to encrypt the Read Replica with a new KMS encryption
-	// key. If you don't specify a value for KmsKeyId, then the Read Replica is
-	// encrypted with the same KMS key as the source DB instance.
+	// If you create an encrypted Read Replica in the same AWS Region as the source
+	// DB instance, then you do not have to specify a value for this parameter.
+	// The Read Replica is encrypted with the same KMS key as the source DB instance.
 	//
-	// If you create an encrypted Read Replica in a different AWS region, then you
-	// must specify a KMS key for the destination AWS region. KMS encryption keys
-	// are specific to the region that they are created in, and you cannot use encryption
-	// keys from one region in another region.
+	// If you create an encrypted Read Replica in a different AWS Region, then you
+	// must specify a KMS key for the destination AWS Region. KMS encryption keys
+	// are specific to the AWS Region that they are created in, and you cannot use
+	// encryption keys from one AWS Region in another AWS Region.
 	KmsKeyId *string `type:"string"`
 
 	// The interval, in seconds, between points when Enhanced Monitoring metrics
@@ -12791,40 +12723,47 @@ type CreateDBInstanceReadReplicaInput struct {
 	// Valid Values: 1150-65535
 	Port *int64 `type:"integer"`
 
-	// The URL that contains a Signature Version 4 signed request for the  CreateDBInstanceReadReplica
-	// API action in the AWS region that contains the source DB instance. The PreSignedUrl
-	// parameter must be used when encrypting a Read Replica from another AWS region.
+	// The URL that contains a Signature Version 4 signed request for the CreateDBInstanceReadReplica
+	// API action in the source AWS Region that contains the source DB instance.
+	//
+	// You must specify this parameter when you create an encrypted Read Replica
+	// from another AWS Region by using the Amazon RDS API. You can specify the
+	// source region option instead of this parameter when you create an encrypted
+	// Read Replica from another AWS Region by using the AWS CLI.
 	//
 	// The presigned URL must be a valid request for the CreateDBInstanceReadReplica
-	// API action that can be executed in the source region that contains the encrypted
-	// DB instance. The presigned URL request must contain the following parameter
-	// values:
+	// API action that can be executed in the source AWS Region that contains the
+	// encrypted source DB instance. The presigned URL request must contain the
+	// following parameter values:
 	//
-	//    * DestinationRegion - The AWS Region that the Read Replica is created
-	//    in. This region is the same one where the CreateDBInstanceReadReplica
+	//    * DestinationRegion - The AWS Region that the encrypted Read Replica will
+	//    be created in. This AWS Region is the same one where the CreateDBInstanceReadReplica
 	//    action is called that contains this presigned URL.
 	//
-	//  For example, if you create an encrypted Read Replica in the us-east-1 region,
-	//    and the source DB instance is in the west-2 region, then you call the
-	//    CreateDBInstanceReadReplica action in the us-east-1 region and provide
-	//    a presigned URL that contains a call to the CreateDBInstanceReadReplica
-	//    action in the us-west-2 region. For this example, the DestinationRegion
-	//    in the presigned URL must be set to the us-east-1 region.
+	// For example, if you create an encrypted DB instance in the us-west-1 region,
+	//    from a source DB instance in the us-east-2 region, then you call the CreateDBInstanceReadReplica
+	//    action in the us-east-1 region and provide a presigned URL that contains
+	//    a call to the CreateDBInstanceReadReplica action in the us-west-2 region.
+	//    For this example, the DestinationRegion in the presigned URL must be set
+	//    to the us-east-1 region.
 	//
 	//    * KmsKeyId - The KMS key identifier for the key to use to encrypt the
-	//    Read Replica in the destination region. This is the same identifier for
-	//    both the CreateDBInstanceReadReplica action that is called in the destination
-	//    region, and the action contained in the presigned URL.
+	//    Read Replica in the destination AWS Region. This is the same identifier
+	//    for both the CreateDBInstanceReadReplica action that is called in the
+	//    destination AWS Region, and the action contained in the presigned URL.
+	//
 	//
 	//    * SourceDBInstanceIdentifier - The DB instance identifier for the encrypted
-	//    Read Replica to be created. This identifier must be in the Amazon Resource
-	//    Name (ARN) format for the source region. For example, if you create an
-	//    encrypted Read Replica from a DB instance in the us-west-2 region, then
-	//    your SourceDBInstanceIdentifier would look like this example:  arn:aws:rds:us-west-2:123456789012:instance:mysql-instance1-instance-20161115.
+	//    DB instance to be replicated. This identifier must be in the Amazon Resource
+	//    Name (ARN) format for the source AWS Region. For example, if you are creating
+	//    an encrypted Read Replica from a DB instance in the us-west-2 region,
+	//    then your SourceDBInstanceIdentifier looks like the following example:
+	//    arn:aws:rds:us-west-2:123456789012:instance:mysql-instance1-20161115.
 	//
-	// To learn how to generate a Signature Version 4 signed request, see  Authenticating
+	//
+	// To learn how to generate a Signature Version 4 signed request, see Authenticating
 	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
-	// and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+	// and Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 	PreSignedUrl *string `type:"string"`
 
 	// Specifies the accessibility options for the DB instance. A value of true
@@ -12857,17 +12796,18 @@ type CreateDBInstanceReadReplicaInput struct {
 	//    is running MySQL 5.6.
 	//
 	//    * Can specify a DB instance that is a PostgreSQL DB instance only if the
-	//    source is running PostgreSQL 9.3.5 or later.
+	//    source is running PostgreSQL 9.3.5 or later (9.4.7 and higher for cross
+	//    region replication).
 	//
 	//    * The specified DB instance must have automatic backups enabled, its backup
 	//    retention period must be greater than 0.
 	//
-	//    * If the source DB instance is in the same region as the Read Replica,
+	//    * If the source DB instance is in the same AWS Region as the Read Replica,
 	//    specify a valid DB instance identifier.
 	//
-	//    * If the source DB instance is in a different region than the Read Replica,
-	//    specify a valid DB instance ARN. For more information, go to  Constructing
-	//    a Amazon RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.ARN.html#USER_Tagging.ARN.Constructing).
+	//    * If the source DB instance is in a different AWS Region than the Read
+	//    Replica, specify a valid DB instance ARN. For more information, go to
+	//     Constructing a Amazon RDS Amazon Resource Name (ARN) (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.ARN.html#USER_Tagging.ARN.Constructing).
 	//
 	// SourceDBInstanceIdentifier is a required field
 	SourceDBInstanceIdentifier *string `type:"string" required:"true"`
@@ -13047,6 +12987,10 @@ type CreateDBInstanceReadReplicaOutput struct {
 	//    * DeleteDBInstance
 	//
 	//    * ModifyDBInstance
+	//
+	//    * StopDBInstance
+	//
+	//    * StartDBInstance
 	//
 	// This data type is used as a response element in the DescribeDBInstances action.
 	DBInstance *DBInstance `type:"structure"`
@@ -13846,6 +13790,9 @@ type DBCluster struct {
 	// associated with.
 	CharacterSetName *string `type:"string"`
 
+	// Identifies the clone group to which the DB cluster is associated.
+	CloneGroupId *string `type:"string"`
+
 	// Specifies the time when the DB cluster was created, in Universal Coordinated
 	// Time (UTC).
 	ClusterCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
@@ -13996,6 +13943,12 @@ func (s *DBCluster) SetBackupRetentionPeriod(v int64) *DBCluster {
 // SetCharacterSetName sets the CharacterSetName field's value.
 func (s *DBCluster) SetCharacterSetName(v string) *DBCluster {
 	s.CharacterSetName = &v
+	return s
+}
+
+// SetCloneGroupId sets the CloneGroupId field's value.
+func (s *DBCluster) SetCloneGroupId(v string) *DBCluster {
+	s.CloneGroupId = &v
 	return s
 }
 
@@ -14810,6 +14763,10 @@ func (s *DBEngineVersion) SetValidUpgradeTarget(v []*UpgradeTarget) *DBEngineVer
 //    * DeleteDBInstance
 //
 //    * ModifyDBInstance
+//
+//    * StopDBInstance
+//
+//    * StartDBInstance
 //
 // This data type is used as a response element in the DescribeDBInstances action.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/DBInstance
@@ -15730,11 +15687,11 @@ type DBSnapshot struct {
 	// Provides the type of the DB snapshot.
 	SnapshotType *string `type:"string"`
 
-	// The DB snapshot Arn that the DB snapshot was copied from. It only has value
-	// in case of cross customer or cross region copy.
+	// The DB snapshot Amazon Resource Name (ARN) that the DB snapshot was copied
+	// from. It only has value in case of cross-customer or cross-region copy.
 	SourceDBSnapshotIdentifier *string `type:"string"`
 
-	// The region that the DB snapshot was created in or copied from.
+	// The AWS Region that the DB snapshot was created in or copied from.
 	SourceRegion *string `type:"string"`
 
 	// Specifies the status of this DB snapshot.
@@ -16450,6 +16407,10 @@ type DeleteDBInstanceOutput struct {
 	//    * DeleteDBInstance
 	//
 	//    * ModifyDBInstance
+	//
+	//    * StopDBInstance
+	//
+	//    * StartDBInstance
 	//
 	// This data type is used as a response element in the DescribeDBInstances action.
 	DBInstance *DBInstance `type:"structure"`
@@ -20502,7 +20463,7 @@ type DescribeSourceRegionsInput struct {
 	// Constraints: Minimum 20, maximum 100.
 	MaxRecords *int64 `type:"integer"`
 
-	// The source region name. For example, us-east-1.
+	// The source AWS Region name. For example, us-east-1.
 	//
 	// Constraints:
 	//
@@ -20576,7 +20537,7 @@ type DescribeSourceRegionsOutput struct {
 	Marker *string `type:"string"`
 
 	// A list of SourceRegion instances that contains each source AWS Region that
-	// the current region can get a Read Replica or a DB snapshot from.
+	// the current AWS Region can get a Read Replica or a DB snapshot from.
 	SourceRegions []*SourceRegion `locationNameList:"SourceRegion" type:"list"`
 }
 
@@ -21535,7 +21496,7 @@ type ModifyDBClusterInput struct {
 	// backups are enabled, using the BackupRetentionPeriod parameter.
 	//
 	// Default: A 30-minute window selected at random from an 8-hour block of time
-	// per region. To see the time blocks available, see  Adjusting the Preferred
+	// per AWS Region. To see the time blocks available, see  Adjusting the Preferred
 	// Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html)
 	// in the Amazon RDS User Guide.
 	//
@@ -21556,7 +21517,7 @@ type ModifyDBClusterInput struct {
 	// Format: ddd:hh24:mi-ddd:hh24:mi
 	//
 	// Default: A 30-minute window selected at random from an 8-hour block of time
-	// per region, occurring on a random day of the week. To see the time blocks
+	// per AWS Region, occurring on a random day of the week. To see the time blocks
 	// available, see  Adjusting the Preferred Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html)
 	// in the Amazon RDS User Guide.
 	//
@@ -21989,6 +21950,11 @@ type ModifyDBInstanceInput struct {
 	// to another non-zero value, the change is asynchronously applied as soon as
 	// possible.
 	//
+	// Amazon Aurora
+	//
+	// Not applicable. The retention period for automated backups is managed by
+	// the DB cluster. For more information, see ModifyDBCluster.
+	//
 	// Default: Uses existing setting
 	//
 	// Constraints:
@@ -22148,6 +22114,13 @@ type ModifyDBInstanceInput struct {
 	//
 	// You can enable IAM database authentication for the following database engines
 	//
+	// Amazon Aurora
+	//
+	// Not applicable. Mapping AWS IAM accounts to database accounts is managed
+	// by the DB cluster. For more information, see ModifyDBCluster.
+	//
+	// MySQL
+	//
 	//    * For MySQL 5.6, minor version 5.6.34 or higher
 	//
 	//    * For MySQL 5.7, minor version 5.7.16 or higher
@@ -22159,7 +22132,7 @@ type ModifyDBInstanceInput struct {
 	// results in an outage and the change is applied during the next maintenance
 	// window unless the ApplyImmediately parameter is set to true for this request.
 	//
-	// For major version upgrades, if a non-default DB parameter group is currently
+	// For major version upgrades, if a nondefault DB parameter group is currently
 	// in use, a new DB parameter group in the DB parameter group family for the
 	// new engine version must be specified. The new DB parameter group can be the
 	// default for that DB parameter group family.
@@ -22207,13 +22180,18 @@ type ModifyDBInstanceInput struct {
 	// Valid values: license-included | bring-your-own-license | general-public-license
 	LicenseModel *string `type:"string"`
 
-	// The new password for the DB instance master user. Can be any printable ASCII
-	// character except "/", """, or "@".
+	// The new password for the master user. Can be any printable ASCII character
+	// except "/", """, or "@".
 	//
 	// Changing this parameter does not result in an outage and the change is asynchronously
 	// applied as soon as possible. Between the time of the request and the completion
 	// of the request, the MasterUserPassword element exists in the PendingModifiedValues
 	// element of the operation response.
+	//
+	// Amazon Aurora
+	//
+	// Not applicable. The password for the master user is managed by the DB cluster.
+	// For more information, see ModifyDBCluster.
 	//
 	// Default: Uses existing setting
 	//
@@ -22284,6 +22262,11 @@ type ModifyDBInstanceInput struct {
 	// backups are enabled, as determined by the BackupRetentionPeriod parameter.
 	// Changing this parameter does not result in an outage and the change is asynchronously
 	// applied as soon as possible.
+	//
+	// Amazon Aurora
+	//
+	// Not applicable. The daily time range for creating automated backups is managed
+	// by the DB cluster. For more information, see ModifyDBCluster.
 	//
 	// Constraints:
 	//
@@ -22357,6 +22340,11 @@ type ModifyDBInstanceInput struct {
 
 	// A list of EC2 VPC security groups to authorize on this DB instance. This
 	// change is asynchronously applied as soon as possible.
+	//
+	// Amazon Aurora
+	//
+	// Not applicable. The associated list of EC2 VPC security groups is managed
+	// by the DB cluster. For more information, see ModifyDBCluster.
 	//
 	// Constraints:
 	//
@@ -22600,6 +22588,10 @@ type ModifyDBInstanceOutput struct {
 	//    * DeleteDBInstance
 	//
 	//    * ModifyDBInstance
+	//
+	//    * StopDBInstance
+	//
+	//    * StartDBInstance
 	//
 	// This data type is used as a response element in the DescribeDBInstances action.
 	DBInstance *DBInstance `type:"structure"`
@@ -23566,6 +23558,19 @@ type OptionGroupOption struct {
 
 	// Specifies whether the option requires a port.
 	PortRequired *bool `type:"boolean"`
+
+	// If true, you must enable the Auto Minor Version Upgrade setting for your
+	// DB instance before you can use this option. You can enable Auto Minor Version
+	// Upgrade when you first create your DB instance, or by modifying your DB instance
+	// later.
+	RequiresAutoMinorEngineVersionUpgrade *bool `type:"boolean"`
+
+	// If true, you can change the option to an earlier version of the option. This
+	// only applies to options that have different versions available.
+	SupportsOptionVersionDowngrade *bool `type:"boolean"`
+
+	// If true, you can only use this option with a DB instance that is in a VPC.
+	VpcOnly *bool `type:"boolean"`
 }
 
 // String returns the string representation
@@ -23653,6 +23658,24 @@ func (s *OptionGroupOption) SetPersistent(v bool) *OptionGroupOption {
 // SetPortRequired sets the PortRequired field's value.
 func (s *OptionGroupOption) SetPortRequired(v bool) *OptionGroupOption {
 	s.PortRequired = &v
+	return s
+}
+
+// SetRequiresAutoMinorEngineVersionUpgrade sets the RequiresAutoMinorEngineVersionUpgrade field's value.
+func (s *OptionGroupOption) SetRequiresAutoMinorEngineVersionUpgrade(v bool) *OptionGroupOption {
+	s.RequiresAutoMinorEngineVersionUpgrade = &v
+	return s
+}
+
+// SetSupportsOptionVersionDowngrade sets the SupportsOptionVersionDowngrade field's value.
+func (s *OptionGroupOption) SetSupportsOptionVersionDowngrade(v bool) *OptionGroupOption {
+	s.SupportsOptionVersionDowngrade = &v
+	return s
+}
+
+// SetVpcOnly sets the VpcOnly field's value.
+func (s *OptionGroupOption) SetVpcOnly(v bool) *OptionGroupOption {
+	s.VpcOnly = &v
 	return s
 }
 
@@ -24458,7 +24481,7 @@ type PromoteReadReplicaInput struct {
 	// backups are enabled, using the BackupRetentionPeriod parameter.
 	//
 	// Default: A 30-minute window selected at random from an 8-hour block of time
-	// per region. To see the time blocks available, see  Adjusting the Preferred
+	// per AWS Region. To see the time blocks available, see  Adjusting the Preferred
 	// Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html)
 	// in the Amazon RDS User Guide.
 	//
@@ -24526,6 +24549,10 @@ type PromoteReadReplicaOutput struct {
 	//    * DeleteDBInstance
 	//
 	//    * ModifyDBInstance
+	//
+	//    * StopDBInstance
+	//
+	//    * StartDBInstance
 	//
 	// This data type is used as a response element in the DescribeDBInstances action.
 	DBInstance *DBInstance `type:"structure"`
@@ -24714,6 +24741,10 @@ type RebootDBInstanceOutput struct {
 	//    * DeleteDBInstance
 	//
 	//    * ModifyDBInstance
+	//
+	//    * StopDBInstance
+	//
+	//    * StartDBInstance
 	//
 	// This data type is used as a response element in the DescribeDBInstances action.
 	DBInstance *DBInstance `type:"structure"`
@@ -25526,7 +25557,7 @@ type RestoreDBClusterFromS3Input struct {
 	// If the StorageEncrypted parameter is true, and you do not specify a value
 	// for the KmsKeyId parameter, then Amazon RDS will use your default encryption
 	// key. AWS KMS creates the default encryption key for your AWS account. Your
-	// AWS account has a different default encryption key for each AWS region.
+	// AWS account has a different default encryption key for each AWS Region.
 	KmsKeyId *string `type:"string"`
 
 	// The password for the master database user. This password can contain any
@@ -25567,7 +25598,7 @@ type RestoreDBClusterFromS3Input struct {
 	// backups are enabled using the BackupRetentionPeriod parameter.
 	//
 	// Default: A 30-minute window selected at random from an 8-hour block of time
-	// per region. To see the time blocks available, see  Adjusting the Preferred
+	// per AWS Region. To see the time blocks available, see  Adjusting the Preferred
 	// Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html)
 	// in the Amazon RDS User Guide.
 	//
@@ -25588,7 +25619,7 @@ type RestoreDBClusterFromS3Input struct {
 	// Format: ddd:hh24:mi-ddd:hh24:mi
 	//
 	// Default: A 30-minute window selected at random from an 8-hour block of time
-	// per region, occurring on a random day of the week. To see the time blocks
+	// per AWS Region, occurring on a random day of the week. To see the time blocks
 	// available, see  Adjusting the Preferred Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html)
 	// in the Amazon RDS User Guide.
 	//
@@ -26175,7 +26206,7 @@ type RestoreDBClusterToPointInTimeInput struct {
 	//    * If the DB cluster is not encrypted, then the restored DB cluster is
 	//    not encrypted.
 	//
-	// If DBClusterIdentifier refers to a DB cluster that is note encrypted, then
+	// If DBClusterIdentifier refers to a DB cluster that is not encrypted, then
 	// the restore request is rejected.
 	KmsKeyId *string `type:"string"`
 
@@ -26197,10 +26228,30 @@ type RestoreDBClusterToPointInTimeInput struct {
 	//
 	//    * Must be before the latest restorable time for the DB instance
 	//
+	//    * Must be specified if UseLatestRestorableTime parameter is not provided
+	//
 	//    * Cannot be specified if UseLatestRestorableTime parameter is true
+	//
+	//    * Cannot be specified if RestoreType parameter is copy-on-write
 	//
 	// Example: 2015-03-07T23:45:00Z
 	RestoreToTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// The type of restore to be performed. You can specify one of the following
+	// values:
+	//
+	//    * full-copy - The new DB cluster is restored as a full copy of the source
+	//    DB cluster.
+	//
+	//    * copy-on-write - The new DB cluster is restored as a clone of the source
+	//    DB cluster.
+	//
+	// Constraints: You cannot specify copy-on-write if the engine version of the
+	// source DB cluster is earlier than 1.11.
+	//
+	// If you don't specify a RestoreType value, then the new DB cluster is restored
+	// as a full copy of the source DB cluster.
+	RestoreType *string `type:"string"`
 
 	// The identifier of the source DB cluster from which to restore.
 	//
@@ -26228,7 +26279,7 @@ type RestoreDBClusterToPointInTimeInput struct {
 	// Constraints: Cannot be specified if RestoreToTime parameter is provided.
 	UseLatestRestorableTime *bool `type:"boolean"`
 
-	// A lst of VPC security groups that the new DB cluster belongs to.
+	// A list of VPC security groups that the new DB cluster belongs to.
 	VpcSecurityGroupIds []*string `locationNameList:"VpcSecurityGroupId" type:"list"`
 }
 
@@ -26297,6 +26348,12 @@ func (s *RestoreDBClusterToPointInTimeInput) SetPort(v int64) *RestoreDBClusterT
 // SetRestoreToTime sets the RestoreToTime field's value.
 func (s *RestoreDBClusterToPointInTimeInput) SetRestoreToTime(v time.Time) *RestoreDBClusterToPointInTimeInput {
 	s.RestoreToTime = &v
+	return s
+}
+
+// SetRestoreType sets the RestoreType field's value.
+func (s *RestoreDBClusterToPointInTimeInput) SetRestoreType(v string) *RestoreDBClusterToPointInTimeInput {
+	s.RestoreType = &v
 	return s
 }
 
@@ -26398,8 +26455,7 @@ type RestoreDBInstanceFromDBSnapshotInput struct {
 	//
 	// Constraints:
 	//
-	//    * Must contain from 1 to 63 alphanumeric characters or hyphens (1 to 15
-	//    for SQL Server)
+	//    * Must contain from 1 to 63 alphanumeric characters or hyphens
 	//
 	//    * First character must be a letter
 	//
@@ -26719,6 +26775,10 @@ type RestoreDBInstanceFromDBSnapshotOutput struct {
 	//    * DeleteDBInstance
 	//
 	//    * ModifyDBInstance
+	//
+	//    * StopDBInstance
+	//
+	//    * StartDBInstance
 	//
 	// This data type is used as a response element in the DescribeDBInstances action.
 	DBInstance *DBInstance `type:"structure"`
@@ -27123,6 +27183,10 @@ type RestoreDBInstanceToPointInTimeOutput struct {
 	//
 	//    * ModifyDBInstance
 	//
+	//    * StopDBInstance
+	//
+	//    * StartDBInstance
+	//
 	// This data type is used as a response element in the DescribeDBInstances action.
 	DBInstance *DBInstance `type:"structure"`
 }
@@ -27269,13 +27333,13 @@ func (s *RevokeDBSecurityGroupIngressOutput) SetDBSecurityGroup(v *DBSecurityGro
 type SourceRegion struct {
 	_ struct{} `type:"structure"`
 
-	// The source region endpoint.
+	// The endpoint for the source AWS Region endpoint.
 	Endpoint *string `type:"string"`
 
-	// The source region name.
+	// The name of the source AWS Region.
 	RegionName *string `type:"string"`
 
-	// The status of the source region.
+	// The status of the source AWS Region.
 	Status *string `type:"string"`
 }
 
@@ -27358,6 +27422,10 @@ type StartDBInstanceOutput struct {
 	//
 	//    * ModifyDBInstance
 	//
+	//    * StopDBInstance
+	//
+	//    * StartDBInstance
+	//
 	// This data type is used as a response element in the DescribeDBInstances action.
 	DBInstance *DBInstance `type:"structure"`
 }
@@ -27438,6 +27506,10 @@ type StopDBInstanceOutput struct {
 	//    * DeleteDBInstance
 	//
 	//    * ModifyDBInstance
+	//
+	//    * StopDBInstance
+	//
+	//    * StartDBInstance
 	//
 	// This data type is used as a response element in the DescribeDBInstances action.
 	DBInstance *DBInstance `type:"structure"`

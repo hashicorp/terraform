@@ -100,9 +100,9 @@ func validateTagFilters(v interface{}, k string) (ws []string, errors []error) {
 
 func validateDbParamGroupName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z-_]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+			"only lowercase alphanumeric characters, underscores and hyphens allowed in %q", k))
 	}
 	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -111,6 +111,10 @@ func validateDbParamGroupName(v interface{}, k string) (ws []string, errors []er
 	if regexp.MustCompile(`--`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot contain two consecutive hyphens", k))
+	}
+	if regexp.MustCompile(`__`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive underscores", k))
 	}
 	if regexp.MustCompile(`-$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -224,6 +228,24 @@ func validateEcrRepositoryName(v interface{}, k string) (ws []string, errors []e
 	return
 }
 
+func validateCloudWatchDashboardName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 255 characters: %q", k, value))
+	}
+
+	// http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutDashboard.html
+	pattern := `^[\-_A-Za-z0-9]+$`
+	if !regexp.MustCompile(pattern).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q doesn't comply with restrictions (%q): %q",
+			k, pattern, value))
+	}
+
+	return
+}
+
 func validateCloudWatchEventRuleName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if len(value) > 64 {
@@ -293,7 +315,7 @@ func validateLambdaFunctionName(v interface{}, k string) (ws []string, errors []
 			"%q cannot be longer than 140 characters: %q", k, value))
 	}
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-	pattern := `^(arn:[\w-]+:lambda:)?([a-z]{2}-[a-z]+-\d{1}:)?(\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\$LATEST|[a-zA-Z0-9-_]+))?$`
+	pattern := `^(arn:[\w-]+:lambda:)?([a-z]{2}-(?:[a-z]+-){1,2}\d{1}:)?(\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\$LATEST|[a-zA-Z0-9-_]+))?$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q doesn't comply with restrictions (%q): %q",
@@ -511,6 +533,24 @@ func validateS3BucketLifecycleTimestamp(v interface{}, k string) (ws []string, e
 	if err != nil {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be parsed as RFC3339 Timestamp Format", value))
+	}
+
+	return
+}
+
+func validateS3BucketLifecycleExpirationDays(v interface{}, k string) (ws []string, errors []error) {
+	if v.(int) <= 0 {
+		errors = append(errors, fmt.Errorf(
+			"%q must be greater than 0", k))
+	}
+
+	return
+}
+
+func validateS3BucketLifecycleTransitionDays(v interface{}, k string) (ws []string, errors []error) {
+	if v.(int) < 0 {
+		errors = append(errors, fmt.Errorf(
+			"%q must be greater than 0", k))
 	}
 
 	return
@@ -761,7 +801,7 @@ func validateOnceADayWindowFormat(v interface{}, k string) (ws []string, errors 
 
 func validateRoute53RecordType(v interface{}, k string) (ws []string, errors []error) {
 	// Valid Record types
-	// SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA
+	// SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA, CAA
 	validTypes := map[string]struct{}{
 		"SOA":   {},
 		"A":     {},
@@ -774,12 +814,13 @@ func validateRoute53RecordType(v interface{}, k string) (ws []string, errors []e
 		"SRV":   {},
 		"SPF":   {},
 		"AAAA":  {},
+		"CAA":   {},
 	}
 
 	value := v.(string)
 	if _, ok := validTypes[value]; !ok {
 		errors = append(errors, fmt.Errorf(
-			"%q must be one of [SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA]", k))
+			"%q must be one of [SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA, CAA]", k))
 	}
 	return
 }
@@ -837,6 +878,22 @@ func validateAwsEmrEbsVolumeType(v interface{}, k string) (ws []string, errors [
 	if _, ok := validTypes[value]; !ok {
 		errors = append(errors, fmt.Errorf(
 			"%q must be one of ['gp2', 'io1', 'standard']", k))
+	}
+	return
+}
+
+func validateAwsEmrInstanceGroupRole(v interface{}, k string) (ws []string, errors []error) {
+	validRoles := map[string]struct{}{
+		"MASTER": {},
+		"CORE":   {},
+		"TASK":   {},
+	}
+
+	value := v.(string)
+
+	if _, ok := validRoles[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of ['MASTER', 'CORE', 'TASK']", k))
 	}
 	return
 }

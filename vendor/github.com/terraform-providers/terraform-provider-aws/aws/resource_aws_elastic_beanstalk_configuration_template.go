@@ -108,6 +108,10 @@ func resourceAwsElasticBeanstalkConfigurationTemplateRead(d *schema.ResourceData
 				log.Printf("[WARN] No Configuration Template named (%s) found", d.Id())
 				d.SetId("")
 				return nil
+			} else if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "No Platform named") {
+				log.Printf("[WARN] No Platform named (%s) found", d.Get("solution_stack_name").(string))
+				d.SetId("")
+				return nil
 			}
 		}
 		return err

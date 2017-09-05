@@ -132,14 +132,38 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 		"[DEBUG] EIP describe configuration: %s (domain: %s)",
 		req, domain)
 
-	describeAddresses, err := ec2conn.DescribeAddresses(req)
-	if err != nil {
-		if ec2err, ok := err.(awserr.Error); ok && (ec2err.Code() == "InvalidAllocationID.NotFound" || ec2err.Code() == "InvalidAddress.NotFound") {
-			d.SetId("")
-			return nil
-		}
+	var err error
+	var describeAddresses *ec2.DescribeAddressesOutput
 
-		return fmt.Errorf("Error retrieving EIP: %s", err)
+	if d.IsNewResource() {
+		err := resource.Retry(15*time.Minute, func() *resource.RetryError {
+			describeAddresses, err = ec2conn.DescribeAddresses(req)
+			if err != nil {
+				awsErr, ok := err.(awserr.Error)
+				if ok && (awsErr.Code() == "InvalidAllocationID.NotFound" ||
+					awsErr.Code() == "InvalidAddress.NotFound") {
+					return resource.RetryableError(err)
+				}
+
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("Error retrieving EIP: %s", err)
+		}
+	} else {
+		describeAddresses, err = ec2conn.DescribeAddresses(req)
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if ok && (awsErr.Code() == "InvalidAllocationID.NotFound" ||
+				awsErr.Code() == "InvalidAddress.NotFound") {
+				log.Printf("[WARN] EIP not found, removing from state: %s", req)
+				d.SetId("")
+				return nil
+			}
+			return err
+		}
 	}
 
 	// Verify AWS returned our EIP
@@ -193,6 +217,14 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 	// Associate to instance or interface if specified
 	v_instance, ok_instance := d.GetOk("instance")
 	v_interface, ok_interface := d.GetOk("network_interface")
+
+	// If we are updating an EIP that is not newly created, and we are attached to
+	// an instance or interface, detach first.
+	if (d.Get("instance").(string) != "" || d.Get("association_id").(string) != "") && !d.IsNewResource() {
+		if err := disassociateEip(d, meta); err != nil {
+			return err
+		}
+	}
 
 	if ok_instance || ok_interface {
 		instanceId := v_instance.(string)
@@ -256,30 +288,7 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 
 	// If we are attached to an instance or interface, detach first.
 	if d.Get("instance").(string) != "" || d.Get("association_id").(string) != "" {
-		log.Printf("[DEBUG] Disassociating EIP: %s", d.Id())
-		var err error
-		switch resourceAwsEipDomain(d) {
-		case "vpc":
-			_, err = ec2conn.DisassociateAddress(&ec2.DisassociateAddressInput{
-				AssociationId: aws.String(d.Get("association_id").(string)),
-			})
-		case "standard":
-			_, err = ec2conn.DisassociateAddress(&ec2.DisassociateAddressInput{
-				PublicIp: aws.String(d.Get("public_ip").(string)),
-			})
-		}
-
-		if err != nil {
-			// First check if the association ID is not found. If this
-			// is the case, then it was already disassociated somehow,
-			// and that is okay. The most commmon reason for this is that
-			// the instance or ENI it was attached it was destroyed.
-			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAssociationID.NotFound" {
-				err = nil
-			}
-		}
-
-		if err != nil {
+		if err := disassociateEip(d, meta); err != nil {
 			return err
 		}
 	}
@@ -323,4 +332,29 @@ func resourceAwsEipDomain(d *schema.ResourceData) string {
 	}
 
 	return "standard"
+}
+
+func disassociateEip(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+	log.Printf("[DEBUG] Disassociating EIP: %s", d.Id())
+	var err error
+	switch resourceAwsEipDomain(d) {
+	case "vpc":
+		_, err = ec2conn.DisassociateAddress(&ec2.DisassociateAddressInput{
+			AssociationId: aws.String(d.Get("association_id").(string)),
+		})
+	case "standard":
+		_, err = ec2conn.DisassociateAddress(&ec2.DisassociateAddressInput{
+			PublicIp: aws.String(d.Get("public_ip").(string)),
+		})
+	}
+
+	// First check if the association ID is not found. If this
+	// is the case, then it was already disassociated somehow,
+	// and that is okay. The most commmon reason for this is that
+	// the instance or ENI it was attached it was destroyed.
+	if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAssociationID.NotFound" {
+		err = nil
+	}
+	return err
 }

@@ -184,7 +184,7 @@ func resourceAwsDmsReplicationInstanceCreate(d *schema.ResourceData, meta interf
 	d.SetId(d.Get("replication_instance_id").(string))
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating"},
+		Pending:    []string{"creating", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(d, meta),
 		Timeout:    d.Timeout(schema.TimeoutCreate),

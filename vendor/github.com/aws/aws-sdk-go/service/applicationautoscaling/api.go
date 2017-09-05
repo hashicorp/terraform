@@ -15,19 +15,18 @@ const opDeleteScalingPolicy = "DeleteScalingPolicy"
 
 // DeleteScalingPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteScalingPolicy operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteScalingPolicy for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteScalingPolicy method directly
-// instead.
+// See DeleteScalingPolicy for more information on using the DeleteScalingPolicy
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteScalingPolicyRequest method.
 //    req, resp := client.DeleteScalingPolicyRequest(params)
@@ -117,19 +116,18 @@ const opDeregisterScalableTarget = "DeregisterScalableTarget"
 
 // DeregisterScalableTargetRequest generates a "aws/request.Request" representing the
 // client's request for the DeregisterScalableTarget operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeregisterScalableTarget for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeregisterScalableTarget method directly
-// instead.
+// See DeregisterScalableTarget for more information on using the DeregisterScalableTarget
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeregisterScalableTargetRequest method.
 //    req, resp := client.DeregisterScalableTargetRequest(params)
@@ -218,19 +216,18 @@ const opDescribeScalableTargets = "DescribeScalableTargets"
 
 // DescribeScalableTargetsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeScalableTargets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeScalableTargets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeScalableTargets method directly
-// instead.
+// See DescribeScalableTargets for more information on using the DescribeScalableTargets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeScalableTargetsRequest method.
 //    req, resp := client.DescribeScalableTargetsRequest(params)
@@ -372,19 +369,18 @@ const opDescribeScalingActivities = "DescribeScalingActivities"
 
 // DescribeScalingActivitiesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeScalingActivities operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeScalingActivities for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeScalingActivities method directly
-// instead.
+// See DescribeScalingActivities for more information on using the DescribeScalingActivities
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeScalingActivitiesRequest method.
 //    req, resp := client.DescribeScalingActivitiesRequest(params)
@@ -527,19 +523,18 @@ const opDescribeScalingPolicies = "DescribeScalingPolicies"
 
 // DescribeScalingPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeScalingPolicies operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeScalingPolicies for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeScalingPolicies method directly
-// instead.
+// See DescribeScalingPolicies for more information on using the DescribeScalingPolicies
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeScalingPoliciesRequest method.
 //    req, resp := client.DescribeScalingPoliciesRequest(params)
@@ -596,12 +591,11 @@ func (c *ApplicationAutoScaling) DescribeScalingPoliciesRequest(input *DescribeS
 //   for the API request.
 //
 //   * ErrCodeFailedResourceAccessException "FailedResourceAccessException"
-//   Failed access to resources caused an exception. This exception currently
-//   only applies to DescribeScalingPolicies. It is thrown when Application Auto
-//   Scaling is unable to retrieve the alarms associated with a scaling policy
-//   due to a client error, for example, if the role ARN specified for a scalable
-//   target does not have the proper permissions to call the CloudWatch DescribeAlarms
-//   (http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_DescribeAlarms.html)
+//   Failed access to resources caused an exception. This exception is thrown
+//   when Application Auto Scaling is unable to retrieve the alarms associated
+//   with a scaling policy due to a client error, for example, if the role ARN
+//   specified for a scalable target does not have permission to call the CloudWatch
+//   DescribeAlarms (http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_DescribeAlarms.html)
 //   API operation on behalf of your account.
 //
 //   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
@@ -690,19 +684,18 @@ const opPutScalingPolicy = "PutScalingPolicy"
 
 // PutScalingPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the PutScalingPolicy operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutScalingPolicy for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutScalingPolicy method directly
-// instead.
+// See PutScalingPolicy for more information on using the PutScalingPolicy
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutScalingPolicyRequest method.
 //    req, resp := client.PutScalingPolicyRequest(params)
@@ -774,6 +767,14 @@ func (c *ApplicationAutoScaling) PutScalingPolicyRequest(input *PutScalingPolicy
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
+//   * ErrCodeFailedResourceAccessException "FailedResourceAccessException"
+//   Failed access to resources caused an exception. This exception is thrown
+//   when Application Auto Scaling is unable to retrieve the alarms associated
+//   with a scaling policy due to a client error, for example, if the role ARN
+//   specified for a scalable target does not have permission to call the CloudWatch
+//   DescribeAlarms (http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_DescribeAlarms.html)
+//   API operation on behalf of your account.
+//
 //   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
@@ -803,19 +804,18 @@ const opRegisterScalableTarget = "RegisterScalableTarget"
 
 // RegisterScalableTargetRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterScalableTarget operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RegisterScalableTarget for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RegisterScalableTarget method directly
-// instead.
+// See RegisterScalableTarget for more information on using the RegisterScalableTarget
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RegisterScalableTargetRequest method.
 //    req, resp := client.RegisterScalableTargetRequest(params)
@@ -938,6 +938,102 @@ func (s *Alarm) SetAlarmName(v string) *Alarm {
 	return s
 }
 
+// Configures a customized metric for a target tracking policy.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/CustomizedMetricSpecification
+type CustomizedMetricSpecification struct {
+	_ struct{} `type:"structure"`
+
+	// The dimensions of the metric.
+	Dimensions []*MetricDimension `type:"list"`
+
+	// The name of the metric.
+	//
+	// MetricName is a required field
+	MetricName *string `type:"string" required:"true"`
+
+	// The namespace of the metric.
+	//
+	// Namespace is a required field
+	Namespace *string `type:"string" required:"true"`
+
+	// The statistic of the metric.
+	//
+	// Statistic is a required field
+	Statistic *string `type:"string" required:"true" enum:"MetricStatistic"`
+
+	// The unit of the metric.
+	Unit *string `type:"string"`
+}
+
+// String returns the string representation
+func (s CustomizedMetricSpecification) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CustomizedMetricSpecification) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CustomizedMetricSpecification) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CustomizedMetricSpecification"}
+	if s.MetricName == nil {
+		invalidParams.Add(request.NewErrParamRequired("MetricName"))
+	}
+	if s.Namespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("Namespace"))
+	}
+	if s.Statistic == nil {
+		invalidParams.Add(request.NewErrParamRequired("Statistic"))
+	}
+	if s.Dimensions != nil {
+		for i, v := range s.Dimensions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Dimensions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDimensions sets the Dimensions field's value.
+func (s *CustomizedMetricSpecification) SetDimensions(v []*MetricDimension) *CustomizedMetricSpecification {
+	s.Dimensions = v
+	return s
+}
+
+// SetMetricName sets the MetricName field's value.
+func (s *CustomizedMetricSpecification) SetMetricName(v string) *CustomizedMetricSpecification {
+	s.MetricName = &v
+	return s
+}
+
+// SetNamespace sets the Namespace field's value.
+func (s *CustomizedMetricSpecification) SetNamespace(v string) *CustomizedMetricSpecification {
+	s.Namespace = &v
+	return s
+}
+
+// SetStatistic sets the Statistic field's value.
+func (s *CustomizedMetricSpecification) SetStatistic(v string) *CustomizedMetricSpecification {
+	s.Statistic = &v
+	return s
+}
+
+// SetUnit sets the Unit field's value.
+func (s *CustomizedMetricSpecification) SetUnit(v string) *CustomizedMetricSpecification {
+	s.Unit = &v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScalingPolicyRequest
 type DeleteScalingPolicyInput struct {
 	_ struct{} `type:"structure"`
@@ -962,6 +1058,12 @@ type DeleteScalingPolicyInput struct {
 	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
 	//    is the fleet name. Example: fleet/sample-fleet.
 	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
+	//
 	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
@@ -978,6 +1080,18 @@ type DeleteScalingPolicyInput struct {
 	//
 	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
 	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
 	//
 	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
@@ -1086,6 +1200,12 @@ type DeregisterScalableTargetInput struct {
 	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
 	//    is the fleet name. Example: fleet/sample-fleet.
 	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
+	//
 	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
@@ -1102,6 +1222,18 @@ type DeregisterScalableTargetInput struct {
 	//
 	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
 	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
 	//
 	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
@@ -1210,6 +1342,12 @@ type DescribeScalableTargetsInput struct {
 	//
 	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
 	//    is the fleet name. Example: fleet/sample-fleet.
+	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
 	ResourceIds []*string `type:"list"`
 
 	// The scalable dimension associated with the scalable target. This string consists
@@ -1226,6 +1364,18 @@ type DescribeScalableTargetsInput struct {
 	//
 	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
 	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
 	ScalableDimension *string `type:"string" enum:"ScalableDimension"`
 
 	// The namespace of the AWS service. For more information, see AWS Service Namespaces
@@ -1354,6 +1504,12 @@ type DescribeScalingActivitiesInput struct {
 	//
 	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
 	//    is the fleet name. Example: fleet/sample-fleet.
+	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
 	ResourceId *string `min:"1" type:"string"`
 
 	// The scalable dimension. This string consists of the service namespace, resource
@@ -1370,6 +1526,18 @@ type DescribeScalingActivitiesInput struct {
 	//
 	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
 	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
 	ScalableDimension *string `type:"string" enum:"ScalableDimension"`
 
 	// The namespace of the AWS service. For more information, see AWS Service Namespaces
@@ -1504,6 +1672,12 @@ type DescribeScalingPoliciesInput struct {
 	//
 	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
 	//    is the fleet name. Example: fleet/sample-fleet.
+	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
 	ResourceId *string `min:"1" type:"string"`
 
 	// The scalable dimension. This string consists of the service namespace, resource
@@ -1520,6 +1694,18 @@ type DescribeScalingPoliciesInput struct {
 	//
 	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
 	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
 	ScalableDimension *string `type:"string" enum:"ScalableDimension"`
 
 	// The namespace of the AWS service. For more information, see AWS Service Namespaces
@@ -1626,6 +1812,112 @@ func (s *DescribeScalingPoliciesOutput) SetScalingPolicies(v []*ScalingPolicy) *
 	return s
 }
 
+// Describes the dimension of a metric.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/MetricDimension
+type MetricDimension struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the dimension.
+	//
+	// Name is a required field
+	Name *string `type:"string" required:"true"`
+
+	// The value of the dimension.
+	//
+	// Value is a required field
+	Value *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s MetricDimension) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MetricDimension) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MetricDimension) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MetricDimension"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *MetricDimension) SetName(v string) *MetricDimension {
+	s.Name = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *MetricDimension) SetValue(v string) *MetricDimension {
+	s.Value = &v
+	return s
+}
+
+// Configures a predefined metric for a target tracking policy.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PredefinedMetricSpecification
+type PredefinedMetricSpecification struct {
+	_ struct{} `type:"structure"`
+
+	// The metric type.
+	//
+	// PredefinedMetricType is a required field
+	PredefinedMetricType *string `type:"string" required:"true" enum:"MetricType"`
+
+	// Reserved for future use.
+	ResourceLabel *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s PredefinedMetricSpecification) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PredefinedMetricSpecification) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PredefinedMetricSpecification) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PredefinedMetricSpecification"}
+	if s.PredefinedMetricType == nil {
+		invalidParams.Add(request.NewErrParamRequired("PredefinedMetricType"))
+	}
+	if s.ResourceLabel != nil && len(*s.ResourceLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPredefinedMetricType sets the PredefinedMetricType field's value.
+func (s *PredefinedMetricSpecification) SetPredefinedMetricType(v string) *PredefinedMetricSpecification {
+	s.PredefinedMetricType = &v
+	return s
+}
+
+// SetResourceLabel sets the ResourceLabel field's value.
+func (s *PredefinedMetricSpecification) SetResourceLabel(v string) *PredefinedMetricSpecification {
+	s.ResourceLabel = &v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScalingPolicyRequest
 type PutScalingPolicyInput struct {
 	_ struct{} `type:"structure"`
@@ -1637,6 +1929,9 @@ type PutScalingPolicyInput struct {
 
 	// The policy type. If you are creating a new policy, this parameter is required.
 	// If you are updating a policy, this parameter is not required.
+	//
+	// For DynamoDB, only TargetTrackingScaling is supported. For any other service,
+	// only StepScaling is supported.
 	PolicyType *string `type:"string" enum:"PolicyType"`
 
 	// The identifier of the resource associated with the scaling policy. This string
@@ -1653,6 +1948,12 @@ type PutScalingPolicyInput struct {
 	//
 	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
 	//    is the fleet name. Example: fleet/sample-fleet.
+	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
 	//
 	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
@@ -1671,6 +1972,18 @@ type PutScalingPolicyInput struct {
 	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
 	//    2.0 fleet.
 	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
+	//
 	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
 
@@ -1681,11 +1994,17 @@ type PutScalingPolicyInput struct {
 	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 
-	// The configuration for the step scaling policy. If you are creating a new
-	// policy, this parameter is required. If you are updating a policy, this parameter
-	// is not required. For more information, see StepScalingPolicyConfiguration
-	// and StepAdjustment.
+	// A step scaling policy.
+	//
+	// This parameter is required if you are creating a policy and the policy type
+	// is StepScaling.
 	StepScalingPolicyConfiguration *StepScalingPolicyConfiguration `type:"structure"`
+
+	// A target tracking policy.
+	//
+	// This parameter is required if you are creating a new policy and the policy
+	// type is TargetTrackingScaling.
+	TargetTrackingScalingPolicyConfiguration *TargetTrackingScalingPolicyConfiguration `type:"structure"`
 }
 
 // String returns the string representation
@@ -1722,6 +2041,11 @@ func (s *PutScalingPolicyInput) Validate() error {
 	if s.StepScalingPolicyConfiguration != nil {
 		if err := s.StepScalingPolicyConfiguration.Validate(); err != nil {
 			invalidParams.AddNested("StepScalingPolicyConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.TargetTrackingScalingPolicyConfiguration != nil {
+		if err := s.TargetTrackingScalingPolicyConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("TargetTrackingScalingPolicyConfiguration", err.(request.ErrInvalidParams))
 		}
 	}
 
@@ -1767,9 +2091,18 @@ func (s *PutScalingPolicyInput) SetStepScalingPolicyConfiguration(v *StepScaling
 	return s
 }
 
+// SetTargetTrackingScalingPolicyConfiguration sets the TargetTrackingScalingPolicyConfiguration field's value.
+func (s *PutScalingPolicyInput) SetTargetTrackingScalingPolicyConfiguration(v *TargetTrackingScalingPolicyConfiguration) *PutScalingPolicyInput {
+	s.TargetTrackingScalingPolicyConfiguration = v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScalingPolicyResponse
 type PutScalingPolicyOutput struct {
 	_ struct{} `type:"structure"`
+
+	// The CloudWatch alarms created for the target tracking policy.
+	Alarms []*Alarm `type:"list"`
 
 	// The Amazon Resource Name (ARN) of the resulting scaling policy.
 	//
@@ -1785,6 +2118,12 @@ func (s PutScalingPolicyOutput) String() string {
 // GoString returns the string representation
 func (s PutScalingPolicyOutput) GoString() string {
 	return s.String()
+}
+
+// SetAlarms sets the Alarms field's value.
+func (s *PutScalingPolicyOutput) SetAlarms(v []*Alarm) *PutScalingPolicyOutput {
+	s.Alarms = v
+	return s
 }
 
 // SetPolicyARN sets the PolicyARN field's value.
@@ -1822,6 +2161,12 @@ type RegisterScalableTargetInput struct {
 	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
 	//    is the fleet name. Example: fleet/sample-fleet.
 	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
+	//
 	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
@@ -1843,6 +2188,18 @@ type RegisterScalableTargetInput struct {
 	//
 	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
 	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
 	//
 	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
@@ -1976,6 +2333,12 @@ type ScalableTarget struct {
 	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
 	//    is the fleet name. Example: fleet/sample-fleet.
 	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
+	//
 	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
@@ -1998,6 +2361,18 @@ type ScalableTarget struct {
 	//
 	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
 	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
 	//
 	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
@@ -2103,6 +2478,12 @@ type ScalingActivity struct {
 	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
 	//    is the fleet name. Example: fleet/sample-fleet.
 	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
+	//
 	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
@@ -2119,6 +2500,18 @@ type ScalingActivity struct {
 	//
 	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
 	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
 	//
 	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
@@ -2263,6 +2656,12 @@ type ScalingPolicy struct {
 	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
 	//    is the fleet name. Example: fleet/sample-fleet.
 	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
+	//
 	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
@@ -2280,6 +2679,18 @@ type ScalingPolicy struct {
 	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
 	//    2.0 fleet.
 	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
+	//
 	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
 
@@ -2290,8 +2701,11 @@ type ScalingPolicy struct {
 	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 
-	// The configuration for the step scaling policy.
+	// A step scaling policy.
 	StepScalingPolicyConfiguration *StepScalingPolicyConfiguration `type:"structure"`
+
+	// A target tracking policy.
+	TargetTrackingScalingPolicyConfiguration *TargetTrackingScalingPolicyConfiguration `type:"structure"`
 }
 
 // String returns the string representation
@@ -2355,6 +2769,12 @@ func (s *ScalingPolicy) SetServiceNamespace(v string) *ScalingPolicy {
 // SetStepScalingPolicyConfiguration sets the StepScalingPolicyConfiguration field's value.
 func (s *ScalingPolicy) SetStepScalingPolicyConfiguration(v *StepScalingPolicyConfiguration) *ScalingPolicy {
 	s.StepScalingPolicyConfiguration = v
+	return s
+}
+
+// SetTargetTrackingScalingPolicyConfiguration sets the TargetTrackingScalingPolicyConfiguration field's value.
+func (s *ScalingPolicy) SetTargetTrackingScalingPolicyConfiguration(v *TargetTrackingScalingPolicyConfiguration) *ScalingPolicy {
+	s.TargetTrackingScalingPolicyConfiguration = v
 	return s
 }
 
@@ -2469,22 +2889,22 @@ type StepScalingPolicyConfiguration struct {
 	// previous trigger-related scaling activities can influence future scaling
 	// events.
 	//
-	// For scale out policies, while Cooldown is in effect, the capacity that has
-	// been added by the previous scale out event that initiated the Cooldown is
-	// calculated as part of the desired capacity for the next scale out. The intention
-	// is to continuously (but not excessively) scale out. For example, an alarm
-	// triggers a step scaling policy to scale out an Amazon ECS service by 2 tasks,
-	// the scaling activity completes successfully, and a Cooldown period of 5 minutes
-	// starts. During the Cooldown period, if the alarm triggers the same policy
-	// again but at a more aggressive step adjustment to scale out the service by
-	// 3 tasks, the 2 tasks that were added in the previous scale out event are
-	// considered part of that capacity and only 1 additional task is added to the
-	// desired count.
+	// For scale out policies, while the cooldown period is in effect, the capacity
+	// that has been added by the previous scale out event that initiated the cooldown
+	// is calculated as part of the desired capacity for the next scale out. The
+	// intention is to continuously (but not excessively) scale out. For example,
+	// an alarm triggers a step scaling policy to scale out an Amazon ECS service
+	// by 2 tasks, the scaling activity completes successfully, and a cooldown period
+	// of 5 minutes starts. During the Cooldown period, if the alarm triggers the
+	// same policy again but at a more aggressive step adjustment to scale out the
+	// service by 3 tasks, the 2 tasks that were added in the previous scale out
+	// event are considered part of that capacity and only 1 additional task is
+	// added to the desired count.
 	//
-	// For scale in policies, the Cooldown period is used to block subsequent scale
+	// For scale in policies, the cooldown period is used to block subsequent scale
 	// in requests until it has expired. The intention is to scale in conservatively
 	// to protect your application's availability. However, if another alarm triggers
-	// a scale out policy during the Cooldown period after a scale-in, Application
+	// a scale out policy during the cooldown period after a scale-in, Application
 	// Auto Scaling scales out your scalable target immediately.
 	Cooldown *int64 `type:"integer"`
 
@@ -2562,6 +2982,114 @@ func (s *StepScalingPolicyConfiguration) SetStepAdjustments(v []*StepAdjustment)
 	return s
 }
 
+// Represents a target tracking scaling policy configuration.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/TargetTrackingScalingPolicyConfiguration
+type TargetTrackingScalingPolicyConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Reserved for future use.
+	CustomizedMetricSpecification *CustomizedMetricSpecification `type:"structure"`
+
+	DisableScaleIn *bool `type:"boolean"`
+
+	// A predefined metric.
+	PredefinedMetricSpecification *PredefinedMetricSpecification `type:"structure"`
+
+	// The amount of time, in seconds, after a scale in activity completes before
+	// another scale in activity can start.
+	//
+	// The cooldown period is used to block subsequent scale in requests until it
+	// has expired. The intention is to scale in conservatively to protect your
+	// application's availability. However, if another alarm triggers a scale out
+	// policy during the cooldown period after a scale-in, Application Auto Scaling
+	// scales out your scalable target immediately.
+	ScaleInCooldown *int64 `type:"integer"`
+
+	// The amount of time, in seconds, after a scale out activity completes before
+	// another scale out activity can start.
+	//
+	// While the cooldown period is in effect, the capacity that has been added
+	// by the previous scale out event that initiated the cooldown is calculated
+	// as part of the desired capacity for the next scale out. The intention is
+	// to continuously (but not excessively) scale out.
+	ScaleOutCooldown *int64 `type:"integer"`
+
+	// The target value for the metric. The range is 8.515920e-109 to 1.174271e+108
+	// (Base 10) or 2e-360 to 2e360 (Base 2).
+	//
+	// TargetValue is a required field
+	TargetValue *float64 `type:"double" required:"true"`
+}
+
+// String returns the string representation
+func (s TargetTrackingScalingPolicyConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TargetTrackingScalingPolicyConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TargetTrackingScalingPolicyConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TargetTrackingScalingPolicyConfiguration"}
+	if s.TargetValue == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetValue"))
+	}
+	if s.CustomizedMetricSpecification != nil {
+		if err := s.CustomizedMetricSpecification.Validate(); err != nil {
+			invalidParams.AddNested("CustomizedMetricSpecification", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.PredefinedMetricSpecification != nil {
+		if err := s.PredefinedMetricSpecification.Validate(); err != nil {
+			invalidParams.AddNested("PredefinedMetricSpecification", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCustomizedMetricSpecification sets the CustomizedMetricSpecification field's value.
+func (s *TargetTrackingScalingPolicyConfiguration) SetCustomizedMetricSpecification(v *CustomizedMetricSpecification) *TargetTrackingScalingPolicyConfiguration {
+	s.CustomizedMetricSpecification = v
+	return s
+}
+
+// SetDisableScaleIn sets the DisableScaleIn field's value.
+func (s *TargetTrackingScalingPolicyConfiguration) SetDisableScaleIn(v bool) *TargetTrackingScalingPolicyConfiguration {
+	s.DisableScaleIn = &v
+	return s
+}
+
+// SetPredefinedMetricSpecification sets the PredefinedMetricSpecification field's value.
+func (s *TargetTrackingScalingPolicyConfiguration) SetPredefinedMetricSpecification(v *PredefinedMetricSpecification) *TargetTrackingScalingPolicyConfiguration {
+	s.PredefinedMetricSpecification = v
+	return s
+}
+
+// SetScaleInCooldown sets the ScaleInCooldown field's value.
+func (s *TargetTrackingScalingPolicyConfiguration) SetScaleInCooldown(v int64) *TargetTrackingScalingPolicyConfiguration {
+	s.ScaleInCooldown = &v
+	return s
+}
+
+// SetScaleOutCooldown sets the ScaleOutCooldown field's value.
+func (s *TargetTrackingScalingPolicyConfiguration) SetScaleOutCooldown(v int64) *TargetTrackingScalingPolicyConfiguration {
+	s.ScaleOutCooldown = &v
+	return s
+}
+
+// SetTargetValue sets the TargetValue field's value.
+func (s *TargetTrackingScalingPolicyConfiguration) SetTargetValue(v float64) *TargetTrackingScalingPolicyConfiguration {
+	s.TargetValue = &v
+	return s
+}
+
 const (
 	// AdjustmentTypeChangeInCapacity is a AdjustmentType enum value
 	AdjustmentTypeChangeInCapacity = "ChangeInCapacity"
@@ -2585,8 +3113,36 @@ const (
 )
 
 const (
+	// MetricStatisticAverage is a MetricStatistic enum value
+	MetricStatisticAverage = "Average"
+
+	// MetricStatisticMinimum is a MetricStatistic enum value
+	MetricStatisticMinimum = "Minimum"
+
+	// MetricStatisticMaximum is a MetricStatistic enum value
+	MetricStatisticMaximum = "Maximum"
+
+	// MetricStatisticSampleCount is a MetricStatistic enum value
+	MetricStatisticSampleCount = "SampleCount"
+
+	// MetricStatisticSum is a MetricStatistic enum value
+	MetricStatisticSum = "Sum"
+)
+
+const (
+	// MetricTypeDynamoDbreadCapacityUtilization is a MetricType enum value
+	MetricTypeDynamoDbreadCapacityUtilization = "DynamoDBReadCapacityUtilization"
+
+	// MetricTypeDynamoDbwriteCapacityUtilization is a MetricType enum value
+	MetricTypeDynamoDbwriteCapacityUtilization = "DynamoDBWriteCapacityUtilization"
+)
+
+const (
 	// PolicyTypeStepScaling is a PolicyType enum value
 	PolicyTypeStepScaling = "StepScaling"
+
+	// PolicyTypeTargetTrackingScaling is a PolicyType enum value
+	PolicyTypeTargetTrackingScaling = "TargetTrackingScaling"
 )
 
 const (
@@ -2601,6 +3157,18 @@ const (
 
 	// ScalableDimensionAppstreamFleetDesiredCapacity is a ScalableDimension enum value
 	ScalableDimensionAppstreamFleetDesiredCapacity = "appstream:fleet:DesiredCapacity"
+
+	// ScalableDimensionDynamodbTableReadCapacityUnits is a ScalableDimension enum value
+	ScalableDimensionDynamodbTableReadCapacityUnits = "dynamodb:table:ReadCapacityUnits"
+
+	// ScalableDimensionDynamodbTableWriteCapacityUnits is a ScalableDimension enum value
+	ScalableDimensionDynamodbTableWriteCapacityUnits = "dynamodb:table:WriteCapacityUnits"
+
+	// ScalableDimensionDynamodbIndexReadCapacityUnits is a ScalableDimension enum value
+	ScalableDimensionDynamodbIndexReadCapacityUnits = "dynamodb:index:ReadCapacityUnits"
+
+	// ScalableDimensionDynamodbIndexWriteCapacityUnits is a ScalableDimension enum value
+	ScalableDimensionDynamodbIndexWriteCapacityUnits = "dynamodb:index:WriteCapacityUnits"
 )
 
 const (
@@ -2635,4 +3203,7 @@ const (
 
 	// ServiceNamespaceAppstream is a ServiceNamespace enum value
 	ServiceNamespaceAppstream = "appstream"
+
+	// ServiceNamespaceDynamodb is a ServiceNamespace enum value
+	ServiceNamespaceDynamodb = "dynamodb"
 )
