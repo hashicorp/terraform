@@ -27,6 +27,11 @@ func untar(input io.Reader, dst, src string, dir bool) error {
 			return err
 		}
 
+		if hdr.Typeflag == tar.TypeXGlobalHeader || hdr.Typeflag == tar.TypeXHeader {
+			// don't unpack extended headers as files
+			continue
+		}
+
 		path := dst
 		if dir {
 			path = filepath.Join(path, hdr.Name)
@@ -80,4 +85,28 @@ func untar(input io.Reader, dst, src string, dir bool) error {
 			return err
 		}
 	}
+}
+
+// tarDecompressor is an implementation of Decompressor that can
+// unpack tar files.
+type tarDecompressor struct{}
+
+func (d *tarDecompressor) Decompress(dst, src string, dir bool) error {
+	// If we're going into a directory we should make that first
+	mkdir := dst
+	if !dir {
+		mkdir = filepath.Dir(dst)
+	}
+	if err := os.MkdirAll(mkdir, 0755); err != nil {
+		return err
+	}
+
+	// File first
+	f, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return untar(f, dst, src, dir)
 }
