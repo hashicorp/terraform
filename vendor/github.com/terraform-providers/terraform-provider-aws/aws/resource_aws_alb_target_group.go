@@ -246,78 +246,7 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error retrieving Target Group %q", d.Id())
 	}
 
-	targetGroup := resp.TargetGroups[0]
-
-	d.Set("arn", targetGroup.TargetGroupArn)
-	d.Set("arn_suffix", albTargetGroupSuffixFromARN(targetGroup.TargetGroupArn))
-	d.Set("name", targetGroup.TargetGroupName)
-	d.Set("port", targetGroup.Port)
-	d.Set("protocol", targetGroup.Protocol)
-	d.Set("vpc_id", targetGroup.VpcId)
-
-	healthCheck := make(map[string]interface{})
-	healthCheck["interval"] = *targetGroup.HealthCheckIntervalSeconds
-	healthCheck["path"] = *targetGroup.HealthCheckPath
-	healthCheck["port"] = *targetGroup.HealthCheckPort
-	healthCheck["protocol"] = *targetGroup.HealthCheckProtocol
-	healthCheck["timeout"] = *targetGroup.HealthCheckTimeoutSeconds
-	healthCheck["healthy_threshold"] = *targetGroup.HealthyThresholdCount
-	healthCheck["unhealthy_threshold"] = *targetGroup.UnhealthyThresholdCount
-	healthCheck["matcher"] = *targetGroup.Matcher.HttpCode
-	d.Set("health_check", []interface{}{healthCheck})
-
-	attrResp, err := elbconn.DescribeTargetGroupAttributes(&elbv2.DescribeTargetGroupAttributesInput{
-		TargetGroupArn: aws.String(d.Id()),
-	})
-	if err != nil {
-		return errwrap.Wrapf("Error retrieving Target Group Attributes: {{err}}", err)
-	}
-
-	stickinessMap := map[string]interface{}{}
-	for _, attr := range attrResp.Attributes {
-		switch *attr.Key {
-		case "stickiness.enabled":
-			enabled, err := strconv.ParseBool(*attr.Value)
-			if err != nil {
-				return fmt.Errorf("Error converting stickiness.enabled to bool: %s", *attr.Value)
-			}
-			stickinessMap["enabled"] = enabled
-		case "stickiness.type":
-			stickinessMap["type"] = *attr.Value
-		case "stickiness.lb_cookie.duration_seconds":
-			duration, err := strconv.Atoi(*attr.Value)
-			if err != nil {
-				return fmt.Errorf("Error converting stickiness.lb_cookie.duration_seconds to int: %s", *attr.Value)
-			}
-			stickinessMap["cookie_duration"] = duration
-		case "deregistration_delay.timeout_seconds":
-			timeout, err := strconv.Atoi(*attr.Value)
-			if err != nil {
-				return fmt.Errorf("Error converting deregistration_delay.timeout_seconds to int: %s", *attr.Value)
-			}
-			d.Set("deregistration_delay", timeout)
-		}
-	}
-
-	if err := d.Set("stickiness", []interface{}{stickinessMap}); err != nil {
-		return err
-	}
-
-	tagsResp, err := elbconn.DescribeTags(&elbv2.DescribeTagsInput{
-		ResourceArns: []*string{aws.String(d.Id())},
-	})
-	if err != nil {
-		return errwrap.Wrapf("Error retrieving Target Group Tags: {{err}}", err)
-	}
-	for _, t := range tagsResp.TagDescriptions {
-		if *t.ResourceArn == d.Id() {
-			if err := d.Set("tags", tagsToMapELBv2(t.Tags)); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
+	return flattenAwsAlbTargetGroupResource(d, meta, resp.TargetGroups[0])
 }
 
 func resourceAwsAlbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -535,4 +464,80 @@ func albTargetGroupSuffixFromARN(arn *string) string {
 	}
 
 	return ""
+}
+
+// flattenAwsAlbTargetGroupResource takes a *elbv2.TargetGroup and populates all respective resource fields.
+func flattenAwsAlbTargetGroupResource(d *schema.ResourceData, meta interface{}, targetGroup *elbv2.TargetGroup) error {
+	elbconn := meta.(*AWSClient).elbv2conn
+
+	d.Set("arn", targetGroup.TargetGroupArn)
+	d.Set("arn_suffix", albTargetGroupSuffixFromARN(targetGroup.TargetGroupArn))
+	d.Set("name", targetGroup.TargetGroupName)
+	d.Set("port", targetGroup.Port)
+	d.Set("protocol", targetGroup.Protocol)
+	d.Set("vpc_id", targetGroup.VpcId)
+
+	healthCheck := make(map[string]interface{})
+	healthCheck["interval"] = *targetGroup.HealthCheckIntervalSeconds
+	healthCheck["path"] = *targetGroup.HealthCheckPath
+	healthCheck["port"] = *targetGroup.HealthCheckPort
+	healthCheck["protocol"] = *targetGroup.HealthCheckProtocol
+	healthCheck["timeout"] = *targetGroup.HealthCheckTimeoutSeconds
+	healthCheck["healthy_threshold"] = *targetGroup.HealthyThresholdCount
+	healthCheck["unhealthy_threshold"] = *targetGroup.UnhealthyThresholdCount
+	healthCheck["matcher"] = *targetGroup.Matcher.HttpCode
+	d.Set("health_check", []interface{}{healthCheck})
+
+	attrResp, err := elbconn.DescribeTargetGroupAttributes(&elbv2.DescribeTargetGroupAttributesInput{
+		TargetGroupArn: aws.String(d.Id()),
+	})
+	if err != nil {
+		return errwrap.Wrapf("Error retrieving Target Group Attributes: {{err}}", err)
+	}
+
+	stickinessMap := map[string]interface{}{}
+	for _, attr := range attrResp.Attributes {
+		switch *attr.Key {
+		case "stickiness.enabled":
+			enabled, err := strconv.ParseBool(*attr.Value)
+			if err != nil {
+				return fmt.Errorf("Error converting stickiness.enabled to bool: %s", *attr.Value)
+			}
+			stickinessMap["enabled"] = enabled
+		case "stickiness.type":
+			stickinessMap["type"] = *attr.Value
+		case "stickiness.lb_cookie.duration_seconds":
+			duration, err := strconv.Atoi(*attr.Value)
+			if err != nil {
+				return fmt.Errorf("Error converting stickiness.lb_cookie.duration_seconds to int: %s", *attr.Value)
+			}
+			stickinessMap["cookie_duration"] = duration
+		case "deregistration_delay.timeout_seconds":
+			timeout, err := strconv.Atoi(*attr.Value)
+			if err != nil {
+				return fmt.Errorf("Error converting deregistration_delay.timeout_seconds to int: %s", *attr.Value)
+			}
+			d.Set("deregistration_delay", timeout)
+		}
+	}
+
+	if err := d.Set("stickiness", []interface{}{stickinessMap}); err != nil {
+		return err
+	}
+
+	tagsResp, err := elbconn.DescribeTags(&elbv2.DescribeTagsInput{
+		ResourceArns: []*string{aws.String(d.Id())},
+	})
+	if err != nil {
+		return errwrap.Wrapf("Error retrieving Target Group Tags: {{err}}", err)
+	}
+	for _, t := range tagsResp.TagDescriptions {
+		if *t.ResourceArn == d.Id() {
+			if err := d.Set("tags", tagsToMapELBv2(t.Tags)); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

@@ -15,19 +15,18 @@ const opAssociateVPCWithHostedZone = "AssociateVPCWithHostedZone"
 
 // AssociateVPCWithHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateVPCWithHostedZone operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AssociateVPCWithHostedZone for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AssociateVPCWithHostedZone method directly
-// instead.
+// See AssociateVPCWithHostedZone for more information on using the AssociateVPCWithHostedZone
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AssociateVPCWithHostedZoneRequest method.
 //    req, resp := client.AssociateVPCWithHostedZoneRequest(params)
@@ -94,11 +93,21 @@ func (c *Route53) AssociateVPCWithHostedZoneRequest(input *AssociateVPCWithHoste
 //   53 doesn't support associating a VPC with a public hosted zone.
 //
 //   * ErrCodeConflictingDomainExists "ConflictingDomainExists"
-//   You specified an Amazon VPC that you're already using for another hosted
-//   zone, and the domain that you specified for one of the hosted zones is a
-//   subdomain of the domain that you specified for the other hosted zone. For
-//   example, you can't use the same Amazon VPC for the hosted zones for example.com
-//   and test.example.com.
+//   The cause of this error depends on whether you're trying to create a public
+//   or a private hosted zone:
+//
+//      * Public hosted zone: Two hosted zones that have the same name or that
+//      have a parent/child relationship (example.com and test.example.com) can't
+//      have any common name servers. You tried to create a hosted zone that has
+//      the same name as an existing hosted zone or that's the parent or child
+//      of an existing hosted zone, and you specified a delegation set that shares
+//      one or more name servers with the existing hosted zone.
+//
+//      * Private hosted zone: You specified an Amazon VPC that you're already
+//      using for another hosted zone, and the domain that you specified for one
+//      of the hosted zones is a subdomain of the domain that you specified for
+//      the other hosted zone. For example, you can't use the same Amazon VPC
+//      for the hosted zones for example.com and test.example.com.
 //
 //   * ErrCodeLimitsExceeded "LimitsExceeded"
 //   The limits specified for a resource have been exceeded.
@@ -129,19 +138,18 @@ const opChangeResourceRecordSets = "ChangeResourceRecordSets"
 
 // ChangeResourceRecordSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ChangeResourceRecordSets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ChangeResourceRecordSets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ChangeResourceRecordSets method directly
-// instead.
+// See ChangeResourceRecordSets for more information on using the ChangeResourceRecordSets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ChangeResourceRecordSetsRequest method.
 //    req, resp := client.ChangeResourceRecordSetsRequest(params)
@@ -241,8 +249,8 @@ func (c *Route53) ChangeResourceRecordSetsRequest(input *ChangeResourceRecordSet
 // your changes to all of the Amazon Route 53 authoritative DNS servers. While
 // your changes are propagating, GetChange returns a status of PENDING. When
 // propagation is complete, GetChange returns a status of INSYNC. Changes generally
-// propagate to all Amazon Route 53 name servers in a few minutes. In rare circumstances,
-// propagation can take up to 30 minutes. For more information, see GetChange.
+// propagate to all Amazon Route 53 name servers within 60 seconds. For more
+// information, see GetChange.
 //
 // Limits on ChangeResourceRecordSets Requests
 //
@@ -305,19 +313,18 @@ const opChangeTagsForResource = "ChangeTagsForResource"
 
 // ChangeTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ChangeTagsForResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ChangeTagsForResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ChangeTagsForResource method directly
-// instead.
+// See ChangeTagsForResource for more information on using the ChangeTagsForResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ChangeTagsForResourceRequest method.
 //    req, resp := client.ChangeTagsForResourceRequest(params)
@@ -406,19 +413,18 @@ const opCreateHealthCheck = "CreateHealthCheck"
 
 // CreateHealthCheckRequest generates a "aws/request.Request" representing the
 // client's request for the CreateHealthCheck operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateHealthCheck for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateHealthCheck method directly
-// instead.
+// See CreateHealthCheck for more information on using the CreateHealthCheck
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateHealthCheckRequest method.
 //    req, resp := client.CreateHealthCheckRequest(params)
@@ -533,19 +539,18 @@ const opCreateHostedZone = "CreateHostedZone"
 
 // CreateHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the CreateHostedZone operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateHostedZone for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateHostedZone method directly
-// instead.
+// See CreateHostedZone for more information on using the CreateHostedZone
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateHostedZoneRequest method.
 //    req, resp := client.CreateHostedZoneRequest(params)
@@ -646,11 +651,21 @@ func (c *Route53) CreateHostedZoneRequest(input *CreateHostedZoneInput) (req *re
 //   this error, contact Customer Support.
 //
 //   * ErrCodeConflictingDomainExists "ConflictingDomainExists"
-//   You specified an Amazon VPC that you're already using for another hosted
-//   zone, and the domain that you specified for one of the hosted zones is a
-//   subdomain of the domain that you specified for the other hosted zone. For
-//   example, you can't use the same Amazon VPC for the hosted zones for example.com
-//   and test.example.com.
+//   The cause of this error depends on whether you're trying to create a public
+//   or a private hosted zone:
+//
+//      * Public hosted zone: Two hosted zones that have the same name or that
+//      have a parent/child relationship (example.com and test.example.com) can't
+//      have any common name servers. You tried to create a hosted zone that has
+//      the same name as an existing hosted zone or that's the parent or child
+//      of an existing hosted zone, and you specified a delegation set that shares
+//      one or more name servers with the existing hosted zone.
+//
+//      * Private hosted zone: You specified an Amazon VPC that you're already
+//      using for another hosted zone, and the domain that you specified for one
+//      of the hosted zones is a subdomain of the domain that you specified for
+//      the other hosted zone. For example, you can't use the same Amazon VPC
+//      for the hosted zones for example.com and test.example.com.
 //
 //   * ErrCodeNoSuchDelegationSet "NoSuchDelegationSet"
 //   A reusable delegation set with the specified ID does not exist.
@@ -684,19 +699,18 @@ const opCreateReusableDelegationSet = "CreateReusableDelegationSet"
 
 // CreateReusableDelegationSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateReusableDelegationSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateReusableDelegationSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateReusableDelegationSet method directly
-// instead.
+// See CreateReusableDelegationSet for more information on using the CreateReusableDelegationSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateReusableDelegationSetRequest method.
 //    req, resp := client.CreateReusableDelegationSetRequest(params)
@@ -794,19 +808,18 @@ const opCreateTrafficPolicy = "CreateTrafficPolicy"
 
 // CreateTrafficPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTrafficPolicy operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateTrafficPolicy for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateTrafficPolicy method directly
-// instead.
+// See CreateTrafficPolicy for more information on using the CreateTrafficPolicy
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateTrafficPolicyRequest method.
 //    req, resp := client.CreateTrafficPolicyRequest(params)
@@ -888,19 +901,18 @@ const opCreateTrafficPolicyInstance = "CreateTrafficPolicyInstance"
 
 // CreateTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTrafficPolicyInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateTrafficPolicyInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateTrafficPolicyInstance method directly
-// instead.
+// See CreateTrafficPolicyInstance for more information on using the CreateTrafficPolicyInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateTrafficPolicyInstanceRequest method.
 //    req, resp := client.CreateTrafficPolicyInstanceRequest(params)
@@ -987,19 +999,18 @@ const opCreateTrafficPolicyVersion = "CreateTrafficPolicyVersion"
 
 // CreateTrafficPolicyVersionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTrafficPolicyVersion operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateTrafficPolicyVersion for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateTrafficPolicyVersion method directly
-// instead.
+// See CreateTrafficPolicyVersion for more information on using the CreateTrafficPolicyVersion
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateTrafficPolicyVersionRequest method.
 //    req, resp := client.CreateTrafficPolicyVersionRequest(params)
@@ -1085,19 +1096,18 @@ const opCreateVPCAssociationAuthorization = "CreateVPCAssociationAuthorization"
 
 // CreateVPCAssociationAuthorizationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateVPCAssociationAuthorization operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateVPCAssociationAuthorization for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateVPCAssociationAuthorization method directly
-// instead.
+// See CreateVPCAssociationAuthorization for more information on using the CreateVPCAssociationAuthorization
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateVPCAssociationAuthorizationRequest method.
 //    req, resp := client.CreateVPCAssociationAuthorizationRequest(params)
@@ -1192,19 +1202,18 @@ const opDeleteHealthCheck = "DeleteHealthCheck"
 
 // DeleteHealthCheckRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteHealthCheck operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteHealthCheck for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteHealthCheck method directly
-// instead.
+// See DeleteHealthCheck for more information on using the DeleteHealthCheck
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteHealthCheckRequest method.
 //    req, resp := client.DeleteHealthCheckRequest(params)
@@ -1256,9 +1265,7 @@ func (c *Route53) DeleteHealthCheckRequest(input *DeleteHealthCheckInput) (req *
 //   request.
 //
 //   * ErrCodeHealthCheckInUse "HealthCheckInUse"
-//   The health check ID for this health check is referenced in the HealthCheckId
-//   element in one of the resource record sets in one of the hosted zones that
-//   are owned by the current AWS account.
+//   This error code is not in use.
 //
 //   * ErrCodeInvalidInput "InvalidInput"
 //   The input is not valid.
@@ -1289,19 +1296,18 @@ const opDeleteHostedZone = "DeleteHostedZone"
 
 // DeleteHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteHostedZone operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteHostedZone for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteHostedZone method directly
-// instead.
+// See DeleteHostedZone for more information on using the DeleteHostedZone
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteHostedZoneRequest method.
 //    req, resp := client.DeleteHostedZoneRequest(params)
@@ -1414,19 +1420,18 @@ const opDeleteReusableDelegationSet = "DeleteReusableDelegationSet"
 
 // DeleteReusableDelegationSetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteReusableDelegationSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteReusableDelegationSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteReusableDelegationSet method directly
-// instead.
+// See DeleteReusableDelegationSet for more information on using the DeleteReusableDelegationSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteReusableDelegationSetRequest method.
 //    req, resp := client.DeleteReusableDelegationSetRequest(params)
@@ -1511,19 +1516,18 @@ const opDeleteTrafficPolicy = "DeleteTrafficPolicy"
 
 // DeleteTrafficPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTrafficPolicy operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteTrafficPolicy for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteTrafficPolicy method directly
-// instead.
+// See DeleteTrafficPolicy for more information on using the DeleteTrafficPolicy
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteTrafficPolicyRequest method.
 //    req, resp := client.DeleteTrafficPolicyRequest(params)
@@ -1602,19 +1606,18 @@ const opDeleteTrafficPolicyInstance = "DeleteTrafficPolicyInstance"
 
 // DeleteTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTrafficPolicyInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteTrafficPolicyInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteTrafficPolicyInstance method directly
-// instead.
+// See DeleteTrafficPolicyInstance for more information on using the DeleteTrafficPolicyInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteTrafficPolicyInstanceRequest method.
 //    req, resp := client.DeleteTrafficPolicyInstanceRequest(params)
@@ -1696,19 +1699,18 @@ const opDeleteVPCAssociationAuthorization = "DeleteVPCAssociationAuthorization"
 
 // DeleteVPCAssociationAuthorizationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVPCAssociationAuthorization operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteVPCAssociationAuthorization for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteVPCAssociationAuthorization method directly
-// instead.
+// See DeleteVPCAssociationAuthorization for more information on using the DeleteVPCAssociationAuthorization
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteVPCAssociationAuthorizationRequest method.
 //    req, resp := client.DeleteVPCAssociationAuthorizationRequest(params)
@@ -1800,19 +1802,18 @@ const opDisassociateVPCFromHostedZone = "DisassociateVPCFromHostedZone"
 
 // DisassociateVPCFromHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateVPCFromHostedZone operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DisassociateVPCFromHostedZone for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DisassociateVPCFromHostedZone method directly
-// instead.
+// See DisassociateVPCFromHostedZone for more information on using the DisassociateVPCFromHostedZone
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DisassociateVPCFromHostedZoneRequest method.
 //    req, resp := client.DisassociateVPCFromHostedZoneRequest(params)
@@ -1901,19 +1902,18 @@ const opGetChange = "GetChange"
 
 // GetChangeRequest generates a "aws/request.Request" representing the
 // client's request for the GetChange operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetChange for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetChange method directly
-// instead.
+// See GetChange for more information on using the GetChange
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetChangeRequest method.
 //    req, resp := client.GetChangeRequest(params)
@@ -1992,19 +1992,18 @@ const opGetCheckerIpRanges = "GetCheckerIpRanges"
 
 // GetCheckerIpRangesRequest generates a "aws/request.Request" representing the
 // client's request for the GetCheckerIpRanges operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetCheckerIpRanges for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetCheckerIpRanges method directly
-// instead.
+// See GetCheckerIpRanges for more information on using the GetCheckerIpRanges
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetCheckerIpRangesRequest method.
 //    req, resp := client.GetCheckerIpRangesRequest(params)
@@ -2070,19 +2069,18 @@ const opGetGeoLocation = "GetGeoLocation"
 
 // GetGeoLocationRequest generates a "aws/request.Request" representing the
 // client's request for the GetGeoLocation operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetGeoLocation for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetGeoLocation method directly
-// instead.
+// See GetGeoLocation for more information on using the GetGeoLocation
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetGeoLocationRequest method.
 //    req, resp := client.GetGeoLocationRequest(params)
@@ -2170,19 +2168,18 @@ const opGetHealthCheck = "GetHealthCheck"
 
 // GetHealthCheckRequest generates a "aws/request.Request" representing the
 // client's request for the GetHealthCheck operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetHealthCheck for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetHealthCheck method directly
-// instead.
+// See GetHealthCheck for more information on using the GetHealthCheck
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetHealthCheckRequest method.
 //    req, resp := client.GetHealthCheckRequest(params)
@@ -2258,19 +2255,18 @@ const opGetHealthCheckCount = "GetHealthCheckCount"
 
 // GetHealthCheckCountRequest generates a "aws/request.Request" representing the
 // client's request for the GetHealthCheckCount operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetHealthCheckCount for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetHealthCheckCount method directly
-// instead.
+// See GetHealthCheckCount for more information on using the GetHealthCheckCount
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetHealthCheckCountRequest method.
 //    req, resp := client.GetHealthCheckCountRequest(params)
@@ -2334,19 +2330,18 @@ const opGetHealthCheckLastFailureReason = "GetHealthCheckLastFailureReason"
 
 // GetHealthCheckLastFailureReasonRequest generates a "aws/request.Request" representing the
 // client's request for the GetHealthCheckLastFailureReason operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetHealthCheckLastFailureReason for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetHealthCheckLastFailureReason method directly
-// instead.
+// See GetHealthCheckLastFailureReason for more information on using the GetHealthCheckLastFailureReason
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetHealthCheckLastFailureReasonRequest method.
 //    req, resp := client.GetHealthCheckLastFailureReasonRequest(params)
@@ -2418,19 +2413,18 @@ const opGetHealthCheckStatus = "GetHealthCheckStatus"
 
 // GetHealthCheckStatusRequest generates a "aws/request.Request" representing the
 // client's request for the GetHealthCheckStatus operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetHealthCheckStatus for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetHealthCheckStatus method directly
-// instead.
+// See GetHealthCheckStatus for more information on using the GetHealthCheckStatus
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetHealthCheckStatusRequest method.
 //    req, resp := client.GetHealthCheckStatusRequest(params)
@@ -2502,19 +2496,18 @@ const opGetHostedZone = "GetHostedZone"
 
 // GetHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the GetHostedZone operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetHostedZone for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetHostedZone method directly
-// instead.
+// See GetHostedZone for more information on using the GetHostedZone
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetHostedZoneRequest method.
 //    req, resp := client.GetHostedZoneRequest(params)
@@ -2586,19 +2579,18 @@ const opGetHostedZoneCount = "GetHostedZoneCount"
 
 // GetHostedZoneCountRequest generates a "aws/request.Request" representing the
 // client's request for the GetHostedZoneCount operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetHostedZoneCount for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetHostedZoneCount method directly
-// instead.
+// See GetHostedZoneCount for more information on using the GetHostedZoneCount
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetHostedZoneCountRequest method.
 //    req, resp := client.GetHostedZoneCountRequest(params)
@@ -2667,19 +2659,18 @@ const opGetReusableDelegationSet = "GetReusableDelegationSet"
 
 // GetReusableDelegationSetRequest generates a "aws/request.Request" representing the
 // client's request for the GetReusableDelegationSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetReusableDelegationSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetReusableDelegationSet method directly
-// instead.
+// See GetReusableDelegationSet for more information on using the GetReusableDelegationSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetReusableDelegationSetRequest method.
 //    req, resp := client.GetReusableDelegationSetRequest(params)
@@ -2754,19 +2745,18 @@ const opGetTrafficPolicy = "GetTrafficPolicy"
 
 // GetTrafficPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetTrafficPolicy operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetTrafficPolicy for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetTrafficPolicy method directly
-// instead.
+// See GetTrafficPolicy for more information on using the GetTrafficPolicy
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetTrafficPolicyRequest method.
 //    req, resp := client.GetTrafficPolicyRequest(params)
@@ -2837,19 +2827,18 @@ const opGetTrafficPolicyInstance = "GetTrafficPolicyInstance"
 
 // GetTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the GetTrafficPolicyInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetTrafficPolicyInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetTrafficPolicyInstance method directly
-// instead.
+// See GetTrafficPolicyInstance for more information on using the GetTrafficPolicyInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetTrafficPolicyInstanceRequest method.
 //    req, resp := client.GetTrafficPolicyInstanceRequest(params)
@@ -2928,19 +2917,18 @@ const opGetTrafficPolicyInstanceCount = "GetTrafficPolicyInstanceCount"
 
 // GetTrafficPolicyInstanceCountRequest generates a "aws/request.Request" representing the
 // client's request for the GetTrafficPolicyInstanceCount operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetTrafficPolicyInstanceCount for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetTrafficPolicyInstanceCount method directly
-// instead.
+// See GetTrafficPolicyInstanceCount for more information on using the GetTrafficPolicyInstanceCount
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetTrafficPolicyInstanceCountRequest method.
 //    req, resp := client.GetTrafficPolicyInstanceCountRequest(params)
@@ -3004,19 +2992,18 @@ const opListGeoLocations = "ListGeoLocations"
 
 // ListGeoLocationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListGeoLocations operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListGeoLocations for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListGeoLocations method directly
-// instead.
+// See ListGeoLocations for more information on using the ListGeoLocations
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListGeoLocationsRequest method.
 //    req, resp := client.ListGeoLocationsRequest(params)
@@ -3089,19 +3076,18 @@ const opListHealthChecks = "ListHealthChecks"
 
 // ListHealthChecksRequest generates a "aws/request.Request" representing the
 // client's request for the ListHealthChecks operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListHealthChecks for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListHealthChecks method directly
-// instead.
+// See ListHealthChecks for more information on using the ListHealthChecks
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListHealthChecksRequest method.
 //    req, resp := client.ListHealthChecksRequest(params)
@@ -3230,19 +3216,18 @@ const opListHostedZones = "ListHostedZones"
 
 // ListHostedZonesRequest generates a "aws/request.Request" representing the
 // client's request for the ListHostedZones operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListHostedZones for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListHostedZones method directly
-// instead.
+// See ListHostedZones for more information on using the ListHostedZones
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListHostedZonesRequest method.
 //    req, resp := client.ListHostedZonesRequest(params)
@@ -3378,19 +3363,18 @@ const opListHostedZonesByName = "ListHostedZonesByName"
 
 // ListHostedZonesByNameRequest generates a "aws/request.Request" representing the
 // client's request for the ListHostedZonesByName operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListHostedZonesByName for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListHostedZonesByName method directly
-// instead.
+// See ListHostedZonesByName for more information on using the ListHostedZonesByName
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListHostedZonesByNameRequest method.
 //    req, resp := client.ListHostedZonesByNameRequest(params)
@@ -3510,19 +3494,18 @@ const opListResourceRecordSets = "ListResourceRecordSets"
 
 // ListResourceRecordSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListResourceRecordSets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListResourceRecordSets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListResourceRecordSets method directly
-// instead.
+// See ListResourceRecordSets for more information on using the ListResourceRecordSets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListResourceRecordSetsRequest method.
 //    req, resp := client.ListResourceRecordSetsRequest(params)
@@ -3687,19 +3670,18 @@ const opListReusableDelegationSets = "ListReusableDelegationSets"
 
 // ListReusableDelegationSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListReusableDelegationSets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListReusableDelegationSets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListReusableDelegationSets method directly
-// instead.
+// See ListReusableDelegationSets for more information on using the ListReusableDelegationSets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListReusableDelegationSetsRequest method.
 //    req, resp := client.ListReusableDelegationSetsRequest(params)
@@ -3768,19 +3750,18 @@ const opListTagsForResource = "ListTagsForResource"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTagsForResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTagsForResource method directly
-// instead.
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTagsForResourceRequest method.
 //    req, resp := client.ListTagsForResourceRequest(params)
@@ -3869,19 +3850,18 @@ const opListTagsForResources = "ListTagsForResources"
 
 // ListTagsForResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResources operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTagsForResources for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTagsForResources method directly
-// instead.
+// See ListTagsForResources for more information on using the ListTagsForResources
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTagsForResourcesRequest method.
 //    req, resp := client.ListTagsForResourcesRequest(params)
@@ -3970,19 +3950,18 @@ const opListTrafficPolicies = "ListTrafficPolicies"
 
 // ListTrafficPoliciesRequest generates a "aws/request.Request" representing the
 // client's request for the ListTrafficPolicies operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTrafficPolicies for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTrafficPolicies method directly
-// instead.
+// See ListTrafficPolicies for more information on using the ListTrafficPolicies
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTrafficPoliciesRequest method.
 //    req, resp := client.ListTrafficPoliciesRequest(params)
@@ -4052,19 +4031,18 @@ const opListTrafficPolicyInstances = "ListTrafficPolicyInstances"
 
 // ListTrafficPolicyInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the ListTrafficPolicyInstances operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTrafficPolicyInstances for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTrafficPolicyInstances method directly
-// instead.
+// See ListTrafficPolicyInstances for more information on using the ListTrafficPolicyInstances
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTrafficPolicyInstancesRequest method.
 //    req, resp := client.ListTrafficPolicyInstancesRequest(params)
@@ -4145,19 +4123,18 @@ const opListTrafficPolicyInstancesByHostedZone = "ListTrafficPolicyInstancesByHo
 
 // ListTrafficPolicyInstancesByHostedZoneRequest generates a "aws/request.Request" representing the
 // client's request for the ListTrafficPolicyInstancesByHostedZone operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTrafficPolicyInstancesByHostedZone for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTrafficPolicyInstancesByHostedZone method directly
-// instead.
+// See ListTrafficPolicyInstancesByHostedZone for more information on using the ListTrafficPolicyInstancesByHostedZone
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTrafficPolicyInstancesByHostedZoneRequest method.
 //    req, resp := client.ListTrafficPolicyInstancesByHostedZoneRequest(params)
@@ -4241,19 +4218,18 @@ const opListTrafficPolicyInstancesByPolicy = "ListTrafficPolicyInstancesByPolicy
 
 // ListTrafficPolicyInstancesByPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the ListTrafficPolicyInstancesByPolicy operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTrafficPolicyInstancesByPolicy for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTrafficPolicyInstancesByPolicy method directly
-// instead.
+// See ListTrafficPolicyInstancesByPolicy for more information on using the ListTrafficPolicyInstancesByPolicy
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTrafficPolicyInstancesByPolicyRequest method.
 //    req, resp := client.ListTrafficPolicyInstancesByPolicyRequest(params)
@@ -4337,19 +4313,18 @@ const opListTrafficPolicyVersions = "ListTrafficPolicyVersions"
 
 // ListTrafficPolicyVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListTrafficPolicyVersions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTrafficPolicyVersions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTrafficPolicyVersions method directly
-// instead.
+// See ListTrafficPolicyVersions for more information on using the ListTrafficPolicyVersions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTrafficPolicyVersionsRequest method.
 //    req, resp := client.ListTrafficPolicyVersionsRequest(params)
@@ -4422,19 +4397,18 @@ const opListVPCAssociationAuthorizations = "ListVPCAssociationAuthorizations"
 
 // ListVPCAssociationAuthorizationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListVPCAssociationAuthorizations operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListVPCAssociationAuthorizations for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListVPCAssociationAuthorizations method directly
-// instead.
+// See ListVPCAssociationAuthorizations for more information on using the ListVPCAssociationAuthorizations
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListVPCAssociationAuthorizationsRequest method.
 //    req, resp := client.ListVPCAssociationAuthorizationsRequest(params)
@@ -4512,19 +4486,18 @@ const opTestDNSAnswer = "TestDNSAnswer"
 
 // TestDNSAnswerRequest generates a "aws/request.Request" representing the
 // client's request for the TestDNSAnswer operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See TestDNSAnswer for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the TestDNSAnswer method directly
-// instead.
+// See TestDNSAnswer for more information on using the TestDNSAnswer
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the TestDNSAnswerRequest method.
 //    req, resp := client.TestDNSAnswerRequest(params)
@@ -4597,19 +4570,18 @@ const opUpdateHealthCheck = "UpdateHealthCheck"
 
 // UpdateHealthCheckRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateHealthCheck operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateHealthCheck for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateHealthCheck method directly
-// instead.
+// See UpdateHealthCheck for more information on using the UpdateHealthCheck
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateHealthCheckRequest method.
 //    req, resp := client.UpdateHealthCheckRequest(params)
@@ -4689,19 +4661,18 @@ const opUpdateHostedZoneComment = "UpdateHostedZoneComment"
 
 // UpdateHostedZoneCommentRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateHostedZoneComment operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateHostedZoneComment for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateHostedZoneComment method directly
-// instead.
+// See UpdateHostedZoneComment for more information on using the UpdateHostedZoneComment
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateHostedZoneCommentRequest method.
 //    req, resp := client.UpdateHostedZoneCommentRequest(params)
@@ -4772,19 +4743,18 @@ const opUpdateTrafficPolicyComment = "UpdateTrafficPolicyComment"
 
 // UpdateTrafficPolicyCommentRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateTrafficPolicyComment operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateTrafficPolicyComment for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateTrafficPolicyComment method directly
-// instead.
+// See UpdateTrafficPolicyComment for more information on using the UpdateTrafficPolicyComment
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateTrafficPolicyCommentRequest method.
 //    req, resp := client.UpdateTrafficPolicyCommentRequest(params)
@@ -4859,19 +4829,18 @@ const opUpdateTrafficPolicyInstance = "UpdateTrafficPolicyInstance"
 
 // UpdateTrafficPolicyInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateTrafficPolicyInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateTrafficPolicyInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateTrafficPolicyInstance method directly
-// instead.
+// See UpdateTrafficPolicyInstance for more information on using the UpdateTrafficPolicyInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateTrafficPolicyInstanceRequest method.
 //    req, resp := client.UpdateTrafficPolicyInstanceRequest(params)
@@ -8673,7 +8642,7 @@ type HealthCheckConfig struct {
 	// health checks, Amazon Route 53 will briefly continue to perform checks from
 	// that region to ensure that some health checkers are always checking the endpoint
 	// (for example, if you replace three regions with four different regions).
-	Regions []*string `locationNameList:"Region" min:"1" type:"list"`
+	Regions []*string `locationNameList:"Region" min:"3" type:"list"`
 
 	// The number of seconds between the time that Amazon Route 53 gets a response
 	// from your endpoint and the time that it sends the next health check request.
@@ -8769,8 +8738,8 @@ func (s *HealthCheckConfig) Validate() error {
 	if s.Port != nil && *s.Port < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("Port", 1))
 	}
-	if s.Regions != nil && len(s.Regions) < 1 {
-		invalidParams.Add(request.NewErrParamMinLen("Regions", 1))
+	if s.Regions != nil && len(s.Regions) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("Regions", 3))
 	}
 	if s.RequestInterval != nil && *s.RequestInterval < 10 {
 		invalidParams.Add(request.NewErrParamMinValue("RequestInterval", 10))
@@ -9682,11 +9651,11 @@ type ListResourceRecordSetsInput struct {
 
 	// The type of resource record set to begin the record listing from.
 	//
-	// Valid values for basic resource record sets: A | AAAA | CNAME | MX | NAPTR
-	// | NS | PTR | SOA | SPF | SRV | TXT
+	// Valid values for basic resource record sets: A | AAAA | CAA | CNAME | MX
+	// | NAPTR | NS | PTR | SOA | SPF | SRV | TXT
 	//
 	// Values for weighted, latency, geo, and failover resource record sets: A |
-	// AAAA | CNAME | MX | NAPTR | PTR | SPF | SRV | TXT
+	// AAAA | CAA | CNAME | MX | NAPTR | PTR | SPF | SRV | TXT
 	//
 	// Values for alias resource record sets:
 	//
@@ -9697,6 +9666,9 @@ type ListResourceRecordSetsInput struct {
 	//    * ELB load balancer: A | AAAA
 	//
 	//    * Amazon S3 bucket: A
+	//
+	//    * Another resource record set in this hosted zone: The type of the resource
+	//    record set that the alias references.
 	//
 	// Constraint: Specifying type without specifying name returns an InvalidInput
 	// error.
@@ -11313,6 +11285,34 @@ type ResourceRecordSet struct {
 	//    * Configuring Failover in a Private Hosted Zone (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-private-hosted-zones.html)
 	HealthCheckId *string `type:"string"`
 
+	// Multivalue answer resource record sets only: To route traffic approximately
+	// randomly to multiple resources, such as web servers, create one multivalue
+	// answer record for each resource and specify true for MultiValueAnswer. Note
+	// the following:
+	//
+	//    * If you associate a health check with a multivalue answer resource record
+	//    set, Amazon Route 53 responds to DNS queries with the corresponding IP
+	//    address only when the health check is healthy.
+	//
+	//    * If you don't associate a health check with a multivalue answer record,
+	//    Amazon Route 53 always considers the record to be healthy.
+	//
+	//    * Amazon Route 53 responds to DNS queries with up to eight healthy records;
+	//    if you have eight or fewer healthy records, Amazon Route 53 responds to
+	//    all DNS queries with all the healthy records.
+	//
+	//    * If you have more than eight healthy records, Amazon Route 53 responds
+	//    to different DNS resolvers with different combinations of healthy records.
+	//
+	//    * When all records are unhealthy, Amazon Route 53 responds to DNS queries
+	//    with up to eight unhealthy records.
+	//
+	//    * If a resource becomes unavailable after a resolver caches a response,
+	//    client software typically tries another of the IP addresses in the response.
+	//
+	// You can't create multivalue answer alias records.
+	MultiValueAnswer *bool `type:"boolean"`
+
 	// The name of the domain you want to perform the action on.
 	//
 	// Enter a fully qualified domain name, for example, www.example.com. You can
@@ -11393,8 +11393,8 @@ type ResourceRecordSet struct {
 
 	// The resource record cache time to live (TTL), in seconds. Note the following:
 	//
-	//    * If you're creating an alias resource record set, omit TTL. Amazon Route
-	//    53 uses the value of TTL for the alias target.
+	//    * If you're creating or updating an alias resource record set, omit TTL.
+	//    Amazon Route 53 uses the value of TTL for the alias target.
 	//
 	//    * If you're associating this resource record set with a health check (if
 	//    you're adding a HealthCheckId element), we recommend that you specify
@@ -11428,13 +11428,16 @@ type ResourceRecordSet struct {
 	// data is encoded for them, see Supported DNS Resource Record Types (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/ResourceRecordTypes.html)
 	// in the Amazon Route 53 Developer Guide.
 	//
-	// Valid values for basic resource record sets: A | AAAA | CNAME | MX | NAPTR
-	// | NS | PTR | SOA | SPF | SRV | TXT
+	// Valid values for basic resource record sets: A | AAAA | CAA | CNAME | MX
+	// | NAPTR | NS | PTR | SOA | SPF | SRV | TXT
 	//
 	// Values for weighted, latency, geolocation, and failover resource record sets:
-	// A | AAAA | CNAME | MX | NAPTR | PTR | SPF | SRV | TXT. When creating a group
-	// of weighted, latency, geolocation, or failover resource record sets, specify
-	// the same value for all of the resource record sets in the group.
+	// A | AAAA | CAA | CNAME | MX | NAPTR | PTR | SPF | SRV | TXT. When creating
+	// a group of weighted, latency, geolocation, or failover resource record sets,
+	// specify the same value for all of the resource record sets in the group.
+	//
+	// Valid values for multivalue answer resource record sets: A | AAAA | MX |
+	// NAPTR | PTR | SPF | SRV | TXT
 	//
 	// SPF records were formerly used to verify the identity of the sender of email
 	// messages. However, we no longer recommend that you create resource record
@@ -11461,8 +11464,8 @@ type ResourceRecordSet struct {
 	//    * Amazon S3 buckets:A
 	//
 	//    * Another resource record set in this hosted zone: Specify the type of
-	//    the resource record set for which you're creating the alias. Specify any
-	//    value except NS or SOA.
+	//    the resource record set that you're creating the alias for. All values
+	//    are supported except NS and SOA.
 	//
 	// Type is a required field
 	Type *string `type:"string" required:"true" enum:"RRType"`
@@ -11582,6 +11585,12 @@ func (s *ResourceRecordSet) SetGeoLocation(v *GeoLocation) *ResourceRecordSet {
 // SetHealthCheckId sets the HealthCheckId field's value.
 func (s *ResourceRecordSet) SetHealthCheckId(v string) *ResourceRecordSet {
 	s.HealthCheckId = &v
+	return s
+}
+
+// SetMultiValueAnswer sets the MultiValueAnswer field's value.
+func (s *ResourceRecordSet) SetMultiValueAnswer(v bool) *ResourceRecordSet {
+	s.MultiValueAnswer = &v
 	return s
 }
 
@@ -12480,7 +12489,7 @@ type UpdateHealthCheckInput struct {
 
 	// A complex type that contains one Region element for each region that you
 	// want Amazon Route 53 health checkers to check the specified endpoint from.
-	Regions []*string `locationNameList:"Region" min:"1" type:"list"`
+	Regions []*string `locationNameList:"Region" min:"3" type:"list"`
 
 	// The path that you want Amazon Route 53 to request when performing health
 	// checks. The path can be any value for which your endpoint will return an
@@ -12523,8 +12532,8 @@ func (s *UpdateHealthCheckInput) Validate() error {
 	if s.Port != nil && *s.Port < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("Port", 1))
 	}
-	if s.Regions != nil && len(s.Regions) < 1 {
-		invalidParams.Add(request.NewErrParamMinLen("Regions", 1))
+	if s.Regions != nil && len(s.Regions) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("Regions", 3))
 	}
 	if s.AlarmIdentifier != nil {
 		if err := s.AlarmIdentifier.Validate(); err != nil {
@@ -13178,6 +13187,9 @@ const (
 
 	// RRTypeAaaa is a RRType enum value
 	RRTypeAaaa = "AAAA"
+
+	// RRTypeCaa is a RRType enum value
+	RRTypeCaa = "CAA"
 )
 
 const (

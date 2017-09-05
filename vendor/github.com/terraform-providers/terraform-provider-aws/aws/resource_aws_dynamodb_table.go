@@ -197,6 +197,10 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"stream_label": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"tags": tagsSchema(),
 		},
 	}
@@ -788,6 +792,7 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("stream_view_type", table.StreamSpecification.StreamViewType)
 		d.Set("stream_enabled", table.StreamSpecification.StreamEnabled)
 		d.Set("stream_arn", table.LatestStreamArn)
+		d.Set("stream_label", table.LatestStreamLabel)
 	}
 
 	err = d.Set("global_secondary_index", gsiList)

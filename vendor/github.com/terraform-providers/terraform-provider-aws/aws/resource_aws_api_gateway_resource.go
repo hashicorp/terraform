@@ -60,9 +60,8 @@ func resourceAwsApiGatewayResourceCreate(d *schema.ResourceData, meta interface{
 	}
 
 	d.SetId(*resource.Id)
-	d.Set("path", resource.Path)
 
-	return nil
+	return resourceAwsApiGatewayResourceRead(d, meta)
 }
 
 func resourceAwsApiGatewayResourceRead(d *schema.ResourceData, meta interface{}) error {
@@ -76,6 +75,7 @@ func resourceAwsApiGatewayResourceRead(d *schema.ResourceData, meta interface{})
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
+			log.Printf("[WARN] API Gateway Resource (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

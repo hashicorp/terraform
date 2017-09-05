@@ -127,6 +127,20 @@ func resourceAwsEcsService() *schema.Resource {
 						},
 					},
 				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["type"].(string)))
+					if m["field"] != nil {
+						field := m["field"].(string)
+						if field == "host" {
+							buf.WriteString("instanceId-")
+						} else {
+							buf.WriteString(fmt.Sprintf("%s-", field))
+						}
+					}
+					return hashcode.String(buf.String())
+				},
 			},
 
 			"placement_constraints": {

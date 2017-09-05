@@ -38,9 +38,9 @@ func dataSourceAwsIAMServerCertificate() *schema.Resource {
 				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if len(value) > 30 {
+					if len(value) > 102 {
 						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 30 characters, name is limited to 128", k))
+							"%q cannot be longer than 102 characters, name is limited to 128", k))
 					}
 					return
 				},

@@ -316,7 +316,7 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 	d.Set("tags", dataSourceTags(instance.Tags))
 
 	// Security Groups
-	if err := readSecurityGroups(d, instance); err != nil {
+	if err := readSecurityGroups(d, instance, conn); err != nil {
 		return err
 	}
 

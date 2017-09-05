@@ -98,9 +98,24 @@ func resourceAwsAutoscalingScheduleCreate(d *schema.ResourceData, meta interface
 		params.Recurrence = aws.String(attr.(string))
 	}
 
-	params.MinSize = aws.Int64(int64(d.Get("min_size").(int)))
-	params.MaxSize = aws.Int64(int64(d.Get("max_size").(int)))
-	params.DesiredCapacity = aws.Int64(int64(d.Get("desired_capacity").(int)))
+	// Scheduled actions don't need to set all three size parameters. For example,
+	// you may want to change the min or max without also forcing an immediate
+	// resize by changing a desired_capacity that may have changed due to other
+	// autoscaling rules. Since Terraform doesn't have a great pattern for
+	// differentiating between 0 and unset fields, we accept "-1" to mean "don't
+	// include this parameter in the action".
+	minSize := int64(d.Get("min_size").(int))
+	maxSize := int64(d.Get("max_size").(int))
+	desiredCapacity := int64(d.Get("desired_capacity").(int))
+	if minSize != -1 {
+		params.MinSize = aws.Int64(minSize)
+	}
+	if maxSize != -1 {
+		params.MaxSize = aws.Int64(maxSize)
+	}
+	if desiredCapacity != -1 {
+		params.DesiredCapacity = aws.Int64(desiredCapacity)
+	}
 
 	log.Printf("[INFO] Creating Autoscaling Scheduled Action: %s", d.Get("scheduled_action_name").(string))
 	_, err := autoscalingconn.PutScheduledUpdateGroupAction(params)
@@ -127,9 +142,23 @@ func resourceAwsAutoscalingScheduleRead(d *schema.ResourceData, meta interface{}
 
 	d.Set("autoscaling_group_name", sa.AutoScalingGroupName)
 	d.Set("arn", sa.ScheduledActionARN)
-	d.Set("desired_capacity", sa.DesiredCapacity)
-	d.Set("min_size", sa.MinSize)
-	d.Set("max_size", sa.MaxSize)
+
+	if sa.MinSize == nil {
+		d.Set("min_size", -1)
+	} else {
+		d.Set("min_size", sa.MinSize)
+	}
+	if sa.MaxSize == nil {
+		d.Set("max_size", -1)
+	} else {
+		d.Set("max_size", sa.MaxSize)
+	}
+	if sa.DesiredCapacity == nil {
+		d.Set("desired_capacity", -1)
+	} else {
+		d.Set("desired_capacity", sa.DesiredCapacity)
+	}
+
 	d.Set("recurrence", sa.Recurrence)
 
 	if sa.StartTime != nil {

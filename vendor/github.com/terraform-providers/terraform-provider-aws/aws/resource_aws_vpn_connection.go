@@ -24,6 +24,8 @@ type XmlVpnConnectionConfig struct {
 
 type XmlIpsecTunnel struct {
 	OutsideAddress   string `xml:"vpn_gateway>tunnel_outside_address>ip_address"`
+	BGPASN           string `xml:"vpn_gateway>bgp>asn"`
+	BGPHoldTime      int    `xml:"vpn_gateway>bgp>hold_time"`
 	PreSharedKey     string `xml:"ike>pre_shared_key"`
 	CgwInsideAddress string `xml:"customer_gateway>tunnel_inside_address>ip_address"`
 	VgwInsideAddress string `xml:"vpn_gateway>tunnel_inside_address>ip_address"`
@@ -34,10 +36,14 @@ type TunnelInfo struct {
 	Tunnel1CgwInsideAddress string
 	Tunnel1VgwInsideAddress string
 	Tunnel1PreSharedKey     string
+	Tunnel1BGPASN           string
+	Tunnel1BGPHoldTime      int
 	Tunnel2Address          string
 	Tunnel2CgwInsideAddress string
 	Tunnel2VgwInsideAddress string
 	Tunnel2PreSharedKey     string
+	Tunnel2BGPASN           string
+	Tunnel2BGPHoldTime      int
 }
 
 func (slice XmlVpnConnectionConfig) Len() int {
@@ -116,7 +122,14 @@ func resourceAwsVpnConnection() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-
+			"tunnel1_bgp_asn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"tunnel1_bgp_holdtime": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"tunnel2_address": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -136,7 +149,14 @@ func resourceAwsVpnConnection() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-
+			"tunnel2_bgp_asn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"tunnel2_bgp_holdtime": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"routes": {
 				Type:     schema.TypeSet,
 				Computed: true,
@@ -352,10 +372,14 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 			d.Set("tunnel1_cgw_inside_address", tunnelInfo.Tunnel1CgwInsideAddress)
 			d.Set("tunnel1_vgw_inside_address", tunnelInfo.Tunnel1VgwInsideAddress)
 			d.Set("tunnel1_preshared_key", tunnelInfo.Tunnel1PreSharedKey)
+			d.Set("tunnel1_bgp_asn", tunnelInfo.Tunnel1BGPASN)
+			d.Set("tunnel1_bgp_holdtime", tunnelInfo.Tunnel1BGPHoldTime)
 			d.Set("tunnel2_address", tunnelInfo.Tunnel2Address)
 			d.Set("tunnel2_preshared_key", tunnelInfo.Tunnel2PreSharedKey)
 			d.Set("tunnel2_cgw_inside_address", tunnelInfo.Tunnel2CgwInsideAddress)
 			d.Set("tunnel2_vgw_inside_address", tunnelInfo.Tunnel2VgwInsideAddress)
+			d.Set("tunnel2_bgp_asn", tunnelInfo.Tunnel2BGPASN)
+			d.Set("tunnel2_bgp_holdtime", tunnelInfo.Tunnel2BGPHoldTime)
 		}
 	}
 
@@ -473,11 +497,14 @@ func xmlConfigToTunnelInfo(xmlConfig string) (*TunnelInfo, error) {
 		Tunnel1PreSharedKey:     vpnConfig.Tunnels[0].PreSharedKey,
 		Tunnel1CgwInsideAddress: vpnConfig.Tunnels[0].CgwInsideAddress,
 		Tunnel1VgwInsideAddress: vpnConfig.Tunnels[0].VgwInsideAddress,
-
+		Tunnel1BGPASN:           vpnConfig.Tunnels[0].BGPASN,
+		Tunnel1BGPHoldTime:      vpnConfig.Tunnels[0].BGPHoldTime,
 		Tunnel2Address:          vpnConfig.Tunnels[1].OutsideAddress,
 		Tunnel2PreSharedKey:     vpnConfig.Tunnels[1].PreSharedKey,
 		Tunnel2CgwInsideAddress: vpnConfig.Tunnels[1].CgwInsideAddress,
 		Tunnel2VgwInsideAddress: vpnConfig.Tunnels[1].VgwInsideAddress,
+		Tunnel2BGPASN:           vpnConfig.Tunnels[1].BGPASN,
+		Tunnel2BGPHoldTime:      vpnConfig.Tunnels[1].BGPHoldTime,
 	}
 
 	return &tunnelInfo, nil

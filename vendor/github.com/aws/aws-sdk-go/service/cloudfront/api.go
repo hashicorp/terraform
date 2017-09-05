@@ -17,19 +17,18 @@ const opCreateCloudFrontOriginAccessIdentity = "CreateCloudFrontOriginAccessIden
 
 // CreateCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCloudFrontOriginAccessIdentity operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateCloudFrontOriginAccessIdentity for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateCloudFrontOriginAccessIdentity method directly
-// instead.
+// See CreateCloudFrontOriginAccessIdentity for more information on using the CreateCloudFrontOriginAccessIdentity
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateCloudFrontOriginAccessIdentityRequest method.
 //    req, resp := client.CreateCloudFrontOriginAccessIdentityRequest(params)
@@ -119,19 +118,18 @@ const opCreateDistribution = "CreateDistribution2017_03_25"
 
 // CreateDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDistribution method directly
-// instead.
+// See CreateDistribution for more information on using the CreateDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDistributionRequest method.
 //    req, resp := client.CreateDistributionRequest(params)
@@ -315,19 +313,18 @@ const opCreateDistributionWithTags = "CreateDistributionWithTags2017_03_25"
 
 // CreateDistributionWithTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDistributionWithTags operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDistributionWithTags for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDistributionWithTags method directly
-// instead.
+// See CreateDistributionWithTags for more information on using the CreateDistributionWithTags
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDistributionWithTagsRequest method.
 //    req, resp := client.CreateDistributionWithTagsRequest(params)
@@ -512,19 +509,18 @@ const opCreateInvalidation = "CreateInvalidation2017_03_25"
 
 // CreateInvalidationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateInvalidation operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateInvalidation for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateInvalidation method directly
-// instead.
+// See CreateInvalidation for more information on using the CreateInvalidation
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateInvalidationRequest method.
 //    req, resp := client.CreateInvalidationRequest(params)
@@ -611,19 +607,18 @@ const opCreateStreamingDistribution = "CreateStreamingDistribution2017_03_25"
 
 // CreateStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateStreamingDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateStreamingDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateStreamingDistribution method directly
-// instead.
+// See CreateStreamingDistribution for more information on using the CreateStreamingDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateStreamingDistributionRequest method.
 //    req, resp := client.CreateStreamingDistributionRequest(params)
@@ -751,19 +746,18 @@ const opCreateStreamingDistributionWithTags = "CreateStreamingDistributionWithTa
 
 // CreateStreamingDistributionWithTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateStreamingDistributionWithTags operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateStreamingDistributionWithTags for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateStreamingDistributionWithTags method directly
-// instead.
+// See CreateStreamingDistributionWithTags for more information on using the CreateStreamingDistributionWithTags
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateStreamingDistributionWithTagsRequest method.
 //    req, resp := client.CreateStreamingDistributionWithTagsRequest(params)
@@ -866,19 +860,18 @@ const opDeleteCloudFrontOriginAccessIdentity = "DeleteCloudFrontOriginAccessIden
 
 // DeleteCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCloudFrontOriginAccessIdentity operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteCloudFrontOriginAccessIdentity for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteCloudFrontOriginAccessIdentity method directly
-// instead.
+// See DeleteCloudFrontOriginAccessIdentity for more information on using the DeleteCloudFrontOriginAccessIdentity
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteCloudFrontOriginAccessIdentityRequest method.
 //    req, resp := client.DeleteCloudFrontOriginAccessIdentityRequest(params)
@@ -960,19 +953,18 @@ const opDeleteDistribution = "DeleteDistribution2017_03_25"
 
 // DeleteDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDistribution method directly
-// instead.
+// See DeleteDistribution for more information on using the DeleteDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDistributionRequest method.
 //    req, resp := client.DeleteDistributionRequest(params)
@@ -1054,19 +1046,18 @@ const opDeleteStreamingDistribution = "DeleteStreamingDistribution2017_03_25"
 
 // DeleteStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteStreamingDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteStreamingDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteStreamingDistribution method directly
-// instead.
+// See DeleteStreamingDistribution for more information on using the DeleteStreamingDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteStreamingDistributionRequest method.
 //    req, resp := client.DeleteStreamingDistributionRequest(params)
@@ -1183,19 +1174,18 @@ const opGetCloudFrontOriginAccessIdentity = "GetCloudFrontOriginAccessIdentity20
 
 // GetCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the GetCloudFrontOriginAccessIdentity operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetCloudFrontOriginAccessIdentity for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetCloudFrontOriginAccessIdentity method directly
-// instead.
+// See GetCloudFrontOriginAccessIdentity for more information on using the GetCloudFrontOriginAccessIdentity
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetCloudFrontOriginAccessIdentityRequest method.
 //    req, resp := client.GetCloudFrontOriginAccessIdentityRequest(params)
@@ -1266,19 +1256,18 @@ const opGetCloudFrontOriginAccessIdentityConfig = "GetCloudFrontOriginAccessIden
 
 // GetCloudFrontOriginAccessIdentityConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetCloudFrontOriginAccessIdentityConfig operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetCloudFrontOriginAccessIdentityConfig for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetCloudFrontOriginAccessIdentityConfig method directly
-// instead.
+// See GetCloudFrontOriginAccessIdentityConfig for more information on using the GetCloudFrontOriginAccessIdentityConfig
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetCloudFrontOriginAccessIdentityConfigRequest method.
 //    req, resp := client.GetCloudFrontOriginAccessIdentityConfigRequest(params)
@@ -1349,19 +1338,18 @@ const opGetDistribution = "GetDistribution2017_03_25"
 
 // GetDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the GetDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetDistribution method directly
-// instead.
+// See GetDistribution for more information on using the GetDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetDistributionRequest method.
 //    req, resp := client.GetDistributionRequest(params)
@@ -1432,19 +1420,18 @@ const opGetDistributionConfig = "GetDistributionConfig2017_03_25"
 
 // GetDistributionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetDistributionConfig operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetDistributionConfig for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetDistributionConfig method directly
-// instead.
+// See GetDistributionConfig for more information on using the GetDistributionConfig
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetDistributionConfigRequest method.
 //    req, resp := client.GetDistributionConfigRequest(params)
@@ -1515,19 +1502,18 @@ const opGetInvalidation = "GetInvalidation2017_03_25"
 
 // GetInvalidationRequest generates a "aws/request.Request" representing the
 // client's request for the GetInvalidation operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetInvalidation for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetInvalidation method directly
-// instead.
+// See GetInvalidation for more information on using the GetInvalidation
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetInvalidationRequest method.
 //    req, resp := client.GetInvalidationRequest(params)
@@ -1601,19 +1587,18 @@ const opGetStreamingDistribution = "GetStreamingDistribution2017_03_25"
 
 // GetStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the GetStreamingDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetStreamingDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetStreamingDistribution method directly
-// instead.
+// See GetStreamingDistribution for more information on using the GetStreamingDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetStreamingDistributionRequest method.
 //    req, resp := client.GetStreamingDistributionRequest(params)
@@ -1685,19 +1670,18 @@ const opGetStreamingDistributionConfig = "GetStreamingDistributionConfig2017_03_
 
 // GetStreamingDistributionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetStreamingDistributionConfig operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetStreamingDistributionConfig for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetStreamingDistributionConfig method directly
-// instead.
+// See GetStreamingDistributionConfig for more information on using the GetStreamingDistributionConfig
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetStreamingDistributionConfigRequest method.
 //    req, resp := client.GetStreamingDistributionConfigRequest(params)
@@ -1768,19 +1752,18 @@ const opListCloudFrontOriginAccessIdentities = "ListCloudFrontOriginAccessIdenti
 
 // ListCloudFrontOriginAccessIdentitiesRequest generates a "aws/request.Request" representing the
 // client's request for the ListCloudFrontOriginAccessIdentities operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListCloudFrontOriginAccessIdentities for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListCloudFrontOriginAccessIdentities method directly
-// instead.
+// See ListCloudFrontOriginAccessIdentities for more information on using the ListCloudFrontOriginAccessIdentities
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListCloudFrontOriginAccessIdentitiesRequest method.
 //    req, resp := client.ListCloudFrontOriginAccessIdentitiesRequest(params)
@@ -1904,19 +1887,18 @@ const opListDistributions = "ListDistributions2017_03_25"
 
 // ListDistributionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListDistributions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListDistributions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListDistributions method directly
-// instead.
+// See ListDistributions for more information on using the ListDistributions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListDistributionsRequest method.
 //    req, resp := client.ListDistributionsRequest(params)
@@ -2040,19 +2022,18 @@ const opListDistributionsByWebACLId = "ListDistributionsByWebACLId2017_03_25"
 
 // ListDistributionsByWebACLIdRequest generates a "aws/request.Request" representing the
 // client's request for the ListDistributionsByWebACLId operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListDistributionsByWebACLId for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListDistributionsByWebACLId method directly
-// instead.
+// See ListDistributionsByWebACLId for more information on using the ListDistributionsByWebACLId
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListDistributionsByWebACLIdRequest method.
 //    req, resp := client.ListDistributionsByWebACLIdRequest(params)
@@ -2122,19 +2103,18 @@ const opListInvalidations = "ListInvalidations2017_03_25"
 
 // ListInvalidationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListInvalidations operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListInvalidations for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListInvalidations method directly
-// instead.
+// See ListInvalidations for more information on using the ListInvalidations
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListInvalidationsRequest method.
 //    req, resp := client.ListInvalidationsRequest(params)
@@ -2264,19 +2244,18 @@ const opListStreamingDistributions = "ListStreamingDistributions2017_03_25"
 
 // ListStreamingDistributionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListStreamingDistributions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListStreamingDistributions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListStreamingDistributions method directly
-// instead.
+// See ListStreamingDistributions for more information on using the ListStreamingDistributions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListStreamingDistributionsRequest method.
 //    req, resp := client.ListStreamingDistributionsRequest(params)
@@ -2400,19 +2379,18 @@ const opListTagsForResource = "ListTagsForResource2017_03_25"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTagsForResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTagsForResource method directly
-// instead.
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTagsForResourceRequest method.
 //    req, resp := client.ListTagsForResourceRequest(params)
@@ -2487,19 +2465,18 @@ const opTagResource = "TagResource2017_03_25"
 
 // TagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the TagResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See TagResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the TagResource method directly
-// instead.
+// See TagResource for more information on using the TagResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the TagResourceRequest method.
 //    req, resp := client.TagResourceRequest(params)
@@ -2576,19 +2553,18 @@ const opUntagResource = "UntagResource2017_03_25"
 
 // UntagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the UntagResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UntagResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UntagResource method directly
-// instead.
+// See UntagResource for more information on using the UntagResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UntagResourceRequest method.
 //    req, resp := client.UntagResourceRequest(params)
@@ -2665,19 +2641,18 @@ const opUpdateCloudFrontOriginAccessIdentity = "UpdateCloudFrontOriginAccessIden
 
 // UpdateCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateCloudFrontOriginAccessIdentity operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateCloudFrontOriginAccessIdentity for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateCloudFrontOriginAccessIdentity method directly
-// instead.
+// See UpdateCloudFrontOriginAccessIdentity for more information on using the UpdateCloudFrontOriginAccessIdentity
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateCloudFrontOriginAccessIdentityRequest method.
 //    req, resp := client.UpdateCloudFrontOriginAccessIdentityRequest(params)
@@ -2768,19 +2743,18 @@ const opUpdateDistribution = "UpdateDistribution2017_03_25"
 
 // UpdateDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateDistribution method directly
-// instead.
+// See UpdateDistribution for more information on using the UpdateDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateDistributionRequest method.
 //    req, resp := client.UpdateDistributionRequest(params)
@@ -2809,7 +2783,56 @@ func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (
 
 // UpdateDistribution API operation for Amazon CloudFront.
 //
-// Update a distribution.
+// Updates the configuration for a web distribution. Perform the following steps.
+//
+// For information about updating a distribution using the CloudFront console,
+// see Creating or Updating a Web Distribution Using the CloudFront Console
+//  (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-creating-console.html)
+// in the Amazon CloudFront Developer Guide.
+//
+// To update a web distribution using the CloudFront API
+//
+// Submit a GetDistributionConfig request to get the current configuration and
+// an Etag header for the distribution.
+//
+// If you update the distribution again, you need to get a new Etag header.
+//
+// Update the XML document that was returned in the response to your GetDistributionConfig
+// request to include the desired changes. You can't change the value of CallerReference.
+// If you try to change this value, CloudFront returns an IllegalUpdate error.
+//
+// The new configuration replaces the existing configuration; the values that
+// you specify in an UpdateDistribution request are not merged into the existing
+// configuration. When you add, delete, or replace values in an element that
+// allows multiple values (for example, CNAME), you must specify all of the
+// values that you want to appear in the updated distribution. In addition,
+// you must update the corresponding Quantity element.
+//
+// Submit an UpdateDistribution request to update the configuration for your
+// distribution:
+//
+// In the request body, include the XML document that you updated in Step 2.
+// The request body must include an XML document with a DistributionConfig element.
+//
+// Set the value of the HTTP If-Match header to the value of the ETag header
+// that CloudFront returned when you submitted the GetDistributionConfig request
+// in Step 1.
+//
+// Review the response to the UpdateDistribution request to confirm that the
+// configuration was successfully updated.
+//
+// Optional: Submit a GetDistribution request to confirm that your changes have
+// propagated. When propagation is complete, the value of Status is Deployed.
+//
+// Beginning with the 2012-05-05 version of the CloudFront API, we made substantial
+// changes to the format of the XML document that you include in the request
+// body when you create or update a distribution. With previous versions of
+// the API, we discovered that it was too easy to accidentally delete one or
+// more values for an element that accepts multiple values, for example, CNAMEs
+// and trusted signers. Our changes for the 2012-05-05 release are intended
+// to prevent these accidental deletions and to notify you when there's a mismatch
+// between the number of values you say you're specifying in the Quantity element
+// and the number of values you're actually specifying.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2960,19 +2983,18 @@ const opUpdateStreamingDistribution = "UpdateStreamingDistribution2017_03_25"
 
 // UpdateStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateStreamingDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateStreamingDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateStreamingDistribution method directly
-// instead.
+// See UpdateStreamingDistribution for more information on using the UpdateStreamingDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateStreamingDistributionRequest method.
 //    req, resp := client.UpdateStreamingDistributionRequest(params)
@@ -3857,7 +3879,7 @@ type CreateCloudFrontOriginAccessIdentityInput struct {
 	// The current configuration information for the identity.
 	//
 	// CloudFrontOriginAccessIdentityConfig is a required field
-	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true"`
+	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -3946,7 +3968,7 @@ type CreateDistributionInput struct {
 	// The distribution's configuration information.
 	//
 	// DistributionConfig is a required field
-	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true"`
+	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -4035,7 +4057,7 @@ type CreateDistributionWithTagsInput struct {
 	// The distribution's configuration information.
 	//
 	// DistributionConfigWithTags is a required field
-	DistributionConfigWithTags *DistributionConfigWithTags `locationName:"DistributionConfigWithTags" type:"structure" required:"true"`
+	DistributionConfigWithTags *DistributionConfigWithTags `locationName:"DistributionConfigWithTags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -4129,7 +4151,7 @@ type CreateInvalidationInput struct {
 	// The batch information for the invalidation.
 	//
 	// InvalidationBatch is a required field
-	InvalidationBatch *InvalidationBatch `locationName:"InvalidationBatch" type:"structure" required:"true"`
+	InvalidationBatch *InvalidationBatch `locationName:"InvalidationBatch" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -4218,7 +4240,7 @@ type CreateStreamingDistributionInput struct {
 	// The streaming distribution's configuration information.
 	//
 	// StreamingDistributionConfig is a required field
-	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true"`
+	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -4307,7 +4329,7 @@ type CreateStreamingDistributionWithTagsInput struct {
 	// The streaming distribution's configuration information.
 	//
 	// StreamingDistributionConfigWithTags is a required field
-	StreamingDistributionConfigWithTags *StreamingDistributionConfigWithTags `locationName:"StreamingDistributionConfigWithTags" type:"structure" required:"true"`
+	StreamingDistributionConfigWithTags *StreamingDistributionConfigWithTags `locationName:"StreamingDistributionConfigWithTags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -8696,7 +8718,7 @@ type S3OriginConfig struct {
 	// objects in an Amazon S3 bucket through CloudFront. The format of the value
 	// is:
 	//
-	// origin-access-identity/CloudFront/ID-of-origin-access-identity
+	// origin-access-identity/cloudfront/ID-of-origin-access-identity
 	//
 	// where ID-of-origin-access-identity is the value that CloudFront returned
 	// in the ID element when you created the origin access identity.
@@ -9526,7 +9548,7 @@ type TagResourceInput struct {
 	// A complex type that contains zero or more Tag elements.
 	//
 	// Tags is a required field
-	Tags *Tags `locationName:"Tags" type:"structure" required:"true"`
+	Tags *Tags `locationName:"Tags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -9727,7 +9749,7 @@ type UntagResourceInput struct {
 	// A complex type that contains zero or more Tag key elements.
 	//
 	// TagKeys is a required field
-	TagKeys *TagKeys `locationName:"TagKeys" type:"structure" required:"true"`
+	TagKeys *TagKeys `locationName:"TagKeys" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -9791,7 +9813,7 @@ type UpdateCloudFrontOriginAccessIdentityInput struct {
 	// The identity's configuration information.
 	//
 	// CloudFrontOriginAccessIdentityConfig is a required field
-	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true"`
+	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 
 	// The identity's id.
 	//
@@ -9894,7 +9916,7 @@ type UpdateDistributionInput struct {
 	// The distribution's configuration information.
 	//
 	// DistributionConfig is a required field
-	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true"`
+	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 
 	// The distribution's id.
 	//
@@ -10006,7 +10028,7 @@ type UpdateStreamingDistributionInput struct {
 	// The streaming distribution's configuration information.
 	//
 	// StreamingDistributionConfig is a required field
-	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true"`
+	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation

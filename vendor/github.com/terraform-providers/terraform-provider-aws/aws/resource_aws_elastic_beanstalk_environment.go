@@ -769,6 +769,7 @@ func optionSettingValueHash(v interface{}) int {
 		resourceName = v
 	}
 	value, _ := rd["value"].(string)
+	value, _ = normalizeJsonString(value)
 	hk := fmt.Sprintf("%s:%s%s=%s", namespace, optionName, resourceName, sortValues(value))
 	log.Printf("[DEBUG] Elastic Beanstalk optionSettingValueHash(%#v): %s: hk=%s,hc=%d", v, optionName, hk, hashcode.String(hk))
 	return hashcode.String(hk)

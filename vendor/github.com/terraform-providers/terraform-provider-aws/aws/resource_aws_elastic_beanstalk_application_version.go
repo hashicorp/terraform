@@ -3,13 +3,12 @@ package aws
 import (
 	"fmt"
 	"log"
-
-	"github.com/hashicorp/terraform/helper/schema"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
-	"time"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceAwsElasticBeanstalkApplicationVersion() *schema.Resource {
@@ -90,9 +89,9 @@ func resourceAwsElasticBeanstalkApplicationVersionRead(d *schema.ResourceData, m
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
 	resp, err := conn.DescribeApplicationVersions(&elasticbeanstalk.DescribeApplicationVersionsInput{
-		VersionLabels: []*string{aws.String(d.Id())},
+		ApplicationName: aws.String(d.Get("application").(string)),
+		VersionLabels:   []*string{aws.String(d.Id())},
 	})
-
 	if err != nil {
 		return err
 	}
@@ -104,7 +103,8 @@ func resourceAwsElasticBeanstalkApplicationVersionRead(d *schema.ResourceData, m
 
 		return nil
 	} else if len(resp.ApplicationVersions) != 1 {
-		return fmt.Errorf("Error reading application version properties: found %d application versions, expected 1", len(resp.ApplicationVersions))
+		return fmt.Errorf("Error reading application version properties: found %d versions of label %q, expected 1",
+			len(resp.ApplicationVersions), d.Id())
 	}
 
 	if err := d.Set("description", resp.ApplicationVersions[0].Description); err != nil {

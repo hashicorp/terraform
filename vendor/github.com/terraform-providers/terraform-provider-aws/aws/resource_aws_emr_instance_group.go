@@ -155,7 +155,8 @@ func resourceAwsEMRInstanceGroupCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsEMRInstanceGroupRead(d *schema.ResourceData, meta interface{}) error {
-	group, err := fetchEMRInstanceGroup(meta, d.Get("cluster_id").(string), d.Id())
+	conn := meta.(*AWSClient).emrconn
+	group, err := fetchEMRInstanceGroup(conn, d.Get("cluster_id").(string), d.Id())
 	if err != nil {
 		switch err {
 		case emrInstanceGroupNotFound:
@@ -186,8 +187,7 @@ func resourceAwsEMRInstanceGroupRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func fetchAllEMRInstanceGroups(meta interface{}, clusterId string) ([]*emr.InstanceGroup, error) {
-	conn := meta.(*AWSClient).emrconn
+func fetchAllEMRInstanceGroups(conn *emr.EMR, clusterId string) ([]*emr.InstanceGroup, error) {
 	req := &emr.ListInstanceGroupsInput{
 		ClusterId: aws.String(clusterId),
 	}
@@ -221,8 +221,8 @@ func fetchAllEMRInstanceGroups(meta interface{}, clusterId string) ([]*emr.Insta
 	return groups, nil
 }
 
-func fetchEMRInstanceGroup(meta interface{}, clusterId, groupId string) (*emr.InstanceGroup, error) {
-	groups, err := fetchAllEMRInstanceGroups(meta, clusterId)
+func fetchEMRInstanceGroup(conn *emr.EMR, clusterId, groupId string) (*emr.InstanceGroup, error) {
+	groups, err := fetchAllEMRInstanceGroups(conn, clusterId)
 	if err != nil {
 		return nil, err
 	}
@@ -280,9 +280,9 @@ func resourceAwsEMRInstanceGroupUpdate(d *schema.ResourceData, meta interface{})
 	return resourceAwsEMRInstanceGroupRead(d, meta)
 }
 
-func instanceGroupStateRefresh(meta interface{}, clusterID, igID string) resource.StateRefreshFunc {
+func instanceGroupStateRefresh(conn *emr.EMR, clusterID, igID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		group, err := fetchEMRInstanceGroup(meta, clusterID, igID)
+		group, err := fetchEMRInstanceGroup(conn, clusterID, igID)
 		if err != nil {
 			return nil, "Not Found", err
 		}

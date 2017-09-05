@@ -88,6 +88,13 @@ const (
 	// Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/receiving-email-permissions.html).
 	ErrCodeInvalidS3ConfigurationException = "InvalidS3Configuration"
 
+	// ErrCodeInvalidSNSDestinationException for service response error code
+	// "InvalidSNSDestination".
+	//
+	// Indicates that the Amazon Simple Notification Service (Amazon SNS) destination
+	// is invalid. See the error message for details.
+	ErrCodeInvalidSNSDestinationException = "InvalidSNSDestination"
+
 	// ErrCodeInvalidSnsTopicException for service response error code
 	// "InvalidSnsTopic".
 	//

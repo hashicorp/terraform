@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/hashicorp/terraform/helper/schema"
 	"gopkg.in/yaml.v2"
 )
@@ -2124,4 +2125,25 @@ func flattenAwsSsmTargets(targets []*ssm.Target) []map[string]interface{} {
 	result = append(result, t)
 
 	return result
+}
+
+func expandFieldToMatch(d map[string]interface{}) *waf.FieldToMatch {
+	ftm := &waf.FieldToMatch{
+		Type: aws.String(d["type"].(string)),
+	}
+	if data, ok := d["data"].(string); ok && data != "" {
+		ftm.Data = aws.String(data)
+	}
+	return ftm
+}
+
+func flattenFieldToMatch(fm *waf.FieldToMatch) []interface{} {
+	m := make(map[string]interface{})
+	if fm.Data != nil {
+		m["data"] = *fm.Data
+	}
+	if fm.Type != nil {
+		m["type"] = *fm.Type
+	}
+	return []interface{}{m}
 }
