@@ -657,6 +657,11 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 					" between config and state representation. "+
 					"There is no config for computed-only field, nothing to compare.", k)
 			}
+			if v.ForceNew {
+				return fmt.Errorf("%s: ForceNew triggers recreation of a resource "+
+					"if the value differs. "+
+					"There is no config for computed-only field, nothing to differ.", k)
+			}
 		}
 
 		if v.ValidateFunc != nil {

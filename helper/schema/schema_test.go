@@ -3395,6 +3395,17 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			},
 			false,
 		},
+
+		"Computed-only and ForceNew": {
+			map[string]*Schema{
+				"valid_name": &Schema{
+					Type:     TypeString,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+			true,
+		},
 	}
 
 	for tn, tc := range cases {
