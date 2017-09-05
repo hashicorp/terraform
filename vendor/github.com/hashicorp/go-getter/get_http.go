@@ -98,7 +98,6 @@ func (g *HttpGetter) Get(dst string, u *url.URL) error {
 }
 
 func (g *HttpGetter) GetFile(dst string, u *url.URL) error {
-
 	if g.Netrc {
 		// Add auth from netrc if we can
 		if err := addAuthFromNetrc(u); err != nil {
@@ -140,13 +139,22 @@ func (g *HttpGetter) getSubdir(dst, source, subDir string) error {
 	}
 	defer os.RemoveAll(td)
 
+	// We have to create a subdirectory that doesn't exist for the file
+	// getter to work.
+	td = filepath.Join(td, "data")
+
 	// Download that into the given directory
 	if err := Get(td, source); err != nil {
 		return err
 	}
 
+	// Process any globbing
+	sourcePath, err := SubdirGlob(td, subDir)
+	if err != nil {
+		return err
+	}
+
 	// Make sure the subdir path actually exists
-	sourcePath := filepath.Join(td, subDir)
 	if _, err := os.Stat(sourcePath); err != nil {
 		return fmt.Errorf(
 			"Error downloading %s: %s", source, err)

@@ -305,7 +305,13 @@ func (c *Client) Get() error {
 			return err
 		}
 
-		return copyDir(realDst, filepath.Join(dst, subDir), false)
+		// Process any globs
+		subDir, err := SubdirGlob(dst, subDir)
+		if err != nil {
+			return err
+		}
+
+		return copyDir(realDst, subDir, false)
 	}
 
 	return nil
