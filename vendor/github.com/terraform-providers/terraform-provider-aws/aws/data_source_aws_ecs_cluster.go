@@ -63,6 +63,7 @@ func dataSourceAwsEcsClusterRead(d *schema.ResourceData, meta interface{}) error
 			continue
 		}
 		d.SetId(aws.StringValue(cluster.ClusterArn))
+		d.Set("arn", cluster.ClusterArn)
 		d.Set("status", cluster.Status)
 		d.Set("pending_tasks_count", cluster.PendingTasksCount)
 		d.Set("running_tasks_count", cluster.RunningTasksCount)

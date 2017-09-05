@@ -28,6 +28,7 @@ func resourceAwsConfigDeliveryChannel() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				ForceNew:     true,
 				Default:      "default",
 				ValidateFunc: validateMaxLength(256),
 			},

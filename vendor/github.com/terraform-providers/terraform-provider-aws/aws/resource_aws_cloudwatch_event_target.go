@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"math"
 	"regexp"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -76,6 +77,26 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+
+			"ecs_target": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"task_count": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validation.IntBetween(1, math.MaxInt32),
+						},
+						"task_definition_arn": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringLenBetween(1, 1600),
 						},
 					},
 				},
@@ -163,6 +184,12 @@ func resourceAwsCloudWatchEventTargetRead(d *schema.ResourceData, meta interface
 		}
 	}
 
+	if t.EcsParameters != nil {
+		if err := d.Set("ecs_target", flattenAwsCloudWatchEventTargetEcsParameters(t.EcsParameters)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting ecs_target error: %#v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -245,6 +272,9 @@ func buildPutTargetInputStruct(d *schema.ResourceData) *events.PutTargetsInput {
 	if v, ok := d.GetOk("run_command_targets"); ok {
 		e.RunCommandParameters = expandAwsCloudWatchEventTargetRunParameters(v.([]interface{}))
 	}
+	if v, ok := d.GetOk("ecs_target"); ok {
+		e.EcsParameters = expandAwsCloudWatchEventTargetEcsParameters(v.([]interface{}))
+	}
 
 	input := events.PutTargetsInput{
 		Rule:    aws.String(d.Get("rule").(string)),
@@ -275,6 +305,17 @@ func expandAwsCloudWatchEventTargetRunParameters(config []interface{}) *events.R
 	return command
 }
 
+func expandAwsCloudWatchEventTargetEcsParameters(config []interface{}) *events.EcsParameters {
+	ecsParameters := &events.EcsParameters{}
+	for _, c := range config {
+		param := c.(map[string]interface{})
+		ecsParameters.TaskCount = aws.Int64(int64(param["task_count"].(int)))
+		ecsParameters.TaskDefinitionArn = aws.String(param["task_definition_arn"].(string))
+	}
+
+	return ecsParameters
+}
+
 func flattenAwsCloudWatchEventTargetRunParameters(runCommand *events.RunCommandParameters) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0)
 
@@ -287,5 +328,12 @@ func flattenAwsCloudWatchEventTargetRunParameters(runCommand *events.RunCommandP
 		result = append(result, config)
 	}
 
+	return result
+}
+func flattenAwsCloudWatchEventTargetEcsParameters(ecsParameters *events.EcsParameters) []map[string]interface{} {
+	config := make(map[string]interface{})
+	config["task_count"] = *ecsParameters.TaskCount
+	config["task_definition_arn"] = *ecsParameters.TaskDefinitionArn
+	result := []map[string]interface{}{config}
 	return result
 }

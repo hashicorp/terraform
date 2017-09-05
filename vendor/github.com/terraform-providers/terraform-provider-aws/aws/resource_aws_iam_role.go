@@ -21,7 +21,7 @@ func resourceAwsIamRole() *schema.Resource {
 		Update: resourceAwsIamRoleUpdate,
 		Delete: resourceAwsIamRoleDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceAwsIamRoleImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -95,12 +95,24 @@ func resourceAwsIamRole() *schema.Resource {
 				ValidateFunc:     validateJsonString,
 			},
 
+			"force_detach_policies": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"create_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
 	}
+}
+
+func resourceAwsIamRoleImport(
+	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("force_detach_policies", false)
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
@@ -250,6 +262,27 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 			})
 			if err != nil {
 				return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+			}
+		}
+	}
+
+	if d.Get("force_detach_policies").(bool) {
+		policiesResp, err := iamconn.ListAttachedRolePolicies(&iam.ListAttachedRolePoliciesInput{
+			RoleName: aws.String(d.Id()),
+		})
+		if err != nil {
+			return fmt.Errorf("Error listing Policies for IAM Role (%s) when trying to delete: %s", d.Id(), err)
+		}
+		// Loop and remove the Policies from the Role
+		if len(policiesResp.AttachedPolicies) > 0 {
+			for _, i := range policiesResp.AttachedPolicies {
+				_, err := iamconn.DetachRolePolicy(&iam.DetachRolePolicyInput{
+					PolicyArn: i.PolicyArn,
+					RoleName:  aws.String(d.Id()),
+				})
+				if err != nil {
+					return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+				}
 			}
 		}
 	}

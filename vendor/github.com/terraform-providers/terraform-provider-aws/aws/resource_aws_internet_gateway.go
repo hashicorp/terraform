@@ -265,21 +265,48 @@ func detachIGStateRefreshFunc(conn *ec2.EC2, gatewayID, vpcID string) resource.S
 				switch ec2err.Code() {
 				case "InvalidInternetGatewayID.NotFound":
 					log.Printf("[TRACE] Error detaching Internet Gateway '%s' from VPC '%s': %s", gatewayID, vpcID, err)
-					return nil, "Not Found", nil
+					return nil, "", nil
 
 				case "Gateway.NotAttached":
-					return "detached", "detached", nil
+					return 42, "detached", nil
 
 				case "DependencyViolation":
-					return nil, "detaching", nil
+					// This can be caused by associated public IPs left (e.g. by ELBs)
+					// and here we find and log which ones are to blame
+					out, err := findPublicNetworkInterfacesForVpcID(conn, vpcID)
+					if err != nil {
+						return 42, "detaching", err
+					}
+					if len(out.NetworkInterfaces) > 0 {
+						log.Printf("[DEBUG] Waiting for the following %d ENIs to be gone: %s",
+							len(out.NetworkInterfaces), out.NetworkInterfaces)
+					}
+
+					return 42, "detaching", nil
 				}
 			}
+			return 42, "", err
 		}
 
 		// DetachInternetGateway only returns an error, so if it's nil, assume we're
 		// detached
-		return "detached", "detached", nil
+		return 42, "detached", nil
 	}
+}
+
+func findPublicNetworkInterfacesForVpcID(conn *ec2.EC2, vpcID string) (*ec2.DescribeNetworkInterfacesOutput, error) {
+	return conn.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{aws.String(vpcID)},
+			},
+			{
+				Name:   aws.String("association.public-ip"),
+				Values: []*string{aws.String("*")},
+			},
+		},
+	})
 }
 
 // IGStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch

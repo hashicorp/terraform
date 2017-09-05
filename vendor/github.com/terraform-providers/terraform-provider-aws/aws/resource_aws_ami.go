@@ -133,15 +133,27 @@ func resourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 		ImageIds: []*string{aws.String(id)},
 	}
 
-	res, err := client.DescribeImages(req)
-	if err != nil {
-		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAMIID.NotFound" {
-			log.Printf("[DEBUG] %s no longer exists, so we'll drop it from the state", id)
-			d.SetId("")
-			return nil
-		}
+	var res *ec2.DescribeImagesOutput
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		var err error
+		res, err = client.DescribeImages(req)
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAMIID.NotFound" {
+				if d.IsNewResource() {
+					return resource.RetryableError(err)
+				}
 
-		return err
+				log.Printf("[DEBUG] %s no longer exists, so we'll drop it from the state", id)
+				d.SetId("")
+				return nil
+			}
+
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Unable to find AMI after retries: %s", err)
 	}
 
 	if len(res.Images) != 1 {

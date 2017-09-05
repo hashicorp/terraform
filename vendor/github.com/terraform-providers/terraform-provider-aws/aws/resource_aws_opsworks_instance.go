@@ -25,6 +25,12 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			State: resourceAwsOpsworksInstanceImport,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:     schema.TypeString,
@@ -782,7 +788,7 @@ func resourceAwsOpsworksInstanceCreate(d *schema.ResourceData, meta interface{})
 	d.Set("id", instanceId)
 
 	if v, ok := d.GetOk("state"); ok && v.(string) == "running" {
-		err := startOpsworksInstance(d, meta, true)
+		err := startOpsworksInstance(d, meta, true, d.Timeout(schema.TimeoutCreate))
 		if err != nil {
 			return err
 		}
@@ -854,14 +860,14 @@ func resourceAwsOpsworksInstanceUpdate(d *schema.ResourceData, meta interface{})
 		state := v.(string)
 		if state == "running" {
 			if status == "stopped" || status == "stopping" || status == "shutting_down" {
-				err := startOpsworksInstance(d, meta, false)
+				err := startOpsworksInstance(d, meta, false, d.Timeout(schema.TimeoutUpdate))
 				if err != nil {
 					return err
 				}
 			}
 		} else {
 			if status != "stopped" && status != "stopping" && status != "shutting_down" {
-				err := stopOpsworksInstance(d, meta, true)
+				err := stopOpsworksInstance(d, meta, true, d.Timeout(schema.TimeoutUpdate))
 				if err != nil {
 					return err
 				}
@@ -876,7 +882,7 @@ func resourceAwsOpsworksInstanceDelete(d *schema.ResourceData, meta interface{})
 	client := meta.(*AWSClient).opsworksconn
 
 	if v, ok := d.GetOk("status"); ok && v.(string) != "stopped" {
-		err := stopOpsworksInstance(d, meta, true)
+		err := stopOpsworksInstance(d, meta, true, d.Timeout(schema.TimeoutDelete))
 		if err != nil {
 			return err
 		}
@@ -909,7 +915,7 @@ func resourceAwsOpsworksInstanceImport(
 	return []*schema.ResourceData{d}, nil
 }
 
-func startOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool) error {
+func startOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool, timeout time.Duration) error {
 	client := meta.(*AWSClient).opsworksconn
 
 	instanceId := d.Get("id").(string)
@@ -933,7 +939,7 @@ func startOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool) 
 			Pending:    []string{"requested", "pending", "booting", "running_setup"},
 			Target:     []string{"online"},
 			Refresh:    OpsworksInstanceStateRefreshFunc(client, instanceId),
-			Timeout:    10 * time.Minute,
+			Timeout:    timeout,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}
@@ -947,7 +953,7 @@ func startOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool) 
 	return nil
 }
 
-func stopOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool) error {
+func stopOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool, timeout time.Duration) error {
 	client := meta.(*AWSClient).opsworksconn
 
 	instanceId := d.Get("id").(string)
@@ -971,7 +977,7 @@ func stopOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool) e
 			Pending:    []string{"stopping", "terminating", "shutting_down", "terminated"},
 			Target:     []string{"stopped"},
 			Refresh:    OpsworksInstanceStateRefreshFunc(client, instanceId),
-			Timeout:    10 * time.Minute,
+			Timeout:    timeout,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}

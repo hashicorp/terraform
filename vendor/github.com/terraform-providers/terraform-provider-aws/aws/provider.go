@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	homedir "github.com/mitchellh/go-homedir"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -162,6 +163,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_acm_certificate":          dataSourceAwsAcmCertificate(),
 			"aws_alb":                      dataSourceAwsAlb(),
 			"aws_alb_listener":             dataSourceAwsAlbListener(),
+			"aws_alb_target_group":         dataSourceAwsAlbTargetGroup(),
 			"aws_ami":                      dataSourceAwsAmi(),
 			"aws_ami_ids":                  dataSourceAwsAmiIds(),
 			"aws_autoscaling_groups":       dataSourceAwsAutoscalingGroups(),
@@ -176,19 +178,24 @@ func Provider() terraform.ResourceProvider {
 			"aws_ebs_snapshot":             dataSourceAwsEbsSnapshot(),
 			"aws_ebs_snapshot_ids":         dataSourceAwsEbsSnapshotIds(),
 			"aws_ebs_volume":               dataSourceAwsEbsVolume(),
+			"aws_ecr_repository":           dataSourceAwsEcrRepository(),
 			"aws_ecs_cluster":              dataSourceAwsEcsCluster(),
 			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
 			"aws_ecs_task_definition":      dataSourceAwsEcsTaskDefinition(),
 			"aws_efs_file_system":          dataSourceAwsEfsFileSystem(),
+			"aws_efs_mount_target":         dataSourceAwsEfsMountTarget(),
 			"aws_eip":                      dataSourceAwsEip(),
 			"aws_elastic_beanstalk_solution_stack": dataSourceAwsElasticBeanstalkSolutionStack(),
 			"aws_elasticache_cluster":              dataSourceAwsElastiCacheCluster(),
 			"aws_elb_hosted_zone_id":               dataSourceAwsElbHostedZoneId(),
 			"aws_elb_service_account":              dataSourceAwsElbServiceAccount(),
 			"aws_iam_account_alias":                dataSourceAwsIamAccountAlias(),
+			"aws_iam_group":                        dataSourceAwsIAMGroup(),
+			"aws_iam_instance_profile":             dataSourceAwsIAMInstanceProfile(),
 			"aws_iam_policy_document":              dataSourceAwsIamPolicyDocument(),
 			"aws_iam_role":                         dataSourceAwsIAMRole(),
 			"aws_iam_server_certificate":           dataSourceAwsIAMServerCertificate(),
+			"aws_internet_gateway":                 dataSourceAwsInternetGateway(),
 			"aws_instance":                         dataSourceAwsInstance(),
 			"aws_ip_ranges":                        dataSourceAwsIPRanges(),
 			"aws_kinesis_stream":                   dataSourceAwsKinesisStream(),
@@ -231,12 +238,14 @@ func Provider() terraform.ResourceProvider {
 			"aws_api_gateway_client_certificate":           resourceAwsApiGatewayClientCertificate(),
 			"aws_api_gateway_deployment":                   resourceAwsApiGatewayDeployment(),
 			"aws_api_gateway_domain_name":                  resourceAwsApiGatewayDomainName(),
+			"aws_api_gateway_gateway_response":             resourceAwsApiGatewayGatewayResponse(),
 			"aws_api_gateway_integration":                  resourceAwsApiGatewayIntegration(),
 			"aws_api_gateway_integration_response":         resourceAwsApiGatewayIntegrationResponse(),
 			"aws_api_gateway_method":                       resourceAwsApiGatewayMethod(),
 			"aws_api_gateway_method_response":              resourceAwsApiGatewayMethodResponse(),
 			"aws_api_gateway_method_settings":              resourceAwsApiGatewayMethodSettings(),
 			"aws_api_gateway_model":                        resourceAwsApiGatewayModel(),
+			"aws_api_gateway_request_validator":            resourceAwsApiGatewayRequestValidator(),
 			"aws_api_gateway_resource":                     resourceAwsApiGatewayResource(),
 			"aws_api_gateway_rest_api":                     resourceAwsApiGatewayRestApi(),
 			"aws_api_gateway_stage":                        resourceAwsApiGatewayStage(),
@@ -269,6 +278,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_cognito_identity_pool":                    resourceAwsCognitoIdentityPool(),
 			"aws_autoscaling_lifecycle_hook":               resourceAwsAutoscalingLifecycleHook(),
 			"aws_cloudwatch_metric_alarm":                  resourceAwsCloudWatchMetricAlarm(),
+			"aws_cloudwatch_dashboard":                     resourceAwsCloudWatchDashboard(),
 			"aws_codedeploy_app":                           resourceAwsCodeDeployApp(),
 			"aws_codedeploy_deployment_config":             resourceAwsCodeDeployDeploymentConfig(),
 			"aws_codedeploy_deployment_group":              resourceAwsCodeDeployDeploymentGroup(),
@@ -350,6 +360,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_inspector_resource_group":                 resourceAWSInspectorResourceGroup(),
 			"aws_instance":                                 resourceAwsInstance(),
 			"aws_internet_gateway":                         resourceAwsInternetGateway(),
+			"aws_iot_certificate":                          resourceAwsIotCertificate(),
+			"aws_iot_policy":                               resourceAwsIotPolicy(),
 			"aws_key_pair":                                 resourceAwsKeyPair(),
 			"aws_kinesis_firehose_delivery_stream":         resourceAwsKinesisFirehoseDeliveryStream(),
 			"aws_kinesis_stream":                           resourceAwsKinesisStream(),
@@ -423,6 +435,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_s3_bucket_object":                         resourceAwsS3BucketObject(),
 			"aws_s3_bucket_notification":                   resourceAwsS3BucketNotification(),
 			"aws_security_group":                           resourceAwsSecurityGroup(),
+			"aws_network_interface_sg_attachment":          resourceAwsNetworkInterfaceSGAttachment(),
 			"aws_default_security_group":                   resourceAwsDefaultSecurityGroup(),
 			"aws_security_group_rule":                      resourceAwsSecurityGroupRule(),
 			"aws_simpledb_domain":                          resourceAwsSimpleDBDomain(),
@@ -577,7 +590,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		AccessKey:               d.Get("access_key").(string),
 		SecretKey:               d.Get("secret_key").(string),
 		Profile:                 d.Get("profile").(string),
-		CredsFilename:           d.Get("shared_credentials_file").(string),
 		Token:                   d.Get("token").(string),
 		Region:                  d.Get("region").(string),
 		MaxRetries:              d.Get("max_retries").(int),
@@ -589,6 +601,13 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		SkipMetadataApiCheck:    d.Get("skip_metadata_api_check").(bool),
 		S3ForcePathStyle:        d.Get("s3_force_path_style").(bool),
 	}
+
+	// Set CredsFilename, expanding home directory
+	credsPath, err := homedir.Expand(d.Get("shared_credentials_file").(string))
+	if err != nil {
+		return nil, err
+	}
+	config.CredsFilename = credsPath
 
 	assumeRoleList := d.Get("assume_role").(*schema.Set).List()
 	if len(assumeRoleList) == 1 {
@@ -674,18 +693,7 @@ func assumeRoleSchema() *schema.Schema {
 				},
 			},
 		},
-		Set: assumeRoleToHash,
 	}
-}
-
-func assumeRoleToHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["role_arn"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["session_name"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["external_id"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["policy"].(string)))
-	return hashcode.String(buf.String())
 }
 
 func endpointsSchema() *schema.Schema {

@@ -56,6 +56,11 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			}
+			s["launch_group"] = &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			}
 			s["spot_bid_status"] = &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -109,6 +114,7 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 			SecurityGroups:      instanceOpts.SecurityGroups,
 			SubnetId:            instanceOpts.SubnetID,
 			UserData:            instanceOpts.UserData64,
+			NetworkInterfaces:   instanceOpts.NetworkInterfaces,
 		},
 	}
 
@@ -116,12 +122,8 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 		spotOpts.BlockDurationMinutes = aws.Int64(int64(v.(int)))
 	}
 
-	// If the instance is configured with a Network Interface (a subnet, has
-	// public IP, etc), then the instanceOpts.SecurityGroupIds and SubnetId will
-	// be nil
-	if len(instanceOpts.NetworkInterfaces) > 0 {
-		spotOpts.LaunchSpecification.SecurityGroupIds = instanceOpts.NetworkInterfaces[0].Groups
-		spotOpts.LaunchSpecification.SubnetId = instanceOpts.NetworkInterfaces[0].SubnetId
+	if v, ok := d.GetOk("launch_group"); ok {
+		spotOpts.LaunchGroup = aws.String(v.(string))
 	}
 
 	// Make the spot instance request
@@ -224,6 +226,7 @@ func resourceAwsSpotInstanceRequestRead(d *schema.ResourceData, meta interface{}
 	}
 
 	d.Set("spot_request_state", request.State)
+	d.Set("launch_group", request.LaunchGroup)
 	d.Set("block_duration_minutes", request.BlockDurationMinutes)
 	d.Set("tags", tagsToMap(request.Tags))
 

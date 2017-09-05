@@ -15,19 +15,18 @@ const opAddIpRoutes = "AddIpRoutes"
 
 // AddIpRoutesRequest generates a "aws/request.Request" representing the
 // client's request for the AddIpRoutes operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AddIpRoutes for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AddIpRoutes method directly
-// instead.
+// See AddIpRoutes for more information on using the AddIpRoutes
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AddIpRoutesRequest method.
 //    req, resp := client.AddIpRoutesRequest(params)
@@ -123,19 +122,18 @@ const opAddTagsToResource = "AddTagsToResource"
 
 // AddTagsToResourceRequest generates a "aws/request.Request" representing the
 // client's request for the AddTagsToResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AddTagsToResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AddTagsToResource method directly
-// instead.
+// See AddTagsToResource for more information on using the AddTagsToResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AddTagsToResourceRequest method.
 //    req, resp := client.AddTagsToResourceRequest(params)
@@ -217,19 +215,18 @@ const opCancelSchemaExtension = "CancelSchemaExtension"
 
 // CancelSchemaExtensionRequest generates a "aws/request.Request" representing the
 // client's request for the CancelSchemaExtension operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CancelSchemaExtension for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CancelSchemaExtension method directly
-// instead.
+// See CancelSchemaExtension for more information on using the CancelSchemaExtension
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CancelSchemaExtensionRequest method.
 //    req, resp := client.CancelSchemaExtensionRequest(params)
@@ -306,19 +303,18 @@ const opConnectDirectory = "ConnectDirectory"
 
 // ConnectDirectoryRequest generates a "aws/request.Request" representing the
 // client's request for the ConnectDirectory operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ConnectDirectory for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ConnectDirectory method directly
-// instead.
+// See ConnectDirectory for more information on using the ConnectDirectory
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ConnectDirectoryRequest method.
 //    req, resp := client.ConnectDirectoryRequest(params)
@@ -402,19 +398,18 @@ const opCreateAlias = "CreateAlias"
 
 // CreateAliasRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAlias operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateAlias for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateAlias method directly
-// instead.
+// See CreateAlias for more information on using the CreateAlias
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateAliasRequest method.
 //    req, resp := client.CreateAliasRequest(params)
@@ -499,19 +494,18 @@ const opCreateComputer = "CreateComputer"
 
 // CreateComputerRequest generates a "aws/request.Request" representing the
 // client's request for the CreateComputer operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateComputer for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateComputer method directly
-// instead.
+// See CreateComputer for more information on using the CreateComputer
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateComputerRequest method.
 //    req, resp := client.CreateComputerRequest(params)
@@ -601,19 +595,18 @@ const opCreateConditionalForwarder = "CreateConditionalForwarder"
 
 // CreateConditionalForwarderRequest generates a "aws/request.Request" representing the
 // client's request for the CreateConditionalForwarder operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateConditionalForwarder for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateConditionalForwarder method directly
-// instead.
+// See CreateConditionalForwarder for more information on using the CreateConditionalForwarder
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateConditionalForwarderRequest method.
 //    req, resp := client.CreateConditionalForwarderRequest(params)
@@ -701,19 +694,18 @@ const opCreateDirectory = "CreateDirectory"
 
 // CreateDirectoryRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDirectory operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDirectory for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDirectory method directly
-// instead.
+// See CreateDirectory for more information on using the CreateDirectory
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDirectoryRequest method.
 //    req, resp := client.CreateDirectoryRequest(params)
@@ -797,19 +789,18 @@ const opCreateMicrosoftAD = "CreateMicrosoftAD"
 
 // CreateMicrosoftADRequest generates a "aws/request.Request" representing the
 // client's request for the CreateMicrosoftAD operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateMicrosoftAD for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateMicrosoftAD method directly
-// instead.
+// See CreateMicrosoftAD for more information on using the CreateMicrosoftAD
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateMicrosoftADRequest method.
 //    req, resp := client.CreateMicrosoftADRequest(params)
@@ -896,19 +887,18 @@ const opCreateSnapshot = "CreateSnapshot"
 
 // CreateSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateSnapshot method directly
-// instead.
+// See CreateSnapshot for more information on using the CreateSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateSnapshotRequest method.
 //    req, resp := client.CreateSnapshotRequest(params)
@@ -992,19 +982,18 @@ const opCreateTrust = "CreateTrust"
 
 // CreateTrustRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTrust operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateTrust for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateTrust method directly
-// instead.
+// See CreateTrust for more information on using the CreateTrust
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateTrustRequest method.
 //    req, resp := client.CreateTrustRequest(params)
@@ -1094,19 +1083,18 @@ const opDeleteConditionalForwarder = "DeleteConditionalForwarder"
 
 // DeleteConditionalForwarderRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConditionalForwarder operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteConditionalForwarder for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteConditionalForwarder method directly
-// instead.
+// See DeleteConditionalForwarder for more information on using the DeleteConditionalForwarder
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteConditionalForwarderRequest method.
 //    req, resp := client.DeleteConditionalForwarderRequest(params)
@@ -1189,19 +1177,18 @@ const opDeleteDirectory = "DeleteDirectory"
 
 // DeleteDirectoryRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDirectory operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDirectory for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDirectory method directly
-// instead.
+// See DeleteDirectory for more information on using the DeleteDirectory
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDirectoryRequest method.
 //    req, resp := client.DeleteDirectoryRequest(params)
@@ -1280,19 +1267,18 @@ const opDeleteSnapshot = "DeleteSnapshot"
 
 // DeleteSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteSnapshot method directly
-// instead.
+// See DeleteSnapshot for more information on using the DeleteSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteSnapshotRequest method.
 //    req, resp := client.DeleteSnapshotRequest(params)
@@ -1369,19 +1355,18 @@ const opDeleteTrust = "DeleteTrust"
 
 // DeleteTrustRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTrust operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteTrust for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteTrust method directly
-// instead.
+// See DeleteTrust for more information on using the DeleteTrust
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteTrustRequest method.
 //    req, resp := client.DeleteTrustRequest(params)
@@ -1462,19 +1447,18 @@ const opDeregisterEventTopic = "DeregisterEventTopic"
 
 // DeregisterEventTopicRequest generates a "aws/request.Request" representing the
 // client's request for the DeregisterEventTopic operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeregisterEventTopic for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeregisterEventTopic method directly
-// instead.
+// See DeregisterEventTopic for more information on using the DeregisterEventTopic
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeregisterEventTopicRequest method.
 //    req, resp := client.DeregisterEventTopicRequest(params)
@@ -1551,19 +1535,18 @@ const opDescribeConditionalForwarders = "DescribeConditionalForwarders"
 
 // DescribeConditionalForwardersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConditionalForwarders operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeConditionalForwarders for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeConditionalForwarders method directly
-// instead.
+// See DescribeConditionalForwarders for more information on using the DescribeConditionalForwarders
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeConditionalForwardersRequest method.
 //    req, resp := client.DescribeConditionalForwardersRequest(params)
@@ -1649,19 +1632,18 @@ const opDescribeDirectories = "DescribeDirectories"
 
 // DescribeDirectoriesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDirectories operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeDirectories for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeDirectories method directly
-// instead.
+// See DescribeDirectories for more information on using the DescribeDirectories
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeDirectoriesRequest method.
 //    req, resp := client.DescribeDirectoriesRequest(params)
@@ -1748,23 +1730,172 @@ func (c *DirectoryService) DescribeDirectoriesWithContext(ctx aws.Context, input
 	return out, req.Send()
 }
 
+const opDescribeDomainControllers = "DescribeDomainControllers"
+
+// DescribeDomainControllersRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeDomainControllers operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeDomainControllers for more information on using the DescribeDomainControllers
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeDomainControllersRequest method.
+//    req, resp := client.DescribeDomainControllersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/DescribeDomainControllers
+func (c *DirectoryService) DescribeDomainControllersRequest(input *DescribeDomainControllersInput) (req *request.Request, output *DescribeDomainControllersOutput) {
+	op := &request.Operation{
+		Name:       opDescribeDomainControllers,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "Limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeDomainControllersInput{}
+	}
+
+	output = &DescribeDomainControllersOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeDomainControllers API operation for AWS Directory Service.
+//
+// Provides information about any domain controllers in your directory.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Directory Service's
+// API operation DescribeDomainControllers for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeEntityDoesNotExistException "EntityDoesNotExistException"
+//   The specified entity could not be found.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The NextToken value is not valid.
+//
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   One or more parameters are not valid.
+//
+//   * ErrCodeClientException "ClientException"
+//   A client exception has occurred.
+//
+//   * ErrCodeServiceException "ServiceException"
+//   An exception has occurred in AWS Directory Service.
+//
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
+//   The operation is not supported.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/DescribeDomainControllers
+func (c *DirectoryService) DescribeDomainControllers(input *DescribeDomainControllersInput) (*DescribeDomainControllersOutput, error) {
+	req, out := c.DescribeDomainControllersRequest(input)
+	return out, req.Send()
+}
+
+// DescribeDomainControllersWithContext is the same as DescribeDomainControllers with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeDomainControllers for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DirectoryService) DescribeDomainControllersWithContext(ctx aws.Context, input *DescribeDomainControllersInput, opts ...request.Option) (*DescribeDomainControllersOutput, error) {
+	req, out := c.DescribeDomainControllersRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeDomainControllersPages iterates over the pages of a DescribeDomainControllers operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeDomainControllers method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeDomainControllers operation.
+//    pageNum := 0
+//    err := client.DescribeDomainControllersPages(params,
+//        func(page *DescribeDomainControllersOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *DirectoryService) DescribeDomainControllersPages(input *DescribeDomainControllersInput, fn func(*DescribeDomainControllersOutput, bool) bool) error {
+	return c.DescribeDomainControllersPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeDomainControllersPagesWithContext same as DescribeDomainControllersPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DirectoryService) DescribeDomainControllersPagesWithContext(ctx aws.Context, input *DescribeDomainControllersInput, fn func(*DescribeDomainControllersOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeDomainControllersInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeDomainControllersRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeDomainControllersOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
 const opDescribeEventTopics = "DescribeEventTopics"
 
 // DescribeEventTopicsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEventTopics operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeEventTopics for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeEventTopics method directly
-// instead.
+// See DescribeEventTopics for more information on using the DescribeEventTopics
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeEventTopicsRequest method.
 //    req, resp := client.DescribeEventTopicsRequest(params)
@@ -1845,19 +1976,18 @@ const opDescribeSnapshots = "DescribeSnapshots"
 
 // DescribeSnapshotsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSnapshots operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeSnapshots for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeSnapshots method directly
-// instead.
+// See DescribeSnapshots for more information on using the DescribeSnapshots
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeSnapshotsRequest method.
 //    req, resp := client.DescribeSnapshotsRequest(params)
@@ -1944,19 +2074,18 @@ const opDescribeTrusts = "DescribeTrusts"
 
 // DescribeTrustsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTrusts operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeTrusts for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeTrusts method directly
-// instead.
+// See DescribeTrusts for more information on using the DescribeTrusts
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeTrustsRequest method.
 //    req, resp := client.DescribeTrustsRequest(params)
@@ -2042,19 +2171,18 @@ const opDisableRadius = "DisableRadius"
 
 // DisableRadiusRequest generates a "aws/request.Request" representing the
 // client's request for the DisableRadius operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DisableRadius for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DisableRadius method directly
-// instead.
+// See DisableRadius for more information on using the DisableRadius
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DisableRadiusRequest method.
 //    req, resp := client.DisableRadiusRequest(params)
@@ -2129,19 +2257,18 @@ const opDisableSso = "DisableSso"
 
 // DisableSsoRequest generates a "aws/request.Request" representing the
 // client's request for the DisableSso operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DisableSso for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DisableSso method directly
-// instead.
+// See DisableSso for more information on using the DisableSso
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DisableSsoRequest method.
 //    req, resp := client.DisableSsoRequest(params)
@@ -2221,19 +2348,18 @@ const opEnableRadius = "EnableRadius"
 
 // EnableRadiusRequest generates a "aws/request.Request" representing the
 // client's request for the EnableRadius operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See EnableRadius for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the EnableRadius method directly
-// instead.
+// See EnableRadius for more information on using the EnableRadius
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the EnableRadiusRequest method.
 //    req, resp := client.EnableRadiusRequest(params)
@@ -2314,19 +2440,18 @@ const opEnableSso = "EnableSso"
 
 // EnableSsoRequest generates a "aws/request.Request" representing the
 // client's request for the EnableSso operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See EnableSso for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the EnableSso method directly
-// instead.
+// See EnableSso for more information on using the EnableSso
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the EnableSsoRequest method.
 //    req, resp := client.EnableSsoRequest(params)
@@ -2406,19 +2531,18 @@ const opGetDirectoryLimits = "GetDirectoryLimits"
 
 // GetDirectoryLimitsRequest generates a "aws/request.Request" representing the
 // client's request for the GetDirectoryLimits operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetDirectoryLimits for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetDirectoryLimits method directly
-// instead.
+// See GetDirectoryLimits for more information on using the GetDirectoryLimits
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetDirectoryLimitsRequest method.
 //    req, resp := client.GetDirectoryLimitsRequest(params)
@@ -2492,19 +2616,18 @@ const opGetSnapshotLimits = "GetSnapshotLimits"
 
 // GetSnapshotLimitsRequest generates a "aws/request.Request" representing the
 // client's request for the GetSnapshotLimits operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetSnapshotLimits for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetSnapshotLimits method directly
-// instead.
+// See GetSnapshotLimits for more information on using the GetSnapshotLimits
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetSnapshotLimitsRequest method.
 //    req, resp := client.GetSnapshotLimitsRequest(params)
@@ -2578,19 +2701,18 @@ const opListIpRoutes = "ListIpRoutes"
 
 // ListIpRoutesRequest generates a "aws/request.Request" representing the
 // client's request for the ListIpRoutes operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListIpRoutes for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListIpRoutes method directly
-// instead.
+// See ListIpRoutes for more information on using the ListIpRoutes
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListIpRoutesRequest method.
 //    req, resp := client.ListIpRoutesRequest(params)
@@ -2670,19 +2792,18 @@ const opListSchemaExtensions = "ListSchemaExtensions"
 
 // ListSchemaExtensionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListSchemaExtensions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListSchemaExtensions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListSchemaExtensions method directly
-// instead.
+// See ListSchemaExtensions for more information on using the ListSchemaExtensions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListSchemaExtensionsRequest method.
 //    req, resp := client.ListSchemaExtensionsRequest(params)
@@ -2759,19 +2880,18 @@ const opListTagsForResource = "ListTagsForResource"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTagsForResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTagsForResource method directly
-// instead.
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTagsForResourceRequest method.
 //    req, resp := client.ListTagsForResourceRequest(params)
@@ -2851,19 +2971,18 @@ const opRegisterEventTopic = "RegisterEventTopic"
 
 // RegisterEventTopicRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterEventTopic operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RegisterEventTopic for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RegisterEventTopic method directly
-// instead.
+// See RegisterEventTopic for more information on using the RegisterEventTopic
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RegisterEventTopicRequest method.
 //    req, resp := client.RegisterEventTopicRequest(params)
@@ -2945,19 +3064,18 @@ const opRemoveIpRoutes = "RemoveIpRoutes"
 
 // RemoveIpRoutesRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveIpRoutes operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RemoveIpRoutes for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RemoveIpRoutes method directly
-// instead.
+// See RemoveIpRoutes for more information on using the RemoveIpRoutes
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RemoveIpRoutesRequest method.
 //    req, resp := client.RemoveIpRoutesRequest(params)
@@ -3037,19 +3155,18 @@ const opRemoveTagsFromResource = "RemoveTagsFromResource"
 
 // RemoveTagsFromResourceRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTagsFromResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RemoveTagsFromResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RemoveTagsFromResource method directly
-// instead.
+// See RemoveTagsFromResource for more information on using the RemoveTagsFromResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RemoveTagsFromResourceRequest method.
 //    req, resp := client.RemoveTagsFromResourceRequest(params)
@@ -3126,19 +3243,18 @@ const opRestoreFromSnapshot = "RestoreFromSnapshot"
 
 // RestoreFromSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the RestoreFromSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RestoreFromSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RestoreFromSnapshot method directly
-// instead.
+// See RestoreFromSnapshot for more information on using the RestoreFromSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RestoreFromSnapshotRequest method.
 //    req, resp := client.RestoreFromSnapshotRequest(params)
@@ -3223,19 +3339,18 @@ const opStartSchemaExtension = "StartSchemaExtension"
 
 // StartSchemaExtensionRequest generates a "aws/request.Request" representing the
 // client's request for the StartSchemaExtension operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See StartSchemaExtension for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StartSchemaExtension method directly
-// instead.
+// See StartSchemaExtension for more information on using the StartSchemaExtension
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StartSchemaExtensionRequest method.
 //    req, resp := client.StartSchemaExtensionRequest(params)
@@ -3320,19 +3435,18 @@ const opUpdateConditionalForwarder = "UpdateConditionalForwarder"
 
 // UpdateConditionalForwarderRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateConditionalForwarder operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateConditionalForwarder for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateConditionalForwarder method directly
-// instead.
+// See UpdateConditionalForwarder for more information on using the UpdateConditionalForwarder
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateConditionalForwarderRequest method.
 //    req, resp := client.UpdateConditionalForwarderRequest(params)
@@ -3411,23 +3525,125 @@ func (c *DirectoryService) UpdateConditionalForwarderWithContext(ctx aws.Context
 	return out, req.Send()
 }
 
+const opUpdateNumberOfDomainControllers = "UpdateNumberOfDomainControllers"
+
+// UpdateNumberOfDomainControllersRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateNumberOfDomainControllers operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateNumberOfDomainControllers for more information on using the UpdateNumberOfDomainControllers
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateNumberOfDomainControllersRequest method.
+//    req, resp := client.UpdateNumberOfDomainControllersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/UpdateNumberOfDomainControllers
+func (c *DirectoryService) UpdateNumberOfDomainControllersRequest(input *UpdateNumberOfDomainControllersInput) (req *request.Request, output *UpdateNumberOfDomainControllersOutput) {
+	op := &request.Operation{
+		Name:       opUpdateNumberOfDomainControllers,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateNumberOfDomainControllersInput{}
+	}
+
+	output = &UpdateNumberOfDomainControllersOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateNumberOfDomainControllers API operation for AWS Directory Service.
+//
+// Adds or removes domain controllers to or from the directory. Based on the
+// difference between current value and new value (provided through this API
+// call), domain controllers will be added or removed. It may take up to 45
+// minutes for any new domain controllers to become fully active once the requested
+// number of domain controllers is updated. During this time, you cannot make
+// another update request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Directory Service's
+// API operation UpdateNumberOfDomainControllers for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeEntityDoesNotExistException "EntityDoesNotExistException"
+//   The specified entity could not be found.
+//
+//   * ErrCodeDirectoryUnavailableException "DirectoryUnavailableException"
+//   The specified directory is unavailable or could not be found.
+//
+//   * ErrCodeDomainControllerLimitExceededException "DomainControllerLimitExceededException"
+//   The maximum allowed number of domain controllers per directory was exceeded.
+//   The default limit per directory is 20 domain controllers.
+//
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   One or more parameters are not valid.
+//
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
+//   The operation is not supported.
+//
+//   * ErrCodeClientException "ClientException"
+//   A client exception has occurred.
+//
+//   * ErrCodeServiceException "ServiceException"
+//   An exception has occurred in AWS Directory Service.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/UpdateNumberOfDomainControllers
+func (c *DirectoryService) UpdateNumberOfDomainControllers(input *UpdateNumberOfDomainControllersInput) (*UpdateNumberOfDomainControllersOutput, error) {
+	req, out := c.UpdateNumberOfDomainControllersRequest(input)
+	return out, req.Send()
+}
+
+// UpdateNumberOfDomainControllersWithContext is the same as UpdateNumberOfDomainControllers with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateNumberOfDomainControllers for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *DirectoryService) UpdateNumberOfDomainControllersWithContext(ctx aws.Context, input *UpdateNumberOfDomainControllersInput, opts ...request.Option) (*UpdateNumberOfDomainControllersOutput, error) {
+	req, out := c.UpdateNumberOfDomainControllersRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opUpdateRadius = "UpdateRadius"
 
 // UpdateRadiusRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRadius operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateRadius for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateRadius method directly
-// instead.
+// See UpdateRadius for more information on using the UpdateRadius
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateRadiusRequest method.
 //    req, resp := client.UpdateRadiusRequest(params)
@@ -3505,19 +3721,18 @@ const opVerifyTrust = "VerifyTrust"
 
 // VerifyTrustRequest generates a "aws/request.Request" representing the
 // client's request for the VerifyTrust operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See VerifyTrust for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the VerifyTrust method directly
-// instead.
+// See VerifyTrust for more information on using the VerifyTrust
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the VerifyTrustRequest method.
 //    req, resp := client.VerifyTrustRequest(params)
@@ -5430,6 +5645,109 @@ func (s *DescribeDirectoriesOutput) SetNextToken(v string) *DescribeDirectoriesO
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/DescribeDomainControllersRequest
+type DescribeDomainControllersInput struct {
+	_ struct{} `type:"structure"`
+
+	// Identifier of the directory for which to retrieve the domain controller information.
+	//
+	// DirectoryId is a required field
+	DirectoryId *string `type:"string" required:"true"`
+
+	// A list of identifiers for the domain controllers whose information will be
+	// provided.
+	DomainControllerIds []*string `type:"list"`
+
+	// The maximum number of items to return.
+	Limit *int64 `type:"integer"`
+
+	// The DescribeDomainControllers.NextToken value from a previous call to DescribeDomainControllers.
+	// Pass null if this is the first call.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeDomainControllersInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeDomainControllersInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeDomainControllersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeDomainControllersInput"}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DescribeDomainControllersInput) SetDirectoryId(v string) *DescribeDomainControllersInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetDomainControllerIds sets the DomainControllerIds field's value.
+func (s *DescribeDomainControllersInput) SetDomainControllerIds(v []*string) *DescribeDomainControllersInput {
+	s.DomainControllerIds = v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeDomainControllersInput) SetLimit(v int64) *DescribeDomainControllersInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeDomainControllersInput) SetNextToken(v string) *DescribeDomainControllersInput {
+	s.NextToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/DescribeDomainControllersResult
+type DescribeDomainControllersOutput struct {
+	_ struct{} `type:"structure"`
+
+	// List of the DomainController objects that were retrieved.
+	DomainControllers []*DomainController `type:"list"`
+
+	// If not null, more results are available. Pass this value for the NextToken
+	// parameter in a subsequent call to DescribeDomainControllers retrieve the
+	// next set of items.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeDomainControllersOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeDomainControllersOutput) GoString() string {
+	return s.String()
+}
+
+// SetDomainControllers sets the DomainControllers field's value.
+func (s *DescribeDomainControllersOutput) SetDomainControllers(v []*DomainController) *DescribeDomainControllersOutput {
+	s.DomainControllers = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeDomainControllersOutput) SetNextToken(v string) *DescribeDomainControllersOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Describes event topics.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/DescribeEventTopicsRequest
 type DescribeEventTopicsInput struct {
@@ -5876,6 +6194,10 @@ type DirectoryDescription struct {
 	// The textual description for the directory.
 	Description *string `type:"string"`
 
+	// The desired number of domain controllers in the directory if the directory
+	// is Microsoft AD.
+	DesiredNumberOfDomainControllers *int64 `min:"2" type:"integer"`
+
 	// The directory identifier.
 	DirectoryId *string `type:"string"`
 
@@ -5958,6 +6280,12 @@ func (s *DirectoryDescription) SetConnectSettings(v *DirectoryConnectSettingsDes
 // SetDescription sets the Description field's value.
 func (s *DirectoryDescription) SetDescription(v string) *DirectoryDescription {
 	s.Description = &v
+	return s
+}
+
+// SetDesiredNumberOfDomainControllers sets the DesiredNumberOfDomainControllers field's value.
+func (s *DirectoryDescription) SetDesiredNumberOfDomainControllers(v int64) *DirectoryDescription {
+	s.DesiredNumberOfDomainControllers = &v
 	return s
 }
 
@@ -6397,6 +6725,112 @@ func (s DisableSsoOutput) String() string {
 // GoString returns the string representation
 func (s DisableSsoOutput) GoString() string {
 	return s.String()
+}
+
+// Contains information about the domain controllers for a specified directory.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/DomainController
+type DomainController struct {
+	_ struct{} `type:"structure"`
+
+	// The Availability Zone where the domain controller is located.
+	AvailabilityZone *string `type:"string"`
+
+	// Identifier of the directory where the domain controller resides.
+	DirectoryId *string `type:"string"`
+
+	// The IP address of the domain controller.
+	DnsIpAddr *string `type:"string"`
+
+	// Identifies a specific domain controller in the directory.
+	DomainControllerId *string `type:"string"`
+
+	// Specifies when the domain controller was created.
+	LaunchTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The status of the domain controller.
+	Status *string `type:"string" enum:"DomainControllerStatus"`
+
+	// The date and time that the status was last updated.
+	StatusLastUpdatedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// A description of the domain controller state.
+	StatusReason *string `type:"string"`
+
+	// Identifier of the subnet in the VPC that contains the domain controller.
+	SubnetId *string `type:"string"`
+
+	// The identifier of the VPC that contains the domain controller.
+	VpcId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DomainController) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DomainController) GoString() string {
+	return s.String()
+}
+
+// SetAvailabilityZone sets the AvailabilityZone field's value.
+func (s *DomainController) SetAvailabilityZone(v string) *DomainController {
+	s.AvailabilityZone = &v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DomainController) SetDirectoryId(v string) *DomainController {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetDnsIpAddr sets the DnsIpAddr field's value.
+func (s *DomainController) SetDnsIpAddr(v string) *DomainController {
+	s.DnsIpAddr = &v
+	return s
+}
+
+// SetDomainControllerId sets the DomainControllerId field's value.
+func (s *DomainController) SetDomainControllerId(v string) *DomainController {
+	s.DomainControllerId = &v
+	return s
+}
+
+// SetLaunchTime sets the LaunchTime field's value.
+func (s *DomainController) SetLaunchTime(v time.Time) *DomainController {
+	s.LaunchTime = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *DomainController) SetStatus(v string) *DomainController {
+	s.Status = &v
+	return s
+}
+
+// SetStatusLastUpdatedDateTime sets the StatusLastUpdatedDateTime field's value.
+func (s *DomainController) SetStatusLastUpdatedDateTime(v time.Time) *DomainController {
+	s.StatusLastUpdatedDateTime = &v
+	return s
+}
+
+// SetStatusReason sets the StatusReason field's value.
+func (s *DomainController) SetStatusReason(v string) *DomainController {
+	s.StatusReason = &v
+	return s
+}
+
+// SetSubnetId sets the SubnetId field's value.
+func (s *DomainController) SetSubnetId(v string) *DomainController {
+	s.SubnetId = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *DomainController) SetVpcId(v string) *DomainController {
+	s.VpcId = &v
+	return s
 }
 
 // Contains the inputs for the EnableRadius operation.
@@ -8061,6 +8495,78 @@ func (s UpdateConditionalForwarderOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/UpdateNumberOfDomainControllersRequest
+type UpdateNumberOfDomainControllersInput struct {
+	_ struct{} `type:"structure"`
+
+	// The number of domain controllers desired in the directory.
+	//
+	// DesiredNumber is a required field
+	DesiredNumber *int64 `min:"2" type:"integer" required:"true"`
+
+	// Identifier of the directory to which the domain controllers will be added
+	// or removed.
+	//
+	// DirectoryId is a required field
+	DirectoryId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateNumberOfDomainControllersInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateNumberOfDomainControllersInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateNumberOfDomainControllersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateNumberOfDomainControllersInput"}
+	if s.DesiredNumber == nil {
+		invalidParams.Add(request.NewErrParamRequired("DesiredNumber"))
+	}
+	if s.DesiredNumber != nil && *s.DesiredNumber < 2 {
+		invalidParams.Add(request.NewErrParamMinValue("DesiredNumber", 2))
+	}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDesiredNumber sets the DesiredNumber field's value.
+func (s *UpdateNumberOfDomainControllersInput) SetDesiredNumber(v int64) *UpdateNumberOfDomainControllersInput {
+	s.DesiredNumber = &v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *UpdateNumberOfDomainControllersInput) SetDirectoryId(v string) *UpdateNumberOfDomainControllersInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/UpdateNumberOfDomainControllersResult
+type UpdateNumberOfDomainControllersOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateNumberOfDomainControllersOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateNumberOfDomainControllersOutput) GoString() string {
+	return s.String()
+}
+
 // Contains the inputs for the UpdateRadius operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16/UpdateRadiusRequest
 type UpdateRadiusInput struct {
@@ -8254,6 +8760,29 @@ const (
 
 	// DirectoryTypeMicrosoftAd is a DirectoryType enum value
 	DirectoryTypeMicrosoftAd = "MicrosoftAD"
+)
+
+const (
+	// DomainControllerStatusCreating is a DomainControllerStatus enum value
+	DomainControllerStatusCreating = "Creating"
+
+	// DomainControllerStatusActive is a DomainControllerStatus enum value
+	DomainControllerStatusActive = "Active"
+
+	// DomainControllerStatusImpaired is a DomainControllerStatus enum value
+	DomainControllerStatusImpaired = "Impaired"
+
+	// DomainControllerStatusRestoring is a DomainControllerStatus enum value
+	DomainControllerStatusRestoring = "Restoring"
+
+	// DomainControllerStatusDeleting is a DomainControllerStatus enum value
+	DomainControllerStatusDeleting = "Deleting"
+
+	// DomainControllerStatusDeleted is a DomainControllerStatus enum value
+	DomainControllerStatusDeleted = "Deleted"
+
+	// DomainControllerStatusFailed is a DomainControllerStatus enum value
+	DomainControllerStatusFailed = "Failed"
 )
 
 const (
