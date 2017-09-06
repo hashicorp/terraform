@@ -1,15 +1,15 @@
-## 0.10.4 (Unreleased)
+## 0.10.4 (September 6, 2017)
 
 IMPROVEMENTS:
-* `terraform apply` now uses the standard resource address syntax to refer to resources in its log [GH-15884]
-* `terraform plan` output has some minor adjustments to improve readability and accessibility for those who can't see its colors [GH-15884]
+* `terraform apply` now uses the standard resource address syntax to refer to resources in its log ([#15884](https://github.com/hashicorp/terraform/issues/15884))
+* `terraform plan` output has some minor adjustments to improve readability and accessibility for those who can't see its colors ([#15884](https://github.com/hashicorp/terraform/issues/15884))
 
 BUG FIXES:
 
-* backend/consul: fix crash during consul backend initialization [GH-15976]
-* backend/azurerm: ensure that blob storage metadata is preserved when updating state blobs, to avoid losing track of lock metadata [GH-16015]
-* config: local values now work properly in resource `count` and in modules with more than one `.tf` file [GH-15995] [GH-15982]
-* cli: removed some inconsistencies in how data sources are counted and tallied in plan vs. apply and apply vs. destroy. In particular, data sources are no longer incorrectly counted as destroyed in `terraform destroy` [GH-15884]
+* backend/consul: fix crash during consul backend initialization ([#15976](https://github.com/hashicorp/terraform/issues/15976))
+* backend/azurerm: ensure that blob storage metadata is preserved when updating state blobs, to avoid losing track of lock metadata ([#16015](https://github.com/hashicorp/terraform/issues/16015))
+* config: local values now work properly in resource `count` and in modules with more than one `.tf` file ([#15995](https://github.com/hashicorp/terraform/issues/15995)] [[#15982](https://github.com/hashicorp/terraform/issues/15982))
+* cli: removed some inconsistencies in how data sources are counted and tallied in plan vs. apply and apply vs. destroy. In particular, data sources are no longer incorrectly counted as destroyed in `terraform destroy` ([#15884](https://github.com/hashicorp/terraform/issues/15884))
 
 ## 0.10.3 (August 30, 2017)
 
