@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"sync"
 
@@ -177,23 +176,14 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		copy(path, t.path)
 		path = append(path, m.Name)
 
-		// Split out the subdir if we have one
-		source, subDir := getter.SourceDirSubdir(m.Source)
-
-		source, err := getter.Detect(source, t.config.Dir, detectors)
+		source, err := getter.Detect(m.Source, t.config.Dir, detectors)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
-
-		// Check if the detector introduced something new.
-		source, subDir2 := getter.SourceDirSubdir(source)
-		if subDir2 != "" {
-			subDir = filepath.Join(subDir2, subDir)
-		}
-
 		// Get the directory where this module is so we can load it
 		key := strings.Join(path, ".")
 		key = fmt.Sprintf("root.%s-%s", key, m.Source)
+
 		dir, ok, err := getStorage(s, key, source, mode)
 		if err != nil {
 			return err
@@ -203,12 +193,6 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 				"module %s: not found, may need to be downloaded using 'terraform get'", m.Name)
 		}
 
-		// If we have a subdirectory, then merge that in
-		if subDir != "" {
-			dir = filepath.Join(dir, subDir)
-		}
-
-		// Load the configurations.Dir(source)
 		children[m.Name], err = NewTreeModule(m.Name, dir)
 		if err != nil {
 			return fmt.Errorf(
