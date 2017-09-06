@@ -6,6 +6,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* backend/consul: fix crash during consul backend initialization [GH-15976]
 * config: local values now work properly in resource `count` and in modules with more than one `.tf` file [GH-15995] [GH-15982]
 * cli: removed some inconsistencies in how data sources are counted and tallied in plan vs. apply and apply vs. destroy. In particular, data sources are no longer incorrectly counted as destroyed in `terraform destroy` [GH-15884]
 
