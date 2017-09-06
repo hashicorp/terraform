@@ -112,7 +112,7 @@ Private bitbucket repositories must be specified similar to the Generic Git Resp
 
 ```hcl
 module "consul" {
-  source = "git::https://bitbucket.org/foocompany/module_name.git
+  source = "git::https://bitbucket.org/foocompany/module_name.git"
 }
 ```
 
@@ -120,7 +120,7 @@ You can also specify branches and version withs the ?ref query
 
 ```hcl
 module "consul" {
-  source = "git::https://bitbucket.org/foocompany/module_name.git?ref=hotfix
+  source = "git::https://bitbucket.org/foocompany/module_name.git?ref=hotfix"
 }
 ```
 
@@ -194,7 +194,7 @@ Terraform then looks for the resulting module URL in the following order:
 2. Terraform will look for a `<meta>` tag with the name of `terraform-get`, for example:
 
 ```html
-<meta name="terraform-get” content="github.com/hashicorp/example" />
+<meta name="terraform-get" content="github.com/hashicorp/example" />
 ```
 
 ### S3 Bucket
