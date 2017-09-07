@@ -35,6 +35,38 @@ locals {
   default_name_prefix = "${var.project_name}-web"
   name_prefix         = "${var.name_prefix != "" ? var.name_prefix : local.default_name_prefix}"
 }
+
+# Accessing local values
+output "name_prefix " {
+  value = "${local.name_prefix}"
+}
+
+```
+
+Building local values that is a `map`
+```hcl
+# Generate a common map of tags 
+locals {
+  common_tags = {
+    provisioned = "terraform"
+    environment = "dev"
+  }
+}
+
+# Create an ec2 intstance that has the common tags and instance-specific tags
+resource "aws_instance" "server" {
+
+  ami           = "ami-123456"
+  instance_type = "t2.micro"
+
+  tags = "${merge(
+    local.common_tags,
+    map(
+      "Name", "HelloWorld",
+      "role", "server"
+    )
+  )}"
+}
 ```
 
 ## Description
