@@ -65,9 +65,7 @@ func (c *RemoteClient) Put(data []byte) error {
 }
 
 func (c *RemoteClient) Delete() error {
-	err := c.stateFile().Delete(c.storageContext)
-
-	if err != nil {
+	if err := c.stateFile().Delete(c.storageContext); err != nil {
 		return fmt.Errorf("Failed to delete state file %v: %v", c.stateFileURL(), err)
 	}
 
