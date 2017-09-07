@@ -50,11 +50,13 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
-	stateFileWriter := c.stateFile().NewWriter(c.storageContext)
-
-	stateFileWriter.Write(data)
-	err := stateFileWriter.Close()
-
+	err := func() error {
+		stateFileWriter := c.stateFile().NewWriter(c.storageContext)
+		if _, err := stateFileWriter.Write(data); err != nil {
+			return err
+		}
+		return stateFileWriter.Close()
+	}()
 	if err != nil {
 		return fmt.Errorf("Failed to upload state to %v: %v", c.stateFileURL(), err)
 	}
