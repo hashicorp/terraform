@@ -21,28 +21,24 @@ type RemoteClient struct {
 }
 
 func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
-	bucket := c.storageClient.Bucket(c.bucketName)
-	stateFile := bucket.Object(c.stateFilePath)
-	stateFileURL := c.stateFileURL()
-
-	stateFileReader, err := stateFile.NewReader(c.storageContext)
+	stateFileReader, err := c.stateFile().NewReader(c.storageContext)
 	if err != nil {
 		if err == storage.ErrObjectNotExist {
 			return nil, nil
 		} else {
-			return nil, fmt.Errorf("Failed to open state file at %v: %v", stateFileURL, err)
+			return nil, fmt.Errorf("Failed to open state file at %v: %v", c.stateFileURL(), err)
 		}
 	}
 	defer stateFileReader.Close()
 
 	stateFileContents, err := ioutil.ReadAll(stateFileReader)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read state file from %v: %v", stateFileURL, err)
+		return nil, fmt.Errorf("Failed to read state file from %v: %v", c.stateFileURL(), err)
 	}
 
-	stateFileAttrs, err := stateFile.Attrs(c.storageContext)
+	stateFileAttrs, err := c.stateFile().Attrs(c.storageContext)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read state file attrs from %v: %v", stateFileURL, err)
+		return nil, fmt.Errorf("Failed to read state file attrs from %v: %v", c.stateFileURL(), err)
 	}
 
 	result := &remote.Payload{
@@ -54,10 +50,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
-	bucket := c.storageClient.Bucket(c.bucketName)
-	stateFile := bucket.Object(c.stateFilePath)
-
-	stateFileWriter := stateFile.NewWriter(c.storageContext)
+	stateFileWriter := c.stateFile().NewWriter(c.storageContext)
 
 	stateFileWriter.Write(data)
 	err := stateFileWriter.Close()
@@ -70,10 +63,7 @@ func (c *RemoteClient) Put(data []byte) error {
 }
 
 func (c *RemoteClient) Delete() error {
-	bucket := c.storageClient.Bucket(c.bucketName)
-	stateFile := bucket.Object(c.stateFilePath)
-
-	err := stateFile.Delete(c.storageContext)
+	err := c.stateFile().Delete(c.storageContext)
 
 	if err != nil {
 		return fmt.Errorf("Failed to delete state file %v: %v", c.stateFileURL(), err)
@@ -99,10 +89,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		return "", err
 	}
 
-	bucket := c.storageClient.Bucket(c.bucketName)
-	lockFile := bucket.Object(c.lockFilePath)
-
-	writer := lockFile.If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
+	writer := c.lockFile().If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
 	writer.Write(infoJson)
 	if err := writer.Close(); err != nil {
 		return "", fmt.Errorf("Error while saving lock file (%v): %v", info.Path, err)
@@ -114,27 +101,23 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 func (c *RemoteClient) Unlock(id string) error {
 	lockErr := &state.LockError{}
 
-	bucket := c.storageClient.Bucket(c.bucketName)
-	lockFile := bucket.Object(c.lockFilePath)
-	lockFileURL := c.lockFileURL()
-
-	lockFileReader, err := lockFile.NewReader(c.storageContext)
+	lockFileReader, err := c.lockFile().NewReader(c.storageContext)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to retrieve lock info (%v): %v", lockFileURL, err)
+		lockErr.Err = fmt.Errorf("Failed to retrieve lock info (%v): %v", c.lockFileURL(), err)
 		return lockErr
 	}
 	defer lockFileReader.Close()
 
 	lockFileContents, err := ioutil.ReadAll(lockFileReader)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to retrieve lock info (%v): %v", lockFileURL, err)
+		lockErr.Err = fmt.Errorf("Failed to retrieve lock info (%v): %v", c.lockFileURL(), err)
 		return lockErr
 	}
 
 	lockInfo := &state.LockInfo{}
 	err = json.Unmarshal(lockFileContents, lockInfo)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to unmarshal lock info (%v): %v", lockFileURL, err)
+		lockErr.Err = fmt.Errorf("Failed to unmarshal lock info (%v): %v", c.lockFileURL(), err)
 		return lockErr
 	}
 
@@ -147,21 +130,29 @@ func (c *RemoteClient) Unlock(id string) error {
 
 	lockFileAttrs, err := lockFile.Attrs(c.storageContext)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to fetch lock file attrs (%v): %v", lockFileURL, err)
+		lockErr.Err = fmt.Errorf("Failed to fetch lock file attrs (%v): %v", c.lockFileURL(), err)
 		return lockErr
 	}
 
 	err = lockFile.If(storage.Conditions{GenerationMatch: lockFileAttrs.Generation}).Delete(c.storageContext)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to delete lock file (%v): %v", lockFileURL, err)
+		lockErr.Err = fmt.Errorf("Failed to delete lock file (%v): %v", c.lockFileURL(), err)
 		return lockErr
 	}
 
 	return nil
 }
 
+func (c *RemoteClient) stateFile() *storage.ObjectHandle {
+	return c.storageClient.Bucket(c.bucketName).Object(c.stateFilePath)
+}
+
 func (c *RemoteClient) stateFileURL() string {
 	return fmt.Sprintf("gs://%v/%v", c.bucketName, c.stateFilePath)
+}
+
+func (c *RemoteClient) lockFile() *storage.ObjectHandle {
+	return c.storageClient.Bucket(c.bucketName).Object(c.lockFilePath)
 }
 
 func (c *RemoteClient) lockFileURL() string {
