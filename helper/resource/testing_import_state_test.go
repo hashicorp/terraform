@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -444,5 +445,60 @@ func TestTest_importStateIdFunc(t *testing.T) {
 	}
 	if !checked {
 		t.Fatal("didn't call check")
+	}
+}
+
+func TestTest_importStateIdFuncFail(t *testing.T) {
+	mp := testProvider()
+	mp.ImportStateFn = func(
+		info *terraform.InstanceInfo, id string) ([]*terraform.InstanceState, error) {
+		if id != "foo:bar" {
+			return nil, fmt.Errorf("bad import ID: %s", id)
+		}
+
+		return []*terraform.InstanceState{
+			{
+				ID:        "foo",
+				Ephemeral: terraform.EphemeralState{Type: "test_instance"},
+			},
+		}, nil
+	}
+
+	mp.RefreshFn = func(
+		i *terraform.InstanceInfo,
+		s *terraform.InstanceState) (*terraform.InstanceState, error) {
+		return s, nil
+	}
+
+	checked := false
+	checkFn := func(s []*terraform.InstanceState) error {
+		checked = true
+
+		if s[0].ID != "foo" {
+			return fmt.Errorf("bad: %#v", s)
+		}
+
+		return nil
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+
+		Steps: []TestStep{
+			TestStep{
+				Config:            testConfigStrProvider,
+				ResourceName:      "test_instance.foo",
+				ImportState:       true,
+				ImportStateIdFunc: func(*terraform.State) (string, error) { return "foo:bar", errors.New("foobar") },
+				ImportStateCheck:  checkFn,
+			},
+		},
+	})
+
+	if !mt.failed() {
+		t.Fatalf("test should fail")
 	}
 }
