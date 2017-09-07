@@ -25,7 +25,9 @@ type Backend struct {
 }
 
 func New() backend.Backend {
-	s := &schema.Backend{
+	be := &Backend{}
+	be.Backend = &schema.Backend{
+		ConfigureFunc: be.configure,
 		Schema: map[string]*schema.Schema{
 			"bucket": {
 				Type:        schema.TypeString,
@@ -48,9 +50,7 @@ func New() backend.Backend {
 		},
 	}
 
-	result := &Backend{Backend: s}
-	result.Backend.ConfigureFunc = result.configure
-	return result
+	return be
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -64,11 +64,9 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.stateDir = data.Get("state_dir").(string)
 	b.storageContext = googleContext.Background()
 
-	credentials := data.Get("credentials").(string)
-
 	var tokenSource oauth2.TokenSource
 
-	if credentials != "" {
+	if credentials := data.Get("credentials").(string); credentials != "" {
 		credentialsJson, _, err := pathorcontents.Read(data.Get("credentials").(string))
 		if err != nil {
 			return fmt.Errorf("Error loading credentials: %v", err)
@@ -81,12 +79,11 @@ func (b *Backend) configure(ctx context.Context) error {
 
 		tokenSource = jwtConfig.TokenSource(b.storageContext)
 	} else {
-		defaultTokenSource, err := google.DefaultTokenSource(b.storageContext, storage.ScopeReadWrite)
+		var err error
+		tokenSource, err = google.DefaultTokenSource(b.storageContext, storage.ScopeReadWrite)
 		if err != nil {
 			return fmt.Errorf("Failed to get Google Application Default Credentials: %v", err)
 		}
-
-		tokenSource = defaultTokenSource
 	}
 
 	client, err := storage.NewClient(b.storageContext, option.WithTokenSource(tokenSource))
