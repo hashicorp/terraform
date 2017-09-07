@@ -64,7 +64,7 @@ func (b *Backend) DeleteState(name string) error {
 
 	err = client.Delete()
 	if err != nil {
-		return fmt.Errorf("Failed to delete state file %v: %v", client.stateFileUrl(), err)
+		return fmt.Errorf("Failed to delete state file %v: %v", client.stateFileURL(), err)
 	}
 
 	return nil
@@ -104,7 +104,7 @@ func (b *Backend) State(name string) (state.State, error) {
 	// Local helper function so we can call it multiple places
 	lockUnlock := func(parent error) error {
 		if err := stateMgr.Unlock(lockId); err != nil {
-			return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, client.lockFileUrl(), err)
+			return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, client.lockFileURL(), err)
 		}
 
 		return parent

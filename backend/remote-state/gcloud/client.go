@@ -22,26 +22,26 @@ type RemoteClient struct {
 func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	bucket := c.storageClient.Bucket(c.bucketName)
 	stateFile := bucket.Object(c.stateFilePath)
-	stateFileUrl := c.stateFileUrl()
+	stateFileURL := c.stateFileURL()
 
 	stateFileReader, err := stateFile.NewReader(c.storageContext)
 	if err != nil {
 		if err == storage.ErrObjectNotExist {
 			return nil, nil
 		} else {
-			return nil, fmt.Errorf("Failed to open state file at %v: %v", stateFileUrl, err)
+			return nil, fmt.Errorf("Failed to open state file at %v: %v", stateFileURL, err)
 		}
 	}
 	defer stateFileReader.Close()
 
 	stateFileContents, err := ioutil.ReadAll(stateFileReader)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read state file from %v: %v", stateFileUrl, err)
+		return nil, fmt.Errorf("Failed to read state file from %v: %v", stateFileURL, err)
 	}
 
 	stateFileAttrs, err := stateFile.Attrs(c.storageContext)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read state file attrs from %v: %v", stateFileUrl, err)
+		return nil, fmt.Errorf("Failed to read state file attrs from %v: %v", stateFileURL, err)
 	}
 
 	result := &remote.Payload{
@@ -62,7 +62,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	err := stateFileWriter.Close()
 
 	if err != nil {
-		return fmt.Errorf("Failed to upload state to %v: %v", c.stateFileUrl(), err)
+		return fmt.Errorf("Failed to upload state to %v: %v", c.stateFileURL(), err)
 	}
 
 	return nil
@@ -75,7 +75,7 @@ func (c *RemoteClient) Delete() error {
 	err := stateFile.Delete(c.storageContext)
 
 	if err != nil {
-		return fmt.Errorf("Failed to delete state file %v: %v", c.stateFileUrl(), err)
+		return fmt.Errorf("Failed to delete state file %v: %v", c.stateFileURL(), err)
 	}
 
 	return nil
@@ -91,7 +91,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		info.ID = lockID
 	}
 
-	info.Path = c.lockFileUrl()
+	info.Path = c.lockFileURL()
 
 	infoJson, err := json.Marshal(info)
 	if err != nil {
@@ -115,25 +115,25 @@ func (c *RemoteClient) Unlock(id string) error {
 
 	bucket := c.storageClient.Bucket(c.bucketName)
 	lockFile := bucket.Object(c.lockFilePath)
-	lockFileUrl := c.lockFileUrl()
+	lockFileURL := c.lockFileURL()
 
 	lockFileReader, err := lockFile.NewReader(c.storageContext)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to retrieve lock info (%v): %v", lockFileUrl, err)
+		lockErr.Err = fmt.Errorf("Failed to retrieve lock info (%v): %v", lockFileURL, err)
 		return lockErr
 	}
 	defer lockFileReader.Close()
 
 	lockFileContents, err := ioutil.ReadAll(lockFileReader)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to retrieve lock info (%v): %v", lockFileUrl, err)
+		lockErr.Err = fmt.Errorf("Failed to retrieve lock info (%v): %v", lockFileURL, err)
 		return lockErr
 	}
 
 	lockInfo := &state.LockInfo{}
 	err = json.Unmarshal(lockFileContents, lockInfo)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to unmarshal lock info (%v): %v", lockFileUrl, err)
+		lockErr.Err = fmt.Errorf("Failed to unmarshal lock info (%v): %v", lockFileURL, err)
 		return lockErr
 	}
 
@@ -146,23 +146,23 @@ func (c *RemoteClient) Unlock(id string) error {
 
 	lockFileAttrs, err := lockFile.Attrs(c.storageContext)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to fetch lock file attrs (%v): %v", lockFileUrl, err)
+		lockErr.Err = fmt.Errorf("Failed to fetch lock file attrs (%v): %v", lockFileURL, err)
 		return lockErr
 	}
 
 	err = lockFile.If(storage.Conditions{GenerationMatch: lockFileAttrs.Generation}).Delete(c.storageContext)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to delete lock file (%v): %v", lockFileUrl, err)
+		lockErr.Err = fmt.Errorf("Failed to delete lock file (%v): %v", lockFileURL, err)
 		return lockErr
 	}
 
 	return nil
 }
 
-func (c *RemoteClient) stateFileUrl() string {
+func (c *RemoteClient) stateFileURL() string {
 	return fmt.Sprintf("gs://%v/%v", c.bucketName, c.stateFilePath)
 }
 
-func (c *RemoteClient) lockFileUrl() string {
+func (c *RemoteClient) lockFileURL() string {
 	return fmt.Sprintf("gs://%v/%v", c.bucketName, c.lockFilePath)
 }
