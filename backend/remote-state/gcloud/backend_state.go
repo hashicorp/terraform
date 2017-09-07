@@ -1,17 +1,18 @@
 package gcloud
 
 import (
-	"cloud.google.com/go/storage"
 	"errors"
 	"fmt"
+	"regexp"
+	"sort"
+	"strings"
+
+	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/iterator"
-	"regexp"
-	"sort"
-	"strings"
 )
 
 func (b *Backend) States() ([]string, error) {
