@@ -13,6 +13,16 @@ import (
 	"google.golang.org/api/option"
 )
 
+type Backend struct {
+	*schema.Backend
+
+	storageClient  *storage.Client
+	storageContext googleContext.Context
+
+	bucketName string
+	stateDir   string
+}
+
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
@@ -40,16 +50,6 @@ func New() backend.Backend {
 	result := &Backend{Backend: s}
 	result.Backend.ConfigureFunc = result.configure
 	return result
-}
-
-type Backend struct {
-	*schema.Backend
-
-	storageClient  *storage.Client
-	storageContext googleContext.Context
-
-	bucketName string
-	stateDir   string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
