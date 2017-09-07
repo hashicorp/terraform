@@ -57,8 +57,6 @@ func (b *Backend) configure(ctx context.Context) error {
 		return nil
 	}
 
-	storageOAuth2Scope := "https://www.googleapis.com/auth/devstorage.read_write"
-
 	data := schema.FromContextBackendConfig(ctx)
 
 	b.bucketName = data.Get("bucket").(string)
@@ -75,14 +73,14 @@ func (b *Backend) configure(ctx context.Context) error {
 			return fmt.Errorf("Error loading credentials: %v", err)
 		}
 
-		jwtConfig, err := google.JWTConfigFromJSON([]byte(credentialsJson), storageOAuth2Scope)
+		jwtConfig, err := google.JWTConfigFromJSON([]byte(credentialsJson), storage.ScopeReadWrite)
 		if err != nil {
 			return fmt.Errorf("Failed to get Google OAuth2 token: %v", err)
 		}
 
 		tokenSource = jwtConfig.TokenSource(b.storageContext)
 	} else {
-		defaultTokenSource, err := google.DefaultTokenSource(b.storageContext, storageOAuth2Scope)
+		defaultTokenSource, err := google.DefaultTokenSource(b.storageContext, storage.ScopeReadWrite)
 		if err != nil {
 			return fmt.Errorf("Failed to get Google Application Default Credentials: %v", err)
 		}
