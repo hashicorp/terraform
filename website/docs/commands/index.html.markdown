@@ -116,13 +116,10 @@ optional and can be disabled.
 Checkpoint itself can be entirely disabled for all HashiCorp products by
 setting the environment variable `CHECKPOINT_DISABLE` to any non-empty value.
 
-Alternatively, settings in Terraform's global configuration file can be used
-to disable checkpoint features. On Unix systems this file is named
-`.terraformrc` and is placed within the home directory of the user running
-Terraform. On Windows, this file is named `terraform.rc` and is and is placed
-in the current user's _Application Data_ folder.
-
-The following checkpoint-related settings are supported in this file:
+Alternatively, settings in
+[the CLI configuration file](/docs/commands/cli-config.html) can be used to
+disable checkpoint features. The following checkpoint-related settings are
+supported in this file:
 
 * `disable_checkpoint` - set to `true` to disable checkpoint calls
   entirely. This is similar to the `CHECKPOINT_DISABLE` environment variable
