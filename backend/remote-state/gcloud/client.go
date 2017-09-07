@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 
 	"cloud.google.com/go/storage"
-	uuid "github.com/hashicorp/go-uuid"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"golang.org/x/net/context"
@@ -72,75 +73,79 @@ func (c *RemoteClient) Delete() error {
 	return nil
 }
 
+// Lock writes to a lock file, ensuring file creation. Returns the generation
+// number, which must be passed to Unlock().
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
-	if info.ID == "" {
-		lockID, err := uuid.GenerateUUID()
-		if err != nil {
-			return "", err
-		}
-
-		info.ID = lockID
-	}
-
-	info.Path = c.lockFileURL()
-
 	infoJson, err := json.Marshal(info)
 	if err != nil {
 		return "", err
 	}
 
-	writer := c.lockFile().If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
-	writer.Write(infoJson)
-	if err := writer.Close(); err != nil {
-		return "", fmt.Errorf("Error while saving lock file (%v): %v", info.Path, err)
+	lockFile := c.lockFile()
+	w := lockFile.If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
+	err = func() error {
+		if _, err := w.Write(infoJson); err != nil {
+			return err
+		}
+		return w.Close()
+	}()
+	if err != nil {
+		return "", c.lockError(fmt.Errorf("writing %q failed: %v", c.lockFileURL(), err))
 	}
+
+	info.ID = strconv.FormatInt(w.Attrs().Generation, 10)
+	info.Path = c.lockFileURL()
 
 	return info.ID, nil
 }
 
 func (c *RemoteClient) Unlock(id string) error {
-	lockErr := &state.LockError{}
-
-	lockFileReader, err := c.lockFile().NewReader(c.storageContext)
+	gen, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to retrieve lock info (%v): %v", c.lockFileURL(), err)
-		return lockErr
-	}
-	defer lockFileReader.Close()
-
-	lockFileContents, err := ioutil.ReadAll(lockFileReader)
-	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to retrieve lock info (%v): %v", c.lockFileURL(), err)
-		return lockErr
+		return err
 	}
 
-	lockInfo := &state.LockInfo{}
-	err = json.Unmarshal(lockFileContents, lockInfo)
-	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to unmarshal lock info (%v): %v", c.lockFileURL(), err)
-		return lockErr
-	}
-
-	lockErr.Info = lockInfo
-
-	if lockInfo.ID != id {
-		lockErr.Err = fmt.Errorf("Lock id %q does not match existing lock", id)
-		return lockErr
-	}
-
-	lockFileAttrs, err := lockFile.Attrs(c.storageContext)
-	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to fetch lock file attrs (%v): %v", c.lockFileURL(), err)
-		return lockErr
-	}
-
-	err = lockFile.If(storage.Conditions{GenerationMatch: lockFileAttrs.Generation}).Delete(c.storageContext)
-	if err != nil {
-		lockErr.Err = fmt.Errorf("Failed to delete lock file (%v): %v", c.lockFileURL(), err)
-		return lockErr
+	if err := c.lockFile().If(storage.Conditions{GenerationMatch: gen}).Delete(c.storageContext); err != nil {
+		return c.lockError(err)
 	}
 
 	return nil
+}
+
+func (c *RemoteClient) lockError(err error) *state.LockError {
+	lockErr := &state.LockError{
+		Err: err,
+	}
+
+	info, infoErr := c.lockInfo()
+	if infoErr != nil {
+		lockErr.Err = multierror.Append(lockErr.Err, infoErr)
+	} else {
+		lockErr.Info = info
+	}
+	return lockErr
+}
+
+// lockInfo reads the lock file, parses its contents and returns the parsed
+// LockInfo struct.
+func (c *RemoteClient) lockInfo() (*state.LockInfo, error) {
+	r, err := c.lockFile().NewReader(c.storageContext)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	rawData, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	info := &state.LockInfo{}
+	if err := json.Unmarshal(rawData, info); err != nil {
+		return nil, err
+	}
+
+	return info, nil
 }
 
 func (c *RemoteClient) stateFile() *storage.ObjectHandle {
