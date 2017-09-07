@@ -186,6 +186,10 @@ type TestCheckFunc func(*terraform.State) error
 // ImportStateCheckFunc is the check function for ImportState tests
 type ImportStateCheckFunc func([]*terraform.InstanceState) error
 
+// ImportStateIdFunc is an ID generation function to help with complex ID
+// generation for ImportState tests.
+type ImportStateIdFunc func(*terraform.State) (string, error)
+
 // TestCase is a single acceptance test case used to test the apply/destroy
 // lifecycle of a resource in a specific configuration.
 //
@@ -332,6 +336,12 @@ type TestStep struct {
 	// where the ID is not known, and a known prefix needs to be added to
 	// the unset ImportStateId field.
 	ImportStateIdPrefix string
+
+	// ImportStateIdFunc is a function that can be used to dynamically generate
+	// the ID for the ImportState tests. It is sent the state, which can be
+	// checked to derive the attributes necessary and generate the string in the
+	// desired format.
+	ImportStateIdFunc ImportStateIdFunc
 
 	// ImportStateCheck checks the results of ImportState. It should be
 	// used to verify that the resulting value of ImportState has the
