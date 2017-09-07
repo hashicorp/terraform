@@ -188,3 +188,24 @@ provider "aws" {
 An exception to this is the special `version` attribute that applies to all `provider` blocks for specifying [provider versions](#provider-versions); interpolation is not supported for provider versions since provider compatibility is a property of the configuration rather than something dynamic, and provider plugin installation happens too early for variables to be resolvable in this context.
 
 -> **NOTE:** Because providers are one of the first things loaded when Terraform parses the graph, it is not possible to use the output from modules or resources as inputs to the provider. At this time, only [variables](/docs/configuration/variables.html) and [data sources](/docs/configuration/data-sources.html), including [remote state](/docs/providers/terraform/d/remote_state.html) may be used in an interpolation inside a provider stanza.
+
+## Third-party Plugins
+
+At present Terraform can automatically install only the providers distributed
+by HashiCorp. Third-party providers can be manually installed by placing
+their plugin executables in one of the following locations depending on the
+host operating system:
+
+* On Windows, in the sub-path `terraform.d/plugins` beneath your user's
+  "Application Data" directory.
+* On all other systems, in the sub-path `.terraform.d/plugins` in your
+  user's home directory.
+
+`terraform init` will search this directory for additional plugins during
+plugin initialization.
+
+The naming scheme for provider plugins is `terraform-provider-NAME-vX.Y.Z`,
+and Terraform uses the name to understand the name and version of a particular
+provider binary. Third-party plugins will often be distributed with an
+appropriate filename already set in the distribution archive so that it can
+be extracted directly into the plugin directory described above.
