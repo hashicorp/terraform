@@ -35,6 +35,12 @@ locals {
   default_name_prefix = "${var.project_name}-web"
   name_prefix         = "${var.name_prefix != "" ? var.name_prefix : local.default_name_prefix}"
 }
+
+# Using a local value
+resource "aws_s3_bucket" "files" {
+  bucket = "${local.name_prefix}-files"
+  # ...
+}
 ```
 
 ## Description
