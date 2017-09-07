@@ -1,14 +1,15 @@
 package gcloud
 
 import (
-	"cloud.google.com/go/storage"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+
+	"cloud.google.com/go/storage"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"golang.org/x/net/context"
-	"io/ioutil"
 )
 
 type RemoteClient struct {

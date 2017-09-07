@@ -1,9 +1,10 @@
 package gcloud
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
+
+	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
