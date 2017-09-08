@@ -46,7 +46,7 @@ func init() {
 		"azure": deprecateBackend(backendAzure.New(),
 			`Warning: "azure" name is deprecated, please use "azurerm"`),
 		"azurerm": func() backend.Backend { return backendAzure.New() },
-		"etcdv3": func() backend.Backend { return backendetcdv3.New() },
+		"etcdv3":  func() backend.Backend { return backendetcdv3.New() },
 	}
 
 	// Add the legacy remote backends that haven't yet been convertd to
