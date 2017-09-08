@@ -16,15 +16,24 @@ func testStepImportState(
 	state *terraform.State,
 	step TestStep) (*terraform.State, error) {
 	// Determine the ID to import
-	importId := step.ImportStateId
-	if importId == "" {
+	var importId string
+	switch {
+	case step.ImportStateIdFunc != nil:
+		var err error
+		importId, err = step.ImportStateIdFunc(state)
+		if err != nil {
+			return state, err
+		}
+	case step.ImportStateId != "":
+		importId = step.ImportStateId
+	default:
 		resource, err := testResource(step, state)
 		if err != nil {
 			return state, err
 		}
-
 		importId = resource.Primary.ID
 	}
+
 	importPrefix := step.ImportStateIdPrefix
 	if importPrefix != "" {
 		importId = fmt.Sprintf("%s%s", importPrefix, importId)
