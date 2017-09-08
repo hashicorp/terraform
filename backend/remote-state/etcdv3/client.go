@@ -116,6 +116,17 @@ func (c *RemoteClient) Unlock(id string) error {
 	return c.unlock(id)
 }
 
+func (c *RemoteClient) deleteLockInfo(info *state.LockInfo) error {
+	res, err := c.Client.KV.Delete(context.TODO(), c.Key+lockInfoSuffix)
+	if err != nil {
+		return err
+	}
+	if res.Deleted == 0 {
+		return fmt.Errorf("No keys deleted for %s when deleting lock info.", c.Key+lockInfoSuffix)
+	}
+	return nil
+}
+
 func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 	res, err := c.Client.KV.Get(context.TODO(), c.Key+lockInfoSuffix)
 	if err != nil {
@@ -181,6 +192,9 @@ func (c *RemoteClient) unlock(id string) error {
 
 	var errs error
 
+	if err := c.deleteLockInfo(c.info); err != nil {
+		errs = multierror.Append(errs, err)
+	}
 	if err := c.etcdMutex.Unlock(context.TODO()); err != nil {
 		errs = multierror.Append(errs, err)
 	}
