@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"testing"
 
+	getter "github.com/hashicorp/go-getter"
 	version "github.com/hashicorp/go-version"
 )
 
@@ -79,58 +82,160 @@ func TestDetectRegistry(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		module   string
+		source   string
 		location string
 		found    bool
 		err      bool
 	}{
 		{
-			module:   "registry/foo/bar",
+			source:   "registry/foo/bar",
 			location: "download/registry/foo/bar/0.2.3",
 			found:    true,
 		},
 		{
-			module:   "registry/foo/baz",
+			source:   "registry/foo/baz",
 			location: "download/registry/foo/baz/1.10.0",
 			found:    true,
 		},
 		// this should not be found, but not stop detection
 		{
-			module: "registry/foo/notfound",
+			source: "registry/foo/notfound",
 			found:  false,
 		},
 
 		// a full url should not be detected
 		{
-			module: "http://example.com/registry/foo/notfound",
+			source: "http://example.com/registry/foo/notfound",
 			found:  false,
 		},
 
 		// paths should not be detected
 		{
-			module: "./local/foo/notfound",
+			source: "./local/foo/notfound",
 			found:  false,
 		},
 		{
-			module: "/local/foo/notfound",
+			source: "/local/foo/notfound",
 			found:  false,
 		},
 
 		// wrong number of parts can't be regisry IDs
 		{
-			module: "something/registry/foo/notfound",
+			source: "something/registry/foo/notfound",
 			found:  false,
 		},
 	} {
 
-		t.Run(tc.module, func(t *testing.T) {
-			loc, ok, err := detector.Detect(tc.module, "")
+		t.Run(tc.source, func(t *testing.T) {
+			loc, ok, err := detector.Detect(tc.source, "")
 			if (err == nil) == tc.err {
 				t.Fatalf("expected error? %t; got error :%v", tc.err, err)
 			}
 
 			if ok != tc.found {
 				t.Fatalf("expected OK == %t", tc.found)
+			}
+
+			loc = strings.TrimPrefix(loc, server.URL+"/")
+			if strings.TrimPrefix(loc, server.URL) != tc.location {
+				t.Fatalf("expected location: %q, got %q", tc.location, loc)
+			}
+		})
+
+	}
+}
+
+// check that the full set of detectors works as expected
+func TestDetectors(t *testing.T) {
+	server := mockRegistry()
+	defer server.Close()
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	regDetector := &registryDetector{
+		api:    server.URL + "/v1/modules/",
+		client: server.Client(),
+	}
+
+	detectors := []getter.Detector{
+		new(getter.GitHubDetector),
+		new(getter.BitBucketDetector),
+		new(getter.S3Detector),
+		new(localDetector),
+		regDetector,
+	}
+
+	for _, tc := range []struct {
+		source   string
+		location string
+		fixture  string
+		err      bool
+	}{
+		{
+			source:   "registry/foo/bar",
+			location: "download/registry/foo/bar/0.2.3",
+		},
+		// this should not be found, but not stop detection
+		{
+			source: "registry/foo/notfound",
+			err:    true,
+		},
+		// a full url should be unchanged
+		{
+			source: "http://example.com/registry/foo/notfound?" +
+				"checksum=sha256:f19056b80a426d797ff9e470da069c171a6c6befa83e2da7f6c706207742acab",
+			location: "http://example.com/registry/foo/notfound?" +
+				"checksum=sha256:f19056b80a426d797ff9e470da069c171a6c6befa83e2da7f6c706207742acab",
+		},
+
+		// forced getters will return untouched
+		{
+			source:   "git::http://example.com/registry/foo/notfound?param=value",
+			location: "git::http://example.com/registry/foo/notfound?param=value",
+		},
+
+		// local paths should be detected as such, even if they're match
+		// registry modules.
+		{
+			source: "./registry/foo/bar",
+			err:    true,
+		},
+		{
+			source: "/registry/foo/bar",
+			err:    true,
+		},
+
+		// wrong number of parts can't be regisry IDs
+		{
+			source: "something/registry/foo/notfound",
+			err:    true,
+		},
+
+		// make sure a local module that looks like a registry id takes precedence
+		{
+			source:  "namespace/identifier/provider",
+			fixture: "discover-subdirs",
+			// this should be found locally
+			location: "file://" + filepath.Join(wd, fixtureDir, "discover-subdirs/namespace/identifier/provider"),
+		},
+	} {
+
+		t.Run(tc.source, func(t *testing.T) {
+			dir := wd
+			if tc.fixture != "" {
+				dir = filepath.Join(wd, fixtureDir, tc.fixture)
+				if err := os.Chdir(dir); err != nil {
+					t.Fatal(err)
+				}
+				defer os.Chdir(wd)
+			}
+
+			loc, err := getter.Detect(tc.source, dir, detectors)
+			if (err == nil) == tc.err {
+				t.Fatalf("expected error? %t; got error :%v", tc.err, err)
 			}
 
 			loc = strings.TrimPrefix(loc, server.URL+"/")
