@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
-	googleContext "golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -23,7 +22,7 @@ type gcsBackend struct {
 	*schema.Backend
 
 	storageClient  *storage.Client
-	storageContext googleContext.Context
+	storageContext context.Context
 
 	bucketName string
 	stateDir   string
