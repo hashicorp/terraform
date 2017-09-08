@@ -3,6 +3,7 @@ package gcloud
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
@@ -67,7 +68,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	data := schema.FromContextBackendConfig(b.storageContext)
 
 	b.bucketName = data.Get("bucket").(string)
-	b.stateDir = data.Get("state_dir").(string)
+	b.stateDir = strings.TrimLeft(data.Get("state_dir").(string), "/")
 
 	var tokenSource oauth2.TokenSource
 
