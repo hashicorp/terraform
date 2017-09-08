@@ -20,7 +20,7 @@ _local values_ are comparable to a function's local variables.
 This page assumes you're already familiar with
 [the configuration syntax](/docs/configuration/syntax.html).
 
-## Example
+## Examples
 
 Local values are defined in `locals` blocks:
 
@@ -36,10 +36,37 @@ locals {
   name_prefix         = "${var.name_prefix != "" ? var.name_prefix : local.default_name_prefix}"
 }
 
-# Using a local value
+# Local values can be interpolated elsewhere using the "local." prefix.
 resource "aws_s3_bucket" "files" {
   bucket = "${local.name_prefix}-files"
   # ...
+}
+```
+
+Named local maps can be merged with local maps to implement common or default
+values:
+
+```hcl
+# Define the common tags for all resources
+locals {
+  common_tags = {
+    Component   = "awesome-app"
+    Environment = "production"
+  }
+}
+
+# Create a resource that blends the common tags with instance-specific tags.
+resource "aws_instance" "server" {
+  ami           = "ami-123456"
+  instance_type = "t2.micro"
+
+  tags = "${merge(
+    local.common_tags,
+    map(
+      "Name", "awesome-app-server",
+      "Role", "server"
+    )
+  )}"
 }
 ```
 
