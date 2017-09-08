@@ -77,8 +77,8 @@ func (b *gcsBackend) client(name string) (*remoteClient, error) {
 		storageContext: b.storageContext,
 		storageClient:  b.storageClient,
 		bucketName:     b.bucketName,
-		stateFilePath:  path.Join(b.stateDir, name+stateFileSuffix),
-		lockFilePath:   path.Join(b.stateDir, name+lockFileSuffix),
+		stateFilePath:  b.stateFile(name),
+		lockFilePath:   b.lockFile(name),
 	}, nil
 }
 
@@ -138,4 +138,18 @@ the initial state file is created.`
 	}
 
 	return st, nil
+}
+
+func (b *gcsBackend) stateFile(name string) string {
+	if name == backend.DefaultStateName && b.defaultStateFile != "" {
+		return b.defaultStateFile
+	}
+	return path.Join(b.stateDir, name+stateFileSuffix)
+}
+
+func (b *gcsBackend) lockFile(name string) string {
+	if name == backend.DefaultStateName && b.defaultStateFile != "" {
+		return strings.TrimSuffix(b.defaultStateFile, stateFileSuffix) + lockFileSuffix
+	}
+	return path.Join(b.stateDir, name+lockFileSuffix)
 }
