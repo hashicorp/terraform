@@ -3,7 +3,7 @@ package gcloud
 import (
 	"errors"
 	"fmt"
-	"regexp"
+	"path"
 	"sort"
 	"strings"
 
@@ -15,42 +15,38 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+// States returns a list of names for the states found on GCS. The default
+// state is always returned as the first element in the slice.
 func (b *Backend) States() ([]string, error) {
-	workspaces := []string{backend.DefaultStateName}
-	var stateRegex *regexp.Regexp
-	var err error
-	if b.stateDir == "" {
-		stateRegex = regexp.MustCompile(`^(.+)\.tfstate$`)
-	} else {
-		stateRegex, err = regexp.Compile(fmt.Sprintf("^%v/(.+)\\.tfstate$", regexp.QuoteMeta(b.stateDir)))
-		if err != nil {
-			return []string{}, fmt.Errorf("Failed to compile regex for querying states: %v", err)
-		}
-	}
+	states := []string{backend.DefaultStateName}
 
 	bucket := b.storageClient.Bucket(b.bucketName)
-	query := &storage.Query{
-		Prefix: b.stateDir,
-	}
-
-	files := bucket.Objects(b.storageContext, query)
+	objs := bucket.Objects(b.storageContext, &storage.Query{
+		Delimiter: "/",
+		Prefix:    b.stateDir,
+	})
 	for {
-		attrs, err := files.Next()
+		attrs, err := objs.Next()
 		if err == iterator.Done {
 			break
 		}
 		if err != nil {
-			return []string{}, fmt.Errorf("Failed to query remote states: %v", err)
+			return nil, fmt.Errorf("querying Cloud Storage failed: %v", err)
 		}
 
-		matches := stateRegex.FindStringSubmatch(attrs.Name)
-		if len(matches) == 2 && matches[1] != backend.DefaultStateName {
-			workspaces = append(workspaces, matches[1])
+		name := path.Base(attrs.Name)
+		if !strings.HasSuffix(name, ".tfstate") {
+			continue
+		}
+		st := strings.TrimSuffix(name, ".tfstate")
+
+		if st != backend.DefaultStateName {
+			states = append(states, st)
 		}
 	}
 
-	sort.Strings(workspaces[1:])
-	return workspaces, nil
+	sort.Strings(states[1:])
+	return states, nil
 }
 
 func (b *Backend) DeleteState(name string) error {
