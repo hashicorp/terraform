@@ -45,7 +45,7 @@ func New() backend.Backend {
 			"lock": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Lock state access.",
+				Description: "Whether to lock state access.",
 				Default:     true,
 			},
 		},
