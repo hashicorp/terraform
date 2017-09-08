@@ -18,7 +18,6 @@ import (
 const (
 	lockAcquireTimeout = 2 * time.Second
 	lockInfoSuffix     = ".lockinfo"
-	lockSuffix         = ".lock"
 )
 
 // RemoteClient is a remote client that will store data in etcd.
@@ -165,7 +164,7 @@ func (c *RemoteClient) lock() (string, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), lockAcquireTimeout)
 	defer cancel()
 
-	mutex := etcdv3sync.NewMutex(session, c.Key+lockSuffix)
+	mutex := etcdv3sync.NewMutex(session, c.Key)
 	if err1 := mutex.Lock(ctx); err1 != nil {
 		lockInfo, err2 := c.getLockInfo()
 		if err2 != nil {
