@@ -47,7 +47,7 @@ data "terraform_remote_state" "foo" {
 The following configuration options / environment variables are supported:
 
  * `endpoints` - (Required) The list of 'etcd' endpoints which to connect to.
- * `username` - (Optional) Username used to connect to the etcd cluster.
- * `password` - (Optional) Password used to connect to the etcd  cluster.
+ * `username` / `ETCDV3_USERNAME` - (Optional) Username used to connect to the etcd cluster.
+ * `password` / `ETCDV3_PASSWORD` - (Optional) Password used to connect to the etcd  cluster.
  * `prefix` - (Optional) An optional prefix to be added to keys when to storing state in etcd. Defaults to `""`.
  * `lock` - (Optional) Whether to lock state access. Defaults to `true`.
