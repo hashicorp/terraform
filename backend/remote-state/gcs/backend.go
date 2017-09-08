@@ -1,5 +1,5 @@
-// Package gcloud implements remote storage of state on Google Cloud Storage (GCS).
-package gcloud
+// Package gcs implements remote storage of state on Google Cloud Storage (GCS).
+package gcs
 
 import (
 	"context"
