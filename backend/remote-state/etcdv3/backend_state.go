@@ -3,6 +3,7 @@ package etcd
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	etcdv3 "github.com/coreos/etcd/clientv3"
@@ -33,6 +34,7 @@ func (b *Backend) States() ([]string, error) {
 	for _, kv := range res.Kvs {
 		result = append(result, strings.TrimPrefix(string(kv.Key), prefix))
 	}
+	sort.Strings(result[1:])
 
 	return result, nil
 }
