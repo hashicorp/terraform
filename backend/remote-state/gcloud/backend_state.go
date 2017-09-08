@@ -1,7 +1,6 @@
 package gcloud
 
 import (
-	"errors"
 	"fmt"
 	"path"
 	"sort"
@@ -13,6 +12,11 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/iterator"
+)
+
+const (
+	stateFileSuffix = ".tfstate"
+	lockFileSuffix  = ".tflock"
 )
 
 // States returns a list of names for the states found on GCS. The default
@@ -35,10 +39,10 @@ func (b *Backend) States() ([]string, error) {
 		}
 
 		name := path.Base(attrs.Name)
-		if !strings.HasSuffix(name, ".tfstate") {
+		if !strings.HasSuffix(name, stateFileSuffix) {
 			continue
 		}
-		st := strings.TrimSuffix(name, ".tfstate")
+		st := strings.TrimSuffix(name, stateFileSuffix)
 
 		if st != backend.DefaultStateName {
 			states = append(states, st)
@@ -63,21 +67,19 @@ func (b *Backend) DeleteState(name string) error {
 	return client.Delete()
 }
 
-// get a remote client configured for this state
+// remoteClient returns a RemoteClient for the named state.
 func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	if name == "" {
-		return nil, errors.New("Missing state name")
+		return nil, fmt.Errorf("%q is not a valid state name", name)
 	}
 
-	client := &RemoteClient{
+	return &RemoteClient{
 		storageContext: b.storageContext,
 		storageClient:  b.storageClient,
 		bucketName:     b.bucketName,
-		stateFilePath:  b.stateFileName(name),
-		lockFilePath:   b.lockFileName(name),
-	}
-
-	return client, nil
+		stateFilePath:  path.Join(b.stateDir, name+stateFileSuffix),
+		lockFilePath:   path.Join(b.stateDir, name+lockFileSuffix),
+	}, nil
 }
 
 func (b *Backend) State(name string) (state.State, error) {
@@ -127,22 +129,6 @@ func (b *Backend) State(name string) (state.State, error) {
 	}
 
 	return stateMgr, nil
-}
-
-func (b *Backend) stateFileName(stateName string) string {
-	if b.stateDir == "" {
-		return fmt.Sprintf("%v.tfstate", stateName)
-	} else {
-		return fmt.Sprintf("%v/%v.tfstate", b.stateDir, stateName)
-	}
-}
-
-func (b *Backend) lockFileName(stateName string) string {
-	if b.stateDir == "" {
-		return fmt.Sprintf("%v.tflock", stateName)
-	} else {
-		return fmt.Sprintf("%v/%v.tflock", b.stateDir, stateName)
-	}
 }
 
 const errStateUnlock = `
