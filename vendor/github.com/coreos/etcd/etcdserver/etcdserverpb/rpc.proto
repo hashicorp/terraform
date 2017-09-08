@@ -112,7 +112,13 @@ service Lease {
     };
   }
 
-  // TODO(xiangli) List all existing Leases?
+  // LeaseLeases lists all existing leases.
+  rpc LeaseLeases(LeaseLeasesRequest) returns (LeaseLeasesResponse) {
+      option (google.api.http) = {
+        post: "/v3alpha/kv/lease/leases"
+        body: "*"
+    };
+  }
 }
 
 service Cluster {
@@ -184,7 +190,7 @@ service Maintenance {
     };
   }
 
-  // HashKV computes the hash of all MVCC keys up to a given revision. 
+  // HashKV computes the hash of all MVCC keys up to a given revision.
   rpc HashKV(HashKVRequest) returns (HashKVResponse) {
       option (google.api.http) = {
         post: "/v3alpha/maintenance/hash"
@@ -511,6 +517,7 @@ message Compare {
     CREATE = 1;
     MOD = 2;
     VALUE= 3;
+    LEASE = 4;
   }
   // result is logical comparison operation for this comparison.
   CompareResult result = 1;
@@ -527,10 +534,14 @@ message Compare {
     int64 mod_revision = 6;
     // value is the value of the given key, in bytes.
     bytes value = 7;
+    // lease is the lease id of the given key.
+    int64 lease = 8;
+    // leave room for more target_union field tags, jump to 64
   }
+
   // range_end compares the given target to all keys in the range [key, range_end).
   // See RangeRequest for more details on key ranges.
-  bytes range_end = 8;
+  bytes range_end = 64;
   // TODO: fill out with most of the rest of RangeRequest fields when needed.
 }
 
@@ -752,6 +763,19 @@ message LeaseTimeToLiveResponse {
   repeated bytes keys = 5;
 }
 
+message LeaseLeasesRequest {
+}
+
+message LeaseStatus {
+  int64 ID = 1;
+  // TODO: int64 TTL = 2;
+}
+
+message LeaseLeasesResponse {
+  ResponseHeader header = 1;
+  repeated LeaseStatus leases = 2;
+}
+
 message Member {
   // ID is the member ID for this member.
   uint64 ID = 1;
@@ -828,6 +852,7 @@ message MoveLeaderResponse {
 enum AlarmType {
 	NONE = 0; // default, used to query if any alarm is active
 	NOSPACE = 1; // space quota is exhausted
+	CORRUPT = 2; // kv store corruption detected
 }
 
 message AlarmRequest {
