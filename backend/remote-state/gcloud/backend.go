@@ -60,7 +60,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	// ctx is a background context with the backend config added.
-	// Since no context is passed to RemoteClient.Get(), .Lock(), etc. but
+	// Since no context is passed to remoteClient.Get(), .Lock(), etc. but
 	// one is required for calling the GCP API, we're holding on to this
 	// context here and re-use it later.
 	b.storageContext = ctx
