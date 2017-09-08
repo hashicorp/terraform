@@ -13,18 +13,13 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-const (
-	keyEnvPrefix = "-env:"
-)
-
 func (b *Backend) States() ([]string, error) {
 	client, err := b.rawClient()
 	if err != nil {
 		return nil, err
 	}
 
-	prefix := b.determineKey("")
-	res, err := client.Get(context.TODO(), prefix, etcdv3.WithPrefix(), etcdv3.WithKeysOnly())
+	res, err := client.Get(context.TODO(), b.prefix, etcdv3.WithPrefix(), etcdv3.WithKeysOnly())
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +27,7 @@ func (b *Backend) States() ([]string, error) {
 	result := make([]string, 1, len(res.Kvs)+1)
 	result[0] = backend.DefaultStateName
 	for _, kv := range res.Kvs {
-		result = append(result, strings.TrimPrefix(string(kv.Key), prefix))
+		result = append(result, strings.TrimPrefix(string(kv.Key), b.prefix))
 	}
 	sort.Strings(result[1:])
 
@@ -49,9 +44,9 @@ func (b *Backend) DeleteState(name string) error {
 		return err
 	}
 
-	path := b.determineKey(name)
+	key := b.determineKey(name)
 
-	_, err = client.Delete(context.TODO(), path)
+	_, err = client.Delete(context.TODO(), key)
 	return err
 }
 
@@ -111,11 +106,7 @@ func (b *Backend) State(name string) (state.State, error) {
 }
 
 func (b *Backend) determineKey(name string) string {
-	prefix := b.prefix
-	if name != backend.DefaultStateName {
-		prefix += fmt.Sprintf("%s%s", keyEnvPrefix, name)
-	}
-	return prefix
+	return b.prefix + name
 }
 
 const errStateUnlock = `

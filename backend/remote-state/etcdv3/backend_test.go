@@ -49,17 +49,17 @@ func prepareEtcdv3(t *testing.T) {
 func TestBackend(t *testing.T) {
 	prepareEtcdv3(t)
 
-	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
+	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
 	// Get the backend. We need two to test locking.
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
-		"prefix":    path,
+		"prefix":    prefix,
 	})
 
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
-		"prefix":    path,
+		"prefix":    prefix,
 	})
 
 	// Test
@@ -69,19 +69,19 @@ func TestBackend(t *testing.T) {
 func TestBackend_lockDisabled(t *testing.T) {
 	prepareEtcdv3(t)
 
-	key := fmt.Sprintf("%s/%s", keyPrefix, time.Now().String())
+	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
 	// Get the backend. We need two to test locking.
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
+		"prefix":    prefix,
 		"lock":      false,
-		"prefix":    key,
 	})
 
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
+		"prefix":    prefix + "/" + "different", // Diff so locking test would fail if it was locking
 		"lock":      false,
-		"prefix":    key + "/" + "different", // Diff so locking test would fail if it was locking
 	})
 
 	// Test
