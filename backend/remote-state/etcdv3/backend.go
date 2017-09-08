@@ -60,12 +60,14 @@ type Backend struct {
 	*schema.Backend
 
 	// The fields below are set from configure.
+	client *etcdv3.Client
 	data   *schema.ResourceData
 	lock   bool
 	prefix string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
+	var err error
 	// Grab the resource data.
 	b.data = schema.FromContextBackendConfig(ctx)
 	// Store the lock information.
@@ -73,7 +75,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Store the prefix information.
 	b.prefix = b.data.Get("prefix").(string)
 	// Initialize a client to test config.
-	_, err := b.rawClient()
+	b.client, err = b.rawClient()
 	// Return err, if any.
 	return err
 }

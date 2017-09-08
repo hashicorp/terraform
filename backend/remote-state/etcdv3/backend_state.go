@@ -14,12 +14,7 @@ import (
 )
 
 func (b *Backend) States() ([]string, error) {
-	client, err := b.rawClient()
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := client.Get(context.TODO(), b.prefix, etcdv3.WithPrefix(), etcdv3.WithKeysOnly())
+	res, err := b.client.Get(context.TODO(), b.prefix, etcdv3.WithPrefix(), etcdv3.WithKeysOnly())
 	if err != nil {
 		return nil, err
 	}
@@ -39,26 +34,16 @@ func (b *Backend) DeleteState(name string) error {
 		return fmt.Errorf("Can't delete default state.")
 	}
 
-	client, err := b.rawClient()
-	if err != nil {
-		return err
-	}
-
 	key := b.determineKey(name)
 
-	_, err = client.Delete(context.TODO(), key)
+	_, err := b.client.Delete(context.TODO(), key)
 	return err
 }
 
 func (b *Backend) State(name string) (state.State, error) {
-	client, err := b.rawClient()
-	if err != nil {
-		return nil, err
-	}
-
 	var stateMgr state.State = &remote.State{
 		Client: &RemoteClient{
-			Client: client,
+			Client: b.client,
 			DoLock: b.lock,
 			Key:    b.determineKey(name),
 		},
