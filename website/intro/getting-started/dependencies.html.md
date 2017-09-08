@@ -133,11 +133,11 @@ Most dependencies in Terraform are implicit: Terraform is able
 to infer dependencies based on usage of attributes of other
 resources.
 
-Using this information, Terraform builds a graph of resources.
-This tells Terraform not only in what order to create resources,
-but also what resources can be created in parallel. In our example,
-since the IP address depended on the EC2 instance, they could
-not be created in parallel.
+Using this information, Terraform builds a data structure of resources called a _graph_. ([This
+video](https://www.youtube.com/watch?v=Ce3RNfRbdZ0&feature=youtu.be&t=524) from HashiConf 2016 gives a
+short introduction to graphs.) This tells Terraform not only in what order to create resources,
+but also what resources can be created in parallel. In our example, since the IP address depended on the EC2
+instance, they could not be created in parallel.
 
 Implicit dependencies work well and are usually all you ever need.
 However, you can also specify explicit dependencies with the
