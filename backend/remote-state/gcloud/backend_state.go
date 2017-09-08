@@ -82,63 +82,60 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	}, nil
 }
 
+// State reads and returns the named state from GCS. If the named state does
+// not yet exist, a new state file is created.
 func (b *Backend) State(name string) (state.State, error) {
 	client, err := b.remoteClient(name)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create Google Storage client: %v", err)
-	}
-
-	stateMgr := &remote.State{Client: client}
-	lockInfo := state.NewLockInfo()
-	lockInfo.Operation = "init"
-	lockId, err := stateMgr.Lock(lockInfo)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to lock state in Google Cloud Storage: %v", err)
-	}
-
-	// Local helper function so we can call it multiple places
-	lockUnlock := func(parent error) error {
-		if err := stateMgr.Unlock(lockId); err != nil {
-			return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, client.lockFileURL(), err)
-		}
-
-		return parent
-	}
-
-	// Grab the value
-	if err := stateMgr.RefreshState(); err != nil {
-		err = lockUnlock(err)
 		return nil, err
 	}
 
-	// If we have no state, we have to create an empty state
-	if v := stateMgr.State(); v == nil {
-		if err := stateMgr.WriteState(terraform.NewState()); err != nil {
-			err = lockUnlock(err)
-			return nil, err
+	st := &remote.State{Client: client}
+	lockInfo := state.NewLockInfo()
+	lockInfo.Operation = "init"
+	lockID, err := st.Lock(lockInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	// Local helper function so we can call it multiple places
+	unlock := func(baseErr error) error {
+		if err := st.Unlock(lockID); err != nil {
+			const unlockErrMsg = `%v
+Additionally, unlocking the state file on Google Cloud Storage failed:
+
+  Error message: %q
+  Lock ID (gen): %v
+  Lock file URL: %v
+
+You may have to force-unlock this state in order to use it again.
+The GCloud backend acquires a lock during initialization to ensure
+the initial state file is created.`
+			return fmt.Errorf(unlockErrMsg, baseErr, err.Error(), lockID, client.lockFileURL())
 		}
-		if err := stateMgr.PersistState(); err != nil {
-			err = lockUnlock(err)
-			return nil, err
+
+		return baseErr
+	}
+
+	// Grab the value
+	if err := st.RefreshState(); err != nil {
+		return nil, unlock(err)
+	}
+
+	// If we have no state, we have to create an empty state
+	if v := st.State(); v == nil {
+		if err := st.WriteState(terraform.NewState()); err != nil {
+			return nil, unlock(err)
+		}
+		if err := st.PersistState(); err != nil {
+			return nil, unlock(err)
 		}
 	}
 
 	// Unlock, the state should now be initialized
-	if err := lockUnlock(nil); err != nil {
+	if err := unlock(nil); err != nil {
 		return nil, err
 	}
 
-	return stateMgr, nil
+	return st, nil
 }
-
-const errStateUnlock = `
-Error unlocking Google Cloud Storage state.
-
-Lock ID: %v
-Lock file URL: %v
-Error: %v
-
-You may have to force-unlock this state in order to use it again.
-The GCloud backend acquires a lock during initialization to ensure
-the initial state file is created.
-`
