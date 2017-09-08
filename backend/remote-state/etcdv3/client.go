@@ -148,7 +148,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 }
 
 func (c *RemoteClient) putLockInfo(info *state.LockInfo) error {
-	c.info.Path = c.Key
+	c.info.Path = c.etcdMutex.Key()
 	c.info.Created = time.Now().UTC()
 
 	_, err := c.Client.KV.Put(context.TODO(), c.Key+lockInfoSuffix, string(c.info.Marshal()))
