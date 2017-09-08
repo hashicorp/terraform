@@ -13,7 +13,10 @@ import (
 	"golang.org/x/net/context"
 )
 
-type RemoteClient struct {
+// remoteClient is used by "state/remote".State to read and write
+// blobs representing state.
+// Implements "state/remote".ClientLocker
+type remoteClient struct {
 	storageContext context.Context
 	storageClient  *storage.Client
 	bucketName     string
@@ -21,7 +24,7 @@ type RemoteClient struct {
 	lockFilePath   string
 }
 
-func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
+func (c *remoteClient) Get() (payload *remote.Payload, err error) {
 	stateFileReader, err := c.stateFile().NewReader(c.storageContext)
 	if err != nil {
 		if err == storage.ErrObjectNotExist {
@@ -50,7 +53,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	return result, nil
 }
 
-func (c *RemoteClient) Put(data []byte) error {
+func (c *remoteClient) Put(data []byte) error {
 	err := func() error {
 		stateFileWriter := c.stateFile().NewWriter(c.storageContext)
 		if _, err := stateFileWriter.Write(data); err != nil {
@@ -65,7 +68,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	return nil
 }
 
-func (c *RemoteClient) Delete() error {
+func (c *remoteClient) Delete() error {
 	if err := c.stateFile().Delete(c.storageContext); err != nil {
 		return fmt.Errorf("Failed to delete state file %v: %v", c.stateFileURL(), err)
 	}
@@ -75,7 +78,7 @@ func (c *RemoteClient) Delete() error {
 
 // Lock writes to a lock file, ensuring file creation. Returns the generation
 // number, which must be passed to Unlock().
-func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
 	infoJson, err := json.Marshal(info)
 	if err != nil {
 		return "", err
@@ -99,7 +102,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	return info.ID, nil
 }
 
-func (c *RemoteClient) Unlock(id string) error {
+func (c *remoteClient) Unlock(id string) error {
 	gen, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return err
@@ -112,7 +115,7 @@ func (c *RemoteClient) Unlock(id string) error {
 	return nil
 }
 
-func (c *RemoteClient) lockError(err error) *state.LockError {
+func (c *remoteClient) lockError(err error) *state.LockError {
 	lockErr := &state.LockError{
 		Err: err,
 	}
@@ -128,7 +131,7 @@ func (c *RemoteClient) lockError(err error) *state.LockError {
 
 // lockInfo reads the lock file, parses its contents and returns the parsed
 // LockInfo struct.
-func (c *RemoteClient) lockInfo() (*state.LockInfo, error) {
+func (c *remoteClient) lockInfo() (*state.LockInfo, error) {
 	r, err := c.lockFile().NewReader(c.storageContext)
 	if err != nil {
 		return nil, err
@@ -148,18 +151,18 @@ func (c *RemoteClient) lockInfo() (*state.LockInfo, error) {
 	return info, nil
 }
 
-func (c *RemoteClient) stateFile() *storage.ObjectHandle {
+func (c *remoteClient) stateFile() *storage.ObjectHandle {
 	return c.storageClient.Bucket(c.bucketName).Object(c.stateFilePath)
 }
 
-func (c *RemoteClient) stateFileURL() string {
+func (c *remoteClient) stateFileURL() string {
 	return fmt.Sprintf("gs://%v/%v", c.bucketName, c.stateFilePath)
 }
 
-func (c *RemoteClient) lockFile() *storage.ObjectHandle {
+func (c *remoteClient) lockFile() *storage.ObjectHandle {
 	return c.storageClient.Bucket(c.bucketName).Object(c.lockFilePath)
 }
 
-func (c *RemoteClient) lockFileURL() string {
+func (c *remoteClient) lockFileURL() string {
 	return fmt.Sprintf("gs://%v/%v", c.bucketName, c.lockFilePath)
 }

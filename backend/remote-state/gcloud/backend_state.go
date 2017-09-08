@@ -59,21 +59,21 @@ func (b *Backend) DeleteState(name string) error {
 		return fmt.Errorf("cowardly refusing to delete the %q state", name)
 	}
 
-	client, err := b.remoteClient(name)
+	c, err := b.client(name)
 	if err != nil {
 		return err
 	}
 
-	return client.Delete()
+	return c.Delete()
 }
 
-// remoteClient returns a RemoteClient for the named state.
-func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
+// client returns a remoteClient for the named state.
+func (b *Backend) client(name string) (*remoteClient, error) {
 	if name == "" {
 		return nil, fmt.Errorf("%q is not a valid state name", name)
 	}
 
-	return &RemoteClient{
+	return &remoteClient{
 		storageContext: b.storageContext,
 		storageClient:  b.storageClient,
 		bucketName:     b.bucketName,
@@ -85,12 +85,12 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 // State reads and returns the named state from GCS. If the named state does
 // not yet exist, a new state file is created.
 func (b *Backend) State(name string) (state.State, error) {
-	client, err := b.remoteClient(name)
+	c, err := b.client(name)
 	if err != nil {
 		return nil, err
 	}
 
-	st := &remote.State{Client: client}
+	st := &remote.State{Client: c}
 	lockInfo := state.NewLockInfo()
 	lockInfo.Operation = "init"
 	lockID, err := st.Lock(lockInfo)
@@ -111,7 +111,7 @@ Additionally, unlocking the state file on Google Cloud Storage failed:
 You may have to force-unlock this state in order to use it again.
 The GCloud backend acquires a lock during initialization to ensure
 the initial state file is created.`
-			return fmt.Errorf(unlockErrMsg, baseErr, err.Error(), lockID, client.lockFileURL())
+			return fmt.Errorf(unlockErrMsg, baseErr, err.Error(), lockID, c.lockFileURL())
 		}
 
 		return baseErr
