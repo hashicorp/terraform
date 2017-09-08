@@ -1,3 +1,4 @@
+// Package gcloud implements remote storage of state on Google Cloud Storage (GCS).
 package gcloud
 
 import (
@@ -15,7 +16,10 @@ import (
 	"google.golang.org/api/option"
 )
 
-type Backend struct {
+// gcsBackend implements "backend".Backend for GCS.
+// Input(), Validate() and Configure() are implemented by embedding *schema.Backend.
+// State(), DeleteState() and States() are implemented explicitly.
+type gcsBackend struct {
 	*schema.Backend
 
 	storageClient  *storage.Client
@@ -26,7 +30,7 @@ type Backend struct {
 }
 
 func New() backend.Backend {
-	be := &Backend{}
+	be := &gcsBackend{}
 	be.Backend = &schema.Backend{
 		ConfigureFunc: be.configure,
 		Schema: map[string]*schema.Schema{
@@ -54,7 +58,7 @@ func New() backend.Backend {
 	return be
 }
 
-func (b *Backend) configure(ctx context.Context) error {
+func (b *gcsBackend) configure(ctx context.Context) error {
 	if b.storageClient != nil {
 		return nil
 	}
