@@ -37,8 +37,9 @@ func New() backend.Backend {
 
 			"prefix": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The prefix to use when storing state in etcd.",
+				Optional:    true,
+				Description: "An optional prefix to be added to keys when to storing state in etcd.",
+				Default:     "",
 			},
 
 			"lock": &schema.Schema{
