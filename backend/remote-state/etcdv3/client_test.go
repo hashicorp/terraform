@@ -83,13 +83,11 @@ func TestEtcdv3_destroyLock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lockPath := c.Key + lockSuffix
-
 	if err := c.Unlock(id); err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := c.Client.KV.Get(context.TODO(), lockPath)
+	res, err := c.Client.KV.Get(context.TODO(), c.Key)
 	if err != nil {
 		t.Fatal(err)
 	}
