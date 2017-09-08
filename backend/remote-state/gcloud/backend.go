@@ -24,8 +24,9 @@ type gcsBackend struct {
 	storageClient  *storage.Client
 	storageContext context.Context
 
-	bucketName string
-	stateDir   string
+	bucketName       string
+	stateDir         string
+	defaultStateFile string
 }
 
 func New() backend.Backend {
@@ -37,6 +38,12 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the Google Cloud Storage bucket",
+			},
+
+			"path": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "(Legacy) Path of the default state file; use state_dir instead",
 			},
 
 			"state_dir": {
@@ -72,6 +79,8 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 
 	b.bucketName = data.Get("bucket").(string)
 	b.stateDir = strings.TrimLeft(data.Get("state_dir").(string), "/")
+
+	b.defaultStateFile = strings.TrimLeft(data.Get("path").(string), "/")
 
 	var tokenSource oauth2.TokenSource
 
