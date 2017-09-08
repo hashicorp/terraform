@@ -25,14 +25,14 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Username used to connect to the etcd cluster.",
-				Default:     "", // To prevent input.
+				DefaultFunc: schema.EnvDefaultFunc("ETCDV3_USERNAME", ""),
 			},
 
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Password used to connect to the etcd cluster.",
-				Default:     "", // To prevent input.
+				DefaultFunc: schema.EnvDefaultFunc("ETCDV3_PASSWORD", ""),
 			},
 
 			"prefix": &schema.Schema{
