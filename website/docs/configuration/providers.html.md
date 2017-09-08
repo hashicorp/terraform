@@ -209,3 +209,64 @@ and Terraform uses the name to understand the name and version of a particular
 provider binary. Third-party plugins will often be distributed with an
 appropriate filename already set in the distribution archive so that it can
 be extracted directly into the plugin directory described above.
+
+## Provider Plugin Cache
+
+By default, `terraform init` downloads plugins into a subdirectory of the
+working directory so that each working directory is self-contained. As a
+consequence, if you have multiple configurations that use the same provider
+then a separate copy of its plugin will be downloaded for each configuration.
+
+Given that provider plugins can be quite large (on the order of hundreds of
+megabytes), this default behavior can be inconvenient for those with slow
+or metered Internet connections. Therefore Terraform optionally allows the
+use of a local directory as a shared plugin cache, which then allows each
+distinct plugin binary to be downloaded only once.
+
+To enable the plugin cache, use the `plugin_cache_dir` setting in
+[the CLI configuration file](https://www.terraform.io/docs/commands/cli-config.html).
+For example:
+
+```hcl
+# (Note that the CLI configuration file is _not_ the same as the .tf files
+#  used to configure infrastructure.)
+
+plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"
+```
+
+Please note that on Windows it is necessary to use forward slash separators
+(`/`) rather than the conventional backslash (`\`) since the configuration
+file parser considers a backslash to begin an escape sequence.
+
+Setting this in the configuration file is the recommended approach for a
+persistent setting. Alternatively, the `TF_PLUGIN_CACHE_DIR` environment
+variable can be used to enable caching or to override an existing cache
+directory within a particular shell session:
+
+```bash
+export TF_PLUGIN_CACHE_DIR="~/.terraform.d/plugin-cache"
+```
+
+When a plugin cache directory is enabled, the `terraform init` command will
+still access the plugin distribution server to obtain metadata about which
+plugins are available, but once a suitable version has been selected it will
+first check to see if the selected plugin is already available in the cache
+directory. If so, the already-downloaded plugin binary will be used.
+
+If the selected plugin is not already in the cache, it will be downloaded
+into the cache first and then copied from there into the correct location
+under your current working directory.
+
+When possible, Terraform will use hardlinks or symlinks to avoid storing
+a separate copy of a cached plugin in multiple directories. At present, this
+is not supported on Windows and instead a copy is always created.
+
+The plugin cache directory must *not* be the third-party plugin directory
+or any other directory Terraform searches for pre-installed plugins, since
+the cache management logic conflicts with the normal plugin discovery logic
+when operating on the same directory.
+
+Please note that Terraform will never itself delete a plugin from the
+plugin cache once it's been placed there. Over time, as plugins are upgraded,
+the cache directory may grow to contain several unused versions which must be
+manually deleted.
