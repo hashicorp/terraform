@@ -17,6 +17,7 @@ func TestRemoteClient_impl(t *testing.T) {
 
 func TestRemoteClient(t *testing.T) {
 	prepareEtcdv3(t)
+	defer cleanupEtcdv3(t)
 
 	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
@@ -38,6 +39,7 @@ func TestRemoteClient(t *testing.T) {
 
 func TestEtcdv3_stateLock(t *testing.T) {
 	prepareEtcdv3(t)
+	defer cleanupEtcdv3(t)
 
 	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
@@ -63,6 +65,7 @@ func TestEtcdv3_stateLock(t *testing.T) {
 
 func TestEtcdv3_destroyLock(t *testing.T) {
 	prepareEtcdv3(t)
+	defer cleanupEtcdv3(t)
 
 	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
@@ -96,11 +99,5 @@ func TestEtcdv3_destroyLock(t *testing.T) {
 	}
 	if res.Count != 0 {
 		t.Fatalf("lock key not cleaned up at: %s", string(res.Kvs[0].Key))
-	}
-
-	// Cleanup leftover state.
-	c.Client.KV.Delete(context.TODO(), c.Key)
-	if err != nil {
-		t.Fatal(err)
 	}
 }

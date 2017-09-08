@@ -24,13 +24,7 @@ func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
 }
 
-func prepareEtcdv3(t *testing.T) {
-	skip := os.Getenv("TF_ACC") == "" && os.Getenv("TF_ETCDV3_TEST") == ""
-	if skip {
-		t.Log("etcd server tests require setting TF_ACC or TF_ETCDV3_TEST")
-		t.Skip()
-	}
-
+func cleanupEtcdv3(t *testing.T) {
 	client, err := etcdv3.New(etcdv3.Config{
 		Endpoints: etcdv3Endpoints,
 	})
@@ -42,12 +36,21 @@ func prepareEtcdv3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	t.Logf("Cleaned up %d keys.", res.Deleted)
+}
+
+func prepareEtcdv3(t *testing.T) {
+	skip := os.Getenv("TF_ACC") == "" && os.Getenv("TF_ETCDV3_TEST") == ""
+	if skip {
+		t.Log("etcd server tests require setting TF_ACC or TF_ETCDV3_TEST")
+		t.Skip()
+	}
+	cleanupEtcdv3(t)
 }
 
 func TestBackend(t *testing.T) {
 	prepareEtcdv3(t)
+	defer cleanupEtcdv3(t)
 
 	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
@@ -68,6 +71,7 @@ func TestBackend(t *testing.T) {
 
 func TestBackend_lockDisabled(t *testing.T) {
 	prepareEtcdv3(t)
+	defer cleanupEtcdv3(t)
 
 	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
