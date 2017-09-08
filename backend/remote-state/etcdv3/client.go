@@ -100,6 +100,9 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	if !c.DoLock {
 		return "", nil
 	}
+	if c.etcdSession != nil {
+		return "", fmt.Errorf("state %q already locked", c.Key)
+	}
 
 	c.info = info
 	return c.lock()
