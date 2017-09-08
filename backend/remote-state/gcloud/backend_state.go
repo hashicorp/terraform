@@ -21,7 +21,7 @@ const (
 
 // States returns a list of names for the states found on GCS. The default
 // state is always returned as the first element in the slice.
-func (b *Backend) States() ([]string, error) {
+func (b *gcsBackend) States() ([]string, error) {
 	states := []string{backend.DefaultStateName}
 
 	bucket := b.storageClient.Bucket(b.bucketName)
@@ -54,7 +54,7 @@ func (b *Backend) States() ([]string, error) {
 }
 
 // DeleteState deletes the named state. The "default" state cannot be deleted.
-func (b *Backend) DeleteState(name string) error {
+func (b *gcsBackend) DeleteState(name string) error {
 	if name == backend.DefaultStateName {
 		return fmt.Errorf("cowardly refusing to delete the %q state", name)
 	}
@@ -68,7 +68,7 @@ func (b *Backend) DeleteState(name string) error {
 }
 
 // client returns a remoteClient for the named state.
-func (b *Backend) client(name string) (*remoteClient, error) {
+func (b *gcsBackend) client(name string) (*remoteClient, error) {
 	if name == "" {
 		return nil, fmt.Errorf("%q is not a valid state name", name)
 	}
@@ -84,7 +84,7 @@ func (b *Backend) client(name string) (*remoteClient, error) {
 
 // State reads and returns the named state from GCS. If the named state does
 // not yet exist, a new state file is created.
-func (b *Backend) State(name string) (state.State, error) {
+func (b *gcsBackend) State(name string) (state.State, error) {
 	c, err := b.client(name)
 	if err != nil {
 		return nil, err
