@@ -49,22 +49,18 @@ func (b *Backend) States() ([]string, error) {
 	return states, nil
 }
 
+// DeleteState deletes the named state. The "default" state cannot be deleted.
 func (b *Backend) DeleteState(name string) error {
-	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("Can't delete default state")
+	if name == backend.DefaultStateName {
+		return fmt.Errorf("cowardly refusing to delete the %q state", name)
 	}
 
 	client, err := b.remoteClient(name)
 	if err != nil {
-		return fmt.Errorf("Failed to create Google Storage client: %v", err)
+		return err
 	}
 
-	err = client.Delete()
-	if err != nil {
-		return fmt.Errorf("Failed to delete state file %v: %v", client.stateFileURL(), err)
-	}
-
-	return nil
+	return client.Delete()
 }
 
 // get a remote client configured for this state
