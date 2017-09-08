@@ -6,16 +6,19 @@ import (
 	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strings"
 )
 
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
 			"endpoints": &schema.Schema{
-				Type:        schema.TypeString,
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				MinItems:    1,
 				Required:    true,
-				Description: "Comma-separated list of endpoints for the etcd cluster.",
+				Description: "Endpoints for the etcd cluster.",
 			},
 
 			"username": &schema.Schema{
@@ -77,8 +80,8 @@ func (b *Backend) configure(ctx context.Context) error {
 func (b *Backend) rawClient() (*etcdv3.Client, error) {
 	config := etcdv3.Config{}
 
-	if v, ok := b.data.GetOk("endpoints"); ok && v.(string) != "" {
-		config.Endpoints = strings.Split(v.(string), ",")
+	if v, ok := b.data.GetOk("endpoints"); ok {
+		config.Endpoints = retrieveEndpoints(v)
 	}
 	if v, ok := b.data.GetOk("username"); ok && v.(string) != "" {
 		config.Username = v.(string)
@@ -88,4 +91,13 @@ func (b *Backend) rawClient() (*etcdv3.Client, error) {
 	}
 
 	return etcdv3.New(config)
+}
+
+func retrieveEndpoints(v interface{}) []string {
+	var endpoints []string
+	list := v.([]interface{})
+	for _, ep := range list {
+		endpoints = append(endpoints, ep.(string))
+	}
+	return endpoints
 }

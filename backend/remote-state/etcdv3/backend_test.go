@@ -12,6 +12,10 @@ import (
 	"github.com/hashicorp/terraform/backend"
 )
 
+var (
+	etcdv3Endpoints = strings.Split(os.Getenv("TF_ETCDV3_ENDPOINTS"), ",")
+)
+
 const (
 	keyPrefix = "tf-unit"
 )
@@ -28,7 +32,7 @@ func prepareEtcdv3(t *testing.T) {
 	}
 
 	client, err := etcdv3.New(etcdv3.Config{
-		Endpoints: strings.Split(os.Getenv("TF_ETCDV3_ENDPOINTS"), ","),
+		Endpoints: etcdv3Endpoints,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -49,12 +53,12 @@ func TestBackend(t *testing.T) {
 
 	// Get the backend. We need two to test locking.
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"endpoints": os.Getenv("TF_ETCDV3_ENDPOINTS"),
+		"endpoints": etcdv3Endpoints,
 		"prefix":    path,
 	})
 
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"endpoints": os.Getenv("TF_ETCDV3_ENDPOINTS"),
+		"endpoints": etcdv3Endpoints,
 		"prefix":    path,
 	})
 
@@ -69,13 +73,13 @@ func TestBackend_lockDisabled(t *testing.T) {
 
 	// Get the backend. We need two to test locking.
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"endpoints": os.Getenv("TF_ETCDV3_ENDPOINTS"),
+		"endpoints": etcdv3Endpoints,
 		"lock":      false,
 		"prefix":    key,
 	})
 
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"endpoints": os.Getenv("TF_ETCDV3_ENDPOINTS"),
+		"endpoints": etcdv3Endpoints,
 		"lock":      false,
 		"prefix":    key + "/" + "different", // Diff so locking test would fail if it was locking
 	})
