@@ -965,6 +965,20 @@
 			"revision": "e5527914aa42cae3063f52892e1ca4518da0e4ae"
 		},
 		{
+			"checksumSHA1": "rMyIh9PsSvPs6Yd+YgKITQzQJx8=",
+			"path": "github.com/coreos/etcd/pkg/tlsutil",
+			"revision": "80aa810309d4d261c7cb56c2650641ff52420bfa",
+			"revisionTime": "2017-09-08T19:54:35Z"
+		},
+		{
+			"checksumSHA1": "5JKO4MLdX64ntloR8r9xuu58TnU=",
+			"path": "github.com/coreos/etcd/pkg/transport",
+			"revision": "bb66589f8cf18960c7f3d56b1b83753caeed9c7a",
+			"revisionTime": "2017-09-01T16:15:15Z",
+			"version": "v3.2.7",
+			"versionExact": "v3.2.7"
+		},
+		{
 			"checksumSHA1": "dMR9ipwCbX5eIPnvLXiPUM65/0s=",
 			"comment": "v2.3.0-alpha.0-652-ge552791",
 			"path": "github.com/coreos/etcd/pkg/types",
