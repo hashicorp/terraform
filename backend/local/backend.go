@@ -79,6 +79,15 @@ type Local struct {
 	// If this is nil, local performs normal state loading and storage.
 	Backend backend.Backend
 
+	// RunningInAutomation indicates that commands are being run by an
+	// automated system rather than directly at a command prompt.
+	//
+	// This is a hint not to produce messages that expect that a user can
+	// run a follow-up command, perhaps because Terraform is running in
+	// some sort of workflow automation tool that abstracts away the
+	// exact commands that are being run.
+	RunningInAutomation bool
+
 	schema *schema.Backend
 	opLock sync.Mutex
 	once   sync.Once

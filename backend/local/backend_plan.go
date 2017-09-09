@@ -145,17 +145,23 @@ func (b *Local) opPlan(
 
 		b.renderPlan(dispPlan)
 
-		b.CLI.Output("\n------------------------------------------------------------------------")
+		// Give the user some next-steps, unless we're running in an automation
+		// tool which is presumed to provide its own UI for further actions.
+		if !b.RunningInAutomation {
 
-		if path := op.PlanOutPath; path == "" {
-			b.CLI.Output(fmt.Sprintf(
-				"\n" + strings.TrimSpace(planHeaderNoOutput) + "\n",
-			))
-		} else {
-			b.CLI.Output(fmt.Sprintf(
-				"\n"+strings.TrimSpace(planHeaderYesOutput)+"\n",
-				path, path,
-			))
+			b.CLI.Output("\n------------------------------------------------------------------------")
+
+			if path := op.PlanOutPath; path == "" {
+				b.CLI.Output(fmt.Sprintf(
+					"\n" + strings.TrimSpace(planHeaderNoOutput) + "\n",
+				))
+			} else {
+				b.CLI.Output(fmt.Sprintf(
+					"\n"+strings.TrimSpace(planHeaderYesOutput)+"\n",
+					path, path,
+				))
+			}
+
 		}
 	}
 }

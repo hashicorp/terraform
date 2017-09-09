@@ -96,13 +96,14 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 
 	// Setup the CLI opts we pass into backends that support it
 	cliOpts := &backend.CLIOpts{
-		CLI:             m.Ui,
-		CLIColor:        m.Colorize(),
-		StatePath:       m.statePath,
-		StateOutPath:    m.stateOutPath,
-		StateBackupPath: m.backupPath,
-		ContextOpts:     m.contextOpts(),
-		Input:           m.Input(),
+		CLI:                 m.Ui,
+		CLIColor:            m.Colorize(),
+		StatePath:           m.statePath,
+		StateOutPath:        m.stateOutPath,
+		StateBackupPath:     m.backupPath,
+		ContextOpts:         m.contextOpts(),
+		Input:               m.Input(),
+		RunningInAutomation: m.RunningInAutomation,
 	}
 
 	// Don't validate if we have a plan.  Validation is normally harmless here,
