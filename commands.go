@@ -8,6 +8,11 @@ import (
 	"github.com/mitchellh/cli"
 )
 
+// runningInAutomationEnvName gives the name of an environment variable that
+// can be set to any non-empty value in order to suppress certain messages
+// that assume that Terraform is being run from a command prompt.
+const runningInAutomationEnvName = "TF_IN_AUTOMATION"
+
 // Commands is the mapping of all the available Terraform commands.
 var Commands map[string]cli.CommandFactory
 var PlumbingCommands map[string]struct{}
@@ -29,11 +34,18 @@ func init() {
 		Ui:           &cli.BasicUi{Writer: os.Stdout},
 	}
 
+	var inAutomation bool
+	if v := os.Getenv(runningInAutomationEnvName); v != "" {
+		inAutomation = true
+	}
+
 	meta := command.Meta{
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),
 		PluginOverrides:  &PluginOverrides,
 		Ui:               Ui,
+
+		RunningInAutomation: inAutomation,
 	}
 
 	// The command list is included in the terraform -help

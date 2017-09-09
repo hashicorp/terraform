@@ -74,6 +74,28 @@ and updated by subsequent runs. Selecting a backend that supports
 [state locking](/docs/state/locking.html) will additionally provide safety
 against race conditions that can be caused by concurrent Terraform runs.
 
+## Controlling Terraform Output in Automation
+
+By default, some Terraform commands conclude by presenting a description
+of a possible next step to the user, often including a specific command
+to run next.
+
+An automation tool will often abstract away the details of exactly which
+commands are being run, causing these messages to be confusing and
+un-actionable, and possibly harmful if they inadvertently encourage a user to
+bypass the automation tool entirely.
+
+When the environment variable `TF_IN_AUTOMATION` is set to any non-empty
+value, Terraform makes some minor adjustments to its output to de-emphasize
+specific commands to run. The specific changes made will vary over time,
+but generally-speaking Terraform will consider this variable to indicate that
+there is some wrapping application that will help the user with the next
+step.
+
+To reduce complexity, this feature is implemented primarily for the main
+workflow commands described above. Other ancillary commands may still produce
+command line suggestions, regardless of this setting.
+
 ## Plan and Apply on different machines
 
 When running in an orchestration tool, it can be difficult or impossible to
