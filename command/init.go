@@ -257,6 +257,12 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccess)))
+	if !c.RunningInAutomation {
+		// If we're not running in an automation wrapper, give the user
+		// some more detailed next steps that are appropriate for interactive
+		// shell usage.
+		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccessCLI)))
+	}
 
 	return 0
 }
@@ -536,7 +542,9 @@ with Terraform immediately by creating Terraform configuration files.
 
 const outputInitSuccess = `
 [reset][bold][green]Terraform has been successfully initialized![reset][green]
+`
 
+const outputInitSuccessCLI = `[reset][green]
 You may now begin working with Terraform. Try running "terraform plan" to see
 any changes that are required for your infrastructure. All Terraform commands
 should now work.
