@@ -51,3 +51,6 @@ The following configuration options / environment variables are supported:
  * `password` / `ETCDV3_PASSWORD` - (Optional) Password used to connect to the etcd  cluster.
  * `prefix` - (Optional) An optional prefix to be added to keys when to storing state in etcd. Defaults to `""`.
  * `lock` - (Optional) Whether to lock state access. Defaults to `true`.
+ * `cacert_path` - (Optional) The path to a PEM-encoded CA bundle with which to verify certificates of TLS-enabled etcd servers.
+ * `cert_path` - (Optional) The path to a PEM-encoded certificate to provide to etcd for secure client identification.
+ * `key_path` - (Optional) The path to a PEM-encoded key to provide to etcd for secure client identification.
