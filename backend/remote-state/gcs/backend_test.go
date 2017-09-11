@@ -6,7 +6,7 @@ import (
 
 func TestStateFile(t *testing.T) {
 	cases := []struct {
-		stateDir         string
+		prefix           string
 		defaultStateFile string
 		name             string
 		wantStateFile    string
@@ -21,7 +21,7 @@ func TestStateFile(t *testing.T) {
 	}
 	for _, c := range cases {
 		b := &gcsBackend{
-			stateDir:         c.stateDir,
+			prefix:           c.prefix,
 			defaultStateFile: c.defaultStateFile,
 		}
 
