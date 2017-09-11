@@ -111,7 +111,7 @@ standard structure.
   module structure. Terraform files must exist in the root directory of
   the module. This should be the primary entrypoint for the module and is
   expected to be opinionated. For the
-  [Consul module](#)
+  [Consul module](https://registry.terraform.io/modules/hashicorp/consul)
   the root module sets up a complete Consul cluster. A lot of assumptions
   are made, however, and it is fully expected that advanced users will use
   specific nested modules to more carefully control what they want.
@@ -147,7 +147,7 @@ standard structure.
   of internal modules. Nested modules should be used to split complex behavior
   into multiple small modules that advanced users can carefully pick and
   choose. For example, the
-  [Consul module](#)
+  [Consul module](https://registry.terraform.io/modules/hashicorp/consul)
   has a nested module for creating the Cluster that is separate from the
   module to setup necessary IAM policies. This allows a user to bring in their
   own IAM policy choices.
@@ -157,8 +157,8 @@ standard structure.
   goal and usage of the example.
 
 A minimal recommended module following the standard structure is shown below.
-While the root module is the only required element, we recommend below as
-a minimum structure:
+While the root module is the only required element, we recommend the structure
+below as the minimum:
 
 ```sh
 $ tree minimal-module/
@@ -183,6 +183,7 @@ $ tree complete-module/
 ├── ...
 ├── modules/
 │   ├── nestedA/
+│   │   ├── README.md
 │   │   ├── variables.tf
 │   │   ├── main.tf
 │   │   ├── outputs.tf
