@@ -509,6 +509,41 @@ func TestPlan_displayInterpolations(t *testing.T) {
 	}
 }
 
+// Ensure that (forces new resource) text is included
+// https://github.com/hashicorp/terraform/issues/16035
+func TestPlan_forcesNewResource(t *testing.T) {
+	plan := &terraform.Plan{
+		Diff: &terraform.Diff{
+			Modules: []*terraform.ModuleDiff{
+				&terraform.ModuleDiff{
+					Path: []string{"root"},
+					Resources: map[string]*terraform.InstanceDiff{
+						"test_resource.foo": &terraform.InstanceDiff{
+							Destroy: true,
+							Attributes: map[string]*terraform.ResourceAttrDiff{
+								"A": &terraform.ResourceAttrDiff{
+									New:         "B",
+									RequiresNew: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	dispPlan := NewPlan(plan)
+	actual := dispPlan.Format(disabledColorize)
+
+	expected := strings.TrimSpace(`
+-/+ test_resource.foo (new resource required)
+      A: "" => "B" (forces new resource)
+	`)
+	if actual != expected {
+		t.Fatalf("expected:\n\n%s\n\ngot:\n\n%s", expected, actual)
+	}
+}
+
 // Test that a root level data source gets a special plan output on create
 func TestPlan_rootDataSource(t *testing.T) {
 	plan := &terraform.Plan{
