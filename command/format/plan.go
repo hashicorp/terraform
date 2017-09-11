@@ -311,7 +311,7 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 
 		updateMsg := ""
 		switch {
-		case attr.ForcesNew && r.Action == terraform.DiffDestroy:
+		case attr.ForcesNew && r.Action == terraform.DiffDestroyCreate:
 			updateMsg = colorizer.Color(" [red](forces new resource)")
 		case attr.Sensitive && oldValues:
 			updateMsg = colorizer.Color(" [yellow](attribute changed)")
