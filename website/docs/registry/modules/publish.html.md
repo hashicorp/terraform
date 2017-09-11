@@ -33,12 +33,12 @@ requirements should happen naturally.
 This is only a requirement for the [public registry](https://registry.terraform.io).
 If you're using a private registry, you may ignore this requirement.
 
-* **Repostory name.** The repository name must be `terraform-PROVIDER-NAME`
+* **Repository name.** The repository name must be `terraform-PROVIDER-NAME`
 where PROVIDER is the primary provider to associate with the module and
 NAME is a unique name for the module. The name may contain hyphens. Example:
 `terraform-aws-consul` or `terraform-google-vault`.
 
-* **Repostory description.** The GitHub repository description is used
+* **Repository description.** The GitHub repository description is used
 to populate the short description of the module. This should be a simple
 one sentence description of the module.
 
@@ -64,9 +64,12 @@ publish public modules. We require access to hooks so we can register a webhook
 with your repository. We require access to your email address so that we can
 email you alerts about your module. We will not spam you.
 
-The upload page will list your available repositories. This is shown in the
-screenshot below. Select the repository of the module you want to add and
+The upload page will list your available repositories, filtered to those that
+match the [naming convention described above](#Requirements). This is shown in
+the screenshot below. Select the repository of the module you want to add and
 click "Create Module."
+
+TODO: screenshot
 
 In a few seconds, your module will be created.
 
