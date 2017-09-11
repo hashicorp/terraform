@@ -27,7 +27,7 @@ func (b *gcsBackend) States() ([]string, error) {
 	bucket := b.storageClient.Bucket(b.bucketName)
 	objs := bucket.Objects(b.storageContext, &storage.Query{
 		Delimiter: "/",
-		Prefix:    b.stateDir,
+		Prefix:    b.prefix,
 	})
 	for {
 		attrs, err := objs.Next()
@@ -144,12 +144,12 @@ func (b *gcsBackend) stateFile(name string) string {
 	if name == backend.DefaultStateName && b.defaultStateFile != "" {
 		return b.defaultStateFile
 	}
-	return path.Join(b.stateDir, name+stateFileSuffix)
+	return path.Join(b.prefix, name+stateFileSuffix)
 }
 
 func (b *gcsBackend) lockFile(name string) string {
 	if name == backend.DefaultStateName && b.defaultStateFile != "" {
 		return strings.TrimSuffix(b.defaultStateFile, stateFileSuffix) + lockFileSuffix
 	}
-	return path.Join(b.stateDir, name+lockFileSuffix)
+	return path.Join(b.prefix, name+lockFileSuffix)
 }
