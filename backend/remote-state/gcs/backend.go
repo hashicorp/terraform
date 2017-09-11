@@ -25,7 +25,7 @@ type gcsBackend struct {
 	storageContext context.Context
 
 	bucketName       string
-	stateDir         string
+	prefix           string
 	defaultStateFile string
 }
 
@@ -43,10 +43,10 @@ func New() backend.Backend {
 			"path": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "(Legacy) Path of the default state file; use state_dir instead",
+				Description: "(Legacy) Path of the default state file; use prefix instead",
 			},
 
-			"state_dir": {
+			"prefix": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The directory where state files will be saved inside the bucket",
@@ -78,7 +78,7 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 	data := schema.FromContextBackendConfig(b.storageContext)
 
 	b.bucketName = data.Get("bucket").(string)
-	b.stateDir = strings.TrimLeft(data.Get("state_dir").(string), "/")
+	b.prefix = strings.TrimLeft(data.Get("prefix").(string), "/")
 
 	b.defaultStateFile = strings.TrimLeft(data.Get("path").(string), "/")
 
