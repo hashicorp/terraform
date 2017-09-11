@@ -17,11 +17,12 @@ There are two tiers: Pro and Enterprise. The Pro version is only available
 as a SaaS service whereas the Enterprise version is available for private
 install. Both versions fully support private registries.
 
-The Terraform project does not provide any free or open source solution
-to have a private registry. Terraform only requires that the
-[read API](/docs/registry/api.html) to be
-available to load modules from a registry. We welcome the community to create
-their own private registries by recreating this API.
+The Terraform project does not provide any free or open source solution to have
+a private registry. Terraform only requires the [read API](/docs/registry/api.html)
+to be available to load modules from a registry.
+Support for specifying an alternative to the public registry will be available
+in Terraform 0.11. We welcome the community to create their own private
+registries by recreating this API.
 
 ## Coming Soon
 

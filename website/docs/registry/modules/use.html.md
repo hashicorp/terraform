@@ -50,5 +50,5 @@ we encourge all modules to follow the full guidelines of semantic versioning.
 
 Terraform currently only downloads the latest version of each module. The
 next release of Terraform (0.11) will bring full support for constraining
-module versions. The registry has required semantic versions since launch
+module versions. The registry has the required semantic versions since launch
 to prepare for this transition shortly after.
