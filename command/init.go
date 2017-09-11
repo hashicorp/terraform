@@ -505,7 +505,7 @@ Options:
   -reconfigure         Reconfigure the backend, ignoring any saved
                        configuration.
 
-  -upgrade=false       If installing modules (-get) or plugins (-get-plugins),
+  -upgrade=true        If installing modules (-get) or plugins (-get-plugins),
                        ignore previously-downloaded objects and install the
                        latest version allowed within configured constraints.
 
