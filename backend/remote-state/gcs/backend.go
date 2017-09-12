@@ -4,11 +4,11 @@ package gcs
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -86,12 +86,13 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 	var tokenSource oauth2.TokenSource
 
 	if credentials := data.Get("credentials").(string); credentials != "" {
-		credentialsJson, _, err := pathorcontents.Read(data.Get("credentials").(string))
+		path := data.Get("credentials").(string)
+		json, err := ioutil.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("Error loading credentials: %v", err)
+			return fmt.Errorf("reading %q: %v", path, err)
 		}
 
-		jwtConfig, err := google.JWTConfigFromJSON([]byte(credentialsJson), storage.ScopeReadWrite)
+		jwtConfig, err := google.JWTConfigFromJSON([]byte(json), storage.ScopeReadWrite)
 		if err != nil {
 			return fmt.Errorf("Failed to get Google OAuth2 token: %v", err)
 		}
