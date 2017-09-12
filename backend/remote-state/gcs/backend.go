@@ -23,6 +23,7 @@ type gcsBackend struct {
 	storageClient  *storage.Client
 	storageContext context.Context
 
+	projectID        string
 	bucketName       string
 	prefix           string
 	defaultStateFile string
@@ -58,6 +59,13 @@ func New() backend.Backend {
 				Description: "Google Cloud JSON Account Key",
 				Default:     "",
 			},
+
+			"project": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Google Cloud Project ID",
+				Default:     "",
+			},
 		},
 	}
 
@@ -77,6 +85,7 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 
 	data := schema.FromContextBackendConfig(b.storageContext)
 
+	b.projectID = data.Get("project").(string)
 	b.bucketName = data.Get("bucket").(string)
 	b.prefix = strings.TrimLeft(data.Get("prefix").(string), "/")
 
@@ -99,5 +108,18 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 
 	b.storageClient = client
 
-	return nil
+	return b.ensureBucketExists()
+}
+
+func (b *gcsBackend) ensureBucketExists() error {
+	_, err := b.storageClient.Bucket(b.bucketName).Attrs(b.storageContext)
+	if err != storage.ErrBucketNotExist {
+		return err
+	}
+
+	if b.projectID == "" {
+		return fmt.Errorf("bucket %q does not exist; specify the \"project\" option or create the bucket manually using `gsutil mb gs://%s`", b.bucketName, b.bucketName)
+	}
+
+	return b.storageClient.Bucket(b.bucketName).Create(b.storageContext, b.projectID, nil)
 }
