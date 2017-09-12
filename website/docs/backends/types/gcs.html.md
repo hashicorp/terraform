@@ -48,8 +48,11 @@ resource "template_file" "bar" {
 The following configuration options are supported:
 
  *  `bucket` - (Required) The name of the GCS bucket.
+    This name must be globally unique.
+    For more information, see [Bucket Naming Guidelines](https://cloud.google.com/storage/docs/bucketnaming.html#requirements).
  *  `credentials` / `GOOGLE_CREDENTIALS` - (Optional) Local path to Google Cloud Platform account credentials in JSON format.
     If unset, [Google Application Default Credentials](https://developers.google.com/identity/protocols/application-default-credentials) are used.
+    The provided credentials need to have the `devstorage.read_write` scope and `WRITER` permissions on the bucket.
  *  `prefix` - (Optional) GCS prefix inside the bucket. Named states are stored in an object called `<prefix>/<name>.tfstate`.
  *  `path` - (Deprecated) GCS path to the state file of the default state. For backwards compatibility only, use `prefix` instead.
  *  `project` - (Optional) The project ID to which the bucket belongs. This is only used when creating a new bucket during initialization.
