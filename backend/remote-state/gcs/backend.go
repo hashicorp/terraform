@@ -4,14 +4,13 @@ package gcs
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
+	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/option"
 )
 
@@ -83,32 +82,19 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 
 	b.defaultStateFile = strings.TrimLeft(data.Get("path").(string), "/")
 
-	var tokenSource oauth2.TokenSource
-
-	if credentials := data.Get("credentials").(string); credentials != "" {
-		path := data.Get("credentials").(string)
-		json, err := ioutil.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("reading %q: %v", path, err)
-		}
-
-		jwtConfig, err := google.JWTConfigFromJSON([]byte(json), storage.ScopeReadWrite)
-		if err != nil {
-			return fmt.Errorf("Failed to get Google OAuth2 token: %v", err)
-		}
-
-		tokenSource = jwtConfig.TokenSource(b.storageContext)
-	} else {
-		var err error
-		tokenSource, err = google.DefaultTokenSource(b.storageContext, storage.ScopeReadWrite)
-		if err != nil {
-			return fmt.Errorf("Failed to get Google Application Default Credentials: %v", err)
-		}
+	opts := []option.ClientOption{
+		option.WithScopes(storage.ScopeReadWrite),
+		option.WithUserAgent(terraform.UserAgentString()),
+	}
+	if credentialsFile := data.Get("credentials").(string); credentialsFile != "" {
+		opts = append(opts, option.WithCredentialsFile(credentialsFile))
+	} else if credentialsFile := os.Getenv("GOOGLE_CREDENTIALS"); credentialsFile != "" {
+		opts = append(opts, option.WithCredentialsFile(credentialsFile))
 	}
 
-	client, err := storage.NewClient(b.storageContext, option.WithTokenSource(tokenSource))
+	client, err := storage.NewClient(b.storageContext, opts...)
 	if err != nil {
-		return fmt.Errorf("Failed to create Google Storage client: %v", err)
+		return fmt.Errorf("storage.NewClient() failed: %v", err)
 	}
 
 	b.storageClient = client
