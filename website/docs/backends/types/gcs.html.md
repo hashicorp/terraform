@@ -17,7 +17,6 @@ Stores the state as an object in a configurable prefix and bucket on [Google Clo
 ```hcl
 terraform {
   backend "gcs" {
-    project = "myproject"
     bucket  = "tf-state-prod"
     prefix  = "terraform/state"
   }
@@ -30,7 +29,6 @@ terraform {
 data "terraform_remote_state" "foo" {
   backend = "gcs"
   config {
-    project = "goopro"
     bucket  = "terraform-state"
     prefix  = "prod"
   }
@@ -49,7 +47,8 @@ resource "template_file" "bar" {
 
 The following configuration options are supported:
 
- * `bucket` - (Required) The name of the GCS bucket.
- * `credentials` / `GOOGLE_CREDENTIALS` - (Required) Local path to Google Cloud Platform account credentials in JSON format.
- * `prefix` - (Optional) GCS prefix inside the bucket. Named states are stored in an object called `<prefix>/<name>.tfstate`.
- * `path` - (Legacy) GCS path to the state file of the default state. For backwards compatibility only, use `prefix` instead.
+ *  `bucket` - (Required) The name of the GCS bucket.
+ *  `credentials` / `GOOGLE_CREDENTIALS` - (Optional) Local path to Google Cloud Platform account credentials in JSON format.
+    If unset, [Google Application Default Credentials](https://developers.google.com/identity/protocols/application-default-credentials) are used.
+ *  `prefix` - (Optional) GCS prefix inside the bucket. Named states are stored in an object called `<prefix>/<name>.tfstate`.
+ *  `path` - (Deprecated) GCS path to the state file of the default state. For backwards compatibility only, use `prefix` instead.
