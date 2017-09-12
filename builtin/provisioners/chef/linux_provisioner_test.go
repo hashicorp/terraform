@@ -173,6 +173,42 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 		Commands map[string]bool
 		Uploads  map[string]string
 	}{
+		"AIX": {
+			Config: map[string]interface{}{
+				"ohai_hints": []interface{}{"testdata/ohaihint.json"},
+				"os_type":    "aix",
+				"node_name":  "nodename1",
+				"run_list":   []interface{}{"cookbook::recipe"},
+				"secret_key": "SECRET-KEY",
+				"server_url": "https://chef.local",
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
+			},
+
+			Commands: map[string]bool{
+				"sudo mkdir -p " + linuxConfDir:                                             true,
+				"sudo chmod 777 " + linuxConfDir:                                            true,
+				"sudo " + fmt.Sprintf(chmodAix, linuxConfDir, 666):                          true,
+				"sudo mkdir -p " + path.Join(linuxConfDir, "ohai/hints"):                    true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "ohai/hints"):                   true,
+				"sudo " + fmt.Sprintf(chmodAix, path.Join(linuxConfDir, "ohai/hints"), 666): true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "ohai/hints"):                   true,
+				"sudo " + fmt.Sprintf(chmodAix, path.Join(linuxConfDir, "ohai/hints"), 600): true,
+				"sudo chown -R root:system " + path.Join(linuxConfDir, "ohai/hints"):        true,
+				"sudo chmod 755 " + linuxConfDir:                                            true,
+				"sudo " + fmt.Sprintf(chmodAix, linuxConfDir, 600):                          true,
+				"sudo chown -R root:system " + linuxConfDir:                                 true,
+			},
+
+			Uploads: map[string]string{
+				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
+				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
+				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/ohai/hints/ohaihint.json":  "OHAI-HINT-FILE",
+				linuxConfDir + "/bob.pem":                   "USER-KEY",
+			},
+		},
+
 		"Sudo": {
 			Config: map[string]interface{}{
 				"ohai_hints": []interface{}{"testdata/ohaihint.json"},
@@ -185,18 +221,18 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"sudo mkdir -p " + linuxConfDir:                                          true,
-				"sudo chmod 777 " + linuxConfDir:                                         true,
-				"sudo " + fmt.Sprintf(chmod, linuxConfDir, 666):                          true,
-				"sudo mkdir -p " + path.Join(linuxConfDir, "ohai/hints"):                 true,
-				"sudo chmod 777 " + path.Join(linuxConfDir, "ohai/hints"):                true,
-				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "ohai/hints"), 666): true,
-				"sudo chmod 755 " + path.Join(linuxConfDir, "ohai/hints"):                true,
-				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "ohai/hints"), 600): true,
-				"sudo chown -R root:root " + path.Join(linuxConfDir, "ohai/hints"):       true,
-				"sudo chmod 755 " + linuxConfDir:                                         true,
-				"sudo " + fmt.Sprintf(chmod, linuxConfDir, 600):                          true,
-				"sudo chown -R root:root " + linuxConfDir:                                true,
+				"sudo mkdir -p " + linuxConfDir:                                               true,
+				"sudo chmod 777 " + linuxConfDir:                                              true,
+				"sudo " + fmt.Sprintf(chmodLinux, linuxConfDir, 666):                          true,
+				"sudo mkdir -p " + path.Join(linuxConfDir, "ohai/hints"):                      true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "ohai/hints"):                     true,
+				"sudo " + fmt.Sprintf(chmodLinux, path.Join(linuxConfDir, "ohai/hints"), 666): true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "ohai/hints"):                     true,
+				"sudo " + fmt.Sprintf(chmodLinux, path.Join(linuxConfDir, "ohai/hints"), 600): true,
+				"sudo chown -R root:root " + path.Join(linuxConfDir, "ohai/hints"):            true,
+				"sudo chmod 755 " + linuxConfDir:                                              true,
+				"sudo " + fmt.Sprintf(chmodLinux, linuxConfDir, 600):                          true,
+				"sudo chown -R root:root " + linuxConfDir:                                     true,
 			},
 
 			Uploads: map[string]string{
