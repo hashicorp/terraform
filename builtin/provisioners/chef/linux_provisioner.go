@@ -10,9 +10,26 @@ import (
 )
 
 const (
-	chmod      = "find %s -maxdepth 1 -type f -exec /bin/chmod %d {} +"
+	chmodLinux = "find %s -maxdepth 1 -type f -exec /bin/chmod %d {} +"
+	chmodAix   = "find %[1]s ! -path %[1]s -prune -type f -exec /bin/chmod %[2]d {} +"
 	installURL = "https://omnitruck.chef.io/install.sh"
 )
+
+func (p *provisioner) getChmodCommand() string {
+	if p.OSType == "aix" {
+		return chmodAix
+	} else {
+		return chmodLinux
+	}
+}
+
+func (p *provisioner) getRootGroup() string {
+	if p.OSType == "aix" {
+		return "system"
+	} else {
+		return "root"
+	}
+}
 
 func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communicator.Communicator) error {
 	// Build up the command prefix
@@ -54,7 +71,7 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 		if err := p.runCommand(o, comm, "chmod 777 "+linuxConfDir); err != nil {
 			return err
 		}
-		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, linuxConfDir, 666)); err != nil {
+		if err := p.runCommand(o, comm, fmt.Sprintf(p.getChmodCommand(), linuxConfDir, 666)); err != nil {
 			return err
 		}
 	}
@@ -75,7 +92,7 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 			if err := p.runCommand(o, comm, "chmod 777 "+hintsDir); err != nil {
 				return err
 			}
-			if err := p.runCommand(o, comm, fmt.Sprintf(chmod, hintsDir, 666)); err != nil {
+			if err := p.runCommand(o, comm, fmt.Sprintf(p.getChmodCommand(), hintsDir, 666)); err != nil {
 				return err
 			}
 		}
@@ -89,10 +106,10 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 			if err := p.runCommand(o, comm, "chmod 755 "+hintsDir); err != nil {
 				return err
 			}
-			if err := p.runCommand(o, comm, fmt.Sprintf(chmod, hintsDir, 600)); err != nil {
+			if err := p.runCommand(o, comm, fmt.Sprintf(p.getChmodCommand(), hintsDir, 600)); err != nil {
 				return err
 			}
-			if err := p.runCommand(o, comm, "chown -R root:root "+hintsDir); err != nil {
+			if err := p.runCommand(o, comm, "chown -R root:"+p.getRootGroup()+" "+hintsDir); err != nil {
 				return err
 			}
 		}
@@ -103,10 +120,10 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 		if err := p.runCommand(o, comm, "chmod 755 "+linuxConfDir); err != nil {
 			return err
 		}
-		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, linuxConfDir, 600)); err != nil {
+		if err := p.runCommand(o, comm, fmt.Sprintf(p.getChmodCommand(), linuxConfDir, 600)); err != nil {
 			return err
 		}
-		if err := p.runCommand(o, comm, "chown -R root:root "+linuxConfDir); err != nil {
+		if err := p.runCommand(o, comm, "chown -R root:"+p.getRootGroup()+" "+linuxConfDir); err != nil {
 			return err
 		}
 	}

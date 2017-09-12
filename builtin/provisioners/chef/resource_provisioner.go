@@ -284,7 +284,7 @@ func applyFn(ctx context.Context) error {
 
 	// Set some values based on the targeted OS
 	switch p.OSType {
-	case "linux":
+	case "linux", "aix":
 		p.cleanupUserKeyCmd = fmt.Sprintf("rm -f %s", path.Join(linuxConfDir, p.UserName+".pem"))
 		p.createConfigFiles = p.linuxCreateConfigFiles
 		p.installChefClient = p.linuxInstallChefClient
