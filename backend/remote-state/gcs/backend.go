@@ -43,7 +43,8 @@ func New() backend.Backend {
 			"path": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "(Legacy) Path of the default state file; use prefix instead",
+				Description: "Path of the default state file",
+				Deprecated:  "Use the \"prefix\" option instead",
 			},
 
 			"prefix": {
