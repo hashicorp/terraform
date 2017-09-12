@@ -23,7 +23,6 @@ const (
 	DefaultWorkspaceDir    = "terraform.tfstate.d"
 	DefaultWorkspaceFile   = "environment"
 	DefaultStateFilename   = "terraform.tfstate"
-	DefaultDataDir         = ".terraform"
 	DefaultBackupExtension = ".backup"
 )
 
