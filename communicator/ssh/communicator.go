@@ -467,7 +467,7 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 		if exitErr, ok := err.(*ssh.ExitError); ok {
 			// Otherwise, we have an ExitErorr, meaning we can just read
 			// the exit status
-			log.Printf("non-zero exit status: %d", exitErr.ExitStatus())
+			log.Printf(exitErr.String())
 
 			// If we exited with status 127, it means SCP isn't available.
 			// Return a more descriptive error for that.
