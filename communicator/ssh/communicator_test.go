@@ -381,7 +381,7 @@ func acceptPublicKey(keystr string) func(ssh.ConnMetadata, ssh.PublicKey) (*ssh.
 		panic(fmt.Errorf("error parsing key: %s", err))
 	}
 	return func(_ ssh.ConnMetadata, inkey ssh.PublicKey) (*ssh.Permissions, error) {
-		if bytes.Compare(inkey.Marshal(), goodkey.Marshal()) == 0 {
+		if bytes.Equal(inkey.Marshal(), goodkey.Marshal()) {
 			return nil, nil
 		}
 

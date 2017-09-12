@@ -1406,7 +1406,7 @@ func interpolationFuncBcrypt() ast.Function {
 			input := args[0].(string)
 			out, err := bcrypt.GenerateFromPassword([]byte(input), defaultCost)
 			if err != nil {
-				return "", fmt.Errorf("error occured generating password %s", err.Error())
+				return "", fmt.Errorf("error occurred generating password %s", err.Error())
 			}
 
 			return string(out), nil

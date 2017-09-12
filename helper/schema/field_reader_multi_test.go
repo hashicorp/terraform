@@ -55,7 +55,7 @@ func TestMultiLevelFieldReaderReadFieldExact(t *testing.T) {
 		readers := make(map[string]FieldReader)
 		levels := make([]string, len(tc.Readers))
 		for i, r := range tc.Readers {
-			is := strconv.FormatInt(int64(i), 10)
+			is := strconv.Itoa(i)
 			readers[is] = r
 			levels[i] = is
 		}
@@ -248,7 +248,7 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 		readers := make(map[string]FieldReader)
 		levels := make([]string, len(tc.Readers))
 		for i, r := range tc.Readers {
-			is := strconv.FormatInt(int64(i), 10)
+			is := strconv.Itoa(i)
 			readers[is] = r
 			levels[i] = is
 		}

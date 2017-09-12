@@ -118,22 +118,20 @@ func (w *MapFieldWriter) setList(
 	// Set the entire list.
 	var err error
 	for i, elem := range vs {
-		is := strconv.FormatInt(int64(i), 10)
-		err = setElement(is, elem)
+		err = setElement(strconv.Itoa(i), elem)
 		if err != nil {
 			break
 		}
 	}
 	if err != nil {
 		for i, _ := range vs {
-			is := strconv.FormatInt(int64(i), 10)
-			setElement(is, nil)
+			setElement(strconv.Itoa(i), nil)
 		}
 
 		return err
 	}
 
-	w.result[k+".#"] = strconv.FormatInt(int64(len(vs)), 10)
+	w.result[k+".#"] = strconv.Itoa(len(vs))
 	return nil
 }
 
@@ -240,7 +238,7 @@ func (w *MapFieldWriter) setPrimitive(
 		if err := mapstructure.Decode(v, &n); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
 		}
-		set = strconv.FormatInt(int64(n), 10)
+		set = strconv.Itoa(n)
 	case TypeFloat:
 		var n float64
 		if err := mapstructure.Decode(v, &n); err != nil {
@@ -293,8 +291,7 @@ func (w *MapFieldWriter) setSet(
 			Schema: tempSchemaMap,
 		}
 		for i := 0; i < v.Len(); i++ {
-			is := strconv.FormatInt(int64(i), 10)
-			result, err := tempR.ReadField(append(addrCopy, is))
+			result, err := tempR.ReadField(append(addrCopy, strconv.Itoa(i)))
 			if err != nil {
 				return err
 			}

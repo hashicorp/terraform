@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// UIOutput is an implementatin of terraform.UIOutput that communicates
+// UIOutput is an implementation of terraform.UIOutput that communicates
 // over RPC.
 type UIOutput struct {
 	Client *rpc.Client

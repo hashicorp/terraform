@@ -206,7 +206,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	if back == nil {
 		// If we didn't initialize a backend then we'll try to at least
-		// instantiate one. This might fail if it wasn't already initalized
+		// instantiate one. This might fail if it wasn't already initialized
 		// by a previous run, so we must still expect that "back" may be nil
 		// in code that follows.
 		back, err = c.Backend(nil)
@@ -611,7 +611,7 @@ const errProviderInstallError = `
 
 Terraform analyses the configuration and state and automatically downloads
 plugins for the providers used. However, when attempting to download this
-plugin an unexpected error occured.
+plugin an unexpected error occurred.
 
 This may be caused if for some reason Terraform is unable to reach the
 plugin repository. The repository may be unreachable if access is blocked

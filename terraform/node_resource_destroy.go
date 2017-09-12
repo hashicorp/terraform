@@ -47,7 +47,7 @@ func (n *NodeDestroyResource) ModifyCreateBeforeDestroy(v bool) error {
 // GraphNodeReferenceable, overriding NodeAbstractResource
 func (n *NodeDestroyResource) ReferenceableName() []string {
 	// We modify our referenceable name to have the suffix of ".destroy"
-	// since depending on the creation side doesn't necessarilly mean
+	// since depending on the creation side doesn't necessarily mean
 	// depending on destruction.
 	suffix := ".destroy"
 
