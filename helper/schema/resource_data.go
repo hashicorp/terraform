@@ -84,7 +84,7 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 // GetOk returns the data for the given key and whether or not the key
 // has been set to a non-zero value at some point.
 //
-// The first result will not necessarilly be nil if the value doesn't exist.
+// The first result will not necessarily be nil if the value doesn't exist.
 // The second result should be checked to determine this information.
 func (d *ResourceData) GetOk(key string) (interface{}, bool) {
 	r := d.getRaw(key, getSourceSet)

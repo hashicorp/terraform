@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// UIInput is an implementatin of terraform.UIInput that communicates
+// UIInput is an implementation of terraform.UIInput that communicates
 // over RPC.
 type UIInput struct {
 	Client *rpc.Client

@@ -196,8 +196,7 @@ func readListField(
 	// Go through each count, and get the item value out of it
 	result := make([]interface{}, countResult.Value.(int))
 	for i, _ := range result {
-		is := strconv.FormatInt(int64(i), 10)
-		addrPadded[len(addrPadded)-1] = is
+		addrPadded[len(addrPadded)-1] = strconv.Itoa(i)
 		rawResult, err := r.ReadField(addrPadded)
 		if err != nil {
 			return FieldReadResult{}, err

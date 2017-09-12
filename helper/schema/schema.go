@@ -762,7 +762,7 @@ func (m schemaMap) diffList(
 	// Get the counts
 	oldLen := len(os)
 	newLen := len(vs)
-	oldStr := strconv.FormatInt(int64(oldLen), 10)
+	oldStr := strconv.Itoa(oldLen)
 
 	// If the whole list is computed, then say that the # is computed
 	if computedList {
@@ -786,7 +786,7 @@ func (m schemaMap) diffList(
 
 		newStr := ""
 		if !computed {
-			newStr = strconv.FormatInt(int64(newLen), 10)
+			newStr = strconv.Itoa(newLen)
 		} else {
 			oldStr = ""
 		}
@@ -886,10 +886,10 @@ func (m schemaMap) diffMap(
 			ForceNew: schema.ForceNew,
 		}
 
-		oldStr := strconv.FormatInt(int64(oldLen), 10)
+		oldStr := strconv.Itoa(oldLen)
 		newStr := ""
 		if !computed && !nComputed {
-			newStr = strconv.FormatInt(int64(newLen), 10)
+			newStr = strconv.Itoa(newLen)
 		} else {
 			oldStr = ""
 		}
