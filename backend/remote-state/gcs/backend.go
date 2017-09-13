@@ -121,5 +121,9 @@ func (b *gcsBackend) ensureBucketExists() error {
 		return fmt.Errorf("bucket %q does not exist; specify the \"project\" option or create the bucket manually using `gsutil mb gs://%s`", b.bucketName, b.bucketName)
 	}
 
-	return b.storageClient.Bucket(b.bucketName).Create(b.storageContext, b.projectID, nil)
+	attrs := &storage.BucketAttrs{
+		VersioningEnabled: true,
+	}
+
+	return b.storageClient.Bucket(b.bucketName).Create(b.storageContext, b.projectID, attrs)
 }
