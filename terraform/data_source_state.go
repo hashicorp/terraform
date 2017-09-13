@@ -37,6 +37,11 @@ func dataSourceRemoteState() *schema.Resource {
 				Optional: true,
 			},
 
+			"defaults": {
+				Type:     schema.TypeMap,
+				Optional: true,
+			},
+
 			"environment": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -88,19 +93,22 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	if err := state.RefreshState(); err != nil {
 		return err
 	}
-
 	d.SetId(time.Now().UTC().String())
 
 	outputMap := make(map[string]interface{})
 
+	defaults := d.Get("defaults").(map[string]interface{})
+	for key, val := range defaults {
+		outputMap[key] = val
+	}
+
 	remoteState := state.State()
 	if remoteState.Empty() {
 		log.Println("[DEBUG] empty remote state")
-		return nil
-	}
-
-	for key, val := range remoteState.RootModule().Outputs {
-		outputMap[key] = val.Value
+	} else {
+		for key, val := range remoteState.RootModule().Outputs {
+			outputMap[key] = val.Value
+		}
 	}
 
 	mappedOutputs := remoteStateFlatten(outputMap)
@@ -108,5 +116,6 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	for key, val := range mappedOutputs {
 		d.UnsafeSetFieldRaw(key, val)
 	}
+
 	return nil
 }
