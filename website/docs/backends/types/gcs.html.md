@@ -57,3 +57,5 @@ The following configuration options are supported:
  *  `path` - (Deprecated) GCS path to the state file of the default state. For backwards compatibility only, use `prefix` instead.
  *  `project` / `GOOGLE_PROJECT` - (Optional) The project ID to which the bucket belongs. This is only used when creating a new bucket during initialization.
     Since buckets have globally unique names, the project ID is not required to access the bucket during normal operation.
+ *  `region` / `GOOGLE_REGION` - (Optional) The region in which a new bucket is created.
+    For more information, see [Bucket Locations](https://cloud.google.com/storage/docs/bucket-locations).

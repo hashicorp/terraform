@@ -28,6 +28,7 @@ type gcsBackend struct {
 	defaultStateFile string
 
 	projectID string
+	region    string
 }
 
 func New() backend.Backend {
@@ -67,6 +68,13 @@ func New() backend.Backend {
 				Description: "Google Cloud Project ID",
 				Default:     "",
 			},
+
+			"region": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Region / location in which to create the bucket",
+				Default:     "",
+			},
 		},
 	}
 
@@ -94,6 +102,10 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 	b.projectID = data.Get("project").(string)
 	if id := os.Getenv("GOOGLE_PROJECT"); b.projectID == "" && id != "" {
 		b.projectID = id
+	}
+	b.region = data.Get("region").(string)
+	if r := os.Getenv("GOOGLE_REGION"); b.projectID == "" && r != "" {
+		b.region = r
 	}
 
 	opts := []option.ClientOption{
@@ -128,6 +140,7 @@ func (b *gcsBackend) ensureBucketExists() error {
 
 	attrs := &storage.BucketAttrs{
 		VersioningEnabled: true,
+		Location:          b.region,
 	}
 
 	return b.storageClient.Bucket(b.bucketName).Create(b.storageContext, b.projectID, attrs)
