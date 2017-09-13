@@ -23,10 +23,11 @@ type gcsBackend struct {
 	storageClient  *storage.Client
 	storageContext context.Context
 
-	projectID        string
 	bucketName       string
 	prefix           string
 	defaultStateFile string
+
+	projectID string
 }
 
 func New() backend.Backend {
@@ -85,11 +86,15 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 
 	data := schema.FromContextBackendConfig(b.storageContext)
 
-	b.projectID = data.Get("project").(string)
 	b.bucketName = data.Get("bucket").(string)
 	b.prefix = strings.TrimLeft(data.Get("prefix").(string), "/")
 
 	b.defaultStateFile = strings.TrimLeft(data.Get("path").(string), "/")
+
+	b.projectID = data.Get("project").(string)
+	if id := os.Getenv("GOOGLE_PROJECT"); b.projectID == "" && id != "" {
+		b.projectID = id
+	}
 
 	opts := []option.ClientOption{
 		option.WithScopes(storage.ScopeReadWrite),
