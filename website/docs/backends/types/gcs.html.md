@@ -55,5 +55,5 @@ The following configuration options are supported:
     The provided credentials need to have the `devstorage.read_write` scope and `WRITER` permissions on the bucket.
  *  `prefix` - (Optional) GCS prefix inside the bucket. Named states are stored in an object called `<prefix>/<name>.tfstate`.
  *  `path` - (Deprecated) GCS path to the state file of the default state. For backwards compatibility only, use `prefix` instead.
- *  `project` - (Optional) The project ID to which the bucket belongs. This is only used when creating a new bucket during initialization.
+ *  `project` / `GOOGLE_PROJECT` - (Optional) The project ID to which the bucket belongs. This is only used when creating a new bucket during initialization.
     Since buckets have globally unique names, the project ID is not required to access the bucket during normal operation.
