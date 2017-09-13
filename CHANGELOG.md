@@ -1,4 +1,9 @@
 ## 0.1.1 (Unreleased)
+
+ENHANCEMENTS:
+
+* New argument `defaults` on `terraform_remote_state` allows setting default values for outputs that are not set in the remote state. [GH-11]
+
 ## 0.1.0 (June 21, 2017)
 
 NOTES:
