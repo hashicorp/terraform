@@ -179,6 +179,60 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 	}
 }
 
+func TestFmt_check(t *testing.T) {
+	tempDir, err := fmtFixtureWriteDir()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	ui := new(cli.MockUi)
+	c := &FmtCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-check",
+		tempDir,
+	}
+	if code := c.Run(args); code != 3 {
+		t.Fatalf("wrong exit code. expected 3")
+	}
+
+	if actual := ui.OutputWriter.String(); !strings.Contains(actual, tempDir) {
+		t.Fatalf("expected:\n%s\n\nto include: %q", actual, tempDir)
+	}
+}
+
+func TestFmt_checkStdin(t *testing.T) {
+	input := new(bytes.Buffer)
+	input.Write(fmtFixture.input)
+
+	ui := new(cli.MockUi)
+	c := &FmtCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		input: input,
+	}
+
+	args := []string{
+		"-check",
+		"-",
+	}
+	if code := c.Run(args); code != 3 {
+		t.Fatalf("wrong exit code. expected 3, got %d", code)
+	}
+
+	if ui.OutputWriter != nil {
+		t.Fatalf("expected no output, got: %q", ui.OutputWriter.String())
+	}
+}
+
 var fmtFixture = struct {
 	filename      string
 	input, golden []byte
