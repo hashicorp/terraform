@@ -2,11 +2,12 @@
 
 NEW FEATURES:
 
-* `indent` interpolation function appends spaces to all but the first line of a multi-line string [GH-15311]
+* config: `indent` interpolation function appends spaces to all but the first line of a multi-line string [GH-15311]
 
 IMPROVEMENTS:
 
-* `terraform fmt` has a new option `-check` which makes it return a non-zero exit status if any formatting changes are required [GH-15387]
+* cli: `terraform fmt` has a new option `-check` which makes it return a non-zero exit status if any formatting changes are required [GH-15387]
+* cli: When [running Terraform in automation](https://www.terraform.io/guides/running-terraform-in-automation.html), a new environment variable `TF_IN_AUTOMATION` can be used to disable or adjust certain prompts that would normally include specific CLI commands to run. This assumes that the wrapping automation tool is providing its own UI for guiding the user through the workflow, and thus the standard advice would be redundant and/or confusing.
 
 BUG FIXES:
 
