@@ -21,8 +21,7 @@ URLs. For example: "github.com/hashicorp/go-getter" would turn into a
 Git URL. Or "./foo" would turn into a file URL. These are extensible.
 
 This library is used by [Terraform](https://terraform.io) for
-downloading modules, [Otto](https://ottoproject.io) for dependencies and
-Appfile imports, and [Nomad](https://nomadproject.io) for downloading
+downloading modules and [Nomad](https://nomadproject.io) for downloading
 binaries.
 
 ## Installation and Usage
