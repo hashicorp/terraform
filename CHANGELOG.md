@@ -4,6 +4,10 @@ NEW FEATURES:
 
 * `indent` interpolation function appends spaces to all but the first line of a multi-line string [GH-15311]
 
+IMPROVEMENTS:
+
+* `terraform fmt` has a new option `-check` which makes it return a non-zero exit status if any formatting changes are required [GH-15387]
+
 BUG FIXES:
 
 * cli: restore the "(forces new resource)" annotations on attributes that were inadvertently disabled in 0.10.4. [GH-16067]
