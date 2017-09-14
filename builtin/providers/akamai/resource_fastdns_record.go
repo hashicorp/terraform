@@ -1,15 +1,23 @@
 package akamai
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
 
-	"github.com/akamai/AkamaiOPEN-edgegrid-golang/client-v1"
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/configdns-v1"
 	"github.com/hashicorp/terraform/helper/schema"
 )
+
+func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
+	return nil
+}
+func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error {
+	return nil
+}
+func resourceFastDNSRecordExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	return true, nil
+}
 
 func resourceFastDNSRecord() *schema.Resource {
 	return &schema.Resource{
@@ -18,9 +26,9 @@ func resourceFastDNSRecord() *schema.Resource {
 		Update: resourceFastDNSRecordCreate,
 		Delete: resourceFastDNSRecordDelete,
 		Exists: resourceFastDNSRecordExists,
-		Importer: &schema.ResourceImporter{
-			State: importRecord,
-		},
+		// Importer: &schema.ResourceImporter{
+		// 	State: importRecord,
+		// },
 		Schema: map[string]*schema.Schema{
 			// Terraform-only Params
 			"hostname": {
@@ -216,6 +224,7 @@ func resourceFastDNSRecord() *schema.Resource {
 	}
 }
 
+// get the zone, fetch the resource (just one) from the .tf file, update the zone, send to api
 func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	recordType := strings.ToUpper(d.Get("type").(string))
 
@@ -225,41 +234,44 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 		log.Printf("[INFO] [Akamai FastDNS] Creating %s Record \"%s\" on %s", recordType, d.Get("name"), d.Get("hostname"))
 	}
 
-	zone, error := dns.GetZone(d.Get("hostname").(string))
+	zone, e := dns.GetZone(d.Get("hostname").(string))
 
-	if error != nil {
-		return error
+	if e != nil {
+		if dns.IsZoneNotFound(e) == true {
+			// if the zone is not found/404 we will create a new
+			// blank zone for the records to be added to and continue
+			log.Printf("[DEBUG] [Akamai FastDNS] [ERROR] %s", e.Error())
+			zone = dns.NewZone(d.Get("hostname").(string))
+			e = nil
+		} else {
+			return e
+		}
 	}
 
 	records := dns.RecordSet{}
-	error = unmarshalResourceData(d, &records)
-
-	if error != nil {
-		return error
-	}
+	unmarshalResourceData(d, records)
 
 	var name string
 	if recordType == "SOA" {
-		zone.Zone.Soa = records[0]
+		zone.Zone.Soa = records[0].(dns.SoaRecord)
 		name = recordType
 	} else {
 		name = d.Get("name").(string)
-
 		for _, record := range records {
-			err := zone.SetRecord(record)
+			err := zone.AddRecord(record)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	error = zone.Save()
-	if error.(client.APIError).Status == 409 {
-		//tempZone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
-	}
+	e = zone.Save()
+	// if e.(client.APIError).Status == 409 {
+	//tempZone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
+	// }
 
-	if error != nil {
-		return error
+	if e != nil {
+		return e
 	}
 
 	d.SetId(fmt.Sprintf("%s-%s-%s-%s", zone.Token, zone.Zone.Name, recordType, name))
@@ -267,6 +279,7 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
+/*
 func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
 	log.Println("[INFO] [Akamai FastDNS] resourcePropertyRead")
 
@@ -369,380 +382,129 @@ func getDNSRecordId(id string) (token string, hostname string, recordType string
 	parts := strings.Split(id, "-")
 	return parts[0], parts[1], parts[2], parts[3]
 }
+*/
 
-func unmarshalResourceData(d *schema.ResourceData, records *dns.RecordSet) error {
-	recordType := strings.ToUpper(d.Get("type").(string))
-	tester := dns.Record{RecordType: recordType}
-	recordSet := dns.RecordSet{}
-
-	targets := 1
-	if tester.Allows("targets") {
-		targets = d.Get("targets").(*schema.Set).Len()
+// Helper function for unmarshalResourceData() below
+func assignFields(record dns.DNSRecord, d *schema.ResourceData, i int) {
+	f := record.GetAllowedFields()
+	for _, field := range f {
+		val, exists := d.GetOk(field)
+		if !exists {
+			// TODO: maybe not all fields are required?
+			log.Printf("[WARN] [Akamai FastDNS] Field [%s] is missing from your terraform config", field)
+		} else {
+			if field == "targets" {
+				val = val.(*schema.Set).List()[i].(string) //unsafe?
+			}
+			e := record.SetField(field, val)
+			if e != nil {
+				log.Printf("[WARN] [Akamai FastDNS] Couldn't add field to record: %s", e.Error())
+			}
+		}
 	}
-
-	for i := 0; i < targets; i++ {
-		record := dns.Record{RecordType: recordType}
-
-		if val, exists := d.GetOk("targets"); exists != false && !record.Allows("targets") {
-			return errors.New("Attribute \"targets\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Target = val.(*schema.Set).List()[i].(string)
-		} else {
-			record.Target = ""
-		}
-
-		if val, exists := d.GetOk("ttl"); exists != false && !record.Allows("ttl") {
-			return errors.New("Attribute \"ttl\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.TTL = val.(int)
-		} else {
-			return errors.New("Attribute \"ttl\" is required for record type " + record.RecordType)
-		}
-
-		if val, exists := d.GetOk("name"); exists != false && !record.Allows("name") {
-			return errors.New("Attribute \"name\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Name = val.(string)
-		} else {
-			return errors.New("Attribute \"name\" is required for record type " + record.RecordType)
-		}
-
-		if val, exists := d.GetOk("active"); exists != false && !record.Allows("active") {
-			return errors.New("Attribute \"active\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Active = val.(bool)
-		} else {
-			record.Active = true
-		}
-
-		if val, exists := d.GetOk("subtype"); exists != false && !record.Allows("subtype") {
-			return errors.New("Attribute \"subtype\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Subtype = val.(int)
-		} else {
-			record.Subtype = 0
-		}
-
-		if val, exists := d.GetOk("flags"); exists != false && !record.Allows("flags") {
-			return errors.New("Attribute \"flags\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Flags = val.(int)
-		} else {
-			record.Flags = 0
-		}
-
-		if val, exists := d.GetOk("protocol"); exists != false && !record.Allows("protocol") {
-			return errors.New("Attribute \"protocol\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Protocol = val.(int)
-		} else {
-			record.Protocol = 0
-		}
-
-		if val, exists := d.GetOk("algorithm"); exists != false && !record.Allows("algorithm") {
-			return errors.New("Attribute \"algorithm\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Algorithm = val.(int)
-		} else {
-			record.Algorithm = 0
-		}
-
-		if val, exists := d.GetOk("key"); exists != false && !record.Allows("key") {
-			return errors.New("Attribute \"key\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Key = val.(string)
-		} else {
-			record.Key = ""
-		}
-
-		if val, exists := d.GetOk("keytag"); exists != false && !record.Allows("keytag") {
-			return errors.New("Attribute \"keytag\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Keytag = val.(int)
-		} else {
-			record.Keytag = 0
-		}
-
-		if val, exists := d.GetOk("digesttype"); exists != false && !record.Allows("digesttype") {
-			return errors.New("Attribute \"digesttype\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.DigestType = val.(int)
-		} else {
-			record.DigestType = 0
-		}
-
-		if val, exists := d.GetOk("digest"); exists != false && !record.Allows("digest") {
-			return errors.New("Attribute \"digest\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Digest = val.(string)
-		} else {
-			record.Digest = ""
-		}
-
-		if val, exists := d.GetOk("hardware"); exists != false && !record.Allows("hardware") {
-			return errors.New("Attribute \"hardware\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Hardware = val.(string)
-		} else {
-			record.Hardware = ""
-		}
-
-		if val, exists := d.GetOk("software"); exists != false && !record.Allows("software") {
-			return errors.New("Attribute \"software\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Software = val.(string)
-		} else {
-			record.Software = ""
-		}
-
-		if val, exists := d.GetOk("priority"); exists != false && !record.Allows("priority") {
-			return errors.New("Attribute \"priority\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Priority = val.(int)
-		} else {
-			record.Priority = 0
-		}
-
-		if val, exists := d.GetOk("order"); exists != false && !record.Allows("order") {
-			return errors.New("Attribute \"order\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Order = val.(int)
-		} else {
-			record.Order = 0
-		}
-
-		if val, exists := d.GetOk("preference"); exists != false && !record.Allows("preference") {
-			return errors.New("Attribute \"preference\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Preference = val.(int)
-		} else {
-			record.Preference = 0
-		}
-
-		if val, exists := d.GetOk("service"); exists != false && !record.Allows("service") {
-			return errors.New("Attribute \"service\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Service = val.(string)
-		} else {
-			record.Service = ""
-		}
-
-		if val, exists := d.GetOk("regexp"); exists != false && !record.Allows("regexp") {
-			return errors.New("Attribute \"regexp\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Regexp = val.(string)
-		} else {
-			record.Regexp = ""
-		}
-
-		if val, exists := d.GetOk("replacement"); exists != false && !record.Allows("replacement") {
-			return errors.New("Attribute \"replacement\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Replacement = val.(string)
-		} else {
-			record.Replacement = ""
-		}
-
-		if val, exists := d.GetOk("iterations"); exists != false && !record.Allows("iterations") {
-			return errors.New("Attribute \"iterations\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Iterations = val.(int)
-		} else {
-			record.Iterations = 0
-		}
-
-		if val, exists := d.GetOk("salt"); exists != false && !record.Allows("salt") {
-			return errors.New("Attribute \"salt\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Salt = val.(string)
-		} else {
-			record.Salt = ""
-		}
-
-		if val, exists := d.GetOk("nexthashedownername"); exists != false && !record.Allows("nexthashedownername") {
-			return errors.New("Attribute \"nexthashedownername\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.NextHashedOwnerName = val.(string)
-		} else {
-			record.NextHashedOwnerName = ""
-		}
-
-		if val, exists := d.GetOk("typebitmaps"); exists != false && !record.Allows("typebitmaps") {
-			return errors.New("Attribute \"typebitmaps\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.TypeBitmaps = val.(string)
-		} else {
-			record.TypeBitmaps = ""
-		}
-
-		if val, exists := d.GetOk("mailbox"); exists != false && !record.Allows("mailbox") {
-			return errors.New("Attribute \"mailbox\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Mailbox = val.(string)
-		} else {
-			record.Mailbox = ""
-		}
-
-		if val, exists := d.GetOk("txt"); exists != false && !record.Allows("txt") {
-			return errors.New("Attribute \"txt\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Txt = val.(string)
-		} else {
-			record.Txt = ""
-		}
-
-		if val, exists := d.GetOk("typecovered"); exists != false && !record.Allows("typecovered") {
-			return errors.New("Attribute \"typecovered\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.TypeCovered = val.(string)
-		} else {
-			record.TypeCovered = ""
-		}
-
-		if val, exists := d.GetOk("originalttl"); exists != false && !record.Allows("originalttl") {
-			return errors.New("Attribute \"originalttl\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.OriginalTTL = val.(int)
-		} else {
-			record.OriginalTTL = 0
-		}
-
-		if val, exists := d.GetOk("expiration"); exists != false && !record.Allows("expiration") {
-			return errors.New("Attribute \"expiration\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Expiration = val.(string)
-		} else {
-			record.Expiration = ""
-		}
-
-		if val, exists := d.GetOk("inception"); exists != false && !record.Allows("inception") {
-			return errors.New("Attribute \"inception\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Inception = val.(string)
-		} else {
-			record.Inception = ""
-		}
-
-		if val, exists := d.GetOk("signer"); exists != false && !record.Allows("signer") {
-			return errors.New("Attribute \"signer\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Signer = val.(string)
-		} else {
-			record.Signer = ""
-		}
-
-		if val, exists := d.GetOk("signature"); exists != false && !record.Allows("signature") {
-			return errors.New("Attribute \"signature\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Signature = val.(string)
-		} else {
-			record.Signature = ""
-		}
-
-		if val, exists := d.GetOk("labels"); exists != false && !record.Allows("labels") {
-			return errors.New("Attribute \"labels\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Labels = val.(int)
-		} else {
-			record.Labels = 0
-		}
-
-		if val, exists := d.GetOk("originserver"); exists != false && !record.Allows("originserver") {
-			return errors.New("Attribute \"originserver\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Originserver = val.(string)
-		} else {
-			record.Originserver = ""
-		}
-
-		if val, exists := d.GetOk("contact"); exists != false && !record.Allows("contact") {
-			return errors.New("Attribute \"contact\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Contact = val.(string)
-		} else {
-			record.Contact = ""
-		}
-
-		if val, exists := d.GetOk("serial"); exists != false && !record.Allows("serial") {
-			return errors.New("Attribute \"serial\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Serial = val.(int)
-		} else {
-			record.Serial = 0
-		}
-
-		if val, exists := d.GetOk("refresh"); exists != false && !record.Allows("refresh") {
-			return errors.New("Attribute \"refresh\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Refresh = val.(int)
-		} else {
-			record.Refresh = 0
-		}
-
-		if val, exists := d.GetOk("retry"); exists != false && !record.Allows("retry") {
-			return errors.New("Attribute \"retry\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Retry = val.(int)
-		} else {
-			record.Retry = 0
-		}
-
-		if val, exists := d.GetOk("expire"); exists != false && !record.Allows("expire") {
-			return errors.New("Attribute \"expire\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Expire = val.(int)
-		} else {
-			record.Expire = 0
-		}
-
-		if val, exists := d.GetOk("minimum"); exists != false && !record.Allows("minimum") {
-			return errors.New("Attribute \"minimum\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Minimum = val.(int)
-		} else {
-			record.Minimum = 0
-		}
-
-		if val, exists := d.GetOk("weight"); exists != false && !record.Allows("weight") {
-			return errors.New("Attribute \"weight\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Weight = val.(uint)
-		} else {
-			record.Weight = 0
-		}
-
-		if val, exists := d.GetOk("port"); exists != false && !record.Allows("port") {
-			return errors.New("Attribute \"port\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Port = val.(int)
-		} else {
-			record.Port = 0
-		}
-
-		if val, exists := d.GetOk("fingerprinttype"); exists != false && !record.Allows("fingerprinttype") {
-			return errors.New("Attribute \"fingerprinttype\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.FingerprintType = val.(int)
-		} else {
-			record.FingerprintType = 0
-		}
-
-		if val, exists := d.GetOk("fingerprint"); exists != false && !record.Allows("fingerprint") {
-			return errors.New("Attribute \"fingerprint\" not allowed for record type " + record.RecordType)
-		} else if exists != false {
-			record.Fingerprint = val.(string)
-		} else {
-			record.Fingerprint = ""
-		}
-
-		recordSet = append(recordSet, &record)
-	}
-
-	*records = recordSet
-
-	return nil
 }
 
+// Unmarshal the config data from the terraform config file to our local types
+func unmarshalResourceData(d *schema.ResourceData, records dns.RecordSet) {
+	// We will get 1 record at a time from terraform
+	// For example an MX record
+	// Any record can have 1 or more targets
+	// We'll make a record for each target and add them to the record set
+	recordType := strings.ToUpper(d.Get("type").(string))
+	targets := d.Get("targets").(*schema.Set).Len() //unsafe
+
+	// for each target listed, create a record in the record set
+	for i := 0; i < targets; i++ {
+		switch recordType {
+		case "A":
+			record := dns.ARecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "AAAA":
+			record := dns.AaaaRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "AFSDB":
+			record := dns.AfsdbRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "CNAME":
+			record := dns.CnameRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "DNSKEY":
+			record := dns.DnskeyRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "DS":
+			record := dns.DsRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "HINFO":
+			record := dns.HinfoRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "LOC":
+			record := dns.LocRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "MX":
+			record := dns.MxRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "NAPTR":
+			record := dns.NaptrRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "NS":
+			record := dns.NsRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "NSEC3":
+			record := dns.Nsec3Record{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "NSEC3PARAM":
+			record := dns.Nsec3paramRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "PTR":
+			record := dns.PtrRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "RP":
+			record := dns.RpRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "RRSIG":
+			record := dns.RrsigRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "SOA":
+			record := dns.SoaRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "SPF":
+			record := dns.SpfRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "SRV":
+			record := dns.SrvRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "SSHFP":
+			record := dns.SshfpRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		case "TXT":
+			record := dns.TxtRecord{}
+			assignFields(record, d, i)
+			records = append(records, record)
+		}
+	}
+}
+
+/*
 func marshalResourceData(d *schema.ResourceData, records *dns.RecordSet) error {
 	if len(*records) == 0 {
 		return nil
@@ -828,3 +590,4 @@ func importRecord(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceD
 
 	return nil, errors.New(fmt.Sprintf("Resource \"%s\" not found", d.Id()))
 }
+*/

@@ -1,13 +1,13 @@
 provider "akamai" {
-    edgerc = "/Users/dshafik/.edgerc"
+    edgerc = "/Users/Johanna/.edgerc"
     fastdns_section = "dns"
 }
 
 resource "akamai_fastdns_record" "test" {
-  hostname = "akamaideveloper.com"
+  hostname = "akamaideveloper.net"
   name = "testing"
   type = "Cname"
   active = true
-  targets = ["developer.akamai.com."]
+  targets = ["akamaideveloper.net."]
   ttl = 30
 }
