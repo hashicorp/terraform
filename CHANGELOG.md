@@ -1,5 +1,9 @@
 ## 0.10.5 (Unreleased)
 
+NEW FEATURES:
+
+* `indent` interpolation function appends spaces to all but the first line of a multi-line string [GH-15311]
+
 BUG FIXES:
 
 * cli: restore the "(forces new resource)" annotations on attributes that were inadvertently disabled in 0.10.4. [GH-16067]
