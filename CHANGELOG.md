@@ -1,18 +1,18 @@
-## 0.10.5 (Unreleased)
+## 0.10.5 (September 14, 2017)
 
 NEW FEATURES:
 
-* config: `indent` interpolation function appends spaces to all but the first line of a multi-line string [GH-15311]
+* config: `indent` interpolation function appends spaces to all but the first line of a multi-line string ([#15311](https://github.com/hashicorp/terraform/issues/15311))
 
 IMPROVEMENTS:
 
-* cli: `terraform fmt` has a new option `-check` which makes it return a non-zero exit status if any formatting changes are required [GH-15387]
-* cli: When [running Terraform in automation](https://www.terraform.io/guides/running-terraform-in-automation.html), a new environment variable `TF_IN_AUTOMATION` can be used to disable or adjust certain prompts that would normally include specific CLI commands to run. This assumes that the wrapping automation tool is providing its own UI for guiding the user through the workflow, and thus the standard advice would be redundant and/or confusing. [GH-16059]
+* cli: `terraform fmt` has a new option `-check` which makes it return a non-zero exit status if any formatting changes are required ([#15387](https://github.com/hashicorp/terraform/issues/15387))
+* cli: When [running Terraform in automation](https://www.terraform.io/guides/running-terraform-in-automation.html), a new environment variable `TF_IN_AUTOMATION` can be used to disable or adjust certain prompts that would normally include specific CLI commands to run. This assumes that the wrapping automation tool is providing its own UI for guiding the user through the workflow, and thus the standard advice would be redundant and/or confusing. ([#16059](https://github.com/hashicorp/terraform/issues/16059))
 
 BUG FIXES:
 
-* cli: restore the "(forces new resource)" annotations on attributes that were inadvertently disabled in 0.10.4. [GH-16067]
-* cli: fix regression with installing modules from git when the `GIT_SSH_COMMAND` environment variable is set [GH-16099]
+* cli: restore the "(forces new resource)" annotations on attributes that were inadvertently disabled in 0.10.4. ([#16067](https://github.com/hashicorp/terraform/issues/16067))
+* cli: fix regression with installing modules from git when the `GIT_SSH_COMMAND` environment variable is set ([#16099](https://github.com/hashicorp/terraform/issues/16099))
 
 ## 0.10.4 (September 6, 2017)
 
