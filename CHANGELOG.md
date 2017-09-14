@@ -11,6 +11,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * cli: restore the "(forces new resource)" annotations on attributes that were inadvertently disabled in 0.10.4. [GH-16067]
+* cli: fix regression with installing modules from git when the `GIT_SSH_COMMAND` environment variable is set [GH-16099]
 
 ## 0.10.4 (September 6, 2017)
 
