@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -244,5 +245,30 @@ func TestDetectors(t *testing.T) {
 			}
 		})
 
+	}
+}
+
+func TestAccRegistryDiscover(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("skipping ACC test")
+	}
+
+	// simply check that we get a valid github URL for this from the registry
+	loc, err := getter.Detect("hashicorp/consul/aws", "./", detectors)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	u, err := url.Parse(loc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.HasSuffix(u.Host, "github.com") {
+		t.Fatalf("expected host 'github.com', got: %q", u.Host)
+	}
+
+	if !strings.Contains(u.String(), "consul") {
+		t.Fatalf("url doesn't contain 'consul': %s", u.String())
 	}
 }
