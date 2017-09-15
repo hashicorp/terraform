@@ -67,11 +67,11 @@ email you alerts about your module. We will not spam you.
 The upload page will list your available repositories, filtered to those that
 match the [naming convention described above](#Requirements). This is shown in
 the screenshot below. Select the repository of the module you want to add and
-click "Create Module."
+click "Publish Module."
 
 In a few seconds, your module will be created.
 
-![Create Module flow animation](/assets/images/docs/registry-upload.gif)
+![Publish Module flow animation](/assets/images/docs/registry-publish.gif)
 
 ## Releasing New Versions
 
