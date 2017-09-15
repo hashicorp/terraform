@@ -65,7 +65,7 @@ func (c *VersionCommand) Run(args []string) int {
 		if info.Outdated {
 			c.Ui.Output(fmt.Sprintf(
 				"Your version of Terraform is out of date! The latest version\n"+
-					"is %s. You can update by downloading from www.terraform.io",
+					"is %s. You can update by downloading from www.terraform.io/downloads.html",
 				info.Latest))
 		}
 	}
