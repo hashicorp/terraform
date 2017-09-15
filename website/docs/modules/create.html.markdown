@@ -15,7 +15,7 @@ the Terraform files you're applying comprise what is called the _root module_. T
 Therefore, you can enter the source of any module, satisfy any required variables, run `terraform apply`, and expect it to work.
 
 Modules that are created for reuse should follow the
-[standard structure](#standard-structure). This structure enables tooling
+[standard structure](#standard-module-structure). This structure enables tooling
 such as the [Terraform Registry](/docs/registry/index.html) to inspect and
 generate documentation, read examples, and more.
 
