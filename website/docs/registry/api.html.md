@@ -80,7 +80,7 @@ This endpoint returns the latest version of each provider for a module.
 
 ```text
 $ curl \
-    https://registry.terraform.io/v1/modules/examplecorp/vapordb
+    https://registry.terraform.io/v1/modules/hashicorp/consul
 ```
 
 ### Sample Response
@@ -88,30 +88,30 @@ $ curl \
 ```json
 [
   {
-    "id": "examplecorp/vapordb/aws/1.0.0",
-    "owner": "wispy",
-    "namespace": "examplecorp",
-    "name": "vapordb",
-    "version": "1.0.0",
-    "provider": "aws",
-    "description": "Terraform Module for running VaporDB on AWS",
-    "source": "https://github.com/examplecorp/terraform-aws-vapordb",
-    "published_at": "2017-09-01T22:30:19.181077Z",
-    "downloads": 2,
-    "verified": true
+    "id": "hashicorp/consul/azurerm/0.0.1",
+    "owner": "gruntwork-team",
+    "namespace": "hashicorp",
+    "name": "consul",
+    "version": "0.0.1",
+    "provider": "azurerm",
+    "description": "A Terraform Module for how to run Consul on AzureRM using Terraform and Packer",
+    "source": "https://github.com/hashicorp/terraform-azurerm-consul",
+    "published_at": "2017-09-14T23:22:59.923047Z",
+    "downloads": 100,
+    "verified": false
   },
   {
-    "id": "examplecorp/vapordb/azurerm/1.0.0",
-    "owner": "wispy",
-    "namespace": "examplecorp",
-    "name": "vapordb",
-    "version": "1.0.0",
-    "provider": "azurerm",
-    "description": "Terraform Module for running VaporDB on Azure",
-    "source": "https://github.com/examplecorp/terraform-azurerm-vapordb",
-    "published_at": "2017-09-01T22:30:19.181077Z",
-    "downloads": 2,
-    "verified": true
+    "id": "hashicorp/consul/aws/0.0.1",
+    "owner": "gruntwork-team",
+    "namespace": "hashicorp",
+    "name": "consul",
+    "version": "0.0.1",
+    "provider": "aws",
+    "description": "A Terraform Module for how to run Consul on AWS using Terraform and Packer",
+    "source": "https://github.com/hashicorp/terraform-aws-consul",
+    "published_at": "2017-09-14T23:22:44.793647Z",
+    "downloads": 113,
+    "verified": false
   }
 ]
 ```
@@ -139,140 +139,101 @@ This endpoint returns the latest version of a module for a single provider.
 
 ```text
 $ curl \
-    https://registry.terraform.io/v1/modules/Azure/network/azurerm
+    https://registry.terraform.io/v1/modules/hashicorp/consul/aws
 ```
 
 ### Sample Response
 
+Note this response has has some fields trimmed for clarity.
+
 ```json
 {
-  "id": "Azure/network/azurerm/0.9.3",
-  "owner": "echuvyrov",
-  "namespace": "Azure",
-  "name": "network",
-  "version": "0.9.3",
-  "provider": "azurerm",
-  "description": "Terraform Azure RM Module for Network",
-  "source": "https://github.com/Azure/terraform-azurerm-network",
-  "published_at": "2017-09-01T22:30:19.181077Z",
-  "downloads": 0,
+  "id": "hashicorp/consul/aws/0.0.1",
+  "owner": "gruntwork-team",
+  "namespace": "hashicorp",
+  "name": "consul",
+  "version": "0.0.1",
+  "provider": "aws",
+  "description": "A Terraform Module for how to run Consul on AWS using Terraform and Packer",
+  "source": "https://github.com/hashicorp/terraform-aws-consul",
+  "published_at": "2017-09-14T23:22:44.793647Z",
+  "downloads": 113,
   "verified": false,
   "root": {
     "path": "",
-    "readme": "Create a basic network in Azure\n==============================================================================\n\nThis Terraform module deploys a Virtual Network in Azure with the following characteristics: ...",
+    "readme": "# Consul AWS Module\n\nThis repo contains a Module for how to deploy a [Consul]...",
     "empty": false,
     "inputs": [
       {
-        "name": "resource_group_name",
-        "description": "Default resource group name that the network will be created in.",
-        "default": "\"myapp-rg\""
+        "name": "ami_id",
+        "description": "The ID of the AMI to run in the cluster. ...",
+        "default": "\"\""
       },
       {
-        "name": "location",
-        "description": "The location/region where the core network will be created. The full list of Azure regions can be found at https://azure.microsoft.com/regions",
-        "default": ""
-      },
-      {
-        "name": "address_space",
-        "description": "The address space that is used by the virtual network.",
-        "default": "\"10.0.0.0/16\""
-      },
-      {
-        "name": "dns_servers",
-        "description": "The DNS servers to be used with vNet.",
-        "default": "[]"
-      },
-      {
-        "name": "subnet_prefixes",
-        "description": "The address prefix to use for the subnet.",
-        "default": "[\n  \"10.0.1.0/24\"\n]"
-      },
-      {
-        "name": "subnet_names",
-        "description": "A list of public subnets inside the vNet.",
-        "default": "[\n  \"subnet1\"\n]"
-      },
-      {
-        "name": "tags",
-        "description": "The tags to associate with your network and subnets.",
-        "default": "{\n  \"tag1\": \"\",\n  \"tag2\": \"\"\n}"
-      },
-      {
-        "name": "allow_rdp_traffic",
-        "description": "This optional variable, when set to true, adds a security rule allowing RDP traffic to flow through to the newly created network. The default value is false.",
-        "default": "false"
-      },
-      {
-        "name": "allow_ssh_traffic",
-        "description": "This optional variable, when set to true, adds a security rule allowing SSH traffic to flow through to the newly created network. The default value is false.",
-        "default": "false"
+        "name": "aws_region",
+        "description": "The AWS region to deploy into (e.g. us-east-1).",
+        "default": "\"us-east-1\""
       }
     ],
     "outputs": [
       {
-        "name": "vnet_id",
-        "description": "The id of the newly created vNet"
+        "name": "num_servers",
+        "description": ""
       },
       {
-        "name": "vnet_name",
-        "description": "The Name of the newly created vNet"
-      },
-      {
-        "name": "vnet_location",
-        "description": "The location of the newly created vNet"
-      },
-      {
-        "name": "vnet_address_space",
-        "description": "The address space of the newly created vNet"
-      },
-      {
-        "name": "vnet_dns_servers",
-        "description": "The DNS servers of the newly created vNet"
-      },
-      {
-        "name": "vnet_subnets",
-        "description": "The ids of subnets created inside the newl vNet"
-      },
-      {
-        "name": "security_group_id",
-        "description": "The id of the security group attached to subnets inside the newly created vNet. Use this id to associate additional network security rules to subnets."
+        "name": "asg_name_servers",
+        "description": ""
       }
     ],
     "dependencies": [],
-    "resources": [
-      {
-        "name": "network",
-        "type": "azurerm_resource_group"
-      },
-      {
-        "name": "vnet",
-        "type": "azurerm_virtual_network"
-      },
-      {
-        "name": "subnet",
-        "type": "azurerm_subnet"
-      },
-      {
-        "name": "security_group",
-        "type": "azurerm_network_security_group"
-      },
-      {
-        "name": "security_rule_rdp",
-        "type": "azurerm_network_security_rule"
-      },
-      {
-        "name": "security_rule_ssh",
-        "type": "azurerm_network_security_rule"
-      }
-    ]
+    "resources": []
   },
-  "submodules": null,
+  "submodules": [
+    {
+      "path": "modules/consul-cluster",
+      "readme": "# Consul Cluster\n\nThis folder contains a [Terraform](https://www.terraform.io/) ...",
+      "empty": false,
+      "inputs": [
+        {
+          "name": "cluster_name",
+          "description": "The name of the Consul cluster (e.g. consul-stage). This variable is used to namespace all resources created by this module.",
+          "default": ""
+        },
+        {
+          "name": "ami_id",
+          "description": "The ID of the AMI to run in this cluster. Should be an AMI that had Consul installed and configured by the install-consul module.",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        {
+          "name": "asg_name",
+          "description": ""
+        },
+        {
+          "name": "cluster_size",
+          "description": ""
+        }
+      ],
+      "dependencies": [],
+      "resources": [
+        {
+          "name": "autoscaling_group",
+          "type": "aws_autoscaling_group"
+        },
+        {
+          "name": "launch_configuration",
+          "type": "aws_launch_configuration"
+        }
+      ]
+    }
+  ],
   "providers": [
+    "aws",
     "azurerm"
   ],
   "versions": [
-    "0.9.2",
-    "0.9.3"
+    "0.0.1"
   ]
 }
 ```
@@ -303,130 +264,102 @@ This endpoint returns the specified version of a module for a single provider.
 
 ```text
 $ curl \
-    https://registry.terraform.io/v1/modules/Azure/network/azurerm/0.9.2
+    https://registry.terraform.io/v1/modules/hashicorp/consul/aws/0.0.1
 ```
 
 ### Sample Response
 
+Note this response has has some fields trimmed for clarity.
+
+
 ```json
 {
-  "id": "Azure/network/azurerm/0.9.2",
-  "owner": "echuvyrov",
-  "namespace": "Azure",
-  "name": "network",
-  "version": "0.9.2",
-  "provider": "azurerm",
-  "description": "Terraform Azure RM Module for Network",
-  "source": "https://github.com/Azure/terraform-azurerm-network",
-  "published_at": "2017-08-30T22:22:12.222113Z",
-  "downloads": 0,
+  "id": "hashicorp/consul/aws/0.0.1",
+  "owner": "gruntwork-team",
+  "namespace": "hashicorp",
+  "name": "consul",
+  "version": "0.0.1",
+  "provider": "aws",
+  "description": "A Terraform Module for how to run Consul on AWS using Terraform and Packer",
+  "source": "https://github.com/hashicorp/terraform-aws-consul",
+  "published_at": "2017-09-14T23:22:44.793647Z",
+  "downloads": 113,
   "verified": false,
   "root": {
     "path": "",
-    "readme": "Create a basic network in Azure\n==============================================================================\n\nThis Terraform module deploys a Virtual Network in Azure with the following characteristics: ...",
+    "readme": "# Consul AWS Module\n\nThis repo contains a Module for how to deploy a [Consul]...",
     "empty": false,
     "inputs": [
       {
-        "name": "tags",
-        "description": "The tags to associate with your network and subnets.",
-        "default": "{\n  \"tag1\": \"\",\n  \"tag2\": \"\"\n}"
+        "name": "ami_id",
+        "description": "The ID of the AMI to run in the cluster. ...",
+        "default": "\"\""
       },
       {
-        "name": "subnet_names",
-        "description": "A list of public subnets inside the vNet.",
-        "default": "[\n  \"subnet1\"\n]"
-      },
-      {
-        "name": "subnet_prefixes",
-        "description": "The address prefix to use for the subnet.",
-        "default": "[\n  \"10.0.1.0/24\"\n]"
-      },
-      {
-        "name": "dns_servers",
-        "description": "The DNS servers to be used with vNet.",
-        "default": "[]"
-      },
-      {
-        "name": "address_space",
-        "description": "The address space that is used by the virtual network.",
-        "default": "\"10.0.0.0/16\""
-      },
-      {
-        "name": "location",
-        "description": "The location/region where the core network will be created. The full list of Azure regions can be found at https://azure.microsoft.com/regions",
-        "default": ""
-      },
-      {
-        "name": "prefix",
-        "description": "Default prefix to use with your resource names.",
-        "default": "\"myapp\""
+        "name": "aws_region",
+        "description": "The AWS region to deploy into (e.g. us-east-1).",
+        "default": "\"us-east-1\""
       }
     ],
     "outputs": [
       {
-        "name": "vnet_id",
-        "description": "The id of the newly created vNet"
+        "name": "num_servers",
+        "description": ""
       },
       {
-        "name": "vnet_name",
-        "description": "The Name of the newly created vNet"
-      },
-      {
-        "name": "vnet_location",
-        "description": "The location of the newly created vNet"
-      },
-      {
-        "name": "vnet_address_space",
-        "description": "The address space of the newly created vNet"
-      },
-      {
-        "name": "vnet_dns_servers",
-        "description": "The DNS servers of the newly created vNet"
-      },
-      {
-        "name": "vnet_subnets",
-        "description": "The ids of subnets created inside the newl vNet"
-      },
-      {
-        "name": "security_group_id",
-        "description": "The id of the security group attached to subnets inside the newly created vNet. Use this id to associate additional network security rules to subnets."
+        "name": "asg_name_servers",
+        "description": ""
       }
     ],
     "dependencies": [],
-    "resources": [
-      {
-        "name": "security_rule_ssh",
-        "type": "azurerm_network_security_rule"
-      },
-      {
-        "name": "security_rule_rdp",
-        "type": "azurerm_network_security_rule"
-      },
-      {
-        "name": "security_group",
-        "type": "azurerm_network_security_group"
-      },
-      {
-        "name": "subnet",
-        "type": "azurerm_subnet"
-      },
-      {
-        "name": "vnet",
-        "type": "azurerm_virtual_network"
-      },
-      {
-        "name": "rg",
-        "type": "azurerm_resource_group"
-      }
-    ]
+    "resources": []
   },
-  "submodules": null,
+  "submodules": [
+    {
+      "path": "modules/consul-cluster",
+      "readme": "# Consul Cluster\n\nThis folder contains a [Terraform](https://www.terraform.io/) ...",
+      "empty": false,
+      "inputs": [
+        {
+          "name": "cluster_name",
+          "description": "The name of the Consul cluster (e.g. consul-stage). This variable is used to namespace all resources created by this module.",
+          "default": ""
+        },
+        {
+          "name": "ami_id",
+          "description": "The ID of the AMI to run in this cluster. Should be an AMI that had Consul installed and configured by the install-consul module.",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        {
+          "name": "asg_name",
+          "description": ""
+        },
+        {
+          "name": "cluster_size",
+          "description": ""
+        }
+      ],
+      "dependencies": [],
+      "resources": [
+        {
+          "name": "autoscaling_group",
+          "type": "aws_autoscaling_group"
+        },
+        {
+          "name": "launch_configuration",
+          "type": "aws_launch_configuration"
+        }
+      ]
+    }
+  ],
   "providers": [
+    "aws",
     "azurerm"
   ],
   "versions": [
-    "0.9.2",
-    "0.9.3"
+    "0.0.1"
   ]
 }
 ```
@@ -462,8 +395,8 @@ documentation](https://github.com/hashicorp/go-getter#url-format) for details.
 ### Sample Request
 
 ```text
-$ curl \
-    https://registry.terraform.io/v1/modules/hashicorp/consul/aws/1.0.0/download
+$ curl -i \
+    https://registry.terraform.io/v1/modules/hashicorp/consul/aws/0.0.1/download
 ```
 
 ### Sample Response
@@ -471,7 +404,7 @@ $ curl \
 ```text
 HTTP/1.1 204 No Content
 Content-Length: 0
-X-Terraform-Get: https://api.github.com/repos/Azure/terraform-azurerm-network/tarball/v0.9.2//*?archive=tar.gz
+X-Terraform-Get: https://api.github.com/repos/hashicorp/terraform-aws-consul/tarball/v0.0.1//*?archive=tar.gz
 ```
 
 ## Download the Latest Version of a Module
@@ -502,7 +435,7 @@ download endpoint (above) for the latest version.
 ### Sample Request
 
 ```text
-$ curl \
+$ curl -i \
     https://registry.terraform.io/v1/modules/hashicorp/consul/aws/download
 ```
 
@@ -510,6 +443,10 @@ $ curl \
 
 ```text
 HTTP/1.1 302 Found
-Location: /v1/modules/Azure/network/azurerm/0.9.3/download
+Location: /v1/modules/hashicorp/consul/aws/0.0.1/download
+Content-Length: 70
+Content-Type: text/html; charset=utf-8
+
+<a href="/v1/modules/hashicorp/consul/aws/0.0.1/download">Found</a>.
 ```
 
