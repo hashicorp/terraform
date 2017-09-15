@@ -69,9 +69,9 @@ match the [naming convention described above](#Requirements). This is shown in
 the screenshot below. Select the repository of the module you want to add and
 click "Create Module."
 
-TODO: screenshot
-
 In a few seconds, your module will be created.
+
+![Create Module flow animation](/assets/images/docs/registry-upload.gif)
 
 ## Releasing New Versions
 

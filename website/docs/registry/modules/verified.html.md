@@ -14,7 +14,7 @@ their respective providers.
 
 The blue verification badge appears next to modules that are verified.
 
-TODO: Screenshot
+![Verified module listing](/assets/images/docs/registry-verified.png)
 
 If a module is verified, it is promised to be actively maintained and of
 high quality. It isn't indicative of flexibility or feature support; very
