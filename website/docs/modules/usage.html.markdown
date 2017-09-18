@@ -11,16 +11,21 @@ Using modules in Terraform is very similar to defining resources:
 
 ```shell
 module "consul" {
-  source  = "github.com/hashicorp/consul/terraform/aws"
+  source  = "hashicorp/consul/aws"
   servers = 3
 }
 ```
 
 You can view the full documentation for configuring modules in the [Module Configuration](/docs/configuration/modules.html) section.
 
-In modules we only specify a name rather than a name and a type (as in resources). This name can be used elsewhere in the configuration to reference the module and its variables.
+In modules we only specify a name rather than a name and a type (as in resources). This name can be used elsewhere in the configuration to reference the module and its outputs.
 
-The existence of the above configuration will tell Terraform to create the resources in the `consul` module which can be found on GitHub at the given URL. Just like a resource, the module configuration can be deleted to remove the module.
+The source tells Terraform what to create. In this example, we create
+the [Consul module for AWS](https://registry.terraform.io/modules/hashicorp/consul/aws)
+from the [Terraform Registry](https://registry.terraform.io). You can learn
+more about the [source configuration below](#source).
+
+Just like a resource, the module configuration can be deleted to remove the module.
 
 ## Multiple instances of a module
 
@@ -62,8 +67,14 @@ The resource names in your module  get prefixed by `module.<module-instance-name
 
 ## Source
 
-The only required configuration key for a module is the `source` parameter. The value of this tells Terraform where the module can be downloaded, updated, etc. Terraform comes with support for a variety of module sources. These
-are documented in the [Module sources documentation](/docs/modules/sources.html).
+The only required configuration key for a module is the `source` parameter. The value of this tells Terraform where the module can be downloaded, updated, etc. Terraform comes with support for a variety of module sources. The recommended source for modules is a
+[Terraform Registry](/docs/registry/index.html) since this enables additional
+features for modules such as versioning.
+
+Terraform can also download modules directly from various storage providers
+and version control systems. These sources do not support versioning and other
+registry benefits. The full list of available sources
+are documented in the [module sources documentation](/docs/modules/sources.html).
 
 Prior to running any Terraform command with a configuration that uses modules, you'll have to [get](/docs/commands/get.html) the modules. This is done using the [get command](/docs/commands/get.html).
 
