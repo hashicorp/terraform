@@ -16,50 +16,6 @@ API is read-only. Any endpoints that aren't documented on this page can and will
 likely change over time. This allows differing methods for getting modules into
 the registry while keeping a consistent API for reading modules in the registry.
 
-## HTTP Status Codes
-
-The API follows regular HTTP status semantics. To make implementing a complete
-client easier, some details on our policy and potential future status codes are
-listed below. A robust client should consider how to handle all of the
-following.
-
- - **Success:** Return status is `200` on success with a body or `204` if there
-   is no body data to return.
- - **Redirects:** Moved or aliased endpoints redirect with a `301`. Endpoints
-   redirecting to the latest version of a module may redirect with `302` or
-   `307` to indicate that they logically point to different resources over time.
- - **Client Errors:** Invalid requests will receive the relevant `4xx` status.
-   Except where noted below, the request should not be retried.
- - **Rate Limiting:** Clients placing excessive load on the service might be
-   rate-limited and receive a `429` code. This should be interpreted as a sign
-   to slow down, and wait some time before retrying the request.
- - **Service Errors:** The usual `5xx` errors will be returned for service
-   failures. In all cases it is safe to retry the request after receiving a
-   `5xx` response.
- - **Load Shedding:** A `503` response indicates that the service is under load
-   and can't process your request immediately. As with other `5xx` errors you
-   may retry after some delay, although clients should consider being more
-   lenient with retry schedule in this case.
-
-## Error Responses
-
-When a `4xx` or `5xx` status code is returned. The response payload will look
-like the following example:
-
-```json
-{
-  "errors": [
-    "something bad happened"
-  ]
-}
-```
-
-The `errors` key is a list containing one or more strings where each string
-describes an error that has occurred.
-
-Note that it is possible that some `5xx` errors might result in a response that
-is not in JSON format above due to being returned by an intermediate proxy.
-
 ## List Latest Version of Module for All Providers
 
 This endpoint returns the latest version of each provider for a module.
@@ -86,34 +42,40 @@ $ curl \
 ### Sample Response
 
 ```json
-[
-  {
-    "id": "hashicorp/consul/azurerm/0.0.1",
-    "owner": "gruntwork-team",
-    "namespace": "hashicorp",
-    "name": "consul",
-    "version": "0.0.1",
-    "provider": "azurerm",
-    "description": "A Terraform Module for how to run Consul on AzureRM using Terraform and Packer",
-    "source": "https://github.com/hashicorp/terraform-azurerm-consul",
-    "published_at": "2017-09-14T23:22:59.923047Z",
-    "downloads": 100,
-    "verified": false
+{
+  "meta": {
+    "limit": 15,
+    "current_offset": 0
   },
-  {
-    "id": "hashicorp/consul/aws/0.0.1",
-    "owner": "gruntwork-team",
-    "namespace": "hashicorp",
-    "name": "consul",
-    "version": "0.0.1",
-    "provider": "aws",
-    "description": "A Terraform Module for how to run Consul on AWS using Terraform and Packer",
-    "source": "https://github.com/hashicorp/terraform-aws-consul",
-    "published_at": "2017-09-14T23:22:44.793647Z",
-    "downloads": 113,
-    "verified": false
-  }
-]
+  "modules": [
+    {
+      "id": "hashicorp/consul/azurerm/0.0.1",
+      "owner": "gruntwork-team",
+      "namespace": "hashicorp",
+      "name": "consul",
+      "version": "0.0.1",
+      "provider": "azurerm",
+      "description": "A Terraform Module for how to run Consul on AzureRM using Terraform and Packer",
+      "source": "https://github.com/hashicorp/terraform-azurerm-consul",
+      "published_at": "2017-09-14T23:22:59.923047Z",
+      "downloads": 100,
+      "verified": false
+    },
+    {
+      "id": "hashicorp/consul/aws/0.0.1",
+      "owner": "gruntwork-team",
+      "namespace": "hashicorp",
+      "name": "consul",
+      "version": "0.0.1",
+      "provider": "aws",
+      "description": "A Terraform Module for how to run Consul on AWS using Terraform and Packer",
+      "source": "https://github.com/hashicorp/terraform-aws-consul",
+      "published_at": "2017-09-14T23:22:44.793647Z",
+      "downloads": 113,
+      "verified": false
+    }
+  ]
+}
 ```
 
 ## Latest Module for a Single Provider
@@ -450,3 +412,75 @@ Content-Type: text/html; charset=utf-8
 <a href="/v1/modules/hashicorp/consul/aws/0.0.1/download">Found</a>.
 ```
 
+## HTTP Status Codes
+
+The API follows regular HTTP status semantics. To make implementing a complete
+client easier, some details on our policy and potential future status codes are
+listed below. A robust client should consider how to handle all of the
+following.
+
+ - **Success:** Return status is `200` on success with a body or `204` if there
+   is no body data to return.
+ - **Redirects:** Moved or aliased endpoints redirect with a `301`. Endpoints
+   redirecting to the latest version of a module may redirect with `302` or
+   `307` to indicate that they logically point to different resources over time.
+ - **Client Errors:** Invalid requests will receive the relevant `4xx` status.
+   Except where noted below, the request should not be retried.
+ - **Rate Limiting:** Clients placing excessive load on the service might be
+   rate-limited and receive a `429` code. This should be interpreted as a sign
+   to slow down, and wait some time before retrying the request.
+ - **Service Errors:** The usual `5xx` errors will be returned for service
+   failures. In all cases it is safe to retry the request after receiving a
+   `5xx` response.
+ - **Load Shedding:** A `503` response indicates that the service is under load
+   and can't process your request immediately. As with other `5xx` errors you
+   may retry after some delay, although clients should consider being more
+   lenient with retry schedule in this case.
+
+## Error Responses
+
+When a `4xx` or `5xx` status code is returned. The response payload will look
+like the following example:
+
+```json
+{
+  "errors": [
+    "something bad happened"
+  ]
+}
+```
+
+The `errors` key is a list containing one or more strings where each string
+describes an error that has occurred.
+
+Note that it is possible that some `5xx` errors might result in a response that
+is not in JSON format above due to being returned by an intermediate proxy.
+
+## Pagination
+
+Endpoints that return lists of results use a common pagination format.
+
+They accept positive integer query variables `offset` and `limit` which have the
+usual SQL-like semantics. Each endpoint will have a sane default limit and a
+default offset of `0`. Each endpoint will also apply a sane maximum limit,
+requesting more results will just result in the maximum limit being used.
+
+The response for a paginated result set will look like:
+
+```json
+{
+  "meta": {
+    "limit": 15,
+    "current_offset": 15,
+    "next_offset": 30,
+    "prev_offset": 0,
+  },
+  "<object name>": []
+}
+```
+Note that:
+  - `next_offset` will only be present if there are more results available.
+  - `prev_offset` will only be present if not at `offset = 0`.
+  - `limit` is the actual limit that was applied, it may be lower than the requested limit param.
+  - The key for the result array varies based on the endpoint and will be the
+    type of result pluralized, for example `modules`.
