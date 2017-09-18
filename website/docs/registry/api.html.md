@@ -32,6 +32,10 @@ This endpoint returns the latest version of each provider for a module.
 - `name` `(string: <required>)` - The name of the module.
   This is required and is specified as part of the URL path.
 
+### Query Parameters
+
+- `offset`, `limit` `(int: <optional>)` - See [Pagination](#Pagination) for details.
+
 ### Sample Request
 
 ```text
