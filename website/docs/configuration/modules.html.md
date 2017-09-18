@@ -23,7 +23,7 @@ Module configuration looks like the following:
 
 ```hcl
 module "consul" {
-  source  = "github.com/hashicorp/consul/terraform/aws"
+  source  = "hashicorp/consul/aws"
   servers = 5
 }
 ```
