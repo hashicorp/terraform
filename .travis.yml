@@ -27,6 +27,7 @@ install:
 script:
 - make vendor-status
 - make test
+- make e2etest
 - make vet
 - GOOS=windows go build
 branches:
