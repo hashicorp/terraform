@@ -2400,21 +2400,23 @@ type testFunctionCase struct {
 }
 
 func testFunction(t *testing.T, config testFunctionConfig) {
-	for i, tc := range config.Cases {
-		ast, err := hil.Parse(tc.Input)
-		if err != nil {
-			t.Fatalf("Case #%d: input: %#v\nerr: %v", i, tc.Input, err)
-		}
+	t.Helper()
+	for _, tc := range config.Cases {
+		t.Run(tc.Input, func(t *testing.T) {
+			ast, err := hil.Parse(tc.Input)
+			if err != nil {
+				t.Fatalf("unexpected parse error: %s", err)
+			}
 
-		result, err := hil.Eval(ast, langEvalConfig(config.Vars))
-		if err != nil != tc.Error {
-			t.Fatalf("Case #%d:\ninput: %#v\nerr: %v", i, tc.Input, err)
-		}
+			result, err := hil.Eval(ast, langEvalConfig(config.Vars))
+			if err != nil != tc.Error {
+				t.Fatalf("unexpected eval error: %s", err)
+			}
 
-		if !reflect.DeepEqual(result.Value, tc.Result) {
-			t.Fatalf("%d: bad output for input: %s\n\nOutput: %#v\nExpected: %#v",
-				i, tc.Input, result.Value, tc.Result)
-		}
+			if !reflect.DeepEqual(result.Value, tc.Result) {
+				t.Errorf("wrong result\ngiven: %s\ngot:   %#v\nwant:  %#v", tc.Input, result.Value, tc.Result)
+			}
+		})
 	}
 }
 
