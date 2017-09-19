@@ -12,6 +12,7 @@ UPGRADE NOTES:
 
 IMPROVEMENTS:
 
+* Modules can now be installed from [the Terraform Registry](https://registry.terraform.io/)
 * cli: `terraform import` now accepts an option `-allow-missing-config` that overrides the default requirement that a configuration block must already be present for the resource being imported. ([#15876](https://github.com/hashicorp/terraform/issues/15876))
 
 ## 0.10.5 (September 14, 2017)
