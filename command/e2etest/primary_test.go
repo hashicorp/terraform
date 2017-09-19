@@ -109,8 +109,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "Resources: 2 destroyed") {
-		t.Errorf("incorrect destroy tally; want 2 destroyed:\n%s", stdout)
+	if !strings.Contains(stdout, "Resources: 1 destroyed") {
+		t.Errorf("incorrect destroy tally; want 1 destroyed:\n%s", stdout)
 	}
 
 	state, err = tf.LocalState()
