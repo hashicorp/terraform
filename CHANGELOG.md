@@ -1,4 +1,4 @@
-## 0.10.6 (Unreleased)
+## 0.10.6 (September 19, 2017)
 
 UPGRADE NOTES:
 
@@ -9,7 +9,7 @@ UPGRADE NOTES:
 
 IMPROVEMENTS:
 
-* cli: `terraform import` now accepts an option `-allow-missing-config` that overrides the default requirement that a configuration block must already be present for the resource being imported. [GH-15876]
+* cli: `terraform import` now accepts an option `-allow-missing-config` that overrides the default requirement that a configuration block must already be present for the resource being imported. ([#15876](https://github.com/hashicorp/terraform/issues/15876))
 
 ## 0.10.5 (September 14, 2017)
 
