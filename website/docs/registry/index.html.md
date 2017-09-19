@@ -25,6 +25,8 @@ module "consul" {
 }
 ```
 
+~> **Note:** Module registry integration was added in Terraform 10.6
+
 You can also publish your own modules on the Terraform Registry. You may
 use the [public registry](https://registry.terraform.io) for public modules.
 For private modules, you must use [Terraform Enterprise](https://www.hashicorp.com/products/terraform).
