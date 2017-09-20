@@ -52,6 +52,8 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.Ui.Output(fmt.Sprintf("%d items removed.", len(args)))
+
 	if err := state.WriteState(stateReal); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
