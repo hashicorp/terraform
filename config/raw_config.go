@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"sync"
 
+	hcl2 "github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/copystructure"
@@ -27,8 +28,24 @@ const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 // RawConfig supports a query-like interface to request
 // information from deep within the structure.
 type RawConfig struct {
-	Key            string
-	Raw            map[string]interface{}
+	Key string
+
+	// Only _one_ of Raw and Body may be populated at a time.
+	//
+	// In the normal case, Raw is populated and Body is nil.
+	//
+	// When the experimental HCL2 parsing mode is enabled, "Body"
+	// is populated and RawConfig serves only to transport the hcl2.Body
+	// through the rest of Terraform core so we can ultimately decode it
+	// once its schema is known.
+	//
+	// Once we transition to HCL2 as the primary representation, RawConfig
+	// should be removed altogether and the hcl2.Body should be passed
+	// around directly.
+
+	Raw  map[string]interface{}
+	Body hcl2.Body
+
 	Interpolations []ast.Node
 	Variables      map[string]InterpolatedVariable
 
@@ -46,6 +63,26 @@ func NewRawConfig(raw map[string]interface{}) (*RawConfig, error) {
 	}
 
 	return result, nil
+}
+
+// NewRawConfigHCL2 creates a new RawConfig that is serving as a capsule
+// to transport a hcl2.Body. In this mode, the publicly-readable struct
+// fields are not populated since all operations should instead be diverted
+// to the HCL2 body.
+//
+// For a RawConfig object constructed with this function, the only valid use
+// is to later retrieve the Body value and call its own methods. Callers
+// may choose to set and then later handle the Key field, in a manner
+// consistent with how it is handled by the Value method, but the Value
+// method itself must not be used.
+//
+// This is an experimental codepath to be used only by the HCL2 config loader.
+// Non-experimental parsing should _always_ use NewRawConfig to produce a
+// fully-functional RawConfig object.
+func NewRawConfigHCL2(body hcl2.Body) *RawConfig {
+	return &RawConfig{
+		Body: body,
+	}
 }
 
 // RawMap returns a copy of the RawConfig.Raw map.
