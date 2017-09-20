@@ -1,5 +1,8 @@
 ## 0.10.7 (Unreleased)
 
+IMPROVEMENTS:
+
+* `terraform state rm` now includes in its output the count of resources that were removed from the state. [GH-16137]
 
 ## 0.10.6 (September 19, 2017)
 
