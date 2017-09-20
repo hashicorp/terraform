@@ -237,10 +237,11 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 	zone, e := dns.GetZone(d.Get("hostname").(string))
 
 	if e != nil {
-		if dns.IsZoneNotFound(e) == true {
+		if dns.IsConfigDNSError(e) && e.(dns.ConfigDNSError).NotFound() == true {
 			// if the zone is not found/404 we will create a new
 			// blank zone for the records to be added to and continue
 			log.Printf("[DEBUG] [Akamai FastDNS] [ERROR] %s", e.Error())
+			log.Printf("[DEBUG] [Akamai FastDNS] Creating new zone")
 			zone = dns.NewZone(d.Get("hostname").(string))
 			e = nil
 		} else {
