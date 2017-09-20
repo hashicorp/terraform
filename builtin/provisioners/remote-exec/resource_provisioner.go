@@ -19,10 +19,14 @@ import (
 	"github.com/mitchellh/go-linereader"
 )
 
+// maxBackoffDealy is the maximum delay between retry attempts
+var maxBackoffDelay = 10 * time.Second
+var initialBackoffDelay = time.Second
+
 func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
-			"inline": &schema.Schema{
+			"inline": {
 				Type:          schema.TypeList,
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				PromoteSingle: true,
@@ -30,13 +34,13 @@ func Provisioner() terraform.ResourceProvisioner {
 				ConflictsWith: []string{"script", "scripts"},
 			},
 
-			"script": &schema.Schema{
+			"script": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"inline", "scripts"},
 			},
 
-			"scripts": &schema.Schema{
+			"scripts": {
 				Type:          schema.TypeList,
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
@@ -81,7 +85,11 @@ func applyFn(ctx context.Context) error {
 func generateScripts(d *schema.ResourceData) ([]string, error) {
 	var lines []string
 	for _, l := range d.Get("inline").([]interface{}) {
-		lines = append(lines, l.(string))
+		line, ok := l.(string)
+		if !ok {
+			return nil, fmt.Errorf("Error parsing %v as a string", l)
+		}
+		lines = append(lines, line)
 	}
 	lines = append(lines, "")
 
@@ -109,12 +117,20 @@ func collectScripts(d *schema.ResourceData) ([]io.ReadCloser, error) {
 	// Collect scripts
 	var scripts []string
 	if script, ok := d.GetOk("script"); ok {
-		scripts = append(scripts, script.(string))
+		scr, ok := script.(string)
+		if !ok {
+			return nil, fmt.Errorf("Error parsing script %v as string", script)
+		}
+		scripts = append(scripts, scr)
 	}
 
 	if scriptList, ok := d.GetOk("scripts"); ok {
 		for _, script := range scriptList.([]interface{}) {
-			scripts = append(scripts, script.(string))
+			scr, ok := script.(string)
+			if !ok {
+				return nil, fmt.Errorf("Error parsing script %v as string", script)
+			}
+			scripts = append(scripts, scr)
 		}
 	}
 
@@ -234,7 +250,6 @@ func copyOutput(
 }
 
 // retryFunc is used to retry a function for a given duration
-// TODO: this should probably backoff too
 func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error {
 	// Build a new context with the timeout
 	ctx, done := context.WithTimeout(ctx, timeout)
@@ -251,12 +266,13 @@ func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error
 	go func() {
 		defer close(doneCh)
 
+		delay := time.Duration(0)
 		for {
 			// If our context ended, we want to exit right away.
 			select {
 			case <-ctx.Done():
 				return
-			default:
+			case <-time.After(delay):
 			}
 
 			// Try the function call
@@ -267,7 +283,19 @@ func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error
 				return
 			}
 
-			log.Printf("Retryable error: %v", err)
+			log.Printf("[WARN] retryable error: %v", err)
+
+			delay *= 2
+
+			if delay == 0 {
+				delay = initialBackoffDelay
+			}
+
+			if delay > maxBackoffDelay {
+				delay = maxBackoffDelay
+			}
+
+			log.Printf("[INFO] sleeping for %s", delay)
 		}
 	}()
 

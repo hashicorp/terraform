@@ -108,6 +108,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Module: b.Module},
 
+		// Add the local values
+		&LocalTransformer{Module: b.Module},
+
 		// Add the outputs
 		&OutputTransformer{Module: b.Module},
 
@@ -122,6 +125,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
+
+		// Close opened plugin connections
+		&CloseProviderTransformer{},
+		&CloseProvisionerTransformer{},
 
 		// Single root
 		&RootTransformer{},

@@ -32,8 +32,8 @@ import (
 var (
 	// Default retry configuration
 	defaultRetryWaitMin = 1 * time.Second
-	defaultRetryWaitMax = 5 * time.Minute
-	defaultRetryMax     = 32
+	defaultRetryWaitMax = 30 * time.Second
+	defaultRetryMax     = 4
 
 	// defaultClient is used for performing requests without explicitly making
 	// a new client. It is purposely private to avoid modifications.

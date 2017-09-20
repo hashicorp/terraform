@@ -1,6 +1,8 @@
 package command
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	clistate "github.com/hashicorp/terraform/command/state"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -52,9 +54,9 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// Setup defaults
 	opts.oneEnv = backend.DefaultStateName
 	opts.twoEnv = backend.DefaultStateName
-	opts.force = false
+	opts.force = m.forceInitCopy
 
-	// Determine migration behavior based on whether the source/destionation
+	// Determine migration behavior based on whether the source/destination
 	// supports multi-state.
 	switch {
 	// Single-state to single-state. This is the easiest case: we just
@@ -115,7 +117,7 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 	migrate, err := m.confirm(&terraform.InputOpts{
 		Id: "backend-migrate-multistate-to-multistate",
 		Query: fmt.Sprintf(
-			"Do you want to migrate all environments to %q?",
+			"Do you want to migrate all workspaces to %q?",
 			opts.TwoType),
 		Description: fmt.Sprintf(
 			strings.TrimSpace(inputBackendMigrateMultiToMulti),
@@ -160,17 +162,17 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 
 // Multi-state to single state.
 func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
-	currentEnv := m.Env()
+	currentEnv := m.Workspace()
 
-	migrate := m.forceInitCopy
+	migrate := opts.force
 	if !migrate {
 		var err error
 		// Ask the user if they want to migrate their existing remote state
 		migrate, err = m.confirm(&terraform.InputOpts{
 			Id: "backend-migrate-multistate-to-single",
 			Query: fmt.Sprintf(
-				"Destination state %q doesn't support environments (named states).\n"+
-					"Do you want to copy only your current environment?",
+				"Destination state %q doesn't support workspaces.\n"+
+					"Do you want to copy only your current workspace?",
 				opts.TwoType),
 			Description: fmt.Sprintf(
 				strings.TrimSpace(inputBackendMigrateMultiToSingle),
@@ -190,7 +192,7 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 	opts.oneEnv = currentEnv
 
 	// now switch back to the default env so we can acccess the new backend
-	m.SetEnv(backend.DefaultStateName)
+	m.SetWorkspace(backend.DefaultStateName)
 
 	return m.backendMigrateState_s_s(opts)
 }
@@ -217,28 +219,57 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 			errMigrateSingleLoadDefault), opts.TwoType, err)
 	}
 
-	lockInfoOne := state.NewLockInfo()
-	lockInfoOne.Operation = "migration"
-	lockInfoOne.Info = "source state"
-
-	lockIDOne, err := clistate.Lock(stateOne, lockInfoOne, m.Ui, m.Colorize())
-	if err != nil {
-		return fmt.Errorf("Error locking source state: %s", err)
-	}
-	defer clistate.Unlock(stateOne, lockIDOne, m.Ui, m.Colorize())
-
-	lockInfoTwo := state.NewLockInfo()
-	lockInfoTwo.Operation = "migration"
-	lockInfoTwo.Info = "destination state"
-
-	lockIDTwo, err := clistate.Lock(stateTwo, lockInfoTwo, m.Ui, m.Colorize())
-	if err != nil {
-		return fmt.Errorf("Error locking destination state: %s", err)
-	}
-	defer clistate.Unlock(stateTwo, lockIDTwo, m.Ui, m.Colorize())
-
+	// Check if we need migration at all.
+	// This is before taking a lock, because they may also correspond to the same lock.
 	one := stateOne.State()
 	two := stateTwo.State()
+
+	// no reason to migrate if the state is already there
+	if one.Equal(two) {
+		// Equal isn't identical; it doesn't check lineage.
+		if one != nil && two != nil && one.Lineage == two.Lineage {
+			return nil
+		}
+	}
+
+	if m.stateLock {
+		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
+		defer cancel()
+
+		lockInfoOne := state.NewLockInfo()
+		lockInfoOne.Operation = "migration"
+		lockInfoOne.Info = "source state"
+
+		lockIDOne, err := clistate.Lock(lockCtx, stateOne, lockInfoOne, m.Ui, m.Colorize())
+		if err != nil {
+			return fmt.Errorf("Error locking source state: %s", err)
+		}
+		defer clistate.Unlock(stateOne, lockIDOne, m.Ui, m.Colorize())
+
+		lockInfoTwo := state.NewLockInfo()
+		lockInfoTwo.Operation = "migration"
+		lockInfoTwo.Info = "destination state"
+
+		lockIDTwo, err := clistate.Lock(lockCtx, stateTwo, lockInfoTwo, m.Ui, m.Colorize())
+		if err != nil {
+			return fmt.Errorf("Error locking destination state: %s", err)
+		}
+		defer clistate.Unlock(stateTwo, lockIDTwo, m.Ui, m.Colorize())
+
+		// We now own a lock, so double check that we have the version
+		// corresponding to the lock.
+		if err := stateOne.RefreshState(); err != nil {
+			return fmt.Errorf(strings.TrimSpace(
+				errMigrateSingleLoadDefault), opts.OneType, err)
+		}
+		if err := stateTwo.RefreshState(); err != nil {
+			return fmt.Errorf(strings.TrimSpace(
+				errMigrateSingleLoadDefault), opts.OneType, err)
+		}
+
+		one = stateOne.State()
+		two = stateTwo.State()
+	}
 
 	// Clear the legacy remote state in both cases. If we're at the migration
 	// step then this won't be used anymore.
@@ -275,6 +306,11 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	}
 
 	if !opts.force {
+		// Abort if we can't ask for input.
+		if !m.input {
+			return errors.New("error asking for state migration action: input disabled")
+		}
+
 		// Confirm with the user whether we want to copy state over
 		confirm, err := confirmFunc(stateOne, stateTwo, opts)
 		if err != nil {
@@ -300,10 +336,6 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 }
 
 func (m *Meta) backendMigrateEmptyConfirm(one, two state.State, opts *backendMigrateOpts) (bool, error) {
-	if m.forceInitCopy {
-		return true, nil
-	}
-
 	inputOpts := &terraform.InputOpts{
 		Id: "backend-migrate-copy-to-empty",
 		Query: fmt.Sprintf(
@@ -366,10 +398,6 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 		return false, fmt.Errorf("Error saving temporary state: %s", err)
 	}
 
-	if m.forceInitCopy {
-		return true, nil
-	}
-
 	// Ask for confirmation
 	inputOpts := &terraform.InputOpts{
 		Id: "backend-migrate-to-backend",
@@ -413,7 +441,7 @@ type backendMigrateOpts struct {
 const errMigrateLoadStates = `
 Error inspecting state in %q: %s
 
-Prior to changing backends, Terraform inspects the source and destionation
+Prior to changing backends, Terraform inspects the source and destination
 states to determine what kind of migration steps need to be taken, if any.
 Terraform failed to load the states. The data in both the source and the
 destination remain unmodified. Please resolve the above error and try again.
@@ -430,17 +458,17 @@ above error and try again.
 `
 
 const errMigrateMulti = `
-Error migrating the environment %q from %q to %q:
+Error migrating the workspace %q from %q to %q:
 
 %s
 
-Terraform copies environments in alphabetical order. Any environments
-alphabetically earlier than this one have been copied. Any environments
-later than this haven't been modified in the destination. No environments
+Terraform copies workspaces in alphabetical order. Any workspaces
+alphabetically earlier than this one have been copied. Any workspaces
+later than this haven't been modified in the destination. No workspaces
 in the source state have been modified.
 
 Please resolve the error above and run the initialization command again.
-This will attempt to copy (with permission) all environments again.
+This will attempt to copy (with permission) all workspaces again.
 `
 
 const errBackendStateCopy = `
@@ -469,22 +497,22 @@ and "no" to start with the existing state in %[2]q.
 `
 
 const inputBackendMigrateMultiToSingle = `
-The existing backend %[1]q supports environments and you currently are
-using more than one. The target backend %[2]q doesn't support environments.
-If you continue, Terraform will offer to copy your current environment
-%[3]q to the default environment in the target. Your existing environments
-in the source backend won't be modified. If you want to switch environments,
+The existing backend %[1]q supports workspaces and you currently are
+using more than one. The target backend %[2]q doesn't support workspaces.
+If you continue, Terraform will offer to copy your current workspace
+%[3]q to the default workspace in the target. Your existing workspaces
+in the source backend won't be modified. If you want to switch workspaces,
 back them up, or cancel altogether, answer "no" and Terraform will abort.
 `
 
 const inputBackendMigrateMultiToMulti = `
 Both the existing backend %[1]q and the target backend %[2]q support
-environments. When migrating between backends, Terraform will copy all
-environments (with the same names). THIS WILL OVERWRITE any conflicting
+workspaces. When migrating between backends, Terraform will copy all
+workspaces (with the same names). THIS WILL OVERWRITE any conflicting
 states in the destination.
 
-Terraform initialization doesn't currently migrate only select environments.
-If you want to migrate a select number of environments, you must manually
+Terraform initialization doesn't currently migrate only select workspaces.
+If you want to migrate a select number of workspaces, you must manually
 pull and push those states.
 
 If you answer "yes", Terraform will migrate all states. If you answer

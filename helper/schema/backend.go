@@ -28,8 +28,8 @@ type Backend struct {
 	config *ResourceData
 }
 
-const (
-	backendConfigKey = iota
+var (
+	backendConfigKey = contextKey("backend config")
 )
 
 // FromContextBackendConfig extracts a ResourceData with the configuration

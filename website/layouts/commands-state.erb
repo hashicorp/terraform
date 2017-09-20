@@ -1,0 +1,50 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/commands/index.html">All Commands</a>
+        </li>
+
+        <li<%= sidebar_current("docs-state-index") %>>
+          <a href="/docs/commands/state/index.html">State Command</a>
+        </li>
+
+        <li<%= sidebar_current("docs-state-address") %>>
+          <a href="/docs/commands/state/addressing.html">Resource Addressing</a>
+        </li>
+
+        <li<%= sidebar_current("docs-state-sub") %>>
+          <a href="#">Subcommands</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-state-sub-list") %>>
+              <a href="/docs/commands/state/list.html">list</a>
+            </li>
+
+            <li<%= sidebar_current("docs-state-sub-mv") %>>
+              <a href="/docs/commands/state/mv.html">mv</a>
+            </li>
+
+            <li<%= sidebar_current("docs-state-sub-pull") %>>
+              <a href="/docs/commands/state/pull.html">pull</a>
+            </li>
+
+            <li<%= sidebar_current("docs-state-sub-push") %>>
+              <a href="/docs/commands/state/push.html">push</a>
+            </li>
+
+            <li<%= sidebar_current("docs-state-sub-rm") %>>
+              <a href="/docs/commands/state/rm.html">rm</a>
+            </li>
+
+            <li<%= sidebar_current("docs-state-sub-show") %>>
+              <a href="/docs/commands/state/show.html">show</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/hil"
@@ -43,6 +44,63 @@ func TestInstanceInfo(t *testing.T) {
 		if actual != tc.Result {
 			t.Fatalf("%d: %s", i, actual)
 		}
+	}
+}
+
+func TestInstanceInfoResourceAddress(t *testing.T) {
+	tests := []struct {
+		Input *InstanceInfo
+		Want  string
+	}{
+		{
+			&InstanceInfo{
+				Id: "test_resource.baz",
+			},
+			"test_resource.baz",
+		},
+		{
+			&InstanceInfo{
+				Id:         "test_resource.baz",
+				ModulePath: rootModulePath,
+			},
+			"test_resource.baz",
+		},
+		{
+			&InstanceInfo{
+				Id:         "test_resource.baz",
+				ModulePath: []string{"root", "foo"},
+			},
+			"module.foo.test_resource.baz",
+		},
+		{
+			&InstanceInfo{
+				Id:         "test_resource.baz",
+				ModulePath: []string{"root", "foo", "bar"},
+			},
+			"module.foo.module.bar.test_resource.baz",
+		},
+		{
+			&InstanceInfo{
+				Id: "test_resource.baz (tainted)",
+			},
+			"test_resource.baz.tainted",
+		},
+		{
+			&InstanceInfo{
+				Id: "test_resource.baz (deposed #0)",
+			},
+			"test_resource.baz.deposed",
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			gotAddr := test.Input.ResourceAddress()
+			got := gotAddr.String()
+			if got != test.Want {
+				t.Fatalf("wrong result\ngot:  %s\nwant: %s", got, test.Want)
+			}
+		})
 	}
 }
 

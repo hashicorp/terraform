@@ -147,7 +147,7 @@ func (p *Parser) objectKey() ([]*ast.ObjectKey, error) {
 			// Done
 			return keys, nil
 		case token.ILLEGAL:
-			fmt.Println("illegal")
+			return nil, errors.New("illegal")
 		default:
 			return nil, fmt.Errorf("expected: STRING got: %s", p.tok.Type)
 		}

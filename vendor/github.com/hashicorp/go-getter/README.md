@@ -21,8 +21,7 @@ URLs. For example: "github.com/hashicorp/go-getter" would turn into a
 Git URL. Or "./foo" would turn into a file URL. These are extensible.
 
 This library is used by [Terraform](https://terraform.io) for
-downloading modules, [Otto](https://ottoproject.io) for dependencies and
-Appfile imports, and [Nomad](https://nomadproject.io) for downloading
+downloading modules and [Nomad](https://nomadproject.io) for downloading
 binaries.
 
 ## Installation and Usage
@@ -119,6 +118,37 @@ The protocol-specific options are documented below the URL format
 section. But because they are part of the URL, we point it out here so
 you know they exist.
 
+### Subdirectories
+
+If you want to download only a specific subdirectory from a downloaded
+directory, you can specify a subdirectory after a double-slash `//`.
+go-getter will first download the URL specified _before_ the double-slash
+(as if you didn't specify a double-slash), but will then copy the
+path after the double slash into the target directory.
+
+For example, if you're downloading this GitHub repository, but you only
+want to download the `test-fixtures` directory, you can do the following:
+
+```
+https://github.com/hashicorp/go-getter.git//test-fixtures
+```
+
+If you downloaded this to the `/tmp` directory, then the file
+`/tmp/archive.gz` would exist. Notice that this file is in the `test-fixtures`
+directory in this repository, but because we specified a subdirectory,
+go-getter automatically copied only that directory contents.
+
+Subdirectory paths may contain may also use filesystem glob patterns.
+The path must match _exactly one_ entry or go-getter will return an error.
+This is useful if you're not sure the exact directory name but it follows
+a predictable naming structure.
+
+For example, the following URL would also work:
+
+```
+https://github.com/hashicorp/go-getter.git//test-*
+```
+
 ### Checksumming
 
 For file downloads of any protocol, go-getter can automatically verify
@@ -154,9 +184,11 @@ The following archive formats are supported:
 
   * `tar.gz` and `tgz`
   * `tar.bz2` and `tbz2`
+  * `tar.xz` and `txz`
   * `zip`
   * `gz`
   * `bz2`
+  * `xz`
 
 For example, an example URL is shown below:
 
@@ -222,13 +254,17 @@ None
 
 ### HTTP (`http`)
 
-None
+#### Basic Authentication
+
+To use HTTP basic authentication with go-getter, simply prepend `username:password@` to the
+hostname in the URL such as `https://Aladdin:OpenSesame@www.example.com/index.html`. All special
+characters, including the username and password, must be URL encoded.
 
 ### S3 (`s3`)
 
 S3 takes various access configurations in the URL. Note that it will also
-read these from standard AWS environment variables if they're set. If
-the query parameters are present, these take priority.
+read these from standard AWS environment variables if they're set. S3 compliant servers like Minio
+are also supported. If the query parameters are present, these take priority.
 
   * `aws_access_key_id` - AWS access key.
   * `aws_access_key_secret` - AWS access key secret.
@@ -240,6 +276,14 @@ If you use go-getter and want to use an EC2 IAM Instance Profile to avoid
 using credentials, then just omit these and the profile, if available will
 be used automatically.
 
+### Using S3 with Minio
+ If you use go-gitter for Minio support, you must consider the following:
+
+  * `aws_access_key_id` (required) - Minio access key.
+  * `aws_access_key_secret` (required) - Minio access key secret.
+  * `region` (optional - defaults to us-east-1) - Region identifier to use.
+  * `version` (optional - fefaults to Minio default) - Configuration file format.
+
 #### S3 Bucket Examples
 
 S3 has several addressing schemes used to reference your bucket. These are
@@ -250,4 +294,5 @@ Some examples for these addressing schemes:
 - s3::https://s3-eu-west-1.amazonaws.com/bucket/foo
 - bucket.s3.amazonaws.com/foo
 - bucket.s3-eu-west-1.amazonaws.com/foo/bar
+- "s3::http://127.0.0.1:9000/test-bucket/hello.txt?aws_access_key_id=KEYID&aws_access_key_secret=SECRETKEY&region=us-east-2"
 

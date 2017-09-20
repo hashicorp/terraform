@@ -1,8 +1,8 @@
 package command
 
 import (
-	"bytes"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -12,11 +12,7 @@ import (
 )
 
 func TestUiHookPreApply_periodicTimer(t *testing.T) {
-	ui := &cli.MockUi{
-		InputReader:  bytes.NewReader([]byte{}),
-		ErrorWriter:  bytes.NewBuffer([]byte{}),
-		OutputWriter: bytes.NewBuffer([]byte{}),
-	}
+	ui := cli.NewMockUi()
 	h := &UiHook{
 		Colorize: &colorstring.Colorize{
 			Colors:  colorstring.DefaultColors,
@@ -70,10 +66,10 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 	close(uiState.DoneCh)
 	<-uiState.done
 
-	expectedOutput := `data.aws_availability_zones.available: Destroying... (ID: 2017-03-0...0000 UTC)
-data.aws_availability_zones.available: Still destroying... (ID: 2017-03-0...0000 UTC, 1s elapsed)
-data.aws_availability_zones.available: Still destroying... (ID: 2017-03-0...0000 UTC, 2s elapsed)
-data.aws_availability_zones.available: Still destroying... (ID: 2017-03-0...0000 UTC, 3s elapsed)
+	expectedOutput := `data.aws_availability_zones.available: Destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC)
+data.aws_availability_zones.available: Still destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC, 1s elapsed)
+data.aws_availability_zones.available: Still destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC, 2s elapsed)
+data.aws_availability_zones.available: Still destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC, 3s elapsed)
 `
 	output := ui.OutputWriter.String()
 	if output != expectedOutput {
@@ -88,11 +84,7 @@ data.aws_availability_zones.available: Still destroying... (ID: 2017-03-0...0000
 }
 
 func TestUiHookPreApply_destroy(t *testing.T) {
-	ui := &cli.MockUi{
-		InputReader:  bytes.NewReader([]byte{}),
-		ErrorWriter:  bytes.NewBuffer([]byte{}),
-		OutputWriter: bytes.NewBuffer([]byte{}),
-	}
+	ui := cli.NewMockUi()
 	h := &UiHook{
 		Colorize: &colorstring.Colorize{
 			Colors:  colorstring.DefaultColors,
@@ -138,7 +130,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
-	expectedOutput := "data.aws_availability_zones.available: Destroying... (ID: 2017-03-0...0000 UTC)\n"
+	expectedOutput := "data.aws_availability_zones.available: Destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC)\n"
 	output := ui.OutputWriter.String()
 	if output != expectedOutput {
 		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
@@ -152,11 +144,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 }
 
 func TestUiHookPostApply_emptyState(t *testing.T) {
-	ui := &cli.MockUi{
-		InputReader:  bytes.NewReader([]byte{}),
-		ErrorWriter:  bytes.NewBuffer([]byte{}),
-		OutputWriter: bytes.NewBuffer([]byte{}),
-	}
+	ui := cli.NewMockUi()
 	h := &UiHook{
 		Colorize: &colorstring.Colorize{
 			Colors:  colorstring.DefaultColors,
@@ -186,10 +174,10 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
-	expectedOutput := "data.google_compute_zones.available: Destruction complete\n"
+	expectedRegexp := "^data.google_compute_zones.available: Destruction complete after -?[a-z0-9.]+\n$"
 	output := ui.OutputWriter.String()
-	if output != expectedOutput {
-		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
+	if matched, _ := regexp.MatchString(expectedRegexp, output); !matched {
+		t.Fatalf("Output didn't match regexp.\nExpected: %q\nGiven: %q", expectedRegexp, output)
 	}
 
 	expectedErrOutput := ""

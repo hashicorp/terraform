@@ -3,6 +3,8 @@ package terraform
 import (
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 func TestCoerceMapVariable(t *testing.T) {
@@ -138,5 +140,80 @@ func TestCoerceMapVariable(t *testing.T) {
 			t.Fatalf("%s: Expected variables:\n\n%#v\n\nGot:\n\n%#v",
 				tn, tc.ExpectVars, tc.Input.Variables)
 		}
+	}
+}
+
+func TestEvalVariableBlock(t *testing.T) {
+	rc, err := config.NewRawConfig(map[string]interface{}{
+		"known":      "foo",
+		"known_list": []interface{}{"foo"},
+		"known_map": map[string]interface{}{
+			"foo": "foo",
+		},
+		"known_list_of_maps": []map[string]interface{}{
+			map[string]interface{}{
+				"foo": "foo",
+			},
+		},
+		"computed_map": map[string]interface{}{},
+		"computed_list_of_maps": []map[string]interface{}{
+			map[string]interface{}{},
+		},
+		// No computed_list right now, because that isn't currently supported:
+		// EvalVariableBlock assumes the final step of the path will always
+		// be a map.
+	})
+	if err != nil {
+		t.Fatalf("config.NewRawConfig failed: %s", err)
+	}
+
+	cfg := NewResourceConfig(rc)
+	cfg.ComputedKeys = []string{
+		"computed",
+		"computed_map.foo",
+		"computed_list_of_maps.0.foo",
+	}
+
+	n := &EvalVariableBlock{
+		VariableValues: map[string]interface{}{
+			// Should be cleared out on Eval
+			"should_be_deleted": true,
+		},
+		Config: &cfg,
+	}
+
+	ctx := &MockEvalContext{}
+	val, err := n.Eval(ctx)
+	if err != nil {
+		t.Fatalf("n.Eval failed: %s", err)
+	}
+	if val != nil {
+		t.Fatalf("n.Eval returned non-nil result: %#v", val)
+	}
+
+	got := n.VariableValues
+	want := map[string]interface{}{
+		"known":      "foo",
+		"known_list": []interface{}{"foo"},
+		"known_map": map[string]interface{}{
+			"foo": "foo",
+		},
+		"known_list_of_maps": []interface{}{
+			map[string]interface{}{
+				"foo": "foo",
+			},
+		},
+		"computed": config.UnknownVariableValue,
+		"computed_map": map[string]interface{}{
+			"foo": config.UnknownVariableValue,
+		},
+		"computed_list_of_maps": []interface{}{
+			map[string]interface{}{
+				"foo": config.UnknownVariableValue,
+			},
+		},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Incorrect variables\ngot:  %#v\nwant: %#v", got, want)
 	}
 }

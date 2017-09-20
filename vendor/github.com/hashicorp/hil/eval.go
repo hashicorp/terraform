@@ -54,6 +54,14 @@ func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
 		return InvalidResult, err
 	}
 
+	// If the result contains any nested unknowns then the result as a whole
+	// is unknown, so that callers only have to deal with "entirely known"
+	// or "entirely unknown" as outcomes.
+	if ast.IsUnknown(ast.Variable{Type: outputType, Value: output}) {
+		outputType = ast.TypeUnknown
+		output = UnknownValue
+	}
+
 	switch outputType {
 	case ast.TypeList:
 		val, err := VariableToInterface(ast.Variable{
@@ -264,6 +272,10 @@ func (v *evalCall) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, e
 	args := make([]interface{}, len(v.Args))
 	for i, _ := range v.Args {
 		node := stack.Pop().(*ast.LiteralNode)
+		if node.IsUnknown() {
+			// If any arguments are unknown then the result is automatically unknown
+			return UnknownValue, ast.TypeUnknown, nil
+		}
 		args[len(v.Args)-1-i] = node.Value
 	}
 
@@ -286,6 +298,11 @@ func (v *evalConditional) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.
 	trueLit := stack.Pop().(*ast.LiteralNode)
 	condLit := stack.Pop().(*ast.LiteralNode)
 
+	if condLit.IsUnknown() {
+		// If our conditional is unknown then our result is also unknown
+		return UnknownValue, ast.TypeUnknown, nil
+	}
+
 	if condLit.Value.(bool) {
 		return trueLit.Value, trueLit.Typex, nil
 	} else {
@@ -300,6 +317,17 @@ func (v *evalIndex) Eval(scope ast.Scope, stack *ast.Stack) (interface{}, ast.Ty
 	target := stack.Pop().(*ast.LiteralNode)
 
 	variableName := v.Index.Target.(*ast.VariableAccess).Name
+
+	if key.IsUnknown() {
+		// If our key is unknown then our result is also unknown
+		return UnknownValue, ast.TypeUnknown, nil
+	}
+
+	// For target, we'll accept collections containing unknown values but
+	// we still need to catch when the collection itself is unknown, shallowly.
+	if target.Typex == ast.TypeUnknown {
+		return UnknownValue, ast.TypeUnknown, nil
+	}
 
 	switch target.Typex {
 	case ast.TypeList:
@@ -377,8 +405,22 @@ func (v *evalOutput) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type,
 	// The expressions should all be on the stack in reverse
 	// order. So pop them off, reverse their order, and concatenate.
 	nodes := make([]*ast.LiteralNode, 0, len(v.Exprs))
+	haveUnknown := false
 	for range v.Exprs {
-		nodes = append(nodes, stack.Pop().(*ast.LiteralNode))
+		n := stack.Pop().(*ast.LiteralNode)
+		nodes = append(nodes, n)
+
+		// If we have any unknowns then the whole result is unknown
+		// (we must deal with this first, because the type checker can
+		// skip type conversions in the presence of unknowns, and thus
+		// any of our other nodes may be incorrectly typed.)
+		if n.IsUnknown() {
+			haveUnknown = true
+		}
+	}
+
+	if haveUnknown {
+		return UnknownValue, ast.TypeUnknown, nil
 	}
 
 	// Special case the single list and map
@@ -396,6 +438,14 @@ func (v *evalOutput) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type,
 	// Otherwise concatenate the strings
 	var buf bytes.Buffer
 	for i := len(nodes) - 1; i >= 0; i-- {
+		if nodes[i].Typex != ast.TypeString {
+			return nil, ast.TypeInvalid, fmt.Errorf(
+				"invalid output with %s value at index %d: %#v",
+				nodes[i].Typex,
+				i,
+				nodes[i].Value,
+			)
+		}
 		buf.WriteString(nodes[i].Value.(string))
 	}
 
@@ -416,12 +466,6 @@ func (v *evalVariableAccess) Eval(scope ast.Scope, _ *ast.Stack) (interface{}, a
 	if !ok {
 		return nil, ast.TypeInvalid, fmt.Errorf(
 			"unknown variable accessed: %s", v.Name)
-	}
-
-	// Check if the variable contains any unknown types. If so, then
-	// mark it as unknown and return that type.
-	if ast.IsUnknown(variable) {
-		return nil, ast.TypeUnknown, nil
 	}
 
 	return variable.Value, variable.Type, nil

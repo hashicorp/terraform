@@ -180,17 +180,17 @@ func TestLoadFileBasic(t *testing.T) {
 	}
 
 	if c.Dir != "" {
-		t.Fatalf("bad: %#v", c.Dir)
+		t.Fatalf("wrong dir %#v; want %#v", c.Dir, "")
 	}
 
 	expectedTF := &Terraform{RequiredVersion: "foo"}
 	if !reflect.DeepEqual(c.Terraform, expectedTF) {
-		t.Fatalf("bad: %#v", c.Terraform)
+		t.Fatalf("wrong terraform block %#v; want %#v", c.Terraform, expectedTF)
 	}
 
 	expectedAtlas := &AtlasConfig{Name: "mitchellh/foo"}
 	if !reflect.DeepEqual(c.Atlas, expectedAtlas) {
-		t.Fatalf("bad: %#v", c.Atlas)
+		t.Fatalf("wrong atlas config %#v; want %#v", c.Atlas, expectedAtlas)
 	}
 
 	actual := variablesStr(c.Variables)
@@ -206,6 +206,10 @@ func TestLoadFileBasic(t *testing.T) {
 	actual = resourcesStr(c.Resources)
 	if actual != strings.TrimSpace(basicResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
+	}
+
+	if actual, want := localsStr(c.Locals), strings.TrimSpace(basicLocalsStr); actual != want {
+		t.Fatalf("wrong locals:\n%s\nwant:\n%s", actual, want)
 	}
 
 	actual = outputsStr(c.Outputs)
@@ -288,6 +292,10 @@ func TestLoadFileBasic_json(t *testing.T) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 
+	if actual, want := localsStr(c.Locals), strings.TrimSpace(basicLocalsStr); actual != want {
+		t.Fatalf("wrong locals:\n%s\nwant:\n%s", actual, want)
+	}
+
 	actual = outputsStr(c.Outputs)
 	if actual != strings.TrimSpace(basicOutputsStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -311,6 +319,18 @@ func TestLoadFileBasic_modules(t *testing.T) {
 	actual := modulesStr(c.Modules)
 	if actual != strings.TrimSpace(modulesModulesStr) {
 		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestLoadFile_unnamedModule(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "module-unnamed.tf"))
+	if err == nil {
+		t.Fatalf("bad: expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, `"module" must be followed`) {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
 	}
 }
 
@@ -684,7 +704,7 @@ func TestLoadFile_badVariableTypes(t *testing.T) {
 	}
 
 	errorStr := err.Error()
-	if !strings.Contains(errorStr, "'bad_type' must be of type string") {
+	if !strings.Contains(errorStr, "'bad_type' type must be one of") {
 		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
 	}
 }
@@ -696,7 +716,7 @@ func TestLoadFile_variableNoName(t *testing.T) {
 	}
 
 	errorStr := err.Error()
-	if !strings.Contains(errorStr, "'variable' must be followed") {
+	if !strings.Contains(errorStr, `"variable" must be followed`) {
 		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
 	}
 }
@@ -740,7 +760,7 @@ func TestLoadFile_unnamedOutput(t *testing.T) {
 	}
 
 	errorStr := err.Error()
-	if !strings.Contains(errorStr, "'output' must be followed") {
+	if !strings.Contains(errorStr, `"output" must be followed`) {
 		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
 	}
 }
@@ -1038,6 +1058,23 @@ aws_instance.test (x1)
 `
 
 const basicOutputsStr = `
+web_id
+  vars
+    resource: aws_instance.web.id
+  description
+    The ID
+web_ip
+  vars
+    resource: aws_instance.web.private_ip
+`
+
+const basicLocalsStr = `
+literal
+literal_list
+literal_map
+security_group_ids
+  vars
+    resource: aws_security_group.firewall.*.id
 web_ip
   vars
     resource: aws_instance.web.private_ip

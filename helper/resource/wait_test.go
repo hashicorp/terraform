@@ -25,6 +25,21 @@ func TestRetry(t *testing.T) {
 	}
 }
 
+// make sure a slow StateRefreshFunc is allowed to complete after timeout
+func TestRetry_grace(t *testing.T) {
+	t.Parallel()
+
+	f := func() *RetryError {
+		time.Sleep(1 * time.Second)
+		return nil
+	}
+
+	err := Retry(10*time.Millisecond, f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestRetry_timeout(t *testing.T) {
 	t.Parallel()
 
@@ -39,14 +54,18 @@ func TestRetry_timeout(t *testing.T) {
 }
 
 func TestRetry_hang(t *testing.T) {
-	t.Parallel()
+	old := refreshGracePeriod
+	refreshGracePeriod = 50 * time.Millisecond
+	defer func() {
+		refreshGracePeriod = old
+	}()
 
 	f := func() *RetryError {
 		time.Sleep(2 * time.Second)
 		return nil
 	}
 
-	err := Retry(1*time.Second, f)
+	err := Retry(50*time.Millisecond, f)
 	if err == nil {
 		t.Fatal("should error")
 	}

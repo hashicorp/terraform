@@ -19,7 +19,6 @@ type MessageBuilder interface {
 	Header() *SoapHeader
 	Doc() *dom.Document
 	Free()
-
 	String() string
 }
 
@@ -28,7 +27,7 @@ func NewMessage() (message *SoapMessage) {
 	e := dom.CreateElement("Envelope")
 	doc.SetRoot(e)
 	AddUsualNamespaces(e)
-	NS_SOAP_ENV.SetTo(e)
+	DOM_NS_SOAP_ENV.SetTo(e)
 
 	message = &SoapMessage{document: doc, envelope: e}
 	return
@@ -37,7 +36,7 @@ func NewMessage() (message *SoapMessage) {
 func (message *SoapMessage) NewBody() (body *dom.Element) {
 	body = dom.CreateElement("Body")
 	message.envelope.AddChild(body)
-	NS_SOAP_ENV.SetTo(body)
+	DOM_NS_SOAP_ENV.SetTo(body)
 	return
 }
 

@@ -17,10 +17,27 @@ type hclConfigurable struct {
 	Root *ast.File
 }
 
+var ReservedResourceFields = []string{
+	"connection",
+	"count",
+	"depends_on",
+	"id",
+	"lifecycle",
+	"provider",
+	"provisioner",
+}
+
+var ReservedProviderFields = []string{
+	"alias",
+	"id",
+	"version",
+}
+
 func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
 		"atlas":     struct{}{},
 		"data":      struct{}{},
+		"locals":    struct{}{},
 		"module":    struct{}{},
 		"output":    struct{}{},
 		"provider":  struct{}{},
@@ -51,6 +68,15 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	if vars := list.Filter("variable"); len(vars.Items) > 0 {
 		var err error
 		config.Variables, err = loadVariablesHcl(vars)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Build local values
+	if locals := list.Filter("locals"); len(locals.Items) > 0 {
+		var err error
+		config.Locals, err = loadLocalsHcl(locals)
 		if err != nil {
 			return nil, err
 		}
@@ -327,6 +353,10 @@ func loadAtlasHcl(list *ast.ObjectList) (*AtlasConfig, error) {
 // represents exactly one module definition in the HCL configuration.
 // We leave it up to another pass to merge them together.
 func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
+	if err := assertAllBlocksHaveNames("module", list); err != nil {
+		return nil, err
+	}
+
 	list = list.Children()
 	if len(list.Items) == 0 {
 		return nil, nil
@@ -388,14 +418,67 @@ func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
 	return result, nil
 }
 
+// loadLocalsHcl recurses into the given HCL object turns it into
+// a list of locals.
+func loadLocalsHcl(list *ast.ObjectList) ([]*Local, error) {
+
+	result := make([]*Local, 0, len(list.Items))
+
+	for _, block := range list.Items {
+		if len(block.Keys) > 0 {
+			return nil, fmt.Errorf(
+				"locals block at %s should not have label %q",
+				block.Pos(), block.Keys[0].Token.Value(),
+			)
+		}
+
+		blockObj, ok := block.Val.(*ast.ObjectType)
+		if !ok {
+			return nil, fmt.Errorf("locals value at %s should be a block", block.Val.Pos())
+		}
+
+		// blockObj now contains directly our local decls
+		for _, item := range blockObj.List.Items {
+			if len(item.Keys) != 1 {
+				return nil, fmt.Errorf("local declaration at %s may not be a block", item.Val.Pos())
+			}
+
+			// By the time we get here there can only be one item left, but
+			// we'll decode into a map anyway because it's a convenient way
+			// to extract both the key and the value robustly.
+			kv := map[string]interface{}{}
+			hcl.DecodeObject(&kv, item)
+			for k, v := range kv {
+				rawConfig, err := NewRawConfig(map[string]interface{}{
+					"value": v,
+				})
+
+				if err != nil {
+					return nil, fmt.Errorf(
+						"error parsing local value %q at %s: %s",
+						k, item.Val.Pos(), err,
+					)
+				}
+
+				result = append(result, &Local{
+					Name:      k,
+					RawConfig: rawConfig,
+				})
+			}
+		}
+	}
+
+	return result, nil
+}
+
 // LoadOutputsHcl recurses into the given HCL object and turns
 // it into a mapping of outputs.
 func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
-	list = list.Children()
-	if len(list.Items) == 0 {
-		return nil, fmt.Errorf(
-			"'output' must be followed by exactly one string: a name")
+	if err := assertAllBlocksHaveNames("output", list); err != nil {
+		return nil, err
 	}
+
+	list = list.Children()
 
 	// Go through each object and turn it into an actual result.
 	result := make([]*Output, 0, len(list.Items))
@@ -416,6 +499,7 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 
 		// Delete special keys
 		delete(config, "depends_on")
+		delete(config, "description")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
@@ -437,10 +521,23 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 			}
 		}
 
+		// If we have a description field, then filter that
+		var description string
+		if o := listVal.Filter("description"); len(o.Items) > 0 {
+			err := hcl.DecodeObject(&description, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading description for output %q: %s",
+					n,
+					err)
+			}
+		}
+
 		result = append(result, &Output{
-			Name:      n,
-			RawConfig: rawConfig,
-			DependsOn: dependsOn,
+			Name:        n,
+			RawConfig:   rawConfig,
+			DependsOn:   dependsOn,
+			Description: description,
 		})
 	}
 
@@ -450,11 +547,11 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 // LoadVariablesHcl recurses into the given HCL object and turns
 // it into a list of variables.
 func loadVariablesHcl(list *ast.ObjectList) ([]*Variable, error) {
-	list = list.Children()
-	if len(list.Items) == 0 {
-		return nil, fmt.Errorf(
-			"'variable' must be followed by exactly one strings: a name")
+	if err := assertAllBlocksHaveNames("variable", list); err != nil {
+		return nil, err
 	}
+
+	list = list.Children()
 
 	// hclVariable is the structure each variable is decoded into
 	type hclVariable struct {
@@ -531,6 +628,10 @@ func loadVariablesHcl(list *ast.ObjectList) ([]*Variable, error) {
 // LoadProvidersHcl recurses into the given HCL object and turns
 // it into a mapping of provider configs.
 func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
+	if err := assertAllBlocksHaveNames("provider", list); err != nil {
+		return nil, err
+	}
+
 	list = list.Children()
 	if len(list.Items) == 0 {
 		return nil, nil
@@ -554,6 +655,7 @@ func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
 		}
 
 		delete(config, "alias")
+		delete(config, "version")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
@@ -575,9 +677,22 @@ func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
 			}
 		}
 
+		// If we have a version field then extract it
+		var version string
+		if a := listVal.Filter("version"); len(a.Items) > 0 {
+			err := hcl.DecodeObject(&version, a.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading version for provider[%s]: %s",
+					n,
+					err)
+			}
+		}
+
 		result = append(result, &ProviderConfig{
 			Name:      n,
 			Alias:     alias,
+			Version:   version,
 			RawConfig: rawConfig,
 		})
 	}
@@ -592,6 +707,10 @@ func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
 // represents exactly one data definition in the HCL configuration.
 // We leave it up to another pass to merge them together.
 func loadDataResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
+	if err := assertAllBlocksHaveNames("data", list); err != nil {
+		return nil, err
+	}
+
 	list = list.Children()
 	if len(list.Items) == 0 {
 		return nil, nil
@@ -901,6 +1020,10 @@ func loadManagedResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 }
 
 func loadProvisionersHcl(list *ast.ObjectList, connInfo map[string]interface{}) ([]*Provisioner, error) {
+	if err := assertAllBlocksHaveNames("provisioner", list); err != nil {
+		return nil, err
+	}
+
 	list = list.Children()
 	if len(list.Items) == 0 {
 		return nil, nil
@@ -1022,6 +1145,29 @@ func hclObjectMap(os *hclobj.Object) map[string]ast.ListNode {
 	return objects
 }
 */
+
+// assertAllBlocksHaveNames returns an error if any of the items in
+// the given object list are blocks without keys (like "module {}")
+// or simple assignments (like "module = 1"). It returns nil if
+// neither of these things are true.
+//
+// The given name is used in any generated error messages, and should
+// be the name of the block we're dealing with. The given list should
+// be the result of calling .Filter on an object list with that same
+// name.
+func assertAllBlocksHaveNames(name string, list *ast.ObjectList) error {
+	if elem := list.Elem(); len(elem.Items) != 0 {
+		switch et := elem.Items[0].Val.(type) {
+		case *ast.ObjectType:
+			pos := et.Lbrace
+			return fmt.Errorf("%s: %q must be followed by a name", pos, name)
+		default:
+			pos := elem.Items[0].Val.Pos()
+			return fmt.Errorf("%s: %q must be a configuration block", pos, name)
+		}
+	}
+	return nil
+}
 
 func checkHCLKeys(node ast.Node, valid []string) error {
 	var list *ast.ObjectList

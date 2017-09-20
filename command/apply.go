@@ -29,8 +29,11 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(args []string) int {
-	var destroyForce, refresh bool
-	args = c.Meta.process(args, true)
+	var destroyForce, refresh, autoApprove bool
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	cmdName := "apply"
 	if c.Destroy {
@@ -42,12 +45,16 @@ func (c *ApplyCommand) Run(args []string) int {
 		cmdFlags.BoolVar(&destroyForce, "force", false, "force")
 	}
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
+	if !c.Destroy {
+		cmdFlags.BoolVar(&autoApprove, "auto-approve", true, "skip interactive approval of plan before applying")
+	}
 	cmdFlags.IntVar(
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -61,6 +68,12 @@ func (c *ApplyCommand) Run(args []string) int {
 	configPath, err := ModulePath(args)
 	if err != nil {
 		c.Ui.Error(err.Error())
+		return 1
+	}
+
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
 
@@ -105,6 +118,11 @@ func (c *ApplyCommand) Run(args []string) int {
 	if plan != nil {
 		// Reset the config path for backend loading
 		configPath = ""
+
+		if !autoApprove {
+			c.Ui.Error("Cannot combine -auto-approve=false with a plan file.")
+			return 1
+		}
 	}
 
 	// Load the module if we don't have one yet (not running from plan)
@@ -131,49 +149,19 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	*/
 
+	var conf *config.Config
+	if mod != nil {
+		conf = mod.Config()
+	}
+
 	// Load the backend
 	b, err := c.Backend(&BackendOpts{
-		ConfigPath: configPath,
-		Plan:       plan,
+		Config: conf,
+		Plan:   plan,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
-	}
-
-	// If we're not forcing and we're destroying, verify with the
-	// user at this point.
-	if !destroyForce && c.Destroy {
-		// Default destroy message
-		desc := "Terraform will delete all your managed infrastructure.\n" +
-			"There is no undo. Only 'yes' will be accepted to confirm."
-
-		// If targets are specified, list those to user
-		if c.Meta.targets != nil {
-			var descBuffer bytes.Buffer
-			descBuffer.WriteString("Terraform will delete the following infrastructure:\n")
-			for _, target := range c.Meta.targets {
-				descBuffer.WriteString("\t")
-				descBuffer.WriteString(target)
-				descBuffer.WriteString("\n")
-			}
-			descBuffer.WriteString("There is no undo. Only 'yes' will be accepted to confirm")
-			desc = descBuffer.String()
-		}
-
-		v, err := c.UIInput().Input(&terraform.InputOpts{
-			Id:          "destroy",
-			Query:       "Do you really want to destroy?",
-			Description: desc,
-		})
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
-			return 1
-		}
-		if v != "yes" {
-			c.Ui.Output("Destroy cancelled.")
-			return 1
-		}
 	}
 
 	// Build the operation
@@ -183,7 +171,8 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.Plan = plan
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypeApply
-	opReq.LockState = c.Meta.stateLock
+	opReq.AutoApprove = autoApprove
+	opReq.DestroyForce = destroyForce
 
 	// Perform the operation
 	ctx, ctxCancel := context.WithCancel(context.Background())
@@ -201,7 +190,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		ctxCancel()
 
 		// Notify the user
-		c.Ui.Output("Interrupt received. Gracefully shutting down...")
+		c.Ui.Output(outputInterrupt)
 
 		// Still get the result, since there is still one
 		select {
@@ -276,6 +265,12 @@ Options:
 
   -lock=true             Lock the state file when locking is supported.
 
+  -lock-timeout=0s       Duration to retry a state lock.
+
+  -auto-approve=true     Skip interactive approval of plan before applying. In a
+                         future version of Terraform, this flag's default value
+                         will change to false.
+
   -input=true            Ask for input for variables if not directly set.
 
   -no-color              If specified, output won't contain any color.
@@ -301,8 +296,8 @@ Options:
                          flag can be set multiple times.
 
   -var-file=foo          Set variables in the Terraform configuration from
-                         a file. If "terraform.tfvars" is present, it will be
-                         automatically loaded if this flag is not specified.
+                         a file. If "terraform.tfvars" or any ".auto.tfvars"
+                         files are present, they will be automatically loaded.
 
 
 `
@@ -324,6 +319,8 @@ Options:
   -force                 Don't ask for input for destroy confirmation.
 
   -lock=true             Lock the state file when locking is supported.
+
+  -lock-timeout=0s       Duration to retry a state lock.
 
   -no-color              If specified, output won't contain any color.
 
@@ -348,8 +345,8 @@ Options:
                          flag can be set multiple times.
 
   -var-file=foo          Set variables in the Terraform configuration from
-                         a file. If "terraform.tfvars" is present, it will be
-                         automatically loaded if this flag is not specified.
+                         a file. If "terraform.tfvars" or any ".auto.tfvars"
+                         files are present, they will be automatically loaded.
 
 
 `
@@ -414,3 +411,7 @@ func outputsAsString(state *terraform.State, modPath []string, schema []*config.
 
 	return strings.TrimSpace(outputBuf.String())
 }
+
+const outputInterrupt = `Interrupt received.
+Please wait for Terraform to exit or data loss may occur.
+Gracefully shutting down...`

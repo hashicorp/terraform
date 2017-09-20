@@ -7,6 +7,7 @@ package backend
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
@@ -120,9 +121,11 @@ type Operation struct {
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
-	Destroy   bool
-	Targets   []string
-	Variables map[string]interface{}
+	Destroy      bool
+	Targets      []string
+	Variables    map[string]interface{}
+	AutoApprove  bool
+	DestroyForce bool
 
 	// Input/output/control options.
 	UIIn  terraform.UIInput
@@ -132,8 +135,12 @@ type Operation struct {
 	// state.Lockers for its duration, and Unlock when complete.
 	LockState bool
 
-	// Environment is the named state that should be loaded from the Backend.
-	Environment string
+	// The duration to retry obtaining a State lock.
+	StateLockTimeout time.Duration
+
+	// Workspace is the name of the workspace that this operation should run
+	// in, which controls which named state is used.
+	Workspace string
 }
 
 // RunningOperation is the result of starting an operation.

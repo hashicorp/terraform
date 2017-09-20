@@ -23,12 +23,18 @@ const (
 	DiffUpdate
 	DiffDestroy
 	DiffDestroyCreate
+
+	// DiffRefresh is only used in the UI for displaying diffs.
+	// Managed resource reads never appear in plan, and when data source
+	// reads appear they are represented as DiffCreate in core before
+	// transforming to DiffRefresh in the UI layer.
+	DiffRefresh // TODO: Actually use DiffRefresh in core too, for less confusion
 )
 
 // multiVal matches the index key to a flatmapped set, list or map
 var multiVal = regexp.MustCompile(`\.(#|%)$`)
 
-// Diff trackes the changes that are necessary to apply a configuration
+// Diff tracks the changes that are necessary to apply a configuration
 // to an existing infrastructure.
 type Diff struct {
 	// Modules contains all the modules that have a diff
@@ -370,7 +376,7 @@ type InstanceDiff struct {
 
 	// Meta is a simple K/V map that is stored in a diff and persisted to
 	// plans but otherwise is completely ignored by Terraform core. It is
-	// mean to be used for additional data a resource may want to pass through.
+	// meant to be used for additional data a resource may want to pass through.
 	// The value here must only contain Go primitives and collections.
 	Meta map[string]interface{}
 }
@@ -551,7 +557,7 @@ func (d *InstanceDiff) SetDestroyDeposed(b bool) {
 }
 
 // These methods are properly locked, for use outside other InstanceDiff
-// methods but everywhere else within in the terraform package.
+// methods but everywhere else within the terraform package.
 // TODO refactor the locking scheme
 func (d *InstanceDiff) SetTainted(b bool) {
 	d.mu.Lock()

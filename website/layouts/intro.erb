@@ -1,0 +1,90 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <ul class="nav docs-sidenav">
+      <li<%= sidebar_current("what") %>>
+        <a href="/intro/index.html">What is Terraform?</a>
+      </li>
+
+      <li<%= sidebar_current("use-cases") %>>
+        <a href="/intro/use-cases.html">Use Cases</a>
+      </li>
+
+      <li<%= sidebar_current("vs-other") %>>
+        <a href="/intro/vs/index.html">Terraform vs. Other</a>
+        <ul class="nav">
+          <li<%= sidebar_current("vs-other-chef") %>>
+            <a href="/intro/vs/chef-puppet.html">Chef, Puppet, etc.</a>
+          </li>
+          <li<%= sidebar_current("vs-other-cloudformation") %>>
+            <a href="/intro/vs/cloudformation.html">CloudFormation, Heat, etc.</a>
+          </li>
+          <li<%= sidebar_current("vs-other-boto") %>>
+            <a href="/intro/vs/boto.html">Boto, Fog, etc.</a>
+          </li>
+          <li<%= sidebar_current("vs-other-custom") %>>
+            <a href="/intro/vs/custom.html">Custom Solutions</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("gettingstarted") %>>
+        <a href="/intro/getting-started/install.html">Getting Started</a>
+        <ul class="nav">
+          <li<%= sidebar_current("gettingstarted-install") %>>
+            <a href="/intro/getting-started/install.html">Install Terraform</a>
+          </li>
+          <li<%= sidebar_current("gettingstarted-build") %>>
+            <a href="/intro/getting-started/build.html">Build Infrastructure</a>
+          </li>
+          <li<%= sidebar_current("gettingstarted-change") %>>
+            <a href="/intro/getting-started/change.html">Change Infrastructure</a>
+          </li>
+          <li<%= sidebar_current("gettingstarted-destroy") %>>
+            <a href="/intro/getting-started/destroy.html">Destroy Infrastructure</a>
+          </li>
+          <li<%= sidebar_current("gettingstarted-deps") %>>
+            <a href="/intro/getting-started/dependencies.html">Resource Dependencies</a>
+          </li>
+          <li<%= sidebar_current("gettingstarted-provision") %>>
+            <a href="/intro/getting-started/provision.html">Provision</a>
+          </li>
+          <li<%= sidebar_current("gettingstarted-variables") %>>
+            <a href="/intro/getting-started/variables.html">Input Variables</a>
+          </li>
+          <li<%= sidebar_current("gettingstarted-outputs") %>>
+            <a href="/intro/getting-started/outputs.html">Output Variables</a>
+          </li>
+          <li<%= sidebar_current("gettingstarted-modules") %>>
+            <a href="/intro/getting-started/modules.html">Modules</a>
+          </li>
+          <li<%= sidebar_current("gettingstarted-remote") %>>
+            <a href="/intro/getting-started/remote.html">Remote Backends</a>
+          </li>
+          <li<%= sidebar_current("gettingstarted-nextsteps") %>>
+            <a href="/intro/getting-started/next-steps.html">Next Steps</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("examples") %>>
+        <a href="/intro/examples/index.html">Example Configurations</a>
+        <ul class="nav">
+          <li<%= sidebar_current("examples-aws") %>>
+            <a href="/intro/examples/aws.html">Two-Tier AWS Architecture</a>
+          </li>
+          <li<%= sidebar_current("examples-cross-provider") %>>
+            <a href="/intro/examples/cross-provider.html">Cross Provider</a>
+          </li>
+          <li<%= sidebar_current("examples-count") %>>
+            <a href="/intro/examples/count.html">Count Parameter</a>
+          </li>
+          <li<%= sidebar_current("examples-consul") %>>
+            <a href="/intro/examples/consul.html">Consul</a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  <% end %>
+
+  <%= yield %>
+<% end %>

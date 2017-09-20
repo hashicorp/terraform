@@ -22,7 +22,7 @@ func newConsulTestServer(t *testing.T) *testutil.TestServer {
 		t.Skip()
 	}
 
-	srv := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+	srv, _ := testutil.NewTestServerConfigT(t, func(c *testutil.TestServerConfig) {
 		c.LogLevel = "warn"
 
 		if !testing.Verbose() {

@@ -467,6 +467,50 @@ func TestStateEqual(t *testing.T) {
 				},
 			},
 		},
+
+		// Meta with complex types that have been altered during serialization
+		{
+			"same meta with complex types that have been json-ified",
+			true,
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]interface{}{
+										"timeouts": map[string]interface{}{
+											"create": int(42),
+											"read":   "27",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]interface{}{
+										"timeouts": map[string]interface{}{
+											"create": float64(42),
+											"read":   "27",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -631,87 +675,121 @@ func TestStateSameLineage(t *testing.T) {
 	}
 }
 
-func TestStateIncrementSerialMaybe(t *testing.T) {
-	cases := map[string]struct {
+func TestStateMarshalEqual(t *testing.T) {
+	tests := map[string]struct {
 		S1, S2 *State
-		Serial int64
+		Want   bool
 	}{
-		"S2 is nil": {
+		"both nil": {
+			nil,
+			nil,
+			true,
+		},
+		"first zero, second nil": {
 			&State{},
 			nil,
-			0,
+			false,
 		},
-		"S2 is identical": {
+		"first nil, second zero": {
+			nil,
 			&State{},
-			&State{},
-			0,
+			false,
 		},
-		"S2 is different": {
+		"both zero": {
+			// These are not equal because they both implicitly init with
+			// different lineage.
 			&State{},
+			&State{},
+			false,
+		},
+		"both set, same lineage": {
 			&State{
-				Modules: []*ModuleState{
-					&ModuleState{Path: rootModulePath},
-				},
+				Lineage: "abc123",
 			},
-			1,
-		},
-		"S2 is different, but only via Instance Metadata": {
 			&State{
-				Serial: 3,
+				Lineage: "abc123",
+			},
+			true,
+		},
+		"both set, same lineage, different serial": {
+			&State{
+				Lineage: "abc123",
+				Serial:  1,
+			},
+			&State{
+				Lineage: "abc123",
+				Serial:  2,
+			},
+			false,
+		},
+		"both set, same lineage, same serial, same resources": {
+			&State{
+				Lineage: "abc123",
+				Serial:  1,
 				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
+					{
+						Path: []string{"root"},
 						Resources: map[string]*ResourceState{
-							"test_instance.foo": &ResourceState{
-								Primary: &InstanceState{
-									Meta: map[string]interface{}{},
-								},
-							},
+							"foo_bar.baz": {},
 						},
 					},
 				},
 			},
 			&State{
-				Serial: 3,
+				Lineage: "abc123",
+				Serial:  1,
 				Modules: []*ModuleState{
-					&ModuleState{
-						Path: rootModulePath,
+					{
+						Path: []string{"root"},
 						Resources: map[string]*ResourceState{
-							"test_instance.foo": &ResourceState{
-								Primary: &InstanceState{
-									Meta: map[string]interface{}{
-										"schema_version": "1",
-									},
-								},
-							},
+							"foo_bar.baz": {},
 						},
 					},
 				},
 			},
-			4,
+			true,
 		},
-		"S1 serial is higher": {
-			&State{Serial: 5},
+		"both set, same lineage, same serial, different resources": {
 			&State{
-				Serial: 3,
+				Lineage: "abc123",
+				Serial:  1,
 				Modules: []*ModuleState{
-					&ModuleState{Path: rootModulePath},
+					{
+						Path: []string{"root"},
+						Resources: map[string]*ResourceState{
+							"foo_bar.baz": {},
+						},
+					},
 				},
 			},
-			5,
-		},
-		"S2 has a different TFVersion": {
-			&State{TFVersion: "0.1"},
-			&State{TFVersion: "0.2"},
-			1,
+			&State{
+				Lineage: "abc123",
+				Serial:  1,
+				Modules: []*ModuleState{
+					{
+						Path: []string{"root"},
+						Resources: map[string]*ResourceState{
+							"pizza_crust.tasty": {},
+						},
+					},
+				},
+			},
+			false,
 		},
 	}
 
-	for name, tc := range cases {
-		tc.S1.IncrementSerialMaybe(tc.S2)
-		if tc.S1.Serial != tc.Serial {
-			t.Fatalf("Bad: %s\nGot: %d", name, tc.S1.Serial)
-		}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := test.S1.MarshalEqual(test.S2)
+			if got != test.Want {
+				t.Errorf("wrong result %#v; want %#v", got, test.Want)
+				s1Buf := &bytes.Buffer{}
+				s2Buf := &bytes.Buffer{}
+				_ = WriteState(test.S1, s1Buf)
+				_ = WriteState(test.S2, s2Buf)
+				t.Logf("\nState 1: %s\nState 2: %s", s1Buf.Bytes(), s2Buf.Bytes())
+			}
+		})
 	}
 }
 
@@ -1450,66 +1528,6 @@ func TestInstanceState_MergeDiff(t *testing.T) {
 	}
 }
 
-// Make sure we don't leave empty maps or arrays in the flatmapped Attributes,
-// since those may affect the counts of a parent structure.
-func TestInstanceState_MergeDiffRemoveCounts(t *testing.T) {
-	is := InstanceState{
-		ID: "foo",
-		Attributes: map[string]string{
-			"all.#":        "3",
-			"all.1111":     "x",
-			"all.1234.#":   "1",
-			"all.1234.0":   "a",
-			"all.5678.%":   "1",
-			"all.5678.key": "val",
-
-			// nested empty lists need to be removed cleanly
-			"all.nested.#":         "0",
-			"all.nested.0.empty.#": "0",
-			"all.nested.1.empty.#": "0",
-
-			// the value has a prefix that matches another key
-			// and ntohing should happen to this.
-			"all.nested_value": "y",
-		},
-	}
-
-	diff := &InstanceDiff{
-		Attributes: map[string]*ResourceAttrDiff{
-			"all.#": &ResourceAttrDiff{
-				Old: "3",
-				New: "1",
-			},
-			"all.1234.0": &ResourceAttrDiff{
-				NewRemoved: true,
-			},
-			"all.1234.#": &ResourceAttrDiff{
-				Old: "1",
-				New: "0",
-			},
-			"all.5678.key": &ResourceAttrDiff{
-				NewRemoved: true,
-			},
-			"all.5678.%": &ResourceAttrDiff{
-				Old: "1",
-				New: "0",
-			},
-		},
-	}
-
-	is2 := is.MergeDiff(diff)
-
-	expected := map[string]string{
-		"all.#":            "1",
-		"all.1111":         "x",
-		"all.nested_value": "y",
-	}
-
-	if !reflect.DeepEqual(expected, is2.Attributes) {
-		t.Fatalf("bad: %#v", is2.Attributes)
-	}
-}
-
 // GH-12183. This tests that a list with a computed set generates the
 // right partial state. This never failed but is put here for completion
 // of the test case for GH-12183.
@@ -1895,6 +1913,62 @@ func TestReadState_prune(t *testing.T) {
 
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("got:\n%#v", actual)
+	}
+}
+
+func TestReadState_pruneDependencies(t *testing.T) {
+	state := &State{
+		Serial:  9,
+		Lineage: "5d1ad1a1-4027-4665-a908-dbe6adff11d8",
+		Remote: &RemoteState{
+			Type: "http",
+			Config: map[string]string{
+				"url": "http://my-cool-server.com/",
+			},
+		},
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Dependencies: []string{
+					"aws_instance.bar",
+					"aws_instance.bar",
+				},
+				Resources: map[string]*ResourceState{
+					"foo": &ResourceState{
+						Dependencies: []string{
+							"aws_instance.baz",
+							"aws_instance.baz",
+						},
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	state.init()
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(state, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// make sure the duplicate Dependencies are filtered
+	modDeps := actual.Modules[0].Dependencies
+	resourceDeps := actual.Modules[0].Resources["foo"].Dependencies
+
+	if len(modDeps) > 1 || modDeps[0] != "aws_instance.bar" {
+		t.Fatalf("expected 1 module depends_on entry, got %q", modDeps)
+	}
+
+	if len(resourceDeps) > 1 || resourceDeps[0] != "aws_instance.baz" {
+		t.Fatalf("expected 1 resource depends_on entry, got  %q", resourceDeps)
 	}
 }
 

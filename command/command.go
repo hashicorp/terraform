@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -14,6 +15,18 @@ var test bool = false
 
 // DefaultDataDir is the default directory for storing local data.
 const DefaultDataDir = ".terraform"
+
+// PluginPathFile is the name of the file in the data dir which stores the list
+// of directories supplied by the user with the `-plugin-dir` flag during init.
+const PluginPathFile = "plugin_path"
+
+// pluginMachineName is the directory name used in new plugin paths.
+const pluginMachineName = runtime.GOOS + "_" + runtime.GOARCH
+
+// DefaultPluginVendorDir is the location in the config directory to look for
+// user-added plugin binaries. Terraform only reads from this path if it
+// exists, it is never created by terraform.
+const DefaultPluginVendorDir = "terraform.d/plugins/" + pluginMachineName
 
 // DefaultStateFilename is the default filename used for the state file.
 const DefaultStateFilename = "terraform.tfstate"

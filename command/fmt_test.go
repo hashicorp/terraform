@@ -22,8 +22,8 @@ func TestFmt_errorReporting(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -43,8 +43,8 @@ func TestFmt_tooManyArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -82,8 +82,8 @@ func TestFmt_workingDirectory(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -108,8 +108,8 @@ func TestFmt_directoryArg(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -131,8 +131,8 @@ func TestFmt_stdinArg(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 		input: input,
 	}
@@ -158,8 +158,8 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -176,6 +176,60 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 	expected := fmt.Sprintf("-%s+%s", fmtFixture.input, fmtFixture.golden)
 	if actual := ui.OutputWriter.String(); !strings.Contains(actual, expected) {
 		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
+	}
+}
+
+func TestFmt_check(t *testing.T) {
+	tempDir, err := fmtFixtureWriteDir()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	ui := new(cli.MockUi)
+	c := &FmtCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-check",
+		tempDir,
+	}
+	if code := c.Run(args); code != 3 {
+		t.Fatalf("wrong exit code. expected 3")
+	}
+
+	if actual := ui.OutputWriter.String(); !strings.Contains(actual, tempDir) {
+		t.Fatalf("expected:\n%s\n\nto include: %q", actual, tempDir)
+	}
+}
+
+func TestFmt_checkStdin(t *testing.T) {
+	input := new(bytes.Buffer)
+	input.Write(fmtFixture.input)
+
+	ui := new(cli.MockUi)
+	c := &FmtCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		input: input,
+	}
+
+	args := []string{
+		"-check",
+		"-",
+	}
+	if code := c.Run(args); code != 3 {
+		t.Fatalf("wrong exit code. expected 3, got %d", code)
+	}
+
+	if ui.OutputWriter != nil {
+		t.Fatalf("expected no output, got: %q", ui.OutputWriter.String())
 	}
 }
 

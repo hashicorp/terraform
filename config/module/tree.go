@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"sync"
 
@@ -92,6 +91,25 @@ func (t *Tree) Children() map[string]*Tree {
 	return t.children
 }
 
+// DeepEach calls the provided callback for the receiver and then all of
+// its descendents in the tree, allowing an operation to be performed on
+// all modules in the tree.
+//
+// Parents will be visited before their children but otherwise the order is
+// not defined.
+func (t *Tree) DeepEach(cb func(*Tree)) {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+	t.deepEach(cb)
+}
+
+func (t *Tree) deepEach(cb func(*Tree)) {
+	cb(t)
+	for _, c := range t.children {
+		c.deepEach(cb)
+	}
+}
+
 // Loaded says whether or not this tree has been loaded or not yet.
 func (t *Tree) Loaded() bool {
 	t.lock.RLock()
@@ -158,23 +176,14 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		copy(path, t.path)
 		path = append(path, m.Name)
 
-		// Split out the subdir if we have one
-		source, subDir := getter.SourceDirSubdir(m.Source)
-
-		source, err := getter.Detect(source, t.config.Dir, getter.Detectors)
+		source, err := getter.Detect(m.Source, t.config.Dir, detectors)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
-
-		// Check if the detector introduced something new.
-		source, subDir2 := getter.SourceDirSubdir(source)
-		if subDir2 != "" {
-			subDir = filepath.Join(subDir2, subDir)
-		}
-
 		// Get the directory where this module is so we can load it
 		key := strings.Join(path, ".")
-		key = fmt.Sprintf("root.%s-%s", key, m.Source)
+		key = fmt.Sprintf("module.%s-%s", key, m.Source)
+
 		dir, ok, err := getStorage(s, key, source, mode)
 		if err != nil {
 			return err
@@ -184,12 +193,6 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 				"module %s: not found, may need to be downloaded using 'terraform get'", m.Name)
 		}
 
-		// If we have a subdirectory, then merge that in
-		if subDir != "" {
-			dir = filepath.Join(dir, subDir)
-		}
-
-		// Load the configurations.Dir(source)
 		children[m.Name], err = NewTreeModule(m.Name, dir)
 		if err != nil {
 			return fmt.Errorf(

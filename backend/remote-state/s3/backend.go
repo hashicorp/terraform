@@ -3,118 +3,158 @@ package s3
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	terraformAWS "github.com/hashicorp/terraform/builtin/providers/aws"
+	terraformAWS "github.com/terraform-providers/terraform-provider-aws/aws"
 )
 
 // New creates a new backend for S3 remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the S3 bucket",
 			},
 
-			"key": &schema.Schema{
+			"key": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The path to the state file inside the bucket",
+				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+					// s3 will strip leading slashes from an object, so while this will
+					// technically be accepted by s3, it will break our workspace hierarchy.
+					if strings.HasPrefix(v.(string), "/") {
+						return nil, []error{fmt.Errorf("key must not start with '/'")}
+					}
+					return nil, nil
+				},
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The region of the S3 bucket.",
 				DefaultFunc: schema.EnvDefaultFunc("AWS_DEFAULT_REGION", nil),
 			},
 
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A custom endpoint for the S3 API",
 				DefaultFunc: schema.EnvDefaultFunc("AWS_S3_ENDPOINT", ""),
 			},
 
-			"encrypt": &schema.Schema{
+			"encrypt": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Whether to enable server side encryption of the state file",
 				Default:     false,
 			},
 
-			"acl": &schema.Schema{
+			"acl": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Canned ACL to be applied to the state file",
 				Default:     "",
 			},
 
-			"access_key": &schema.Schema{
+			"access_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "AWS access key",
 				Default:     "",
 			},
 
-			"secret_key": &schema.Schema{
+			"secret_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "AWS secret key",
 				Default:     "",
 			},
 
-			"kms_key_id": &schema.Schema{
+			"kms_key_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The ARN of a KMS Key to use for encrypting the state",
 				Default:     "",
 			},
 
-			"lock_table": &schema.Schema{
+			"lock_table": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "DynamoDB table for state locking",
 				Default:     "",
+				Deprecated:  "please use the dynamodb_table attribute",
 			},
 
-			"profile": &schema.Schema{
+			"dynamodb_table": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "DynamoDB table for state locking and consistency",
+				Default:     "",
+			},
+
+			"profile": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "AWS profile name",
 				Default:     "",
 			},
 
-			"shared_credentials_file": &schema.Schema{
+			"shared_credentials_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Path to a shared credentials file",
 				Default:     "",
 			},
 
-			"token": &schema.Schema{
+			"token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "MFA token",
 				Default:     "",
 			},
 
-			"role_arn": &schema.Schema{
+			"role_arn": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The role to be assumed",
 				Default:     "",
+			},
+
+			"session_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The session name to use when assuming the role.",
+				Default:     "",
+			},
+
+			"external_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The external ID to use when assuming the role",
+				Default:     "",
+			},
+
+			"assume_role_policy": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The permissions applied when assuming a role.",
+				Default:     "",
+			},
+
+			"workspace_key_prefix": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The prefix applied to the non-default state path inside the bucket",
+				Default:     "env:",
 			},
 		},
 	}
@@ -136,7 +176,8 @@ type Backend struct {
 	serverSideEncryption bool
 	acl                  string
 	kmsKeyID             string
-	lockTable            string
+	ddbTable             string
+	workspaceKeyPrefix   string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -152,47 +193,35 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.serverSideEncryption = data.Get("encrypt").(bool)
 	b.acl = data.Get("acl").(string)
 	b.kmsKeyID = data.Get("kms_key_id").(string)
-	b.lockTable = data.Get("lock_table").(string)
+	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
 
-	var errs []error
-	creds, err := terraformAWS.GetCredentials(&terraformAWS.Config{
-		AccessKey:     data.Get("access_key").(string),
-		SecretKey:     data.Get("secret_key").(string),
-		Token:         data.Get("token").(string),
-		Profile:       data.Get("profile").(string),
-		CredsFilename: data.Get("shared_credentials_file").(string),
-		AssumeRoleARN: data.Get("role_arn").(string),
-	})
+	b.ddbTable = data.Get("dynamodb_table").(string)
+	if b.ddbTable == "" {
+		// try the depracted field
+		b.ddbTable = data.Get("lock_table").(string)
+	}
+
+	cfg := &terraformAWS.Config{
+		AccessKey:             data.Get("access_key").(string),
+		AssumeRoleARN:         data.Get("role_arn").(string),
+		AssumeRoleExternalID:  data.Get("external_id").(string),
+		AssumeRolePolicy:      data.Get("assume_role_policy").(string),
+		AssumeRoleSessionName: data.Get("session_name").(string),
+		CredsFilename:         data.Get("shared_credentials_file").(string),
+		Profile:               data.Get("profile").(string),
+		Region:                data.Get("region").(string),
+		S3Endpoint:            data.Get("endpoint").(string),
+		SecretKey:             data.Get("secret_key").(string),
+		Token:                 data.Get("token").(string),
+	}
+
+	client, err := cfg.Client()
 	if err != nil {
 		return err
 	}
 
-	// Call Get to check for credential provider. If nothing found, we'll get an
-	// error, and we can present it nicely to the user
-	_, err = creds.Get()
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
-			errs = append(errs, fmt.Errorf(`No valid credential sources found for AWS S3 remote.
-Please see https://www.terraform.io/docs/state/remote/s3.html for more information on
-providing credentials for the AWS S3 remote`))
-		} else {
-			errs = append(errs, fmt.Errorf("Error loading credentials for AWS S3 remote: %s", err))
-		}
-		return &multierror.Error{Errors: errs}
-	}
-
-	endpoint := data.Get("endpoint").(string)
-	region := data.Get("region").(string)
-
-	awsConfig := &aws.Config{
-		Credentials: creds,
-		Endpoint:    aws.String(endpoint),
-		Region:      aws.String(region),
-		HTTPClient:  cleanhttp.DefaultClient(),
-	}
-	sess := session.New(awsConfig)
-	b.s3Client = s3.New(sess)
-	b.dynClient = dynamodb.New(sess)
+	b.s3Client = client.(*terraformAWS.AWSClient).S3()
+	b.dynClient = client.(*terraformAWS.AWSClient).DynamoDB()
 
 	return nil
 }

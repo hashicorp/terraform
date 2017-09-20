@@ -25,8 +25,8 @@ func TestConsole_basic(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ConsoleCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -61,8 +61,8 @@ func TestConsole_tfvars(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ConsoleCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 

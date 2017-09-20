@@ -1,12 +1,11 @@
 package autorest
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -73,7 +72,7 @@ func SendWithSender(s Sender, r *http.Request, decorators ...SendDecorator) (*ht
 func AfterDelay(d time.Duration) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
-			if !DelayForBackoff(d, 1, r.Cancel) {
+			if !DelayForBackoff(d, 0, r.Cancel) {
 				return nil, fmt.Errorf("autorest: AfterDelay canceled before full delay")
 			}
 			return s.Do(r)
@@ -97,7 +96,7 @@ func DoCloseIfError() SendDecorator {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
 			resp, err := s.Do(r)
 			if err != nil {
-				Respond(resp, ByClosing())
+				Respond(resp, ByDiscardingBody(), ByClosing())
 			}
 			return resp, err
 		})
@@ -156,6 +155,7 @@ func DoPollForStatusCodes(duration time.Duration, delay time.Duration, codes ...
 
 				for err == nil && ResponseHasStatusCode(resp, codes...) {
 					Respond(resp,
+						ByDiscardingBody(),
 						ByClosing())
 					resp, err = SendWithSender(s, r,
 						AfterDelay(GetRetryAfter(resp, delay)))
@@ -174,8 +174,13 @@ func DoPollForStatusCodes(duration time.Duration, delay time.Duration, codes ...
 func DoRetryForAttempts(attempts int, backoff time.Duration) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
+			rr := NewRetriableRequest(r)
 			for attempt := 0; attempt < attempts; attempt++ {
-				resp, err = s.Do(r)
+				err = rr.Prepare()
+				if err != nil {
+					return resp, err
+				}
+				resp, err = s.Do(rr.Request())
 				if err == nil {
 					return resp, err
 				}
@@ -193,27 +198,41 @@ func DoRetryForAttempts(attempts int, backoff time.Duration) SendDecorator {
 func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
-			b := []byte{}
-			if r.Body != nil {
-				b, err = ioutil.ReadAll(r.Body)
-				if err != nil {
-					return resp, err
-				}
-			}
-
+			rr := NewRetriableRequest(r)
 			// Increment to add the first call (attempts denotes number of retries)
 			attempts++
 			for attempt := 0; attempt < attempts; attempt++ {
-				r.Body = ioutil.NopCloser(bytes.NewBuffer(b))
-				resp, err = s.Do(r)
+				err = rr.Prepare()
+				if err != nil {
+					return resp, err
+				}
+				resp, err = s.Do(rr.Request())
 				if err != nil || !ResponseHasStatusCode(resp, codes...) {
 					return resp, err
 				}
-				DelayForBackoff(backoff, attempt, r.Cancel)
+				delayed := DelayWithRetryAfter(resp, r.Cancel)
+				if !delayed {
+					DelayForBackoff(backoff, attempt, r.Cancel)
+				}
 			}
 			return resp, err
 		})
 	}
+}
+
+// DelayWithRetryAfter invokes time.After for the duration specified in the "Retry-After" header in
+// responses with status code 429
+func DelayWithRetryAfter(resp *http.Response, cancel <-chan struct{}) bool {
+	retryAfter, _ := strconv.Atoi(resp.Header.Get("Retry-After"))
+	if resp.StatusCode == http.StatusTooManyRequests && retryAfter > 0 {
+		select {
+		case <-time.After(time.Duration(retryAfter) * time.Second):
+			return true
+		case <-cancel:
+			return false
+		}
+	}
+	return false
 }
 
 // DoRetryForDuration returns a SendDecorator that retries the request until the total time is equal
@@ -223,9 +242,14 @@ func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) Se
 func DoRetryForDuration(d time.Duration, backoff time.Duration) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
+			rr := NewRetriableRequest(r)
 			end := time.Now().Add(d)
 			for attempt := 0; time.Now().Before(end); attempt++ {
-				resp, err = s.Do(r)
+				err = rr.Prepare()
+				if err != nil {
+					return resp, err
+				}
+				resp, err = s.Do(rr.Request())
 				if err == nil {
 					return resp, err
 				}
@@ -257,6 +281,8 @@ func WithLogging(logger *log.Logger) SendDecorator {
 // passed attempt (i.e., an exponential backoff delay). Backoff duration is in seconds and can set
 // to zero for no delay. The delay may be canceled by closing the passed channel. If terminated early,
 // returns false.
+// Note: Passing attempt 1 will result in doubling "backoff" duration. Treat this as a zero-based attempt
+// count.
 func DelayForBackoff(backoff time.Duration, attempt int, cancel <-chan struct{}) bool {
 	select {
 	case <-time.After(time.Duration(backoff.Seconds()*math.Pow(2, float64(attempt))) * time.Second):

@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestInterpolateFuncZipMap(t *testing.T) {
@@ -310,6 +311,69 @@ func TestInterpolateFuncMin(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncPow(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${pow(1, 0)}`,
+				"1",
+				false,
+			},
+			{
+				`${pow(1, 1)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${pow(2, 0)}`,
+				"1",
+				false,
+			},
+			{
+				`${pow(2, 1)}`,
+				"2",
+				false,
+			},
+			{
+				`${pow(3, 2)}`,
+				"9",
+				false,
+			},
+			{
+				`${pow(-3, 2)}`,
+				"9",
+				false,
+			},
+			{
+				`${pow(2, -2)}`,
+				"0.25",
+				false,
+			},
+			{
+				`${pow(0, 2)}`,
+				"0",
+				false,
+			},
+			{
+				`${pow("invalid-input", 2)}`,
+				nil,
+				true,
+			},
+			{
+				`${pow(2, "invalid-input")}`,
+				nil,
+				true,
+			},
+			{
+				`${pow(2)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncFloor(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -364,6 +428,88 @@ func TestInterpolateFuncCeil(t *testing.T) {
 			{
 				`${ceil(1.2)}`,
 				"2",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncLog(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${log(1, 10)}`,
+				"0",
+				false,
+			},
+			{
+				`${log(10, 10)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${log(0, 10)}`,
+				"-Inf",
+				false,
+			},
+			{
+				`${log(10, 0)}`,
+				"-0",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncChomp(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${chomp()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${chomp("hello world")}`,
+				"hello world",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\ncruel\nworld"),
+				"goodbye\ncruel\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\r\nwindows\r\nworld"),
+				"goodbye\r\nwindows\r\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\ncruel\nworld\n"),
+				"goodbye\ncruel\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\ncruel\nworld\n\n\n\n"),
+				"goodbye\ncruel\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\r\nwindows\r\nworld\r\n"),
+				"goodbye\r\nwindows\r\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\r\nwindows\r\nworld\r\n\r\n\r\n\r\n"),
+				"goodbye\r\nwindows\r\nworld",
 				false,
 			},
 		},
@@ -488,7 +634,22 @@ func TestInterpolateFuncCidrHost(t *testing.T) {
 				false,
 			},
 			{
+				`${cidrhost("192.168.1.0/24", -5)}`,
+				"192.168.1.251",
+				false,
+			},
+			{
+				`${cidrhost("192.168.1.0/24", -256)}`,
+				"192.168.1.0",
+				false,
+			},
+			{
 				`${cidrhost("192.168.1.0/30", 255)}`,
+				nil,
+				true, // 255 doesn't fit in two bits
+			},
+			{
+				`${cidrhost("192.168.1.0/30", -255)}`,
 				nil,
 				true, // 255 doesn't fit in two bits
 			},
@@ -608,6 +769,33 @@ func TestInterpolateFuncCoalesce(t *testing.T) {
 			},
 			{
 				`${coalesce("foo")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncCoalesceList(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${coalescelist(list("first"), list("second"), list("third"))}`,
+				[]interface{}{"first"},
+				false,
+			},
+			{
+				`${coalescelist(list(), list("second"), list("third"))}`,
+				[]interface{}{"second"},
+				false,
+			},
+			{
+				`${coalescelist(list(), list(), list())}`,
+				[]interface{}{},
+				false,
+			},
+			{
+				`${coalescelist(list("foo"))}`,
 				nil,
 				true,
 			},
@@ -755,6 +943,43 @@ func TestInterpolateFuncConcat(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncContains(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.listOfStrings": interfaceToVariableSwallowError([]string{"notfoo", "stillnotfoo", "bar"}),
+			"var.listOfInts":    interfaceToVariableSwallowError([]int{1, 2, 3}),
+		},
+		Cases: []testFunctionCase{
+			{
+				`${contains(var.listOfStrings, "bar")}`,
+				"true",
+				false,
+			},
+
+			{
+				`${contains(var.listOfStrings, "foo")}`,
+				"false",
+				false,
+			},
+			{
+				`${contains(var.listOfInts, 1)}`,
+				"true",
+				false,
+			},
+			{
+				`${contains(var.listOfInts, 10)}`,
+				"false",
+				false,
+			},
+			{
+				`${contains(var.listOfInts, "2")}`,
+				"true",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncMerge(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -852,6 +1077,18 @@ func TestInterpolateFuncMerge(t *testing.T) {
 
 }
 
+func TestInterpolateFuncDirname(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${dirname("/foo/bar/baz")}`,
+				"/foo/bar",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncDistinct(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -876,6 +1113,74 @@ func TestInterpolateFuncDistinct(t *testing.T) {
 			// non-flat list is an error
 			{
 				`${distinct(list(list("a"), list("a")))}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncMatchKeys(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// normal usage
+			{
+				`${matchkeys(list("a", "b", "c"), list("ref1", "ref2", "ref3"), list("ref2"))}`,
+				[]interface{}{"b"},
+				false,
+			},
+			// normal usage 2, check the order
+			{
+				`${matchkeys(list("a", "b", "c"), list("ref1", "ref2", "ref3"), list("ref2", "ref1"))}`,
+				[]interface{}{"a", "b"},
+				false,
+			},
+			// duplicate item in searchset
+			{
+				`${matchkeys(list("a", "b", "c"), list("ref1", "ref2", "ref3"), list("ref2", "ref2"))}`,
+				[]interface{}{"b"},
+				false,
+			},
+			// no matches
+			{
+				`${matchkeys(list("a", "b", "c"), list("ref1", "ref2", "ref3"), list("ref4"))}`,
+				[]interface{}{},
+				false,
+			},
+			// no matches 2
+			{
+				`${matchkeys(list("a", "b", "c"), list("ref1", "ref2", "ref3"), list())}`,
+				[]interface{}{},
+				false,
+			},
+			// zero case
+			{
+				`${matchkeys(list(), list(), list("nope"))}`,
+				[]interface{}{},
+				false,
+			},
+			// complex values
+			{
+				`${matchkeys(list(list("a", "a")), list("a"), list("a"))}`,
+				[]interface{}{[]interface{}{"a", "a"}},
+				false,
+			},
+			// errors
+			// different types
+			{
+				`${matchkeys(list("a"), list(1), list("a"))}`,
+				nil,
+				true,
+			},
+			// different types
+			{
+				`${matchkeys(list("a"), list(list("a"), list("a")), list("a"))}`,
+				nil,
+				true,
+			},
+			// lists of different length is an error
+			{
+				`${matchkeys(list("a"), list("a", "b"), list("a"))}`,
 				nil,
 				true,
 			},
@@ -1049,6 +1354,34 @@ func TestInterpolateFuncIndex(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncIndent(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${indent(4, "Fleas:
+Adam
+Had'em
+
+E.E. Cummings")}`,
+				"Fleas:\n    Adam\n    Had'em\n    \n    E.E. Cummings",
+				false,
+			},
+			{
+				`${indent(4, "oneliner")}`,
+				"oneliner",
+				false,
+			},
+			{
+				`${indent(4, "#!/usr/bin/env bash
+date
+pwd")}`,
+				"#!/usr/bin/env bash\n    date\n    pwd",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncJoin(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
@@ -1101,8 +1434,6 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 				Type:  ast.TypeString,
 			},
 			"list": interfaceToVariableSwallowError([]string{"foo", "bar\tbaz"}),
-			// XXX can't use InterfaceToVariable as it converts empty slice into empty
-			// map.
 			"emptylist": ast.Variable{
 				Value: []ast.Variable{},
 				Type:  ast.TypeList,
@@ -1111,9 +1442,7 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 				"foo":     "bar",
 				"ba \n z": "q\\x",
 			}),
-			"emptymap": interfaceToVariableSwallowError(map[string]string{}),
-
-			// Not yet supported (but it would be nice)
+			"emptymap":   interfaceToVariableSwallowError(map[string]string{}),
 			"nestedlist": interfaceToVariableSwallowError([][]string{{"foo"}}),
 			"nestedmap":  interfaceToVariableSwallowError(map[string][]string{"foo": {"bar"}}),
 		},
@@ -1165,13 +1494,13 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 			},
 			{
 				`${jsonencode(nestedlist)}`,
-				nil,
-				true,
+				`[["foo"]]`,
+				false,
 			},
 			{
 				`${jsonencode(nestedmap)}`,
-				nil,
-				true,
+				`{"foo":["bar"]}`,
+				false,
 			},
 		},
 	})
@@ -1777,6 +2106,18 @@ func TestInterpolateFuncElement(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncBasename(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${basename("/foo/bar/baz")}`,
+				"baz",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncBase64Encode(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -1882,6 +2223,18 @@ func TestInterpolateFuncSha256(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncSha512(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${sha512("test")}`,
+				"ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncTitle(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -1924,6 +2277,18 @@ func TestInterpolateFuncTrimSpace(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncBase64Gzip(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${base64gzip("test")}`,
+				"H4sIAAAAAAAA/ypJLS4BAAAA//8BAAD//wx+f9gEAAAA",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncBase64Sha256(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -1935,6 +2300,23 @@ func TestInterpolateFuncBase64Sha256(t *testing.T) {
 			{ // This will differ because we're base64-encoding hex represantiation, not raw bytes
 				`${base64encode(sha256("test"))}`,
 				"OWY4NmQwODE4ODRjN2Q2NTlhMmZlYWEwYzU1YWQwMTVhM2JmNGYxYjJiMGI4MjJjZDE1ZDZjMTViMGYwMGEwOA==",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncBase64Sha512(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${base64sha512("test")}`,
+				"7iaw3Ur350mqGo7jwQrpkj9hiYB3Lkc/iBml1JQODbJ6wYX4oOHV+E+IvIh/1nsUNzLDBMxfqa2Ob1f1ACio/w==",
+				false,
+			},
+			{ // This will differ because we're base64-encoding hex represantiation, not raw bytes
+				`${base64encode(sha512("test"))}`,
+				"ZWUyNmIwZGQ0YWY3ZTc0OWFhMWE4ZWUzYzEwYWU5OTIzZjYxODk4MDc3MmU0NzNmODgxOWE1ZDQ5NDBlMGRiMjdhYzE4NWY4YTBlMWQ1Zjg0Zjg4YmM4ODdmZDY3YjE0MzczMmMzMDRjYzVmYTlhZDhlNmY1N2Y1MDAyOGE4ZmY=",
 				false,
 			},
 		},
@@ -2125,6 +2507,107 @@ func TestInterpolateFuncSubstr(t *testing.T) {
 				`${substr("", 0, -2)}`,
 				nil,
 				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncBcrypt(t *testing.T) {
+	node, err := hil.Parse(`${bcrypt("test")}`)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	result, err := hil.Eval(node, langEvalConfig(nil))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(result.Value.(string)), []byte("test"))
+
+	if err != nil {
+		t.Fatalf("Error comparing hash and password: %s", err)
+	}
+
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			//Negative test for more than two parameters
+			{
+				`${bcrypt("test", 15, 12)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncFlatten(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// empty string within array
+			{
+				`${flatten(split(",", "a,,b"))}`,
+				[]interface{}{"a", "", "b"},
+				false,
+			},
+
+			// typical array
+			{
+				`${flatten(split(",", "a,b,c"))}`,
+				[]interface{}{"a", "b", "c"},
+				false,
+			},
+
+			// empty array
+			{
+				`${flatten(split(",", ""))}`,
+				[]interface{}{""},
+				false,
+			},
+
+			// list of lists
+			{
+				`${flatten(list(list("a"), list("b")))}`,
+				[]interface{}{"a", "b"},
+				false,
+			},
+			// list of lists of lists
+			{
+				`${flatten(list(list("a"), list(list("b","c"))))}`,
+				[]interface{}{"a", "b", "c"},
+				false,
+			},
+			// list of strings
+			{
+				`${flatten(list("a", "b", "c"))}`,
+				[]interface{}{"a", "b", "c"},
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncURLEncode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${urlencode("abc123-_")}`,
+				"abc123-_",
+				false,
+			},
+			{
+				`${urlencode("foo:bar@localhost?foo=bar&bar=baz")}`,
+				"foo%3Abar%40localhost%3Ffoo%3Dbar%26bar%3Dbaz",
+				false,
+			},
+			{
+				`${urlencode("mailto:email?subject=this+is+my+subject")}`,
+				"mailto%3Aemail%3Fsubject%3Dthis%2Bis%2Bmy%2Bsubject",
+				false,
+			},
+			{
+				`${urlencode("foo/bar")}`,
+				"foo%2Fbar",
+				false,
 			},
 		},
 	})

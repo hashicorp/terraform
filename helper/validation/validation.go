@@ -3,9 +3,11 @@ package validation
 import (
 	"fmt"
 	"net"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 // IntBetween returns a SchemaValidateFunc which tests if the provided value
@@ -20,6 +22,44 @@ func IntBetween(min, max int) schema.SchemaValidateFunc {
 
 		if v < min || v > max {
 			es = append(es, fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, v))
+			return
+		}
+
+		return
+	}
+}
+
+// IntAtLeast returns a SchemaValidateFunc which tests if the provided value
+// is of type int and is at least min (inclusive)
+func IntAtLeast(min int) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (s []string, es []error) {
+		v, ok := i.(int)
+		if !ok {
+			es = append(es, fmt.Errorf("expected type of %s to be int", k))
+			return
+		}
+
+		if v < min {
+			es = append(es, fmt.Errorf("expected %s to be at least (%d), got %d", k, min, v))
+			return
+		}
+
+		return
+	}
+}
+
+// IntAtMost returns a SchemaValidateFunc which tests if the provided value
+// is of type int and is at most max (inclusive)
+func IntAtMost(max int) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (s []string, es []error) {
+		v, ok := i.(int)
+		if !ok {
+			es = append(es, fmt.Errorf("expected type of %s to be int", k))
+			return
+		}
+
+		if v > max {
+			es = append(es, fmt.Errorf("expected %s to be at most (%d), got %d", k, max, v))
 			return
 		}
 
@@ -97,4 +137,36 @@ func CIDRNetwork(min, max int) schema.SchemaValidateFunc {
 
 		return
 	}
+}
+
+// ValidateJsonString is a SchemaValidateFunc which tests to make sure the
+// supplied string is valid JSON.
+func ValidateJsonString(v interface{}, k string) (ws []string, errors []error) {
+	if _, err := structure.NormalizeJsonString(v); err != nil {
+		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+	}
+	return
+}
+
+// ValidateListUniqueStrings is a ValidateFunc that ensures a list has no
+// duplicate items in it. It's useful for when a list is needed over a set
+// because order matters, yet the items still need to be unique.
+func ValidateListUniqueStrings(v interface{}, k string) (ws []string, errors []error) {
+	for n1, v1 := range v.([]interface{}) {
+		for n2, v2 := range v.([]interface{}) {
+			if v1.(string) == v2.(string) && n1 != n2 {
+				errors = append(errors, fmt.Errorf("%q: duplicate entry - %s", k, v1.(string)))
+			}
+		}
+	}
+	return
+}
+
+// ValidateRegexp returns a SchemaValidateFunc which tests to make sure the
+// supplied string is a valid regular expression.
+func ValidateRegexp(v interface{}, k string) (ws []string, errors []error) {
+	if _, err := regexp.Compile(v.(string)); err != nil {
+		errors = append(errors, fmt.Errorf("%q: %s", k, err))
+	}
+	return
 }

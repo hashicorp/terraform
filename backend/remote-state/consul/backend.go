@@ -67,6 +67,27 @@ func New() backend.Backend {
 				Description: "Lock state access",
 				Default:     true,
 			},
+
+			"ca_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A path to a PEM-encoded certificate authority used to verify the remote agent's certificate.",
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CACERT", ""),
+			},
+
+			"cert_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A path to a PEM-encoded certificate provided to the remote agent; requires use of key_file.",
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CLIENT_CERT", ""),
+			},
+
+			"key_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A path to a PEM-encoded private key, required if cert_file is specified.",
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CLIENT_KEY", ""),
+			},
 		},
 	}
 
@@ -112,6 +133,17 @@ func (b *Backend) clientRaw() (*consulapi.Client, error) {
 	if v, ok := data.GetOk("datacenter"); ok && v.(string) != "" {
 		config.Datacenter = v.(string)
 	}
+
+	if v, ok := data.GetOk("ca_file"); ok && v.(string) != "" {
+		config.TLSConfig.CAFile = v.(string)
+	}
+	if v, ok := data.GetOk("cert_file"); ok && v.(string) != "" {
+		config.TLSConfig.CertFile = v.(string)
+	}
+	if v, ok := data.GetOk("key_file"); ok && v.(string) != "" {
+		config.TLSConfig.KeyFile = v.(string)
+	}
+
 	if v, ok := data.GetOk("http_auth"); ok && v.(string) != "" {
 		auth := v.(string)
 

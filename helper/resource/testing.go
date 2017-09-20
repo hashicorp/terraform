@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -20,6 +21,153 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// flagSweep is a flag available when running tests on the command line. It
+// contains a comma seperated list of regions to for the sweeper functions to
+// run in.  This flag bypasses the normal Test path and instead runs functions designed to
+// clean up any leaked resources a testing environment could have created. It is
+// a best effort attempt, and relies on Provider authors to implement "Sweeper"
+// methods for resources.
+
+// Adding Sweeper methods with AddTestSweepers will
+// construct a list of sweeper funcs to be called here. We iterate through
+// regions provided by the sweep flag, and for each region we iterate through the
+// tests, and exit on any errors. At time of writing, sweepers are ran
+// sequentially, however they can list dependencies to be ran first. We track
+// the sweepers that have been ran, so as to not run a sweeper twice for a given
+// region.
+//
+// WARNING:
+// Sweepers are designed to be destructive. You should not use the -sweep flag
+// in any environment that is not strictly a test environment. Resources will be
+// destroyed.
+
+var flagSweep = flag.String("sweep", "", "List of Regions to run available Sweepers")
+var flagSweepRun = flag.String("sweep-run", "", "Comma seperated list of Sweeper Tests to run")
+var sweeperFuncs map[string]*Sweeper
+
+// map of sweepers that have ran, and the success/fail status based on any error
+// raised
+var sweeperRunList map[string]bool
+
+// type SweeperFunc is a signature for a function that acts as a sweeper. It
+// accepts a string for the region that the sweeper is to be ran in. This
+// function must be able to construct a valid client for that region.
+type SweeperFunc func(r string) error
+
+type Sweeper struct {
+	// Name for sweeper. Must be unique to be ran by the Sweeper Runner
+	Name string
+
+	// Dependencies list the const names of other Sweeper functions that must be ran
+	// prior to running this Sweeper. This is an ordered list that will be invoked
+	// recursively at the helper/resource level
+	Dependencies []string
+
+	// Sweeper function that when invoked sweeps the Provider of specific
+	// resources
+	F SweeperFunc
+}
+
+func init() {
+	sweeperFuncs = make(map[string]*Sweeper)
+}
+
+// AddTestSweepers function adds a given name and Sweeper configuration
+// pair to the internal sweeperFuncs map. Invoke this function to register a
+// resource sweeper to be available for running when the -sweep flag is used
+// with `go test`. Sweeper names must be unique to help ensure a given sweeper
+// is only ran once per run.
+func AddTestSweepers(name string, s *Sweeper) {
+	if _, ok := sweeperFuncs[name]; ok {
+		log.Fatalf("[ERR] Error adding (%s) to sweeperFuncs: function already exists in map", name)
+	}
+
+	sweeperFuncs[name] = s
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if *flagSweep != "" {
+		// parse flagSweep contents for regions to run
+		regions := strings.Split(*flagSweep, ",")
+
+		// get filtered list of sweepers to run based on sweep-run flag
+		sweepers := filterSweepers(*flagSweepRun, sweeperFuncs)
+		for _, region := range regions {
+			region = strings.TrimSpace(region)
+			// reset sweeperRunList for each region
+			sweeperRunList = map[string]bool{}
+
+			log.Printf("[DEBUG] Running Sweepers for region (%s):\n", region)
+			for _, sweeper := range sweepers {
+				if err := runSweeperWithRegion(region, sweeper); err != nil {
+					log.Fatalf("[ERR] error running (%s): %s", sweeper.Name, err)
+				}
+			}
+
+			log.Printf("Sweeper Tests ran:\n")
+			for s, _ := range sweeperRunList {
+				fmt.Printf("\t- %s\n", s)
+			}
+		}
+	} else {
+		os.Exit(m.Run())
+	}
+}
+
+// filterSweepers takes a comma seperated string listing the names of sweepers
+// to be ran, and returns a filtered set from the list of all of sweepers to
+// run based on the names given.
+func filterSweepers(f string, source map[string]*Sweeper) map[string]*Sweeper {
+	filterSlice := strings.Split(strings.ToLower(f), ",")
+	if len(filterSlice) == 1 && filterSlice[0] == "" {
+		// if the filter slice is a single element of "" then no sweeper list was
+		// given, so just return the full list
+		return source
+	}
+
+	sweepers := make(map[string]*Sweeper)
+	for name, sweeper := range source {
+		for _, s := range filterSlice {
+			if strings.Contains(strings.ToLower(name), s) {
+				sweepers[name] = sweeper
+			}
+		}
+	}
+	return sweepers
+}
+
+// runSweeperWithRegion recieves a sweeper and a region, and recursively calls
+// itself with that region for every dependency found for that sweeper. If there
+// are no dependencies, invoke the contained sweeper fun with the region, and
+// add the success/fail status to the sweeperRunList.
+func runSweeperWithRegion(region string, s *Sweeper) error {
+	for _, dep := range s.Dependencies {
+		if depSweeper, ok := sweeperFuncs[dep]; ok {
+			log.Printf("[DEBUG] Sweeper (%s) has dependency (%s), running..", s.Name, dep)
+			if err := runSweeperWithRegion(region, depSweeper); err != nil {
+				return err
+			}
+		} else {
+			log.Printf("[DEBUG] Sweeper (%s) has dependency (%s), but that sweeper was not found", s.Name, dep)
+		}
+	}
+
+	if _, ok := sweeperRunList[s.Name]; ok {
+		log.Printf("[DEBUG] Sweeper (%s) already ran in region (%s)", s.Name, region)
+		return nil
+	}
+
+	runE := s.F(region)
+	if runE == nil {
+		sweeperRunList[s.Name] = true
+	} else {
+		sweeperRunList[s.Name] = false
+	}
+
+	return runE
+}
+
 const TestEnvVar = "TF_ACC"
 
 // TestProvider can be implemented by any ResourceProvider to provide custom
@@ -37,6 +185,10 @@ type TestCheckFunc func(*terraform.State) error
 
 // ImportStateCheckFunc is the check function for ImportState tests
 type ImportStateCheckFunc func([]*terraform.InstanceState) error
+
+// ImportStateIdFunc is an ID generation function to help with complex ID
+// generation for ImportState tests.
+type ImportStateIdFunc func(*terraform.State) (string, error)
 
 // TestCase is a single acceptance test case used to test the apply/destroy
 // lifecycle of a resource in a specific configuration.
@@ -160,6 +312,10 @@ type TestStep struct {
 	// are tested alongside real resources
 	PreventPostDestroyRefresh bool
 
+	// SkipFunc is called before applying config, but after PreConfig
+	// This is useful for defining test steps with platform-dependent checks
+	SkipFunc func() (bool, error)
+
 	//---------------------------------------------------------------
 	// ImportState testing
 	//---------------------------------------------------------------
@@ -173,6 +329,19 @@ type TestStep struct {
 	// This is optional. If it isn't set, then the resource ID is automatically
 	// determined by inspecting the state for ResourceName's ID.
 	ImportStateId string
+
+	// ImportStateIdPrefix is the prefix added in front of ImportStateId.
+	// This can be useful in complex import cases, where more than one
+	// attribute needs to be passed on as the Import ID. Mainly in cases
+	// where the ID is not known, and a known prefix needs to be added to
+	// the unset ImportStateId field.
+	ImportStateIdPrefix string
+
+	// ImportStateIdFunc is a function that can be used to dynamically generate
+	// the ID for the ImportState tests. It is sent the state, which can be
+	// checked to derive the attributes necessary and generate the string in the
+	// desired format.
+	ImportStateIdFunc ImportStateIdFunc
 
 	// ImportStateCheck checks the results of ImportState. It should be
 	// used to verify that the resulting value of ImportState has the
@@ -228,11 +397,11 @@ func Test(t TestT, c TestCase) {
 		c.PreCheck()
 	}
 
-	ctxProviders, err := testProviderFactories(c)
+	providerResolver, err := testProviderResolver(c)
 	if err != nil {
 		t.Fatal(err)
 	}
-	opts := terraform.ContextOpts{Providers: ctxProviders}
+	opts := terraform.ContextOpts{ProviderResolver: providerResolver}
 
 	// A single state variable to track the lifecycle, starting with no state
 	var state *terraform.State
@@ -243,17 +412,35 @@ func Test(t TestT, c TestCase) {
 	errored := false
 	for i, step := range c.Steps {
 		var err error
-		log.Printf("[WARN] Test: Executing step %d", i)
+		log.Printf("[DEBUG] Test: Executing step %d", i)
 
-		// Determine the test mode to execute
-		if step.Config != "" {
-			state, err = testStepConfig(opts, state, step)
-		} else if step.ImportState {
-			state, err = testStepImportState(opts, state, step)
-		} else {
+		if step.SkipFunc != nil {
+			skip, err := step.SkipFunc()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if skip {
+				log.Printf("[WARN] Skipping step %d", i)
+				continue
+			}
+		}
+
+		if step.Config == "" && !step.ImportState {
 			err = fmt.Errorf(
 				"unknown test mode for step. Please see TestStep docs\n\n%#v",
 				step)
+		} else {
+			if step.ImportState {
+				if step.Config == "" {
+					step.Config = testProviderConfig(c)
+				}
+
+				// Can optionally set step.Config in addition to
+				// step.ImportState, to provide config for the import.
+				state, err = testStepImportState(opts, state, step)
+			} else {
+				state, err = testStepConfig(opts, state, step)
+			}
 		}
 
 		// If there was an error, exit
@@ -341,32 +528,42 @@ func Test(t TestT, c TestCase) {
 	}
 }
 
-// testProviderFactories is a helper to build the ResourceProviderFactory map
+// testProviderConfig takes the list of Providers in a TestCase and returns a
+// config with only empty provider blocks. This is useful for Import, where no
+// config is provided, but the providers must be defined.
+func testProviderConfig(c TestCase) string {
+	var lines []string
+	for p := range c.Providers {
+		lines = append(lines, fmt.Sprintf("provider %q {}\n", p))
+	}
+
+	return strings.Join(lines, "")
+}
+
+// testProviderResolver is a helper to build a ResourceProviderResolver
 // with pre instantiated ResourceProviders, so that we can reset them for the
 // test, while only calling the factory function once.
 // Any errors are stored so that they can be returned by the factory in
 // terraform to match non-test behavior.
-func testProviderFactories(c TestCase) (map[string]terraform.ResourceProviderFactory, error) {
-	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
+func testProviderResolver(c TestCase) (terraform.ResourceProviderResolver, error) {
+	ctxProviders := c.ProviderFactories
+	if ctxProviders == nil {
+		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
+	}
 
 	// add any fixed providers
 	for k, p := range c.Providers {
 		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
 	}
 
-	// call any factory functions and store the result.
-	for k, pf := range c.ProviderFactories {
-		p, err := pf()
-		ctxProviders[k] = func() (terraform.ResourceProvider, error) {
-			return p, err
-		}
-	}
-
 	// reset the providers if needed
 	for k, pf := range ctxProviders {
 		// we can ignore any errors here, if we don't have a provider to reset
 		// the error will be handled later
-		p, _ := pf()
+		p, err := pf()
+		if err != nil {
+			return nil, err
+		}
 		if p, ok := p.(TestProvider); ok {
 			err := p.TestReset()
 			if err != nil {
@@ -375,7 +572,7 @@ func testProviderFactories(c TestCase) (map[string]terraform.ResourceProviderFac
 		}
 	}
 
-	return ctxProviders, nil
+	return terraform.ResourceProviderResolverFixed(ctxProviders), nil
 }
 
 // UnitTest is a helper to force the acceptance testing harness to run in the

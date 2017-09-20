@@ -40,6 +40,9 @@ type PlanGraphBuilder struct {
 	// Validate will do structural validation of the graph.
 	Validate bool
 
+	// Input represents that this builder is for an Input operation.
+	Input bool
+
 	// CustomConcrete can be set to customize the node types created
 	// for various parts of the plan. This is useful in order to customize
 	// the plan behavior.
@@ -70,6 +73,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Concrete: b.ConcreteResource,
 			Module:   b.Module,
 		},
+
+		// Add the local values
+		&LocalTransformer{Module: b.Module},
 
 		// Add the outputs
 		&OutputTransformer{Module: b.Module},
@@ -107,14 +113,32 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		),
 
 		// Add module variables
-		&ModuleVariableTransformer{Module: b.Module},
+		&ModuleVariableTransformer{
+			Module: b.Module,
+			Input:  b.Input,
+		},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
 
+		// Add the node to fix the state count boundaries
+		&CountBoundaryTransformer{},
+
 		// Target
-		&TargetsTransformer{Targets: b.Targets},
+		&TargetsTransformer{
+			Targets: b.Targets,
+
+			// Resource nodes from config have not yet been expanded for
+			// "count", so we must apply targeting without indices. Exact
+			// targeting will be dealt with later when these resources
+			// DynamicExpand.
+			IgnoreIndices: true,
+		},
+
+		// Close opened plugin connections
+		&CloseProviderTransformer{},
+		&CloseProvisionerTransformer{},
 
 		// Single root
 		&RootTransformer{},
