@@ -413,92 +413,94 @@ func unmarshalResourceData(d *schema.ResourceData, records dns.RecordSet) {
 	// We'll make a record for each target and add them to the record set
 	recordType := strings.ToUpper(d.Get("type").(string))
 	targets := d.Get("targets").(*schema.Set).Len() //unsafe
-
+	log.Printf("[DEBUG] [Akamai FastDNS] Record type is %s", recordType)
 	// for each target listed, create a record in the record set
 	for i := 0; i < targets; i++ {
 		switch recordType {
 		case "A":
-			record := dns.ARecord{}
+			record := dns.NewARecord()
+			log.Printf("[DEBUG] [Akamai FastDNS] Creating A Record")
 			assignFields(record, d, i)
+			log.Printf("[DEBUG] [Akamai FastDNS] A Record is: %s", record)
 			records = append(records, record)
 		case "AAAA":
-			record := dns.AaaaRecord{}
+			record := dns.NewAaaaRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "AFSDB":
-			record := dns.AfsdbRecord{}
+			record := dns.NewAfsdbRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "CNAME":
-			record := dns.CnameRecord{}
+			record := dns.NewCnameRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "DNSKEY":
-			record := dns.DnskeyRecord{}
+			record := dns.NewDnskeyRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "DS":
-			record := dns.DsRecord{}
+			record := dns.NewDsRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "HINFO":
-			record := dns.HinfoRecord{}
+			record := dns.NewHinfoRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "LOC":
-			record := dns.LocRecord{}
+			record := dns.NewLocRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "MX":
-			record := dns.MxRecord{}
+			record := dns.NewMxRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "NAPTR":
-			record := dns.NaptrRecord{}
+			record := dns.NewNaptrRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "NS":
-			record := dns.NsRecord{}
+			record := dns.NewNsRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "NSEC3":
-			record := dns.Nsec3Record{}
+			record := dns.NewNsec3Record()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "NSEC3PARAM":
-			record := dns.Nsec3paramRecord{}
+			record := dns.NewNsec3paramRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "PTR":
-			record := dns.PtrRecord{}
+			record := dns.NewPtrRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "RP":
-			record := dns.RpRecord{}
+			record := dns.NewRpRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "RRSIG":
-			record := dns.RrsigRecord{}
+			record := dns.NewRrsigRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "SOA":
-			record := dns.SoaRecord{}
+			record := dns.NewSoaRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "SPF":
-			record := dns.SpfRecord{}
+			record := dns.NewSpfRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "SRV":
-			record := dns.SrvRecord{}
+			record := dns.NewSrvRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "SSHFP":
-			record := dns.SshfpRecord{}
+			record := dns.NewSshfpRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		case "TXT":
-			record := dns.TxtRecord{}
+			record := dns.NewTxtRecord()
 			assignFields(record, d, i)
 			records = append(records, record)
 		}
