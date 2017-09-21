@@ -315,7 +315,6 @@ func TestRegistryGitHubArchive(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("got: \n\n%s\nexpected: \n\n%s", actual, expected)
 	}
-
 }
 
 func TestAccRegistryDiscover(t *testing.T) {
@@ -340,5 +339,33 @@ func TestAccRegistryDiscover(t *testing.T) {
 
 	if !strings.Contains(u.String(), "consul") {
 		t.Fatalf("url doesn't contain 'consul': %s", u.String())
+	}
+}
+
+func TestAccRegistryLoad(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("skipping ACC test")
+	}
+
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "registry-load"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !tree.Loaded() {
+		t.Fatal("should be loaded")
+	}
+
+	// This should no longer error
+	if err := tree.Load(storage, GetModeNone); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// TODO expand this further by fetching some metadata from the registry
+	actual := strings.TrimSpace(tree.String())
+	if !strings.Contains(actual, "(path: vault)") {
+		t.Fatal("missing vault module, got:\n", actual)
 	}
 }
