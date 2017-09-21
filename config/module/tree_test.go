@@ -209,40 +209,50 @@ func TestTreeLoad_parentRef(t *testing.T) {
 }
 
 func TestTreeLoad_subdir(t *testing.T) {
-	storage := testStorage(t)
-	tree := NewTree("", testConfig(t, "basic-subdir"))
-
-	if tree.Loaded() {
-		t.Fatal("should not be loaded")
+	fixtures := []string{
+		"basic-subdir",
+		"basic-tar-subdir",
+		"tar-sbudir-to-parent",
 	}
 
-	// This should error because we haven't gotten things yet
-	if err := tree.Load(storage, GetModeNone); err == nil {
-		t.Fatal("should error")
-	}
+	for _, tc := range fixtures {
+		t.Run(tc, func(t *testing.T) {
+			storage := testStorage(t)
+			tree := NewTree("", testConfig(t, tc))
 
-	if tree.Loaded() {
-		t.Fatal("should not be loaded")
-	}
+			if tree.Loaded() {
+				t.Fatal("should not be loaded")
+			}
 
-	// This should get things
-	if err := tree.Load(storage, GetModeGet); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+			// This should error because we haven't gotten things yet
+			if err := tree.Load(storage, GetModeNone); err == nil {
+				t.Fatal("should error")
+			}
 
-	if !tree.Loaded() {
-		t.Fatal("should be loaded")
-	}
+			if tree.Loaded() {
+				t.Fatal("should not be loaded")
+			}
 
-	// This should no longer error
-	if err := tree.Load(storage, GetModeNone); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+			// This should get things
+			if err := tree.Load(storage, GetModeGet); err != nil {
+				t.Fatalf("err: %s", err)
+			}
 
-	actual := strings.TrimSpace(tree.String())
-	expected := strings.TrimSpace(treeLoadSubdirStr)
-	if actual != expected {
-		t.Fatalf("bad: \n\n%s", actual)
+			if !tree.Loaded() {
+				t.Fatal("should be loaded")
+			}
+
+			// This should no longer error
+			if err := tree.Load(storage, GetModeNone); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+
+			actual := strings.TrimSpace(tree.String())
+			expected := strings.TrimSpace(treeLoadSubdirStr)
+			if actual != expected {
+				t.Fatalf("bad: \n\n%s", actual)
+			}
+		})
 	}
 }
 
