@@ -31,9 +31,9 @@ terraform {
 data "terraform_remote_state" "foo" {
   backend = "gcs"
   config {
-    bucket    = "terraform-state-prod"
-    path      = "network/terraform.tfstate"
-    project   = "goopro"
+    bucket  = "terraform-state-prod"
+    path    = "network/terraform.tfstate"
+    project = "goopro"
   }
 }
 
