@@ -249,12 +249,11 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	records := dns.RecordSet{}
-	unmarshalResourceData(d, records)
+	records := unmarshalResourceData(d)
 
 	var name string
 	if recordType == "SOA" {
-		zone.Zone.Soa = records[0].(dns.SoaRecord)
+		zone.Zone.Soa = records[0].(*dns.SoaRecord)
 		name = recordType
 	} else {
 		name = d.Get("name").(string)
@@ -280,111 +279,6 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-/*
-func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[INFO] [Akamai FastDNS] resourcePropertyRead")
-
-	zone, err := dns.GetZone(d.Get("hostname").(string))
-	if err != nil {
-		return err
-	}
-
-	log.Printf("[INFO] [Akamai FastDNS] Resource Data:\n\n%#v\n\n", &d)
-
-	token, _, recordType, name := getDNSRecordId(d.Id())
-
-	if zone.Token != token {
-		log.Println("[WARN] [Akamai FastDNS] Resource has been modified, aborting")
-		return errors.New("Resource has been modified, aborting")
-	}
-
-	recordSet := zone.GetRecordType(recordType).(dns.RecordSet)
-	err = marshalResourceData(d, &recordSet)
-	if err != nil {
-		return err
-	}
-
-	id := fmt.Sprintf("%s-%s-%s-%s", zone.Token, zone.Zone.Name, recordType, name)
-	log.Println("[INFO] [Akamai FastDNS] Read ID: " + id)
-	d.SetId(id)
-
-	return nil
-}
-
-func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error {
-	zone, err := dns.GetZone(d.Get("hostname").(string))
-	if err != nil {
-		return err
-	}
-
-	recordType := strings.ToUpper(d.Get("type").(string))
-
-	records := dns.RecordSet{}
-	error := unmarshalResourceData(d, &records)
-
-	if error != nil {
-		return error
-	}
-
-	if recordType == "SOA" {
-		zone.Zone.Soa = nil
-	} else {
-		name := d.Get("name").(string)
-
-		zone.RemoveRecordsByName(name, []string{recordType})
-	}
-
-	error = zone.Save()
-	if error != nil {
-		return error
-	}
-
-	d.SetId("")
-
-	return nil
-}
-
-func resourceFastDNSRecordExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	log.Println("[INFO] [Akamai FastDNS] resourcePropertyExists")
-
-	zone, err := dns.GetZone(d.Get("hostname").(string))
-	if err != nil {
-		log.Println("[WARN] [Akamai FastDNS] Error checking if record exists: " + err.Error())
-		return false, err
-	}
-
-	token, _, recordType, name := getDNSRecordId(d.Id())
-	name = strings.TrimSuffix(name, ".")
-
-	if zone.Token != token {
-		log.Printf("[WARN] [Akamai FastDNS] Token mismatch: Remote: %s, Local: %s", zone.Token, token)
-		return false, nil
-	}
-
-	var found_record bool
-	for _, record := range zone.GetRecordType(recordType).(dns.RecordSet) {
-		if strings.TrimSuffix(record.Name, ".") == name {
-			found_record = true
-			break
-		} else {
-			log.Printf("[TRACE] [Akamai FastDNS] record.Name: %s != name: %s", record.Name, name)
-		}
-	}
-
-	if found_record {
-		log.Println("[INFO] [Akamai FastDNS] Record found")
-	} else {
-		log.Println("[INFO] [Akamai FastDNS] Record not found")
-	}
-	return found_record, nil
-}
-
-func getDNSRecordId(id string) (token string, hostname string, recordType string, name string) {
-	parts := strings.Split(id, "-")
-	return parts[0], parts[1], parts[2], parts[3]
-}
-*/
-
 // Helper function for unmarshalResourceData() below
 func assignFields(record dns.DNSRecord, d *schema.ResourceData, i int) {
 	f := record.GetAllowedFields()
@@ -406,22 +300,20 @@ func assignFields(record dns.DNSRecord, d *schema.ResourceData, i int) {
 }
 
 // Unmarshal the config data from the terraform config file to our local types
-func unmarshalResourceData(d *schema.ResourceData, records dns.RecordSet) {
+func unmarshalResourceData(d *schema.ResourceData) dns.RecordSet {
 	// We will get 1 record at a time from terraform
 	// For example an MX record
 	// Any record can have 1 or more targets
 	// We'll make a record for each target and add them to the record set
+	records := dns.RecordSet{}
 	recordType := strings.ToUpper(d.Get("type").(string))
 	targets := d.Get("targets").(*schema.Set).Len() //unsafe
-	log.Printf("[DEBUG] [Akamai FastDNS] Record type is %s", recordType)
 	// for each target listed, create a record in the record set
 	for i := 0; i < targets; i++ {
 		switch recordType {
 		case "A":
 			record := dns.NewARecord()
-			log.Printf("[DEBUG] [Akamai FastDNS] Creating A Record")
 			assignFields(record, d, i)
-			log.Printf("[DEBUG] [Akamai FastDNS] A Record is: %s", record)
 			records = append(records, record)
 		case "AAAA":
 			record := dns.NewAaaaRecord()
@@ -505,6 +397,8 @@ func unmarshalResourceData(d *schema.ResourceData, records dns.RecordSet) {
 			records = append(records, record)
 		}
 	}
+
+	return records
 }
 
 /*
