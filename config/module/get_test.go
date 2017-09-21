@@ -16,11 +16,26 @@ import (
 	version "github.com/hashicorp/go-version"
 )
 
-// map of module names and version for test module.
-// only one version for now, as we only lookup latest from the registry
-var testMods = map[string]string{
-	"registry/foo/bar": "0.2.3",
-	"registry/foo/baz": "1.10.0",
+// Map of module names and location of test modules.
+// Only one version for now, as we only lookup latest from the registry.
+type testMod struct {
+	location string
+	version  string
+}
+
+var testMods = map[string]testMod{
+	"registry/foo/bar": {
+		location: "file:///download/registry/foo/bar/0.2.3//*?archive=tar.gz",
+		version:  "0.2.3",
+	},
+	"registry/foo/baz": {
+		location: "file:///download/registry/foo/baz/1.10.0//*?archive=tar.gz",
+		version:  "1.10.0",
+	},
+	"registry/local/sub": {
+		location: "test-fixtures/registry-tar-subdir/foo.tgz//*?archive=tar.gz",
+		version:  "0.1.2",
+	},
 }
 
 func latestVersion(versions []string) string {
@@ -56,13 +71,19 @@ func mockRegistry() *httptest.Server {
 				return
 			}
 
-			version, ok := testMods[matches[1]]
+			mod, ok := testMods[matches[1]]
 			if !ok {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
 
-			location := fmt.Sprintf("%s/download/%s/%s", server.URL, matches[1], version)
+			location := mod.location
+			if !strings.HasPrefix(location, "file:///") {
+				// we can't use filepath.Abs because it will clean `//`
+				wd, _ := os.Getwd()
+				location = fmt.Sprintf("file://%s/%s", wd, location)
+			}
+
 			w.Header().Set(xTerraformGet, location)
 			w.WriteHeader(http.StatusNoContent)
 			// no body
@@ -90,12 +111,12 @@ func TestDetectRegistry(t *testing.T) {
 	}{
 		{
 			source:   "registry/foo/bar",
-			location: "download/registry/foo/bar/0.2.3",
+			location: testMods["registry/foo/bar"].location,
 			found:    true,
 		},
 		{
 			source:   "registry/foo/baz",
-			location: "download/registry/foo/baz/1.10.0",
+			location: testMods["registry/foo/baz"].location,
 			found:    true,
 		},
 		// this should not be found, but not stop detection
@@ -177,7 +198,7 @@ func TestDetectors(t *testing.T) {
 	}{
 		{
 			source:   "registry/foo/bar",
-			location: "download/registry/foo/bar/0.2.3",
+			location: "file:///download/registry/foo/bar/0.2.3//*?archive=tar.gz",
 		},
 		// this should not be found, but not stop detection
 		{
@@ -246,6 +267,55 @@ func TestDetectors(t *testing.T) {
 		})
 
 	}
+}
+
+// GitHub archives always contain the module source in a single subdirectory,
+// so the registry will return a path with with a `//*` suffix. We need to make
+// sure this doesn't intefere with our internal handling of `//` subdir.
+func TestRegistryGitHubArchive(t *testing.T) {
+	server := mockRegistry()
+	defer server.Close()
+
+	regDetector := &registryDetector{
+		api:    server.URL + "/v1/modules/",
+		client: server.Client(),
+	}
+
+	origDetectors := detectors
+	defer func() {
+		detectors = origDetectors
+	}()
+
+	detectors = []getter.Detector{
+		new(getter.GitHubDetector),
+		new(getter.BitBucketDetector),
+		new(getter.S3Detector),
+		new(localDetector),
+		regDetector,
+	}
+
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "registry-tar-subdir"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !tree.Loaded() {
+		t.Fatal("should be loaded")
+	}
+
+	// This should no longer error
+	if err := tree.Load(storage, GetModeNone); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(tree.String())
+	expected := strings.TrimSpace(treeLoadSubdirStr)
+	if actual != expected {
+		t.Fatalf("got: \n\n%s\nexpected: \n\n%s", actual, expected)
+	}
+
 }
 
 func TestAccRegistryDiscover(t *testing.T) {

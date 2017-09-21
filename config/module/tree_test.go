@@ -212,7 +212,12 @@ func TestTreeLoad_subdir(t *testing.T) {
 	fixtures := []string{
 		"basic-subdir",
 		"basic-tar-subdir",
-		"tar-sbudir-to-parent",
+
+		// Passing a subpath to go getter extracts only this subpath. The old
+		// internal code would keep the entire directory structure, allowing a
+		// top-level module to reference others through its parent directory.
+		// TODO: this can be removed as a breaking change in a major release.
+		"tar-subdir-to-parent",
 	}
 
 	for _, tc := range fixtures {
