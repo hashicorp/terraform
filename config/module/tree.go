@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 
@@ -176,13 +177,43 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		copy(path, t.path)
 		path = append(path, m.Name)
 
-		source, err := getter.Detect(m.Source, t.config.Dir, detectors)
+		log.Printf("[TRACE] module source %q", m.Source)
+		// Split out the subdir if we have one.
+		// Terraform keeps the entire request tree for now, so that modules can
+		// reference sibling modules from the same archive or repo.
+		source, subDir := getter.SourceDirSubdir(m.Source)
+
+		log.Printf("[TRACE] module source: %q", source)
+
+		source, err := getter.Detect(source, t.config.Dir, detectors)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
+
+		log.Printf("[TRACE] detected module source %q", source)
+
+		// Check if the detector introduced something new.
+		// For example, the registry always adds a subdir of `//*`,
+		// indicating that we need to strip off the first component from the
+		// tar archive, though we may not yet know what it is called.
+		//
+		// TODO: This can cause us to lose the previously detected subdir. It
+		// was never an issue before, since none of the supported detectors
+		// previously had this behavior, but we may want to add this ability to
+		// registry modules.
+		source, subDir2 := getter.SourceDirSubdir(source)
+		if subDir2 != "" {
+			subDir = subDir2
+		}
+
+		log.Printf("[TRACE] getting module source %q", source)
+
 		// Get the directory where this module is so we can load it
 		key := strings.Join(path, ".")
-		key = fmt.Sprintf("module.%s-%s", key, m.Source)
+
+		// The key is the string being hashed to uniquely id the Source.  The
+		// leading digit can be incremented to re-fetch all existing modules.
+		key = fmt.Sprintf("0.root.%s-%s", key, m.Source)
 
 		dir, ok, err := getStorage(s, key, source, mode)
 		if err != nil {
@@ -193,6 +224,13 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 				"module %s: not found, may need to be downloaded using 'terraform get'", m.Name)
 		}
 
+		// Expand the subDir if required.
+		dir, err = getter.SubdirGlob(dir, subDir)
+		if err != nil {
+			return err
+		}
+
+		// Load the configurations.Dir(source)
 		children[m.Name], err = NewTreeModule(m.Name, dir)
 		if err != nil {
 			return fmt.Errorf(
