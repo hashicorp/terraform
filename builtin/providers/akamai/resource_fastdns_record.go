@@ -303,9 +303,19 @@ func unmarshalResourceData(d *schema.ResourceData) dns.RecordSet {
 	// We'll make a record for each target and add them to the record set
 	records := dns.RecordSet{}
 	recordType := strings.ToUpper(d.Get("type").(string))
-	targets := d.Get("targets").(*schema.Set).Len() //unsafe
+
+	// Not all record types have targets, so we'll set a default value
+	// for the loop below
+	var t int
+	targets, ok := d.GetOk("targets")
+	if !ok {
+		t = 1
+	} else {
+		t = targets.(*schema.Set).Len() //unsafe?
+	}
+
 	// for each target listed, create a record in the record set
-	for i := 0; i < targets; i++ {
+	for i := 0; i < t; i++ {
 		switch recordType {
 		case "A":
 			record := dns.NewARecord()
