@@ -2,6 +2,7 @@ package module
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,6 +10,12 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 )
+
+func init() {
+	if os.Getenv("TF_LOG") == "" {
+		log.SetOutput(ioutil.Discard)
+	}
+}
 
 const fixtureDir = "./test-fixtures"
 

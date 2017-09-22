@@ -3,8 +3,12 @@ package module
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -177,15 +181,52 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		copy(path, t.path)
 		path = append(path, m.Name)
 
+		// The key is the string that will be hashed to uniquely id the Source.
+		// The leading digit can be incremented to force re-fetch all existing
+		// modules.
+		key := fmt.Sprintf("0.root.%s-%s", strings.Join(path, "."), m.Source)
+
 		log.Printf("[TRACE] module source %q", m.Source)
 		// Split out the subdir if we have one.
-		// Terraform keeps the entire request tree for now, so that modules can
+		// Terraform keeps the entire requested tree for now, so that modules can
 		// reference sibling modules from the same archive or repo.
 		source, subDir := getter.SourceDirSubdir(m.Source)
 
+		// First check if we we need to download anything.
+		// This is also checked by the getter.Storage implementation, but we
+		// want to be able to short-circuit the detection as well, since some
+		// detectors may need to make external calls.
+		dir, found, err := s.Dir(key)
+		if err != nil {
+			return err
+		}
+
+		// looks like we already have it
+		// In order to load the Tree we need to find out if there was another
+		// subDir stored from discovery.
+		if found && mode != GetModeUpdate {
+			subDir, err := t.getSubdir(dir)
+			if err != nil {
+				// If there's a problem with the subdir record, we'll let the
+				// recordSubdir method fix it up.  Any other errors filesystem
+				// errors will turn up again below.
+				log.Println("[WARN] error reading subdir record:", err)
+			} else {
+				dir := filepath.Join(dir, subDir)
+				// Load the configurations.Dir(source)
+				children[m.Name], err = NewTreeModule(m.Name, dir)
+				if err != nil {
+					return fmt.Errorf("module %s: %s", m.Name, err)
+				}
+				// Set the path of this child
+				children[m.Name].path = path
+				continue
+			}
+		}
+
 		log.Printf("[TRACE] module source: %q", source)
 
-		source, err := getter.Detect(source, t.config.Dir, detectors)
+		source, err = getter.Detect(source, t.config.Dir, detectors)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
@@ -208,13 +249,6 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 
 		log.Printf("[TRACE] getting module source %q", source)
 
-		// Get the directory where this module is so we can load it
-		key := strings.Join(path, ".")
-
-		// The key is the string being hashed to uniquely id the Source.  The
-		// leading digit can be incremented to re-fetch all existing modules.
-		key = fmt.Sprintf("0.root.%s-%s", key, m.Source)
-
 		dir, ok, err := getStorage(s, key, source, mode)
 		if err != nil {
 			return err
@@ -224,19 +258,31 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 				"module %s: not found, may need to be downloaded using 'terraform get'", m.Name)
 		}
 
-		// Expand the subDir if required.
-		dir, err = getter.SubdirGlob(dir, subDir)
-		if err != nil {
-			return err
+		// expand and record the subDir for later
+		if subDir != "" {
+			fullDir, err := getter.SubdirGlob(dir, subDir)
+			if err != nil {
+				return err
+			}
+
+			// +1 to account for the pathsep
+			if len(dir)+1 > len(fullDir) {
+				return fmt.Errorf("invalid module storage path %q", fullDir)
+			}
+
+			subDir = fullDir[len(dir)+1:]
+
+			if err := t.recordSubdir(dir, subDir); err != nil {
+				return err
+			}
+			dir = fullDir
 		}
 
 		// Load the configurations.Dir(source)
 		children[m.Name], err = NewTreeModule(m.Name, dir)
 		if err != nil {
-			return fmt.Errorf(
-				"module %s: %s", m.Name, err)
+			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
-
 		// Set the path of this child
 		children[m.Name].path = path
 	}
@@ -252,6 +298,65 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 	t.children = children
 
 	return nil
+}
+
+func subdirRecordsPath(dir string) string {
+	const filename = "module-subdir.json"
+	// Get the parent directory.
+	// The current FolderStorage implementation needed to be able to create
+	// this directory, so we can be reasonably certain we can use it.
+	parent := filepath.Dir(filepath.Clean(dir))
+	return filepath.Join(parent, filename)
+}
+
+// unmarshal the records file in the parent directory. Always returns a valid map.
+func loadSubdirRecords(dir string) (map[string]string, error) {
+	records := map[string]string{}
+
+	recordsPath := subdirRecordsPath(dir)
+	data, err := ioutil.ReadFile(recordsPath)
+	if err != nil && !os.IsNotExist(err) {
+		return records, err
+	}
+
+	if len(data) == 0 {
+		return records, nil
+	}
+
+	if err := json.Unmarshal(data, &records); err != nil {
+		return records, err
+	}
+	return records, nil
+}
+
+func (t *Tree) getSubdir(dir string) (string, error) {
+	records, err := loadSubdirRecords(dir)
+	if err != nil {
+		return "", err
+	}
+
+	return records[dir], nil
+}
+
+// Mark the location of a detected subdir in a top-level file so we
+// can skip detection when not updating the module.
+func (t *Tree) recordSubdir(dir, subdir string) error {
+	records, err := loadSubdirRecords(dir)
+	if err != nil {
+		// if there was a problem with the file, we will attempt to write a new
+		// one. Any non-data related error should surface there.
+		log.Printf("[WARN] error reading subdir records: %s", err)
+	}
+
+	records[dir] = subdir
+
+	js, err := json.Marshal(records)
+	if err != nil {
+		return err
+	}
+
+	recordsPath := subdirRecordsPath(dir)
+	return ioutil.WriteFile(recordsPath, js, 0644)
 }
 
 // Path is the full path to this tree.
