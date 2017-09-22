@@ -266,10 +266,6 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	e = zone.Save()
-	// if e.(client.APIError).Status == 409 {
-	//tempZone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
-	// }
-
 	if e != nil {
 		return e
 	}
@@ -400,91 +396,3 @@ func unmarshalResourceData(d *schema.ResourceData) dns.RecordSet {
 
 	return records
 }
-
-/*
-func marshalResourceData(d *schema.ResourceData, records *dns.RecordSet) error {
-	if len(*records) == 0 {
-		return nil
-	}
-
-	for _, record := range *records {
-		if val, exists := d.GetOk("targets"); exists != false {
-			val.(*schema.Set).Add(record.Target)
-			d.Set("targets", val)
-		} else {
-			set := &schema.Set{}
-			set.Add(record.Target)
-			d.Set("targets", set)
-		}
-
-		d.Set("ttl", record.TTL)
-		d.Set("name", record.Name)
-		d.Set("active", record.Active)
-		d.Set("subtype", record.Subtype)
-		d.Set("flags", record.Flags)
-		d.Set("protocol", record.Protocol)
-		d.Set("algorithm", record.Algorithm)
-		d.Set("key", record.Key)
-		d.Set("keytag", record.Keytag)
-		d.Set("digesttype", record.DigestType)
-		d.Set("digest", record.Digest)
-		d.Set("hardware", record.Hardware)
-		d.Set("software", record.Software)
-		d.Set("priority", record.Priority)
-		d.Set("order", record.Order)
-		d.Set("preference", record.Preference)
-		d.Set("service", record.Service)
-		d.Set("regexp", record.Regexp)
-		d.Set("replacement", record.Replacement)
-		d.Set("iterations", record.Iterations)
-		d.Set("salt", record.Salt)
-		d.Set("nexthashedownername", record.NextHashedOwnerName)
-		d.Set("typebitmaps", record.TypeBitmaps)
-		d.Set("mailbox", record.Mailbox)
-		d.Set("txt", record.Txt)
-		d.Set("typecovered", record.TypeCovered)
-		d.Set("originalttl", record.OriginalTTL)
-		d.Set("expiration", record.Expiration)
-		d.Set("inception", record.Inception)
-		d.Set("signer", record.Signer)
-		d.Set("signature", record.Signature)
-		d.Set("labels", record.Labels)
-		d.Set("originserver", record.Originserver)
-		d.Set("contact", record.Contact)
-		d.Set("serial", record.Serial)
-		d.Set("refresh", record.Refresh)
-		d.Set("retry", record.Retry)
-		d.Set("expire", record.Expire)
-		d.Set("minimum", record.Minimum)
-		d.Set("weight", record.Weight)
-		d.Set("port", record.Port)
-		d.Set("fingerprinttype", record.FingerprintType)
-		d.Set("fingerprint", record.Fingerprint)
-	}
-
-	return nil
-}
-
-func importRecord(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	zone, err := dns.GetZone(d.Get("hostname").(string))
-	if err != nil {
-		return nil, err
-	}
-
-	_, hostname, recordType, name := getDNSRecordId("_." + d.Id())
-
-	var exists bool
-	for _, record := range zone.GetRecordType(recordType).(dns.RecordSet) {
-		if strings.ToLower(record.Name) == name {
-			exists = true
-		}
-	}
-
-	if exists == true {
-		d.SetId(fmt.Sprintf("%s-%s-%s-%s", zone.Token, hostname, recordType, name))
-		return []*schema.ResourceData{d}, nil
-	}
-
-	return nil, errors.New(fmt.Sprintf("Resource \"%s\" not found", d.Id()))
-}
-*/
