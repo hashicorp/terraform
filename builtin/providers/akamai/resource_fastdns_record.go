@@ -224,19 +224,23 @@ func resourceFastDNSRecord() *schema.Resource {
 	}
 }
 
-// get the zone, fetch the resource (just one) from the .tf file, update the zone, send to api
+// Create a new DNS Record
 func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	recordType := strings.ToUpper(d.Get("type").(string))
+	name := d.Get("name").(string)
 
 	if recordType == "SOA" {
+		name = recordType
 		log.Printf("[INFO] [Akamai FastDNS]: Creating %s Record on %s", recordType, d.Get("hostname"))
 	} else {
 		log.Printf("[INFO] [Akamai FastDNS] Creating %s Record \"%s\" on %s", recordType, d.Get("name"), d.Get("hostname"))
 	}
 
+	// First try to get the zone from the API
 	zone, e := dns.GetZone(d.Get("hostname").(string))
 
 	if e != nil {
+		// If there's no existing zone we'll create a blank one
 		if dns.IsConfigDNSError(e) && e.(dns.ConfigDNSError).NotFound() == true {
 			// if the zone is not found/404 we will create a new
 			// blank zone for the records to be added to and continue
@@ -249,27 +253,23 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
+	// Transform the record data from the terraform config to local types
+	// Then add each record to the zone
 	records := unmarshalResourceData(d)
-
-	var name string
-	if recordType == "SOA" {
-		zone.Zone.Soa = records[0].(*dns.SoaRecord)
-		name = recordType
-	} else {
-		name = d.Get("name").(string)
-		for _, record := range records {
-			err := zone.AddRecord(record)
-			if err != nil {
-				return err
-			}
+	for _, record := range records {
+		err := zone.AddRecord(record)
+		if err != nil {
+			return err
 		}
 	}
 
+	// Save the zone to the API
 	e = zone.Save()
 	if e != nil {
 		return e
 	}
 
+	// Give terraform the ID
 	d.SetId(fmt.Sprintf("%s-%s-%s-%s", zone.Token, zone.Zone.Name, recordType, name))
 
 	return nil
