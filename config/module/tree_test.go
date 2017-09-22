@@ -2,7 +2,9 @@ package module
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -258,6 +260,71 @@ func TestTreeLoad_subdir(t *testing.T) {
 				t.Fatalf("bad: \n\n%s", actual)
 			}
 		})
+	}
+}
+
+func TestTree_recordSubDir(t *testing.T) {
+	td, err := ioutil.TempDir("", "tf-module")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(td)
+
+	dir := filepath.Join(td, "0131bf0fef686e090b16bdbab4910ddf")
+
+	subDir := "subDirName"
+
+	tree := Tree{}
+
+	// record and read the subdir path
+	if err := tree.recordSubdir(dir, subDir); err != nil {
+		t.Fatal(err)
+	}
+	actual, err := tree.getSubdir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if actual != subDir {
+		t.Fatalf("expected subDir %q, got %q", subDir, actual)
+	}
+
+	// overwrite the path, and nmake sure we get the new one
+	subDir = "newSubDir"
+	if err := tree.recordSubdir(dir, subDir); err != nil {
+		t.Fatal(err)
+	}
+	actual, err = tree.getSubdir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if actual != subDir {
+		t.Fatalf("expected subDir %q, got %q", subDir, actual)
+	}
+
+	// create a fake entry
+	if err := ioutil.WriteFile(subdirRecordsPath(dir), []byte("BAD DATA"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// this should fail because there aare now 2 entries
+	actual, err = tree.getSubdir(dir)
+	if err == nil {
+		t.Fatal("expected multiple subdir entries")
+	}
+
+	// writing the subdir entry should remove the incorrect value
+	if err := tree.recordSubdir(dir, subDir); err != nil {
+		t.Fatal(err)
+	}
+	actual, err = tree.getSubdir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if actual != subDir {
+		t.Fatalf("expected subDir %q, got %q", subDir, actual)
 	}
 }
 
