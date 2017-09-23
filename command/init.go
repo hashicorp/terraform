@@ -27,6 +27,9 @@ type InitCommand struct {
 	// getPlugins is for the -get-plugins flag
 	getPlugins bool
 
+	// flagPurgeUnusedPlugins is for the -purge-unused flag
+	flagPurgeUnusedPlugins bool
+
 	// providerInstaller is used to download and install providers that
 	// aren't found locally. This uses a discovery.ProviderInstaller instance
 	// by default, but it can be overridden here as a way to mock fetching
@@ -58,6 +61,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.BoolVar(&flagVerifyPlugins, "verify-plugins", true, "verify plugins")
+	cmdFlags.BoolVar(&c.flagPurgeUnusedPlugins, "purge-unused", true, "purge not used auto-installed plugins")
 
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -404,7 +408,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		return err
 	}
 
-	{
+	if c.flagPurgeUnusedPlugins {
 		// Purge any auto-installed plugins that aren't being used.
 		purged, err := c.providerInstaller.PurgeUnused(chosen)
 		if err != nil {
@@ -517,6 +521,8 @@ Options:
 
   -verify-plugins=true Verify the authenticity and integrity of automatically
                        downloaded plugins.
+
+  -purge-unused=true   Purge any auto-installed plugins that aren't being used.
 `
 	return strings.TrimSpace(helpText)
 }
