@@ -2612,3 +2612,55 @@ func TestInterpolateFuncURLEncode(t *testing.T) {
 		},
 	})
 }
+
+func TestInterpolateFuncAbs(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${abs()}`,
+				nil,
+				true,
+			},
+			{
+				`${abs("")}`,
+				nil,
+				true,
+			},
+			{
+				`${abs(0)}`,
+				"0",
+				false,
+			},
+			{
+				`${abs(1)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(-1)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(1.0)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(-1.0)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(-3.14)}`,
+				"3.14",
+				false,
+			},
+			{
+				`${abs(-42.001)}`,
+				"42.001",
+				false,
+			},
+		},
+	})
+}

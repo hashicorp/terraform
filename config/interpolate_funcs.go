@@ -58,6 +58,7 @@ func listVariableValueToStringSlice(values []ast.Variable) ([]string, error) {
 // Funcs is the mapping of built-in functions for configuration.
 func Funcs() map[string]ast.Function {
 	return map[string]ast.Function{
+		"abs":          interpolationFuncAbs(),
 		"basename":     interpolationFuncBasename(),
 		"base64decode": interpolationFuncBase64Decode(),
 		"base64encode": interpolationFuncBase64Encode(),
@@ -1543,6 +1544,17 @@ func interpolationFuncURLEncode() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			s := args[0].(string)
 			return url.QueryEscape(s), nil
+		},
+	}
+}
+
+// interpolationFuncAbs returns the absolute value of a given float.
+func interpolationFuncAbs() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeFloat},
+		ReturnType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return math.Abs(args[0].(float64)), nil
 		},
 	}
 }
