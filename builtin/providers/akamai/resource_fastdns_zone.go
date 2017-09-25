@@ -8,15 +8,15 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceFastDNSRecord() *schema.Resource {
+func resourceFastDNSZone() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceFastDNSRecordCreate,
-		Read:   resourceFastDNSRecordRead,
-		Update: resourceFastDNSRecordCreate,
-		Delete: resourceFastDNSRecordDelete,
-		Exists: resourceFastDNSRecordExists,
+		Create: resourceFastDNSZoneCreate,
+		Read:   resourceFastDNSZoneRead,
+		Update: resourceFastDNSZoneCreate,
+		Delete: resourceFastDNSZoneDelete,
+		Exists: resourceFastDNSZoneExists,
 		Importer: &schema.ResourceImporter{
-			State: resourceFastDNSRecordImport,
+			State: resourceFastDNSZoneImport,
 		},
 		Schema: map[string]*schema.Schema{
 			"hostname": {
@@ -692,7 +692,7 @@ func resourceFastDNSRecord() *schema.Resource {
 }
 
 // Create a new DNS Record
-func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceFastDNSZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	hostname := d.Get("hostname").(string)
 
 	// First try to get the zone from the API
@@ -936,7 +936,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 	}
 }
 
-func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
+func resourceFastDNSZoneRead(d *schema.ResourceData, meta interface{}) error {
 	hostname := d.Get("hostname").(string)
 
 	// find the zone first
@@ -955,7 +955,7 @@ func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceFastDNSRecordImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceFastDNSZoneImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	hostname := d.Id()
 
 	// find the zone first
@@ -1100,7 +1100,7 @@ func marshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 	d.Set("txt", txt)
 }
 
-func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceFastDNSZoneDelete(d *schema.ResourceData, meta interface{}) error {
 	hostname := d.Get("hostname").(string)
 
 	// find the zone first
@@ -1122,7 +1122,7 @@ func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceFastDNSRecordExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+func resourceFastDNSZoneExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	hostname := d.Get("hostname").(string)
 
 	// try to get the zone from the API

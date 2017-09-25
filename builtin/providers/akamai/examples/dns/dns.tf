@@ -3,7 +3,7 @@ provider "akamai" {
     fastdns_section = "dns"
 }
 
-resource "akamai_fastdns_record" "test_zone" {
+resource "akamai_fastdns_zone" "test_zone" {
   hostname = "akamaideveloper.net"
   soa {
     ttl = 900
