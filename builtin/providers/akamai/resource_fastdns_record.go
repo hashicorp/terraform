@@ -12,25 +12,33 @@ func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error {
+	hostname := d.Get("hostname").(string)
+
+	// find the zone first
+	zone, err := dns.GetZone(hostname)
+	if err != nil {
+		return err
+	}
+
+	// 'delete' the zone - this is a soft delete which
+	// will just remove the non required records
+	err = zone.Delete()
+	if err != nil {
+		return err
+	}
+
+	d.SetId("")
+
 	return nil
 }
+
 func resourceFastDNSRecordExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	hostname := d.Get("hostname").(string)
 
 	// try to get the zone from the API
 	log.Printf("[INFO] [Akamai FastDNS] Searching for zone [%s]", hostname)
 	zone, err := dns.GetZone(hostname)
-	if err != err {
-		return false, err
-	}
-
-	// create a second zone with the resource data
-	zone2 := dns.NewZone(hostname)
-	unmarshalResourceData(d, zone2)
-
-	// compare the two zones
-	return zone == zone2, nil
-
+	return zone != nil, err
 }
 
 func resourceFastDNSRecord() *schema.Resource {
