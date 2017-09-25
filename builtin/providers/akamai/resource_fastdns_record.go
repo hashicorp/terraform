@@ -3,7 +3,6 @@ package akamai
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/configdns-v1"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -30,195 +29,757 @@ func resourceFastDNSRecord() *schema.Resource {
 		// 	State: importRecord,
 		// },
 		Schema: map[string]*schema.Schema{
-			// Terraform-only Params
 			"hostname": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"type": {
-				Type:     schema.TypeString,
+			"a": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"target": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"aaaa": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"target": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"afsdb": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"target": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"subtype": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
+			},
+			"cname": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"target": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"dnskey": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"flags": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"protocol": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"algorithm": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"ds": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"keytag": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"algorithm": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"digest_type": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"digest": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"hinfo": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"hardware": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"software": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"loc": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"target": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"mx": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"target": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"priority": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"naptr": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"order": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"preference": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"flags": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"service": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"regexp": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"replacement": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"ns": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"target": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"nsec3": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"algorithm": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"flags": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"iterations": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"salt": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"next_hashed_owner_name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"type_bitmaps": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"nsec3param": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"algorithm": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"flags": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"iterations": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"salt": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"ptr": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"target": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"rp": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"mailbox": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"txt": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"rrsig": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"type_covered": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"algorithm": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"original_ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"expiration": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"inception": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"keytag": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"signer": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"signature": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"labels": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
+			},
+			"soa": {
+				Type:     schema.TypeList,
 				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"originserver": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"contact": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"serial": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"refresh": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"retry": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"expire": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"minimum": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+					},
+				},
 			},
-
-			// Special to allow multiple targets:
-			"targets": {
-				Type:     schema.TypeSet,
+			"spf": {
+				Type:     schema.TypeList,
 				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"target": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 			},
-
-			// DNS Record attributes
-			"active": {
-				Type:     schema.TypeBool,
+			"srv": {
+				Type:     schema.TypeList,
 				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"target": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"priority": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"weight": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"port": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
 			},
-			"algorithm": {
-				Type:     schema.TypeInt,
+			"sshfp": {
+				Type:     schema.TypeList,
 				Optional: true,
-			},
-			"contact": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"digest": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"digesttype": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"expiration": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"expire": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"fingerprint": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"fingerprinttype": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"flags": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"hardware": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"inception": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"iterations": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"keytag": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"labels": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"mailbox": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"minimum": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"name": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"nexthashedownername": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"order": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"originalttl": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"originserver": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"port": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"preference": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"priority": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"protocol": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"refresh": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"regexp": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"replacement": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"retry": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"salt": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"serial": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"service": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"signature": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"signer": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"software": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"subtype": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"ttl": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"algorithm": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"fingerprint_type": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"fingerprint": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 			},
 			"txt": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeList,
 				Optional: true,
-			},
-			"typebitmaps": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"typecovered": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"weight": {
-				Type:     schema.TypeInt, // Should be uint
-				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ttl": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"active": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"target": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -226,18 +787,11 @@ func resourceFastDNSRecord() *schema.Resource {
 
 // Create a new DNS Record
 func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
-	recordType := strings.ToUpper(d.Get("type").(string))
-	name := d.Get("name").(string)
-
-	if recordType == "SOA" {
-		name = recordType
-		log.Printf("[INFO] [Akamai FastDNS]: Creating %s Record on %s", recordType, d.Get("hostname"))
-	} else {
-		log.Printf("[INFO] [Akamai FastDNS] Creating %s Record \"%s\" on %s", recordType, d.Get("name"), d.Get("hostname"))
-	}
+	hostname := d.Get("hostname").(string)
 
 	// First try to get the zone from the API
-	zone, e := dns.GetZone(d.Get("hostname").(string))
+	log.Printf("[DEBUG] [Akamai FastDNS] Looking for zone %s", hostname)
+	zone, e := dns.GetZone(hostname)
 
 	if e != nil {
 		// If there's no existing zone we'll create a blank one
@@ -246,47 +800,36 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 			// blank zone for the records to be added to and continue
 			log.Printf("[DEBUG] [Akamai FastDNS] [ERROR] %s", e.Error())
 			log.Printf("[DEBUG] [Akamai FastDNS] Creating new zone")
-			zone = dns.NewZone(d.Get("hostname").(string))
+			zone = dns.NewZone(hostname)
 			e = nil
 		} else {
 			return e
 		}
 	}
 
-	// Transform the record data from the terraform config to local types
-	// Then add each record to the zone
-	records := unmarshalResourceData(d)
-	for _, record := range records {
-		err := zone.AddRecord(record)
-		if err != nil {
-			return err
-		}
-	}
+	// Transform the record data from the terraform config to a local type
+	log.Printf("[DEBUG] [Akamai FastDNS] Adding records to zone")
+	unmarshalResourceData(d, zone)
 
 	// Save the zone to the API
+	log.Printf("[DEBUG] [Akamai FastDNS] Saving zone")
 	e = zone.Save()
 	if e != nil {
 		return e
 	}
 
 	// Give terraform the ID
-	d.SetId(fmt.Sprintf("%s-%s-%s-%s", zone.Token, zone.Zone.Name, recordType, name))
+	d.SetId(fmt.Sprintf("%s-%s-%s", zone.Token, zone.Zone.Name, hostname))
 
 	return nil
 }
 
 // Helper function for unmarshalResourceData() below
-func assignFields(record dns.DNSRecord, d *schema.ResourceData, i int) {
+func assignFields(record dns.DNSRecord, d map[string]interface{}) {
 	f := record.GetAllowedFields()
 	for _, field := range f {
-		val, exists := d.GetOk(field)
-		if !exists {
-			// TODO: maybe not all fields are required?
-			log.Printf("[WARN] [Akamai FastDNS] Field [%s] is missing from your terraform config", field)
-		} else {
-			if field == "targets" {
-				val = val.(*schema.Set).List()[i].(string) //unsafe?
-			}
+		val, ok := d[field]
+		if ok {
 			e := record.SetField(field, val)
 			if e != nil {
 				log.Printf("[WARN] [Akamai FastDNS] Couldn't add field to record: %s", e.Error())
@@ -296,113 +839,193 @@ func assignFields(record dns.DNSRecord, d *schema.ResourceData, i int) {
 }
 
 // Unmarshal the config data from the terraform config file to our local types
-func unmarshalResourceData(d *schema.ResourceData) dns.RecordSet {
-	// We will get 1 record at a time from terraform
-	// For example an MX record
-	// Any record can have 1 or more targets
-	// We'll make a record for each target and add them to the record set
-	records := dns.RecordSet{}
-	recordType := strings.ToUpper(d.Get("type").(string))
-
-	// Not all record types have targets, so we'll set a default value
-	// for the loop below
-	var t int
-	targets, ok := d.GetOk("targets")
-	if !ok {
-		t = 1
-	} else {
-		t = targets.(*schema.Set).Len() //unsafe?
-	}
-
-	// for each target listed, create a record in the record set
-	for i := 0; i < t; i++ {
-		switch recordType {
-		case "A":
+func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
+	a, ok := d.GetOk("a")
+	if ok {
+		for _, val := range a.([]interface{}) {
 			record := dns.NewARecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "AAAA":
-			record := dns.NewAaaaRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "AFSDB":
-			record := dns.NewAfsdbRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "CNAME":
-			record := dns.NewCnameRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "DNSKEY":
-			record := dns.NewDnskeyRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "DS":
-			record := dns.NewDsRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "HINFO":
-			record := dns.NewHinfoRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "LOC":
-			record := dns.NewLocRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "MX":
-			record := dns.NewMxRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "NAPTR":
-			record := dns.NewNaptrRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "NS":
-			record := dns.NewNsRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "NSEC3":
-			record := dns.NewNsec3Record()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "NSEC3PARAM":
-			record := dns.NewNsec3paramRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "PTR":
-			record := dns.NewPtrRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "RP":
-			record := dns.NewRpRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "RRSIG":
-			record := dns.NewRrsigRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "SOA":
-			record := dns.NewSoaRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "SPF":
-			record := dns.NewSpfRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "SRV":
-			record := dns.NewSrvRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "SSHFP":
-			record := dns.NewSshfpRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
-		case "TXT":
-			record := dns.NewTxtRecord()
-			assignFields(record, d, i)
-			records = append(records, record)
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
 		}
 	}
 
-	return records
+	aaaa, ok := d.GetOk("aaaa")
+	if ok {
+		for _, val := range aaaa.([]interface{}) {
+			record := dns.NewAaaaRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	afsdb, ok := d.GetOk("afsdb")
+	if ok {
+		for _, val := range afsdb.([]interface{}) {
+			record := dns.NewAfsdbRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	cname, ok := d.GetOk("cname")
+	if ok {
+		for _, val := range cname.([]interface{}) {
+			record := dns.NewCnameRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	dnskey, ok := d.GetOk("dnskey")
+	if ok {
+		for _, val := range dnskey.([]interface{}) {
+			record := dns.NewDnskeyRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	ds, ok := d.GetOk("ds")
+	if ok {
+		for _, val := range ds.([]interface{}) {
+			record := dns.NewDsRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	hinfo, ok := d.GetOk("hinfo")
+	if ok {
+		for _, val := range hinfo.([]interface{}) {
+			record := dns.NewHinfoRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	loc, ok := d.GetOk("loc")
+	if ok {
+		for _, val := range loc.([]interface{}) {
+			record := dns.NewLocRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	mx, ok := d.GetOk("mx")
+	if ok {
+		for _, val := range mx.([]interface{}) {
+			record := dns.NewMxRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	naptr, ok := d.GetOk("naptr")
+	if ok {
+		for _, val := range naptr.([]interface{}) {
+			record := dns.NewNaptrRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	ns, ok := d.GetOk("ns")
+	if ok {
+		for _, val := range ns.([]interface{}) {
+			record := dns.NewNsRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	nsec3, ok := d.GetOk("nsec3")
+	if ok {
+		for _, val := range nsec3.([]interface{}) {
+			record := dns.NewNsec3Record()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	nsec3param, ok := d.GetOk("nsec3param")
+	if ok {
+		for _, val := range nsec3param.([]interface{}) {
+			record := dns.NewNsec3paramRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	ptr, ok := d.GetOk("ptr")
+	if ok {
+		for _, val := range ptr.([]interface{}) {
+			record := dns.NewPtrRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	rp, ok := d.GetOk("rp")
+	if ok {
+		for _, val := range rp.([]interface{}) {
+			record := dns.NewRpRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	rrsig, ok := d.GetOk("rrsig")
+	if ok {
+		for _, val := range rrsig.([]interface{}) {
+			record := dns.NewRrsigRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	soa, ok := d.GetOk("soa")
+	if ok {
+		for _, val := range soa.([]interface{}) {
+			record := dns.NewSoaRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	spf, ok := d.GetOk("spf")
+	if ok {
+		for _, val := range spf.([]interface{}) {
+			record := dns.NewSpfRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	srv, ok := d.GetOk("srv")
+	if ok {
+		for _, val := range srv.([]interface{}) {
+			record := dns.NewSrvRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	sshfp, ok := d.GetOk("sshfp")
+	if ok {
+		for _, val := range sshfp.([]interface{}) {
+			record := dns.NewSshfpRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
+
+	txt, ok := d.GetOk("txt")
+	if ok {
+		for _, val := range txt.([]interface{}) {
+			record := dns.NewTxtRecord()
+			assignFields(record, val.(map[string]interface{}))
+			zone.AddRecord(record)
+		}
+	}
 }
