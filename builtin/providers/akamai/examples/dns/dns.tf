@@ -26,4 +26,10 @@ resource "akamai_fastdns_record" "test_zone" {
     active = true
     target = "5.6.7.8"
   }
+  cname {
+    name = "wwwq"
+    ttl = 600
+    active = true
+    target = "blog.akamaideveloper.net."
+  }
 }

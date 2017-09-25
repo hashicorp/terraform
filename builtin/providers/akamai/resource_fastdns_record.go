@@ -15,7 +15,22 @@ func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 func resourceFastDNSRecordExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	return true, nil
+	hostname := d.Get("hostname").(string)
+
+	// try to get the zone from the API
+	log.Printf("[INFO] [Akamai FastDNS] Searching for zone [%s]", hostname)
+	zone, err := dns.GetZone(hostname)
+	if err != err {
+		return false, err
+	}
+
+	// create a second zone with the resource data
+	zone2 := dns.NewZone(hostname)
+	unmarshalResourceData(d, zone2)
+
+	// compare the two zones
+	return zone == zone2, nil
+
 }
 
 func resourceFastDNSRecord() *schema.Resource {
