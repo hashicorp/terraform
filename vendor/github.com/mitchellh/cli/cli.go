@@ -59,7 +59,19 @@ type CLI struct {
 	// For example, if the key is "foo bar", then to access it our CLI
 	// must be accessed with "./cli foo bar". See the docs for CLI for
 	// notes on how this changes some other behavior of the CLI as well.
+	//
+	// The factory should be as cheap as possible, ideally only allocating
+	// a struct. The factory may be called multiple times in the course
+	// of a command execution and certain events such as help require the
+	// instantiation of all commands. Expensive initialization should be
+	// deferred to function calls within the interface implementation.
 	Commands map[string]CommandFactory
+
+	// HiddenCommands is a list of commands that are "hidden". Hidden
+	// commands are not given to the help function callback and do not
+	// show up in autocomplete. The values in the slice should be equivalent
+	// to the keys in the command map.
+	HiddenCommands []string
 
 	// Name defines the name of the CLI.
 	Name string
@@ -116,6 +128,7 @@ type CLI struct {
 	autocomplete   *complete.Complete
 	commandTree    *radix.Tree
 	commandNested  bool
+	commandHidden  map[string]struct{}
 	subcommand     string
 	subcommandArgs []string
 	topFlags       []string
@@ -173,7 +186,7 @@ func (c *CLI) Run() (int, error) {
 
 	// Just print the help when only '-h' or '--help' is passed.
 	if c.IsHelp() && c.Subcommand() == "" {
-		c.HelpWriter.Write([]byte(c.HelpFunc(c.Commands) + "\n"))
+		c.HelpWriter.Write([]byte(c.HelpFunc(c.helpCommands(c.Subcommand())) + "\n"))
 		return 0, nil
 	}
 
@@ -216,7 +229,7 @@ func (c *CLI) Run() (int, error) {
 	raw, ok := c.commandTree.Get(c.Subcommand())
 	if !ok {
 		c.HelpWriter.Write([]byte(c.HelpFunc(c.helpCommands(c.subcommandParent())) + "\n"))
-		return 1, nil
+		return 127, nil
 	}
 
 	command, err := raw.(CommandFactory)()
@@ -296,6 +309,14 @@ func (c *CLI) init() {
 
 	if c.HelpWriter == nil {
 		c.HelpWriter = os.Stderr
+	}
+
+	// Build our hidden commands
+	if len(c.HiddenCommands) > 0 {
+		c.commandHidden = make(map[string]struct{})
+		for _, h := range c.HiddenCommands {
+			c.commandHidden[h] = struct{}{}
+		}
 	}
 
 	// Build our command tree
@@ -398,29 +419,29 @@ func (c *CLI) initAutocomplete() {
 func (c *CLI) initAutocompleteSub(prefix string) complete.Command {
 	var cmd complete.Command
 	walkFn := func(k string, raw interface{}) bool {
+		// Keep track of the full key so that we can nest further if necessary
+		fullKey := k
+
 		if len(prefix) > 0 {
 			// If we have a prefix, trim the prefix + 1 (for the space)
 			// Example: turns "sub one" to "one" with prefix "sub"
 			k = k[len(prefix)+1:]
 		}
 
-		// Keep track of the full key so that we can nest further if necessary
-		fullKey := k
-
-		if idx := strings.LastIndex(k, " "); idx >= 0 {
-			// If there is a space, we trim up to the space
+		if idx := strings.Index(k, " "); idx >= 0 {
+			// If there is a space, we trim up to the space. This turns
+			// "sub sub2 sub3" into "sub". The prefix trim above will
+			// trim our current depth properly.
 			k = k[:idx]
-		}
-
-		if idx := strings.LastIndex(k, " "); idx >= 0 {
-			// This catches the scenario just in case where we see "sub one"
-			// before "sub". This will let us properly setup the subcommand
-			// regardless.
-			k = k[idx+1:]
 		}
 
 		if _, ok := cmd.Sub[k]; ok {
 			// If we already tracked this subcommand then ignore
+			return false
+		}
+
+		// If the command is hidden, don't record it at all
+		if _, ok := c.commandHidden[fullKey]; ok {
 			return false
 		}
 
@@ -569,6 +590,11 @@ func (c *CLI) helpCommands(prefix string) map[string]CommandFactory {
 		if !ok {
 			// We just got it via WalkPrefix above, so we just panic
 			panic("not found: " + k)
+		}
+
+		// If this is a hidden command, don't show it
+		if _, ok := c.commandHidden[k]; ok {
+			continue
 		}
 
 		result[k] = raw.(CommandFactory)
