@@ -38,10 +38,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -66,10 +62,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -94,10 +86,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -126,10 +114,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -154,10 +138,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -194,10 +174,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -234,10 +210,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -266,10 +238,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -294,10 +262,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -326,10 +290,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -374,10 +334,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -402,10 +358,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -450,10 +402,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -490,10 +438,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -518,10 +462,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -550,10 +490,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -610,10 +546,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"ttl": {
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -654,10 +586,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -682,10 +610,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -722,10 +646,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -758,10 +678,6 @@ func resourceFastDNSRecord() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": {
 							Type:     schema.TypeString,
 							Required: true,
