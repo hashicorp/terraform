@@ -8,39 +8,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
-}
-func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error {
-	hostname := d.Get("hostname").(string)
-
-	// find the zone first
-	zone, err := dns.GetZone(hostname)
-	if err != nil {
-		return err
-	}
-
-	// 'delete' the zone - this is a soft delete which
-	// will just remove the non required records
-	err = zone.Delete()
-	if err != nil {
-		return err
-	}
-
-	d.SetId("")
-
-	return nil
-}
-
-func resourceFastDNSRecordExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	hostname := d.Get("hostname").(string)
-
-	// try to get the zone from the API
-	log.Printf("[INFO] [Akamai FastDNS] Searching for zone [%s]", hostname)
-	zone, err := dns.GetZone(hostname)
-	return zone != nil, err
-}
-
 func resourceFastDNSRecord() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceFastDNSRecordCreate,
@@ -967,4 +934,175 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 			zone.AddRecord(record)
 		}
 	}
+}
+
+func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] [Akamai FastDNS] CALLING READ")
+	hostname := d.Get("hostname").(string)
+
+	// find the zone first
+	zone, err := dns.GetZone(hostname)
+	if err != nil {
+		return err
+	}
+
+	// assign each of the record sets to the resource data
+	d.Set("hostname", zone.Zone.Name)
+
+	a := make([]map[string]interface{}, len(zone.Zone.A))
+	for i, v := range zone.Zone.A {
+		a[i] = v.ToMap()
+	}
+	d.Set("a", a)
+
+	aaaa := make([]map[string]interface{}, len(zone.Zone.Aaaa))
+	for i, v := range zone.Zone.Aaaa {
+		aaaa[i] = v.ToMap()
+	}
+	d.Set("aaaa", aaaa)
+
+	afsdb := make([]map[string]interface{}, len(zone.Zone.Afsdb))
+	for i, v := range zone.Zone.Afsdb {
+		afsdb[i] = v.ToMap()
+	}
+	d.Set("afsdb", afsdb)
+
+	cname := make([]map[string]interface{}, len(zone.Zone.Cname))
+	for i, v := range zone.Zone.Cname {
+		cname[i] = v.ToMap()
+	}
+	d.Set("cname", cname)
+
+	dnskey := make([]map[string]interface{}, len(zone.Zone.Dnskey))
+	for i, v := range zone.Zone.Dnskey {
+		dnskey[i] = v.ToMap()
+	}
+	d.Set("dnskey", dnskey)
+
+	ds := make([]map[string]interface{}, len(zone.Zone.Ds))
+	for i, v := range zone.Zone.Ds {
+		ds[i] = v.ToMap()
+	}
+	d.Set("ds", ds)
+
+	hinfo := make([]map[string]interface{}, len(zone.Zone.Hinfo))
+	for i, v := range zone.Zone.Hinfo {
+		hinfo[i] = v.ToMap()
+	}
+	d.Set("hinfo", hinfo)
+
+	loc := make([]map[string]interface{}, len(zone.Zone.Loc))
+	for i, v := range zone.Zone.Loc {
+		loc[i] = v.ToMap()
+	}
+	d.Set("loc", loc)
+
+	mx := make([]map[string]interface{}, len(zone.Zone.Mx))
+	for i, v := range zone.Zone.Mx {
+		mx[i] = v.ToMap()
+	}
+	d.Set("mx", mx)
+
+	naptr := make([]map[string]interface{}, len(zone.Zone.Naptr))
+	for i, v := range zone.Zone.Naptr {
+		naptr[i] = v.ToMap()
+	}
+	d.Set("naptr", naptr)
+
+	ns := make([]map[string]interface{}, len(zone.Zone.Ns))
+	for i, v := range zone.Zone.Ns {
+		ns[i] = v.ToMap()
+	}
+	d.Set("ns", ns)
+
+	nsec3 := make([]map[string]interface{}, len(zone.Zone.Nsec3))
+	for i, v := range zone.Zone.Nsec3 {
+		nsec3[i] = v.ToMap()
+	}
+	d.Set("nsec3", nsec3)
+
+	nsec3param := make([]map[string]interface{}, len(zone.Zone.Nsec3param))
+	for i, v := range zone.Zone.Nsec3param {
+		nsec3param[i] = v.ToMap()
+	}
+	d.Set("nsec3param", nsec3param)
+
+	ptr := make([]map[string]interface{}, len(zone.Zone.Ptr))
+	for i, v := range zone.Zone.Ptr {
+		ptr[i] = v.ToMap()
+	}
+	d.Set("ptr", ptr)
+
+	rp := make([]map[string]interface{}, len(zone.Zone.Rp))
+	for i, v := range zone.Zone.Rp {
+		rp[i] = v.ToMap()
+	}
+	d.Set("rp", rp)
+
+	rrsig := make([]map[string]interface{}, len(zone.Zone.Rrsig))
+	for i, v := range zone.Zone.Rrsig {
+		rrsig[i] = v.ToMap()
+	}
+	d.Set("rrsig", rrsig)
+
+	d.Set("soa", zone.Zone.Soa.ToMap())
+
+	spf := make([]map[string]interface{}, len(zone.Zone.Spf))
+	for i, v := range zone.Zone.Spf {
+		spf[i] = v.ToMap()
+	}
+	d.Set("spf", spf)
+
+	srv := make([]map[string]interface{}, len(zone.Zone.Srv))
+	for i, v := range zone.Zone.Srv {
+		srv[i] = v.ToMap()
+	}
+	d.Set("srv", srv)
+
+	sshfp := make([]map[string]interface{}, len(zone.Zone.Sshfp))
+	for i, v := range zone.Zone.Sshfp {
+		sshfp[i] = v.ToMap()
+	}
+	d.Set("sshfp", sshfp)
+
+	txt := make([]map[string]interface{}, len(zone.Zone.Txt))
+	for i, v := range zone.Zone.Txt {
+		txt[i] = v.ToMap()
+	}
+	d.Set("txt", txt)
+
+	// Give terraform the ID
+	d.SetId(fmt.Sprintf("%s-%s-%s", zone.Token, zone.Zone.Name, hostname))
+
+	return nil
+}
+
+func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error {
+	hostname := d.Get("hostname").(string)
+
+	// find the zone first
+	zone, err := dns.GetZone(hostname)
+	if err != nil {
+		return err
+	}
+
+	// 'delete' the zone - this is a soft delete which
+	// will just remove the non required records
+	err = zone.Delete()
+	if err != nil {
+		return err
+	}
+
+	d.SetId("")
+
+	return nil
+}
+
+func resourceFastDNSRecordExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	hostname := d.Get("hostname").(string)
+
+	// try to get the zone from the API
+	log.Printf("[INFO] [Akamai FastDNS] Searching for zone [%s]", hostname)
+	zone, err := dns.GetZone(hostname)
+	return zone != nil, err
 }
