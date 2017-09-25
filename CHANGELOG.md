@@ -2,7 +2,8 @@
 
 IMPROVEMENTS:
 
-* `terraform state rm` now includes in its output the count of resources that were removed from the state. [GH-16137]
+* config: New `abs` interpolation function, returning the absolute value of a number [GH-16168]
+* cli: `terraform state rm` now includes in its output the count of resources that were removed from the state. [GH-16137]
 
 ## 0.10.6 (September 19, 2017)
 
