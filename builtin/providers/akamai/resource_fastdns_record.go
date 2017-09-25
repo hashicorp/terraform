@@ -15,9 +15,9 @@ func resourceFastDNSRecord() *schema.Resource {
 		Update: resourceFastDNSRecordCreate,
 		Delete: resourceFastDNSRecordDelete,
 		Exists: resourceFastDNSRecordExists,
-		// Importer: &schema.ResourceImporter{
-		// 	State: importRecord,
-		// },
+		Importer: &schema.ResourceImporter{
+			State: resourceFastDNSRecordImport,
+		},
 		Schema: map[string]*schema.Schema{
 			"hostname": {
 				Type:     schema.TypeString,
@@ -696,7 +696,7 @@ func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error
 	hostname := d.Get("hostname").(string)
 
 	// First try to get the zone from the API
-	log.Printf("[DEBUG] [Akamai FastDNS] Looking for zone %s", hostname)
+	log.Printf("[INFO] [Akamai FastDNS] Searching for zone [%s]", hostname)
 	zone, e := dns.GetZone(hostname)
 
 	if e != nil {
@@ -937,16 +937,44 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 }
 
 func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[INFO] [Akamai FastDNS] CALLING READ")
 	hostname := d.Get("hostname").(string)
 
 	// find the zone first
+	log.Printf("[INFO] [Akamai FastDNS] Searching for zone [%s]", hostname)
 	zone, err := dns.GetZone(hostname)
 	if err != nil {
 		return err
 	}
 
 	// assign each of the record sets to the resource data
+	marshalResourceData(d, zone)
+
+	// Give terraform the ID
+	d.SetId(fmt.Sprintf("%s-%s-%s", zone.Token, zone.Zone.Name, hostname))
+
+	return nil
+}
+
+func resourceFastDNSRecordImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	hostname := d.Id()
+
+	// find the zone first
+	log.Printf("[INFO] [Akamai FastDNS] Searching for zone [%s]", hostname)
+	zone, err := dns.GetZone(hostname)
+	if err != nil {
+		return nil, err
+	}
+
+	// assign each of the record sets to the resource data
+	marshalResourceData(d, zone)
+
+	// Give terraform the ID
+	d.SetId(fmt.Sprintf("%s-%s-%s", zone.Token, zone.Zone.Name, hostname))
+
+	return []*schema.ResourceData{d}, nil
+}
+
+func marshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 	d.Set("hostname", zone.Zone.Name)
 
 	a := make([]map[string]interface{}, len(zone.Zone.A))
@@ -1070,17 +1098,13 @@ func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
 		txt[i] = v.ToMap()
 	}
 	d.Set("txt", txt)
-
-	// Give terraform the ID
-	d.SetId(fmt.Sprintf("%s-%s-%s", zone.Token, zone.Zone.Name, hostname))
-
-	return nil
 }
 
 func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error {
 	hostname := d.Get("hostname").(string)
 
 	// find the zone first
+	log.Printf("[INFO] [Akamai FastDNS] Searching for zone [%s]", hostname)
 	zone, err := dns.GetZone(hostname)
 	if err != nil {
 		return err
