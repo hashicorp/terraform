@@ -3,30 +3,27 @@ provider "akamai" {
     fastdns_section = "dns"
 }
 
-resource "akamai_fastdns_record" "test_soa_record" {
+resource "akamai_fastdns_record" "test_zone" {
   hostname = "akamaideveloper.net"
   soa {
-    type = "soa"
     ttl = 900
     originserver = "akamaideveloper.net."
-    contact = "hostmaster.akamaideveloper.net"
+    contact = "hostmaster.akamaideveloper.net."
     refresh = 900
     retry = 300
     expire = 604800
     minimum = 180
   }
   a {
-    type = "a"
-    name = "test"
+    name = "web"
     ttl = 900
     active = true
-    target = "akamaideveloper.net"
+    target = "1.2.3.4"
   }
   a {
-    type = "a"
-    name = "test2"
+    name = "www"
     ttl = 600
     active = true
-    target = "aloper.net"
+    target = "5.6.7.8"
   }
 }
