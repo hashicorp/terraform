@@ -199,6 +199,38 @@ func TestValidateListUniqueStrings(t *testing.T) {
 	})
 }
 
+func TestValidationNoZeroValues(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "foo",
+			f:   NoZeroValues,
+		},
+		{
+			val: 1,
+			f:   NoZeroValues,
+		},
+		{
+			val: float64(1),
+			f:   NoZeroValues,
+		},
+		{
+			val:         "",
+			f:           NoZeroValues,
+			expectedErr: regexp.MustCompile("must not be empty"),
+		},
+		{
+			val:         0,
+			f:           NoZeroValues,
+			expectedErr: regexp.MustCompile("must not be zero"),
+		},
+		{
+			val:         float64(0),
+			f:           NoZeroValues,
+			expectedErr: regexp.MustCompile("must not be zero"),
+		},
+	})
+}
+
 func runTestCases(t *testing.T, cases []testCase) {
 	matchErr := func(errs []error, r *regexp.Regexp) bool {
 		// err must match one provided

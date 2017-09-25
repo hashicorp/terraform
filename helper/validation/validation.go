@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"net"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -103,6 +104,24 @@ func StringLenBetween(min, max int) schema.SchemaValidateFunc {
 		}
 		return
 	}
+}
+
+// NoZeroValues is a SchemaValidateFunc which tests if the provided value is
+// not a zero value. It's useful in situations where you want to catch
+// explicit zero values on things like required fields during validation.
+func NoZeroValues(i interface{}, k string) (s []string, es []error) {
+	if reflect.ValueOf(i).Interface() == reflect.Zero(reflect.TypeOf(i)).Interface() {
+		switch reflect.TypeOf(i).Kind() {
+		case reflect.String:
+			es = append(es, fmt.Errorf("%s must not be empty", k))
+		case reflect.Int, reflect.Float64:
+			es = append(es, fmt.Errorf("%s must not be zero", k))
+		default:
+			// this validator should only ever be applied to TypeString, TypeInt and TypeFloat
+			panic(fmt.Errorf("can't use NoZeroValues with %T attribute %s", i, k))
+		}
+	}
+	return
 }
 
 // CIDRNetwork returns a SchemaValidateFunc which tests if the provided value
