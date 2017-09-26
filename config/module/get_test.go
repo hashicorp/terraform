@@ -23,6 +23,9 @@ type testMod struct {
 	version  string
 }
 
+// All the locationes from the mockRegistry start with a file:// scheme. If
+// the the location string here doesn't have a scheme, the mockRegistry will
+// find the absolute path and return a complete URL.
 var testMods = map[string]testMod{
 	"registry/foo/bar": {
 		location: "file:///download/registry/foo/bar/0.2.3//*?archive=tar.gz",
@@ -305,7 +308,6 @@ func TestRegistryGitHubArchive(t *testing.T) {
 		t.Fatal("should be loaded")
 	}
 
-	// This should no longer error
 	if err := tree.Load(storage, GetModeNone); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -358,7 +360,6 @@ func TestAccRegistryLoad(t *testing.T) {
 		t.Fatal("should be loaded")
 	}
 
-	// This should no longer error
 	if err := tree.Load(storage, GetModeNone); err != nil {
 		t.Fatalf("err: %s", err)
 	}
