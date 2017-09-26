@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/go-getter"
 
 	multierror "github.com/hashicorp/go-multierror"
@@ -450,6 +452,29 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	}
 
 	return nil
+}
+
+func (c *InitCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictDirs("")
+}
+
+func (c *InitCommand) AutocompleteFlags() complete.Flags {
+	return complete.Flags{
+		"-backend":        completePredictBoolean,
+		"-backend-config": complete.PredictFiles("*.tfvars"), // can also be key=value, but we can't "predict" that
+		"-force-copy":     complete.PredictNothing,
+		"-from-module":    completePredictModuleSource,
+		"-get":            completePredictBoolean,
+		"-get-plugins":    completePredictBoolean,
+		"-input":          completePredictBoolean,
+		"-lock":           completePredictBoolean,
+		"-lock-timeout":   complete.PredictAnything,
+		"-no-color":       complete.PredictNothing,
+		"-plugin-dir":     complete.PredictDirs(""),
+		"-reconfigure":    complete.PredictNothing,
+		"-upgrade":        completePredictBoolean,
+		"-verify-plugins": completePredictBoolean,
+	}
 }
 
 func (c *InitCommand) Help() string {
