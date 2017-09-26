@@ -2,6 +2,8 @@ package command
 
 import (
 	"strings"
+
+	"github.com/posener/complete"
 )
 
 type WorkspaceShowCommand struct {
@@ -24,6 +26,14 @@ func (c *WorkspaceShowCommand) Run(args []string) int {
 	c.Ui.Output(workspace)
 
 	return 0
+}
+
+func (c *WorkspaceShowCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictNothing
+}
+
+func (c *WorkspaceShowCommand) AutocompleteFlags() complete.Flags {
+	return nil
 }
 
 func (c *WorkspaceShowCommand) Help() string {
