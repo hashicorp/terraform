@@ -73,6 +73,31 @@ Usage: terraform graph [options] PATH
   to read this format.
 ```
 
+## Shell Tab-completion
+
+If you use either `bash` or `zsh` as your command shell, Terraform can provide
+tab-completion support for all command names and (at this time) _some_ command
+arguments.
+
+To add the necessary commands to your shell profile, run the following command:
+
+```bash
+terraform -install-autocomplete
+```
+
+After installation, it is necessary to restart your shell or to re-read its
+profile script before completion will be activated.
+
+To uninstall the completion hook, assuming that it has not been modified
+manually in the shell profile, run the following command:
+
+```bash
+terraform -uninstall-autocomplete
+```
+
+Currently not all of Terraform's subcommands have full tab-completion support
+for all arguments. We plan to improve tab-completion coverage over time.
+
 ## Upgrade and Security Bulletin Checks
 
 The Terraform CLI commands interact with the HashiCorp service
