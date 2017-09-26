@@ -69,15 +69,21 @@ func (n *NodeApplyableOutput) References() []string {
 
 // GraphNodeEvalable
 func (n *NodeApplyableOutput) EvalTree() EvalNode {
-	return &EvalOpFilter{
-		Ops: []walkOperation{walkRefresh, walkPlan, walkApply,
-			walkDestroy, walkInput, walkValidate},
-		Node: &EvalSequence{
-			Nodes: []EvalNode{
-				&EvalWriteOutput{
+	return &EvalSequence{
+		Nodes: []EvalNode{
+			&EvalOpFilter{
+				Ops: []walkOperation{walkRefresh, walkPlan, walkApply,
+					walkInput, walkValidate},
+				Node: &EvalWriteOutput{
 					Name:      n.Config.Name,
 					Sensitive: n.Config.Sensitive,
 					Value:     n.Config.RawConfig,
+				},
+			},
+			&EvalOpFilter{
+				Ops: []walkOperation{walkDestroy, walkPlanDestroy},
+				Node: &EvalDeleteOutput{
+					Name: n.Config.Name,
 				},
 			},
 		},
