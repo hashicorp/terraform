@@ -73,9 +73,11 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 			if _, ok := v.(GraphNodeResource); ok {
 				removable = true
 			}
+
 			if vr, ok := v.(RemovableIfNotTargeted); ok {
 				removable = vr.RemoveIfNotTargeted()
 			}
+
 			if removable && !targetedNodes.Include(v) {
 				log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
 				g.Remove(v)
@@ -135,7 +137,10 @@ func (t *TargetsTransformer) selectTargetedNodes(
 			}
 		}
 	}
+	return t.addDependencies(targetedNodes, g)
+}
 
+func (t *TargetsTransformer) addDependencies(targetedNodes *dag.Set, g *Graph) (*dag.Set, error) {
 	// Handle nodes that need to be included if their dependencies are included.
 	// This requires multiple passes since we need to catch transitive
 	// dependencies if and only if they are via other nodes that also
@@ -157,11 +162,6 @@ func (t *TargetsTransformer) selectTargetedNodes(
 			}
 
 			dependers = dependers.Filter(func(dv interface{}) bool {
-				// Can ignore nodes that are already targeted
-				/*if targetedNodes.Include(dv) {
-					return false
-				}*/
-
 				_, ok := dv.(GraphNodeTargetDownstream)
 				return ok
 			})
@@ -180,6 +180,7 @@ func (t *TargetsTransformer) selectTargetedNodes(
 				// depending on in case that informs its decision about whether
 				// it is safe to be targeted.
 				deps := g.DownEdges(v)
+
 				depsTargeted := deps.Intersection(targetedNodes)
 				depsUntargeted := deps.Difference(depsTargeted)
 
@@ -193,7 +194,44 @@ func (t *TargetsTransformer) selectTargetedNodes(
 		}
 	}
 
-	return targetedNodes, nil
+	return targetedNodes.Filter(func(dv interface{}) bool {
+		return filterPartialOutputs(dv, targetedNodes, g)
+	}), nil
+}
+
+// Outputs may have been included transitively, but if any of their
+// dependencies have been pruned they won't be resolvable.
+// If nothing depends on the output, and the output is missing any
+// dependencies, remove it from the graph.
+// This essentially maintains the previous behavior where interpolation in
+// outputs would fail silently, but can now surface errors where the output
+// is required.
+func filterPartialOutputs(v interface{}, targetedNodes *dag.Set, g *Graph) bool {
+	// should this just be done with TargetDownstream?
+	if _, ok := v.(*NodeApplyableOutput); !ok {
+		return true
+	}
+
+	dependers := g.UpEdges(v)
+	for _, d := range dependers.List() {
+		if _, ok := d.(*NodeCountBoundary); ok {
+			continue
+		}
+		// as soon as we see a real dependency, we mark this as
+		// non-removable
+		return true
+	}
+
+	depends := g.DownEdges(v)
+
+	for _, d := range depends.List() {
+		if !targetedNodes.Include(d) {
+			log.Printf("[WARN] %s missing targeted dependency %s, removing from the graph",
+				dag.VertexName(v), dag.VertexName(d))
+			return false
+		}
+	}
+	return true
 }
 
 func (t *TargetsTransformer) nodeIsTarget(
