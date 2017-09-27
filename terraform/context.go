@@ -539,6 +539,7 @@ func (c *Context) Plan() (*Plan, error) {
 	var operation walkOperation
 	if c.destroy {
 		operation = walkPlanDestroy
+		p.Destroy = true
 	} else {
 		// Set our state to be something temporary. We do this so that
 		// the plan can update a fake state so that variables work, then
