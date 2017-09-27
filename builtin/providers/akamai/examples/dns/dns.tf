@@ -1,13 +1,35 @@
 provider "akamai" {
-    edgerc = "/Users/dshafik/.edgerc"
+    edgerc = "/Users/Johanna/.edgerc"
     fastdns_section = "dns"
 }
 
-resource "akamai_fastdns_record" "test" {
-  hostname = "akamaideveloper.com"
-  name = "testing"
-  type = "Cname"
-  active = true
-  targets = ["developer.akamai.com."]
-  ttl = 30
+resource "akamai_fastdns_zone" "test_zone" {
+  hostname = "akamaideveloper.net"
+  soa {
+    ttl = 900
+    originserver = "akamaideveloper.net."
+    contact = "hostmaster.akamaideveloper.net."
+    refresh = 900
+    retry = 300
+    expire = 604800
+    minimum = 180
+  }
+  a {
+    name = "web"
+    ttl = 900
+    active = true
+    target = "1.2.3.4"
+  }
+  a {
+    name = "www"
+    ttl = 600
+    active = true
+    target = "5.6.7.8"
+  }
+  cname {
+    name = "wwwq"
+    ttl = 600
+    active = true
+    target = "blog.akamaideveloper.net."
+  }
 }

@@ -3,9 +3,9 @@ package akamai
 import (
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/configdns-v1"
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/edgegrid"
+	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
 )
 
 func Provider() terraform.ResourceProvider {
@@ -27,8 +27,8 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"akamai_fastdns_record": resourceFastDNSRecord(),
-			"akamai_property":       resourceProperty(),
+			"akamai_fastdns_zone": resourceFastDNSZone(),
+			"akamai_property":     resourceProperty(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
