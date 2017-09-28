@@ -102,7 +102,7 @@ func TestDetectRegistry(t *testing.T) {
 	defer server.Close()
 
 	detector := registryDetector{
-		api:    server.URL + "/v1/modules/",
+		api:    server.URL + "/v1/modules",
 		client: server.Client(),
 	}
 
@@ -181,7 +181,7 @@ func TestDetectors(t *testing.T) {
 	}
 
 	regDetector := &registryDetector{
-		api:    server.URL + "/v1/modules/",
+		api:    server.URL + "/v1/modules",
 		client: server.Client(),
 	}
 
@@ -280,7 +280,7 @@ func TestRegistryGitHubArchive(t *testing.T) {
 	defer server.Close()
 
 	regDetector := &registryDetector{
-		api:    server.URL + "/v1/modules/",
+		api:    server.URL + "/v1/modules",
 		client: server.Client(),
 	}
 
@@ -310,6 +310,18 @@ func TestRegistryGitHubArchive(t *testing.T) {
 
 	if err := tree.Load(storage, GetModeNone); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	// stop the registry server, and make sure that we don't need to call out again
+	server.Close()
+	tree = NewTree("", testConfig(t, "registry-tar-subdir"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !tree.Loaded() {
+		t.Fatal("should be loaded")
 	}
 
 	actual := strings.TrimSpace(tree.String())
