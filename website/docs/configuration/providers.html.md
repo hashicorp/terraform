@@ -185,4 +185,6 @@ provider "aws" {
 }
 ```
 
+An exception to this is the special `version` attribute that applies to all `provider` blocks for specifying [provider versions](#provider-versions); interpolation is not supported for provider versions since provider compatibility is a property of the configuration rather than something dynamic, and provider plugin installation happens too early for variables to be resolvable in this context.
+
 -> **NOTE:** Because providers are one of the first things loaded when Terraform parses the graph, it is not possible to use the output from modules or resources as inputs to the provider. At this time, only [variables](/docs/configuration/variables.html) and [data sources](/docs/configuration/data-sources.html), including [remote state](/docs/providers/terraform/d/remote_state.html) may be used in an interpolation inside a provider stanza.
