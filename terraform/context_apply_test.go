@@ -8809,3 +8809,50 @@ module.child:
 		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestContext2Apply_destroyWithLocals(t *testing.T) {
+	m := testModule(t, "apply-destroy-with-locals")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(testProvider("aws")),
+			},
+		),
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Outputs: map[string]*OutputState{
+						"name": &OutputState{
+							Type:  "string",
+							Value: "test-bar",
+						},
+					},
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+		Destroy: true,
+	})
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("error during apply: %s", err)
+	}
+
+	got := strings.TrimSpace(state.String())
+	want := strings.TrimSpace(`
+	TODO
+`)
+	if got != want {
+		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
