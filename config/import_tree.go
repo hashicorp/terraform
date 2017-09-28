@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"os"
 )
 
 // configurable is an interface that must be implemented by any configuration
@@ -27,15 +29,52 @@ type importTree struct {
 // imports.
 type fileLoaderFunc func(path string) (configurable, []string, error)
 
+// Set this to a non-empty value at link time to enable the HCL2 experiment.
+// This is not currently enabled for release builds.
+//
+// For example:
+//    go install -ldflags="-X github.com/hashicorp/terraform/config.enableHCL2Experiment=true" github.com/hashicorp/terraform
+var enableHCL2Experiment = ""
+
 // loadTree takes a single file and loads the entire importTree for that
 // file. This function detects what kind of configuration file it is an
 // executes the proper fileLoaderFunc.
 func loadTree(root string) (*importTree, error) {
 	var f fileLoaderFunc
-	switch ext(root) {
-	case ".tf", ".tf.json":
-		f = loadFileHcl
-	default:
+
+	// HCL2 experiment is currently activated at build time via the linker.
+	// See the comment on this variable for more information.
+	if enableHCL2Experiment == "" {
+		// Main-line behavior: always use the original HCL parser
+		switch ext(root) {
+		case ".tf", ".tf.json":
+			f = loadFileHcl
+		default:
+		}
+	} else {
+		// Experimental behavior: use the HCL2 parser if the opt-in comment
+		// is present.
+		switch ext(root) {
+		case ".tf":
+			// We need to sniff the file for the opt-in comment line to decide
+			// if the file is participating in the HCL2 experiment.
+			cf, err := os.Open(root)
+			if err != nil {
+				return nil, err
+			}
+			sc := bufio.NewScanner(cf)
+			for sc.Scan() {
+				if sc.Text() == "#terraform:hcl2" {
+					f = globalHCL2Loader.loadFile
+				}
+			}
+			if f == nil {
+				f = loadFileHcl
+			}
+		case ".tf.json":
+			f = loadFileHcl
+		default:
+		}
 	}
 
 	if f == nil {
