@@ -8868,3 +8868,51 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestContext2Apply_providerWithLocals(t *testing.T) {
+	m := testModule(t, "provider-with-locals")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	p.ApplyFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ctx = testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State:   state,
+		Destroy: true,
+	})
+
+	if _, err = ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if state.HasResources() {
+		t.Fatal("expected no state, got:", state)
+	}
+}
