@@ -8812,36 +8812,50 @@ module.child:
 
 func TestContext2Apply_destroyWithLocals(t *testing.T) {
 	m := testModule(t, "apply-destroy-with-locals")
-	ctx := testContext2(t, &ContextOpts{
-		Module: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(testProvider("aws")),
-			},
-		),
-		State: &State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Outputs: map[string]*OutputState{
-						"name": &OutputState{
-							Type:  "string",
-							Value: "test-bar",
-						},
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		d, err := testDiffFn(info, s, c)
+		fmt.Println("DIFF:", d)
+		return d, err
+	}
+
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Outputs: map[string]*OutputState{
+					"name": &OutputState{
+						Type:  "string",
+						Value: "test-bar",
 					},
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "foo",
-							},
+				},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
 						},
 					},
 				},
 			},
 		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State:   s,
 		Destroy: true,
 	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	state, err := ctx.Apply()
 	if err != nil {
@@ -8849,9 +8863,7 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 	}
 
 	got := strings.TrimSpace(state.String())
-	want := strings.TrimSpace(`
-	TODO
-`)
+	want := strings.TrimSpace(`<no state>`)
 	if got != want {
 		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
 	}
