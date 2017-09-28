@@ -67,3 +67,35 @@ func TestGCSClient(t *testing.T) {
 
 	testClient(t, client)
 }
+
+func TestGCSClientLocks(t *testing.T) {
+	// This test will create two client and run TestRemoteLocks
+	// It may incur costs, so it will only run if GCS credential environment
+	// variables are present.
+	projectID := os.Getenv("GOOGLE_PROJECT")
+	if projectID == "" {
+		t.Skipf("skipping; GOOGLE_PROJECT must be set")
+	}
+
+	bucketName := fmt.Sprintf("terraform-remote-gcs-test-%x", time.Now().Unix())
+	keyName := "testState"
+
+	config := make(map[string]string)
+	config["bucket"] = bucketName
+	config["path"] = keyName
+	config["lock_topic"] = bucketName
+	config["project"] = projectID
+
+	clientA, err := gcsFactory(config)
+	if err != nil {
+		t.Fatalf("Error for valid config: %v", err)
+	}
+
+	clientB, err := gcsFactory(config)
+	if err != nil {
+		t.Fatalf("Error for valid config: %v", err)
+	}
+
+	fmt.Printf("Testing remote locks will create a pubsub topic that might not get deleted if it fails: \"%v\"\n\n", bucketName)
+	TestRemoteLocks(t, clientA, clientB)
+}

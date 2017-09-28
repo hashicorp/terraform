@@ -3,6 +3,7 @@ package remote
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -11,13 +12,16 @@ import (
 	"runtime"
 	"strings"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/googleapi"
+	pubsub "google.golang.org/api/pubsub/v1"
 	"google.golang.org/api/storage/v1"
 )
 
@@ -39,7 +43,10 @@ func parseJSON(result interface{}, contents string) error {
 type GCSClient struct {
 	bucket        string
 	path          string
+	lock_topic    string
+	project       string
 	clientStorage *storage.Service
+	clientPubsub  *pubsub.Service
 	context       context.Context
 }
 
@@ -63,6 +70,18 @@ func gcsFactory(conf map[string]string) (Client, error) {
 	credentials, ok := conf["credentials"]
 	if !ok {
 		credentials = os.Getenv("GOOGLE_CREDENTIALS")
+	}
+
+	project, _ := conf["project"]
+	lock_topic, _ := conf["lock_topic"]
+	if lock_topic != "" {
+
+		// Project showed in documents before adding lock mechanism but it was never used.
+		// To keep the backward compability we will keep it optional unless lock_topic is set.
+		if project == "" {
+			return nil, fmt.Errorf("missing 'project' configuration")
+		}
+		clientScopes = append(clientScopes, "https://www.googleapis.com/auth/pubsub")
 	}
 
 	if credentials != "" {
@@ -108,14 +127,65 @@ func gcsFactory(conf map[string]string) (Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("[INFO] Instantiating Google Pubsub Client...")
+	clientPubsub, err := pubsub.New(client)
+	if err != nil {
+		return nil, err
+	}
+
 	clientStorage.UserAgent = userAgent
+	clientPubsub.UserAgent = userAgent
 
 	return &GCSClient{
 		clientStorage: clientStorage,
+		clientPubsub:  clientPubsub,
 		bucket:        bucketName,
 		path:          pathName,
+		lock_topic:    lock_topic,
+		project:       project,
 	}, nil
 
+}
+
+func fullTopicName(proj, topic string) string {
+	return fmt.Sprintf("projects/%s/%s/%s", proj, "topics", topic)
+}
+
+// Lock will try to create a PubSub Topic. This will be an indicator of acquiring lock.
+// Mechnism is similar to creating a lock file locally.
+func (c *GCSClient) Lock(info *state.LockInfo) (string, error) {
+	if c.lock_topic == "" {
+		return "", nil
+	}
+
+	_, err := c.clientPubsub.Projects.Topics.Create(fullTopicName(c.project, c.lock_topic), &pubsub.Topic{}).Do()
+	if err != nil {
+		err = multierror.Append(err, errors.New("Unable to lock"))
+
+		lockErr := &state.LockError{
+			Err:  err,
+			Info: info,
+		}
+		return "", lockErr
+	}
+
+	return info.ID, nil
+}
+
+// Unlock will try to delete the created Topic
+func (c *GCSClient) Unlock(id string) error {
+	if c.lock_topic == "" {
+		return nil
+	}
+
+	_, err := c.clientPubsub.Projects.Topics.Delete(fullTopicName(c.project, c.lock_topic)).Do()
+	if err != nil {
+		err = multierror.Append(err, errors.New("Unable to unlock"))
+		return err
+	}
+
+	return nil
 }
 
 func (c *GCSClient) Get() (*Payload, error) {
