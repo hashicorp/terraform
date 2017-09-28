@@ -1,8 +1,10 @@
+
 ## 0.10.7 (Unreleased)
 
 IMPROVEMENTS:
 
 * config: New `abs` interpolation function, returning the absolute value of a number [GH-16168]
+* config: New `transpose` interpolation function, which swaps the keys and values in a map of lists of strings. [GH-16192]
 * cli: The Terraform CLI now supports tab-completion for commands and certain arguments for `bash` and `zsh` users. See [the tab-completion docs](https://github.com/hashicorp/terraform/blob/2c782e60fad78e6fc976d850162322608f074e57/website/docs/commands/index.html.markdown#shell-tab-completion) for information on how to enable it. [GH-16176]
 * cli: `terraform state rm` now includes in its output the count of resources that were removed from the state. [GH-16137]
 
