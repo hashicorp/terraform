@@ -1,5 +1,5 @@
 provider "aws" {
-	alias = "${local.foo}"
+	region = "${local.foo}"
 }
 
 locals {
