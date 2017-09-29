@@ -118,8 +118,12 @@ standard structure.
 
 * **README**. The root module and any nested modules should have README
   files. This file should be named `README` or `README.md`. The latter will
-  be treated as markdown. The README doesn't need to document inputs or
-  outputs of the module because tooling will automatically generate this.
+  be treated as markdown. There should be a description of the module and 
+  what it should be used for, as well as a basic usage example.  If possible,
+  a visual diagram of the modules should be included. The README doesn't need 
+  to document inputs or outputs of the module because tooling will automatically
+  generate this. All links to other documentation or image resources they must 
+  be absolute.
 
 * **LICENSE**. The license under which this module is available. If you are
   publishing a module publicly, many organizations will not adopt a module
