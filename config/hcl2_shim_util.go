@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
+
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 )
 
 // ---------------------------------------------------------------------------
@@ -82,6 +86,107 @@ func configValueFromHCL2(v cty.Value) interface{} {
 	// accounted for. This should never happen unless the caller is using
 	// capsule types, and we don't currently have any such types defined.
 	panic(fmt.Errorf("can't convert %#v to config value", v))
+}
+
+// hcl2ValueFromConfigValue is the opposite of configValueFromHCL2: it takes
+// a value as would be returned from the old interpolator and turns it into
+// a cty.Value so it can be used within, for example, an HCL2 EvalContext.
+func hcl2ValueFromConfigValue(v interface{}) cty.Value {
+	if v == nil {
+		return cty.NullVal(cty.DynamicPseudoType)
+	}
+	if v == UnknownVariableValue {
+		return cty.DynamicVal
+	}
+
+	switch tv := v.(type) {
+	case bool:
+		return cty.BoolVal(tv)
+	case string:
+		return cty.StringVal(tv)
+	case int:
+		return cty.NumberIntVal(int64(tv))
+	case float64:
+		return cty.NumberFloatVal(tv)
+	case []interface{}:
+		vals := make([]cty.Value, len(tv))
+		for i, ev := range tv {
+			vals[i] = hcl2ValueFromConfigValue(ev)
+		}
+		return cty.TupleVal(vals)
+	case map[string]interface{}:
+		vals := map[string]cty.Value{}
+		for k, ev := range tv {
+			vals[k] = hcl2ValueFromConfigValue(ev)
+		}
+		return cty.ObjectVal(vals)
+	default:
+		// HCL/HIL should never generate anything that isn't caught by
+		// the above, so if we get here something has gone very wrong.
+		panic(fmt.Errorf("can't convert %#v to cty.Value", v))
+	}
+}
+
+func hcl2InterpolationFuncs() map[string]function.Function {
+	hcl2Funcs := map[string]function.Function{}
+
+	for name, hilFunc := range Funcs() {
+		hcl2Funcs[name] = hcl2InterpolationFuncShim(&hilFunc)
+	}
+
+	return hcl2Funcs
+}
+
+func hcl2InterpolationFuncShim(hilFunc *ast.Function) function.Function {
+	spec := &function.Spec{}
+	spec.Impl = func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		hilArgs := make([]interface{}, len(args))
+		for i, arg := range args {
+			rv := configValueFromHCL2(arg)
+			hilV, err := hil.InterfaceToVariable(rv)
+			if err != nil {
+				return cty.DynamicVal, err
+			}
+			// HIL functions actually expect to have the outermost variable
+			// "peeled" but any nested values (in lists or maps) will
+			// still have their ast.Variable wrapping.
+			hilArgs[i] = hilV.Value
+		}
+
+		hilResult, err := hilFunc.Callback(hilArgs)
+
+		// Just as on the way in, we get back a partially-peeled ast.Variable
+		// which we need to re-wrap in order to convert it back into what
+		// we're calling a "config value".
+
+		rr, err := hil.VariableToInterface(ast.Variable{
+			Type:  hilFunc.ReturnType,
+			Value: hilResult,
+		})
+		if err != nil {
+			return cty.DynamicVal, err
+		}
+
+		return hcl2ValueFromConfigValue(rr), nil
+	}
+	return function.New(spec)
+}
+
+func hcl2EvalWithUnknownVars(expr hcl2.Expression) (cty.Value, hcl2.Diagnostics) {
+	trs := expr.Variables()
+	vars := map[string]cty.Value{}
+	val := cty.DynamicVal
+
+	for _, tr := range trs {
+		name := tr.RootName()
+		vars[name] = val
+	}
+
+	ctx := &hcl2.EvalContext{
+		Variables: vars,
+		Functions: hcl2InterpolationFuncs(),
+	}
+	return expr.Value(ctx)
 }
 
 // hcl2SingleAttrBody is a weird implementation of hcl2.Body that acts as if
