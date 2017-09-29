@@ -122,8 +122,8 @@ standard structure.
   what it should be used for, as well as a basic usage example.  If possible,
   a visual diagram of the modules should be included. The README doesn't need 
   to document inputs or outputs of the module because tooling will automatically
-  generate this. All links to other documentation or image resources they must 
-  be absolute.
+  generate this. All links to other documentation or image resources must be 
+  absolute.
 
 * **LICENSE**. The license under which this module is available. If you are
   publishing a module publicly, many organizations will not adopt a module
