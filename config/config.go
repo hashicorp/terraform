@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -566,22 +565,7 @@ func (c *Config) Validate() error {
 			}
 		}
 
-		// Interpolate with a fixed number to verify that its a number.
-		r.RawCount.interpolate(func(root ast.Node) (interface{}, error) {
-			// Execute the node but transform the AST so that it returns
-			// a fixed value of "5" for all interpolations.
-			result, err := hil.Eval(
-				hil.FixedValueTransform(
-					root, &ast.LiteralNode{Value: "5", Typex: ast.TypeString}),
-				nil)
-			if err != nil {
-				return "", err
-			}
-
-			return result.Value, nil
-		})
-		_, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
-		if err != nil {
+		if !r.RawCount.couldBeInteger() {
 			errs = append(errs, fmt.Errorf(
 				"%s: resource count must be an integer",
 				n))
