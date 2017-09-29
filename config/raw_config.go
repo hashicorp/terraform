@@ -3,7 +3,12 @@ package config
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
+	"strconv"
 	"sync"
+
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hil"
@@ -260,6 +265,13 @@ func (r *RawConfig) init() error {
 }
 
 func (r *RawConfig) interpolate(fn interpolationWalkerFunc) error {
+	if r.Body != nil {
+		// For RawConfigs created for the HCL2 experiement, callers must
+		// use the HCL2 Body API directly rather than interpolating via
+		// the RawConfig.
+		return errors.New("this feature is not yet supported under the HCL2 experiment")
+	}
+
 	config, err := copystructure.Copy(r.Raw)
 	if err != nil {
 		return err
@@ -303,6 +315,74 @@ func (r *RawConfig) merge(r2 *RawConfig) *RawConfig {
 	}
 
 	return result
+}
+
+// couldBeInteger is a helper that determines if the represented value could
+// result in an integer.
+//
+// This function only works for RawConfigs that have "Key" set, meaning that
+// a single result can be produced. Calling this function will overwrite
+// the Config and Value results to be a test value.
+//
+// This function is conservative. If there is some doubt about whether the
+// result could be an integer -- for example, if it depends on a variable
+// whose type we don't know yet -- it will still return true.
+func (r *RawConfig) couldBeInteger() bool {
+	if r.Key == "" {
+		// un-keyed RawConfigs can never produce numbers
+		return false
+	}
+	if r.Body == nil {
+		// Normal path: using the interpolator in this package
+		// Interpolate with a fixed number to verify that its a number.
+		r.interpolate(func(root ast.Node) (interface{}, error) {
+			// Execute the node but transform the AST so that it returns
+			// a fixed value of "5" for all interpolations.
+			result, err := hil.Eval(
+				hil.FixedValueTransform(
+					root, &ast.LiteralNode{Value: "5", Typex: ast.TypeString}),
+				nil)
+			if err != nil {
+				return "", err
+			}
+
+			return result.Value, nil
+		})
+		_, err := strconv.ParseInt(r.Value().(string), 0, 0)
+		return err == nil
+	} else {
+		// HCL2 experiment path: using the HCL2 API via shims
+		//
+		// This path catches fewer situations because we have to assume all
+		// variables are entirely unknown in HCL2, rather than the assumption
+		// above that all variables can be numbers because names like "var.foo"
+		// are considered a single variable rather than an attribute access.
+		// This is fine in practice, because we get a definitive answer
+		// during the graph walk when we have real values to work with.
+		attrs, diags := r.Body.JustAttributes()
+		if diags.HasErrors() {
+			// This body is not just a single attribute with a value, so
+			// this can't be a number.
+			return false
+		}
+		attr, hasAttr := attrs[r.Key]
+		if !hasAttr {
+			return false
+		}
+		result, diags := hcl2EvalWithUnknownVars(attr.Expr)
+		if diags.HasErrors() {
+			// We'll conservatively assume that this error is a result of
+			// us not being ready to fully-populate the scope, and catch
+			// any further problems during the main graph walk.
+			return true
+		}
+
+		// If the result is convertable to number then we'll allow it.
+		// We do this because an unknown string is optimistically convertable
+		// to number (might be "5") but a _known_ string "hello" is not.
+		_, err := convert.Convert(result, cty.Number)
+		return err == nil
+	}
 }
 
 // UnknownKeys returns the keys of the configuration that are unknown
