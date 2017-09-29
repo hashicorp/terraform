@@ -1,6 +1,10 @@
 
 ## 0.10.7 (Unreleased)
 
+NEW FEATURES:
+
+* Provider plugins can now optionally be cached in a shared directory to avoid re-downloading them for each configuration working directory. For more information, see [the documentation](https://github.com/hashicorp/terraform/blob/34956cd12449cb77db3f55e3286cd369e8332eeb/website/docs/configuration/providers.html.md#provider-plugin-cache). [GH-16000]
+
 IMPROVEMENTS:
 
 * config: New `abs` interpolation function, returning the absolute value of a number [GH-16168]
