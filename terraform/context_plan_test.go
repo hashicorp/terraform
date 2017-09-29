@@ -3614,3 +3614,106 @@ aws_instance.foo.1:
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
 }
+
+func TestContext2Plan_invalidOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "aws_instance" "name" {}
+
+output "out" {
+  value = "${data.aws_instance.name.missing}"
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	// if this ever fails to pass validate, add a resource to reference in the config
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		t.Fatalf("warnings generated on validate: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("errors generated on validate: %v", e)
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("refresh err: %s", err)
+	}
+
+	_, err = ctx.Plan()
+	switch {
+	case featureOutputErrors:
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	default:
+		if err != nil {
+			t.Fatalf("plan err: %s", err)
+		}
+	}
+}
+
+func TestContext2Plan_invalidModuleOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"child/main.tf": `
+data "aws_instance" "name" {}
+
+output "out" {
+  value = "${data.aws_instance.name.missing}"
+}`,
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+
+resource "aws_instance" "foo" {
+  foo = "${module.child.out}"
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	// if this ever fails to pass validate, add a resource to reference in the config
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		t.Fatalf("warnings generated on validate: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("errors generated on validate: %v", e)
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("refresh err: %s", err)
+	}
+
+	_, err = ctx.Plan()
+	switch {
+	case featureOutputErrors:
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	default:
+		if err != nil {
+			t.Fatalf("plan err: %s", err)
+		}
+	}
+
+}
