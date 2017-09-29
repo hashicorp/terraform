@@ -76,6 +76,37 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 	return nil
 }
 
+// DestroyReferenceTransformer is a GraphTransformer that reverses the edges
+// for nodes that depend on an Output or Local value. Output and local nodes are
+// removed during destroy, so anything which depends on them must be evaluated
+// first. These can't be interpolated during destroy, so the stored value must
+// be used anyway hence they don't need to be re-evaluated.
+type DestroyValueReferenceTransformer struct{}
+
+func (t *DestroyValueReferenceTransformer) Transform(g *Graph) error {
+	vs := g.Vertices()
+
+	for _, v := range vs {
+		switch v.(type) {
+		case *NodeApplyableOutput, *NodeLocal:
+			// OK
+		default:
+			continue
+		}
+
+		// reverse any incoming edges so that the value is removed last
+		for _, e := range g.EdgesTo(v) {
+			source := e.Source()
+			log.Printf("[TRACE] output dep: %s", dag.VertexName(source))
+
+			g.RemoveEdge(e)
+			g.Connect(&DestroyEdge{S: v, T: source})
+		}
+	}
+
+	return nil
+}
+
 // ReferenceMap is a structure that can be used to efficiently check
 // for references on a graph.
 type ReferenceMap struct {
