@@ -699,6 +699,23 @@ func testConfig(t *testing.T, name string) *Config {
 	return c
 }
 
+// testConfigHCL loads a config, forcing it to be processed with the HCL2
+// loader even if it doesn't explicitly opt in to the HCL2 experiment.
+func testConfigHCL2(t *testing.T, name string) *Config {
+	t.Helper()
+	cer, _, err := globalHCL2Loader.loadFile(filepath.Join(fixtureDir, name, "main.tf"))
+	if err != nil {
+		t.Fatalf("failed to load %s: %s", name, err)
+	}
+
+	cfg, err := cer.Config()
+	if err != nil {
+		t.Fatalf("failed to decode %s: %s", name, err)
+	}
+
+	return cfg
+}
+
 func TestConfigDataCount(t *testing.T) {
 	c := testConfig(t, "data-count")
 	actual, err := c.Resources[0].Count()
