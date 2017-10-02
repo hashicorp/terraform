@@ -1,22 +1,21 @@
-
-## 0.10.7 (Unreleased)
+## 0.10.7 (October 2, 2017)
 
 NEW FEATURES:
 
-* Provider plugins can now optionally be cached in a shared directory to avoid re-downloading them for each configuration working directory. For more information, see [the documentation](https://github.com/hashicorp/terraform/blob/34956cd12449cb77db3f55e3286cd369e8332eeb/website/docs/configuration/providers.html.md#provider-plugin-cache). [GH-16000]
+* Provider plugins can now optionally be cached in a shared directory to avoid re-downloading them for each configuration working directory. For more information, see [the documentation](https://github.com/hashicorp/terraform/blob/34956cd12449cb77db3f55e3286cd369e8332eeb/website/docs/configuration/providers.html.md#provider-plugin-cache). ([#16000](https://github.com/hashicorp/terraform/issues/16000))
 
 IMPROVEMENTS:
 
-* config: New `abs` interpolation function, returning the absolute value of a number [GH-16168]
-* config: New `transpose` interpolation function, which swaps the keys and values in a map of lists of strings. [GH-16192]
-* cli: The Terraform CLI now supports tab-completion for commands and certain arguments for `bash` and `zsh` users. See [the tab-completion docs](https://github.com/hashicorp/terraform/blob/2c782e60fad78e6fc976d850162322608f074e57/website/docs/commands/index.html.markdown#shell-tab-completion) for information on how to enable it. [GH-16176]
-* cli: `terraform state rm` now includes in its output the count of resources that were removed from the state. [GH-16137]
+* config: New `abs` interpolation function, returning the absolute value of a number ([#16168](https://github.com/hashicorp/terraform/issues/16168))
+* config: New `transpose` interpolation function, which swaps the keys and values in a map of lists of strings. ([#16192](https://github.com/hashicorp/terraform/issues/16192))
+* cli: The Terraform CLI now supports tab-completion for commands and certain arguments for `bash` and `zsh` users. See [the tab-completion docs](https://github.com/hashicorp/terraform/blob/2c782e60fad78e6fc976d850162322608f074e57/website/docs/commands/index.html.markdown#shell-tab-completion) for information on how to enable it. ([#16176](https://github.com/hashicorp/terraform/issues/16176))
+* cli: `terraform state rm` now includes in its output the count of resources that were removed from the state. ([#16137](https://github.com/hashicorp/terraform/issues/16137))
 
 BUG FIXES:
 
-* modules: Update go-getter to fix crash when fetching invalid source subdir [GH-16161]
-* modules: Fix regression in the handling of modules sourcing other modules with relative paths [GH-16160]
-* core: Skip local value interpolation during destroy [GH-16213]
+* modules: Update go-getter to fix crash when fetching invalid source subdir ([#16161](https://github.com/hashicorp/terraform/issues/16161))
+* modules: Fix regression in the handling of modules sourcing other modules with relative paths ([#16160](https://github.com/hashicorp/terraform/issues/16160))
+* core: Skip local value interpolation during destroy ([#16213](https://github.com/hashicorp/terraform/issues/16213))
 
 ## 0.10.6 (September 19, 2017)
 
