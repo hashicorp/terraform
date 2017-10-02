@@ -49,13 +49,23 @@ var testChecksumHook func()
 
 func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	deadline := time.Now().Add(consistencyRetryTimeout)
-
+	retryCount := 0
+	maxRetries := 1
 	// If we have a checksum, and the returned payload doesn't match, we retry
 	// up until deadline.
 	for {
 		payload, err = c.get()
 		if err != nil {
-			return nil, err
+			if awserr := err.(awserr.Error); awserr != nil {
+				if awserr.Code() == "InternalError" && awserr.Message() == "We encountered an internal error. Please try again." && retryCount < maxRetries {
+					retryCount = retryCount + 1
+					continue
+				} else {
+					return nil, err
+				}
+			} else {
+				return nil, err
+			}
 		}
 
 		// If the remote state was manually removed the payload will be nil,
