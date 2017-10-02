@@ -1,6 +1,7 @@
 package akamai
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
@@ -25,25 +26,27 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	r := d.Get("rule")
 	log.Printf("[DEBUG] Done with %s rules", r.(*schema.Set).Len())
 
-	group, err := getGroup(d)
-	if err != nil {
-		return err
+	group, e := getGroup(d)
+	if e != nil {
+		return e
 	}
 
-	contract, err := getContract(d)
-	if err != nil {
-		return err
+	contract, e := getContract(d)
+	if e != nil {
+		return e
 	}
 
-	product, err := getProduct(d, contract)
-	if err != nil {
-		return err
+	product, e := getProduct(d, contract)
+	if e != nil {
+		return e
 	}
 
-	_, err = createProperty(contract, group, product, d)
-	if err != nil {
-		return err
+	property, e := createProperty(contract, group, product, d)
+	if e != nil {
+		return e
 	}
+
+	d.SetId(fmt.Sprintf("%s-%s-%s-%s", group.GroupID, contract.ContractID, product.ProductID, property.PropertyID))
 
 	log.Println("[DEBUG] Done")
 
