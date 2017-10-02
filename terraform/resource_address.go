@@ -42,9 +42,9 @@ func (r *ResourceAddress) Copy() *ResourceAddress {
 		Type:         r.Type,
 		Mode:         r.Mode,
 	}
-	for _, p := range r.Path {
-		n.Path = append(n.Path, p)
-	}
+
+	n.Path = append(n.Path, r.Path...)
+
 	return n
 }
 
