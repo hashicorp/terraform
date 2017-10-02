@@ -1,7 +1,6 @@
 package akamai
 
 import (
-	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -67,50 +66,57 @@ var akps_behavior *schema.Schema = &schema.Schema{
 var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 	// Cloning is unsupported
 	// "clone_from": &schema.Schema{},
-	"network": &schema.Schema{
-		Type:     schema.TypeString,
-		Optional: true,
-		Default:  string(papi.NetworkStaging),
-	},
-	"group": &schema.Schema{
+	"account_id": &schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
 	},
-	"contract": &schema.Schema{
+	"contract_id": &schema.Schema{
 		Type:     schema.TypeString,
-		Optional: true,
+		Required: true,
+	},
+	"group_id": &schema.Schema{
+		Type:     schema.TypeString,
+		Required: true,
 	},
 	"product_id": &schema.Schema{
 		Type:     schema.TypeString,
-		Optional: true,
-	},
-	"cpcode": &schema.Schema{
-		Type:     schema.TypeString,
-		Optional: true,
+		Required: true,
 	},
 	"name": &schema.Schema{
 		Type:     schema.TypeString,
+		Required: true,
+	},
+	"rule_format": &schema.Schema{
+		Type:     schema.TypeString,
 		Optional: true,
 	},
-	"ipv6": &schema.Schema{
-		Type:     schema.TypeBool,
+
+	// rules tree can go max 5 levels deep
+	"rule": &schema.Schema{
+		Type:     schema.TypeSet,
 		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Type:     schema.TypeString,
+					Required: true,
+				},
+				"comment": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"criteria_match": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "all",
+				},
+				"criteria": akps_criteria,
+				"behavior": akps_behavior,
+				// "children": [], //TODO
+			},
+		},
 	},
-	"hostname": &schema.Schema{
-		Type:     schema.TypeSet,
-		Required: true,
-		Elem:     &schema.Schema{Type: schema.TypeString},
-	},
-	"contact": &schema.Schema{
-		Type:     schema.TypeSet,
-		Required: true,
-		Elem:     &schema.Schema{Type: schema.TypeString},
-	},
-	"edge_hostname": &schema.Schema{
-		Type:     schema.TypeMap,
-		Computed: true,
-		Elem:     &schema.Schema{Type: schema.TypeString},
-	},
+
 	"origin": {
 		Type:     schema.TypeSet,
 		Optional: true,
@@ -204,122 +210,6 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 					Optional: true,
 				},
 				"criteria": akps_criteria,
-			},
-		},
-	},
-	// rules tree can go max 5 levels deep
-	"rule": &schema.Schema{
-		Type:     schema.TypeSet,
-		Optional: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"name": {
-					Type:    schema.TypeString,
-					Default: "default",
-				},
-				"comment": {
-					Type:     schema.TypeString,
-					Optional: true,
-				},
-				"criteria_match": {
-					Type:     schema.TypeString,
-					Optional: true,
-					Default:  "all",
-				},
-				"criteria": akps_criteria,
-				"behavior": akps_behavior,
-				"rule": &schema.Schema{
-					Type:     schema.TypeSet,
-					Optional: true,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"name": {
-								Type:    schema.TypeString,
-								Default: "default",
-							},
-							"comment": {
-								Type:     schema.TypeString,
-								Optional: true,
-							},
-							"criteria_match": {
-								Type:     schema.TypeString,
-								Optional: true,
-								Default:  "all",
-							},
-							"criteria": akps_criteria,
-							"behavior": akps_behavior,
-							"rule": &schema.Schema{
-								Type:     schema.TypeSet,
-								Optional: true,
-								Elem: &schema.Resource{
-									Schema: map[string]*schema.Schema{
-										"name": {
-											Type:    schema.TypeString,
-											Default: "default",
-										},
-										"comment": {
-											Type:     schema.TypeString,
-											Optional: true,
-										},
-										"criteria_match": {
-											Type:     schema.TypeString,
-											Optional: true,
-											Default:  "all",
-										},
-										"criteria": akps_criteria,
-										"behavior": akps_behavior,
-										"rule": &schema.Schema{
-											Type:     schema.TypeSet,
-											Optional: true,
-											Elem: &schema.Resource{
-												Schema: map[string]*schema.Schema{
-													"name": {
-														Type:    schema.TypeString,
-														Default: "default",
-													},
-													"comment": {
-														Type:     schema.TypeString,
-														Optional: true,
-													},
-													"criteria_match": {
-														Type:     schema.TypeString,
-														Optional: true,
-														Default:  "all",
-													},
-													"criteria": akps_criteria,
-													"behavior": akps_behavior,
-													"rule": &schema.Schema{
-														Type:     schema.TypeSet,
-														Optional: true,
-														Elem: &schema.Resource{
-															Schema: map[string]*schema.Schema{
-																"name": {
-																	Type:    schema.TypeString,
-																	Default: "default",
-																},
-																"comment": {
-																	Type:     schema.TypeString,
-																	Optional: true,
-																},
-																"criteria_match": {
-																	Type:     schema.TypeString,
-																	Optional: true,
-																	Default:  "all",
-																},
-																"criteria": akps_criteria,
-																"behavior": akps_behavior,
-															},
-														},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
 			},
 		},
 	},
