@@ -12,6 +12,12 @@ IMPROVEMENTS:
 * cli: The Terraform CLI now supports tab-completion for commands and certain arguments for `bash` and `zsh` users. See [the tab-completion docs](https://github.com/hashicorp/terraform/blob/2c782e60fad78e6fc976d850162322608f074e57/website/docs/commands/index.html.markdown#shell-tab-completion) for information on how to enable it. [GH-16176]
 * cli: `terraform state rm` now includes in its output the count of resources that were removed from the state. [GH-16137]
 
+BUG FIXES:
+
+* modules: Update go-getter to fix crash when fetching invalid source subdir [GH-16161]
+* modules: Fix regression in the handling of modules sourcing other modules with relative paths [GH-16160]
+* core: Skip local value interpolation during destroy [GH-16213]
+
 ## 0.10.6 (September 19, 2017)
 
 UPGRADE NOTES:
