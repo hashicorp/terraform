@@ -8928,8 +8928,7 @@ func TestContext2Apply_providerWithLocals(t *testing.T) {
 	// Destroy won't work because the local value is removed before the
 	// provider.  Once this is fixed this test will start to fail, and we
 	// can remove the invalid interpolation string;
-	// if providerRegion != "bar" {
-	if providerRegion != "${local.foo}" {
+	if providerRegion != "bar" {
 		t.Fatalf("expected region %q, got: %q", "bar", providerRegion)
 	}
 }

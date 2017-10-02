@@ -119,6 +119,9 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		return &NodeApplyableProvider{NodeAbstractProvider: a}
 	}
 	steps := []GraphTransformer{
+		// Add the local values
+		&LocalTransformer{Module: t.Module},
+
 		// Add outputs and metadata
 		&OutputTransformer{Module: t.Module},
 		&AttachResourceConfigTransformer{Module: t.Module},

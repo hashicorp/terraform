@@ -71,6 +71,9 @@ type Plan struct {
 	// Backend is the backend that this plan should use and store data with.
 	Backend *BackendState
 
+	// Destroy indicates that this plan was created for a full destroy operation
+	Destroy bool
+
 	once sync.Once
 }
 
@@ -100,6 +103,7 @@ func (p *Plan) contextOpts(base *ContextOpts) (*ContextOpts, error) {
 	opts.Module = p.Module
 	opts.Targets = p.Targets
 	opts.ProviderSHA256s = p.ProviderSHA256s
+	opts.Destroy = p.Destroy
 
 	if opts.State == nil {
 		opts.State = p.State
