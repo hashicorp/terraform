@@ -8,6 +8,9 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+type Config struct {
+}
+
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
