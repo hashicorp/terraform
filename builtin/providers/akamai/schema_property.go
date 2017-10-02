@@ -5,6 +5,65 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+var akps_option *schema.Schema = &schema.Schema{
+	Type:     schema.TypeSet,
+	Optional: true,
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"values": {
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
+			"value": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"flag": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"type": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "auto",
+			},
+		},
+	},
+}
+
+var akps_criteria *schema.Schema = &schema.Schema{
+	Type:     schema.TypeSet,
+	Optional: true,
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"option": akps_option,
+		},
+	},
+}
+
+var akps_behavior *schema.Schema = &schema.Schema{
+	Type:     schema.TypeSet,
+	Optional: true,
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"option": akps_option,
+		},
+	},
+}
+
 var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 	"clone_from": &schema.Schema{
 		Type:     schema.TypeSet,
@@ -84,18 +143,15 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 					Type:     schema.TypeString,
 					Optional: true,
 				},
-
 				"hostname": {
 					Type:     schema.TypeString,
 					Required: true,
 				},
-
 				"port": {
 					Type:     schema.TypeInt,
 					Optional: true,
 					Default:  80,
 				},
-
 				"forward_hostname": {
 					Type:     schema.TypeString,
 					Optional: true,
@@ -104,7 +160,6 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 			},
 		},
 	},
-
 	"compress": {
 		Type:     schema.TypeSet,
 		Optional: true,
@@ -120,52 +175,10 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 					Elem:     &schema.Schema{Type: schema.TypeString},
 					Optional: true,
 				},
-				"criteria": {
-					Type:     schema.TypeSet,
-					Optional: true,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"name": {
-								Type:     schema.TypeString,
-								Required: true,
-							},
-							"option": {
-								Type:     schema.TypeSet,
-								Optional: true,
-								Elem: &schema.Resource{
-									Schema: map[string]*schema.Schema{
-										"name": {
-											Type:     schema.TypeString,
-											Required: true,
-										},
-										"values": {
-											Type:     schema.TypeSet,
-											Elem:     &schema.Schema{Type: schema.TypeString},
-											Optional: true,
-										},
-										"value": {
-											Type:     schema.TypeString,
-											Optional: true,
-										},
-										"flag": {
-											Type:     schema.TypeBool,
-											Optional: true,
-										},
-										"type": {
-											Type:     schema.TypeString,
-											Optional: true,
-											Default:  "auto",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
+				"criteria": akps_criteria,
 			},
 		},
 	},
-
 	"cache": {
 		Type:     schema.TypeSet,
 		Optional: true,
@@ -213,57 +226,20 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 					Type:     schema.TypeBool,
 					Optional: true,
 				},
-				"criteria": {
-					Type:     schema.TypeSet,
-					Optional: true,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"name": {
-								Type:     schema.TypeString,
-								Required: true,
-							},
-							"option": {
-								Type:     schema.TypeSet,
-								Optional: true,
-								Elem: &schema.Resource{
-									Schema: map[string]*schema.Schema{
-										"name": {
-											Type:     schema.TypeString,
-											Required: true,
-										},
-										"values": {
-											Type:     schema.TypeSet,
-											Elem:     &schema.Schema{Type: schema.TypeString},
-											Optional: true,
-										},
-										"value": {
-											Type:     schema.TypeString,
-											Optional: true,
-										},
-										"flag": {
-											Type:     schema.TypeBool,
-											Optional: true,
-										},
-										"type": {
-											Type:     schema.TypeString,
-											Optional: true,
-											Default:  "auto",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
+				"criteria": akps_criteria,
 			},
 		},
 	},
-
+	// rules tree can go max 5 levels deep
 	"rule": &schema.Schema{
 		Type:     schema.TypeSet,
 		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
+				"name": {
+					Type:    schema.TypeString,
+					Default: "default",
+				},
 				"comment": {
 					Type:     schema.TypeString,
 					Optional: true,
@@ -273,1338 +249,88 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 					Optional: true,
 					Default:  "all",
 				},
-				"criteria": {
-					Type:     schema.TypeSet,
-					Optional: true,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"name": {
-								Type:     schema.TypeString,
-								Required: true,
-							},
-							"option": {
-								Type:     schema.TypeSet,
-								Optional: true,
-								Elem: &schema.Resource{
-									Schema: map[string]*schema.Schema{
-										"name": {
-											Type:     schema.TypeString,
-											Required: true,
-										},
-										"values": {
-											Type:     schema.TypeSet,
-											Elem:     &schema.Schema{Type: schema.TypeString},
-											Optional: true,
-										},
-										"value": {
-											Type:     schema.TypeString,
-											Optional: true,
-										},
-										"flag": {
-											Type:     schema.TypeBool,
-											Optional: true,
-										},
-										"type": {
-											Type:     schema.TypeString,
-											Optional: true,
-											Default:  "auto",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-				"behavior": {
-					Type:     schema.TypeSet,
-					Optional: true,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"name": {
-								Type:     schema.TypeString,
-								Required: true,
-							},
-							"option": {
-								Type:     schema.TypeSet,
-								Optional: true,
-								Elem: &schema.Resource{
-									Schema: map[string]*schema.Schema{
-										"name": {
-											Type:     schema.TypeString,
-											Required: true,
-										},
-										"values": {
-											Type:     schema.TypeSet,
-											Elem:     &schema.Schema{Type: schema.TypeString},
-											Optional: true,
-										},
-										"value": {
-											Type:     schema.TypeString,
-											Optional: true,
-										},
-										"flag": {
-											Type:     schema.TypeBool,
-											Optional: true,
-										},
-										"type": {
-											Type:     schema.TypeString,
-											Optional: true,
-											Default:  "auto",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
+				"criteria": akps_criteria,
+				"behavior": akps_behavior,
 				"rule": &schema.Schema{
 					Type:     schema.TypeSet,
 					Optional: true,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"name": {
-								Type:     schema.TypeString,
-								Required: true,
+								Type:    schema.TypeString,
+								Default: "default",
 							},
 							"comment": {
 								Type:     schema.TypeString,
-								Required: true,
+								Optional: true,
 							},
 							"criteria_match": {
 								Type:     schema.TypeString,
 								Optional: true,
 								Default:  "all",
 							},
-							"criteria": {
-								Type:     schema.TypeSet,
-								Optional: true,
-								Elem: &schema.Resource{
-									Schema: map[string]*schema.Schema{
-										"name": {
-											Type:     schema.TypeString,
-											Required: true,
-										},
-										"option": {
-											Type:     schema.TypeSet,
-											Optional: true,
-											Elem: &schema.Resource{
-												Schema: map[string]*schema.Schema{
-													"name": {
-														Type:     schema.TypeString,
-														Required: true,
-													},
-													"values": {
-														Type:     schema.TypeSet,
-														Elem:     &schema.Schema{Type: schema.TypeString},
-														Optional: true,
-													},
-													"value": {
-														Type:     schema.TypeString,
-														Optional: true,
-													},
-													"flag": {
-														Type:     schema.TypeBool,
-														Optional: true,
-													},
-													"type": {
-														Type:     schema.TypeString,
-														Optional: true,
-														Default:  "auto",
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-							"behavior": {
-								Type:     schema.TypeSet,
-								Optional: true,
-								Elem: &schema.Resource{
-									Schema: map[string]*schema.Schema{
-										"name": {
-											Type:     schema.TypeString,
-											Required: true,
-										},
-										"option": {
-											Type:     schema.TypeSet,
-											Optional: true,
-											Elem: &schema.Resource{
-												Schema: map[string]*schema.Schema{
-													"name": {
-														Type:     schema.TypeString,
-														Required: true,
-													},
-													"values": {
-														Type:     schema.TypeSet,
-														Elem:     &schema.Schema{Type: schema.TypeString},
-														Optional: true,
-													},
-													"value": {
-														Type:     schema.TypeString,
-														Optional: true,
-													},
-													"flag": {
-														Type:     schema.TypeBool,
-														Optional: true,
-													},
-													"type": {
-														Type:     schema.TypeString,
-														Optional: true,
-														Default:  "auto",
-													},
-												},
-											},
-										},
-									},
-								},
-							},
+							"criteria": akps_criteria,
+							"behavior": akps_behavior,
 							"rule": &schema.Schema{
 								Type:     schema.TypeSet,
 								Optional: true,
 								Elem: &schema.Resource{
 									Schema: map[string]*schema.Schema{
 										"name": {
-											Type:     schema.TypeString,
-											Required: true,
+											Type:    schema.TypeString,
+											Default: "default",
 										},
 										"comment": {
 											Type:     schema.TypeString,
-											Required: true,
+											Optional: true,
 										},
 										"criteria_match": {
 											Type:     schema.TypeString,
 											Optional: true,
 											Default:  "all",
 										},
-										"criteria": {
-											Type:     schema.TypeSet,
-											Optional: true,
-											Elem: &schema.Resource{
-												Schema: map[string]*schema.Schema{
-													"name": {
-														Type:     schema.TypeString,
-														Required: true,
-													},
-													"option": {
-														Type:     schema.TypeSet,
-														Optional: true,
-														Elem: &schema.Resource{
-															Schema: map[string]*schema.Schema{
-																"name": {
-																	Type:     schema.TypeString,
-																	Required: true,
-																},
-																"values": {
-																	Type:     schema.TypeSet,
-																	Elem:     &schema.Schema{Type: schema.TypeString},
-																	Optional: true,
-																},
-																"value": {
-																	Type:     schema.TypeString,
-																	Optional: true,
-																},
-																"flag": {
-																	Type:     schema.TypeBool,
-																	Optional: true,
-																},
-																"type": {
-																	Type:     schema.TypeString,
-																	Optional: true,
-																	Default:  "auto",
-																},
-															},
-														},
-													},
-												},
-											},
-										},
-										"behavior": {
-											Type:     schema.TypeSet,
-											Optional: true,
-											Elem: &schema.Resource{
-												Schema: map[string]*schema.Schema{
-													"name": {
-														Type:     schema.TypeString,
-														Required: true,
-													},
-													"option": {
-														Type:     schema.TypeSet,
-														Optional: true,
-														Elem: &schema.Resource{
-															Schema: map[string]*schema.Schema{
-																"name": {
-																	Type:     schema.TypeString,
-																	Required: true,
-																},
-																"values": {
-																	Type:     schema.TypeSet,
-																	Elem:     &schema.Schema{Type: schema.TypeString},
-																	Optional: true,
-																},
-																"value": {
-																	Type:     schema.TypeString,
-																	Optional: true,
-																},
-																"flag": {
-																	Type:     schema.TypeBool,
-																	Optional: true,
-																},
-																"type": {
-																	Type:     schema.TypeString,
-																	Optional: true,
-																	Default:  "auto",
-																},
-															},
-														},
-													},
-												},
-											},
-										},
+										"criteria": akps_criteria,
+										"behavior": akps_behavior,
 										"rule": &schema.Schema{
 											Type:     schema.TypeSet,
 											Optional: true,
 											Elem: &schema.Resource{
 												Schema: map[string]*schema.Schema{
 													"name": {
-														Type:     schema.TypeString,
-														Required: true,
+														Type:    schema.TypeString,
+														Default: "default",
 													},
 													"comment": {
 														Type:     schema.TypeString,
-														Required: true,
+														Optional: true,
 													},
 													"criteria_match": {
 														Type:     schema.TypeString,
 														Optional: true,
 														Default:  "all",
 													},
-													"criteria": {
-														Type:     schema.TypeSet,
-														Optional: true,
-														Elem: &schema.Resource{
-															Schema: map[string]*schema.Schema{
-																"name": {
-																	Type:     schema.TypeString,
-																	Required: true,
-																},
-																"option": {
-																	Type:     schema.TypeSet,
-																	Optional: true,
-																	Elem: &schema.Resource{
-																		Schema: map[string]*schema.Schema{
-																			"name": {
-																				Type:     schema.TypeString,
-																				Required: true,
-																			},
-																			"values": {
-																				Type:     schema.TypeSet,
-																				Elem:     &schema.Schema{Type: schema.TypeString},
-																				Optional: true,
-																			},
-																			"value": {
-																				Type:     schema.TypeString,
-																				Optional: true,
-																			},
-																			"flag": {
-																				Type:     schema.TypeBool,
-																				Optional: true,
-																			},
-																			"type": {
-																				Type:     schema.TypeString,
-																				Optional: true,
-																				Default:  "auto",
-																			},
-																		},
-																	},
-																},
-															},
-														},
-													},
-													"behavior": {
-														Type:     schema.TypeSet,
-														Optional: true,
-														Elem: &schema.Resource{
-															Schema: map[string]*schema.Schema{
-																"name": {
-																	Type:     schema.TypeString,
-																	Required: true,
-																},
-																"option": {
-																	Type:     schema.TypeSet,
-																	Optional: true,
-																	Elem: &schema.Resource{
-																		Schema: map[string]*schema.Schema{
-																			"name": {
-																				Type:     schema.TypeString,
-																				Required: true,
-																			},
-																			"values": {
-																				Type:     schema.TypeSet,
-																				Elem:     &schema.Schema{Type: schema.TypeString},
-																				Optional: true,
-																			},
-																			"value": {
-																				Type:     schema.TypeString,
-																				Optional: true,
-																			},
-																			"flag": {
-																				Type:     schema.TypeBool,
-																				Optional: true,
-																			},
-																			"type": {
-																				Type:     schema.TypeString,
-																				Optional: true,
-																				Default:  "auto",
-																			},
-																		},
-																	},
-																},
-															},
-														},
-													},
+													"criteria": akps_criteria,
+													"behavior": akps_behavior,
 													"rule": &schema.Schema{
 														Type:     schema.TypeSet,
 														Optional: true,
 														Elem: &schema.Resource{
 															Schema: map[string]*schema.Schema{
 																"name": {
-																	Type:     schema.TypeString,
-																	Required: true,
+																	Type:    schema.TypeString,
+																	Default: "default",
 																},
 																"comment": {
 																	Type:     schema.TypeString,
-																	Required: true,
+																	Optional: true,
 																},
 																"criteria_match": {
 																	Type:     schema.TypeString,
 																	Optional: true,
 																	Default:  "all",
 																},
-																"criteria": {
-																	Type:     schema.TypeSet,
-																	Optional: true,
-																	Elem: &schema.Resource{
-																		Schema: map[string]*schema.Schema{
-																			"name": {
-																				Type:     schema.TypeString,
-																				Required: true,
-																			},
-																			"option": {
-																				Type:     schema.TypeSet,
-																				Optional: true,
-																				Elem: &schema.Resource{
-																					Schema: map[string]*schema.Schema{
-																						"name": {
-																							Type:     schema.TypeString,
-																							Required: true,
-																						},
-																						"values": {
-																							Type:     schema.TypeSet,
-																							Elem:     &schema.Schema{Type: schema.TypeString},
-																							Optional: true,
-																						},
-																						"value": {
-																							Type:     schema.TypeString,
-																							Optional: true,
-																						},
-																						"flag": {
-																							Type:     schema.TypeBool,
-																							Optional: true,
-																						},
-																						"type": {
-																							Type:     schema.TypeString,
-																							Optional: true,
-																							Default:  "auto",
-																						},
-																					},
-																				},
-																			},
-																		},
-																	},
-																},
-																"behavior": {
-																	Type:     schema.TypeSet,
-																	Optional: true,
-																	Elem: &schema.Resource{
-																		Schema: map[string]*schema.Schema{
-																			"name": {
-																				Type:     schema.TypeString,
-																				Required: true,
-																			},
-																			"option": {
-																				Type:     schema.TypeSet,
-																				Optional: true,
-																				Elem: &schema.Resource{
-																					Schema: map[string]*schema.Schema{
-																						"name": {
-																							Type:     schema.TypeString,
-																							Required: true,
-																						},
-																						"values": {
-																							Type:     schema.TypeSet,
-																							Elem:     &schema.Schema{Type: schema.TypeString},
-																							Optional: true,
-																						},
-																						"value": {
-																							Type:     schema.TypeString,
-																							Optional: true,
-																						},
-																						"flag": {
-																							Type:     schema.TypeBool,
-																							Optional: true,
-																						},
-																						"type": {
-																							Type:     schema.TypeString,
-																							Optional: true,
-																							Default:  "auto",
-																						},
-																					},
-																				},
-																			},
-																		},
-																	},
-																},
-																"rule": &schema.Schema{
-																	Type:     schema.TypeSet,
-																	Optional: true,
-																	Elem: &schema.Resource{
-																		Schema: map[string]*schema.Schema{
-																			"name": {
-																				Type:     schema.TypeString,
-																				Required: true,
-																			},
-																			"comment": {
-																				Type:     schema.TypeString,
-																				Required: true,
-																			},
-																			"criteria_match": {
-																				Type:     schema.TypeString,
-																				Optional: true,
-																				Default:  "all",
-																			},
-																			"criteria": {
-																				Type:     schema.TypeSet,
-																				Optional: true,
-																				Elem: &schema.Resource{
-																					Schema: map[string]*schema.Schema{
-																						"name": {
-																							Type:     schema.TypeString,
-																							Required: true,
-																						},
-																						"option": {
-																							Type:     schema.TypeSet,
-																							Optional: true,
-																							Elem: &schema.Resource{
-																								Schema: map[string]*schema.Schema{
-																									"name": {
-																										Type:     schema.TypeString,
-																										Required: true,
-																									},
-																									"values": {
-																										Type:     schema.TypeSet,
-																										Elem:     &schema.Schema{Type: schema.TypeString},
-																										Optional: true,
-																									},
-																									"value": {
-																										Type:     schema.TypeString,
-																										Optional: true,
-																									},
-																									"flag": {
-																										Type:     schema.TypeBool,
-																										Optional: true,
-																									},
-																									"type": {
-																										Type:     schema.TypeString,
-																										Optional: true,
-																										Default:  "auto",
-																									},
-																								},
-																							},
-																						},
-																					},
-																				},
-																			},
-																			"behavior": {
-																				Type:     schema.TypeSet,
-																				Optional: true,
-																				Elem: &schema.Resource{
-																					Schema: map[string]*schema.Schema{
-																						"name": {
-																							Type:     schema.TypeString,
-																							Required: true,
-																						},
-																						"option": {
-																							Type:     schema.TypeSet,
-																							Optional: true,
-																							Elem: &schema.Resource{
-																								Schema: map[string]*schema.Schema{
-																									"name": {
-																										Type:     schema.TypeString,
-																										Required: true,
-																									},
-																									"values": {
-																										Type:     schema.TypeSet,
-																										Elem:     &schema.Schema{Type: schema.TypeString},
-																										Optional: true,
-																									},
-																									"value": {
-																										Type:     schema.TypeString,
-																										Optional: true,
-																									},
-																									"flag": {
-																										Type:     schema.TypeBool,
-																										Optional: true,
-																									},
-																									"type": {
-																										Type:     schema.TypeString,
-																										Optional: true,
-																										Default:  "auto",
-																									},
-																								},
-																							},
-																						},
-																					},
-																				},
-																			},
-																			"rule": &schema.Schema{
-																				Type:     schema.TypeSet,
-																				Optional: true,
-																				Elem: &schema.Resource{
-																					Schema: map[string]*schema.Schema{
-																						"name": {
-																							Type:     schema.TypeString,
-																							Required: true,
-																						},
-																						"comment": {
-																							Type:     schema.TypeString,
-																							Required: true,
-																						},
-																						"criteria_match": {
-																							Type:     schema.TypeString,
-																							Optional: true,
-																							Default:  "all",
-																						},
-																						"criteria": {
-																							Type:     schema.TypeSet,
-																							Optional: true,
-																							Elem: &schema.Resource{
-																								Schema: map[string]*schema.Schema{
-																									"name": {
-																										Type:     schema.TypeString,
-																										Required: true,
-																									},
-																									"option": {
-																										Type:     schema.TypeSet,
-																										Optional: true,
-																										Elem: &schema.Resource{
-																											Schema: map[string]*schema.Schema{
-																												"name": {
-																													Type:     schema.TypeString,
-																													Required: true,
-																												},
-																												"values": {
-																													Type:     schema.TypeSet,
-																													Elem:     &schema.Schema{Type: schema.TypeString},
-																													Optional: true,
-																												},
-																												"value": {
-																													Type:     schema.TypeString,
-																													Optional: true,
-																												},
-																												"flag": {
-																													Type:     schema.TypeBool,
-																													Optional: true,
-																												},
-																												"type": {
-																													Type:     schema.TypeString,
-																													Optional: true,
-																													Default:  "auto",
-																												},
-																											},
-																										},
-																									},
-																								},
-																							},
-																						},
-																						"behavior": {
-																							Type:     schema.TypeSet,
-																							Optional: true,
-																							Elem: &schema.Resource{
-																								Schema: map[string]*schema.Schema{
-																									"name": {
-																										Type:     schema.TypeString,
-																										Required: true,
-																									},
-																									"option": {
-																										Type:     schema.TypeSet,
-																										Optional: true,
-																										Elem: &schema.Resource{
-																											Schema: map[string]*schema.Schema{
-																												"name": {
-																													Type:     schema.TypeString,
-																													Required: true,
-																												},
-																												"values": {
-																													Type:     schema.TypeSet,
-																													Elem:     &schema.Schema{Type: schema.TypeString},
-																													Optional: true,
-																												},
-																												"value": {
-																													Type:     schema.TypeString,
-																													Optional: true,
-																												},
-																												"flag": {
-																													Type:     schema.TypeBool,
-																													Optional: true,
-																												},
-																												"type": {
-																													Type:     schema.TypeString,
-																													Optional: true,
-																													Default:  "auto",
-																												},
-																											},
-																										},
-																									},
-																								},
-																							},
-																						},
-																						"rule": &schema.Schema{
-																							Type:     schema.TypeSet,
-																							Optional: true,
-																							Elem: &schema.Resource{
-																								Schema: map[string]*schema.Schema{
-																									"name": {
-																										Type:     schema.TypeString,
-																										Required: true,
-																									},
-																									"comment": {
-																										Type:     schema.TypeString,
-																										Required: true,
-																									},
-																									"criteria_match": {
-																										Type:     schema.TypeString,
-																										Optional: true,
-																										Default:  "all",
-																									},
-																									"criteria": {
-																										Type:     schema.TypeSet,
-																										Optional: true,
-																										Elem: &schema.Resource{
-																											Schema: map[string]*schema.Schema{
-																												"name": {
-																													Type:     schema.TypeString,
-																													Required: true,
-																												},
-																												"option": {
-																													Type:     schema.TypeSet,
-																													Optional: true,
-																													Elem: &schema.Resource{
-																														Schema: map[string]*schema.Schema{
-																															"name": {
-																																Type:     schema.TypeString,
-																																Required: true,
-																															},
-																															"values": {
-																																Type:     schema.TypeSet,
-																																Elem:     &schema.Schema{Type: schema.TypeString},
-																																Optional: true,
-																															},
-																															"value": {
-																																Type:     schema.TypeString,
-																																Optional: true,
-																															},
-																															"flag": {
-																																Type:     schema.TypeBool,
-																																Optional: true,
-																															},
-																															"type": {
-																																Type:     schema.TypeString,
-																																Optional: true,
-																																Default:  "auto",
-																															},
-																														},
-																													},
-																												},
-																											},
-																										},
-																									},
-																									"behavior": {
-																										Type:     schema.TypeSet,
-																										Optional: true,
-																										Elem: &schema.Resource{
-																											Schema: map[string]*schema.Schema{
-																												"name": {
-																													Type:     schema.TypeString,
-																													Required: true,
-																												},
-																												"option": {
-																													Type:     schema.TypeSet,
-																													Optional: true,
-																													Elem: &schema.Resource{
-																														Schema: map[string]*schema.Schema{
-																															"name": {
-																																Type:     schema.TypeString,
-																																Required: true,
-																															},
-																															"values": {
-																																Type:     schema.TypeSet,
-																																Elem:     &schema.Schema{Type: schema.TypeString},
-																																Optional: true,
-																															},
-																															"value": {
-																																Type:     schema.TypeString,
-																																Optional: true,
-																															},
-																															"flag": {
-																																Type:     schema.TypeBool,
-																																Optional: true,
-																															},
-																															"type": {
-																																Type:     schema.TypeString,
-																																Optional: true,
-																																Default:  "auto",
-																															},
-																														},
-																													},
-																												},
-																											},
-																										},
-																									},
-																									"rule": &schema.Schema{
-																										Type:     schema.TypeSet,
-																										Optional: true,
-																										Elem: &schema.Resource{
-																											Schema: map[string]*schema.Schema{
-																												"name": {
-																													Type:     schema.TypeString,
-																													Required: true,
-																												},
-																												"comment": {
-																													Type:     schema.TypeString,
-																													Required: true,
-																												},
-																												"criteria_match": {
-																													Type:     schema.TypeString,
-																													Optional: true,
-																													Default:  "all",
-																												},
-																												"criteria": {
-																													Type:     schema.TypeSet,
-																													Optional: true,
-																													Elem: &schema.Resource{
-																														Schema: map[string]*schema.Schema{
-																															"name": {
-																																Type:     schema.TypeString,
-																																Required: true,
-																															},
-																															"option": {
-																																Type:     schema.TypeSet,
-																																Optional: true,
-																																Elem: &schema.Resource{
-																																	Schema: map[string]*schema.Schema{
-																																		"name": {
-																																			Type:     schema.TypeString,
-																																			Required: true,
-																																		},
-																																		"values": {
-																																			Type:     schema.TypeSet,
-																																			Elem:     &schema.Schema{Type: schema.TypeString},
-																																			Optional: true,
-																																		},
-																																		"value": {
-																																			Type:     schema.TypeString,
-																																			Optional: true,
-																																		},
-																																		"flag": {
-																																			Type:     schema.TypeBool,
-																																			Optional: true,
-																																		},
-																																		"type": {
-																																			Type:     schema.TypeString,
-																																			Optional: true,
-																																			Default:  "auto",
-																																		},
-																																	},
-																																},
-																															},
-																														},
-																													},
-																												},
-																												"behavior": {
-																													Type:     schema.TypeSet,
-																													Optional: true,
-																													Elem: &schema.Resource{
-																														Schema: map[string]*schema.Schema{
-																															"name": {
-																																Type:     schema.TypeString,
-																																Required: true,
-																															},
-																															"option": {
-																																Type:     schema.TypeSet,
-																																Optional: true,
-																																Elem: &schema.Resource{
-																																	Schema: map[string]*schema.Schema{
-																																		"name": {
-																																			Type:     schema.TypeString,
-																																			Required: true,
-																																		},
-																																		"values": {
-																																			Type:     schema.TypeSet,
-																																			Elem:     &schema.Schema{Type: schema.TypeString},
-																																			Optional: true,
-																																		},
-																																		"value": {
-																																			Type:     schema.TypeString,
-																																			Optional: true,
-																																		},
-																																		"flag": {
-																																			Type:     schema.TypeBool,
-																																			Optional: true,
-																																		},
-																																		"type": {
-																																			Type:     schema.TypeString,
-																																			Optional: true,
-																																			Default:  "auto",
-																																		},
-																																	},
-																																},
-																															},
-																														},
-																													},
-																												},
-																												"rule": &schema.Schema{
-																													Type:     schema.TypeSet,
-																													Optional: true,
-																													Elem: &schema.Resource{
-																														Schema: map[string]*schema.Schema{
-																															"name": {
-																																Type:     schema.TypeString,
-																																Required: true,
-																															},
-																															"comment": {
-																																Type:     schema.TypeString,
-																																Required: true,
-																															},
-																															"criteria_match": {
-																																Type:     schema.TypeString,
-																																Optional: true,
-																																Default:  "all",
-																															},
-																															"criteria": {
-																																Type:     schema.TypeSet,
-																																Optional: true,
-																																Elem: &schema.Resource{
-																																	Schema: map[string]*schema.Schema{
-																																		"name": {
-																																			Type:     schema.TypeString,
-																																			Required: true,
-																																		},
-																																		"option": {
-																																			Type:     schema.TypeSet,
-																																			Optional: true,
-																																			Elem: &schema.Resource{
-																																				Schema: map[string]*schema.Schema{
-																																					"name": {
-																																						Type:     schema.TypeString,
-																																						Required: true,
-																																					},
-																																					"values": {
-																																						Type:     schema.TypeSet,
-																																						Elem:     &schema.Schema{Type: schema.TypeString},
-																																						Optional: true,
-																																					},
-																																					"value": {
-																																						Type:     schema.TypeString,
-																																						Optional: true,
-																																					},
-																																					"flag": {
-																																						Type:     schema.TypeBool,
-																																						Optional: true,
-																																					},
-																																					"type": {
-																																						Type:     schema.TypeString,
-																																						Optional: true,
-																																						Default:  "auto",
-																																					},
-																																				},
-																																			},
-																																		},
-																																	},
-																																},
-																															},
-																															"behavior": {
-																																Type:     schema.TypeSet,
-																																Optional: true,
-																																Elem: &schema.Resource{
-																																	Schema: map[string]*schema.Schema{
-																																		"name": {
-																																			Type:     schema.TypeString,
-																																			Required: true,
-																																		},
-																																		"option": {
-																																			Type:     schema.TypeSet,
-																																			Optional: true,
-																																			Elem: &schema.Resource{
-																																				Schema: map[string]*schema.Schema{
-																																					"name": {
-																																						Type:     schema.TypeString,
-																																						Required: true,
-																																					},
-																																					"values": {
-																																						Type:     schema.TypeSet,
-																																						Elem:     &schema.Schema{Type: schema.TypeString},
-																																						Optional: true,
-																																					},
-																																					"value": {
-																																						Type:     schema.TypeString,
-																																						Optional: true,
-																																					},
-																																					"flag": {
-																																						Type:     schema.TypeBool,
-																																						Optional: true,
-																																					},
-																																					"type": {
-																																						Type:     schema.TypeString,
-																																						Optional: true,
-																																						Default:  "auto",
-																																					},
-																																				},
-																																			},
-																																		},
-																																	},
-																																},
-																															},
-																															"rule": &schema.Schema{
-																																Type:     schema.TypeSet,
-																																Optional: true,
-																																Elem: &schema.Resource{
-																																	Schema: map[string]*schema.Schema{
-																																		"name": {
-																																			Type:     schema.TypeString,
-																																			Required: true,
-																																		},
-																																		"comment": {
-																																			Type:     schema.TypeString,
-																																			Required: true,
-																																		},
-																																		"criteria_match": {
-																																			Type:     schema.TypeString,
-																																			Optional: true,
-																																			Default:  "all",
-																																		},
-																																		"criteria": {
-																																			Type:     schema.TypeSet,
-																																			Optional: true,
-																																			Elem: &schema.Resource{
-																																				Schema: map[string]*schema.Schema{
-																																					"name": {
-																																						Type:     schema.TypeString,
-																																						Required: true,
-																																					},
-																																					"option": {
-																																						Type:     schema.TypeSet,
-																																						Optional: true,
-																																						Elem: &schema.Resource{
-																																							Schema: map[string]*schema.Schema{
-																																								"name": {
-																																									Type:     schema.TypeString,
-																																									Required: true,
-																																								},
-																																								"values": {
-																																									Type:     schema.TypeSet,
-																																									Elem:     &schema.Schema{Type: schema.TypeString},
-																																									Optional: true,
-																																								},
-																																								"value": {
-																																									Type:     schema.TypeString,
-																																									Optional: true,
-																																								},
-																																								"flag": {
-																																									Type:     schema.TypeBool,
-																																									Optional: true,
-																																								},
-																																								"type": {
-																																									Type:     schema.TypeString,
-																																									Optional: true,
-																																									Default:  "auto",
-																																								},
-																																							},
-																																						},
-																																					},
-																																				},
-																																			},
-																																		},
-																																		"behavior": {
-																																			Type:     schema.TypeSet,
-																																			Optional: true,
-																																			Elem: &schema.Resource{
-																																				Schema: map[string]*schema.Schema{
-																																					"name": {
-																																						Type:     schema.TypeString,
-																																						Required: true,
-																																					},
-																																					"option": {
-																																						Type:     schema.TypeSet,
-																																						Optional: true,
-																																						Elem: &schema.Resource{
-																																							Schema: map[string]*schema.Schema{
-																																								"name": {
-																																									Type:     schema.TypeString,
-																																									Required: true,
-																																								},
-																																								"values": {
-																																									Type:     schema.TypeSet,
-																																									Elem:     &schema.Schema{Type: schema.TypeString},
-																																									Optional: true,
-																																								},
-																																								"value": {
-																																									Type:     schema.TypeString,
-																																									Optional: true,
-																																								},
-																																								"flag": {
-																																									Type:     schema.TypeBool,
-																																									Optional: true,
-																																								},
-																																								"type": {
-																																									Type:     schema.TypeString,
-																																									Optional: true,
-																																									Default:  "auto",
-																																								},
-																																							},
-																																						},
-																																					},
-																																				},
-																																			},
-																																		},
-																																		"rule": &schema.Schema{
-																																			Type:     schema.TypeSet,
-																																			Optional: true,
-																																			Elem: &schema.Resource{
-																																				Schema: map[string]*schema.Schema{
-																																					"name": {
-																																						Type:     schema.TypeString,
-																																						Required: true,
-																																					},
-																																					"comment": {
-																																						Type:     schema.TypeString,
-																																						Required: true,
-																																					},
-																																					"criteria_match": {
-																																						Type:     schema.TypeString,
-																																						Optional: true,
-																																						Default:  "all",
-																																					},
-																																					"criteria": {
-																																						Type:     schema.TypeSet,
-																																						Optional: true,
-																																						Elem: &schema.Resource{
-																																							Schema: map[string]*schema.Schema{
-																																								"name": {
-																																									Type:     schema.TypeString,
-																																									Required: true,
-																																								},
-																																								"option": {
-																																									Type:     schema.TypeSet,
-																																									Optional: true,
-																																									Elem: &schema.Resource{
-																																										Schema: map[string]*schema.Schema{
-																																											"name": {
-																																												Type:     schema.TypeString,
-																																												Required: true,
-																																											},
-																																											"values": {
-																																												Type:     schema.TypeSet,
-																																												Elem:     &schema.Schema{Type: schema.TypeString},
-																																												Optional: true,
-																																											},
-																																											"value": {
-																																												Type:     schema.TypeString,
-																																												Optional: true,
-																																											},
-																																											"flag": {
-																																												Type:     schema.TypeBool,
-																																												Optional: true,
-																																											},
-																																											"type": {
-																																												Type:     schema.TypeString,
-																																												Optional: true,
-																																												Default:  "auto",
-																																											},
-																																										},
-																																									},
-																																								},
-																																							},
-																																						},
-																																					},
-																																					"behavior": {
-																																						Type:     schema.TypeSet,
-																																						Optional: true,
-																																						Elem: &schema.Resource{
-																																							Schema: map[string]*schema.Schema{
-																																								"name": {
-																																									Type:     schema.TypeString,
-																																									Required: true,
-																																								},
-																																								"option": {
-																																									Type:     schema.TypeSet,
-																																									Optional: true,
-																																									Elem: &schema.Resource{
-																																										Schema: map[string]*schema.Schema{
-																																											"name": {
-																																												Type:     schema.TypeString,
-																																												Required: true,
-																																											},
-																																											"values": {
-																																												Type:     schema.TypeSet,
-																																												Elem:     &schema.Schema{Type: schema.TypeString},
-																																												Optional: true,
-																																											},
-																																											"value": {
-																																												Type:     schema.TypeString,
-																																												Optional: true,
-																																											},
-																																											"flag": {
-																																												Type:     schema.TypeBool,
-																																												Optional: true,
-																																											},
-																																											"type": {
-																																												Type:     schema.TypeString,
-																																												Optional: true,
-																																												Default:  "auto",
-																																											},
-																																										},
-																																									},
-																																								},
-																																							},
-																																						},
-																																					},
-																																					"rule": &schema.Schema{
-																																						Type:     schema.TypeSet,
-																																						Optional: true,
-																																						Elem: &schema.Resource{
-																																							Schema: map[string]*schema.Schema{
-																																								"name": {
-																																									Type:     schema.TypeString,
-																																									Required: true,
-																																								},
-																																								"comment": {
-																																									Type:     schema.TypeString,
-																																									Required: true,
-																																								},
-																																								"criteria_match": {
-																																									Type:     schema.TypeString,
-																																									Optional: true,
-																																									Default:  "all",
-																																								},
-																																								"criteria": {
-																																									Type:     schema.TypeSet,
-																																									Optional: true,
-																																									Elem: &schema.Resource{
-																																										Schema: map[string]*schema.Schema{
-																																											"name": {
-																																												Type:     schema.TypeString,
-																																												Required: true,
-																																											},
-																																											"option": {
-																																												Type:     schema.TypeSet,
-																																												Optional: true,
-																																												Elem: &schema.Resource{
-																																													Schema: map[string]*schema.Schema{
-																																														"name": {
-																																															Type:     schema.TypeString,
-																																															Required: true,
-																																														},
-																																														"values": {
-																																															Type:     schema.TypeSet,
-																																															Elem:     &schema.Schema{Type: schema.TypeString},
-																																															Optional: true,
-																																														},
-																																														"value": {
-																																															Type:     schema.TypeString,
-																																															Optional: true,
-																																														},
-																																														"flag": {
-																																															Type:     schema.TypeBool,
-																																															Optional: true,
-																																														},
-																																														"type": {
-																																															Type:     schema.TypeString,
-																																															Optional: true,
-																																															Default:  "auto",
-																																														},
-																																													},
-																																												},
-																																											},
-																																										},
-																																									},
-																																								},
-																																								"behavior": {
-																																									Type:     schema.TypeSet,
-																																									Optional: true,
-																																									Elem: &schema.Resource{
-																																										Schema: map[string]*schema.Schema{
-																																											"name": {
-																																												Type:     schema.TypeString,
-																																												Required: true,
-																																											},
-																																											"option": {
-																																												Type:     schema.TypeSet,
-																																												Optional: true,
-																																												Elem: &schema.Resource{
-																																													Schema: map[string]*schema.Schema{
-																																														"name": {
-																																															Type:     schema.TypeString,
-																																															Required: true,
-																																														},
-																																														"values": {
-																																															Type:     schema.TypeSet,
-																																															Elem:     &schema.Schema{Type: schema.TypeString},
-																																															Optional: true,
-																																														},
-																																														"value": {
-																																															Type:     schema.TypeString,
-																																															Optional: true,
-																																														},
-																																														"flag": {
-																																															Type:     schema.TypeBool,
-																																															Optional: true,
-																																														},
-																																														"type": {
-																																															Type:     schema.TypeString,
-																																															Optional: true,
-																																															Default:  "auto",
-																																														},
-																																													},
-																																												},
-																																											},
-																																										},
-																																									},
-																																								},
-																																							},
-																																						},
-																																					},
-																																				},
-																																			},
-																																		},
-																																	},
-																																},
-																															},
-																														},
-																													},
-																												},
-																											},
-																										},
-																									},
-																								},
-																							},
-																						},
-																					},
-																				},
-																			},
-																		},
-																	},
-																},
+																"criteria": akps_criteria,
+																"behavior": akps_behavior,
 															},
 														},
 													},
