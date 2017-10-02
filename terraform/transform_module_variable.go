@@ -17,7 +17,6 @@ type ModuleVariableTransformer struct {
 	Module *module.Tree
 
 	DisablePrune bool // True if pruning unreferenced should be disabled
-	Input        bool // True if this is from an Input operation.
 }
 
 func (t *ModuleVariableTransformer) Transform(g *Graph) error {
@@ -100,7 +99,6 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, m *module.
 			Config:    v,
 			Value:     value,
 			Module:    t.Module,
-			Input:     t.Input,
 		}
 
 		if !t.DisablePrune {
