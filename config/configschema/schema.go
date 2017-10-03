@@ -51,6 +51,17 @@ type NestedBlock struct {
 	// how many instances of the block are allowed, how many labels it expects,
 	// and how the resulting data will be converted into a data structure.
 	Nesting NestingMode
+
+	// MinItems and MaxItems set, for the NestingList and NestingSet nesting
+	// modes, lower and upper limits on the number of child blocks allowed
+	// of the given type. If both are left at zero, no limit is applied.
+	//
+	// As a special case, both values can be set to 1 for NestingSingle in
+	// order to indicate that a particular single block is required.
+	//
+	// These fields are ignored for other nesting modes and must both be left
+	// at zero.
+	MinItems, MaxItems int
 }
 
 // NestingMode is an enumeration of modes for nesting blocks inside other
