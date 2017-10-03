@@ -18,9 +18,12 @@ func TestMain_cliArgsFromEnv(t *testing.T) {
 	defer func() { os.Args = oldArgs }()
 
 	// Setup test command and restore that
+	Commands = make(map[string]cli.CommandFactory)
+	defer func() {
+		Commands = nil
+	}()
 	testCommandName := "unit-test-cli-args"
 	testCommand := &testCommandCLI{}
-	defer func() { delete(Commands, testCommandName) }()
 	Commands[testCommandName] = func() (cli.Command, error) {
 		return testCommand, nil
 	}
@@ -150,6 +153,12 @@ func TestMain_cliArgsFromEnvAdvanced(t *testing.T) {
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
 
+	// Setup test command and restore that
+	Commands = make(map[string]cli.CommandFactory)
+	defer func() {
+		Commands = nil
+	}()
+
 	cases := []struct {
 		Name     string
 		Command  string
@@ -230,7 +239,7 @@ func TestMain_cliArgsFromEnvAdvanced(t *testing.T) {
 			testCommand.Args = nil
 			exit := wrappedMain()
 			if (exit != 0) != tc.Err {
-				t.Fatalf("bad: %d", exit)
+				t.Fatalf("unexpected exit status %d; want 0", exit)
 			}
 			if tc.Err {
 				return

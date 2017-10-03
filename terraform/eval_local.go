@@ -56,3 +56,31 @@ func (n *EvalLocal) Eval(ctx EvalContext) (interface{}, error) {
 
 	return nil, nil
 }
+
+// EvalDeleteLocal is an EvalNode implementation that deletes a Local value
+// from the state. Locals aren't persisted, but we don't need to evaluate them
+// during destroy.
+type EvalDeleteLocal struct {
+	Name string
+}
+
+func (n *EvalDeleteLocal) Eval(ctx EvalContext) (interface{}, error) {
+	state, lock := ctx.State()
+	if state == nil {
+		return nil, nil
+	}
+
+	// Get a write lock so we can access this instance
+	lock.Lock()
+	defer lock.Unlock()
+
+	// Look for the module state. If we don't have one, create it.
+	mod := state.ModuleByPath(ctx.Path())
+	if mod == nil {
+		return nil, nil
+	}
+
+	delete(mod.Locals, n.Name)
+
+	return nil, nil
+}

@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform/command"
 )
 
+const pluginCacheDirEnvVar = "TF_PLUGIN_CACHE_DIR"
+
 // Config is the structure of the configuration for the Terraform CLI.
 //
 // This is not the configuration for Terraform itself. That is in the
@@ -21,6 +23,10 @@ type Config struct {
 
 	DisableCheckpoint          bool `hcl:"disable_checkpoint"`
 	DisableCheckpointSignature bool `hcl:"disable_checkpoint_signature"`
+
+	// If set, enables local caching of plugins in this directory to
+	// avoid repeatedly re-downloading over the Internet.
+	PluginCacheDir string `hcl:"plugin_cache_dir"`
 }
 
 // BuiltinConfig is the built-in defaults for the configuration. These
@@ -75,7 +81,29 @@ func LoadConfig(path string) (*Config, error) {
 		result.Provisioners[k] = os.ExpandEnv(v)
 	}
 
+	if result.PluginCacheDir != "" {
+		result.PluginCacheDir = os.ExpandEnv(result.PluginCacheDir)
+	}
+
 	return &result, nil
+}
+
+// EnvConfig returns a Config populated from environment variables.
+//
+// Any values specified in this config should override those set in the
+// configuration file.
+func EnvConfig() *Config {
+	config := &Config{}
+
+	if envPluginCacheDir := os.Getenv(pluginCacheDirEnvVar); envPluginCacheDir != "" {
+		// No Expandenv here, because expanding environment variables inside
+		// an environment variable would be strange and seems unnecessary.
+		// (User can expand variables into the value while setting it using
+		// standard shell features.)
+		config.PluginCacheDir = envPluginCacheDir
+	}
+
+	return config
 }
 
 // Merge merges two configurations and returns a third entirely
@@ -104,6 +132,11 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 	}
 	result.DisableCheckpoint = c1.DisableCheckpoint || c2.DisableCheckpoint
 	result.DisableCheckpointSignature = c1.DisableCheckpointSignature || c2.DisableCheckpointSignature
+
+	result.PluginCacheDir = c1.PluginCacheDir
+	if result.PluginCacheDir == "" {
+		result.PluginCacheDir = c2.PluginCacheDir
+	}
 
 	return &result
 }

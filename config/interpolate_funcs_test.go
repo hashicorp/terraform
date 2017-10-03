@@ -2400,21 +2400,23 @@ type testFunctionCase struct {
 }
 
 func testFunction(t *testing.T, config testFunctionConfig) {
-	for i, tc := range config.Cases {
-		ast, err := hil.Parse(tc.Input)
-		if err != nil {
-			t.Fatalf("Case #%d: input: %#v\nerr: %v", i, tc.Input, err)
-		}
+	t.Helper()
+	for _, tc := range config.Cases {
+		t.Run(tc.Input, func(t *testing.T) {
+			ast, err := hil.Parse(tc.Input)
+			if err != nil {
+				t.Fatalf("unexpected parse error: %s", err)
+			}
 
-		result, err := hil.Eval(ast, langEvalConfig(config.Vars))
-		if err != nil != tc.Error {
-			t.Fatalf("Case #%d:\ninput: %#v\nerr: %v", i, tc.Input, err)
-		}
+			result, err := hil.Eval(ast, langEvalConfig(config.Vars))
+			if err != nil != tc.Error {
+				t.Fatalf("unexpected eval error: %s", err)
+			}
 
-		if !reflect.DeepEqual(result.Value, tc.Result) {
-			t.Fatalf("%d: bad output for input: %s\n\nOutput: %#v\nExpected: %#v",
-				i, tc.Input, result.Value, tc.Result)
-		}
+			if !reflect.DeepEqual(result.Value, tc.Result) {
+				t.Errorf("wrong result\ngiven: %s\ngot:   %#v\nwant:  %#v", tc.Input, result.Value, tc.Result)
+			}
+		})
 	}
 }
 
@@ -2607,6 +2609,134 @@ func TestInterpolateFuncURLEncode(t *testing.T) {
 			{
 				`${urlencode("foo/bar")}`,
 				"foo%2Fbar",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncTranspose(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.map": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"key1": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeString, Value: "a"},
+							{Type: ast.TypeString, Value: "b"},
+						},
+					},
+					"key2": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeString, Value: "a"},
+							{Type: ast.TypeString, Value: "b"},
+							{Type: ast.TypeString, Value: "c"},
+						},
+					},
+					"key3": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeString, Value: "c"},
+						},
+					},
+					"key4": ast.Variable{
+						Type:  ast.TypeList,
+						Value: []ast.Variable{},
+					},
+				}},
+			"var.badmap": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"key1": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeList, Value: []ast.Variable{}},
+							{Type: ast.TypeList, Value: []ast.Variable{}},
+						},
+					},
+				}},
+			"var.worsemap": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"key1": ast.Variable{
+						Type:  ast.TypeString,
+						Value: "not-a-list",
+					},
+				}},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${transpose(var.map)}`,
+				map[string]interface{}{
+					"a": []interface{}{"key1", "key2"},
+					"b": []interface{}{"key1", "key2"},
+					"c": []interface{}{"key2", "key3"},
+				},
+				false,
+			},
+			{
+				`${transpose(var.badmap)}`,
+				nil,
+				true,
+			},
+			{
+				`${transpose(var.worsemap)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncAbs(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${abs()}`,
+				nil,
+				true,
+			},
+			{
+				`${abs("")}`,
+				nil,
+				true,
+			},
+			{
+				`${abs(0)}`,
+				"0",
+				false,
+			},
+			{
+				`${abs(1)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(-1)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(1.0)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(-1.0)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(-3.14)}`,
+				"3.14",
+				false,
+			},
+			{
+				`${abs(-42.001)}`,
+				"42.001",
 				false,
 			},
 		},

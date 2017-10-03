@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -95,6 +96,16 @@ func realMain() int {
 	return wrappedMain()
 }
 
+func init() {
+	Ui = &cli.PrefixedUi{
+		AskPrefix:    OutputPrefix,
+		OutputPrefix: OutputPrefix,
+		InfoPrefix:   OutputPrefix,
+		ErrorPrefix:  ErrorPrefix,
+		Ui:           &cli.BasicUi{Writer: os.Stdout},
+	}
+}
+
 func wrappedMain() int {
 	// We always need to close the DebugInfo before we exit.
 	defer terraform.CloseDebugInfo()
@@ -127,6 +138,18 @@ func wrappedMain() int {
 		config = *config.Merge(usrcfg)
 	}
 
+	if envConfig := EnvConfig(); envConfig != nil {
+		// envConfig takes precedence
+		config = *envConfig.Merge(&config)
+	}
+
+	log.Printf("[DEBUG] CLI Config is %#v", config)
+
+	// In tests, Commands may already be set to provide mock commands
+	if Commands == nil {
+		initCommands(&config)
+	}
+
 	// Run checkpoint
 	go runCheckpoint(&config)
 
@@ -134,6 +157,7 @@ func wrappedMain() int {
 	defer plugin.CleanupClients()
 
 	// Get the command line args.
+	binName := filepath.Base(os.Args[0])
 	args := os.Args[1:]
 
 	// Build the CLI so far, we do this so we can query the subcommand.
@@ -175,10 +199,15 @@ func wrappedMain() int {
 	// Rebuild the CLI with any modified args.
 	log.Printf("[INFO] CLI command args: %#v", args)
 	cliRunner = &cli.CLI{
+		Name:       binName,
 		Args:       args,
 		Commands:   Commands,
 		HelpFunc:   helpFunc,
 		HelpWriter: os.Stdout,
+
+		Autocomplete:          true,
+		AutocompleteInstall:   "install-autocomplete",
+		AutocompleteUninstall: "uninstall-autocomplete",
 	}
 
 	// Pass in the overriding plugin paths from config

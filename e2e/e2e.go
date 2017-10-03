@@ -17,6 +17,7 @@ import (
 type binary struct {
 	binPath string
 	workDir string
+	env     []string
 }
 
 // NewBinary prepares a temporary directory containing the files from the
@@ -93,6 +94,12 @@ func NewBinary(binaryPath, workingDir string) *binary {
 	}
 }
 
+// AddEnv appends an entry to the environment variable table passed to any
+// commands subsequently run.
+func (b *binary) AddEnv(entry string) {
+	b.env = append(b.env, entry)
+}
+
 // Cmd returns an exec.Cmd pre-configured to run the generated Terraform
 // binary with the given arguments in the temporary working directory.
 //
@@ -107,6 +114,8 @@ func (b *binary) Cmd(args ...string) *exec.Cmd {
 	// our tests run. (This does, of course, mean we can't actually do
 	// end-to-end testing of our Checkpoint interactions.)
 	cmd.Env = append(cmd.Env, "CHECKPOINT_DISABLE=1")
+
+	cmd.Env = append(cmd.Env, b.env...)
 
 	return cmd
 }

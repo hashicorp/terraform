@@ -42,6 +42,12 @@ testacc: fmtcheck generate
 	fi
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
+# e2etest runs the end-to-end tests against a generated Terraform binary
+# The TF_ACC here allows network access, but does not require any special
+# credentials since the e2etests use local-only providers such as "null".
+e2etest: generate
+	TF_ACC=1 go test -v ./command/e2etest
+
 test-compile: fmtcheck generate
 	@if [ "$(TEST)" = "./..." ]; then \
 		echo "ERROR: Set TEST to a specific package. For example,"; \
@@ -96,4 +102,4 @@ vendor-status:
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: bin cover default dev fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status vet
+.PHONY: bin cover default dev e2etest fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status vet

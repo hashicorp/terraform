@@ -27,7 +27,7 @@ such as bash. Plugins are executed as a separate process and communicate with
 the main Terraform binary over an RPC interface.
 
 More details are available in
-[Internal Docs](/docs/internals/internal-plugins.html).
+_[Plugin Internals](/docs/internals/internal-plugins.html)_.
 
 The code within the binaries must adhere to certain interfaces.
 The network communication and RPC is handled automatically by higher-level
@@ -36,24 +36,13 @@ in its respective documentation section.
 
 ## Installing a Plugin
 
-To install a plugin, put the binary somewhere on your filesystem, then
-configure Terraform to be able to find it. The configuration where plugins
-are defined is `~/.terraformrc` for Unix-like systems and
-`%APPDATA%/terraform.rc` for Windows.
+To install a plugin distributed by a third party developer, place the binary
+(extracted from any containing zip file) in
+[the third-party plugins directory](/docs/configuration/providers.html#third-party-plugins).
 
-An example that configures a new provider is shown below:
-
-```hcl
-providers {
-  privatecloud = "/path/to/privatecloud"
-}
-```
-
-The key `privatecloud` is the _prefix_ of the resources for that provider.
-For example, if there is `privatecloud_instance` resource, then the above
-configuration would work. The value is the name of the executable. This
-can be a full path. If it isn't a full path, the executable will be looked
-up on the `PATH`.
+Provider plugin binaries are named with the prefix `terraform-provider-`,
+while provisioner plugins have the prefix `terraform-provisioner-`. Both
+are placed in the same directory.
 
 ## Developing a Plugin
 
@@ -73,7 +62,12 @@ is your GitHub username and `NAME` is the name of the plugin you're
 developing. This structure is what Go expects and simplifies things down
 the road.
 
-With the directory made, create a `main.go` file. This project will
+The `NAME` should either begin with `provider-` or `provisioner-`,
+depending on what kind of plugin it will be. The repository name will,
+by default, be the name of the binary produced by `go install` for
+your plugin package.
+
+With the package directory made, create a `main.go` file. This project will
 be a binary so the package is "main":
 
 ```golang
@@ -88,13 +82,13 @@ func main() {
 }
 ```
 
-And that's basically it! You'll have to change the argument given to
-`plugin.Serve` to be your actual plugin, but that is the only change
-you'll have to make. The argument should be a structure implementing
-one of the plugin interfaces (depending on what sort of plugin
-you're creating).
+The name `MyPlugin` is a placeholder for the struct type that represents
+your plugin's implementation. This must implement either
+`terraform.ResourceProvider` or `terraform.ResourceProvisioner`, depending
+on the plugin type.
 
-Terraform plugins must follow a very specific naming convention of
-`terraform-TYPE-NAME`. For example, `terraform-provider-aws`, which
-tells Terraform that the plugin is a provider that can be referenced
-as "aws".
+To test your plugin, the easiest method is to copy your `terraform` binary
+to `$GOPATH/bin` and ensure that this copy is the one being used for testing.
+`terraform init` will search for plugins within the same directory as the
+`terraform` binary, and `$GOPATH/bin` is the directory into which `go install`
+will place the plugin executable.
