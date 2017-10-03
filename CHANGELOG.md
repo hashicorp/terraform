@@ -1,5 +1,12 @@
 ## 0.10.8 (Unreleased)
 
+NEW FEATURES:
+
+* backend/etcdv3: Add etcdv3 backend, for use with the newer etcd api [GH-15680]
+
+IMPROVEMENTS:
+
+* backend/s3: Add options to skip AWS validation which allows non-AWS S3 backends [GH-15553]
 
 ## 0.10.7 (October 2, 2017)
 
