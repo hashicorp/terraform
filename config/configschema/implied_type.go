@@ -1,6 +1,7 @@
 package configschema
 
 import (
+	"github.com/hashicorp/hcl2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -16,37 +17,5 @@ func (b *Block) ImpliedType() cty.Type {
 		return cty.EmptyObject
 	}
 
-	attrTypes := map[string]cty.Type{}
-
-	for name, attrS := range b.Attributes {
-		attrTypes[name] = attrS.Type
-	}
-
-	for name, blockS := range b.BlockTypes {
-		if _, exists := attrTypes[name]; exists {
-			// This indicates an invalid schema, since it's not valid to
-			// define both an attribute and a block type of the same name.
-			// However, we don't raise this here since it's checked by
-			// InternalValidate.
-			continue
-		}
-
-		childType := blockS.Block.ImpliedType()
-		switch blockS.Nesting {
-		case NestingSingle:
-			attrTypes[name] = childType
-		case NestingList:
-			attrTypes[name] = cty.List(childType)
-		case NestingSet:
-			attrTypes[name] = cty.Set(childType)
-		case NestingMap:
-			attrTypes[name] = cty.Map(childType)
-		default:
-			// Invalid nesting type is just ignored. It's checked by
-			// InternalValidate.
-			continue
-		}
-	}
-
-	return cty.Object(attrTypes)
+	return hcldec.ImpliedType(b.DecoderSpec())
 }
