@@ -145,6 +145,10 @@ syntax `name(arg, arg2, ...)`. For example, to read a file:
 
 The supported built-in functions are:
 
+  * `abs(float)` - Returns the absolute value of a given float.
+    Example: `abs(1)` returns `1`, and `abs(-1)` would also return `1`,
+    whereas `abs(-3.14)` would return `3.14`. See also the `signum` function.
+
   * `basename(path)` - Returns the last element of a path.
 
   * `base64decode(string)` - Given a base64-encoded string, decodes it and
@@ -358,7 +362,7 @@ The supported built-in functions are:
     SHA-512 hash of the given string.
     Example: `"${sha512("${aws_vpc.default.tags.customer}-s3-bucket")}"`
 
-  * `signum(int)` - Returns `-1` for negative numbers, `0` for `0` and `1` for positive numbers.
+  * `signum(integer)` - Returns `-1` for negative numbers, `0` for `0` and `1` for positive numbers.
       This function is useful when you need to set a value for the first resource and
       a different value for the rest of the resources.
       Example: `element(split(",", var.r53_failover_policy), signum(count.index))`
@@ -387,6 +391,8 @@ The supported built-in functions are:
    [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
+
+  * `transpose(map)` - Swaps the keys and list values in a map of lists of strings. For example, transpose(map("a", list("1", "2"), "b", list("2", "3")) produces a value equivalent to map("1", list("a"), "2", list("a", "b"), "3", list("b")).
 
   * `trimspace(string)` - Returns a copy of the string with all leading and trailing white spaces removed.
 

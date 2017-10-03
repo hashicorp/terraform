@@ -79,7 +79,7 @@ func getStorage(s getter.Storage, key string, src string, mode GetMode) (string,
 }
 
 const (
-	registryAPI   = "https://registry.terraform.io/v1/modules/"
+	registryAPI   = "https://registry.terraform.io/v1/modules"
 	xTerraformGet = "X-Terraform-Get"
 )
 

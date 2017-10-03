@@ -49,6 +49,11 @@ func SubdirGlob(dst, subDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	if len(matches) == 0 {
+		return "", fmt.Errorf("subdir %q not found", subDir)
+	}
+
 	if len(matches) > 1 {
 		return "", fmt.Errorf("subdir %q matches multiple paths", subDir)
 	}

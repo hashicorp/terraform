@@ -3,10 +3,12 @@ package discovery
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -47,6 +49,10 @@ type Installer interface {
 // provider installer can be used as one of several plugin discovery sources.
 type ProviderInstaller struct {
 	Dir string
+
+	// Cache is used to access and update a local cache of plugins if non-nil.
+	// Can be nil to disable caching.
+	Cache PluginCache
 
 	PluginProtocolVersion uint
 
@@ -101,6 +107,12 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	// sort them newest to oldest
 	Versions(versions).Sort()
 
+	// Ensure that our installation directory exists
+	err = os.MkdirAll(i.Dir, os.ModePerm)
+	if err != nil {
+		return PluginMeta{}, fmt.Errorf("failed to create plugin dir %s: %s", i.Dir, err)
+	}
+
 	// take the first matching plugin we find
 	for _, v := range versions {
 		url := i.providerURL(provider, v.String())
@@ -120,8 +132,8 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 		log.Printf("[DEBUG] fetching provider info for %s version %s", provider, v)
 		if checkPlugin(url, i.PluginProtocolVersion) {
 			i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", provider, v.String()))
-			log.Printf("[DEBUG] getting provider %q version %q at %s", provider, v, url)
-			err := getter.Get(i.Dir, url)
+			log.Printf("[DEBUG] getting provider %q version %q", provider, v)
+			err := i.install(provider, v, url)
 			if err != nil {
 				return PluginMeta{}, err
 			}
@@ -166,6 +178,98 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	}
 
 	return PluginMeta{}, ErrorNoVersionCompatible
+}
+
+func (i *ProviderInstaller) install(provider string, version Version, url string) error {
+	if i.Cache != nil {
+		log.Printf("[DEBUG] looking for provider %s %s in plugin cache", provider, version)
+		cached := i.Cache.CachedPluginPath("provider", provider, version)
+		if cached == "" {
+			log.Printf("[DEBUG] %s %s not yet in cache, so downloading %s", provider, version, url)
+			err := getter.Get(i.Cache.InstallDir(), url)
+			if err != nil {
+				return err
+			}
+			// should now be in cache
+			cached = i.Cache.CachedPluginPath("provider", provider, version)
+			if cached == "" {
+				// should never happen if the getter is behaving properly
+				// and the plugins are packaged properly.
+				return fmt.Errorf("failed to find downloaded plugin in cache %s", i.Cache.InstallDir())
+			}
+		}
+
+		// Link or copy the cached binary into our install dir so the
+		// normal resolution machinery can find it.
+		filename := filepath.Base(cached)
+		targetPath := filepath.Join(i.Dir, filename)
+
+		log.Printf("[DEBUG] installing %s %s to %s from local cache %s", provider, version, targetPath, cached)
+
+		// Delete if we can. If there's nothing there already then no harm done.
+		// This is important because we can't create a link if there's
+		// already a file of the same name present.
+		// (any other error here we'll catch below when we try to write here)
+		os.Remove(targetPath)
+
+		// We don't attempt linking on Windows because links are not
+		// comprehensively supported by all tools/apps in Windows and
+		// so we choose to be conservative to avoid creating any
+		// weird issues for Windows users.
+		linkErr := errors.New("link not supported for Windows") // placeholder error, never actually returned
+		if runtime.GOOS != "windows" {
+			// Try hard linking first. Hard links are preferable because this
+			// creates a self-contained directory that doesn't depend on the
+			// cache after install.
+			linkErr = os.Link(cached, targetPath)
+
+			// If that failed, try a symlink. This _does_ depend on the cache
+			// after install, so the user must manage the cache more carefully
+			// in this case, but avoids creating redundant copies of the
+			// plugins on disk.
+			if linkErr != nil {
+				linkErr = os.Symlink(cached, targetPath)
+			}
+		}
+
+		// If we still have an error then we'll try a copy as a fallback.
+		// In this case either the OS is Windows or the target filesystem
+		// can't support symlinks.
+		if linkErr != nil {
+			srcFile, err := os.Open(cached)
+			if err != nil {
+				return fmt.Errorf("failed to open cached plugin %s: %s", cached, err)
+			}
+			defer srcFile.Close()
+
+			destFile, err := os.OpenFile(targetPath, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+			if err != nil {
+				return fmt.Errorf("failed to create %s: %s", targetPath, err)
+			}
+
+			_, err = io.Copy(destFile, srcFile)
+			if err != nil {
+				destFile.Close()
+				return fmt.Errorf("failed to copy cached plugin from %s to %s: %s", cached, targetPath, err)
+			}
+
+			err = destFile.Close()
+			if err != nil {
+				return fmt.Errorf("error creating %s: %s", targetPath, err)
+			}
+		}
+
+		// One way or another, by the time we get here we should have either
+		// a link or a copy of the cached plugin within i.Dir, as expected.
+	} else {
+		log.Printf("[DEBUG] plugin cache is disabled, so downloading %s %s from %s", provider, version, url)
+		err := getter.Get(i.Dir, url)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (i *ProviderInstaller) PurgeUnused(used map[string]PluginMeta) (PluginMetaSet, error) {

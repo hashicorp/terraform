@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
 	"github.com/mitchellh/cli"
+	"github.com/posener/complete"
 )
 
 type WorkspaceDeleteCommand struct {
@@ -156,6 +157,21 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 	return 0
 }
+
+func (c *WorkspaceDeleteCommand) AutocompleteArgs() complete.Predictor {
+	return completePredictSequence{
+		complete.PredictNothing, // the "select" subcommand itself (already matched)
+		c.completePredictWorkspaceName(),
+		complete.PredictDirs(""),
+	}
+}
+
+func (c *WorkspaceDeleteCommand) AutocompleteFlags() complete.Flags {
+	return complete.Flags{
+		"-force": complete.PredictNothing,
+	}
+}
+
 func (c *WorkspaceDeleteCommand) Help() string {
 	helpText := `
 Usage: terraform workspace delete [OPTIONS] NAME [DIR]

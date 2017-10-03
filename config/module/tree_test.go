@@ -2,7 +2,9 @@ package module
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -209,40 +211,120 @@ func TestTreeLoad_parentRef(t *testing.T) {
 }
 
 func TestTreeLoad_subdir(t *testing.T) {
-	storage := testStorage(t)
-	tree := NewTree("", testConfig(t, "basic-subdir"))
+	fixtures := []string{
+		"basic-subdir",
+		"basic-tar-subdir",
 
-	if tree.Loaded() {
-		t.Fatal("should not be loaded")
+		// Passing a subpath to go getter extracts only this subpath. The old
+		// internal code would keep the entire directory structure, allowing a
+		// top-level module to reference others through its parent directory.
+		// TODO: this can be removed as a breaking change in a major release.
+		"tar-subdir-to-parent",
 	}
 
-	// This should error because we haven't gotten things yet
-	if err := tree.Load(storage, GetModeNone); err == nil {
-		t.Fatal("should error")
+	for _, tc := range fixtures {
+		t.Run(tc, func(t *testing.T) {
+			storage := testStorage(t)
+			tree := NewTree("", testConfig(t, tc))
+
+			if tree.Loaded() {
+				t.Fatal("should not be loaded")
+			}
+
+			// This should error because we haven't gotten things yet
+			if err := tree.Load(storage, GetModeNone); err == nil {
+				t.Fatal("should error")
+			}
+
+			if tree.Loaded() {
+				t.Fatal("should not be loaded")
+			}
+
+			// This should get things
+			if err := tree.Load(storage, GetModeGet); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+
+			if !tree.Loaded() {
+				t.Fatal("should be loaded")
+			}
+
+			// This should no longer error
+			if err := tree.Load(storage, GetModeNone); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+
+			actual := strings.TrimSpace(tree.String())
+			expected := strings.TrimSpace(treeLoadSubdirStr)
+			if actual != expected {
+				t.Fatalf("bad: \n\n%s", actual)
+			}
+		})
+	}
+}
+
+func TestTree_recordSubDir(t *testing.T) {
+	td, err := ioutil.TempDir("", "tf-module")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(td)
+
+	dir := filepath.Join(td, "0131bf0fef686e090b16bdbab4910ddf")
+
+	subDir := "subDirName"
+
+	tree := Tree{}
+
+	// record and read the subdir path
+	if err := tree.recordSubdir(dir, subDir); err != nil {
+		t.Fatal(err)
+	}
+	actual, err := tree.getSubdir(dir)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if tree.Loaded() {
-		t.Fatal("should not be loaded")
+	if actual != subDir {
+		t.Fatalf("expected subDir %q, got %q", subDir, actual)
 	}
 
-	// This should get things
-	if err := tree.Load(storage, GetModeGet); err != nil {
-		t.Fatalf("err: %s", err)
+	// overwrite the path, and nmake sure we get the new one
+	subDir = "newSubDir"
+	if err := tree.recordSubdir(dir, subDir); err != nil {
+		t.Fatal(err)
+	}
+	actual, err = tree.getSubdir(dir)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if !tree.Loaded() {
-		t.Fatal("should be loaded")
+	if actual != subDir {
+		t.Fatalf("expected subDir %q, got %q", subDir, actual)
 	}
 
-	// This should no longer error
-	if err := tree.Load(storage, GetModeNone); err != nil {
-		t.Fatalf("err: %s", err)
+	// create a fake entry
+	if err := ioutil.WriteFile(subdirRecordsPath(dir), []byte("BAD DATA"), 0644); err != nil {
+		t.Fatal(err)
 	}
 
-	actual := strings.TrimSpace(tree.String())
-	expected := strings.TrimSpace(treeLoadSubdirStr)
-	if actual != expected {
-		t.Fatalf("bad: \n\n%s", actual)
+	// this should fail because there aare now 2 entries
+	actual, err = tree.getSubdir(dir)
+	if err == nil {
+		t.Fatal("expected multiple subdir entries")
+	}
+
+	// writing the subdir entry should remove the incorrect value
+	if err := tree.recordSubdir(dir, subDir); err != nil {
+		t.Fatal(err)
+	}
+	actual, err = tree.getSubdir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if actual != subDir {
+		t.Fatalf("expected subDir %q, got %q", subDir, actual)
 	}
 }
 

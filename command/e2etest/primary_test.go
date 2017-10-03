@@ -57,6 +57,13 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Errorf("incorrect plan tally; want 1 to add:\n%s", stdout)
 	}
 
+	if !strings.Contains(stdout, "This plan was saved to: tfplan") {
+		t.Errorf("missing \"This plan was saved to...\" message in plan output\n%s", stdout)
+	}
+	if !strings.Contains(stdout, "terraform apply \"tfplan\"") {
+		t.Errorf("missing next-step instruction in plan output\n%s", stdout)
+	}
+
 	plan, err := tf.Plan("tfplan")
 	if err != nil {
 		t.Fatalf("failed to read plan file: %s", err)
@@ -109,8 +116,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "Resources: 2 destroyed") {
-		t.Errorf("incorrect destroy tally; want 2 destroyed:\n%s", stdout)
+	if !strings.Contains(stdout, "Resources: 1 destroyed") {
+		t.Errorf("incorrect destroy tally; want 1 destroyed:\n%s", stdout)
 	}
 
 	state, err = tf.LocalState()

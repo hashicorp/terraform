@@ -8809,3 +8809,127 @@ module.child:
 		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestContext2Apply_destroyWithLocals(t *testing.T) {
+	m := testModule(t, "apply-destroy-with-locals")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		d, err := testDiffFn(info, s, c)
+		fmt.Println("DIFF:", d)
+		return d, err
+	}
+
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Outputs: map[string]*OutputState{
+					"name": &OutputState{
+						Type:  "string",
+						Value: "test-bar",
+					},
+				},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State:   s,
+		Destroy: true,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("error during apply: %s", err)
+	}
+
+	got := strings.TrimSpace(state.String())
+	want := strings.TrimSpace(`<no state>`)
+	if got != want {
+		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestContext2Apply_providerWithLocals(t *testing.T) {
+	m := testModule(t, "provider-with-locals")
+	p := testProvider("aws")
+
+	providerRegion := ""
+	// this should not be overridden during destroy
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		if r, ok := c.Get("region"); ok {
+			providerRegion = r.(string)
+		}
+		return nil
+	}
+	p.DiffFn = testDiffFn
+	p.ApplyFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ctx = testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State:   state,
+		Destroy: true,
+	})
+
+	if _, err = ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if state.HasResources() {
+		t.Fatal("expected no state, got:", state)
+	}
+
+	// Destroy won't work because the local value is removed before the
+	// provider.  Once this is fixed this test will start to fail, and we
+	// can remove the invalid interpolation string;
+	// if providerRegion != "bar" {
+	if providerRegion != "${local.foo}" {
+		t.Fatalf("expected region %q, got: %q", "bar", providerRegion)
+	}
+}

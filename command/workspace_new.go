@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+	"github.com/posener/complete"
 )
 
 type WorkspaceNewCommand struct {
@@ -154,6 +155,20 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	return 0
+}
+
+func (c *WorkspaceNewCommand) AutocompleteArgs() complete.Predictor {
+	return completePredictSequence{
+		complete.PredictNothing, // the "new" subcommand itself (already matched)
+		complete.PredictAnything,
+		complete.PredictDirs(""),
+	}
+}
+
+func (c *WorkspaceNewCommand) AutocompleteFlags() complete.Flags {
+	return complete.Flags{
+		"-state": complete.PredictFiles("*.tfstate"),
+	}
 }
 
 func (c *WorkspaceNewCommand) Help() string {
