@@ -3,7 +3,7 @@ layout: "backend-types"
 page_title: "Backend Type: etcd"
 sidebar_current: "docs-backends-types-standard-etcd"
 description: |-
-  Terraform can store state remotely in etcd.
+  Terraform can store state remotely in etcd 2.x.
 ---
 
 # etcd

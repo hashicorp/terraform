@@ -913,16 +913,70 @@
 			"revisionTime": "2016-11-06T04:23:43Z"
 		},
 		{
+			"checksumSHA1": "7BC2/27NId9xaPDB5w3nWN2mn9A=",
+			"path": "github.com/coreos/etcd/auth/authpb",
+			"revision": "6930e471ed55ef89641a658b9fcb777295d5055b",
+			"revisionTime": "2017-09-08T03:04:28Z"
+		},
+		{
 			"checksumSHA1": "vHgur8rFMm8ewYO5tqJXXXE/XnA=",
 			"comment": "v2.3.0-alpha.0-652-ge552791",
 			"path": "github.com/coreos/etcd/client",
 			"revision": "e5527914aa42cae3063f52892e1ca4518da0e4ae"
 		},
 		{
+			"checksumSHA1": "sUY/zcJDOG367WcDYCPRyreB4sI=",
+			"path": "github.com/coreos/etcd/clientv3",
+			"revision": "bb66589f8cf18960c7f3d56b1b83753caeed9c7a",
+			"revisionTime": "2017-09-01T16:15:15Z",
+			"version": "v3.2.7",
+			"versionExact": "v3.2.7"
+		},
+		{
+			"checksumSHA1": "YuRZDQchOMiceil5cZ2+7NWeRKE=",
+			"path": "github.com/coreos/etcd/clientv3/concurrency",
+			"revision": "bb66589f8cf18960c7f3d56b1b83753caeed9c7a",
+			"revisionTime": "2017-09-01T16:15:15Z",
+			"version": "v3.2.7",
+			"versionExact": "v3.2.7"
+		},
+		{
+			"checksumSHA1": "P9fegjOukUL4pPOCCY5K7/DQmTM=",
+			"path": "github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes",
+			"revision": "6930e471ed55ef89641a658b9fcb777295d5055b",
+			"revisionTime": "2017-09-08T03:04:28Z"
+		},
+		{
+			"checksumSHA1": "c0ltvGUOnk8qaEshFwc0PDH5nbc=",
+			"path": "github.com/coreos/etcd/etcdserver/etcdserverpb",
+			"revision": "6930e471ed55ef89641a658b9fcb777295d5055b",
+			"revisionTime": "2017-09-08T03:04:28Z"
+		},
+		{
+			"checksumSHA1": "JAkX9DfIBrSe0vUa07xl5cikxVQ=",
+			"path": "github.com/coreos/etcd/mvcc/mvccpb",
+			"revision": "6930e471ed55ef89641a658b9fcb777295d5055b",
+			"revisionTime": "2017-09-08T03:04:28Z"
+		},
+		{
 			"checksumSHA1": "mKIXx1kDwmVmdIpZ3pJtRBuUKso=",
 			"comment": "v2.3.0-alpha.0-652-ge552791",
 			"path": "github.com/coreos/etcd/pkg/pathutil",
 			"revision": "e5527914aa42cae3063f52892e1ca4518da0e4ae"
+		},
+		{
+			"checksumSHA1": "rMyIh9PsSvPs6Yd+YgKITQzQJx8=",
+			"path": "github.com/coreos/etcd/pkg/tlsutil",
+			"revision": "80aa810309d4d261c7cb56c2650641ff52420bfa",
+			"revisionTime": "2017-09-08T19:54:35Z"
+		},
+		{
+			"checksumSHA1": "5JKO4MLdX64ntloR8r9xuu58TnU=",
+			"path": "github.com/coreos/etcd/pkg/transport",
+			"revision": "bb66589f8cf18960c7f3d56b1b83753caeed9c7a",
+			"revisionTime": "2017-09-01T16:15:15Z",
+			"version": "v3.2.7",
+			"versionExact": "v3.2.7"
 		},
 		{
 			"checksumSHA1": "dMR9ipwCbX5eIPnvLXiPUM65/0s=",
