@@ -20,10 +20,6 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 		return ret
 	}
 
-	// If the behavior here is changed, usually the behavior of ImpliedType
-	// must be changed to match. It is required that this method produce
-	// a specification that decodes into a value of the implied type.
-
 	for name, attrS := range b.Attributes {
 		switch {
 		case attrS.Computed && attrS.Optional:
