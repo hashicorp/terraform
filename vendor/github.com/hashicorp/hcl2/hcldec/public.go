@@ -26,6 +26,12 @@ func PartialDecode(body hcl.Body, spec Spec, ctx *hcl.EvalContext) (cty.Value, h
 	return decode(body, nil, ctx, spec, true)
 }
 
+// ImpliedType returns the value type that should result from decoding the
+// given spec.
+func ImpliedType(spec Spec) cty.Type {
+	return impliedType(spec)
+}
+
 // SourceRange interprets the given body using the given specification and
 // then returns the source range of the value that would be used to
 // fulfill the spec.
