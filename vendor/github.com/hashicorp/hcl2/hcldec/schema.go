@@ -14,7 +14,8 @@ func ImpliedSchema(spec Spec) *hcl.BodySchema {
 	// visitSameBodyChildren walks through the spec structure, calling
 	// the given callback for each descendent spec encountered. We are
 	// interested in the specs that reference attributes and blocks.
-	visit := func(s Spec) {
+	var visit visitFunc
+	visit = func(s Spec) {
 		if as, ok := s.(attrSpec); ok {
 			attrs = append(attrs, as.attrSchemata()...)
 		}
@@ -22,10 +23,11 @@ func ImpliedSchema(spec Spec) *hcl.BodySchema {
 		if bs, ok := s.(blockSpec); ok {
 			blocks = append(blocks, bs.blockHeaderSchemata()...)
 		}
+
+		s.visitSameBodyChildren(visit)
 	}
 
 	visit(spec)
-	spec.visitSameBodyChildren(visit)
 
 	return &hcl.BodySchema{
 		Attributes: attrs,
