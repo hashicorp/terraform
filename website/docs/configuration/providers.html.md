@@ -249,7 +249,7 @@ variable can be used to enable caching or to override an existing cache
 directory within a particular shell session:
 
 ```bash
-export TF_PLUGIN_CACHE_DIR="~/.terraform.d/plugin-cache"
+export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
 ```
 
 When a plugin cache directory is enabled, the `terraform init` command will
