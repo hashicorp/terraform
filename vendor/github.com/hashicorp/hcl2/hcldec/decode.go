@@ -5,7 +5,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func decode(body hcl.Body, block *hcl.Block, ctx *hcl.EvalContext, spec Spec, partial bool) (cty.Value, hcl.Body, hcl.Diagnostics) {
+func decode(body hcl.Body, blockLabels []blockLabel, ctx *hcl.EvalContext, spec Spec, partial bool) (cty.Value, hcl.Body, hcl.Diagnostics) {
 	schema := ImpliedSchema(spec)
 
 	var content *hcl.BodyContent
@@ -18,15 +18,19 @@ func decode(body hcl.Body, block *hcl.Block, ctx *hcl.EvalContext, spec Spec, pa
 		content, diags = body.Content(schema)
 	}
 
-	val, valDiags := spec.decode(content, block, ctx)
+	val, valDiags := spec.decode(content, blockLabels, ctx)
 	diags = append(diags, valDiags...)
 
 	return val, leftovers, diags
 }
 
-func sourceRange(body hcl.Body, block *hcl.Block, spec Spec) hcl.Range {
+func impliedType(spec Spec) cty.Type {
+	return spec.impliedType()
+}
+
+func sourceRange(body hcl.Body, blockLabels []blockLabel, spec Spec) hcl.Range {
 	schema := ImpliedSchema(spec)
 	content, _, _ := body.PartialContent(schema)
 
-	return spec.sourceRange(content, block)
+	return spec.sourceRange(content, blockLabels)
 }
