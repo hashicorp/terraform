@@ -250,6 +250,7 @@ func (m *Meta) StdinPiped() bool {
 
 const (
 	ProviderSkipVerifyEnvVar = "TF_SKIP_PROVIDER_VERIFY"
+	ProviderPluginDir        = "TF_PLUGIN_DIR"
 )
 
 // contextOpts returns the options to use to initialize a Terraform
