@@ -1596,6 +1596,12 @@
 			"revisionTime": "2017-09-20T23:23:23Z"
 		},
 		{
+			"checksumSHA1": "4supppf3CMdAEUEDrXP8niXvAR0=",
+			"path": "github.com/hashicorp/hcl2/hcltest",
+			"revision": "f44382c4fab57666c486c77a8b89c9ea00be08ba",
+			"revisionTime": "2017-09-20T23:23:23Z"
+		},
+		{
 			"checksumSHA1": "p+dun/Fx4beswXTtoEjVnwDJE+Y=",
 			"path": "github.com/hashicorp/hcl2/hclwrite",
 			"revision": "f44382c4fab57666c486c77a8b89c9ea00be08ba",
