@@ -139,8 +139,7 @@ func (b *gcsBackend) ensureBucketExists() error {
 	}
 
 	attrs := &storage.BucketAttrs{
-		VersioningEnabled: true,
-		Location:          b.region,
+		Location: b.region,
 	}
 
 	return b.storageClient.Bucket(b.bucketName).Create(b.storageContext, b.projectID, attrs)
