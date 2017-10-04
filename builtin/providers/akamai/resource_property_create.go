@@ -12,7 +12,7 @@ func resourceProperty() *schema.Resource {
 	return &schema.Resource{
 		Create: resourcePropertyCreate,
 		Read:   resourcePropertyRead,
-		Update: resourcePropertyCreate,
+		Update: resourcePropertyUpdate,
 		Delete: resourcePropertyDelete,
 		Exists: resourcePropertyExists,
 		// Importer: &schema.ResourceImporter{
@@ -23,9 +23,6 @@ func resourceProperty() *schema.Resource {
 }
 
 func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
-	r := d.Get("rule")
-	log.Printf("[DEBUG] Done with %s rules", r.(*schema.Set).Len())
-
 	group, e := getGroup(d)
 	if e != nil {
 		return e
@@ -46,6 +43,7 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
+	d.Set("property_id", property.PropertyID)
 	d.SetId(fmt.Sprintf("%s-%s-%s-%s", group.GroupID, contract.ContractID, product.ProductID, property.PropertyID))
 
 	log.Println("[DEBUG] Done")

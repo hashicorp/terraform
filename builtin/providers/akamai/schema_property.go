@@ -82,6 +82,10 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
 	},
+	"property_id": &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+	},
 	"name": &schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
