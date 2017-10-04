@@ -215,6 +215,25 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 				},
 			},
 		},
+		"sensitive": {
+			map[string]*Schema{
+				"string": {
+					Type:      TypeString,
+					Optional:  true,
+					Sensitive: true,
+				},
+			},
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"string": {
+						Type:      cty.String,
+						Optional:  true,
+						Sensitive: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{},
+			},
+		},
 	}
 
 	for name, test := range tests {
