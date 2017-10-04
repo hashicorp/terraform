@@ -112,14 +112,14 @@ func TestBackend(t *testing.T) {
 }
 
 // testBackend returns a new GCS backend.
-// This creates a bucket in GCS and populates it. Since this may incur costs,
-// it will only run if the GOOGLE_PROJECT environment variable is set.
 func testBackend(t *testing.T) backend.Backend {
 	t.Helper()
 
 	projectID := os.Getenv("GOOGLE_PROJECT")
-	if projectID == "" {
-		t.Skip("skipping; set GOOGLE_PROJECT to activate")
+	if projectID == "" || os.Getenv("TF_ACC") == "" {
+		t.Skip("This test creates a bucket in GCS and populates it. " +
+			"Since this may incur costs, it will only run if " +
+			"the TF_ACC and GOOGLE_PROJECT environment variables are set.")
 	}
 
 	config := map[string]interface{}{
