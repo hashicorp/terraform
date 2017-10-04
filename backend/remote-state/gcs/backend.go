@@ -94,7 +94,7 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 
 	data := schema.FromContextBackendConfig(b.storageContext)
 
-	b.bucketName = data.Get("bucket").(string)
+	b.bucketName = toBucketName(data.Get("bucket").(string))
 	b.prefix = strings.TrimLeft(data.Get("prefix").(string), "/")
 
 	b.defaultStateFile = strings.TrimLeft(data.Get("path").(string), "/")
@@ -143,4 +143,40 @@ func (b *gcsBackend) ensureBucketExists() error {
 	}
 
 	return b.storageClient.Bucket(b.bucketName).Create(b.storageContext, b.projectID, attrs)
+}
+
+// toBucketName returns a copy of in that is suitable for use as a bucket name.
+// All upper case characters are converted to lower case, other invalid
+// characters are replaced by '_'.
+func toBucketName(in string) string {
+	// Bucket names must contain only lowercase letters, numbers, dashes
+	// (-), and underscores (_).
+	isValid := func(r rune) bool {
+		switch {
+		case r >= 'a' && r <= 'z':
+			return true
+		case r >= '0' && r <= '9':
+			return true
+		case r == '-' || r == '_':
+			return true
+		default:
+			return false
+
+		}
+	}
+
+	out := make([]rune, 0, len(in))
+	for _, r := range strings.ToLower(in) {
+		if !isValid(r) {
+			r = '_'
+		}
+		out = append(out, r)
+	}
+
+	// Bucket names must contain 3 to 63 characters.
+	if len(out) > 63 {
+		out = out[:63]
+	}
+
+	return string(out)
 }
