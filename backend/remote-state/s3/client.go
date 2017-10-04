@@ -22,7 +22,10 @@ import (
 )
 
 // Store the last saved serial in dynamo with this suffix for consistency checks.
-const stateIDSuffix = "-md5"
+const (
+	stateIDSuffix          = "-md5"
+	s3ErrCodeInternalError = "InternalError"
+)
 
 type RemoteClient struct {
 	s3Client             *s3.S3
@@ -92,21 +95,33 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 }
 
 func (c *RemoteClient) get() (*remote.Payload, error) {
-	output, err := c.s3Client.GetObject(&s3.GetObjectInput{
-		Bucket: &c.bucketName,
-		Key:    &c.path,
-	})
+	var output *s3.GetObjectOutput
+	var err error
 
-	if err != nil {
-		if awserr := err.(awserr.Error); awserr != nil {
-			if awserr.Code() == "NoSuchKey" {
-				return nil, nil
-			} else {
-				return nil, err
+	// we immediately retry on an internal error, as those are usually transient
+	maxRetries := 2
+	for retryCount := 0; ; retryCount++ {
+		output, err = c.s3Client.GetObject(&s3.GetObjectInput{
+			Bucket: &c.bucketName,
+			Key:    &c.path,
+		})
+
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok {
+				switch awserr.Code() {
+				case s3.ErrCodeNoSuchKey:
+					return nil, nil
+				case s3ErrCodeInternalError:
+					if retryCount > maxRetries {
+						return nil, err
+					}
+					log.Println("[WARN] s3 internal error, retrying...")
+					continue
+				}
 			}
-		} else {
 			return nil, err
 		}
+		break
 	}
 
 	defer output.Body.Close()
