@@ -46,7 +46,8 @@ func TestStateFile(t *testing.T) {
 func TestRemoteClient(t *testing.T) {
 	t.Parallel()
 
-	be := testBackend(t)
+	be := setupBackend(t)
+	defer teardownBackend(t, be)
 
 	ss, err := be.State(backend.DefaultStateName)
 	if err != nil {
@@ -59,14 +60,13 @@ func TestRemoteClient(t *testing.T) {
 	}
 
 	remote.TestClient(t, rs.Client)
-
-	cleanBackend(t, be)
 }
 
 func TestRemoteLocks(t *testing.T) {
 	t.Parallel()
 
-	be := testBackend(t)
+	be := setupBackend(t)
+	defer teardownBackend(t, be)
 
 	remoteClient := func() (remote.Client, error) {
 		ss, err := be.State(backend.DefaultStateName)
@@ -92,27 +92,21 @@ func TestRemoteLocks(t *testing.T) {
 	}
 
 	remote.TestRemoteLocks(t, c0, c1)
-
-	cleanBackend(t, be)
 }
 
 func TestBackend(t *testing.T) {
 	t.Parallel()
 
-	be0 := testBackend(t)
-	be1 := testBackend(t)
+	be0 := setupBackend(t)
+	defer teardownBackend(t, be0)
 
-	// clean up all states left behind by previous runs --
-	// backend.TestBackend() will complain about any non-default states.
-	cleanBackend(t, be0)
+	be1 := setupBackend(t)
 
 	backend.TestBackend(t, be0, be1)
-
-	cleanBackend(t, be0)
 }
 
-// testBackend returns a new GCS backend.
-func testBackend(t *testing.T) backend.Backend {
+// setupBackend returns a new GCS backend.
+func setupBackend(t *testing.T) backend.Backend {
 	t.Helper()
 
 	projectID := os.Getenv("GOOGLE_PROJECT")
@@ -138,10 +132,11 @@ func testBackend(t *testing.T) backend.Backend {
 	return backend.TestBackendConfig(t, New(), config)
 }
 
-// cleanBackend deletes all states from be except the default state.
-func cleanBackend(t *testing.T, be backend.Backend) {
+// teardownBackend deletes all states from be except the default state.
+func teardownBackend(t *testing.T, be backend.Backend) {
 	t.Helper()
 
+	// Delete all states. The bucket must be empty before it can be deleted.
 	states, err := be.States()
 	if err != nil {
 		t.Fatalf("be.States() = %v; manual clean-up may be required", err)
@@ -153,5 +148,22 @@ func cleanBackend(t *testing.T, be backend.Backend) {
 		if err := be.DeleteState(st); err != nil {
 			t.Fatalf("be.DeleteState(%q) = %v; manual clean-up may be required", st, err)
 		}
+	}
+
+	gcsBE, ok := be.(*gcsBackend)
+	if !ok {
+		t.Fatalf("be is a %T, want a *gcsBackend", be)
+	}
+	ctx := gcsBE.storageContext
+
+	// Delete the default state, which DeleteState() will refuse to do.
+	// It's okay if this fails, not all tests create a default state.
+	if err := gcsBE.storageClient.Bucket(gcsBE.bucketName).Object("default.tfstate").Delete(ctx); err != nil {
+		t.Logf("deleting \"default.tfstate\": %v; manual clean-up may be required", err)
+	}
+
+	// Delete the bucket itself.
+	if err := gcsBE.storageClient.Bucket(gcsBE.bucketName).Delete(ctx); err != nil {
+		t.Fatalf("deleting bucket failed: %v; manual cleanup may be required, though later test runs will happily reuse an existing bucket", err)
 	}
 }
