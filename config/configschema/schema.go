@@ -40,6 +40,15 @@ type Attribute struct {
 	// provider rather than from configuration. If combined with Optional,
 	// then the config may optionally provide an overridden value.
 	Computed bool
+
+	// Sensitive, if set to true, indicates that an attribute may contain
+	// sensitive information.
+	//
+	// At present nothing is done with this information, but callers are
+	// encouraged to set it where appropriate so that it may be used in the
+	// future to help Terraform mask sensitive information. (Terraform
+	// currently achieves this in a limited sense via other mechanisms.)
+	Sensitive bool
 }
 
 // NestedBlock represents the embedding of one block within another.
