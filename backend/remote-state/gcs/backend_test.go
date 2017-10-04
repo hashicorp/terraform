@@ -3,7 +3,6 @@ package gcs
 import (
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
@@ -118,7 +117,7 @@ func setupBackend(t *testing.T) backend.Backend {
 
 	config := map[string]interface{}{
 		"project": projectID,
-		"bucket":  strings.ToLower(t.Name()),
+		"bucket":  projectID + "-" + t.Name(),
 		"prefix":  "",
 	}
 
