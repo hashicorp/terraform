@@ -102,6 +102,24 @@ func (diags Diagnostics) HasErrors() bool {
 	return false
 }
 
+// ForRPC returns a version of the receiver that has been simplified so that
+// it is friendly to RPC protocols.
+//
+// Currently this means that it can be serialized with encoding/gob and
+// subsequently re-inflated. It may later grow to include other serialization
+// formats.
+//
+// Note that this loses information about the original objects used to
+// construct the diagnostics, so e.g. the errwrap API will not work as
+// expected on an error-wrapped Diagnostics that came from ForRPC.
+func (diags Diagnostics) ForRPC() Diagnostics {
+	ret := make(Diagnostics, len(diags))
+	for i := range diags {
+		ret[i] = makeRPCFriendlyDiag(diags[i])
+	}
+	return ret
+}
+
 // Err flattens a diagnostics list into a single Go error, or to nil
 // if the diagnostics list does not include any error-level diagnostics.
 //
