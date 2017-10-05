@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
@@ -43,7 +44,8 @@ func (c *RefreshCommand) Run(args []string) int {
 	// Load the module
 	mod, err := c.Module(configPath)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+		err = errwrap.Wrapf("Failed to load root config module: {{err}}", err)
+		c.showDiagnostics(err)
 		return 1
 	}
 

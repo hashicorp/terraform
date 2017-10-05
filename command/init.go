@@ -155,8 +155,10 @@ func (c *InitCommand) Run(args []string) int {
 	if flagGet || flagBackend {
 		conf, err := c.Config(path)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error loading configuration: %s", err))
+			// Since this may be the user's first ever interaction with Terraform,
+			// we'll provide some additional context in this case.
+			c.Ui.Error(strings.TrimSpace(errInitConfigError))
+			c.showDiagnostics(err)
 			return 1
 		}
 
@@ -550,6 +552,13 @@ Options:
 func (c *InitCommand) Synopsis() string {
 	return "Initialize a Terraform working directory"
 }
+
+const errInitConfigError = `
+There are some problems with the configuration, described below.
+
+The Terraform configuration must be valid before initialization so that
+Terraform can determine which modules and providers need to be installed.
+`
 
 const errInitCopyNotEmpty = `
 The working directory already contains files. The -from-module option requires
