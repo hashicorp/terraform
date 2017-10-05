@@ -91,21 +91,19 @@ Options:
 func (c *ValidateCommand) validate(dir string, checkVars bool) int {
 	cfg, err := config.LoadDir(dir)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error loading files %v\n", err.Error()))
+		c.showDiagnostics(err)
 		return 1
 	}
 	err = cfg.Validate()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error validating: %v\n", err.Error()))
+		c.showDiagnostics(err)
 		return 1
 	}
 
 	if checkVars {
 		mod, err := c.Module(dir)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+			c.showDiagnostics(err)
 			return 1
 		}
 
@@ -114,7 +112,7 @@ func (c *ValidateCommand) validate(dir string, checkVars bool) int {
 
 		tfCtx, err := terraform.NewContext(opts)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error: %v\n", err.Error()))
+			c.showDiagnostics(err)
 			return 1
 		}
 
