@@ -55,6 +55,8 @@ type AtlasConfig struct {
 type Module struct {
 	Name      string
 	Source    string
+	Version   string
+	Providers map[string]string
 	RawConfig *RawConfig
 }
 
@@ -67,6 +69,11 @@ type ProviderConfig struct {
 	Alias     string
 	Version   string
 	RawConfig *RawConfig
+
+	// Scope records where the Provider was declared in a module tree, so that
+	// it can be copied into child module providers yes still interpolated in
+	// the correct scope.
+	Scope []string
 }
 
 // A resource represents a single Terraform resource in the configuration.
