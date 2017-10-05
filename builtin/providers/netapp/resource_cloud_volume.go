@@ -285,7 +285,7 @@ func buildVolumeCreateRequest(d *schema.ResourceData) *vsa.VSAVolumeCreateReques
 		}
 	}
 
-	if attr, ok := d.GetOk("max_num_disks_approved_to_add"); ok {
+	if attr, ok := d.GetOkExists("max_num_disks_approved_to_add"); ok {
 		req.MaxNumOfDisksApprovedToAdd = attr.(int)
 	}
 
@@ -321,12 +321,19 @@ func buildVolumeModifyRequest(d *schema.ResourceData) *workenv.VolumeModifyReque
 }
 
 func buildVolumeTierChangeRequest(d *schema.ResourceData) *workenv.ChangeVolumeTierRequest {
-	req := workenv.ChangeVolumeTierRequest{
-		AggregateName: d.Get("aggregate_name").(string),
-		NewAggregate:  d.Get("create_aggregate_if_not_found").(bool),
+  var createAggregateIfNotFound bool
+	if attr, ok := d.GetOkExists("create_aggregate_if_not_found"); ok {
+		createAggregateIfNotFound = attr.(bool)
+	} else {
+		createAggregateIfNotFound = true
 	}
 
-	if attr, ok := d.GetOk("max_num_disks_approved_to_add"); d.HasChange("max_num_disks_approved_to_add") && ok {
+  req := workenv.ChangeVolumeTierRequest{
+		AggregateName: d.Get("aggregate_name").(string),
+		NewAggregate:  createAggregateIfNotFound,
+	}
+
+	if attr, ok := d.GetOkExists("max_num_disks_approved_to_add"); d.HasChange("max_num_disks_approved_to_add") && ok {
 		req.NumOfDisks = attr.(int)
 	}
 
@@ -517,7 +524,7 @@ func resourceCloudVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 	// the GetOk method works, there is no way to differentiate between not having
 	// the value and the value being set to "false"
 	var createAggregateIfNotFound bool
-	if attr, ok := d.GetOk("create_aggregate_if_not_found"); ok {
+	if attr, ok := d.GetOkExists("create_aggregate_if_not_found"); ok {
 		createAggregateIfNotFound = attr.(bool)
 	} else {
 		createAggregateIfNotFound = quoteRes.NewAggregate
@@ -536,7 +543,7 @@ func resourceCloudVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// if no max volumes was provided, use one from the quote response
-	if _, ok := d.GetOk("max_num_disks_approved_to_add"); !ok {
+	if _, ok := d.GetOkExists("max_num_disks_approved_to_add"); !ok {
 		req.MaxNumOfDisksApprovedToAdd = quoteRes.NumOfDisks
 	}
 
@@ -606,6 +613,9 @@ func resourceCloudVolumeRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceCloudVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 	apis := meta.(*APIs)
+
+  // NOTE: the create_aggregate_if_not_found attribute is not supported by the
+  // underlying NetApp API and therefore not used in the update call
 
 	volumeType, workenvId, svmName, volumeName, isHA, err := splitId(d.Id())
 	if err != nil {
@@ -748,14 +758,14 @@ func updateVolumeTier(d *schema.ResourceData, meta interface{}, apis *APIs, volu
 	}
 
 	// if the aggregate control flag is not set, use the quote response one
-	if attr, ok := d.GetOk("create_aggregate_if_not_found"); ok {
+	if attr, ok := d.GetOkExists("create_aggregate_if_not_found"); ok {
 		req.NewAggregate = attr.(bool)
 	} else {
 		req.NewAggregate = quoteRes.NewAggregate
 	}
 
 	// if no max volumes was provided, use one from the quote response
-	if _, ok := d.GetOk("max_num_disks_approved_to_add"); !ok {
+	if _, ok := d.GetOkExists("max_num_disks_approved_to_add"); !ok {
 		req.NumOfDisks = quoteRes.NumOfDisks
 	}
 
