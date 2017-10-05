@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/hashicorp/errwrap"
 )
 
 // configurable is an interface that must be implemented by any configuration
@@ -125,10 +127,7 @@ func (t *importTree) Close() error {
 func (t *importTree) ConfigTree() (*configTree, error) {
 	config, err := t.Raw.Config()
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error loading %s: %s",
-			t.Path,
-			err)
+		return nil, errwrap.Wrapf(fmt.Sprintf("Error loading %s: {{err}}", t.Path), err)
 	}
 
 	// Build our result
