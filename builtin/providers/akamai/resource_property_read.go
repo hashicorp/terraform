@@ -40,9 +40,8 @@ func resourcePropertyRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("account_id", property.AccountID)
 	d.Set("contract_id", property.ContractID)
 	d.Set("group_id", property.GroupID)
-	d.Set("product_id", property.ProductID)
 	d.Set("property_id", property.PropertyID)
-	d.Set("property_name", property.PropertyName)
+	d.Set("name", property.PropertyName)
 	d.SetId(fmt.Sprintf("%s-%s-%s-%s", property.GroupID, property.ContractID, property.ProductID, property.PropertyID))
 
 	log.Println("[DEBUG] Done")
