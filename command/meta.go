@@ -19,11 +19,13 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 )
@@ -472,6 +474,36 @@ func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
 			return false, nil
 		case "yes":
 			return true, nil
+		}
+	}
+}
+
+// showDiagnostics displays error and warning messages in the UI.
+//
+// "Diagnostics" here means the Diagnostics type from the tfdiag package,
+// though as a convenience this function accepts anything that could be
+// passed to the "Append" method on that type, converting it to Diagnostics
+// before displaying it.
+//
+// Internally this function uses Diagnostics.Append, and so it will panic
+// if given unsupported value types, just as Append does.
+func (m *Meta) showDiagnostics(vals ...interface{}) {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(vals...)
+
+	for _, diag := range diags {
+		// TODO: Actually measure the terminal width and pass it here.
+		// For now, we don't have easy access to the writer that
+		// ui.Error (etc) are writing to and thus can't interrogate
+		// to see if it's a terminal and what size it is.
+		msg := format.Diagnostic(diag, m.Colorize(), 78)
+		switch diag.Severity() {
+		case tfdiags.Error:
+			m.Ui.Error(msg)
+		case tfdiags.Warning:
+			m.Ui.Warn(msg)
+		default:
+			m.Ui.Output(msg)
 		}
 	}
 }
