@@ -836,3 +836,21 @@ func TestResourceProviderFullName(t *testing.T) {
 		}
 	}
 }
+
+func TestConfigModuleProviders(t *testing.T) {
+	c := testConfig(t, "module-providers")
+
+	if len(c.Modules) != 1 {
+		t.Fatalf("expected 1 module, got %d", len(c.Modules))
+	}
+
+	expected := map[string]string{
+		"aws": "aws.foo",
+	}
+
+	got := c.Modules[0].Providers
+
+	if !reflect.DeepEqual(expected, got) {
+		t.Fatalf("exptected providers %#v, got providers %#v", expected, got)
+	}
+}
