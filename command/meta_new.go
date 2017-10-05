@@ -47,7 +47,7 @@ func (m *Meta) Module(path string) (*module.Tree, error) {
 
 	err = mod.Load(m.moduleStorage(m.DataDir()), module.GetModeNone)
 	if err != nil {
-		return nil, fmt.Errorf("Error loading modules: %s", err)
+		return nil, errwrap.Wrapf("Error loading modules: {{err}}", err)
 	}
 
 	return mod, nil
