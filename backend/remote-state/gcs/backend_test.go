@@ -3,6 +3,7 @@ package gcs
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
@@ -117,7 +118,7 @@ func setupBackend(t *testing.T) backend.Backend {
 
 	config := map[string]interface{}{
 		"project": projectID,
-		"bucket":  projectID + "-" + t.Name(),
+		"bucket":  toBucketName(projectID + "-" + t.Name()),
 		"prefix":  "",
 	}
 
@@ -165,4 +166,40 @@ func teardownBackend(t *testing.T, be backend.Backend) {
 	if err := gcsBE.storageClient.Bucket(gcsBE.bucketName).Delete(ctx); err != nil {
 		t.Fatalf("deleting bucket failed: %v; manual cleanup may be required, though later test runs will happily reuse an existing bucket", err)
 	}
+}
+
+// toBucketName returns a copy of in that is suitable for use as a bucket name.
+// All upper case characters are converted to lower case, other invalid
+// characters are replaced by '_'.
+func toBucketName(in string) string {
+	// Bucket names must contain only lowercase letters, numbers, dashes
+	// (-), and underscores (_).
+	isValid := func(r rune) bool {
+		switch {
+		case r >= 'a' && r <= 'z':
+			return true
+		case r >= '0' && r <= '9':
+			return true
+		case r == '-' || r == '_':
+			return true
+		default:
+			return false
+
+		}
+	}
+
+	out := make([]rune, 0, len(in))
+	for _, r := range strings.ToLower(in) {
+		if !isValid(r) {
+			r = '_'
+		}
+		out = append(out, r)
+	}
+
+	// Bucket names must contain 3 to 63 characters.
+	if len(out) > 63 {
+		out = out[:63]
+	}
+
+	return string(out)
 }
