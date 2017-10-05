@@ -15,8 +15,14 @@ func resourcePropertyExists(d *schema.ResourceData, meta interface{}) (bool, err
 
 func resourcePropertyRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] READING")
-	contractId := d.Get("contract_id").(string)
-	groupId := d.Get("group_id").(string)
+	contractId, ok := d.GetOk("contract_id")
+	if !ok {
+		return errors.New("No contract ID")
+	}
+	groupId, ok := d.GetOk("group_id")
+	if !ok {
+		return errors.New("No group ID")
+	}
 	propertyId, ok := d.GetOk("property_id")
 	if !ok {
 		return errors.New("No property ID")
@@ -24,8 +30,8 @@ func resourcePropertyRead(d *schema.ResourceData, meta interface{}) error {
 
 	property := papi.NewProperty(papi.NewProperties())
 	property.PropertyID = propertyId.(string)
-	property.Contract = &papi.Contract{ContractID: contractId}
-	property.Group = &papi.Group{GroupID: groupId}
+	property.Contract = &papi.Contract{ContractID: contractId.(string)}
+	property.Group = &papi.Group{GroupID: groupId.(string)}
 	e := property.GetProperty()
 	if e != nil {
 		return e
