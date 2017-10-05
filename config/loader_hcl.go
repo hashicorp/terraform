@@ -393,9 +393,6 @@ func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
 				err)
 		}
 
-		// Remove the fields we handle specially
-		delete(config, "source")
-
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
 			return nil, fmt.Errorf(
@@ -404,7 +401,11 @@ func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
 				err)
 		}
 
-		// If we have a count, then figure it out
+		// Remove the fields we handle specially
+		delete(config, "source")
+		delete(config, "version")
+		delete(config, "providers")
+
 		var source string
 		if o := listVal.Filter("source"); len(o.Items) > 0 {
 			err = hcl.DecodeObject(&source, o.Items[0].Val)
@@ -416,9 +417,33 @@ func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
 			}
 		}
 
+		var version string
+		if o := listVal.Filter("version"); len(o.Items) > 0 {
+			err = hcl.DecodeObject(&version, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error parsing version for %s: %s",
+					k,
+					err)
+			}
+		}
+
+		var providers map[string]string
+		if o := listVal.Filter("providers"); len(o.Items) > 0 {
+			err = hcl.DecodeObject(&providers, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error parsing providers for %s: %s",
+					k,
+					err)
+			}
+		}
+
 		result = append(result, &Module{
 			Name:      k,
 			Source:    source,
+			Version:   version,
+			Providers: providers,
 			RawConfig: rawConfig,
 		})
 	}
