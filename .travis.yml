@@ -2,7 +2,7 @@ dist: trusty
 sudo: false
 language: go
 go:
-- 1.9
+- 1.9.1
 
 # add TF_CONSUL_TEST=1 to run consul tests
 # they were causing timouts in travis
