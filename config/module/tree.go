@@ -130,8 +130,10 @@ func (t *Tree) Modules() []*Module {
 	result := make([]*Module, len(t.config.Modules))
 	for i, m := range t.config.Modules {
 		result[i] = &Module{
-			Name:   m.Name,
-			Source: m.Source,
+			Name:      m.Name,
+			Version:   m.Version,
+			Source:    m.Source,
+			Providers: m.Providers,
 		}
 	}
 
@@ -167,10 +169,12 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 	t.children = nil
 
 	modules := t.Modules()
+
 	children := make(map[string]*Tree)
 
 	// Go through all the modules and get the directory for them.
 	for _, m := range modules {
+
 		if _, ok := children[m.Name]; ok {
 			return fmt.Errorf(
 				"module %s: duplicated. module names must be unique", m.Name)
