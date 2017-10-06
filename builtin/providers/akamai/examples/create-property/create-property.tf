@@ -9,6 +9,7 @@ resource "akamai_property" "akamaidevelopernet" {
   group_id = "grp_68817"
   product_id = "prd_Adaptive_Media_Delivery"
   name = "test_property_terraform"
+  cp_code = "409449"
 
   origin {
     is_secure = false

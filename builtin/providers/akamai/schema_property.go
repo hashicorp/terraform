@@ -82,6 +82,10 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
 	},
+	"cp_code": &schema.Schema{
+		Type:     schema.TypeString,
+		Required: true,
+	},
 	"property_id": &schema.Schema{
 		Type:     schema.TypeString,
 		Optional: true,
@@ -122,7 +126,7 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 	},
 
 	"origin": {
-		Type:     schema.TypeSet,
+		Type:     schema.TypeList,
 		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{

@@ -1,6 +1,7 @@
 package akamai
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -43,7 +44,38 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
+	// The API now has data, so save the state
 	d.Set("property_id", property.PropertyID)
+	d.SetId(fmt.Sprintf("%s-%s-%s-%s", group.GroupID, contract.ContractID, product.ProductID, property.PropertyID))
+
+	rules, e := property.GetRules()
+	if e != nil {
+		return e
+	}
+
+	cpCode, e := createCpCode(contract, group, product, d)
+	if e != nil {
+		return e
+	}
+
+	rules.AddBehaviorOptions("/cpCode", papi.OptionValue{
+		"value": papi.OptionValue{
+			"id": cpCode.ID(),
+		},
+	})
+
+	e = rules.Save()
+	if e != nil {
+		if e == papi.ErrorMap[papi.ErrInvalidRules] && len(rules.Errors) > 0 {
+			var msg string
+			for _, v := range rules.Errors {
+				msg = msg + fmt.Sprintf("\n Rule validation error: %s %s %s %s %s", v.Type, v.Title, v.Detail, v.Instance, v.BehaviorName)
+			}
+			return errors.New("Error - Invalid Property Rules" + msg)
+		}
+		return e
+	}
+
 	d.SetId(fmt.Sprintf("%s-%s-%s-%s", group.GroupID, contract.ContractID, product.ProductID, property.PropertyID))
 
 	log.Println("[DEBUG] Done")
@@ -51,67 +83,14 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func getGroup(d *schema.ResourceData) (*papi.Group, error) {
-	log.Println("[DEBUG] Fetching groups")
-	groupId := d.Get("group_id").(string)
-
-	groups := papi.NewGroups()
-	e := groups.GetGroups()
-	if e != nil {
-		return nil, e
-	}
-
-	group, e := groups.FindGroup(groupId)
-	if e != nil {
-		return nil, e
-	}
-
-	log.Printf("[DEBUG] Group found: %s\n", group.GroupID)
-	return group, nil
-}
-
-func getContract(d *schema.ResourceData) (*papi.Contract, error) {
-	log.Println("[DEBUG] Fetching contract")
-	contractId := d.Get("contract_id").(string)
-
-	contracts := papi.NewContracts()
-	e := contracts.GetContracts()
-	if e != nil {
-		return nil, e
-	}
-
-	contract, e := contracts.FindContract(contractId)
-	if e != nil {
-		return nil, e
-	}
-
-	log.Printf("[DEBUG] Contract found: %s\n", contract.ContractID)
-	return contract, nil
-}
-
-func getProduct(d *schema.ResourceData, contract *papi.Contract) (*papi.Product, error) {
-	log.Println("[DEBUG] Fetching product")
-	productId := d.Get("product_id").(string)
-
-	products := papi.NewProducts()
-	e := products.GetProducts(contract)
-	if e != nil {
-		return nil, e
-	}
-
-	product, e := products.FindProduct(productId)
-	if e != nil {
-		return nil, e
-	}
-
-	log.Printf("[DEBUG] Product found: %s\n", product.ProductID)
-	return product, nil
-}
-
 func createProperty(contract *papi.Contract, group *papi.Group, product *papi.Product, d *schema.ResourceData) (*papi.Property, error) {
 	log.Println("[DEBUG] Creating property")
 
 	property, err := group.NewProperty(contract)
+	if err != nil {
+		return nil, err
+	}
+
 	property.ProductID = product.ProductID
 	property.PropertyName = d.Get("name").(string)
 
