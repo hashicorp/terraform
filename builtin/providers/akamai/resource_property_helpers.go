@@ -1,6 +1,7 @@
 package akamai
 
 import (
+	"errors"
 	"log"
 	"strings"
 
@@ -96,4 +97,39 @@ func createCpCode(contract *papi.Contract, group *papi.Group, product *papi.Prod
 	log.Println("[DEBUG] CPCode set up")
 
 	return cpCode, nil
+}
+
+func createOrigin(d *schema.ResourceData) (papi.OptionValue, error) {
+	log.Println("[DEBUG] Setting origin")
+	if origin, ok := d.GetOk("origin"); ok {
+		originConfig := origin.([]interface{})[0].(map[string]interface{})
+		forwardHostname := originConfig["forward_hostname"].(string)
+		var originValues papi.OptionValue
+		if forwardHostname == "ORIGIN_HOSTNAME" || forwardHostname == "REQUEST_HOST_HEADER" {
+			log.Println("[DEBUG] Setting non-custom forward hostname")
+			originValues = papi.OptionValue{
+				"originType":         "CUSTOMER",
+				"hostname":           originConfig["hostname"].(string),
+				"httpPort":           originConfig["port"].(int),
+				"forwardHostHeader":  forwardHostname,
+				"cacheKeyHostname":   originConfig["cache_key_hostname"].(string),
+				"compress":           originConfig["gzip_compression"].(bool),
+				"enableTrueClientIp": originConfig["true_client_ip_header"].(bool),
+			}
+		} else {
+			log.Println("[DEBUG] Setting custom forward hostname")
+			originValues = papi.OptionValue{
+				"originType":              "CUSTOMER",
+				"hostname":                originConfig["hostname"].(string),
+				"httpPort":                originConfig["port"].(string),
+				"forwardHostHeader":       "CUSTOM",
+				"customForwardHostHeader": forwardHostname,
+				"cacheKeyHostname":        originConfig["cache_key_hostname"].(string),
+				"compress":                originConfig["gzip_compression"].(bool),
+				"enableTrueClientIp":      originConfig["true_client_ip_header"].(bool),
+			}
+		}
+		return originValues, nil
+	}
+	return nil, errors.New("No origin config found")
 }

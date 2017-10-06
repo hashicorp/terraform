@@ -64,6 +64,12 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		},
 	})
 
+	origin, e := createOrigin(d)
+	if e != nil {
+		return e
+	}
+	rules.AddBehaviorOptions("/origin", origin)
+
 	e = rules.Save()
 	if e != nil {
 		if e == papi.ErrorMap[papi.ErrInvalidRules] && len(rules.Errors) > 0 {

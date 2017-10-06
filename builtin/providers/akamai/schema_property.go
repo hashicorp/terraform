@@ -99,6 +99,48 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 		Optional: true,
 	},
 
+	"origin": {
+		Type:     schema.TypeList,
+		Required: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"is_secure": {
+					Type:     schema.TypeString,
+					Required: true,
+				},
+				"hostname": {
+					Type:     schema.TypeString,
+					Required: true,
+				},
+				"port": {
+					Type:     schema.TypeInt,
+					Optional: true,
+					Default:  80,
+				},
+				"forward_hostname": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "ORIGIN_HOSTNAME",
+				},
+				"cache_key_hostname": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "ORIGIN_HOSTNAME",
+				},
+				"gzip_compression": {
+					Type:     schema.TypeBool,
+					Optional: true,
+					Default:  false,
+				},
+				"true_client_ip_header": {
+					Type:     schema.TypeBool,
+					Optional: true,
+					Default:  false,
+				},
+			},
+		},
+	},
+
 	// rules tree can go max 5 levels deep
 	"rule": &schema.Schema{
 		Type:     schema.TypeSet,
@@ -125,32 +167,6 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 		},
 	},
 
-	"origin": {
-		Type:     schema.TypeList,
-		Optional: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"is_secure": {
-					Type:     schema.TypeString,
-					Optional: true,
-				},
-				"hostname": {
-					Type:     schema.TypeString,
-					Required: true,
-				},
-				"port": {
-					Type:     schema.TypeInt,
-					Optional: true,
-					Default:  80,
-				},
-				"forward_hostname": {
-					Type:     schema.TypeString,
-					Optional: true,
-					Default:  "ORIGIN_HOSTNAME",
-				},
-			},
-		},
-	},
 	"compress": {
 		Type:     schema.TypeSet,
 		Optional: true,

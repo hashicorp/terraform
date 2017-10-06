@@ -8,7 +8,7 @@ resource "akamai_property" "akamaidevelopernet" {
   contract_id = "ctr_C-1FRYVV3"
   group_id = "grp_68817"
   product_id = "prd_Adaptive_Media_Delivery"
-  name = "test_property_terraform"
+  name = "test_property_terraform_jc"
   cp_code = "409449"
 
   origin {
