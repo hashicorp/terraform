@@ -403,6 +403,12 @@ func extractRules(drules *schema.Set) []*papi.Rule {
 					}
 				}
 			}
+
+			dchildRule, ok := vv["rule"]
+			if ok && dchildRule.(*schema.Set).Len() > 0 {
+				r := extractRules(dchildRule.(*schema.Set))
+				rule.Children = append(rule.Children, r...)
+			}
 		}
 		rules = append(rules, rule)
 	}

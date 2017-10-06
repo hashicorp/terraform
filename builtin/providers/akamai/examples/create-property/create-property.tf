@@ -50,5 +50,27 @@ resource "akamai_property" "akamaidevelopernet" {
         value = "TUNNEL_ORIGIN"
       }
     }
+    rule {
+      name = "Uncacheable Responses"
+      comment = "Child rule"
+      criteria {
+        name = "cacheability"
+        option {
+          name = "matchOperator"
+          value = "IS_NOT"
+        }
+        option {
+          name = "value"
+          value = "CACHEABLE"
+        }
+      }
+      behavior {
+        name = "downstreamCache"
+        option {
+          name = "behavior"
+          value = "TUNNEL_ORIGIN"
+        }
+      }
+    }
   }
 }
