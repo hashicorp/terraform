@@ -58,17 +58,12 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
-	rules.AddBehaviorOptions("/cpCode", papi.OptionValue{
-		"value": papi.OptionValue{
-			"id": cpCode.ID(),
-		},
-	})
-
 	origin, e := createOrigin(d)
 	if e != nil {
 		return e
 	}
-	rules.AddBehaviorOptions("/origin", origin)
+
+	addStandardBehaviors(rules, cpCode, origin)
 
 	e = rules.Save()
 	if e != nil {

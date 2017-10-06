@@ -99,15 +99,15 @@ func createCpCode(contract *papi.Contract, group *papi.Group, product *papi.Prod
 	return cpCode, nil
 }
 
-func createOrigin(d *schema.ResourceData) (papi.OptionValue, error) {
+func createOrigin(d *schema.ResourceData) (*papi.OptionValue, error) {
 	log.Println("[DEBUG] Setting origin")
 	if origin, ok := d.GetOk("origin"); ok {
 		originConfig := origin.([]interface{})[0].(map[string]interface{})
 		forwardHostname := originConfig["forward_hostname"].(string)
-		var originValues papi.OptionValue
+		var originValues *papi.OptionValue
 		if forwardHostname == "ORIGIN_HOSTNAME" || forwardHostname == "REQUEST_HOST_HEADER" {
 			log.Println("[DEBUG] Setting non-custom forward hostname")
-			originValues = papi.OptionValue{
+			originValues = &papi.OptionValue{
 				"originType":         "CUSTOMER",
 				"hostname":           originConfig["hostname"].(string),
 				"httpPort":           originConfig["port"].(int),
@@ -118,7 +118,7 @@ func createOrigin(d *schema.ResourceData) (papi.OptionValue, error) {
 			}
 		} else {
 			log.Println("[DEBUG] Setting custom forward hostname")
-			originValues = papi.OptionValue{
+			originValues = &papi.OptionValue{
 				"originType":              "CUSTOMER",
 				"hostname":                originConfig["hostname"].(string),
 				"httpPort":                originConfig["port"].(string),
@@ -132,4 +132,45 @@ func createOrigin(d *schema.ResourceData) (papi.OptionValue, error) {
 		return originValues, nil
 	}
 	return nil, errors.New("No origin config found")
+}
+
+func addStandardBehaviors(rules *papi.Rules, cpCode *papi.CpCode, origin *papi.OptionValue) {
+	b := papi.NewBehavior()
+	b.Name = "cpCode"
+	b.Options = &papi.OptionValue{
+		"value": &papi.OptionValue{
+			"id": cpCode.ID(),
+		},
+	}
+	rules.Rule.AddBehavior(b)
+
+	b = papi.NewBehavior()
+	b.Name = "origin"
+	b.Options = origin
+	rules.Rule.AddBehavior(b)
+
+	log.Println("[DEBUG] Setting Performance")
+	r := papi.NewRule()
+	r.Name = "Performance"
+
+	b = papi.NewBehavior()
+	b.Name = "sureRoute"
+	b.Options = &papi.OptionValue{
+		"testObjectUrl":   "/akamai/sureroute-testobject.html",
+		"enableCustomKey": false,
+		"enabled":         false,
+	}
+	r.AddBehavior(b)
+
+	// log.Println("[DEBUG] Fixing Image compression settings")
+	// b = papi.NewBehavior()
+	// b.Name = "adaptiveImageCompression"
+	// b.Options = &papi.OptionValue{
+	// 	"compressMobile":               true,
+	// 	"tier1MobileCompressionMethod": "BYPASS",
+	// 	"tier2MobileCompressionMethod": "COMPRESS",
+	// 	"tier2MobileCompressionValue":  60,
+	// }
+	// r.AddBehavior(b)
+	rules.Rule.AddChildRule(r)
 }
