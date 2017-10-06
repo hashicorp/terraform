@@ -193,7 +193,75 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 				},
 				"criteria": akps_criteria,
 				"behavior": akps_behavior,
-				// "children": [], //TODO
+				"rule": &schema.Schema{
+					Type:     schema.TypeSet,
+					Optional: true,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"name": {
+								Type:     schema.TypeString,
+								Required: true,
+							},
+							"comment": {
+								Type:     schema.TypeString,
+								Optional: true,
+							},
+							"criteria_match": {
+								Type:     schema.TypeString,
+								Optional: true,
+								Default:  "all",
+							},
+							"criteria": akps_criteria,
+							"behavior": akps_behavior,
+							"rule": &schema.Schema{
+								Type:     schema.TypeSet,
+								Optional: true,
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"name": {
+											Type:     schema.TypeString,
+											Required: true,
+										},
+										"comment": {
+											Type:     schema.TypeString,
+											Optional: true,
+										},
+										"criteria_match": {
+											Type:     schema.TypeString,
+											Optional: true,
+											Default:  "all",
+										},
+										"criteria": akps_criteria,
+										"behavior": akps_behavior,
+										"rule": &schema.Schema{
+											Type:     schema.TypeSet,
+											Optional: true,
+											Elem: &schema.Resource{
+												Schema: map[string]*schema.Schema{
+													"name": {
+														Type:     schema.TypeString,
+														Required: true,
+													},
+													"comment": {
+														Type:     schema.TypeString,
+														Optional: true,
+													},
+													"criteria_match": {
+														Type:     schema.TypeString,
+														Optional: true,
+														Default:  "all",
+													},
+													"criteria": akps_criteria,
+													"behavior": akps_behavior,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	},

@@ -313,19 +313,7 @@ func unmarshalRules(d *schema.ResourceData, rules *papi.Rules) {
 							beh.Name = bb["name"].(string)
 							boptions, ok := bb["option"]
 							if ok {
-								for _, o := range boptions.(*schema.Set).List() {
-									oo, ok := o.(map[string]interface{})
-									if ok {
-										vals, ok := oo["values"]
-										if ok {
-											if vals.(*schema.Set).Len() > 0 {
-												beh.Options["values"] = oo["values"].(*schema.Set).List()
-											} else {
-												beh.Options[oo["name"].(string)] = oo["value"].(string)
-											}
-										}
-									}
-								}
+								beh.Options = extractOptions(boptions.(*schema.Set))
 							}
 							rules.Rule.AddBehavior(beh)
 						}
@@ -341,19 +329,7 @@ func unmarshalRules(d *schema.ResourceData, rules *papi.Rules) {
 							beh.Name = bb["name"].(string)
 							coptions, ok := bb["option"]
 							if ok {
-								for _, o := range coptions.(*schema.Set).List() {
-									oo, ok := o.(map[string]interface{})
-									if ok {
-										vals, ok := oo["values"]
-										if ok {
-											if vals.(*schema.Set).Len() > 0 {
-												beh.Options["values"] = oo["values"].(*schema.Set).List()
-											} else {
-												beh.Options[oo["name"].(string)] = oo["value"].(string)
-											}
-										}
-									}
-								}
+								beh.Options = extractOptions(coptions.(*schema.Set))
 							}
 							rules.Rule.AddCriteria(beh)
 						}
@@ -366,71 +342,71 @@ func unmarshalRules(d *schema.ResourceData, rules *papi.Rules) {
 	// ALL OTHER RULES
 	drules, ok := d.GetOk("rule")
 	if ok {
-		for _, v := range drules.(*schema.Set).List() {
-			rule := papi.NewRule()
-			vv, ok := v.(map[string]interface{})
-			if ok {
-				rule.Name = vv["name"].(string)
-				rule.Comments = vv["comment"].(string)
-				dbehavior, ok := vv["behavior"]
-				if ok {
-					for _, b := range dbehavior.(*schema.Set).List() {
-						bb, ok := b.(map[string]interface{})
-						if ok {
-							beh := papi.NewBehavior()
-							beh.Name = bb["name"].(string)
-							boptions, ok := bb["option"]
-							if ok {
-								for _, o := range boptions.(*schema.Set).List() {
-									oo, ok := o.(map[string]interface{})
-									if ok {
-										vals, ok := oo["values"]
-										if ok {
-											if vals.(*schema.Set).Len() > 0 {
-												beh.Options["values"] = oo["values"].(*schema.Set).List()
-											} else {
-												beh.Options[oo["name"].(string)] = oo["value"].(string)
-											}
-										}
-									}
-								}
-							}
-							rule.AddBehavior(beh)
-						}
-					}
-				}
+		rules.Rule.Children = append(rules.Rule.Children, extractRules(drules.(*schema.Set))...)
+	}
+}
 
-				dcriteria, ok := vv["criteria"]
-				if ok {
-					for _, b := range dcriteria.(*schema.Set).List() {
-						bb, ok := b.(map[string]interface{})
+func extractOptions(options *schema.Set) map[string]interface{} {
+	optv := make(map[string]interface{})
+	for _, o := range options.List() {
+		oo, ok := o.(map[string]interface{})
+		if ok {
+			vals, ok := oo["values"]
+			if ok {
+				if vals.(*schema.Set).Len() > 0 {
+					optv["values"] = oo["values"].(*schema.Set).List()
+				} else {
+					optv[oo["name"].(string)] = oo["value"].(string)
+				}
+			}
+		}
+	}
+	return optv
+}
+
+func extractRules(drules *schema.Set) []*papi.Rule {
+	var rules []*papi.Rule
+	for _, v := range drules.List() {
+		rule := papi.NewRule()
+		vv, ok := v.(map[string]interface{})
+		if ok {
+			rule.Name = vv["name"].(string)
+			rule.Comments = vv["comment"].(string)
+			dbehavior, ok := vv["behavior"]
+			if ok {
+				for _, b := range dbehavior.(*schema.Set).List() {
+					bb, ok := b.(map[string]interface{})
+					if ok {
+						beh := papi.NewBehavior()
+						beh.Name = bb["name"].(string)
+						boptions, ok := bb["option"]
 						if ok {
-							beh := papi.NewCriteria()
-							beh.Name = bb["name"].(string)
-							coptions, ok := bb["option"]
-							if ok {
-								for _, o := range coptions.(*schema.Set).List() {
-									oo, ok := o.(map[string]interface{})
-									if ok {
-										vals, ok := oo["values"]
-										if ok {
-											if vals.(*schema.Set).Len() > 0 {
-												beh.Options["values"] = oo["values"].(*schema.Set).List()
-											} else {
-												beh.Options[oo["name"].(string)] = oo["value"].(string)
-											}
-										}
-									}
-								}
-							}
-							rule.AddCriteria(beh)
+							beh.Options = extractOptions(boptions.(*schema.Set))
 						}
+						rule.AddBehavior(beh)
 					}
 				}
 			}
-			rules.Rule.AddChildRule(rule)
+
+			dcriteria, ok := vv["criteria"]
+			if ok {
+				for _, b := range dcriteria.(*schema.Set).List() {
+					bb, ok := b.(map[string]interface{})
+					if ok {
+						beh := papi.NewCriteria()
+						beh.Name = bb["name"].(string)
+						coptions, ok := bb["option"]
+						if ok {
+							beh.Options = extractOptions(coptions.(*schema.Set))
+						}
+						rule.AddCriteria(beh)
+					}
+				}
+			}
 		}
+		rules = append(rules, rule)
 	}
+	return rules
 }
 
 func activateProperty(property *papi.Property, d *schema.ResourceData) (*papi.Activation, error) {
