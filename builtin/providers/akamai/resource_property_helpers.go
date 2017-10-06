@@ -2,8 +2,10 @@ package akamai
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -173,4 +175,124 @@ func addStandardBehaviors(rules *papi.Rules, cpCode *papi.CpCode, origin *papi.O
 	// }
 	// r.AddBehavior(b)
 	rules.Rule.AddChildRule(r)
+}
+
+func createHostnames(contract *papi.Contract, group *papi.Group, product *papi.Product, d *schema.ResourceData) (map[string]*papi.EdgeHostname, error) {
+	hostnames := d.Get("hostname").(*schema.Set).List()
+	ipv6, ipv6Ok := d.GetOk("ipv6")
+
+	log.Println("[DEBUG] Figuring out hostnames")
+	edgeHostnames := papi.NewEdgeHostnames()
+	edgeHostnames.GetEdgeHostnames(contract, group, "")
+
+	hostnameEdgeHostnameMap := map[string]*papi.EdgeHostname{}
+
+	// Contract/Group has _some_ Edge Hostnames, try to map 1:1 (e.g. example.com -> example.com.edgesuite.net)
+	// If some mapping exists, map non-existent ones to the first 1:1 we find, otherwise if none exist map to the
+	// first Edge Hostname found in the contract/group
+	if len(edgeHostnames.EdgeHostnames.Items) > 0 {
+		log.Println("[DEBUG] Hostnames retrieved, trying to map")
+		edgeHostnamesMap := map[string]*papi.EdgeHostname{}
+
+		defaultEdgeHostname := edgeHostnames.EdgeHostnames.Items[0]
+
+		for _, edgeHostname := range edgeHostnames.EdgeHostnames.Items {
+			edgeHostnamesMap[edgeHostname.EdgeHostnameDomain] = edgeHostname
+		}
+
+		// Search for existing hostname, map 1:1
+		var overrideDefault bool
+		for _, hostname := range hostnames {
+			if edgeHostname, ok := edgeHostnamesMap[hostname.(string)+".edgesuite.net"]; ok {
+				hostnameEdgeHostnameMap[hostname.(string)] = edgeHostname
+				// Override the default with the first one found
+				if !overrideDefault {
+					defaultEdgeHostname = edgeHostname
+					overrideDefault = true
+				}
+				continue
+			}
+
+			/* Support for secure properties
+			if (property is secure) {
+				if edgeHostname, ok := edgeHostnamesMap[hostname.(string)+".edgekey.net"]; ok {
+					hostnameEdgeHostnameMap[hostname.(string)] = edgeHostname
+				}
+			}
+			*/
+		}
+
+		// Fill in defaults
+		if len(hostnameEdgeHostnameMap) < len(hostnames) {
+			log.Printf("[DEBUG] Hostnames being set to default: %d of %d\n", len(hostnameEdgeHostnameMap), len(hostnames))
+			for _, hostname := range hostnames {
+				if _, ok := hostnameEdgeHostnameMap[hostname.(string)]; !ok {
+					hostnameEdgeHostnameMap[hostname.(string)] = defaultEdgeHostname
+				}
+			}
+		}
+	}
+
+	// Contract/Group has no Edge Hostnames, create a single based on the first hostname
+	// mapping example.com -> example.com.edgegrid.net
+	if len(edgeHostnames.EdgeHostnames.Items) == 0 {
+		log.Println("[DEBUG] No Edge Hostnames found, creating new one")
+		newEdgeHostname := papi.NewEdgeHostname(edgeHostnames)
+		newEdgeHostname.ProductID = product.ProductID
+		newEdgeHostname.IPVersionBehavior = "IPV4"
+		if ipv6Ok && ipv6.(bool) {
+			newEdgeHostname.IPVersionBehavior = "IPV6_COMPLIANCE"
+		}
+
+		newEdgeHostname.DomainPrefix = hostnames[0].(string)
+		newEdgeHostname.DomainSuffix = "edgesuite.net"
+		newEdgeHostname.Save("")
+
+		go newEdgeHostname.PollStatus("")
+
+		for newEdgeHostname.Status != papi.StatusActive {
+			select {
+			case <-newEdgeHostname.StatusChange:
+			case <-time.After(time.Minute * 20):
+				return nil, fmt.Errorf("No Edge Hostname found and a timeout occurred trying to create \"%s.%s\"", newEdgeHostname.DomainPrefix, newEdgeHostname.DomainSuffix)
+			}
+		}
+
+		for _, hostname := range hostnames {
+			hostnameEdgeHostnameMap[hostname.(string)] = newEdgeHostname
+		}
+
+		log.Printf("[DEBUG] Edgehostname created: %s\n", newEdgeHostname.EdgeHostnameDomain)
+	}
+
+	return hostnameEdgeHostnameMap, nil
+}
+
+func setEdgeHostnames(property *papi.Property, hostnameEdgeHostnameMap map[string]*papi.EdgeHostname) (map[string]string, error) {
+	log.Println("[DEBUG] Setting Edge Hostnames")
+	version := papi.NewVersion(papi.NewVersions())
+	version.PropertyVersion = property.LatestVersion
+	propertyHostnames, err := property.GetHostnames(version)
+	if err != nil {
+		return nil, err
+	}
+
+	var ehn map[string]string = make(map[string]string)
+	propertyHostnames.Hostnames.Items = []*papi.Hostname{}
+	for from, to := range hostnameEdgeHostnameMap {
+		hostname := propertyHostnames.NewHostname()
+		hostname.CnameType = papi.CnameTypeEdgeHostname
+		hostname.CnameFrom = from
+		hostname.CnameTo = to.EdgeHostnameDomain
+		hostname.EdgeHostnameID = to.EdgeHostnameID
+		ehn[from] = to.EdgeHostnameDomain
+	}
+	log.Println("[DEBUG] Saving edge hostnames")
+	err = propertyHostnames.Save()
+	log.Println("[DEBUG] Edge hostnames saved")
+	if err != nil {
+		return nil, err
+	}
+
+	return ehn, nil
 }

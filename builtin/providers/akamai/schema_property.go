@@ -98,6 +98,25 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 		Type:     schema.TypeString,
 		Optional: true,
 	},
+	"ipv6": &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+	},
+	"hostname": &schema.Schema{
+		Type:     schema.TypeSet,
+		Required: true,
+		Elem:     &schema.Schema{Type: schema.TypeString},
+	},
+	"contact": &schema.Schema{
+		Type:     schema.TypeSet,
+		Required: true,
+		Elem:     &schema.Schema{Type: schema.TypeString},
+	},
+	"edge_hostname": &schema.Schema{
+		Type:     schema.TypeMap,
+		Computed: true,
+		Elem:     &schema.Schema{Type: schema.TypeString},
+	},
 
 	"origin": {
 		Type:     schema.TypeList,

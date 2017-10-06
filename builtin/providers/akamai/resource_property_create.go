@@ -79,8 +79,20 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(fmt.Sprintf("%s-%s-%s-%s", group.GroupID, contract.ContractID, product.ProductID, property.PropertyID))
 
-	log.Println("[DEBUG] Done")
+	hostnameEdgeHostnameMap, err := createHostnames(contract, group, product, d)
+	if err != nil {
+		return err
+	}
 
+	edgeHostnames, err := setEdgeHostnames(property, hostnameEdgeHostnameMap)
+	if err != nil {
+		return err
+	}
+
+	d.Set("edge_hostname", edgeHostnames)
+	d.SetId(fmt.Sprintf("%s-%s-%s-%s", group.GroupID, contract.ContractID, product.ProductID, property.PropertyID))
+
+	log.Println("[DEBUG] Done")
 	return nil
 }
 

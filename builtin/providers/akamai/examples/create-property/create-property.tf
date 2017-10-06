@@ -10,6 +10,8 @@ resource "akamai_property" "akamaidevelopernet" {
   product_id = "prd_Adaptive_Media_Delivery"
   name = "test_property_terraform_jc"
   cp_code = "409449"
+  contact = ["dshafik@akamai.com"]
+  hostname = ["akamaideveloper.net"]
 
   origin {
     is_secure = false
