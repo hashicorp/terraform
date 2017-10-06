@@ -22,15 +22,6 @@ var akps_option *schema.Schema = &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"flag": {
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"type": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "auto",
-			},
 		},
 	},
 }
@@ -82,6 +73,8 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
 	},
+
+	// Will get added to the default rule
 	"cp_code": &schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
@@ -118,6 +111,25 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 		Elem:     &schema.Schema{Type: schema.TypeString},
 	},
 
+	// The default rule applies to all requests
+	"default": &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"criteria_match": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "all",
+				},
+				"criteria": akps_criteria,
+				"behavior": akps_behavior,
+				// "children": [], //TODO
+			},
+		},
+	},
+
+	// Will get added to the default rule
 	"origin": {
 		Type:     schema.TypeList,
 		Required: true,
@@ -182,77 +194,6 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 				"criteria": akps_criteria,
 				"behavior": akps_behavior,
 				// "children": [], //TODO
-			},
-		},
-	},
-
-	"compress": {
-		Type:     schema.TypeSet,
-		Optional: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"extensions": {
-					Type:     schema.TypeSet,
-					Elem:     &schema.Schema{Type: schema.TypeString},
-					Optional: true,
-				},
-				"content_types": {
-					Type:     schema.TypeSet,
-					Elem:     &schema.Schema{Type: schema.TypeString},
-					Optional: true,
-				},
-				"criteria": akps_criteria,
-			},
-		},
-	},
-	"cache": {
-		Type:     schema.TypeSet,
-		Optional: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"match": {
-					Type:     schema.TypeSet,
-					Optional: true,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"extensions": {
-								Type:     schema.TypeSet,
-								Elem:     &schema.Schema{Type: schema.TypeString},
-								Optional: true,
-							},
-							"paths": {
-								Type:     schema.TypeSet,
-								Elem:     &schema.Schema{Type: schema.TypeString},
-								Optional: true,
-							},
-						},
-					},
-				},
-				"max_age": {
-					Type:     schema.TypeString,
-					Optional: true,
-				},
-				"prefreshing": {
-					Type:     schema.TypeBool,
-					Optional: true,
-				},
-				"prefetch": {
-					Type:     schema.TypeBool,
-					Optional: true,
-				},
-				"query_params": {
-					Type:     schema.TypeBool,
-					Optional: true,
-				},
-				"query_params_sort": {
-					Type:     schema.TypeBool,
-					Optional: true,
-				},
-				"cache": {
-					Type:     schema.TypeBool,
-					Optional: true,
-				},
-				"criteria": akps_criteria,
 			},
 		},
 	},

@@ -139,8 +139,8 @@ func createOrigin(d *schema.ResourceData) (*papi.OptionValue, error) {
 func addStandardBehaviors(rules *papi.Rules, cpCode *papi.CpCode, origin *papi.OptionValue) {
 	b := papi.NewBehavior()
 	b.Name = "cpCode"
-	b.Options = &papi.OptionValue{
-		"value": &papi.OptionValue{
+	b.Options = papi.OptionValue{
+		"value": papi.OptionValue{
 			"id": cpCode.ID(),
 		},
 	}
@@ -148,7 +148,7 @@ func addStandardBehaviors(rules *papi.Rules, cpCode *papi.CpCode, origin *papi.O
 
 	b = papi.NewBehavior()
 	b.Name = "origin"
-	b.Options = origin
+	b.Options = *origin
 	rules.Rule.AddBehavior(b)
 
 	log.Println("[DEBUG] Setting Performance")
@@ -157,7 +157,7 @@ func addStandardBehaviors(rules *papi.Rules, cpCode *papi.CpCode, origin *papi.O
 
 	b = papi.NewBehavior()
 	b.Name = "sureRoute"
-	b.Options = &papi.OptionValue{
+	b.Options = papi.OptionValue{
 		"testObjectUrl":   "/akamai/sureroute-testobject.html",
 		"enableCustomKey": false,
 		"enabled":         false,
@@ -295,4 +295,159 @@ func setEdgeHostnames(property *papi.Property, hostnameEdgeHostnameMap map[strin
 	}
 
 	return ehn, nil
+}
+
+func unmarshalRules(d *schema.ResourceData, rules *papi.Rules) {
+	// DEFAULT RULES
+	def, ok := d.GetOk("default")
+	if ok {
+		for _, v := range def.(*schema.Set).List() {
+			vv, ok := v.(map[string]interface{})
+			if ok {
+				dbehavior, ok := vv["behavior"]
+				if ok {
+					for _, b := range dbehavior.(*schema.Set).List() {
+						bb, ok := b.(map[string]interface{})
+						if ok {
+							beh := papi.NewBehavior()
+							beh.Name = bb["name"].(string)
+							boptions, ok := bb["option"]
+							if ok {
+								for _, o := range boptions.(*schema.Set).List() {
+									oo, ok := o.(map[string]interface{})
+									if ok {
+										vals, ok := oo["values"]
+										if ok {
+											if vals.(*schema.Set).Len() > 0 {
+												beh.Options["values"] = oo["values"].(*schema.Set).List()
+											} else {
+												beh.Options[oo["name"].(string)] = oo["value"].(string)
+											}
+										}
+									}
+								}
+							}
+							rules.Rule.AddBehavior(beh)
+						}
+					}
+				}
+
+				dcriteria, ok := vv["criteria"]
+				if ok {
+					for _, b := range dcriteria.(*schema.Set).List() {
+						bb, ok := b.(map[string]interface{})
+						if ok {
+							beh := papi.NewCriteria()
+							beh.Name = bb["name"].(string)
+							coptions, ok := bb["option"]
+							if ok {
+								for _, o := range coptions.(*schema.Set).List() {
+									oo, ok := o.(map[string]interface{})
+									if ok {
+										vals, ok := oo["values"]
+										if ok {
+											if vals.(*schema.Set).Len() > 0 {
+												beh.Options["values"] = oo["values"].(*schema.Set).List()
+											} else {
+												beh.Options[oo["name"].(string)] = oo["value"].(string)
+											}
+										}
+									}
+								}
+							}
+							rules.Rule.AddCriteria(beh)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// ALL OTHER RULES
+	drules, ok := d.GetOk("rule")
+	if ok {
+		for _, v := range drules.(*schema.Set).List() {
+			rule := papi.NewRule()
+			vv, ok := v.(map[string]interface{})
+			if ok {
+				rule.Name = vv["name"].(string)
+				rule.Comments = vv["comment"].(string)
+				dbehavior, ok := vv["behavior"]
+				if ok {
+					for _, b := range dbehavior.(*schema.Set).List() {
+						bb, ok := b.(map[string]interface{})
+						if ok {
+							beh := papi.NewBehavior()
+							beh.Name = bb["name"].(string)
+							boptions, ok := bb["option"]
+							if ok {
+								for _, o := range boptions.(*schema.Set).List() {
+									oo, ok := o.(map[string]interface{})
+									if ok {
+										vals, ok := oo["values"]
+										if ok {
+											if vals.(*schema.Set).Len() > 0 {
+												beh.Options["values"] = oo["values"].(*schema.Set).List()
+											} else {
+												beh.Options[oo["name"].(string)] = oo["value"].(string)
+											}
+										}
+									}
+								}
+							}
+							rule.AddBehavior(beh)
+						}
+					}
+				}
+
+				dcriteria, ok := vv["criteria"]
+				if ok {
+					for _, b := range dcriteria.(*schema.Set).List() {
+						bb, ok := b.(map[string]interface{})
+						if ok {
+							beh := papi.NewCriteria()
+							beh.Name = bb["name"].(string)
+							coptions, ok := bb["option"]
+							if ok {
+								for _, o := range coptions.(*schema.Set).List() {
+									oo, ok := o.(map[string]interface{})
+									if ok {
+										vals, ok := oo["values"]
+										if ok {
+											if vals.(*schema.Set).Len() > 0 {
+												beh.Options["values"] = oo["values"].(*schema.Set).List()
+											} else {
+												beh.Options[oo["name"].(string)] = oo["value"].(string)
+											}
+										}
+									}
+								}
+							}
+							rule.AddCriteria(beh)
+						}
+					}
+				}
+			}
+			rules.Rule.AddChildRule(rule)
+		}
+	}
+}
+
+func activateProperty(property *papi.Property, d *schema.ResourceData) (*papi.Activation, error) {
+	log.Println("[DEBUG] Creating new activation")
+	activation := papi.NewActivation(papi.NewActivations())
+	activation.PropertyVersion = property.LatestVersion
+	activation.Network = papi.NetworkValue(strings.ToUpper(d.Get("network").(string)))
+	for _, email := range d.Get("contact").(*schema.Set).List() {
+		activation.NotifyEmails = append(activation.NotifyEmails, email.(string))
+	}
+	activation.Note = "Using Terraform"
+	log.Println("[DEBUG] Activating")
+	err := activation.Save(property, true)
+	log.Println("[DEBUG] Activation submitted")
+	if err != nil {
+		return nil, err
+	}
+
+	return activation, nil
 }

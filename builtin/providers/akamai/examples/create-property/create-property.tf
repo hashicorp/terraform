@@ -7,7 +7,7 @@ resource "akamai_property" "akamaidevelopernet" {
   account_id = "act_B-C-1FRYVMN"
   contract_id = "ctr_C-1FRYVV3"
   group_id = "grp_68817"
-  product_id = "prd_Adaptive_Media_Delivery"
+  product_id = "prd_SPM"
   name = "test_property_terraform_jc"
   cp_code = "409449"
   contact = ["dshafik@akamai.com"]
@@ -19,70 +19,35 @@ resource "akamai_property" "akamaidevelopernet" {
     forward_hostname = "ORIGIN_HOSTNAME"
   }
 
-  rule {
-    name = "default"
-    comment = "The default rule applies to all requests"
-
+  default {
     behavior {
-      name = "allowPost"
+      name = "downstreamCache"
       option {
-        name = "enabled"
-        flag = true
-      }
-      option {
-        name = "allowWithoutContentLength"
-        flag = true
-      }
-    }
-
-    behavior {
-      name = "realUserMonitoring"
-      option {
-        name = "enabled"
-        flag = true
+        name = "behavior"
+        value = "TUNNEL_ORIGIN"
       }
     }
   }
-
+  
   rule {
-    name = "Fixup Path"
-    comment = "Prefix incoming path with /api, unless it's already there"
-
+    name = "Uncacheable Responses"
+    comment = "Cache me outside"
     criteria {
-      name = "path"
-
+      name = "cacheability"
       option {
         name = "matchOperator"
-        value = "DOES_NOT_MATCH_ONE_OF"
+        value = "IS_NOT"
       }
-
       option {
-        name = "values"
-        values = ["/api/", "/api/*/"]
-      }
-
-      option {
-        name = "matchCaseSensitive"
-        flag = false
+        name = "value"
+        value = "CACHEABLE"
       }
     }
-
     behavior {
-      name = "rewriteUrl"
-
+      name = "downstreamCache"
       option {
         name = "behavior"
-        value = "PREPEND"
-      }
-
-      option {
-        name = "targetPathPrepend"
-        value = "/api/"
-      }
-
-      option {
-        name = "keepQueryString"
-        flag = true
+        value = "TUNNEL_ORIGIN"
       }
     }
   }

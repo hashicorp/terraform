@@ -65,6 +65,9 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 
 	addStandardBehaviors(rules, cpCode, origin)
 
+	// get rules from the TF config
+	unmarshalRules(d, rules)
+
 	e = rules.Save()
 	if e != nil {
 		if e == papi.ErrorMap[papi.ErrInvalidRules] && len(rules.Errors) > 0 {
@@ -91,6 +94,24 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("edge_hostname", edgeHostnames)
 	d.SetId(fmt.Sprintf("%s-%s-%s-%s", group.GroupID, contract.ContractID, product.ProductID, property.PropertyID))
+
+	// activation, err := activateProperty(property, d)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// go activation.PollStatus(property)
+	// for activation.Status != papi.StatusActive {
+	// 	select {
+	// 	case statusChanged := <-activation.StatusChange:
+	// 		if statusChanged == false {
+	// 			break
+	// 		}
+	// 		continue
+	// 	case <-time.After(time.Minute * 30):
+	// 		break
+	// 	}
+	// }
 
 	log.Println("[DEBUG] Done")
 	return nil
