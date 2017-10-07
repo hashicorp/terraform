@@ -43,7 +43,7 @@ func newHCL2Loader() hcl2Loader {
 
 // loadFile is a fileLoaderFunc that knows how to read a HCL2 file and turn it
 // into a hcl2Configurable.
-func (l hcl2Loader) loadFile(filename string) (configurable, []string, error) {
+func (l hcl2Loader) loadFile(filename string) (configurable, error) {
 	var f *hcl2.File
 	var diags hcl2.Diagnostics
 	if strings.HasSuffix(filename, ".json") {
@@ -55,13 +55,13 @@ func (l hcl2Loader) loadFile(filename string) (configurable, []string, error) {
 		// Return diagnostics as an error; callers may type-assert this to
 		// recover the original diagnostics, if it doesn't end up wrapped
 		// in another error.
-		return nil, nil, diags
+		return nil, diags
 	}
 
 	return &hcl2Configurable{
 		SourceFilename: filename,
 		Body:           f.Body,
-	}, nil, nil
+	}, nil
 }
 
 func (t *hcl2Configurable) Config() (*Config, error) {
