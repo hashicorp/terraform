@@ -162,18 +162,18 @@ func (t *hclConfigurable) Config() (*Config, error) {
 
 // loadFileHcl is a fileLoaderFunc that knows how to read HCL
 // files and turn them into hclConfigurables.
-func loadFileHcl(root string) (configurable, []string, error) {
+func loadFileHcl(root string) (configurable, error) {
 	// Read the HCL file and prepare for parsing
 	d, err := ioutil.ReadFile(root)
 	if err != nil {
-		return nil, nil, fmt.Errorf(
+		return nil, fmt.Errorf(
 			"Error reading %s: %s", root, err)
 	}
 
 	// Parse it
 	hclRoot, err := hcl.Parse(string(d))
 	if err != nil {
-		return nil, nil, fmt.Errorf(
+		return nil, fmt.Errorf(
 			"Error parsing %s: %s", root, err)
 	}
 
@@ -183,47 +183,7 @@ func loadFileHcl(root string) (configurable, []string, error) {
 		Root: hclRoot,
 	}
 
-	// Dive in, find the imports. This is disabled for now since
-	// imports were removed prior to Terraform 0.1. The code is
-	// remaining here commented for historical purposes.
-	/*
-		imports := obj.Get("import")
-		if imports == nil {
-			result.Object.Ref()
-			return result, nil, nil
-		}
-
-		if imports.Type() != libucl.ObjectTypeString {
-			imports.Close()
-
-			return nil, nil, fmt.Errorf(
-				"Error in %s: all 'import' declarations should be in the format\n"+
-					"`import \"foo\"` (Got type %s)",
-				root,
-				imports.Type())
-		}
-
-		// Gather all the import paths
-		importPaths := make([]string, 0, imports.Len())
-		iter := imports.Iterate(false)
-		for imp := iter.Next(); imp != nil; imp = iter.Next() {
-			path := imp.ToString()
-			if !filepath.IsAbs(path) {
-				// Relative paths are relative to the Terraform file itself
-				dir := filepath.Dir(root)
-				path = filepath.Join(dir, path)
-			}
-
-			importPaths = append(importPaths, path)
-			imp.Close()
-		}
-		iter.Close()
-		imports.Close()
-
-		result.Object.Ref()
-	*/
-
-	return result, nil, nil
+	return result, nil
 }
 
 // Given a handle to a HCL object, this transforms it into the Terraform config

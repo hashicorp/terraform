@@ -15,17 +15,11 @@ func TestImportTreeHCL2Experiment(t *testing.T) {
 
 	t.Run("HCL not opted in", func(t *testing.T) {
 		// .tf file without opt-in should use the old HCL parser
-		imp, err := loadTree("test-fixtures/hcl2-experiment-switch/not-opted-in.tf")
+		cfg, err := LoadFile("test-fixtures/hcl2-experiment-switch/not-opted-in.tf")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		tree, err := imp.ConfigTree()
-		if err != nil {
-			t.Fatalf("unexpected error loading not-opted-in.tf: %s", err)
-		}
-
-		cfg := tree.Config
 		if got, want := len(cfg.Locals), 1; got != want {
 			t.Fatalf("wrong number of locals %#v; want %#v", got, want)
 		}
@@ -37,17 +31,11 @@ func TestImportTreeHCL2Experiment(t *testing.T) {
 
 	t.Run("HCL opted in", func(t *testing.T) {
 		// .tf file with opt-in should use the new HCL2 parser
-		imp, err := loadTree("test-fixtures/hcl2-experiment-switch/opted-in.tf")
+		cfg, err := LoadFile("test-fixtures/hcl2-experiment-switch/opted-in.tf")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		tree, err := imp.ConfigTree()
-		if err != nil {
-			t.Fatalf("unexpected error loading opted-in.tf: %s", err)
-		}
-
-		cfg := tree.Config
 		if got, want := len(cfg.Locals), 1; got != want {
 			t.Fatalf("wrong number of locals %#v; want %#v", got, want)
 		}
@@ -59,17 +47,11 @@ func TestImportTreeHCL2Experiment(t *testing.T) {
 
 	t.Run("JSON ineligible", func(t *testing.T) {
 		// .tf.json file should always use the old HCL parser
-		imp, err := loadTree("test-fixtures/hcl2-experiment-switch/not-eligible.tf.json")
+		cfg, err := LoadFile("test-fixtures/hcl2-experiment-switch/not-eligible.tf.json")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		tree, err := imp.ConfigTree()
-		if err != nil {
-			t.Fatalf("unexpected error loading not-eligible.tf.json: %s", err)
-		}
-
-		cfg := tree.Config
 		if got, want := len(cfg.Locals), 1; got != want {
 			t.Fatalf("wrong number of locals %#v; want %#v", got, want)
 		}

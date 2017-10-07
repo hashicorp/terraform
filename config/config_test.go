@@ -736,7 +736,7 @@ func testConfig(t *testing.T, name string) *Config {
 // loader even if it doesn't explicitly opt in to the HCL2 experiment.
 func testConfigHCL2(t *testing.T, name string) *Config {
 	t.Helper()
-	cer, _, err := globalHCL2Loader.loadFile(filepath.Join(fixtureDir, name, "main.tf"))
+	cer, err := globalHCL2Loader.loadFile(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
 		t.Fatalf("failed to load %s: %s", name, err)
 	}
