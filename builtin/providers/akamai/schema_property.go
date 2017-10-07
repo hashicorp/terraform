@@ -55,8 +55,6 @@ var akps_behavior *schema.Schema = &schema.Schema{
 }
 
 var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
-	// Cloning is unsupported
-	// "clone_from": &schema.Schema{},
 	"account_id": &schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
@@ -109,6 +107,32 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 		Type:     schema.TypeMap,
 		Computed: true,
 		Elem:     &schema.Schema{Type: schema.TypeString},
+	},
+
+	"clone_from": &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"property_id": {
+					Type:     schema.TypeString,
+					Required: true,
+				},
+				"version": {
+					Type:     schema.TypeInt,
+					Optional: true,
+				},
+				"etag": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"copy_hostnames": {
+					Type:     schema.TypeBool,
+					Optional: true,
+					Default:  false,
+				},
+			},
+		},
 	},
 
 	// The default rule applies to all requests

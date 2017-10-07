@@ -68,6 +68,56 @@ func getProduct(d *schema.ResourceData, contract *papi.Contract) (*papi.Product,
 	return product, nil
 }
 
+func getCloneFrom(d *schema.ResourceData, group *papi.Group, contract *papi.Contract) (*papi.ClonePropertyFrom, error) {
+	log.Println("[DEBUG] Setting up clone from")
+
+	cF, ok := d.GetOk("clone_from")
+
+	if !ok {
+		return nil, nil
+	}
+
+	set := cF.(*schema.Set)
+	cloneFrom := set.List()[0].(map[string]interface{})
+
+	propertyId := cloneFrom["property_id"].(string)
+
+	property := papi.NewProperty(papi.NewProperties())
+	property.PropertyID = propertyId
+	property.Group = group
+	property.Contract = contract
+	err := property.GetProperty()
+	if err != nil {
+		return nil, err
+	}
+
+	version := cloneFrom["version"].(int)
+
+	if cloneFrom["version"].(int) == 0 {
+		v, err := property.GetLatestVersion("")
+		if err != nil {
+			return nil, err
+		}
+		version = v.PropertyVersion
+	}
+
+	clone := papi.NewClonePropertyFrom()
+	clone.PropertyID = propertyId
+	clone.Version = version
+
+	if cloneFrom["etag"].(string) != "" {
+		clone.CloneFromVersionEtag = cloneFrom["etag"].(string)
+	}
+
+	if cloneFrom["copy_hostnames"].(bool) != false {
+		clone.CopyHostnames = true
+	}
+
+	log.Println("[DEBUG] Clone from complete")
+
+	return clone, nil
+}
+
 func createCpCode(contract *papi.Contract, group *papi.Group, product *papi.Product, d *schema.ResourceData) (*papi.CpCode, error) {
 	log.Println("[DEBUG] Setting up CPCode")
 	cpCodes := papi.NewCpCodes(contract, group)

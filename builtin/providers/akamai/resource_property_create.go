@@ -39,7 +39,12 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
-	property, e := createProperty(contract, group, product, d)
+	cloneFrom, e := getCloneFrom(d, group, contract)
+	if e != nil {
+		return e
+	}
+
+	property, e := createProperty(contract, group, product, cloneFrom, d)
 	if e != nil {
 		return e
 	}
@@ -117,7 +122,7 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func createProperty(contract *papi.Contract, group *papi.Group, product *papi.Product, d *schema.ResourceData) (*papi.Property, error) {
+func createProperty(contract *papi.Contract, group *papi.Group, product *papi.Product, cloneFrom *papi.ClonePropertyFrom, d *schema.ResourceData) (*papi.Property, error) {
 	log.Println("[DEBUG] Creating property")
 
 	property, err := group.NewProperty(contract)
@@ -127,6 +132,9 @@ func createProperty(contract *papi.Contract, group *papi.Group, product *papi.Pr
 
 	property.ProductID = product.ProductID
 	property.PropertyName = d.Get("name").(string)
+	if cloneFrom != nil {
+		property.CloneFrom = cloneFrom
+	}
 
 	err = property.Save()
 	if err != nil {

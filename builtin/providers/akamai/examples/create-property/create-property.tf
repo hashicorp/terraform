@@ -8,10 +8,16 @@ resource "akamai_property" "akamaidevelopernet" {
   contract_id = "ctr_C-1FRYVV3"
   group_id = "grp_68817"
   product_id = "prd_SPM"
-  name = "test_property_terraform_jc"
+  name = "test_property_terraform_jc_copy_from"
   cp_code = "409449"
   contact = ["dshafik@akamai.com"]
   hostname = ["akamaideveloper.net"]
+
+  clone_from {
+    property_id = "prp_410587"
+    version = 1
+    copy_hostnames = true
+  }
 
   origin {
     is_secure = false
