@@ -15,15 +15,9 @@ const (
 )
 
 func (b *Backend) States() ([]string, error) {
-	// Get the Consul client
-	client, err := b.clientRaw()
-	if err != nil {
-		return nil, err
-	}
-
 	// List our raw path
 	prefix := b.configData.Get("path").(string) + keyEnvPrefix
-	keys, _, err := client.KV().Keys(prefix, "/", nil)
+	keys, _, err := b.client.KV().Keys(prefix, "/", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -60,28 +54,16 @@ func (b *Backend) DeleteState(name string) error {
 		return fmt.Errorf("can't delete default state")
 	}
 
-	// Get the Consul API client
-	client, err := b.clientRaw()
-	if err != nil {
-		return err
-	}
-
 	// Determine the path of the data
 	path := b.path(name)
 
 	// Delete it. We just delete it without any locking since
 	// the DeleteState API is documented as such.
-	_, err = client.KV().Delete(path, nil)
+	_, err := b.client.KV().Delete(path, nil)
 	return err
 }
 
 func (b *Backend) State(name string) (state.State, error) {
-	// Get the Consul API client
-	client, err := b.clientRaw()
-	if err != nil {
-		return nil, err
-	}
-
 	// Determine the path of the data
 	path := b.path(name)
 
@@ -91,7 +73,7 @@ func (b *Backend) State(name string) (state.State, error) {
 	// Build the state client
 	var stateMgr state.State = &remote.State{
 		Client: &RemoteClient{
-			Client:    client,
+			Client:    b.client,
 			Path:      path,
 			GZip:      gzip,
 			lockState: b.lock,
