@@ -1,7 +1,10 @@
 package consul
 
 import (
+	"context"
 	"fmt"
+	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -187,4 +190,101 @@ func TestConsul_lostLock(t *testing.T) {
 	if err := sA.Unlock(id); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestConsul_lostLockConnection(t *testing.T) {
+	srv := newConsulTestServer(t)
+	defer srv.Stop()
+
+	// create an "unreliable" network by closing all the consul client's
+	// network connections
+	conns := &unreliableConns{}
+	origDialFn := dialContext
+	defer func() {
+		dialContext = origDialFn
+	}()
+	dialContext = conns.DialContext
+
+	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
+
+	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"address": srv.HTTPAddr,
+		"path":    path,
+	})
+
+	s, err := b.State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	info := state.NewLockInfo()
+	info.Operation = "test-lost-lock-connection"
+	id, err := s.Lock(info)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// set a callback to know when the monitor loop re-connects
+	dialed := make(chan struct{})
+	conns.dialCallback = func() {
+		close(dialed)
+		conns.dialCallback = nil
+	}
+
+	// kill any open connections
+	// once the consul client is fixed, we should loop over this a few time to
+	// be sure, since we can't hook into the client's internal lock monitor
+	// loop.
+	conns.Kill()
+	// wait for a new connection to be dialed, and kill it again
+	<-dialed
+	conns.Kill()
+
+	// since the lock monitor loop is hidden in the consul api client, we can
+	// only wait a bit to make sure we were notified of the failure
+	time.Sleep(time.Second)
+
+	// once the consul client can reconnect properly, there will no longer be
+	// an error here
+	//if err := s.Unlock(id); err != nil {
+	if err := s.Unlock(id); err != lostLockErr {
+		t.Fatalf("expected lost lock error, got %v", err)
+	}
+}
+
+type unreliableConns struct {
+	sync.Mutex
+	conns        []net.Conn
+	dialCallback func()
+}
+
+func (u *unreliableConns) DialContext(ctx context.Context, netw, addr string) (net.Conn, error) {
+	u.Lock()
+	defer u.Unlock()
+
+	dialer := &net.Dialer{}
+	conn, err := dialer.DialContext(ctx, netw, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	u.conns = append(u.conns, conn)
+
+	if u.dialCallback != nil {
+		u.dialCallback()
+	}
+
+	return conn, nil
+}
+
+// Kill these with a deadline, just to make sure we don't end up with any EOFs
+// that get ignored.
+func (u *unreliableConns) Kill() {
+	u.Lock()
+	defer u.Unlock()
+
+	for _, conn := range u.conns {
+		conn.(*net.TCPConn).SetDeadline(time.Now())
+	}
+	u.conns = nil
 }
