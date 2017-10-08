@@ -120,11 +120,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	config := consulapi.DefaultConfig()
 
 	// replace the default Transport Dialer to reduce the KeepAlive
-
-	config.Transport.DialContext = (&net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 17 * time.Second,
-	}).DialContext
+	config.Transport.DialContext = dialContext
 
 	if v, ok := data.GetOk("access_token"); ok && v.(string) != "" {
 		config.Token = v.(string)
@@ -175,3 +171,10 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.client = client
 	return nil
 }
+
+// dialContext is the DialContext function for the consul client transport.
+// This is stored in a package var to inject a different dialer for tests.
+var dialContext = (&net.Dialer{
+	Timeout:   30 * time.Second,
+	KeepAlive: 17 * time.Second,
+}).DialContext

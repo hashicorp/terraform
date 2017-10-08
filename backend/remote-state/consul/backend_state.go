@@ -85,6 +85,11 @@ func (b *Backend) State(name string) (state.State, error) {
 		stateMgr = &state.LockDisabled{Inner: stateMgr}
 	}
 
+	// the default state always exists
+	if name == backend.DefaultStateName {
+		return stateMgr, nil
+	}
+
 	// Grab a lock, we use this to write an empty state if one doesn't
 	// exist already. We have to write an empty state as a sentinel value
 	// so States() knows it exists.
