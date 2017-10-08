@@ -228,6 +228,9 @@ func (c *RemoteClient) lock() (string, error) {
 		return "", err
 	}
 
+	// store the session ID for correlation with consul logs
+	c.info.Info = "consul session: " + lockSession
+
 	opts := &consulapi.LockOptions{
 		Key:     c.Path + lockSuffix,
 		Session: lockSession,
