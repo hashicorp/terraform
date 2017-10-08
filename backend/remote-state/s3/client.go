@@ -149,32 +149,46 @@ func (c *RemoteClient) Put(data []byte) error {
 	contentType := "application/json"
 	contentLength := int64(len(data))
 
-	i := &s3.PutObjectInput{
-		ContentType:   &contentType,
-		ContentLength: &contentLength,
-		Body:          bytes.NewReader(data),
-		Bucket:        &c.bucketName,
-		Key:           &c.path,
-	}
-
-	if c.serverSideEncryption {
-		if c.kmsKeyID != "" {
-			i.SSEKMSKeyId = &c.kmsKeyID
-			i.ServerSideEncryption = aws.String("aws:kms")
-		} else {
-			i.ServerSideEncryption = aws.String("AES256")
+	// we immediately retry on an internal error, as those are usually transient
+	maxRetries := 2
+	for retryCount := 0; ; retryCount++ {
+		i := &s3.PutObjectInput{
+			ContentType:   &contentType,
+			ContentLength: &contentLength,
+			Body:          bytes.NewReader(data),
+			Bucket:        &c.bucketName,
+			Key:           &c.path,
 		}
-	}
 
-	if c.acl != "" {
-		i.ACL = aws.String(c.acl)
-	}
+		if c.serverSideEncryption {
+			if c.kmsKeyID != "" {
+				i.SSEKMSKeyId = &c.kmsKeyID
+				i.ServerSideEncryption = aws.String("aws:kms")
+			} else {
+				i.ServerSideEncryption = aws.String("AES256")
+			}
+		}
 
-	log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
+		if c.acl != "" {
+			i.ACL = aws.String(c.acl)
+		}
 
-	_, err := c.s3Client.PutObject(i)
-	if err != nil {
-		return fmt.Errorf("Failed to upload state: %v", err)
+		log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
+
+		_, err := c.s3Client.PutObject(i)
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok {
+				if awserr.Code() == s3ErrCodeInternalError {
+					if retryCount > maxRetries {
+						return fmt.Errorf("failed to upload state: %s", err)
+					}
+					log.Println("[WARN] s3 internal error, retrying...")
+					continue
+				}
+			}
+			return fmt.Errorf("failed to upload state: %s", err)
+		}
+		break
 	}
 
 	sum := md5.Sum(data)
