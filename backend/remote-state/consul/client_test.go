@@ -176,6 +176,7 @@ func TestConsul_lostLock(t *testing.T) {
 	reLocked := make(chan struct{})
 	testLockHook = func() {
 		close(reLocked)
+		testLockHook = nil
 	}
 
 	// now we use the second client to break the lock
