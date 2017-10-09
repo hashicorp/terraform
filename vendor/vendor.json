@@ -1768,6 +1768,30 @@
 			"revisionTime": "2016-06-16T18:50:15Z"
 		},
 		{
+			"checksumSHA1": "EqvUu0Ku0Ec5Tk6yhGNOuOr8yeA=",
+			"path": "github.com/joyent/triton-go",
+			"revision": "5a58ad2cdec95cddd1e0a2e56f559341044b04f0",
+			"revisionTime": "2017-10-17T16:55:58Z"
+		},
+		{
+			"checksumSHA1": "JKf97EAAAZFQ6Wf8qN9X7TWqNBY=",
+			"path": "github.com/joyent/triton-go/authentication",
+			"revision": "5a58ad2cdec95cddd1e0a2e56f559341044b04f0",
+			"revisionTime": "2017-10-17T16:55:58Z"
+		},
+		{
+			"checksumSHA1": "dlO1or0cyVMAmZzyLcBuoy+M0xU=",
+			"path": "github.com/joyent/triton-go/client",
+			"revision": "5a58ad2cdec95cddd1e0a2e56f559341044b04f0",
+			"revisionTime": "2017-10-17T16:55:58Z"
+		},
+		{
+			"checksumSHA1": "9VONvM4aQL088cLPgg+Z0K0dshc=",
+			"path": "github.com/joyent/triton-go/storage",
+			"revision": "5a58ad2cdec95cddd1e0a2e56f559341044b04f0",
+			"revisionTime": "2017-10-17T16:55:58Z"
+		},
+		{
 			"checksumSHA1": "g+afVQQVopBLiLB5pFZp/8s6aBs=",
 			"path": "github.com/kardianos/osext",
 			"revision": "c2c54e542fb797ad986b31721e1baedf214ca413",

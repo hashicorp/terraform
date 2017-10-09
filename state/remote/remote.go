@@ -49,5 +49,4 @@ var BuiltinClients = map[string]Factory{
 	"etcd":        etcdFactory,
 	"http":        httpFactory,
 	"local":       fileFactory,
-	"manta":       mantaFactory,
 }
