@@ -533,7 +533,7 @@ func resourceFastDNSZone() *schema.Resource {
 			},
 			"soa": {
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ttl": {
