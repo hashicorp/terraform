@@ -123,7 +123,7 @@ standard structure.
   including a visual diagram depicting the infrastructure resources the
   module may create and their relationship. The README doesn't need to 
   document inputs or outputs of the module because tooling will automatically
-  generate this. If you are linking to file or embedding an image contained
+  generate this. If you are linking to a file or embedding an image contained
   in the repository itself, use a commit-specific absolute URL so the link 
   won't point to the wrong version of a resource in the future.
 
