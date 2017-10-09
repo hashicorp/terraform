@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -404,14 +405,42 @@ func extractOptions(options *schema.Set) map[string]interface{} {
 			vals, ok := oo["values"]
 			if ok {
 				if vals.(*schema.Set).Len() > 0 {
-					optv["values"] = oo["values"].(*schema.Set).List()
+					op := make([]interface{}, vals.(*schema.Set).Len())
+					for _, v := range vals.(*schema.Set).List() {
+						op = append(op, numberify(v.(string)))
+					}
+					optv["values"] = op
 				} else {
-					optv[oo["name"].(string)] = oo["value"].(string)
+					optv[oo["name"].(string)] = numberify(oo["value"].(string))
 				}
 			}
 		}
 	}
 	return optv
+}
+
+func numberify(v string) interface{} {
+	f1, err := strconv.ParseFloat(v, 64)
+	if err == nil {
+		return f1
+	}
+
+	f2, err := strconv.ParseInt(v, 10, 64)
+	if err == nil {
+		return f2
+	}
+
+	f3, err := strconv.ParseBool(v)
+	if err == nil {
+		return f3
+	}
+
+	f4, err := strconv.Atoi(v)
+	if err == nil {
+		return f4
+	}
+
+	return v
 }
 
 func extractRules(drules *schema.Set) []*papi.Rule {
