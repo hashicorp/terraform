@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/go-getter"
+	getter "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 )
 
