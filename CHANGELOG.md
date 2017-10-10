@@ -2,7 +2,8 @@
 
 NEW FEATURES:
 
-* backend/etcdv3: Add etcdv3 backend, for use with the newer etcd api [GH-15680]
+* **New `etcdv3` backend**, for use with the newer etcd api [GH-15680]
+* **New interpolation function `chunklist`**, for spliting a list into a list of lists with specified sublist chunk sizes. [GH-15112]
 
 IMPROVEMENTS:
 
