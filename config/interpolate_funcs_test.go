@@ -2106,6 +2106,44 @@ func TestInterpolateFuncElement(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncChunklist(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// normal usage
+			{
+				`${chunklist(list("a", "b", "c"), 1)}`,
+				[]interface{}{
+					[]interface{}{"a"},
+					[]interface{}{"b"},
+					[]interface{}{"c"},
+				},
+				false,
+			},
+			// `size` is pair and the list has an impair number of items
+			{
+				`${chunklist(list("a", "b", "c"), 2)}`,
+				[]interface{}{
+					[]interface{}{"a", "b"},
+					[]interface{}{"c"},
+				},
+				false,
+			},
+			// list made of the same list, since size is 0
+			{
+				`${chunklist(list("a", "b", "c"), 0)}`,
+				[]interface{}{[]interface{}{"a", "b", "c"}},
+				false,
+			},
+			// negative size of chunks
+			{
+				`${chunklist(list("a", "b", "c"), -1)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncBasename(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
