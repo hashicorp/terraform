@@ -2,6 +2,7 @@ package akamai
 
 import (
 	"errors"
+    "encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -505,10 +506,12 @@ func activateProperty(property *papi.Property, d *schema.ResourceData) (*papi.Ac
 	activation.Note = "Using Terraform"
 	log.Println("[DEBUG] Activating")
 	err := activation.Save(property, true)
-	log.Println("[DEBUG] Activation submitted")
 	if err != nil {
+		body, _ := json.Marshal(activation)
+		log.Printf("[DEBUG] API Request Body: %s\n", string(body))
 		return nil, err
 	}
+	log.Println("[DEBUG] Activation submitted successfully")
 
 	return activation, nil
 }
