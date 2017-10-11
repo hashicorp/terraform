@@ -140,6 +140,13 @@ func createProperty(contract *papi.Contract, group *papi.Group, product *papi.Pr
 		property.CloneFrom = cloneFrom
 	}
 
+	if ruleFormat, ok := d.GetOk("rule_format"); ok {
+		property.RuleFormat = ruleFormat.(string)
+	} else {
+		ruleFormats := papi.NewRuleFormats()
+		property.RuleFormat, err = ruleFormats.GetLatest()
+	}
+
 	err = property.Save()
 	if err != nil {
 		return nil, err
