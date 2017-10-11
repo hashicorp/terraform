@@ -336,7 +336,7 @@ func setEdgeHostnames(property *papi.Property, hostnameEdgeHostnameMap map[strin
 		hostname.CnameFrom = from
 		hostname.CnameTo = to.EdgeHostnameDomain
 		hostname.EdgeHostnameID = to.EdgeHostnameID
-		ehn[from] = to.EdgeHostnameDomain
+		ehn[strings.Replace(from, ".", "-", -1)] = to.EdgeHostnameDomain
 	}
 	log.Println("[DEBUG] Saving edge hostnames")
 	err = propertyHostnames.Save()
