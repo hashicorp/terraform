@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -100,23 +101,26 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	d.Set("edge_hostname", edgeHostnames)
 	d.SetId(fmt.Sprintf("%s-%s-%s-%s", group.GroupID, contract.ContractID, product.ProductID, property.PropertyID))
 
-	// activation, err := activateProperty(property, d)
-	// if err != nil {
-	// 	return err
-	// }
-	//
-	// go activation.PollStatus(property)
-	// for activation.Status != papi.StatusActive {
-	// 	select {
-	// 	case statusChanged := <-activation.StatusChange:
-	// 		if statusChanged == false {
-	// 			break
-	// 		}
-	// 		continue
-	// 	case <-time.After(time.Minute * 30):
-	// 		break
-	// 	}
-	// }
+	activation, err := activateProperty(property, d)
+	if err != nil {
+		return err
+	}
+
+	go activation.PollStatus(property)
+polling:
+	for activation.Status != papi.StatusActive {
+		select {
+		case statusChanged := <-activation.StatusChange:
+			log.Printf("[DEBUG] Property Status: %s\n", activation.Status)
+			if statusChanged == false {
+				break polling
+			}
+			continue polling
+		case <-time.After(time.Minute * 90):
+			log.Println("[DEBUG] Activation Timeout (90 minutes)")
+			break polling
+		}
+	}
 
 	log.Println("[DEBUG] Done")
 	return nil
