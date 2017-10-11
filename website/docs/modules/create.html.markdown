@@ -120,8 +120,8 @@ standard structure.
   files. This file should be named `README` or `README.md`. The latter will
   be treated as markdown. There should be a description of the module and 
   what it should be used for. If you want to include an example for how this
-  module can be used in combination with other resources, put it in an examples
-  [directory like this](https://github.com/hashicorp/terraform-aws-consul/tree/master/examples).
+  module can be used in combination with other resources, put it in an [examples
+  directory like this](https://github.com/hashicorp/terraform-aws-consul/tree/master/examples).
   Consider including a visual diagram depicting the infrastructure resources 
   the module may create and their relationship. The README doesn't need to 
   document inputs or outputs of the module because tooling will automatically 
