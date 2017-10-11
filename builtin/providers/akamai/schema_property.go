@@ -72,6 +72,12 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 		Required: true,
 	},
 
+	"network": &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		Default:  "staging",
+	},
+
 	// Will get added to the default rule
 	"cp_code": &schema.Schema{
 		Type:     schema.TypeString,
