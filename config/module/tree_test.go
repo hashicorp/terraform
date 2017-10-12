@@ -3,6 +3,7 @@ package module
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -515,6 +516,177 @@ func TestTreeValidate_unknownModule(t *testing.T) {
 
 	if err := tree.Validate(); err == nil {
 		t.Fatal("should error")
+	}
+}
+
+func TestTreeProviders_basic(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "basic-parent-providers"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	var a, b *Tree
+	for _, child := range tree.Children() {
+		if child.Name() == "a" {
+			a = child
+		}
+	}
+
+	rootProviders := tree.config.ProviderConfigsByFullName()
+	topRaw := rootProviders["top.foo"]
+
+	if a == nil {
+		t.Fatal("could not find module 'a'")
+	}
+
+	for _, child := range a.Children() {
+		if child.Name() == "b" {
+			b = child
+		}
+	}
+
+	if b == nil {
+		t.Fatal("could not find module 'b'")
+	}
+
+	aProviders := a.config.ProviderConfigsByFullName()
+	bottomRaw := aProviders["bottom.foo"]
+	bProviders := b.config.ProviderConfigsByFullName()
+	bBottom := bProviders["bottom"]
+
+	// compare the configs
+	// top.foo should have been copied to a.top
+	aTop := aProviders["top"]
+	if !reflect.DeepEqual(aTop.RawConfig.RawMap(), topRaw.RawConfig.RawMap()) {
+		log.Fatalf("expected config %#v, got %#v",
+			topRaw.RawConfig.RawMap(),
+			aTop.RawConfig.RawMap(),
+		)
+	}
+
+	if !reflect.DeepEqual(aTop.Scope, []string{RootName}) {
+		log.Fatalf(`expected scope for "top": {"root"}, got %#v`, aTop.Scope)
+	}
+
+	if !reflect.DeepEqual(bBottom.RawConfig.RawMap(), bottomRaw.RawConfig.RawMap()) {
+		t.Fatalf("expected config %#v, got %#v",
+			bottomRaw.RawConfig.RawMap(),
+			bBottom.RawConfig.RawMap(),
+		)
+	}
+	if !reflect.DeepEqual(bBottom.Scope, []string{RootName, "a"}) {
+		t.Fatalf(`expected scope for "bottom": {"root", "a"}, got %#v`, bBottom.Scope)
+	}
+}
+
+func TestTreeProviders_implicit(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "implicit-parent-providers"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	var child *Tree
+	for _, c := range tree.Children() {
+		if c.Name() == "child" {
+			child = c
+		}
+	}
+
+	if child == nil {
+		t.Fatal("could not find module 'child'")
+	}
+
+	// child should have inherited foo
+	providers := child.config.ProviderConfigsByFullName()
+	foo := providers["foo"]
+
+	if foo == nil {
+		t.Fatal("could not find provider 'foo' in child module")
+	}
+
+	if !reflect.DeepEqual([]string{RootName}, foo.Scope) {
+		t.Fatalf(`expected foo scope of {"root"}, got %#v`, foo.Scope)
+	}
+
+	expected := map[string]interface{}{
+		"value": "from root",
+	}
+
+	if !reflect.DeepEqual(expected, foo.RawConfig.RawMap()) {
+		t.Fatalf(`expected "foo" config %#v, got: %#v`, expected, foo.RawConfig.RawMap())
+	}
+}
+
+func TestTreeProviders_implicitMultiLevel(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "implicit-grandparent-providers"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	var child, grandchild *Tree
+	for _, c := range tree.Children() {
+		if c.Name() == "child" {
+			child = c
+		}
+	}
+
+	if child == nil {
+		t.Fatal("could not find module 'child'")
+	}
+
+	for _, c := range child.Children() {
+		if c.Name() == "grandchild" {
+			grandchild = c
+		}
+	}
+	if grandchild == nil {
+		t.Fatal("could not find module 'grandchild'")
+	}
+
+	// child should have inherited foo
+	providers := child.config.ProviderConfigsByFullName()
+	foo := providers["foo"]
+
+	if foo == nil {
+		t.Fatal("could not find provider 'foo' in child module")
+	}
+
+	if !reflect.DeepEqual([]string{RootName}, foo.Scope) {
+		t.Fatalf(`expected foo scope of {"root"}, got %#v`, foo.Scope)
+	}
+
+	expected := map[string]interface{}{
+		"value": "from root",
+	}
+
+	if !reflect.DeepEqual(expected, foo.RawConfig.RawMap()) {
+		t.Fatalf(`expected "foo" config %#v, got: %#v`, expected, foo.RawConfig.RawMap())
+	}
+
+	// grandchild should have inherited bar
+	providers = grandchild.config.ProviderConfigsByFullName()
+	bar := providers["bar"]
+
+	if bar == nil {
+		t.Fatal("could not find provider 'bar' in grandchild module")
+	}
+
+	if !reflect.DeepEqual([]string{RootName, "child"}, bar.Scope) {
+		t.Fatalf(`expected bar scope of {"root", "child"}, got %#v`, bar.Scope)
+	}
+
+	expected = map[string]interface{}{
+		"value": "from child",
+	}
+
+	if !reflect.DeepEqual(expected, bar.RawConfig.RawMap()) {
+		t.Fatalf(`expected "bar" config %#v, got: %#v`, expected, bar.RawConfig.RawMap())
 	}
 }
 
