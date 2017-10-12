@@ -2,7 +2,6 @@ package akamai
 
 import (
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
@@ -23,13 +22,10 @@ func resourcePropertyRead(d *schema.ResourceData, meta interface{}) error {
 	if !ok {
 		return errors.New("No group ID")
 	}
-	propertyId, ok := d.GetOk("property_id")
-	if !ok {
-		return errors.New("No property ID")
-	}
+	propertyId := d.Id()
 
 	property := papi.NewProperty(papi.NewProperties())
-	property.PropertyID = propertyId.(string)
+	property.PropertyID = propertyId
 	property.Contract = &papi.Contract{ContractID: contractId.(string)}
 	property.Group = &papi.Group{GroupID: groupId.(string)}
 	e := property.GetProperty()
@@ -40,9 +36,11 @@ func resourcePropertyRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("account_id", property.AccountID)
 	d.Set("contract_id", property.ContractID)
 	d.Set("group_id", property.GroupID)
-	d.Set("property_id", property.PropertyID)
+	d.Set("product_id", property.ProductID)
+	d.Set("rule_format", property.RuleFormat)
+	// d.Set("clone_from", property.CloneFrom)
 	d.Set("name", property.PropertyName)
-	d.SetId(fmt.Sprintf("%s-%s-%s-%s", property.GroupID, property.ContractID, property.ProductID, property.PropertyID))
+	d.SetId(property.PropertyID)
 
 	log.Println("[DEBUG] Done")
 

@@ -19,17 +19,14 @@ func resourcePropertyDelete(d *schema.ResourceData, meta interface{}) error {
 	if !ok {
 		return errors.New("No group ID")
 	}
-	propertyId, ok := d.GetOk("property_id")
-	if !ok {
-		return errors.New("No property ID")
-	}
 	network, ok := d.GetOk("network")
 	if !ok {
 		return errors.New("No network")
 	}
+	propertyId := d.Id()
 
 	property := papi.NewProperty(papi.NewProperties())
-	property.PropertyID = propertyId.(string)
+	property.PropertyID = propertyId
 	property.Contract = &papi.Contract{ContractID: contractId.(string)}
 	property.Group = &papi.Group{GroupID: groupId.(string)}
 

@@ -1,8 +1,8 @@
 package akamai
 
 import (
+	"encoding/json"
 	"errors"
-    "encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -12,6 +12,17 @@ import (
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
 	"github.com/hashicorp/terraform/helper/schema"
 )
+
+func getProperty(d *schema.ResourceData, contract *papi.Contract, group *papi.Group) (*papi.Property, error) {
+	log.Println("[DEBUG] Fetching property")
+	propertyId := d.Id()
+	property := papi.NewProperty(papi.NewProperties())
+	property.Contract = contract
+	property.Group = group
+	property.PropertyID = propertyId
+	e := property.GetProperty()
+	return property, e
+}
 
 func getGroup(d *schema.ResourceData) (*papi.Group, error) {
 	log.Println("[DEBUG] Fetching groups")

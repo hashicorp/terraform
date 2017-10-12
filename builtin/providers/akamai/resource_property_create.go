@@ -25,6 +25,8 @@ func resourceProperty() *schema.Resource {
 }
 
 func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
+	d.Partial(true)
+
 	group, e := getGroup(d)
 	if e != nil {
 		return e
@@ -50,16 +52,24 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
-	// The API now has data, so save the state
-	d.Set("property_id", property.PropertyID)
-	d.SetId(fmt.Sprintf("%s-%s-%s-%s", group.GroupID, contract.ContractID, product.ProductID, property.PropertyID))
+	// The API now has data, so save the partial state
+	d.SetId(property.PropertyID)
+	d.SetPartial("name")
+	d.SetPartial("rule_format")
+	d.SetPartial("account_id")
+	d.SetPartial("contract_id")
+	d.SetPartial("group_id")
+	d.SetPartial("product_id")
+	d.SetPartial("clone_from")
+	d.SetPartial("network")
 
-	rules, e := property.GetRules()
+	cpCode, e := createCpCode(contract, group, product, d)
 	if e != nil {
 		return e
 	}
+	d.SetPartial("cp_code")
 
-	cpCode, e := createCpCode(contract, group, product, d)
+	rules, e := property.GetRules()
 	if e != nil {
 		return e
 	}
@@ -85,8 +95,9 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 		return e
 	}
-
-	d.SetId(fmt.Sprintf("%s-%s-%s-%s", group.GroupID, contract.ContractID, product.ProductID, property.PropertyID))
+	d.SetPartial("default")
+	d.SetPartial("origin")
+	d.SetPartial("rule")
 
 	hostnameEdgeHostnameMap, err := createHostnames(contract, group, product, d)
 	if err != nil {
@@ -97,16 +108,20 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-
+	d.SetPartial("hostname")
+	d.SetPartial("ipv6")
 	d.Set("edge_hostname", edgeHostnames)
-	d.SetId(fmt.Sprintf("%s-%s-%s-%s", group.GroupID, contract.ContractID, product.ProductID, property.PropertyID))
 
 	activation, err := activateProperty(property, d)
 	if err != nil {
 		return err
 	}
+	d.SetPartial("contact")
 
 	go activation.PollStatus(property)
+
+	d.Partial(false)
+
 polling:
 	for activation.Status != papi.StatusActive {
 		select {
