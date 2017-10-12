@@ -118,8 +118,16 @@ standard structure.
 
 * **README**. The root module and any nested modules should have README
   files. This file should be named `README` or `README.md`. The latter will
-  be treated as markdown. The README doesn't need to document inputs or
-  outputs of the module because tooling will automatically generate this.
+  be treated as markdown. There should be a description of the module and 
+  what it should be used for. If you want to include an example for how this
+  module can be used in combination with other resources, put it in an [examples
+  directory like this](https://github.com/hashicorp/terraform-aws-consul/tree/master/examples).
+  Consider including a visual diagram depicting the infrastructure resources 
+  the module may create and their relationship. The README doesn't need to 
+  document inputs or outputs of the module because tooling will automatically 
+  generate this. If you are linking to a file or embedding an image contained
+  in the repository itself, use a commit-specific absolute URL so the link won't
+  point to the wrong version of a resource in the future.
 
 * **LICENSE**. The license under which this module is available. If you are
   publishing a module publicly, many organizations will not adopt a module
