@@ -39,7 +39,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Azure cloud environment.",
-				Default:     "",
+				Default:     schame.EnvDefaultFunc("ARM_ENVIRONMENT", ""),
 			},
 
 			"access_key": {
