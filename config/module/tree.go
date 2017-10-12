@@ -190,7 +190,7 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		// modules.
 		key := fmt.Sprintf("0.root.%s-%s", strings.Join(path, "."), m.Source)
 
-		log.Printf("[TRACE] module source %q", m.Source)
+		log.Printf("[TRACE] module source: %q", m.Source)
 		// Split out the subdir if we have one.
 		// Terraform keeps the entire requested tree for now, so that modules can
 		// reference sibling modules from the same archive or repo.
@@ -301,7 +301,143 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 	// Set our tree up
 	t.children = children
 
+	// if we're the root module, we can now set the provider inheritance
+	if len(t.path) == 0 {
+		t.inheritProviderConfigs(nil)
+	}
+
 	return nil
+}
+
+// Once the tree is loaded, we can resolve all provider config inheritance.
+//
+// This moves the full responsibility of inheritance to the config loader,
+// simplifying locating provider configuration during graph evaluation.
+// The algorithm is much simpler now too. If there is a provider block without
+// a config, we look in the parent's Module block for a provider, and fetch
+// that provider's configuration. If that doesn't exist, we assume a default
+// empty config. Implicit providers can still inherit their config all the way
+// up from the root, so we walk up the tree and copy the first matching
+// provider into the module.
+func (t *Tree) inheritProviderConfigs(stack []*Tree) {
+	stack = append(stack, t)
+	for _, c := range t.children {
+		c.inheritProviderConfigs(stack)
+	}
+
+	providers := make(map[string]*config.ProviderConfig)
+	missingProviders := make(map[string]bool)
+
+	for _, p := range t.config.ProviderConfigs {
+		providers[p.FullName()] = p
+	}
+
+	for _, r := range t.config.Resources {
+		p := r.ProviderFullName()
+		if _, ok := providers[p]; !(ok || strings.Contains(p, ".")) {
+			missingProviders[p] = true
+		}
+	}
+
+	// Search for implicit provider configs
+	// This adds an empty config is no inherited config is found, so that
+	// there is always a provider config present.
+	// This is done in the root module as well, just to set the providers.
+	for missing := range missingProviders {
+		// first create an empty provider config
+		pc := &config.ProviderConfig{
+			Name: missing,
+		}
+
+		// walk up the stack looking for matching providers
+		for i := len(stack) - 2; i >= 0; i-- {
+			pt := stack[i]
+			var parentProvider *config.ProviderConfig
+			for _, p := range pt.config.ProviderConfigs {
+				if p.FullName() == missing {
+					parentProvider = p
+					break
+				}
+			}
+
+			if parentProvider == nil {
+				continue
+			}
+
+			pc.Scope = pt.Path()
+			pc.Scope = append([]string{RootName}, pt.path...)
+			pc.RawConfig = parentProvider.RawConfig
+			log.Printf("[TRACE] provider %q inheriting config from %q",
+				strings.Join(append(t.Path(), pc.FullName()), "."),
+				strings.Join(append(pt.Path(), parentProvider.FullName()), "."),
+			)
+			break
+		}
+
+		// always set a provider config
+		if pc.RawConfig == nil {
+			pc.RawConfig, _ = config.NewRawConfig(map[string]interface{}{})
+		}
+
+		t.config.ProviderConfigs = append(t.config.ProviderConfigs, pc)
+	}
+
+	// After allowing the empty implicit configs to be created in root, there's nothing left to inherit
+	if len(stack) == 1 {
+		return
+	}
+
+	// get our parent's module config block
+	parent := stack[len(stack)-2]
+	var parentModule *config.Module
+	for _, m := range parent.config.Modules {
+		if m.Name == t.name {
+			parentModule = m
+			break
+		}
+	}
+
+	if parentModule == nil {
+		panic("can't be a module without a parent module config")
+	}
+
+	// now look for providers that need a config
+	for p, pc := range providers {
+		if len(pc.RawConfig.RawMap()) > 0 {
+			log.Printf("[TRACE] provider %q has a config, continuing", p)
+			continue
+		}
+
+		// this provider has no config yet, check for one being passed in
+		parentProviderName, ok := parentModule.Providers[p]
+		if !ok {
+			continue
+		}
+
+		var parentProvider *config.ProviderConfig
+		// there's a config for us in the parent module
+		for _, pp := range parent.config.ProviderConfigs {
+			if pp.FullName() == parentProviderName {
+				parentProvider = pp
+				break
+			}
+		}
+
+		if parentProvider == nil {
+			// no config found, assume defaults
+			continue
+		}
+
+		// Copy it in, but set an interpolation Scope.
+		// An interpolation Scope always need to have "root"
+		pc.Scope = append([]string{RootName}, parent.path...)
+		pc.RawConfig = parentProvider.RawConfig
+		log.Printf("[TRACE] provider %q inheriting config from %q",
+			strings.Join(append(t.Path(), pc.FullName()), "."),
+			strings.Join(append(parent.Path(), parentProvider.FullName()), "."),
+		)
+	}
+
 }
 
 func subdirRecordsPath(dir string) string {
