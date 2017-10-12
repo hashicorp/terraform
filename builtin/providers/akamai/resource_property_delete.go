@@ -3,6 +3,7 @@ package akamai
 import (
 	"errors"
 	"log"
+	"strings"
 
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -22,13 +23,38 @@ func resourcePropertyDelete(d *schema.ResourceData, meta interface{}) error {
 	if !ok {
 		return errors.New("No property ID")
 	}
+	network, ok := d.GetOk("network")
+	if !ok {
+		return errors.New("No network")
+	}
 
 	property := papi.NewProperty(papi.NewProperties())
 	property.PropertyID = propertyId.(string)
 	property.Contract = &papi.Contract{ContractID: contractId.(string)}
 	property.Group = &papi.Group{GroupID: groupId.(string)}
 
-	e := property.Delete()
+	e := property.GetProperty()
+	if e != nil {
+		return e
+	}
+
+	activations, e := property.GetActivations()
+	if e != nil {
+		return e
+	}
+
+	activation, e := activations.GetLatestActivation(papi.NetworkValue(strings.ToUpper(network.(string))), papi.StatusActive)
+	// an error here means there has not been any activation yet, so we can skip deactivating the property
+	// if there was no error, then the activation was found and we should deactivate the property
+	if e == nil {
+		activation.ActivationType = papi.ActivationTypeDeactivate
+		e = activation.Save(property, true)
+		if e != nil {
+			return e
+		}
+	}
+
+	e = property.Delete()
 	if e != nil {
 		return e
 	}
