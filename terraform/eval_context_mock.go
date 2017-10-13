@@ -45,14 +45,6 @@ type MockEvalContext struct {
 	ConfigureProviderConfig *ResourceConfig
 	ConfigureProviderError  error
 
-	//SetProviderConfigCalled bool
-	//SetProviderConfigName   string
-	//SetProviderConfigConfig *ResourceConfig
-
-	//ParentProviderConfigCalled bool
-	//ParentProviderConfigName   string
-	//ParentProviderConfigConfig *ResourceConfig
-
 	InitProvisionerCalled      bool
 	InitProvisionerName        string
 	InitProvisionerProvisioner ResourceProvisioner
@@ -139,20 +131,6 @@ func (c *MockEvalContext) ConfigureProvider(n string, cfg *ResourceConfig) error
 	c.ConfigureProviderConfig = cfg
 	return c.ConfigureProviderError
 }
-
-//func (c *MockEvalContext) SetProviderConfig(
-//    n string, cfg *ResourceConfig) error {
-//    c.SetProviderConfigCalled = true
-//    c.SetProviderConfigName = n
-//    c.SetProviderConfigConfig = cfg
-//    return nil
-//}
-
-//func (c *MockEvalContext) ParentProviderConfig(n string) *ResourceConfig {
-//    c.ParentProviderConfigCalled = true
-//    c.ParentProviderConfigName = n
-//    return c.ParentProviderConfigConfig
-//}
 
 func (c *MockEvalContext) ProviderInput(n string) map[string]interface{} {
 	c.ProviderInputCalled = true
