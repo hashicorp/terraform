@@ -40,8 +40,8 @@ type EvalContext interface {
 	// is used to store the provider configuration for inheritance lookups
 	// with ParentProviderConfig().
 	ConfigureProvider(string, *ResourceConfig) error
-	SetProviderConfig(string, *ResourceConfig) error
-	ParentProviderConfig(string) *ResourceConfig
+	//SetProviderConfig(string, *ResourceConfig) error
+	//ParentProviderConfig(string) *ResourceConfig
 
 	// ProviderInput and SetProviderInput are used to configure providers
 	// from user input.
@@ -68,6 +68,13 @@ type EvalContext interface {
 	// The resource argument is optional. If given, it is the resource
 	// that is currently being acted upon.
 	Interpolate(*config.RawConfig, *Resource) (*ResourceConfig, error)
+
+	// InterpolateProvider takes a ProviderConfig and interpolates it with the
+	// stored interpolation scope. Since provider configurations can be
+	// inherited, the interpolation scope may be different from the current
+	// context path. Interplation is otherwise executed the same as in the
+	// Interpolation method.
+	InterpolateProvider(*config.ProviderConfig, *Resource) (*ResourceConfig, error)
 
 	// SetVariables sets the variables for the module within
 	// this context with the name n. This function call is additive:
