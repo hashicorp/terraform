@@ -321,32 +321,6 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 	}
 }
 
-//// REMOVING: change in behavior, this should not be inherited
-//func TestContext2Validate_moduleProviderInherit(t *testing.T) {
-//    m := testModule(t, "validate-module-pc-inherit")
-//    p := testProvider("aws")
-//    c := testContext2(t, &ContextOpts{
-//        Module: m,
-//        ProviderResolver: ResourceProviderResolverFixed(
-//            map[string]ResourceProviderFactory{
-//                "aws": testProviderFuncFixed(p),
-//            },
-//        ),
-//    })
-
-//    p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-//        return nil, c.CheckSet([]string{"set"})
-//    }
-
-//    w, e := c.Validate()
-//    if len(w) > 0 {
-//        t.Fatalf("bad: %#v", w)
-//    }
-//    if len(e) > 0 {
-//        t.Fatalf("bad: %s", e)
-//    }
-//}
-
 //// FIXME: provider must still exist in config, but we should be able to locate
 ////        it elsewhere
 //func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
