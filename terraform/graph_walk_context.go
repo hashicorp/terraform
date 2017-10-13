@@ -32,10 +32,9 @@ type ContextGraphWalker struct {
 	interpolaterVars    map[string]map[string]interface{}
 	interpolaterVarLock sync.Mutex
 	providerCache       map[string]ResourceProvider
-	//providerConfigCache map[string]*ResourceConfig
-	providerLock     sync.Mutex
-	provisionerCache map[string]ResourceProvisioner
-	provisionerLock  sync.Mutex
+	providerLock        sync.Mutex
+	provisionerCache    map[string]ResourceProvisioner
+	provisionerLock     sync.Mutex
 }
 
 func (w *ContextGraphWalker) EnterPath(path []string) EvalContext {

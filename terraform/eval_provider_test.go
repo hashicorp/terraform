@@ -26,10 +26,6 @@ func TestEvalBuildProviderConfig(t *testing.T) {
 	}
 
 	ctx := &MockEvalContext{
-		//ParentProviderConfigConfig: testResourceConfig(t, map[string]interface{}{
-		//    "inherited_from_parent":    "parent",
-		//    "set_in_config_and_parent": "parent",
-		//}),
 		ProviderInputConfig: map[string]interface{}{
 			"set_in_config": "input",
 			"set_by_input":  "input",
@@ -43,46 +39,13 @@ func TestEvalBuildProviderConfig(t *testing.T) {
 	expected := map[string]interface{}{
 		"set_in_config":            "input", // in practice, input map contains identical literals from config
 		"set_in_config_and_parent": "config",
-		// no longer merging
-		//"inherited_from_parent":    "parent",
-		"computed_in_config": "config",
-		"set_by_input":       "input",
+		"computed_in_config":       "config",
+		"set_by_input":             "input",
 	}
 	if !reflect.DeepEqual(config.Raw, expected) {
 		t.Fatalf("incorrect merged config:\n%#v\nwanted:\n%#v", config.Raw, expected)
 	}
 }
-
-//// REMOVING: this is no longer expected behavior
-//func TestEvalBuildProviderConfig_parentPriority(t *testing.T) {
-//    config := testResourceConfig(t, map[string]interface{}{})
-//    provider := "foo"
-
-//    n := &EvalBuildProviderConfig{
-//        Provider: provider,
-//        Config:   &config,
-//        Output:   &config,
-//    }
-
-//    ctx := &MockEvalContext{
-//        //ParentProviderConfigConfig: testResourceConfig(t, map[string]interface{}{
-//        //    "foo": "bar",
-//        //}),
-//        ProviderInputConfig: map[string]interface{}{
-//            "foo": "baz",
-//        },
-//    }
-//    if _, err := n.Eval(ctx); err != nil {
-//        t.Fatalf("err: %s", err)
-//    }
-
-//    expected := map[string]interface{}{
-//        "foo": "bar",
-//    }
-//    if !reflect.DeepEqual(config.Raw, expected) {
-//        t.Fatalf("expected: %#v, got: %#v", expected, config.Raw)
-//    }
-//}
 
 func TestEvalConfigProvider_impl(t *testing.T) {
 	var _ EvalNode = new(EvalConfigProvider)

@@ -40,8 +40,6 @@ type EvalContext interface {
 	// is used to store the provider configuration for inheritance lookups
 	// with ParentProviderConfig().
 	ConfigureProvider(string, *ResourceConfig) error
-	//SetProviderConfig(string, *ResourceConfig) error
-	//ParentProviderConfig(string) *ResourceConfig
 
 	// ProviderInput and SetProviderInput are used to configure providers
 	// from user input.
