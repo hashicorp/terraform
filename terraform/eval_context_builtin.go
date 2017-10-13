@@ -30,11 +30,10 @@ type BuiltinEvalContext struct {
 	InterpolaterVars    map[string]map[string]interface{}
 	InterpolaterVarLock *sync.Mutex
 
-	Components    contextComponentFactory
-	Hooks         []Hook
-	InputValue    UIInput
-	ProviderCache map[string]ResourceProvider
-	//ProviderConfigCache map[string]*ResourceConfig
+	Components          contextComponentFactory
+	Hooks               []Hook
+	InputValue          UIInput
+	ProviderCache       map[string]ResourceProvider
 	ProviderInputConfig map[string]map[string]interface{}
 	ProviderLock        *sync.Mutex
 	ProvisionerCache    map[string]ResourceProvisioner
@@ -149,28 +148,8 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(
 	if p == nil {
 		return fmt.Errorf("Provider '%s' not initialized", n)
 	}
-
-	//if err := ctx.SetProviderConfig(n, cfg); err != nil {
-	//    return nil
-	//}
-
 	return p.Configure(cfg)
 }
-
-// REMOVING: each provider will contain its own configuration
-//func (ctx *BuiltinEvalContext) SetProviderConfig(
-//    n string, cfg *ResourceConfig) error {
-//    providerPath := make([]string, len(ctx.Path())+1)
-//    copy(providerPath, ctx.Path())
-//    providerPath[len(providerPath)-1] = n
-
-//    // Save the configuration
-//    ctx.ProviderLock.Lock()
-//    ctx.ProviderConfigCache[PathCacheKey(providerPath)] = cfg
-//    ctx.ProviderLock.Unlock()
-
-//    return nil
-//}
 
 func (ctx *BuiltinEvalContext) ProviderInput(n string) map[string]interface{} {
 	ctx.ProviderLock.Lock()
@@ -203,28 +182,6 @@ func (ctx *BuiltinEvalContext) SetProviderInput(n string, c map[string]interface
 	ctx.ProviderInputConfig[PathCacheKey(providerPath)] = c
 	ctx.ProviderLock.Unlock()
 }
-
-// REMOVING: Each provider will contain its own configuration
-//func (ctx *BuiltinEvalContext) ParentProviderConfig(n string) *ResourceConfig {
-//    ctx.ProviderLock.Lock()
-//    defer ctx.ProviderLock.Unlock()
-
-//    // Make a copy of the path so we can safely edit it
-//    path := ctx.Path()
-//    pathCopy := make([]string, len(path)+1)
-//    copy(pathCopy, path)
-
-//    // Go up the tree.
-//    for i := len(path) - 1; i >= 0; i-- {
-//        pathCopy[i+1] = n
-//        k := PathCacheKey(pathCopy[:i+2])
-//        if v, ok := ctx.ProviderConfigCache[k]; ok {
-//            return v
-//        }
-//    }
-
-//    return nil
-//}
 
 func (ctx *BuiltinEvalContext) InitProvisioner(
 	n string) (ResourceProvisioner, error) {
