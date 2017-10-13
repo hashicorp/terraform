@@ -113,7 +113,7 @@ func (c *PlanCommand) Run(args []string) int {
 	// Wait for the operation to complete
 	<-op.Done()
 	if err := op.Err; err != nil {
-		c.Ui.Error(err.Error())
+		c.showDiagnostics(err)
 		return 1
 	}
 
