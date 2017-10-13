@@ -14,7 +14,8 @@ type EvalSetProviderConfig struct {
 }
 
 func (n *EvalSetProviderConfig) Eval(ctx EvalContext) (interface{}, error) {
-	return nil, ctx.SetProviderConfig(n.Provider, *n.Config)
+	return nil, nil
+	//return nil, ctx.SetProviderConfig(n.Provider, *n.Config)
 }
 
 // EvalBuildProviderConfig outputs a *ResourceConfig that is properly
@@ -44,11 +45,11 @@ func (n *EvalBuildProviderConfig) Eval(ctx EvalContext) (interface{}, error) {
 		cfg = NewResourceConfig(merged)
 	}
 
-	// Get the parent configuration if there is one
-	if parent := ctx.ParentProviderConfig(n.Provider); parent != nil {
-		merged := cfg.raw.Merge(parent.raw)
-		cfg = NewResourceConfig(merged)
-	}
+	//// Get the parent configuration if there is one
+	//if parent := ctx.ParentProviderConfig(n.Provider); parent != nil {
+	//    merged := cfg.raw.Merge(parent.raw)
+	//    cfg = NewResourceConfig(merged)
+	//}
 
 	*n.Output = cfg
 	return nil, nil

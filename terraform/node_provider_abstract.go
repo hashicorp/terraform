@@ -60,12 +60,12 @@ func (n *NodeAbstractProvider) ProviderName() string {
 }
 
 // GraphNodeProvider
-func (n *NodeAbstractProvider) ProviderConfig() *config.RawConfig {
+func (n *NodeAbstractProvider) ProviderConfig() *config.ProviderConfig {
 	if n.Config == nil {
 		return nil
 	}
 
-	return n.Config.RawConfig
+	return n.Config
 }
 
 // GraphNodeAttachProvider
