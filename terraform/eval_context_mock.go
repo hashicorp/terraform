@@ -45,13 +45,13 @@ type MockEvalContext struct {
 	ConfigureProviderConfig *ResourceConfig
 	ConfigureProviderError  error
 
-	SetProviderConfigCalled bool
-	SetProviderConfigName   string
-	SetProviderConfigConfig *ResourceConfig
+	//SetProviderConfigCalled bool
+	//SetProviderConfigName   string
+	//SetProviderConfigConfig *ResourceConfig
 
-	ParentProviderConfigCalled bool
-	ParentProviderConfigName   string
-	ParentProviderConfigConfig *ResourceConfig
+	//ParentProviderConfigCalled bool
+	//ParentProviderConfigName   string
+	//ParentProviderConfigConfig *ResourceConfig
 
 	InitProvisionerCalled      bool
 	InitProvisionerName        string
@@ -71,6 +71,12 @@ type MockEvalContext struct {
 	InterpolateResource     *Resource
 	InterpolateConfigResult *ResourceConfig
 	InterpolateError        error
+
+	InterpolateProviderCalled       bool
+	InterpolateProviderConfig       *config.ProviderConfig
+	InterpolateProviderResource     *Resource
+	InterpolateProviderConfigResult *ResourceConfig
+	InterpolateProviderError        error
 
 	PathCalled bool
 	PathPath   []string
@@ -134,19 +140,19 @@ func (c *MockEvalContext) ConfigureProvider(n string, cfg *ResourceConfig) error
 	return c.ConfigureProviderError
 }
 
-func (c *MockEvalContext) SetProviderConfig(
-	n string, cfg *ResourceConfig) error {
-	c.SetProviderConfigCalled = true
-	c.SetProviderConfigName = n
-	c.SetProviderConfigConfig = cfg
-	return nil
-}
+//func (c *MockEvalContext) SetProviderConfig(
+//    n string, cfg *ResourceConfig) error {
+//    c.SetProviderConfigCalled = true
+//    c.SetProviderConfigName = n
+//    c.SetProviderConfigConfig = cfg
+//    return nil
+//}
 
-func (c *MockEvalContext) ParentProviderConfig(n string) *ResourceConfig {
-	c.ParentProviderConfigCalled = true
-	c.ParentProviderConfigName = n
-	return c.ParentProviderConfigConfig
-}
+//func (c *MockEvalContext) ParentProviderConfig(n string) *ResourceConfig {
+//    c.ParentProviderConfigCalled = true
+//    c.ParentProviderConfigName = n
+//    return c.ParentProviderConfigConfig
+//}
 
 func (c *MockEvalContext) ProviderInput(n string) map[string]interface{} {
 	c.ProviderInputCalled = true
@@ -184,6 +190,14 @@ func (c *MockEvalContext) Interpolate(
 	c.InterpolateConfig = config
 	c.InterpolateResource = resource
 	return c.InterpolateConfigResult, c.InterpolateError
+}
+
+func (c *MockEvalContext) InterpolateProvider(
+	config *config.ProviderConfig, resource *Resource) (*ResourceConfig, error) {
+	c.InterpolateProviderCalled = true
+	c.InterpolateProviderConfig = config
+	c.InterpolateProviderResource = resource
+	return c.InterpolateProviderConfigResult, c.InterpolateError
 }
 
 func (c *MockEvalContext) Path() []string {
