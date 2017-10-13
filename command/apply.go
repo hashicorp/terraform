@@ -205,7 +205,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	case <-op.Done():
 		if err := op.Err; err != nil {
-			c.Ui.Error(err.Error())
+			c.showDiagnostics(err)
 			return 1
 		}
 	}
