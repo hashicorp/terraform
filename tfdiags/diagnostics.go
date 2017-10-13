@@ -148,12 +148,21 @@ func (dae diagnosticsAsError) Error() string {
 		// there are no diagnostics in the list.
 		return "no errors"
 	case len(diags) == 1:
-		return diags[0].Description().Summary
+		desc := diags[0].Description()
+		if desc.Detail == "" {
+			return desc.Summary
+		}
+		return fmt.Sprintf("%s: %s", desc.Summary, desc.Detail)
 	default:
 		var ret bytes.Buffer
 		fmt.Fprintf(&ret, "%d problems:\n", len(diags))
 		for _, diag := range dae.Diagnostics {
-			fmt.Fprintf(&ret, "\n- %s", diag.Description().Summary)
+			desc := diag.Description()
+			if desc.Detail == "" {
+				fmt.Fprintf(&ret, "\n- %s", desc.Summary)
+			} else {
+				fmt.Fprintf(&ret, "\n- %s: %s", desc.Summary, desc.Detail)
+			}
 		}
 		return ret.String()
 	}
