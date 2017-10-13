@@ -113,3 +113,74 @@ func conversionTupleToList(tupleType cty.Type, listEty cty.Type, unsafe bool) co
 		return cty.ListVal(elems), nil
 	}
 }
+
+// conversionObjectToMap returns a conversion that will take a value of the
+// given object type and return a map of the given element type.
+//
+// Will panic if the given objectType isn't actually an object type.
+func conversionObjectToMap(objectType cty.Type, mapEty cty.Type, unsafe bool) conversion {
+	objectAtys := objectType.AttributeTypes()
+
+	if len(objectAtys) == 0 {
+		// Empty object short-circuit
+		return func(val cty.Value, path cty.Path) (cty.Value, error) {
+			return cty.MapValEmpty(mapEty), nil
+		}
+	}
+
+	if mapEty == cty.DynamicPseudoType {
+		// This is a special case where the caller wants us to find
+		// a suitable single type that all elements can convert to, if
+		// possible.
+		objectAtysList := make([]cty.Type, 0, len(objectAtys))
+		for _, aty := range objectAtys {
+			objectAtysList = append(objectAtysList, aty)
+		}
+		mapEty, _ = unify(objectAtysList, unsafe)
+		if mapEty == cty.NilType {
+			return nil
+		}
+	}
+
+	elemConvs := make(map[string]conversion, len(objectAtys))
+	for name, objectAty := range objectAtys {
+		if objectAty.Equals(mapEty) {
+			// no conversion required
+			continue
+		}
+
+		elemConvs[name] = getConversion(objectAty, mapEty, unsafe)
+		if elemConvs[name] == nil {
+			// If any of our element conversions are impossible, then the our
+			// whole conversion is impossible.
+			return nil
+		}
+	}
+
+	// If we fall out here then a conversion is possible, using the
+	// element conversions in elemConvs
+	return func(val cty.Value, path cty.Path) (cty.Value, error) {
+		elems := make(map[string]cty.Value, len(elemConvs))
+		path = append(path, nil)
+		it := val.ElementIterator()
+		for it.Next() {
+			name, val := it.Element()
+			var err error
+
+			path[len(path)-1] = cty.IndexStep{
+				Key: name,
+			}
+
+			conv := elemConvs[name.AsString()]
+			if conv != nil {
+				val, err = conv(val, path)
+				if err != nil {
+					return cty.NilVal, err
+				}
+			}
+			elems[name.AsString()] = val
+		}
+
+		return cty.MapVal(elems), nil
+	}
+}
