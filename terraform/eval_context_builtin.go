@@ -30,11 +30,11 @@ type BuiltinEvalContext struct {
 	InterpolaterVars    map[string]map[string]interface{}
 	InterpolaterVarLock *sync.Mutex
 
-	Components          contextComponentFactory
-	Hooks               []Hook
-	InputValue          UIInput
-	ProviderCache       map[string]ResourceProvider
-	ProviderConfigCache map[string]*ResourceConfig
+	Components    contextComponentFactory
+	Hooks         []Hook
+	InputValue    UIInput
+	ProviderCache map[string]ResourceProvider
+	//ProviderConfigCache map[string]*ResourceConfig
 	ProviderInputConfig map[string]map[string]interface{}
 	ProviderLock        *sync.Mutex
 	ProvisionerCache    map[string]ResourceProvisioner
@@ -150,26 +150,27 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(
 		return fmt.Errorf("Provider '%s' not initialized", n)
 	}
 
-	if err := ctx.SetProviderConfig(n, cfg); err != nil {
-		return nil
-	}
+	//if err := ctx.SetProviderConfig(n, cfg); err != nil {
+	//    return nil
+	//}
 
 	return p.Configure(cfg)
 }
 
-func (ctx *BuiltinEvalContext) SetProviderConfig(
-	n string, cfg *ResourceConfig) error {
-	providerPath := make([]string, len(ctx.Path())+1)
-	copy(providerPath, ctx.Path())
-	providerPath[len(providerPath)-1] = n
+// REMOVING: each provider will contain its own configuration
+//func (ctx *BuiltinEvalContext) SetProviderConfig(
+//    n string, cfg *ResourceConfig) error {
+//    providerPath := make([]string, len(ctx.Path())+1)
+//    copy(providerPath, ctx.Path())
+//    providerPath[len(providerPath)-1] = n
 
-	// Save the configuration
-	ctx.ProviderLock.Lock()
-	ctx.ProviderConfigCache[PathCacheKey(providerPath)] = cfg
-	ctx.ProviderLock.Unlock()
+//    // Save the configuration
+//    ctx.ProviderLock.Lock()
+//    ctx.ProviderConfigCache[PathCacheKey(providerPath)] = cfg
+//    ctx.ProviderLock.Unlock()
 
-	return nil
-}
+//    return nil
+//}
 
 func (ctx *BuiltinEvalContext) ProviderInput(n string) map[string]interface{} {
 	ctx.ProviderLock.Lock()
@@ -203,26 +204,27 @@ func (ctx *BuiltinEvalContext) SetProviderInput(n string, c map[string]interface
 	ctx.ProviderLock.Unlock()
 }
 
-func (ctx *BuiltinEvalContext) ParentProviderConfig(n string) *ResourceConfig {
-	ctx.ProviderLock.Lock()
-	defer ctx.ProviderLock.Unlock()
+// REMOVING: Each provider will contain its own configuration
+//func (ctx *BuiltinEvalContext) ParentProviderConfig(n string) *ResourceConfig {
+//    ctx.ProviderLock.Lock()
+//    defer ctx.ProviderLock.Unlock()
 
-	// Make a copy of the path so we can safely edit it
-	path := ctx.Path()
-	pathCopy := make([]string, len(path)+1)
-	copy(pathCopy, path)
+//    // Make a copy of the path so we can safely edit it
+//    path := ctx.Path()
+//    pathCopy := make([]string, len(path)+1)
+//    copy(pathCopy, path)
 
-	// Go up the tree.
-	for i := len(path) - 1; i >= 0; i-- {
-		pathCopy[i+1] = n
-		k := PathCacheKey(pathCopy[:i+2])
-		if v, ok := ctx.ProviderConfigCache[k]; ok {
-			return v
-		}
-	}
+//    // Go up the tree.
+//    for i := len(path) - 1; i >= 0; i-- {
+//        pathCopy[i+1] = n
+//        k := PathCacheKey(pathCopy[:i+2])
+//        if v, ok := ctx.ProviderConfigCache[k]; ok {
+//            return v
+//        }
+//    }
 
-	return nil
-}
+//    return nil
+//}
 
 func (ctx *BuiltinEvalContext) InitProvisioner(
 	n string) (ResourceProvisioner, error) {
@@ -289,11 +291,46 @@ func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {
 
 func (ctx *BuiltinEvalContext) Interpolate(
 	cfg *config.RawConfig, r *Resource) (*ResourceConfig, error) {
+
 	if cfg != nil {
 		scope := &InterpolationScope{
 			Path:     ctx.Path(),
 			Resource: r,
 		}
+
+		vs, err := ctx.Interpolater.Values(scope, cfg.Variables)
+		if err != nil {
+			return nil, err
+		}
+
+		// Do the interpolation
+		if err := cfg.Interpolate(vs); err != nil {
+			return nil, err
+		}
+	}
+
+	result := NewResourceConfig(cfg)
+	result.interpolateForce()
+	return result, nil
+}
+
+func (ctx *BuiltinEvalContext) InterpolateProvider(
+	pc *config.ProviderConfig, r *Resource) (*ResourceConfig, error) {
+
+	var cfg *config.RawConfig
+
+	if pc != nil && pc.RawConfig != nil {
+		path := pc.Scope
+		if len(path) == 0 {
+			path = ctx.Path()
+		}
+
+		scope := &InterpolationScope{
+			Path:     path,
+			Resource: r,
+		}
+
+		cfg = pc.RawConfig
 
 		vs, err := ctx.Interpolater.Values(scope, cfg.Variables)
 		if err != nil {

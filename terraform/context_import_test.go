@@ -227,6 +227,8 @@ func TestContextImport_moduleProvider(t *testing.T) {
 }
 
 // Test that import sets up the graph properly for provider inheritance
+// FIXME: import must declare a provider in an empty config. Should that go
+// back to being automatically inherited?
 func TestContextImport_providerInherit(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider-inherit")
