@@ -42,10 +42,15 @@ func resourcePropertyDelete(d *schema.ResourceData, meta interface{}) error {
 
 	activation, e := activations.GetLatestActivation(papi.NetworkValue(strings.ToUpper(network.(string))), papi.StatusActive)
 	// an error here means there has not been any activation yet, so we can skip deactivating the property
-	// if there was no error, then the activation was found and we should deactivate the property
-	if e == nil {
-		activation.ActivationType = papi.ActivationTypeDeactivate
-		e = activation.Save(property, true)
+	// if there was no error, then activations were found, this can be an Activation or a Deactivation, so we check the ActivationType
+	// in case it has already been deactivated
+	if e == nil && activation.ActivationType == papi.ActivationTypeActivate {
+		deactivation := papi.NewActivation(papi.NewActivations())
+		deactivation.PropertyVersion = property.LatestVersion
+		deactivation.ActivationType = papi.ActivationTypeDeactivate
+		deactivation.Network = activation.Network
+		deactivation.NotifyEmails = activation.NotifyEmails
+		e = deactivation.Save(property, true)
 		if e != nil {
 			return e
 		}
