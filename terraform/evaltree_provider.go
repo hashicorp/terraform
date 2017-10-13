@@ -61,10 +61,6 @@ func ProviderEvalTree(n string, config *config.ProviderConfig) EvalNode {
 					Provider: &provider,
 					Config:   &resourceConfig,
 				},
-				&EvalSetProviderConfig{
-					Provider: n,
-					Config:   &resourceConfig,
-				},
 			},
 		},
 	})
@@ -86,10 +82,6 @@ func ProviderEvalTree(n string, config *config.ProviderConfig) EvalNode {
 					Provider: n,
 					Config:   &resourceConfig,
 					Output:   &resourceConfig,
-				},
-				&EvalSetProviderConfig{
-					Provider: n,
-					Config:   &resourceConfig,
 				},
 			},
 		},

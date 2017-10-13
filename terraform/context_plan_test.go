@@ -643,68 +643,6 @@ func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
 	}
 }
 
-//// REMOVING: we no longer override child provider config
-//func TestContext2Plan_moduleProviderDefaults(t *testing.T) {
-//    var l sync.Mutex
-//    var calls []string
-//    toCount := 0
-
-//    m := testModule(t, "plan-module-provider-defaults")
-//    ctx := testContext2(t, &ContextOpts{
-//        Module: m,
-//        ProviderResolver: ResourceProviderResolverFixed(
-//            map[string]ResourceProviderFactory{
-//                "aws": func() (ResourceProvider, error) {
-//                    l.Lock()
-//                    defer l.Unlock()
-
-//                    p := testProvider("aws")
-//                    p.ConfigureFn = func(c *ResourceConfig) error {
-//                        if v, ok := c.Get("from"); !ok || v.(string) != "root" {
-//                            return fmt.Errorf("bad")
-//                        }
-//                        if v, ok := c.Get("to"); ok && v.(string) == "child" {
-//                            toCount++
-//                        }
-
-//                        return nil
-//                    }
-//                    p.DiffFn = func(
-//                        info *InstanceInfo,
-//                        state *InstanceState,
-//                        c *ResourceConfig) (*InstanceDiff, error) {
-//                        v, _ := c.Get("from")
-
-//                        l.Lock()
-//                        defer l.Unlock()
-//                        calls = append(calls, v.(string))
-//                        return testDiffFn(info, state, c)
-//                    }
-//                    return p, nil
-//                },
-//            },
-//        ),
-//    })
-
-//    _, err := ctx.Plan()
-//    if err != nil {
-//        t.Fatalf("err: %s", err)
-//    }
-
-//    if toCount != 1 {
-//        t.Fatalf(
-//            "provider in child didn't set proper config\n\n"+
-//                "toCount: %d", toCount)
-//    }
-
-//    actual := calls
-//    sort.Strings(actual)
-//    expected := []string{"child", "root"}
-//    if !reflect.DeepEqual(actual, expected) {
-//        t.Fatalf("bad: %#v", actual)
-//    }
-//}
-
 func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	var l sync.Mutex
 	var calls []string
