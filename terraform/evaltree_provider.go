@@ -6,7 +6,7 @@ import (
 
 // ProviderEvalTree returns the evaluation tree for initializing and
 // configuring providers.
-func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
+func ProviderEvalTree(n string, config *config.ProviderConfig) EvalNode {
 	var provider ResourceProvider
 	var resourceConfig *ResourceConfig
 
@@ -22,7 +22,7 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 					Name:   n,
 					Output: &provider,
 				},
-				&EvalInterpolate{
+				&EvalInterpolateProvider{
 					Config: config,
 					Output: &resourceConfig,
 				},
@@ -48,7 +48,7 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 					Name:   n,
 					Output: &provider,
 				},
-				&EvalInterpolate{
+				&EvalInterpolateProvider{
 					Config: config,
 					Output: &resourceConfig,
 				},
@@ -78,7 +78,7 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 					Name:   n,
 					Output: &provider,
 				},
-				&EvalInterpolate{
+				&EvalInterpolateProvider{
 					Config: config,
 					Output: &resourceConfig,
 				},
