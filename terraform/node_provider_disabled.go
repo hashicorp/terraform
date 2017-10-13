@@ -29,10 +29,6 @@ func (n *NodeDisabledProvider) EvalTree() EvalNode {
 				Config:   &resourceConfig,
 				Output:   &resourceConfig,
 			},
-			&EvalSetProviderConfig{
-				Provider: n.ProviderName(),
-				Config:   &resourceConfig,
-			},
 		},
 	}
 }
