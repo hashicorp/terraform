@@ -6,12 +6,94 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestProvider_impl(t *testing.T) {
 	var _ terraform.ResourceProvider = new(Provider)
+}
+
+func TestProviderGetSchema(t *testing.T) {
+	// This functionality is already broadly tested in core_schema_test.go,
+	// so this is just to ensure that the call passes through correctly.
+	p := &Provider{
+		Schema: map[string]*Schema{
+			"bar": {
+				Type:     TypeString,
+				Required: true,
+			},
+		},
+		ResourcesMap: map[string]*Resource{
+			"foo": &Resource{
+				Schema: map[string]*Schema{
+					"bar": {
+						Type:     TypeString,
+						Required: true,
+					},
+				},
+			},
+		},
+		DataSourcesMap: map[string]*Resource{
+			"baz": &Resource{
+				Schema: map[string]*Schema{
+					"bur": {
+						Type:     TypeString,
+						Required: true,
+					},
+				},
+			},
+		},
+	}
+
+	want := &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"bar": &configschema.Attribute{
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+			BlockTypes: map[string]*configschema.NestedBlock{},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"foo": &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bar": &configschema.Attribute{
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"baz": &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bur": &configschema.Attribute{
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{},
+			},
+		},
+	}
+	got, err := p.GetSchema(&terraform.ProviderSchemaRequest{
+		ResourceTypes: []string{"foo", "bar"},
+		DataSources:   []string{"baz", "bar"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error %s", err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("wrong result\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
+	}
 }
 
 func TestProviderConfigure(t *testing.T) {
@@ -104,8 +186,8 @@ func TestProviderResources(t *testing.T) {
 				},
 			},
 			Result: []terraform.ResourceType{
-				terraform.ResourceType{Name: "bar"},
-				terraform.ResourceType{Name: "foo"},
+				terraform.ResourceType{Name: "bar", SchemaAvailable: true},
+				terraform.ResourceType{Name: "foo", SchemaAvailable: true},
 			},
 		},
 
@@ -118,9 +200,9 @@ func TestProviderResources(t *testing.T) {
 				},
 			},
 			Result: []terraform.ResourceType{
-				terraform.ResourceType{Name: "bar", Importable: true},
-				terraform.ResourceType{Name: "baz"},
-				terraform.ResourceType{Name: "foo"},
+				terraform.ResourceType{Name: "bar", Importable: true, SchemaAvailable: true},
+				terraform.ResourceType{Name: "baz", SchemaAvailable: true},
+				terraform.ResourceType{Name: "foo", SchemaAvailable: true},
 			},
 		},
 	}
@@ -151,8 +233,8 @@ func TestProviderDataSources(t *testing.T) {
 				},
 			},
 			Result: []terraform.DataSource{
-				terraform.DataSource{Name: "bar"},
-				terraform.DataSource{Name: "foo"},
+				terraform.DataSource{Name: "bar", SchemaAvailable: true},
+				terraform.DataSource{Name: "foo", SchemaAvailable: true},
 			},
 		},
 	}
