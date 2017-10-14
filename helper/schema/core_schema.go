@@ -23,7 +23,10 @@ import (
 // panic or produce an invalid result if given an invalid schemaMap.
 func (m schemaMap) CoreConfigSchema() *configschema.Block {
 	if len(m) == 0 {
-		return nil
+		// We return an actual (empty) object here, rather than a nil,
+		// because a nil result would mean that we don't have a schema at
+		// all, rather than that we have an empty one.
+		return &configschema.Block{}
 	}
 
 	ret := &configschema.Block{
