@@ -111,6 +111,10 @@ func (r *RawConfig) Copy() *RawConfig {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	if r.Body != nil {
+		return NewRawConfigHCL2(r.Body)
+	}
+
 	newRaw := make(map[string]interface{})
 	for k, v := range r.Raw {
 		newRaw[k] = v
