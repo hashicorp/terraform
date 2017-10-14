@@ -1,6 +1,8 @@
 package terraform
 
-import "sync"
+import (
+	"sync"
+)
 
 // MockResourceProvider implements ResourceProvider but mocks out all the
 // calls for testing purposes.
@@ -12,6 +14,10 @@ type MockResourceProvider struct {
 
 	CloseCalled                    bool
 	CloseError                     error
+	GetSchemaCalled                bool
+	GetSchemaRequest               *ProviderSchemaRequest
+	GetSchemaReturn                *ProviderSchema
+	GetSchemaReturnError           error
 	InputCalled                    bool
 	InputInput                     UIInput
 	InputConfig                    *ResourceConfig
@@ -90,6 +96,15 @@ type MockResourceProvider struct {
 func (p *MockResourceProvider) Close() error {
 	p.CloseCalled = true
 	return p.CloseError
+}
+
+func (p *MockResourceProvider) GetSchema(req *ProviderSchemaRequest) (*ProviderSchema, error) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.GetSchemaCalled = true
+	p.GetSchemaRequest = req
+	return p.GetSchemaReturn, p.GetSchemaReturnError
 }
 
 func (p *MockResourceProvider) Input(

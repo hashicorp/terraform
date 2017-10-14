@@ -18,7 +18,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 	}{
 		"empty": {
 			map[string]*Schema{},
-			nil,
+			&configschema.Block{},
 		},
 		"primitives": {
 			map[string]*Schema{
