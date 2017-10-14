@@ -8,6 +8,7 @@ import (
 	gohcl2 "github.com/hashicorp/hcl2/gohcl"
 	hcl2 "github.com/hashicorp/hcl2/hcl"
 	hcl2parse "github.com/hashicorp/hcl2/hclparse"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -258,7 +259,7 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 			v.DeclaredType = *rawV.DeclaredType
 		}
 		if rawV.Default != nil {
-			v.Default = configValueFromHCL2(*rawV.Default)
+			v.Default = hcl2shim.ConfigValueFromHCL2(*rawV.Default)
 		}
 		if rawV.Description != nil {
 			v.Description = *rawV.Description
@@ -283,8 +284,8 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 		}
 
 		// The result is expected to be a map like map[string]interface{}{"value": something},
-		// so we'll fake that with our hcl2SingleAttrBody shim.
-		o.RawConfig = NewRawConfigHCL2(hcl2SingleAttrBody{
+		// so we'll fake that with our hcl2shim.SingleAttrBody shim.
+		o.RawConfig = NewRawConfigHCL2(hcl2shim.SingleAttrBody{
 			Name: "value",
 			Expr: rawO.ValueExpr,
 		})
@@ -365,7 +366,7 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 		// a single-element map inside. Since the rest of the world is assuming
 		// that, we'll mimic it here.
 		{
-			countBody := hcl2SingleAttrBody{
+			countBody := hcl2shim.SingleAttrBody{
 				Name: "count",
 				Expr: rawR.CountExpr,
 			}
@@ -398,7 +399,7 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 		// a single-element map inside. Since the rest of the world is assuming
 		// that, we'll mimic it here.
 		{
-			countBody := hcl2SingleAttrBody{
+			countBody := hcl2shim.SingleAttrBody{
 				Name: "count",
 				Expr: rawR.CountExpr,
 			}
@@ -425,7 +426,7 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 		}
 
 		// The result is expected to be a map like map[string]interface{}{"value": something},
-		// so we'll fake that with our hcl2SingleAttrBody shim.
+		// so we'll fake that with our hcl2shim.SingleAttrBody shim.
 		p.RawConfig = NewRawConfigHCL2(rawP.Config)
 
 		config.ProviderConfigs = append(config.ProviderConfigs, p)
@@ -441,7 +442,7 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 			attr := rawL.Definitions[n]
 			l := &Local{
 				Name: n,
-				RawConfig: NewRawConfigHCL2(hcl2SingleAttrBody{
+				RawConfig: NewRawConfigHCL2(hcl2shim.SingleAttrBody{
 					Name: "value",
 					Expr: attr.Expr,
 				}),
