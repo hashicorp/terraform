@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -53,6 +54,24 @@ func resourcePropertyDelete(d *schema.ResourceData, meta interface{}) error {
 		e = deactivation.Save(property, true)
 		if e != nil {
 			return e
+		}
+		log.Println("[DEBUG] DEACTIVATION SAVED - ID %s STATUS %s", deactivation.ActivationID, deactivation.Status)
+
+		go deactivation.PollStatus(property)
+
+	polling:
+		for deactivation.Status != papi.StatusActive {
+			select {
+			case statusChanged := <-deactivation.StatusChange:
+				log.Printf("[DEBUG] Property Status: %s\n", deactivation.Status)
+				if statusChanged == false {
+					break polling
+				}
+				continue polling
+			case <-time.After(time.Minute * 90):
+				log.Println("[DEBUG] Deactivation Timeout (90 minutes)")
+				break polling
+			}
 		}
 	}
 
