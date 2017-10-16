@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 	"sync"
@@ -211,15 +212,24 @@ func TestContext2Input_providerOnce(t *testing.T) {
 	count := 0
 	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
 		count++
-		return nil, nil
+		_, set := c.Config["from_input"]
+
+		if count == 1 {
+			if set {
+				return nil, errors.New("from_input should not be set")
+			}
+			c.Config["from_input"] = "x"
+		}
+
+		if count > 1 && !set {
+			return nil, errors.New("from_input should be set")
+		}
+
+		return c, nil
 	}
 
 	if err := ctx.Input(InputModeStd); err != nil {
 		t.Fatalf("err: %s", err)
-	}
-
-	if count != 1 {
-		t.Fatalf("should only be called once: %d", count)
 	}
 }
 
