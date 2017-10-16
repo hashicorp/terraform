@@ -11,11 +11,13 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
@@ -359,6 +361,37 @@ type TestStep struct {
 	ImportStateVerifyIgnore []string
 }
 
+// Set to a file mask in sprintf format where %s is test name
+const EnvLogPathMask = "TF_LOG_PATH_MASK"
+
+func LogOutput(t TestT) (logOutput io.Writer, err error) {
+	logOutput = ioutil.Discard
+
+	logLevel := logging.LogLevel()
+	if logLevel == "" {
+		return
+	}
+
+	logOutput = os.Stderr
+	if logPathMask := os.Getenv(EnvLogPathMask); logPathMask != "" {
+		logPath := fmt.Sprintf(logPathMask, t.Name())
+		var err error
+		logOutput, err = os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// This was the default since the beginning
+	logOutput = &logutils.LevelFilter{
+		Levels:   logging.ValidLevels,
+		MinLevel: logutils.LogLevel(logLevel),
+		Writer:   logOutput,
+	}
+
+	return
+}
+
 // Test performs an acceptance test on a resource.
 //
 // Tests are not run unless an environmental variable "TF_ACC" is
@@ -380,7 +413,7 @@ func Test(t TestT, c TestCase) {
 		return
 	}
 
-	logWriter, err := logging.LogOutput()
+	logWriter, err := LogOutput(t)
 	if err != nil {
 		t.Error(fmt.Errorf("error setting up logging: %s", err))
 	}
@@ -961,6 +994,7 @@ type TestT interface {
 	Error(args ...interface{})
 	Fatal(args ...interface{})
 	Skip(args ...interface{})
+	Name() string
 }
 
 // This is set to true by unit tests to alter some behavior

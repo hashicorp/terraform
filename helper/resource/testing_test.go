@@ -627,6 +627,10 @@ func (t *mockT) Skip(args ...interface{}) {
 	t.f = true
 }
 
+func (t *mockT) Name() string {
+	return "MockedName"
+}
+
 func (t *mockT) failed() bool {
 	return t.f
 }
