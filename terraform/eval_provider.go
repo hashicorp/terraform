@@ -99,12 +99,8 @@ type EvalInputProvider struct {
 }
 
 func (n *EvalInputProvider) Eval(ctx EvalContext) (interface{}, error) {
-	// If we already configured this provider, then don't do this again
-	if v := ctx.ProviderInput(n.Name); v != nil {
-		return nil, nil
-	}
-
 	rc := *n.Config
+	orig := rc.DeepCopy()
 
 	// Wrap the input into a namespace
 	input := &PrefixUIInput{
@@ -121,27 +117,19 @@ func (n *EvalInputProvider) Eval(ctx EvalContext) (interface{}, error) {
 			"Error configuring %s: %s", n.Name, err)
 	}
 
-	// Set the input that we received so that child modules don't attempt
-	// to ask for input again.
+	// We only store values that have changed through Input.
+	// The goal is to cache cache input responses, not to provide a complete
+	// config for other providers.
+	confMap := make(map[string]interface{})
 	if config != nil && len(config.Config) > 0 {
-		// This repository of provider input results on the context doesn't
-		// retain config.ComputedKeys, so we need to filter those out here
-		// in order that later users of this data won't try to use the unknown
-		// value placeholder as if it were a literal value. This map is just
-		// of known values we've been able to complete so far; dynamic stuff
-		// will be merged in by EvalBuildProviderConfig on subsequent
-		// (post-input) walks.
-		confMap := config.Config
-		if config.ComputedKeys != nil {
-			for _, key := range config.ComputedKeys {
-				delete(confMap, key)
+		// any values that weren't in the original ResourcConfig will be cached
+		for k, v := range config.Config {
+			if _, ok := orig.Config[k]; !ok {
+				confMap[k] = v
 			}
 		}
-
-		ctx.SetProviderInput(n.Name, confMap)
-	} else {
-		ctx.SetProviderInput(n.Name, map[string]interface{}{})
 	}
+	ctx.SetProviderInput(n.Name, confMap)
 
 	return nil, nil
 }
