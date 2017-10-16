@@ -137,9 +137,7 @@ func TestEvalInputProvider(t *testing.T) {
 			}
 
 			rawConfig, err := config.NewRawConfig(map[string]interface{}{
-				"set_in_config": "input",
-				"set_by_input":  "input",
-				"computed":      "fake_computed",
+				"set_by_input": "input",
 			})
 			if err != nil {
 				return nil, err
@@ -152,7 +150,8 @@ func TestEvalInputProvider(t *testing.T) {
 	}
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	rawConfig, err := config.NewRawConfig(map[string]interface{}{
-		"mock_config": "mock",
+		"mock_config":   "mock",
+		"set_in_config": "input",
 	})
 	if err != nil {
 		t.Fatalf("NewRawConfig failed: %s", err)
@@ -182,12 +181,12 @@ func TestEvalInputProvider(t *testing.T) {
 	}
 
 	inputCfg := ctx.SetProviderInputConfig
+
+	// we should only have the value that was set during Input
 	want := map[string]interface{}{
-		"set_in_config": "input",
-		"set_by_input":  "input",
-		// "computed" is omitted because it value isn't known at input time
+		"set_by_input": "input",
 	}
 	if !reflect.DeepEqual(inputCfg, want) {
-		t.Errorf("got incorrect input config %#v; want %#v", inputCfg, want)
+		t.Errorf("got incorrect input config:\n%#v\nwant:\n%#v", inputCfg, want)
 	}
 }
