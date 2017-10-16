@@ -17,7 +17,7 @@ type EvalBuildProviderConfig struct {
 func (n *EvalBuildProviderConfig) Eval(ctx EvalContext) (interface{}, error) {
 	cfg := *n.Config
 
-	// If we have a configuration set, then merge that in
+	// If we have an Input configuration set, then merge that in
 	if input := ctx.ProviderInput(n.Provider); input != nil {
 		// "input" is a map of the subset of config values that were known
 		// during the input walk, set by EvalInputProvider. Note that
@@ -29,7 +29,7 @@ func (n *EvalBuildProviderConfig) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, err
 		}
 
-		merged := cfg.raw.Merge(rc)
+		merged := rc.Merge(cfg.raw)
 		cfg = NewResourceConfig(merged)
 	}
 
