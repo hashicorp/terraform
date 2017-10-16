@@ -37,7 +37,7 @@ func TestEvalBuildProviderConfig(t *testing.T) {
 
 	// We expect the provider config with the added input value
 	expected := map[string]interface{}{
-		"set_in_config":            "input", // in practice, input map contains identical literals from config
+		"set_in_config":            "config",
 		"set_in_config_and_parent": "config",
 		"computed_in_config":       "config",
 		"set_by_input":             "input",
