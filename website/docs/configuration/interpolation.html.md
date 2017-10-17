@@ -215,7 +215,7 @@ The supported built-in functions are:
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
   * `contains(list, element)` - Returns *true* if a list contains the given element
-     and returns *false* otherwise. Examples: `element(var.list_of_strings, "an_element")`
+     and returns *false* otherwise. Examples: `contains(var.list_of_strings, "an_element")`
 
   * `dirname(path)` - Returns all but the last element of path, typically the path's directory.
 
