@@ -196,7 +196,7 @@ func (op *Operator) AutopilotCASConfiguration(conf *AutopilotConfiguration, q *W
 	if _, err := io.Copy(&buf, resp.Body); err != nil {
 		return false, fmt.Errorf("Failed to read response: %v", err)
 	}
-	res := strings.Contains(string(buf.Bytes()), "true")
+	res := strings.Contains(buf.String(), "true")
 
 	return res, nil
 }

@@ -22,7 +22,7 @@ func newConsulTestServer(t *testing.T) *testutil.TestServer {
 		t.Skip()
 	}
 
-	srv, _ := testutil.NewTestServerConfigT(t, func(c *testutil.TestServerConfig) {
+	srv, err := testutil.NewTestServerConfigT(t, func(c *testutil.TestServerConfig) {
 		c.LogLevel = "warn"
 
 		if !testing.Verbose() {
@@ -30,6 +30,10 @@ func newConsulTestServer(t *testing.T) *testutil.TestServer {
 			c.Stderr = ioutil.Discard
 		}
 	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	return srv
 }
