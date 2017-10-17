@@ -87,8 +87,8 @@ var detectors = []getter.Detector{
 	new(getter.GitHubDetector),
 	new(getter.BitBucketDetector),
 	new(getter.S3Detector),
-	new(localDetector),
 	new(registryDetector),
+	new(localDetector),
 }
 
 // these prefixes can't be registry IDs
