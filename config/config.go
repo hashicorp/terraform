@@ -70,10 +70,10 @@ type ProviderConfig struct {
 	Version   string
 	RawConfig *RawConfig
 
-	// Scope records where the Provider was declared in a module tree, so that
-	// it can be copied into child module providers yes still interpolated in
+	// Path records where the Provider was declared in a module tree, so that
+	// it can be copied into child module providers yet still interpolated in
 	// the correct scope.
-	Scope []string
+	Path []string
 }
 
 // A resource represents a single Terraform resource in the configuration.
