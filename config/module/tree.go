@@ -241,14 +241,9 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		// For example, the registry always adds a subdir of `//*`,
 		// indicating that we need to strip off the first component from the
 		// tar archive, though we may not yet know what it is called.
-		//
-		// TODO: This can cause us to lose the previously detected subdir. It
-		// was never an issue before, since none of the supported detectors
-		// previously had this behavior, but we may want to add this ability to
-		// registry modules.
-		source, subDir2 := getter.SourceDirSubdir(source)
-		if subDir2 != "" {
-			subDir = subDir2
+		source, detectedSubDir := getter.SourceDirSubdir(source)
+		if detectedSubDir != "" {
+			subDir = filepath.Join(detectedSubDir, subDir)
 		}
 
 		log.Printf("[TRACE] getting module source %q", source)
