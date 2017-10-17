@@ -542,13 +542,13 @@ func TestTreeProviders_basic(t *testing.T) {
 	}
 
 	for _, child := range a.Children() {
-		if child.Name() == "b" {
+		if child.Name() == "c" {
 			b = child
 		}
 	}
 
 	if b == nil {
-		t.Fatal("could not find module 'b'")
+		t.Fatal("could not find module 'c'")
 	}
 
 	aProviders := a.config.ProviderConfigsByFullName()
