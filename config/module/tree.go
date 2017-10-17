@@ -309,17 +309,17 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 	return nil
 }
 
-// Once the tree is loaded, we can resolve all provider config inheritance.
+// inheritProviderConfig resolves all provider config inheritance after the
+// tree is loaded.
 //
-// This moves the full responsibility of inheritance to the config loader,
-// simplifying locating provider configuration during graph evaluation.
-// The algorithm is much simpler now too. If there is a provider block without
-// a config, we look in the parent's Module block for a provider, and fetch
-// that provider's configuration. If that doesn't exist, we assume a default
-// empty config. Implicit providers can still inherit their config all the way
-// up from the root, so we walk up the tree and copy the first matching
-// provider into the module.
+// If there is a provider block without a config, look in the parent's Module
+// block for a provider, and fetch that provider's configuration. If that
+// doesn't exist, assume a default empty config. Implicit providers can still
+// inherit their config all the way up from the root, so walk up the tree and
+// copy the first matching provider into the module.
 func (t *Tree) inheritProviderConfigs(stack []*Tree) {
+	// the recursive calls only append, so we don't need to worry about copying
+	// this slice.
 	stack = append(stack, t)
 	for _, c := range t.children {
 		c.inheritProviderConfigs(stack)
