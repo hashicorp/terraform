@@ -30,34 +30,48 @@ func (d hclDiagnostic) Description() Description {
 func (d hclDiagnostic) Source() Source {
 	var ret Source
 	if d.diag.Subject != nil {
-		ret.Subject = &SourceRange{
-			Filename: d.diag.Subject.Filename,
-			Start: SourcePos{
-				Line:   d.diag.Subject.Start.Line,
-				Column: d.diag.Subject.Start.Column,
-				Byte:   d.diag.Subject.Start.Byte,
-			},
-			End: SourcePos{
-				Line:   d.diag.Subject.End.Line,
-				Column: d.diag.Subject.End.Column,
-				Byte:   d.diag.Subject.End.Byte,
-			},
-		}
+		rng := SourceRangeFromHCL(*d.diag.Subject)
+		ret.Subject = &rng
 	}
 	if d.diag.Context != nil {
-		ret.Context = &SourceRange{
-			Filename: d.diag.Context.Filename,
-			Start: SourcePos{
-				Line:   d.diag.Context.Start.Line,
-				Column: d.diag.Context.Start.Column,
-				Byte:   d.diag.Context.Start.Byte,
-			},
-			End: SourcePos{
-				Line:   d.diag.Context.End.Line,
-				Column: d.diag.Context.End.Column,
-				Byte:   d.diag.Context.End.Byte,
-			},
-		}
+		rng := SourceRangeFromHCL(*d.diag.Context)
+		ret.Context = &rng
 	}
 	return ret
+}
+
+// SourceRangeFromHCL constructs a SourceRange from the corresponding range
+// type within the HCL package.
+func SourceRangeFromHCL(hclRange hcl.Range) SourceRange {
+	return SourceRange{
+		Filename: hclRange.Filename,
+		Start: SourcePos{
+			Line:   hclRange.Start.Line,
+			Column: hclRange.Start.Column,
+			Byte:   hclRange.Start.Byte,
+		},
+		End: SourcePos{
+			Line:   hclRange.End.Line,
+			Column: hclRange.End.Column,
+			Byte:   hclRange.End.Byte,
+		},
+	}
+}
+
+// ToHCL constructs a HCL Range from the receiving SourceRange. This is the
+// opposite of SourceRangeFromHCL.
+func (r SourceRange) ToHCL() hcl.Range {
+	return hcl.Range{
+		Filename: r.Filename,
+		Start: hcl.Pos{
+			Line:   r.Start.Line,
+			Column: r.Start.Column,
+			Byte:   r.Start.Byte,
+		},
+		End: hcl.Pos{
+			Line:   r.End.Line,
+			Column: r.End.Column,
+			Byte:   r.End.Byte,
+		},
+	}
 }
