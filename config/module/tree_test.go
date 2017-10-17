@@ -566,8 +566,8 @@ func TestTreeProviders_basic(t *testing.T) {
 		)
 	}
 
-	if !reflect.DeepEqual(aTop.Scope, []string{RootName}) {
-		log.Fatalf(`expected scope for "top": {"root"}, got %#v`, aTop.Scope)
+	if !reflect.DeepEqual(aTop.Path, []string{RootName}) {
+		log.Fatalf(`expected scope for "top": {"root"}, got %#v`, aTop.Path)
 	}
 
 	if !reflect.DeepEqual(bBottom.RawConfig.RawMap(), bottomRaw.RawConfig.RawMap()) {
@@ -576,8 +576,8 @@ func TestTreeProviders_basic(t *testing.T) {
 			bBottom.RawConfig.RawMap(),
 		)
 	}
-	if !reflect.DeepEqual(bBottom.Scope, []string{RootName, "a"}) {
-		t.Fatalf(`expected scope for "bottom": {"root", "a"}, got %#v`, bBottom.Scope)
+	if !reflect.DeepEqual(bBottom.Path, []string{RootName, "a"}) {
+		t.Fatalf(`expected scope for "bottom": {"root", "a"}, got %#v`, bBottom.Path)
 	}
 }
 
@@ -608,8 +608,8 @@ func TestTreeProviders_implicit(t *testing.T) {
 		t.Fatal("could not find provider 'foo' in child module")
 	}
 
-	if !reflect.DeepEqual([]string{RootName}, foo.Scope) {
-		t.Fatalf(`expected foo scope of {"root"}, got %#v`, foo.Scope)
+	if !reflect.DeepEqual([]string{RootName}, foo.Path) {
+		t.Fatalf(`expected foo scope of {"root"}, got %#v`, foo.Path)
 	}
 
 	expected := map[string]interface{}{
@@ -657,8 +657,8 @@ func TestTreeProviders_implicitMultiLevel(t *testing.T) {
 		t.Fatal("could not find provider 'foo' in child module")
 	}
 
-	if !reflect.DeepEqual([]string{RootName}, foo.Scope) {
-		t.Fatalf(`expected foo scope of {"root"}, got %#v`, foo.Scope)
+	if !reflect.DeepEqual([]string{RootName}, foo.Path) {
+		t.Fatalf(`expected foo scope of {"root"}, got %#v`, foo.Path)
 	}
 
 	expected := map[string]interface{}{
@@ -677,8 +677,8 @@ func TestTreeProviders_implicitMultiLevel(t *testing.T) {
 		t.Fatal("could not find provider 'bar' in grandchild module")
 	}
 
-	if !reflect.DeepEqual([]string{RootName, "child"}, bar.Scope) {
-		t.Fatalf(`expected bar scope of {"root", "child"}, got %#v`, bar.Scope)
+	if !reflect.DeepEqual([]string{RootName, "child"}, bar.Path) {
+		t.Fatalf(`expected bar scope of {"root", "child"}, got %#v`, bar.Path)
 	}
 
 	expected = map[string]interface{}{
