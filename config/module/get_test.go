@@ -101,6 +101,26 @@ func mockRegistry() *httptest.Server {
 	return server
 }
 
+func setResetRegDetector(server *httptest.Server) func() {
+	regDetector := &registryDetector{
+		api:    server.URL + "/v1/modules",
+		client: server.Client(),
+	}
+
+	origDetectors := detectors
+	detectors = []getter.Detector{
+		new(getter.GitHubDetector),
+		new(getter.BitBucketDetector),
+		new(getter.S3Detector),
+		regDetector,
+		new(localDetector),
+	}
+
+	return func() {
+		detectors = origDetectors
+	}
+}
+
 func TestDetectRegistry(t *testing.T) {
 	server := mockRegistry()
 	defer server.Close()
@@ -178,23 +198,11 @@ func TestDetectRegistry(t *testing.T) {
 func TestDetectors(t *testing.T) {
 	server := mockRegistry()
 	defer server.Close()
+	defer setResetRegDetector(server)()
 
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	regDetector := &registryDetector{
-		api:    server.URL + "/v1/modules",
-		client: server.Client(),
-	}
-
-	detectors := []getter.Detector{
-		new(getter.GitHubDetector),
-		new(getter.BitBucketDetector),
-		new(getter.S3Detector),
-		regDetector,
-		new(localDetector),
 	}
 
 	for _, tc := range []struct {
@@ -291,24 +299,7 @@ func TestDetectors(t *testing.T) {
 func TestRegistryGitHubArchive(t *testing.T) {
 	server := mockRegistry()
 	defer server.Close()
-
-	regDetector := &registryDetector{
-		api:    server.URL + "/v1/modules",
-		client: server.Client(),
-	}
-
-	origDetectors := detectors
-	defer func() {
-		detectors = origDetectors
-	}()
-
-	detectors = []getter.Detector{
-		new(getter.GitHubDetector),
-		new(getter.BitBucketDetector),
-		new(getter.S3Detector),
-		new(localDetector),
-		regDetector,
-	}
+	defer setResetRegDetector(server)()
 
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "registry-tar-subdir"))
@@ -339,6 +330,34 @@ func TestRegistryGitHubArchive(t *testing.T) {
 
 	actual := strings.TrimSpace(tree.String())
 	expected := strings.TrimSpace(treeLoadSubdirStr)
+	if actual != expected {
+		t.Fatalf("got: \n\n%s\nexpected: \n\n%s", actual, expected)
+	}
+}
+
+// Test that the //subdir notation can be used with registry modules
+func TestRegisryModuleSubdir(t *testing.T) {
+	server := mockRegistry()
+	defer server.Close()
+	defer setResetRegDetector(server)()
+
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "registry-subdir"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !tree.Loaded() {
+		t.Fatal("should be loaded")
+	}
+
+	if err := tree.Load(storage, GetModeNone); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(tree.String())
+	expected := strings.TrimSpace(treeLoadRegistrySubdirStr)
 	if actual != expected {
 		t.Fatalf("got: \n\n%s\nexpected: \n\n%s", actual, expected)
 	}
