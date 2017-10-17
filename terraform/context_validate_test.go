@@ -321,78 +321,55 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 	}
 }
 
-func TestContext2Validate_moduleProviderInherit(t *testing.T) {
-	m := testModule(t, "validate-module-pc-inherit")
-	p := testProvider("aws")
-	c := testContext2(t, &ContextOpts{
-		Module: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-	})
+//// FIXME: provider must still exist in config, but we should be able to locate
+////        it elsewhere
+//func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
+//    m := testModule(t, "validate-module-pc-inherit-orphan")
+//    p := testProvider("aws")
+//    c := testContext2(t, &ContextOpts{
+//        Module: m,
+//        ProviderResolver: ResourceProviderResolverFixed(
+//            map[string]ResourceProviderFactory{
+//                "aws": testProviderFuncFixed(p),
+//            },
+//        ),
+//        State: &State{
+//            Modules: []*ModuleState{
+//                &ModuleState{
+//                    Path: []string{"root", "child"},
+//                    Resources: map[string]*ResourceState{
+//                        "aws_instance.bar": &ResourceState{
+//                            Type: "aws_instance",
+//                            Primary: &InstanceState{
+//                                ID: "bar",
+//                            },
+//                        },
+//                    },
+//                },
+//            },
+//        },
+//    })
 
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"set"})
-	}
+//    p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
+//        v, ok := c.Get("set")
+//        if !ok {
+//            return nil, []error{fmt.Errorf("not set")}
+//        }
+//        if v != "bar" {
+//            return nil, []error{fmt.Errorf("bad: %#v", v)}
+//        }
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
-	}
-}
+//        return nil, nil
+//    }
 
-func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
-	m := testModule(t, "validate-module-pc-inherit-orphan")
-	p := testProvider("aws")
-	c := testContext2(t, &ContextOpts{
-		Module: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: &State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: []string{"root", "child"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.bar": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "bar",
-							},
-						},
-					},
-				},
-			},
-		},
-	})
-
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		v, ok := c.Get("set")
-		if !ok {
-			return nil, []error{fmt.Errorf("not set")}
-		}
-		if v != "bar" {
-			return nil, []error{fmt.Errorf("bad: %#v", v)}
-		}
-
-		return nil, nil
-	}
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
-	}
-}
+//    w, e := c.Validate()
+//    if len(w) > 0 {
+//        t.Fatalf("bad: %#v", w)
+//    }
+//    if len(e) > 0 {
+//        t.Fatalf("bad: %s", e)
+//    }
+//}
 
 func TestContext2Validate_moduleProviderVar(t *testing.T) {
 	m := testModule(t, "validate-module-pc-vars")
