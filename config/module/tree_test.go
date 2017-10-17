@@ -705,3 +705,8 @@ root
   foo (path: foo)
     bar (path: foo, bar)
 `
+
+const treeLoadRegistrySubdirStr = `
+root
+  foo (path: foo)
+`
