@@ -82,12 +82,11 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 		Config  hcl2.Body `hcl:",remain"`
 	}
 	type module struct {
-		Name    string  `hcl:"name,label"`
-		Source  string  `hcl:"source,attr"`
-		Version *string `hcl:"version,attr"`
-		// FIXME, maps not working
-		// Providers *map[string]string `hcl:"providers,attr"`
-		Config hcl2.Body `hcl:",remain"`
+		Name      string             `hcl:"name,label"`
+		Source    string             `hcl:"source,attr"`
+		Version   *string            `hcl:"version,attr"`
+		Providers *map[string]string `hcl:"providers,attr"`
+		Config    hcl2.Body          `hcl:",remain"`
 	}
 	type resourceLifecycle struct {
 		CreateBeforeDestroy *bool     `hcl:"create_before_destroy,attr"`
