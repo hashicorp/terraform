@@ -5,7 +5,7 @@ provider "bottom" {
     value = "from bottom"
 }
 
-module "b" {
+module "c" {
     source = "../c"
     providers = {
         "bottom" = "bottom.foo"
