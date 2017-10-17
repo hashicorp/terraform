@@ -364,8 +364,8 @@ func (t *Tree) inheritProviderConfigs(stack []*Tree) {
 				continue
 			}
 
-			pc.Scope = pt.Path()
-			pc.Scope = append([]string{RootName}, pt.path...)
+			pc.Path = pt.Path()
+			pc.Path = append([]string{RootName}, pt.path...)
 			pc.RawConfig = parentProvider.RawConfig
 			log.Printf("[TRACE] provider %q inheriting config from %q",
 				strings.Join(append(t.Path(), pc.FullName()), "."),
@@ -430,7 +430,7 @@ func (t *Tree) inheritProviderConfigs(stack []*Tree) {
 
 		// Copy it in, but set an interpolation Scope.
 		// An interpolation Scope always need to have "root"
-		pc.Scope = append([]string{RootName}, parent.path...)
+		pc.Path = append([]string{RootName}, parent.path...)
 		pc.RawConfig = parentProvider.RawConfig
 		log.Printf("[TRACE] provider %q inheriting config from %q",
 			strings.Join(append(t.Path(), pc.FullName()), "."),
