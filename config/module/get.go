@@ -92,8 +92,8 @@ var detectors = []getter.Detector{
 }
 
 // these prefixes can't be registry IDs
-// "http", "./", "/", "getter::"
-var skipRegistry = regexp.MustCompile(`^(http|\./|/|[A-Za-z0-9]+::)`).MatchString
+// "http", "../", "./", "/", "getter::", etc
+var skipRegistry = regexp.MustCompile(`^(http|[.]{1,2}/|/|[A-Za-z0-9]+::)`).MatchString
 
 // registryDetector implements getter.Detector to detect Terraform Registry modules.
 // If a path looks like a registry module identifier, attempt to locate it in
