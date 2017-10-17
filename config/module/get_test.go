@@ -39,6 +39,10 @@ var testMods = map[string]testMod{
 		location: "test-fixtures/registry-tar-subdir/foo.tgz//*?archive=tar.gz",
 		version:  "0.1.2",
 	},
+	"exists-in-registry/identifier/provider": {
+		location: "file:///registry/exists",
+		version:  "0.2.0",
+	},
 }
 
 func latestVersion(versions []string) string {
@@ -65,7 +69,7 @@ func mockRegistry() *httptest.Server {
 		http.StripPrefix("/v1/modules/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			p := strings.TrimLeft(r.URL.Path, "/")
 			// handle download request
-			download := regexp.MustCompile(`^(\w+/\w+/\w+)/download$`)
+			download := regexp.MustCompile(`^([-a-z]+/\w+/\w+)/download$`)
 
 			// download lookup
 			matches := download.FindStringSubmatch(p)
@@ -189,8 +193,8 @@ func TestDetectors(t *testing.T) {
 		new(getter.GitHubDetector),
 		new(getter.BitBucketDetector),
 		new(getter.S3Detector),
-		new(localDetector),
 		regDetector,
+		new(localDetector),
 	}
 
 	for _, tc := range []struct {
@@ -239,12 +243,21 @@ func TestDetectors(t *testing.T) {
 			err:    true,
 		},
 
-		// make sure a local module that looks like a registry id takes precedence
+		// make sure a local module that looks like a registry id can be found
 		{
 			source:  "namespace/identifier/provider",
 			fixture: "discover-subdirs",
 			// this should be found locally
 			location: "file://" + filepath.Join(wd, fixtureDir, "discover-subdirs/namespace/identifier/provider"),
+		},
+
+		// The registry takes precedence over local paths if they don't start
+		// with a relative or absolute path
+		{
+			source:  "exists-in-registry/identifier/provider",
+			fixture: "discover-registry-local",
+			// registry should take precidence
+			location: "file:///registry/exists",
 		},
 	} {
 
