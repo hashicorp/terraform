@@ -1,5 +1,8 @@
 TEST?=./...
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
+ifeq ($(GOBIN),)
+    GOBIN=$(shell go env GOPATH)/bin
+endif
 
 default: test vet
 
@@ -24,7 +27,7 @@ quickdev: generate
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
 plugin-dev: generate
 	go install github.com/hashicorp/terraform/builtin/bins/$(PLUGIN)
-	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
+	mv $(GOBIN)/$(PLUGIN) $(GOBIN)/terraform-$(PLUGIN)
 
 # test runs the unit tests
 # we run this one package at a time here because running the entire suite in
