@@ -150,6 +150,13 @@ func New() backend.Backend {
 				Default:     false,
 			},
 
+			"s3_force_path_style": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Force path style S3 bucket address.",
+				Default:     false,
+			},
+
 			"role_arn": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -245,6 +252,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		SkipGetEC2Platforms:     data.Get("skip_get_ec2_platforms").(bool),
 		SkipRequestingAccountId: data.Get("skip_requesting_account_id").(bool),
 		SkipMetadataApiCheck:    data.Get("skip_metadata_api_check").(bool),
+		S3ForcePathStyle:        data.Get("s3_force_path_style").(bool),
 	}
 
 	client, err := cfg.Client()
