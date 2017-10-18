@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/svchost"
+	"github.com/hashicorp/terraform/svchost/auth"
 )
 
 func TestMain(m *testing.M) {
@@ -87,6 +88,34 @@ func TestDiscover(t *testing.T) {
 		}
 		if got, want := gotURL.String(), "http://example.net/bar"; got != want {
 			t.Fatalf("wrong result %q; want %q", got, want)
+		}
+	})
+	t.Run("with credentials", func(t *testing.T) {
+		var authHeaderText string
+		portStr, close := testServer(func(w http.ResponseWriter, r *http.Request) {
+			resp := []byte(`{}`)
+			authHeaderText = r.Header.Get("Authorization")
+			w.Header().Add("Content-Type", "application/json")
+			w.Header().Add("Content-Length", strconv.Itoa(len(resp)))
+			w.Write(resp)
+		})
+		defer close()
+
+		givenHost := "localhost" + portStr
+		host, err := svchost.ForComparison(givenHost)
+		if err != nil {
+			t.Fatalf("test server hostname is invalid: %s", err)
+		}
+
+		d := NewDisco()
+		d.SetCredentialsSource(auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
+			host: map[string]interface{}{
+				"token": "abc123",
+			},
+		}))
+		d.Discover(host)
+		if got, want := authHeaderText, "Bearer abc123"; got != want {
+			t.Fatalf("wrong Authorization header\ngot:  %s\nwant: %s", got, want)
 		}
 	})
 	t.Run("not JSON", func(t *testing.T) {
