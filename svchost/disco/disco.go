@@ -19,6 +19,7 @@ import (
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/svchost"
+	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -37,10 +38,20 @@ var httpTransport = cleanhttp.DefaultPooledTransport() // overridden during test
 // for the same information.
 type Disco struct {
 	hostCache map[svchost.Hostname]Host
+	credsSrc  auth.CredentialsSource
 }
 
 func NewDisco() *Disco {
 	return &Disco{}
+}
+
+// SetCredentialsSource provides a credentials source that will be used to
+// add credentials to outgoing discovery requests, where available.
+//
+// If this method is never called, no outgoing discovery requests will have
+// credentials.
+func (d *Disco) SetCredentialsSource(src auth.CredentialsSource) {
+	d.credsSrc = src
 }
 
 // Discover runs the discovery protocol against the given hostname (which must
@@ -96,12 +107,22 @@ func (d *Disco) discover(host svchost.Hostname) Host {
 
 	var header = http.Header{}
 	header.Set("User-Agent", userAgent)
-	// TODO: look up credentials and add them to the header if we have them
 
 	req := &http.Request{
 		Method: "GET",
 		URL:    discoURL,
 		Header: header,
+	}
+
+	if d.credsSrc != nil {
+		creds, err := d.credsSrc.ForHost(host)
+		if err == nil {
+			if creds != nil {
+				creds.PrepareRequest(req) // alters req to include credentials
+			}
+		} else {
+			log.Printf("[WARNING] Failed to get credentials for %s: %s (ignoring)", host, err)
+		}
 	}
 
 	log.Printf("[DEBUG] Service discovery for %s at %s", host, discoURL)
