@@ -16,6 +16,10 @@ import (
 // there is no good reason to do so.
 type Credentials []CredentialsSource
 
+// NoCredentials is an empty CredentialsSource that always returns nil
+// when asked for credentials.
+var NoCredentials CredentialsSource = Credentials{}
+
 // A CredentialsSource is an object that may be able to provide credentials
 // for a given host.
 //
