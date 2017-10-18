@@ -4,6 +4,9 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/hashicorp/terraform/svchost/auth"
+	"github.com/hashicorp/terraform/svchost/disco"
+
 	"github.com/hashicorp/terraform/command"
 	"github.com/mitchellh/cli"
 )
@@ -31,11 +34,18 @@ func initCommands(config *Config) {
 		inAutomation = true
 	}
 
+	credsSrc := auth.NoCredentials // TODO: Actually expose credentials here
+	services := disco.NewDisco()
+	services.SetCredentialsSource(credsSrc)
+
 	meta := command.Meta{
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),
 		PluginOverrides:  &PluginOverrides,
 		Ui:               Ui,
+
+		Services:    services,
+		Credentials: credsSrc,
 
 		RunningInAutomation: inAutomation,
 		PluginCacheDir:      config.PluginCacheDir,
