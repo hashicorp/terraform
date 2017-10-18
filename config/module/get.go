@@ -3,9 +3,7 @@ package module
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -88,7 +86,7 @@ var detectors = []getter.Detector{
 	new(getter.BitBucketDetector),
 	new(getter.S3Detector),
 	new(registryDetector),
-	new(localDetector),
+	new(getter.FileDetector),
 }
 
 // these prefixes can't be registry IDs
@@ -136,28 +134,24 @@ func (d registryDetector) lookupModule(src string) (string, bool, error) {
 	// determine if it's truly valid.
 	resp, err := d.client.Get(fmt.Sprintf("%s/%s/download", d.api, src))
 	if err != nil {
-		log.Printf("[WARN] error looking up module %q: %s", src, err)
-		return "", false, nil
+		return "", false, fmt.Errorf("error looking up module %q: %s", src, err)
 	}
 	defer resp.Body.Close()
 
 	// there should be no body, but save it for logging
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("[WARN] error reading response body from registry: %s", err)
-		return "", false, nil
+		return "", false, fmt.Errorf("error reading response body from registry: %s", err)
 	}
 
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusNoContent:
 		// OK
 	case http.StatusNotFound:
-		log.Printf("[INFO] module %q not found in registry", src)
-		return "", false, nil
+		return "", false, fmt.Errorf("module %q not found in registry", src)
 	default:
 		// anything else is an error:
-		log.Printf("[WARN] error getting download location for %q: %s resp:%s", src, resp.Status, body)
-		return "", false, nil
+		return "", false, fmt.Errorf("error getting download location for %q: %s resp:%s", src, resp.Status, body)
 	}
 
 	// the download location is in the X-Terraform-Get header
@@ -167,41 +161,4 @@ func (d registryDetector) lookupModule(src string) (string, bool, error) {
 	}
 
 	return location, true, nil
-}
-
-// localDetector wraps the default getter.FileDetector and checks if the module
-// exists in the local filesystem. The default FileDetector only converts paths
-// into file URLs, and returns found. We want to first check for a local module
-// before passing it off to the registryDetector so we don't inadvertently
-// replace a local module with a registry module of the same name.
-type localDetector struct{}
-
-func (d localDetector) Detect(src, wd string) (string, bool, error) {
-	localSrc, ok, err := new(getter.FileDetector).Detect(src, wd)
-	if err != nil {
-		return src, ok, err
-	}
-
-	if !ok {
-		return "", false, nil
-	}
-
-	u, err := url.Parse(localSrc)
-	if err != nil {
-		return "", false, err
-	}
-
-	_, err = os.Stat(u.Path)
-
-	// just continue detection if it doesn't exist
-	if os.IsNotExist(err) {
-		return "", false, nil
-	}
-
-	// return any other errors
-	if err != nil {
-		return "", false, err
-	}
-
-	return localSrc, true, nil
 }
