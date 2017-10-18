@@ -24,6 +24,8 @@ import (
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
+	"github.com/hashicorp/terraform/svchost/auth"
+	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
@@ -43,6 +45,14 @@ type Meta struct {
 
 	// ExtraHooks are extra hooks to add to the context.
 	ExtraHooks []terraform.Hook
+
+	// Services provides access to remote endpoint information for
+	// "terraform-native' services running at a specific user-facing hostname.
+	Services *disco.Disco
+
+	// Credentials provides access to credentials for "terraform-native"
+	// services, which are accessed by a service hostname.
+	Credentials auth.CredentialsSource
 
 	// RunningInAutomation indicates that commands are being run by an
 	// automated system rather than directly at a command prompt.
