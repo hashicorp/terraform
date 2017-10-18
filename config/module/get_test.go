@@ -113,7 +113,7 @@ func setResetRegDetector(server *httptest.Server) func() {
 		new(getter.BitBucketDetector),
 		new(getter.S3Detector),
 		regDetector,
-		new(localDetector),
+		new(getter.FileDetector),
 	}
 
 	return func() {
@@ -146,10 +146,10 @@ func TestDetectRegistry(t *testing.T) {
 			location: testMods["registry/foo/baz"].location,
 			found:    true,
 		},
-		// this should not be found, but not stop detection
+		// this should not be found, and is no longer valid as a local source
 		{
 			source: "registry/foo/notfound",
-			found:  false,
+			err:    true,
 		},
 
 		// a full url should not be detected
@@ -178,7 +178,7 @@ func TestDetectRegistry(t *testing.T) {
 		t.Run(tc.source, func(t *testing.T) {
 			loc, ok, err := detector.Detect(tc.source, "")
 			if (err == nil) == tc.err {
-				t.Fatalf("expected error? %t; got error :%v", tc.err, err)
+				t.Fatalf("expected error? %t; got error: %v", tc.err, err)
 			}
 
 			if ok != tc.found {
@@ -215,7 +215,7 @@ func TestDetectors(t *testing.T) {
 			source:   "registry/foo/bar",
 			location: "file:///download/registry/foo/bar/0.2.3//*?archive=tar.gz",
 		},
-		// this should not be found, but not stop detection
+		// this should not be found, and is no longer a valid local source
 		{
 			source: "registry/foo/notfound",
 			err:    true,
@@ -237,26 +237,27 @@ func TestDetectors(t *testing.T) {
 		// local paths should be detected as such, even if they're match
 		// registry modules.
 		{
-			source: "./registry/foo/bar",
-			err:    true,
+			source:   "./registry/foo/bar",
+			location: "file://" + filepath.Join(wd, "registry/foo/bar"),
 		},
 		{
-			source: "/registry/foo/bar",
-			err:    true,
+			source:   "/registry/foo/bar",
+			location: "file:///registry/foo/bar",
 		},
 
-		// wrong number of parts can't be regisry IDs
+		// Wrong number of parts can't be registry IDs.
+		// This is returned as a local path for now, but may return an error at
+		// some point.
 		{
-			source: "something/registry/foo/notfound",
-			err:    true,
+			source:   "something/here/registry/foo/notfound",
+			location: "file://" + filepath.Join(wd, "something/here/registry/foo/notfound"),
 		},
 
 		// make sure a local module that looks like a registry id can be found
 		{
 			source:  "namespace/identifier/provider",
 			fixture: "discover-subdirs",
-			// this should be found locally
-			location: "file://" + filepath.Join(wd, fixtureDir, "discover-subdirs/namespace/identifier/provider"),
+			err:     true,
 		},
 
 		// The registry takes precedence over local paths if they don't start
