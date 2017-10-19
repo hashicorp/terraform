@@ -91,7 +91,7 @@ func mockRegistry() *httptest.Server {
 				location = fmt.Sprintf("file://%s/%s", wd, location)
 			}
 
-			w.Header().Set(xTerraformGet, location)
+			w.Header().Set("X-Terraform-Get", location)
 			w.WriteHeader(http.StatusNoContent)
 			// no body
 			return

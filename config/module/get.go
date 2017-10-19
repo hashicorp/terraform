@@ -65,8 +65,7 @@ func GetCopy(dst, src string) error {
 }
 
 const (
-	registryAPI   = "https://registry.terraform.io/v1/modules"
-	xTerraformGet = "X-Terraform-Get"
+	registryAPI = "https://registry.terraform.io/v1/modules"
 )
 
 var detectors = []getter.Detector{
@@ -79,7 +78,7 @@ var detectors = []getter.Detector{
 
 // these prefixes can't be registry IDs
 // "http", "../", "./", "/", "getter::", etc
-var skipRegistry = regexp.MustCompile(`^(http|[.]{1,2}/|/|[A-Za-z0-9]+::)`).MatchString
+var oldSkipRegistry = regexp.MustCompile(`^(http|[.]{1,2}/|/|[A-Za-z0-9]+::)`).MatchString
 
 // registryDetector implements getter.Detector to detect Terraform Registry modules.
 // If a path looks like a registry module identifier, attempt to locate it in
@@ -95,7 +94,7 @@ type registryDetector struct {
 func (d registryDetector) Detect(src, _ string) (string, bool, error) {
 	// the namespace can't start with "http", a relative or absolute path, or
 	// contain a go-getter "forced getter"
-	if skipRegistry(src) {
+	if oldSkipRegistry(src) {
 		return "", false, nil
 	}
 
