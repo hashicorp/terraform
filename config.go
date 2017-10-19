@@ -147,5 +147,28 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 		result.PluginCacheDir = c2.PluginCacheDir
 	}
 
+	if (len(c1.Credentials) + len(c2.Credentials)) > 0 {
+		result.Credentials = make(map[string]map[string]interface{})
+		for host, creds := range c1.Credentials {
+			result.Credentials[host] = creds
+		}
+		for host, creds := range c2.Credentials {
+			// We just clobber an entry from the other file right now. Will
+			// improve on this later using the more-robust merging behavior
+			// built in to HCL2.
+			result.Credentials[host] = creds
+		}
+	}
+
+	if (len(c1.CredentialsHelpers) + len(c2.CredentialsHelpers)) > 0 {
+		result.CredentialsHelpers = make(map[string]*ConfigCredentialsHelper)
+		for name, helper := range c1.CredentialsHelpers {
+			result.CredentialsHelpers[name] = helper
+		}
+		for name, helper := range c2.CredentialsHelpers {
+			result.CredentialsHelpers[name] = helper
+		}
+	}
+
 	return &result
 }
