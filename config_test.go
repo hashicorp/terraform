@@ -82,6 +82,71 @@ func TestLoadConfig_credentials(t *testing.T) {
 	}
 }
 
+func TestConfigValidate(t *testing.T) {
+	tests := map[string]struct {
+		Config    *Config
+		DiagCount int
+	}{
+		"nil": {
+			nil,
+			0,
+		},
+		"empty": {
+			&Config{},
+			0,
+		},
+		"credentials good": {
+			&Config{
+				Credentials: map[string]map[string]interface{}{
+					"example.com": map[string]interface{}{
+						"token": "foo",
+					},
+				},
+			},
+			0,
+		},
+		"credentials with bad hostname": {
+			&Config{
+				Credentials: map[string]map[string]interface{}{
+					"example..com": map[string]interface{}{
+						"token": "foo",
+					},
+				},
+			},
+			1, // credentials block has invalid hostname
+		},
+		"credentials helper good": {
+			&Config{
+				CredentialsHelpers: map[string]*ConfigCredentialsHelper{
+					"foo": {},
+				},
+			},
+			0,
+		},
+		"credentials helper too many": {
+			&Config{
+				CredentialsHelpers: map[string]*ConfigCredentialsHelper{
+					"foo": {},
+					"bar": {},
+				},
+			},
+			1, // no more than one credentials_helper block allowed
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			diags := test.Config.Validate()
+			if len(diags) != test.DiagCount {
+				t.Errorf("wrong number of diagnostics %d; want %d", len(diags), test.DiagCount)
+				for _, diag := range diags {
+					t.Logf("- %#v", diag.Description())
+				}
+			}
+		})
+	}
+}
+
 func TestConfig_Merge(t *testing.T) {
 	c1 := &Config{
 		Providers: map[string]string{

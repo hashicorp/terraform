@@ -8,7 +8,10 @@ import (
 	"os"
 
 	"github.com/hashicorp/hcl"
+
 	"github.com/hashicorp/terraform/command"
+	"github.com/hashicorp/terraform/svchost"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 const pluginCacheDirEnvVar = "TF_PLUGIN_CACHE_DIR"
@@ -113,6 +116,43 @@ func EnvConfig() *Config {
 	}
 
 	return config
+}
+
+// Validate checks for errors in the configuration that cannot be detected
+// just by HCL decoding, returning any problems as diagnostics.
+//
+// On success, the returned diagnostics will return false from the HasErrors
+// method. A non-nil diagnostics is not necessarily an error, since it may
+// contain just warnings.
+func (c *Config) Validate() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if c == nil {
+		return diags
+	}
+
+	// FIXME: Right now our config parsing doesn't retain enough information
+	// to give proper source references to any errors. We should improve
+	// on this when we change the CLI config parser to use HCL2.
+
+	// Check that all "credentials" blocks have valid hostnames.
+	for givenHost := range c.Credentials {
+		_, err := svchost.ForComparison(givenHost)
+		if err != nil {
+			diags = diags.Append(
+				fmt.Errorf("The credentials %q block has an invalid hostname: %s", givenHost, err),
+			)
+		}
+	}
+
+	// Should have zero or one "credentials_helper" blocks
+	if len(c.CredentialsHelpers) > 1 {
+		diags = diags.Append(
+			fmt.Errorf("No more than one credentials_helper block may be specified"),
+		)
+	}
+
+	return diags
 }
 
 // Merge merges two configurations and returns a third entirely
