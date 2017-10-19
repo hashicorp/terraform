@@ -92,6 +92,14 @@ func TestConfig_Merge(t *testing.T) {
 			"local":  "local",
 			"remote": "bad",
 		},
+		Credentials: map[string]map[string]interface{}{
+			"foo": {
+				"bar": "baz",
+			},
+		},
+		CredentialsHelpers: map[string]*ConfigCredentialsHelper{
+			"buz": {},
+		},
 	}
 
 	c2 := &Config{
@@ -101,6 +109,14 @@ func TestConfig_Merge(t *testing.T) {
 		},
 		Provisioners: map[string]string{
 			"remote": "remote",
+		},
+		Credentials: map[string]map[string]interface{}{
+			"fee": {
+				"bur": "bez",
+			},
+		},
+		CredentialsHelpers: map[string]*ConfigCredentialsHelper{
+			"biz": {},
 		},
 	}
 
@@ -113,6 +129,18 @@ func TestConfig_Merge(t *testing.T) {
 		Provisioners: map[string]string{
 			"local":  "local",
 			"remote": "remote",
+		},
+		Credentials: map[string]map[string]interface{}{
+			"foo": {
+				"bar": "baz",
+			},
+			"fee": {
+				"bur": "bez",
+			},
+		},
+		CredentialsHelpers: map[string]*ConfigCredentialsHelper{
+			"buz": {},
+			"biz": {},
 		},
 	}
 
