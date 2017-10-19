@@ -11,9 +11,13 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mitchellh/colorstring"
+
 	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
@@ -144,6 +148,25 @@ func wrappedMain() int {
 	}
 
 	log.Printf("[DEBUG] CLI Config is %#v", config)
+
+	{
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(config.Validate())
+		if len(diags) > 0 {
+			Ui.Error("There are some problems with the CLI configuration:")
+			for _, diag := range diags {
+				earlyColor := &colorstring.Colorize{
+					Colors:  colorstring.DefaultColors,
+					Disable: true, // Disable color to be conservative until we know better
+					Reset:   true,
+				}
+				Ui.Error(format.Diagnostic(diag, earlyColor, 78))
+			}
+			if diags.HasErrors() {
+				Ui.Error("As a result of the above problems, Terraform may not behave as intended.\n\n")
+			}
+		}
+	}
 
 	// In tests, Commands may already be set to provide mock commands
 	if Commands == nil {
