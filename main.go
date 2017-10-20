@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
@@ -111,6 +110,8 @@ func init() {
 }
 
 func wrappedMain() int {
+	var err error
+
 	// We always need to close the DebugInfo before we exit.
 	defer terraform.CloseDebugInfo()
 
@@ -121,60 +122,34 @@ func wrappedMain() int {
 	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
 	log.Printf("[INFO] CLI args: %#v", os.Args)
 
-	// Load the configuration
-	config := BuiltinConfig
-
-	// Load the configuration file if we have one, that can be used to
-	// define extra providers and provisioners.
-	clicfgFile, err := cliConfigFile()
-	if err != nil {
-		Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
-		return 1
-	}
-
-	if clicfgFile != "" {
-		usrcfg, err := LoadConfig(clicfgFile)
-		if err != nil {
-			Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
-			return 1
+	config, diags := LoadConfig()
+	if len(diags) > 0 {
+		// Since we haven't instantiated a command.Meta yet, we need to do
+		// some things manually here and use some "safe" defaults for things
+		// that command.Meta could otherwise figure out in smarter ways.
+		Ui.Error("There are some problems with the CLI configuration:")
+		for _, diag := range diags {
+			earlyColor := &colorstring.Colorize{
+				Colors:  colorstring.DefaultColors,
+				Disable: true, // Disable color to be conservative until we know better
+				Reset:   true,
+			}
+			Ui.Error(format.Diagnostic(diag, earlyColor, 78))
 		}
-
-		config = *config.Merge(usrcfg)
-	}
-
-	if envConfig := EnvConfig(); envConfig != nil {
-		// envConfig takes precedence
-		config = *envConfig.Merge(&config)
-	}
-
-	log.Printf("[DEBUG] CLI Config is %#v", config)
-
-	{
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(config.Validate())
-		if len(diags) > 0 {
-			Ui.Error("There are some problems with the CLI configuration:")
-			for _, diag := range diags {
-				earlyColor := &colorstring.Colorize{
-					Colors:  colorstring.DefaultColors,
-					Disable: true, // Disable color to be conservative until we know better
-					Reset:   true,
-				}
-				Ui.Error(format.Diagnostic(diag, earlyColor, 78))
-			}
-			if diags.HasErrors() {
-				Ui.Error("As a result of the above problems, Terraform may not behave as intended.\n\n")
-			}
+		if diags.HasErrors() {
+			Ui.Error("As a result of the above problems, Terraform may not behave as intended.\n\n")
+			// We continue to run anyway, since Terraform has reasonable defaults.
 		}
 	}
+	log.Printf("[DEBUG] CLI config is %#v", config)
 
 	// In tests, Commands may already be set to provide mock commands
 	if Commands == nil {
-		initCommands(&config)
+		initCommands(config)
 	}
 
 	// Run checkpoint
-	go runCheckpoint(&config)
+	go runCheckpoint(config)
 
 	// Make sure we clean up any managed plugins at the end of this
 	defer plugin.CleanupClients()
