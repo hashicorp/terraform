@@ -11,6 +11,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* command/validate: Respect `-plugin-dir` overridden plugin paths in the `terraform validate` command. [GH-15985]
 * provisioner/chef: Clean clients from `chef-vault` when `recreate_client` enabled [GH-16357]
 
 ## 0.10.7 (October 2, 2017)
