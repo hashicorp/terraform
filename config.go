@@ -27,6 +27,15 @@ type Config struct {
 	// If set, enables local caching of plugins in this directory to
 	// avoid repeatedly re-downloading over the Internet.
 	PluginCacheDir string `hcl:"plugin_cache_dir"`
+
+	Credentials        map[string]map[string]interface{}   `hcl:"credentials"`
+	CredentialsHelpers map[string]*ConfigCredentialsHelper `hcl:"credentials_helper"`
+}
+
+// ConfigCredentialsHelper is the structure of the "credentials_helper"
+// nested block within the CLI configuration.
+type ConfigCredentialsHelper struct {
+	Args []string `hcl:"args"`
 }
 
 // BuiltinConfig is the built-in defaults for the configuration. These
