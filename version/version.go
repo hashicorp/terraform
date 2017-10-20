@@ -18,10 +18,10 @@ const Version = "0.10.8"
 // such as "dev" (in development), "beta", "rc1", etc.
 var Prerelease = "dev"
 
-// SemVersion is an instance of version.Version. This has the secondary
+// SemVer is an instance of version.Version. This has the secondary
 // benefit of verifying during tests and init time that our version is a
 // proper semantic version, which should always be the case.
-var SemVersion = version.Must(version.NewVersion(Version))
+var SemVer = version.Must(version.NewVersion(Version))
 
 // Header is the header name used to send the current terraform version
 // in http requests.
@@ -29,8 +29,8 @@ const Header = "Terraform-Version"
 
 // String returns the complete version string, including prerelease
 func String() string {
-	if prerelase != "" {
-		return fmt.Sprintf("%s-%s", version, prerelease)
+	if Prerelease != "" {
+		return fmt.Sprintf("%s-%s", Version, Prerelease)
 	}
-	return version
+	return Version
 }

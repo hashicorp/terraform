@@ -20,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
 	"github.com/satori/go.uuid"
+
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 const (
@@ -664,7 +666,7 @@ func (s *State) FromFutureTerraform() bool {
 	}
 
 	v := version.Must(version.NewVersion(s.TFVersion))
-	return SemVersion.LessThan(v)
+	return tfversion.SemVer.LessThan(v)
 }
 
 func (s *State) Init() {
@@ -1908,7 +1910,7 @@ func ReadState(src io.Reader) (*State, error) {
 		result = v3State
 	default:
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			SemVersion.String(), versionIdentifier.Version)
+			tfversion.SemVer.String(), versionIdentifier.Version)
 	}
 
 	// If we reached this place we must have a result set
@@ -1952,7 +1954,7 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 	// version that we don't understand
 	if state.Version > StateVersion {
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			SemVersion.String(), state.Version)
+			tfversion.SemVer.String(), state.Version)
 	}
 
 	// Make sure the version is semantic
@@ -1987,7 +1989,7 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 	// version that we don't understand
 	if state.Version > StateVersion {
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			SemVersion.String(), state.Version)
+			tfversion.SemVer.String(), state.Version)
 	}
 
 	// Make sure the version is semantic
