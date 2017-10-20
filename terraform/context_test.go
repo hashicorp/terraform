@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/flatmap"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestNewContextRequiredVersion(t *testing.T) {
@@ -62,9 +63,9 @@ func TestNewContextRequiredVersion(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
 			// Reset the version for the tests
-			old := SemVersion
-			SemVersion = version.Must(version.NewVersion(tc.Version))
-			defer func() { SemVersion = old }()
+			old := tfversion.SemVer
+			tfversion.SemVer = version.Must(version.NewVersion(tc.Version))
+			defer func() { tfversion.SemVer = old }()
 
 			name := "context-required-version"
 			if tc.Module != "" {
@@ -108,7 +109,7 @@ func TestNewContextState(t *testing.T) {
 
 		"equal TFVersion": {
 			&ContextOpts{
-				State: &State{TFVersion: Version},
+				State: &State{TFVersion: tfversion.Version},
 			},
 			false,
 		},
@@ -139,7 +140,7 @@ func TestNewContextState(t *testing.T) {
 		}
 
 		// Version should always be set to our current
-		if ctx.state.TFVersion != Version {
+		if ctx.state.TFVersion != tfversion.Version {
 			t.Fatalf("%s: state not set to current version", k)
 		}
 	}

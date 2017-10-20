@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -353,7 +354,7 @@ func TestRefresh_pastState(t *testing.T) {
 		t.Fatalf("bad:\n\n%s", actual)
 	}
 
-	if newState.TFVersion != terraform.Version {
+	if newState.TFVersion != version.Version {
 		t.Fatalf("bad:\n\n%s", newState.TFVersion)
 	}
 }

@@ -12,13 +12,14 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/pathorcontents"
-	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/storage/v1"
+
+	version "github.com/hashicorp/terraform/version"
 )
 
 // accountFile represents the structure of the credentials JSON
@@ -99,7 +100,7 @@ func gcsFactory(conf map[string]string) (Client, error) {
 			return nil, err
 		}
 	}
-	versionString := terraform.Version
+	versionString := version.Version
 	userAgent := fmt.Sprintf(
 		"(%s %s) Terraform/%s", runtime.GOOS, runtime.GOARCH, versionString)
 
