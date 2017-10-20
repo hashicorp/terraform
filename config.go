@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/hcl"
 
@@ -79,6 +80,14 @@ func LoadConfig() (*Config, tfdiags.Diagnostics) {
 		}
 	}
 
+	if configDir, err := ConfigDir(); err == nil {
+		if info, err := os.Stat(configDir); err == nil && info.IsDir() {
+			dirConfig, dirDiags := loadConfigDir(configDir)
+			diags = diags.Append(dirDiags)
+			config = config.Merge(dirConfig)
+		}
+	}
+
 	if envConfig := EnvConfig(); envConfig != nil {
 		// envConfig takes precedence
 		config = envConfig.Merge(config)
@@ -93,6 +102,8 @@ func LoadConfig() (*Config, tfdiags.Diagnostics) {
 func loadConfigFile(path string) (*Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	result := &Config{}
+
+	log.Printf("Loading CLI configuration from %s", path)
 
 	// Read the HCL file and prepare for parsing
 	d, err := ioutil.ReadFile(path)
@@ -124,6 +135,35 @@ func loadConfigFile(path string) (*Config, tfdiags.Diagnostics) {
 
 	if result.PluginCacheDir != "" {
 		result.PluginCacheDir = os.ExpandEnv(result.PluginCacheDir)
+	}
+
+	return result, diags
+}
+
+func loadConfigDir(path string) (*Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	result := &Config{}
+
+	entries, err := ioutil.ReadDir(path)
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Error reading %s: %s", path, err))
+		return result, diags
+	}
+
+	for _, entry := range entries {
+		name := entry.Name()
+		// Ignoring errors here because it is used only to indicate pattern
+		// syntax errors, and our patterns are hard-coded here.
+		hclMatched, _ := filepath.Match("*.tfrc", name)
+		jsonMatched, _ := filepath.Match("*.tfrc.json", name)
+		if !(hclMatched || jsonMatched) {
+			continue
+		}
+
+		filePath := filepath.Join(path, name)
+		fileConfig, fileDiags := loadConfigFile(filePath)
+		diags = diags.Append(fileDiags)
+		result = result.Merge(fileConfig)
 	}
 
 	return result, diags
