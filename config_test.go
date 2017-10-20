@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 // This is the directory where our test fixtures are.
@@ -49,6 +51,34 @@ func TestLoadConfig_env(t *testing.T) {
 
 	if !reflect.DeepEqual(c, expected) {
 		t.Fatalf("bad: %#v", c)
+	}
+}
+
+func TestLoadConfig_credentials(t *testing.T) {
+	got, err := LoadConfig(filepath.Join(fixtureDir, "credentials"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := &Config{
+		Credentials: map[string]map[string]interface{}{
+			"example.com": map[string]interface{}{
+				"token": "foo the bar baz",
+			},
+			"example.net": map[string]interface{}{
+				"username": "foo",
+				"password": "baz",
+			},
+		},
+		CredentialsHelpers: map[string]*ConfigCredentialsHelper{
+			"foo": &ConfigCredentialsHelper{
+				Args: []string{"bar", "baz"},
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("wrong result\ngot:  %swant: %s", spew.Sdump(got), spew.Sdump(want))
 	}
 }
 

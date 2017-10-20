@@ -4,10 +4,11 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/hashicorp/terraform/command"
+	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
-
-	"github.com/hashicorp/terraform/command"
 	"github.com/mitchellh/cli"
 )
 
@@ -34,7 +35,7 @@ func initCommands(config *Config) {
 		inAutomation = true
 	}
 
-	credsSrc := auth.NoCredentials // TODO: Actually expose credentials here
+	credsSrc := credentialsSource(config)
 	services := disco.NewDisco()
 	services.SetCredentialsSource(credsSrc)
 
@@ -341,4 +342,44 @@ func makeShutdownCh() <-chan struct{} {
 	}()
 
 	return resultCh
+}
+
+func credentialsSource(config *Config) auth.CredentialsSource {
+	creds := auth.NoCredentials
+	if len(config.Credentials) > 0 {
+		staticTable := map[svchost.Hostname]map[string]interface{}{}
+		for userHost, creds := range config.Credentials {
+			host, err := svchost.ForComparison(userHost)
+			if err != nil {
+				// We expect the config was already validated by the time we get
+				// here, so we'll just ignore invalid hostnames.
+				continue
+			}
+			staticTable[host] = creds
+		}
+		creds = auth.StaticCredentialsSource(staticTable)
+	}
+
+	for helperType, helperConfig := range config.CredentialsHelpers {
+		available := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
+		available = available.WithName(helperType)
+		if available.Count() == 0 {
+			break
+		}
+
+		selected := available.Newest()
+
+		helperSource := auth.HelperProgramCredentialsSource(selected.Path, helperConfig.Args...)
+		creds = auth.Credentials{
+			creds,
+			auth.CachingCredentialsSource(helperSource), // cached because external operation may be slow/expensive
+		}
+
+		// There should only be zero or one "credentials_helper" blocks. We
+		// assume that the config was validated earlier and so we don't check
+		// for extras here.
+		break
+	}
+
+	return creds
 }
