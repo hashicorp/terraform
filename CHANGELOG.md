@@ -11,7 +11,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* provisioner/chef: Clean clients from chef-vault when recreate_client enabled [GH-16357]
+* provisioner/chef: Clean clients from `chef-vault` when `recreate_client` enabled [GH-16357]
+
 ## 0.10.7 (October 2, 2017)
 
 NEW FEATURES:
