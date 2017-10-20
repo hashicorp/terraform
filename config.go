@@ -63,26 +63,55 @@ func ConfigDir() (string, error) {
 	return configDir()
 }
 
-// LoadConfig loads the CLI configuration from ".terraformrc" files.
-func LoadConfig(path string) (*Config, error) {
+// LoadConfig reads the CLI configuration from the various filesystem locations
+// and from the environment, returning a merged configuration along with any
+// diagnostics (errors and warnings) encountered along the way.
+func LoadConfig() (*Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	configVal := BuiltinConfig // copy
+	config := &configVal
+
+	if mainFilename, err := cliConfigFile(); err == nil {
+		if _, err := os.Stat(mainFilename); err == nil {
+			mainConfig, mainDiags := loadConfigFile(mainFilename)
+			diags = diags.Append(mainDiags)
+			config = config.Merge(mainConfig)
+		}
+	}
+
+	if envConfig := EnvConfig(); envConfig != nil {
+		// envConfig takes precedence
+		config = envConfig.Merge(config)
+	}
+
+	diags = diags.Append(config.Validate())
+
+	return config, diags
+}
+
+// loadConfigFile loads the CLI configuration from ".terraformrc" files.
+func loadConfigFile(path string) (*Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	result := &Config{}
+
 	// Read the HCL file and prepare for parsing
 	d, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error reading %s: %s", path, err)
+		diags = diags.Append(fmt.Errorf("Error reading %s: %s", path, err))
+		return result, diags
 	}
 
 	// Parse it
 	obj, err := hcl.Parse(string(d))
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error parsing %s: %s", path, err)
+		diags = diags.Append(fmt.Errorf("Error parsing %s: %s", path, err))
+		return result, diags
 	}
 
 	// Build up the result
-	var result Config
 	if err := hcl.DecodeObject(&result, obj); err != nil {
-		return nil, err
+		diags = diags.Append(fmt.Errorf("Error parsing %s: %s", path, err))
+		return result, diags
 	}
 
 	// Replace all env vars
@@ -97,7 +126,7 @@ func LoadConfig(path string) (*Config, error) {
 		result.PluginCacheDir = os.ExpandEnv(result.PluginCacheDir)
 	}
 
-	return &result, nil
+	return result, diags
 }
 
 // EnvConfig returns a Config populated from environment variables.
