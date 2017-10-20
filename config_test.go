@@ -13,7 +13,7 @@ import (
 const fixtureDir = "./test-fixtures"
 
 func TestLoadConfig(t *testing.T) {
-	c, err := LoadConfig(filepath.Join(fixtureDir, "config"))
+	c, err := loadConfigFile(filepath.Join(fixtureDir, "config"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -34,7 +34,7 @@ func TestLoadConfig_env(t *testing.T) {
 	defer os.Unsetenv("TFTEST")
 	os.Setenv("TFTEST", "hello")
 
-	c, err := LoadConfig(filepath.Join(fixtureDir, "config-env"))
+	c, err := loadConfigFile(filepath.Join(fixtureDir, "config-env"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -55,7 +55,7 @@ func TestLoadConfig_env(t *testing.T) {
 }
 
 func TestLoadConfig_credentials(t *testing.T) {
-	got, err := LoadConfig(filepath.Join(fixtureDir, "credentials"))
+	got, err := loadConfigFile(filepath.Join(fixtureDir, "credentials"))
 	if err != nil {
 		t.Fatal(err)
 	}
