@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
 
@@ -361,9 +362,11 @@ func credentialsSource(config *Config) auth.CredentialsSource {
 	}
 
 	for helperType, helperConfig := range config.CredentialsHelpers {
+		log.Printf("[DEBUG] Searching for credentials helper named %q", helperType)
 		available := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
 		available = available.WithName(helperType)
 		if available.Count() == 0 {
+			log.Printf("[ERROR] Unable to find credentials helper %q; ignoring", helperType)
 			break
 		}
 
