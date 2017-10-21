@@ -1022,6 +1022,22 @@ func TestLoad_jsonAttributes(t *testing.T) {
 	}
 }
 
+func TestLoad_onlyOverride(t *testing.T) {
+	c, err := LoadDir(filepath.Join(fixtureDir, "dir-only-override"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := variablesStr(c.Variables)
+	if actual != strings.TrimSpace(dirOnlyOverrideVariablesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 const jsonAttributeStr = `
 cloudstack_firewall.test (x1)
   ipaddress
@@ -1226,6 +1242,12 @@ foo
 const dirOverrideVarsVariablesStr = `
 foo
   baz
+  bar
+`
+
+const dirOnlyOverrideVariablesStr = `
+foo
+  bar
   bar
 `
 

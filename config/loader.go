@@ -80,7 +80,7 @@ func LoadDir(root string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(files) == 0 {
+	if len(files) == 0 && len(overrides) == 0 {
 		return nil, &ErrNoConfigsFound{Dir: root}
 	}
 
@@ -111,6 +111,9 @@ func LoadDir(root string) (*Config, error) {
 		} else {
 			result = c
 		}
+	}
+	if len(files) == 0 {
+		result = &Config{}
 	}
 
 	// Load all the overrides, and merge them into the config
