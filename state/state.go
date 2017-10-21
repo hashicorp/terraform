@@ -15,6 +15,7 @@ import (
 
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/version"
 )
 
 var rngSource *rand.Rand
@@ -158,7 +159,7 @@ func NewLockInfo() *LockInfo {
 	info := &LockInfo{
 		ID:      id,
 		Who:     fmt.Sprintf("%s@%s", userName, host),
-		Version: terraform.Version,
+		Version: version.Version,
 		Created: time.Now().UTC(),
 	}
 	return info

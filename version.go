@@ -1,10 +1,12 @@
 package main
 
-import "github.com/hashicorp/terraform/terraform"
+import (
+	"github.com/hashicorp/terraform/version"
+)
 
 // The git commit that was compiled. This will be filled in by the compiler.
 var GitCommit string
 
-const Version = terraform.Version
+const Version = version.Version
 
-var VersionPrerelease = terraform.VersionPrerelease
+var VersionPrerelease = version.Prerelease
