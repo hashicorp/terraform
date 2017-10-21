@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/version"
 )
 
 func init() {
@@ -119,7 +120,7 @@ func (p *Plan) contextOpts(base *ContextOpts) (*ContextOpts, error) {
 		log.Println("[WARNING] Plan state and ContextOpts state are not equal")
 	}
 
-	thisVersion := VersionString()
+	thisVersion := version.String()
 	if p.TerraformVersion != "" && p.TerraformVersion != thisVersion {
 		return nil, fmt.Errorf(
 			"plan was created with a different version of Terraform (created with %s, but running %s)",

@@ -6,6 +6,8 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 // CheckRequiredVersion verifies that any version requirements specified by
@@ -49,7 +51,7 @@ func CheckRequiredVersion(m *module.Tree) error {
 			tf.RequiredVersion, err)
 	}
 
-	if !cs.Check(SemVersion) {
+	if !cs.Check(tfversion.SemVer) {
 		return fmt.Errorf(
 			"The currently running version of Terraform doesn't meet the\n"+
 				"version requirements explicitly specified by the configuration.\n"+
@@ -62,7 +64,7 @@ func CheckRequiredVersion(m *module.Tree) error {
 				"  Current version: %s",
 			module,
 			tf.RequiredVersion,
-			SemVersion)
+			tfversion.SemVer)
 	}
 
 	return nil
