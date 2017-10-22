@@ -31,7 +31,7 @@ script:
 - make test
 - make e2etest
 - make vet
-- GOOS=windows go build
+- GOGC=off GOOS=windows go build
 branches:
   only:
   - master
