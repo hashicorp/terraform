@@ -13,6 +13,7 @@ import (
 	backendlocal "github.com/hashicorp/terraform/backend/local"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
 	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
+	backenddatastore "github.com/hashicorp/terraform/backend/remote-state/datastore"
 	backendetcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
 	backendinmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
@@ -46,9 +47,10 @@ func init() {
 		"s3":     func() backend.Backend { return backendS3.New() },
 		"azure": deprecateBackend(backendAzure.New(),
 			`Warning: "azure" name is deprecated, please use "azurerm"`),
-		"azurerm": func() backend.Backend { return backendAzure.New() },
-		"etcdv3":  func() backend.Backend { return backendetcdv3.New() },
-		"gcs":     func() backend.Backend { return backendGCS.New() },
+		"azurerm":   func() backend.Backend { return backendAzure.New() },
+		"etcdv3":    func() backend.Backend { return backendetcdv3.New() },
+		"gcs":       func() backend.Backend { return backendGCS.New() },
+		"datastore": func() backend.Backend { return backenddatastore.New() },
 	}
 
 	// Add the legacy remote backends that haven't yet been convertd to
