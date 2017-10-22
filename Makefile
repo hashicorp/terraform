@@ -46,7 +46,7 @@ testacc: fmtcheck generate
 # The TF_ACC here allows network access, but does not require any special
 # credentials since the e2etests use local-only providers such as "null".
 e2etest: generate
-	TF_ACC=1 go test -v ./command/e2etest
+	GOGC=off TF_ACC=1 go test -v ./command/e2etest
 
 test-compile: fmtcheck generate
 	@if [ "$(TEST)" = "./..." ]; then \
@@ -72,7 +72,7 @@ cover:
 # any common errors.
 vet:
 	@echo 'go vet ./...'
-	@go vet ./... ; if [ $$? -eq 1 ]; then \
+	@GOGC=off go vet ./... ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
@@ -85,8 +85,8 @@ generate:
 	@which stringer > /dev/null; if [ $$? -ne 0 ]; then \
 	  go get -u golang.org/x/tools/cmd/stringer; \
 	fi
-	go generate ./...
-	@go fmt command/internal_plugin_list.go > /dev/null
+	GOGC=off go generate ./...
+	@GOGC=off go fmt command/internal_plugin_list.go > /dev/null
 
 fmt:
 	gofmt -w $(GOFMT_FILES)
@@ -95,7 +95,7 @@ fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
 vendor-status:
-	@govendor status
+	@GOGC=off govendor status
 
 # disallow any parallelism (-j) for Make. This is necessary since some
 # commands during the build process create temporary files that collide
