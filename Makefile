@@ -15,10 +15,10 @@ bin: fmtcheck generate
 # dev creates binaries for testing Terraform locally. These are put
 # into ./bin/ as well as $GOPATH/bin
 dev: fmtcheck generate
-	@TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
+	@env GOGC=off TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
 quickdev: generate
-	@TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
+	@env GOGC=off TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
