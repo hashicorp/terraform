@@ -2094,6 +2094,30 @@
 			"revisionTime": "2016-10-29T10:40:18Z"
 		},
 		{
+			"checksumSHA1": "VqfozzXSA1zS53tDzG7R7C9XhuQ=",
+			"path": "github.com/yuin/gopher-lua",
+			"revision": "eb1c7299435cc746b72514f37f74a5154dfe460f",
+			"revisionTime": "2017-09-15T03:51:07Z"
+		},
+		{
+			"checksumSHA1": "yNGEI9BMDbGwabUnaHvV9ZZm/a0=",
+			"path": "github.com/yuin/gopher-lua/ast",
+			"revision": "eb1c7299435cc746b72514f37f74a5154dfe460f",
+			"revisionTime": "2017-09-15T03:51:07Z"
+		},
+		{
+			"checksumSHA1": "jL/Xn8U1QShceAAs7GezOfjLQ6o=",
+			"path": "github.com/yuin/gopher-lua/parse",
+			"revision": "eb1c7299435cc746b72514f37f74a5154dfe460f",
+			"revisionTime": "2017-09-15T03:51:07Z"
+		},
+		{
+			"checksumSHA1": "pOY+AESgLoqczVCXNCvmPtJyUXE=",
+			"path": "github.com/yuin/gopher-lua/pm",
+			"revision": "eb1c7299435cc746b72514f37f74a5154dfe460f",
+			"revisionTime": "2017-09-15T03:51:07Z"
+		},
+		{
 			"checksumSHA1": "R9ayYqxeUsPcIbs6KXCVwDIdf6M=",
 			"path": "github.com/zclconf/go-cty/cty",
 			"revision": "8bf222d6d03b7b336d013978f3acbfd877da428f",
@@ -2134,6 +2158,12 @@
 			"path": "github.com/zclconf/go-cty/cty/set",
 			"revision": "8bf222d6d03b7b336d013978f3acbfd877da428f",
 			"revisionTime": "2017-10-13T21:58:09Z"
+		},
+		{
+			"checksumSHA1": "ez4hx3X1BEDWpjDMP/rLc05QT84=",
+			"path": "github.com/zclconf/gopherlua-cty/luacty",
+			"revision": "cc135d44a84b9c21a10015788cd6eae35860b92a",
+			"revisionTime": "2017-10-22T16:23:55Z"
 		},
 		{
 			"checksumSHA1": "vE43s37+4CJ2CDU6TlOUOYE0K9c=",
