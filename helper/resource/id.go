@@ -20,6 +20,14 @@ func UniqueId() string {
 
 // Helper for a resource to generate a unique identifier w/ given prefix
 //
+// This wraps PrefixedUniqueIdLimit to preserve the previous interface
+
+func PrefixedUniqueId(prefix string) string {
+	return PrefixedUniqueIdLimit(prefix, -1)
+}
+
+// Helper for a resource to generate a unique identifier w/ given prefix
+//
 // After the prefix, the ID consists of an incrementing 26 digit value (to match
 // previous timestamp output).  After the prefix, the ID consists of a timestamp
 // and an incrementing 8 hex digit value The timestamp means that multiple IDs
@@ -27,14 +35,30 @@ func UniqueId() string {
 // across multiple terraform executions, as long as the clock is not turned back
 // between calls, and as long as any given terraform execution generates fewer
 // than 4 billion IDs.
-func PrefixedUniqueId(prefix string) string {
+func PrefixedUniqueIdLimit(prefix string, maxLength int) string {
 	// Be precise to 4 digits of fractional seconds, but remove the dot before the
 	// fractional seconds.
 	timestamp := strings.Replace(
 		time.Now().UTC().Format("20060102150405.0000"), ".", "", 1)
 
+	prefixLength := len(prefix)
+
+	switch {
+	case maxLength < 0:
+		// negative maxLength means no truncation
+		maxLength = prefixLength
+	case maxLength > prefixLength:
+		// prefix does not need to be truncated
+		maxLength = prefixLength
+	}
+
+	var finalPrefix string
+
+	// truncate prefix
+	finalPrefix = prefix[:maxLength]
+
 	idMutex.Lock()
 	defer idMutex.Unlock()
 	idCounter++
-	return fmt.Sprintf("%s%s%08x", prefix, timestamp, idCounter)
+	return fmt.Sprintf("%s%s%08x", finalPrefix, timestamp, idCounter)
 }

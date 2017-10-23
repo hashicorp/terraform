@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"testing"
@@ -65,4 +66,29 @@ func TestUniqueId(t *testing.T) {
 		t.Fatalf("Timestamp part should update at least once a millisecond %s %s",
 			id1, id2)
 	}
+}
+
+func TestPrefixedUniqueId(t *testing.T) {
+	const prefix = "terraform-"
+	const suffixLength = 26
+
+	var id string
+	var maxLength, totalLength int
+
+	// truncate the prefix
+	maxLength = 4
+
+	id = PrefixedUniqueIdLimit(prefix, maxLength)
+
+	totalLength = maxLength + suffixLength
+
+	if len(id) != totalLength {
+		t.Fatalf("ID not truncated to %d characters %s", totalLength, id)
+	}
+
+	matched, err := regexp.MatchString(fmt.Sprintf("^terr[[:digit:]]{%d}$", suffixLength), id)
+	if !matched {
+		t.Fatalf("ID prefix not correctly truncated %s %v", id, err)
+	}
+
 }
