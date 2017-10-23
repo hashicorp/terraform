@@ -13,7 +13,11 @@ type RecoveryCommand struct {
 
 func (c *RecoveryCommand) Run(args []string) int {
 
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to execute 'recover': %s", err))
+	}
+
 	cmdFlags := c.Meta.flagSet("recover")
 
 	cmdFlags.BoolVar(&c.FailFast, "stop-if-import-filed", false, "Stop recovery execution after the first import failed attempt.")
@@ -30,7 +34,7 @@ func (c *RecoveryCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	stateStore, err := b.State(c.Env())
+	stateStore, err := b.State(c.Workspace())
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return c.returnError()

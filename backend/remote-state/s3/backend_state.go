@@ -188,7 +188,7 @@ func (b *Backend) recoveryLogPath(name string) string {
 		return b.recoveryLogKeyName
 	}
 
-	return strings.Join([]string{keyEnvPrefix, name, b.recoveryLogKeyName}, "/")
+	return strings.Join([]string{b.workspaceKeyPrefix, name, b.recoveryLogKeyName}, "/")
 }
 
 func (b *Backend) lostResourcesPath(name string) string {
@@ -197,7 +197,7 @@ func (b *Backend) lostResourcesPath(name string) string {
 		return strings.Join([]string{b.lostResourcesPathName, b.lostResourcesKeyName + currentDate}, "/")
 	}
 
-	return strings.Join([]string{keyEnvPrefix, name, b.lostResourcesPathName, b.lostResourcesKeyName + currentDate}, "/")
+	return strings.Join([]string{b.workspaceKeyPrefix, name, b.lostResourcesPathName, b.lostResourcesKeyName + currentDate}, "/")
 }
 
 const errStateUnlock = `

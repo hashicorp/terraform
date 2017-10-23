@@ -165,16 +165,16 @@ type Backend struct {
 	s3Client  *s3.S3
 	dynClient *dynamodb.DynamoDB
 
-	bucketName           string
-	keyName              string
+	bucketName            string
+	keyName               string
 	recoveryLogKeyName    string
 	lostResourcesKeyName  string
 	lostResourcesPathName string
-	serverSideEncryption bool
-	acl                  string
-	kmsKeyID             string
-	ddbTable             string
-	workspaceKeyPrefix   string
+	serverSideEncryption  bool
+	acl                   string
+	kmsKeyID              string
+	ddbTable              string
+	workspaceKeyPrefix    string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
