@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
+	"time"
 )
 
 func (b *Backend) States() ([]string, error) {
@@ -83,6 +84,8 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		dynClient:            b.dynClient,
 		bucketName:           b.bucketName,
 		path:                 b.path(name),
+		recoveryLogPath:      b.recoveryLogPath(name),
+		lostResourcePath:     b.lostResourcesPath(name),
 		serverSideEncryption: b.serverSideEncryption,
 		acl:                  b.acl,
 		kmsKeyID:             b.kmsKeyID,
@@ -178,6 +181,23 @@ func (b *Backend) path(name string) string {
 	}
 
 	return strings.Join([]string{b.workspaceKeyPrefix, name, b.keyName}, "/")
+}
+
+func (b *Backend) recoveryLogPath(name string) string {
+	if name == backend.DefaultStateName {
+		return b.recoveryLogKeyName
+	}
+
+	return strings.Join([]string{b.workspaceKeyPrefix, name, b.recoveryLogKeyName}, "/")
+}
+
+func (b *Backend) lostResourcesPath(name string) string {
+	currentDate := time.Now().Format("-02-01-2006-15_04_05UTC")
+	if name == backend.DefaultStateName {
+		return strings.Join([]string{b.lostResourcesPathName, b.lostResourcesKeyName + currentDate}, "/")
+	}
+
+	return strings.Join([]string{b.workspaceKeyPrefix, name, b.lostResourcesPathName, b.lostResourcesKeyName + currentDate}, "/")
 }
 
 const errStateUnlock = `

@@ -60,6 +60,35 @@ func (s *BackupState) Unlock(id string) error {
 	return s.Real.Unlock(id)
 }
 
+// Because BackupState is a wrapper for remote state need to recall wrapped object.
+func (s *BackupState) WriteRecoveryLog(data []byte) error {
+	if recoveryWriter, ok := s.Real.(RecoveryLogWriter); ok {
+		return recoveryWriter.WriteRecoveryLog(data)
+	}
+	return nil
+}
+
+func (s *BackupState) WriteLostResourceLog(data []byte) error {
+	if recoveryWriter, ok := s.Real.(RecoveryLogWriter); ok {
+		return recoveryWriter.WriteLostResourceLog(data)
+	}
+	return nil
+}
+
+func (s *BackupState) DeleteRecoveryLog() error {
+	if recoveryWriter, ok := s.Real.(RecoveryLogWriter); ok {
+		return recoveryWriter.DeleteRecoveryLog()
+	}
+	return nil
+}
+
+func (s *BackupState) ReadRecoveryLog() (map[string]Instance, error) {
+	if recoveryReader, ok := s.Real.(RecoveryLogReader); ok {
+		return recoveryReader.ReadRecoveryLog()
+	}
+	return nil, nil
+}
+
 func (s *BackupState) backup() error {
 	state := s.Real.State()
 	if state == nil {

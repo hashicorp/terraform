@@ -45,7 +45,15 @@ func (b *Local) opApply(
 	}
 	old := b.ContextOpts.Hooks
 	defer func() { b.ContextOpts.Hooks = old }()
-	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook)
+
+	var persistHook *PersistHook
+	if !op.Destroy {
+		// Setup persist hook if current operation does not "Destroy" operation
+		persistHook = new(PersistHook)
+		b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook, persistHook)
+	} else {
+		b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook)
+	}
 
 	// Get our context
 	tfCtx, opState, err := b.context(op)
@@ -141,6 +149,11 @@ func (b *Local) opApply(
 
 	// Setup our hook for continuous state updates
 	stateHook.State = opState
+	if persistHook != nil {
+		// Fill in the fields only if the hook was created
+		persistHook.State = opState
+		persistHook.Context = tfCtx
+	}
 
 	// Start the apply in a goroutine so that we can be interrupted.
 	var applyState *terraform.State
@@ -200,6 +213,13 @@ func (b *Local) opApply(
 	if err := opState.PersistState(); err != nil {
 		runningOp.Err = b.backupStateForError(applyState, err)
 		return
+	}
+
+	if recoveryWriter, ok := opState.(state.RecoveryLogWriter); ok && !op.Destroy {
+		err := recoveryWriter.DeleteRecoveryLog()
+		if err != nil && b.CLI != nil {
+			b.CLI.Error(fmt.Sprintf("Error removing recovery log: %v", err))
+		}
 	}
 
 	if applyErr != nil {

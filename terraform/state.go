@@ -1797,6 +1797,8 @@ type EphemeralState struct {
 	// doesn't state that you need to set this, then don't worry about
 	// setting it.
 	Type string `json:"-"`
+
+	MetaId string `json:"-"`
 }
 
 func (e *EphemeralState) init() {

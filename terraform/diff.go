@@ -368,11 +368,12 @@ func (d *ModuleDiff) String() string {
 
 // InstanceDiff is the diff of a resource from some state to another.
 type InstanceDiff struct {
-	mu             sync.Mutex
-	Attributes     map[string]*ResourceAttrDiff
-	Destroy        bool
-	DestroyDeposed bool
-	DestroyTainted bool
+	mu               sync.Mutex
+	Attributes       map[string]*ResourceAttrDiff
+	Destroy          bool
+	DestroyDeposed   bool
+	DestroyTainted   bool
+	IdChangedHandler OnIdChangedHandler
 
 	// Meta is a simple K/V map that is stored in a diff and persisted to
 	// plans but otherwise is completely ignored by Terraform core. It is
@@ -381,8 +382,16 @@ type InstanceDiff struct {
 	Meta map[string]interface{}
 }
 
+type OnIdChangedHandler func(id string)
+
 func (d *InstanceDiff) Lock()   { d.mu.Lock() }
 func (d *InstanceDiff) Unlock() { d.mu.Unlock() }
+
+func (d *InstanceDiff) OnIdChanged(id string) {
+	if id != "" && d.IdChangedHandler != nil {
+		d.IdChangedHandler(id)
+	}
+}
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
 type ResourceAttrDiff struct {

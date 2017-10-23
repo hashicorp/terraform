@@ -13,6 +13,10 @@ import (
 	terraformAWS "github.com/terraform-providers/terraform-provider-aws/aws"
 )
 
+const RecoveryLogKeySuffix string = "-recovery-log"
+const LostResourcesKeySuffix string = "-lost-resource-log-"
+const LostResourcesPath string = "-lost-resources"
+
 // New creates a new backend for S3 remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
@@ -199,13 +203,16 @@ type Backend struct {
 	s3Client  *s3.S3
 	dynClient *dynamodb.DynamoDB
 
-	bucketName           string
-	keyName              string
-	serverSideEncryption bool
-	acl                  string
-	kmsKeyID             string
-	ddbTable             string
-	workspaceKeyPrefix   string
+	bucketName            string
+	keyName               string
+	recoveryLogKeyName    string
+	lostResourcesKeyName  string
+	lostResourcesPathName string
+	serverSideEncryption  bool
+	acl                   string
+	kmsKeyID              string
+	ddbTable              string
+	workspaceKeyPrefix    string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -218,6 +225,9 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.bucketName = data.Get("bucket").(string)
 	b.keyName = data.Get("key").(string)
+	b.recoveryLogKeyName = b.keyName + RecoveryLogKeySuffix
+	b.lostResourcesKeyName = b.keyName + LostResourcesKeySuffix
+	b.lostResourcesPathName = b.keyName + LostResourcesPath
 	b.serverSideEncryption = data.Get("encrypt").(bool)
 	b.acl = data.Get("acl").(string)
 	b.kmsKeyID = data.Get("kms_key_id").(string)

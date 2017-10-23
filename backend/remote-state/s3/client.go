@@ -32,6 +32,8 @@ type RemoteClient struct {
 	dynClient            *dynamodb.DynamoDB
 	bucketName           string
 	path                 string
+	recoveryLogPath      string
+	lostResourcePath     string
 	serverSideEncryption bool
 	acl                  string
 	kmsKeyID             string
@@ -200,6 +202,130 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	return nil
+}
+
+func (c *RemoteClient) PutRecoveryLog(data []byte) error {
+	contentType := "application/json"
+	contentLength := int64(len(data))
+
+	i := &s3.PutObjectInput{
+		ContentType:   &contentType,
+		ContentLength: &contentLength,
+		Body:          bytes.NewReader(data),
+		Bucket:        &c.bucketName,
+		Key:           &c.recoveryLogPath,
+	}
+
+	if c.serverSideEncryption {
+		if c.kmsKeyID != "" {
+			i.SSEKMSKeyId = &c.kmsKeyID
+			i.ServerSideEncryption = aws.String("aws:kms")
+		} else {
+			i.ServerSideEncryption = aws.String("AES256")
+		}
+	}
+
+	if c.acl != "" {
+		i.ACL = aws.String(c.acl)
+	}
+
+	log.Printf("[DEBUG] Uploading current resources status to S3: %#v", i)
+
+	if _, err := c.s3Client.PutObject(i); err == nil {
+		return nil
+	} else {
+		return fmt.Errorf("Failed to upload current resources status: %v", err)
+	}
+}
+
+func (c *RemoteClient) PutLostResourceLog(data []byte) error {
+	contentType := "application/json"
+	contentLength := int64(len(data))
+
+	i := &s3.PutObjectInput{
+		ContentType:   &contentType,
+		ContentLength: &contentLength,
+		Body:          bytes.NewReader(data),
+		Bucket:        &c.bucketName,
+		Key:           &c.lostResourcePath,
+	}
+
+	if c.serverSideEncryption {
+		if c.kmsKeyID != "" {
+			i.SSEKMSKeyId = &c.kmsKeyID
+			i.ServerSideEncryption = aws.String("aws:kms")
+		} else {
+			i.ServerSideEncryption = aws.String("AES256")
+		}
+	}
+
+	if c.acl != "" {
+		i.ACL = aws.String(c.acl)
+	}
+
+	log.Printf("[DEBUG] Uploading lost resource status to S3: %#v", i)
+
+	if _, err := c.s3Client.PutObject(i); err == nil {
+		return nil
+	} else {
+		return fmt.Errorf("Failed to upload lost resource status: %v", err)
+	}
+}
+
+// Removes recovery log and lost resource log.
+func (c *RemoteClient) DeleteRecoveryLog() error {
+	_, err := c.s3Client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: &c.bucketName,
+		Key:    &c.recoveryLogPath,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	_, err = c.s3Client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: &c.bucketName,
+		Key:    &c.lostResourcePath,
+	})
+	return err
+}
+
+func (c *RemoteClient) GetRecoveryLog() (*remote.Payload, error) {
+	output, err := c.s3Client.GetObject(&s3.GetObjectInput{
+		Bucket: &c.bucketName,
+		Key:    &c.recoveryLogPath,
+	})
+
+	if err != nil {
+		if awserr := err.(awserr.Error); awserr != nil {
+			if awserr.Code() == "NoSuchKey" {
+				return nil, nil
+			} else {
+				return nil,
+					fmt.Errorf("Failed to restore the recovery log, but it's possible that recovery data is available. AWS error: %s", err)
+			}
+		} else {
+			return nil, fmt.Errorf("Failed to restore the recovery log, but it's possible that recovery data is available. Error: %s", err)
+		}
+	}
+
+	defer output.Body.Close()
+
+	buf := bytes.NewBuffer(nil)
+	if _, err := io.Copy(buf, output.Body); err != nil {
+		return nil, fmt.Errorf("Failed to read recovery log but recovery data is available: %s", err)
+	}
+
+	payload := &remote.Payload{
+		Data: buf.Bytes(),
+	}
+
+	// If there was no data, then return nil
+	if len(payload.Data) == 0 {
+		return nil, nil
+	}
+
+	return payload, nil
 }
 
 func (c *RemoteClient) Delete() error {
