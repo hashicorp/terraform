@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync"
 
@@ -28,7 +27,6 @@ type Tree struct {
 	children map[string]*Tree
 	path     []string
 	lock     sync.RWMutex
-	storage  string
 }
 
 // NewTree returns a new Tree for the given config structure.
@@ -160,12 +158,12 @@ func (t *Tree) Name() string {
 // module trees inherently require the configuration to be in a reasonably
 // sane state: no circular dependencies, proper module sources, etc. A full
 // suite of validations can be done by running Validate (after loading).
-func (t *Tree) Load(s getter.Storage, mode GetMode) error {
+func (t *Tree) Load(storage getter.Storage, mode GetMode) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
 	// discover where our modules are going to be stored
-	storage := moduleStorage{storageDir: storageDir(s)}
+	s := newModuleStorage(storage)
 
 	// Reset the children if we have any
 	t.children = nil
@@ -211,7 +209,7 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		// In order to load the Tree we need to find out if there was another
 		// subDir stored from discovery.
 		if found && mode != GetModeUpdate {
-			subDir, err := storage.getModuleRoot(dir)
+			subDir, err := s.getModuleRoot(dir)
 			if err != nil {
 				// If there's a problem with the subdir record, we'll let the
 				// recordSubdir method fix it up.  Any other errors filesystem
@@ -273,7 +271,7 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 
 			subDir = fullDir[len(dir)+1:]
 
-			if err := storage.recordModuleRoot(dir, subDir); err != nil {
+			if err := s.recordModuleRoot(dir, subDir); err != nil {
 				return err
 			}
 			dir = fullDir
@@ -649,20 +647,4 @@ func (e *treeError) Error() string {
 	}
 
 	return out.String()
-}
-
-// The Tree needs to know where to store the module manifest.
-// Th Storage abstraction doesn't provide access to the storage root directory,
-// so we extract it here.
-// TODO: This needs to be replaced by refactoring the getter.Storage usage for
-//       modules.
-func storageDir(s getter.Storage) string {
-	// get the StorageDir directly if we have a FolderStorage
-	if s, ok := s.(*getter.FolderStorage); ok {
-		return s.StorageDir
-	}
-
-	// this is our UI wrapper, so we need to extract the FolderStorage
-	fs := reflect.ValueOf(s).Elem().FieldByName("Storage").Interface()
-	return storageDir(fs.(getter.Storage))
 }
