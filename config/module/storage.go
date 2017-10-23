@@ -44,7 +44,7 @@ type moduleRecord struct {
 	Root string
 }
 
-// moduleStorgae implements methods to record and fetch metadata about the
+// moduleStorage implements methods to record and fetch metadata about the
 // modules that have been fetched and stored locally. The getter.Storgae
 // abstraction doesn't provide the information needed to know which versions of
 // a module have been stored, or their location.
@@ -162,4 +162,19 @@ func (m moduleStorage) recordModuleRoot(dir, root string) error {
 	}
 
 	return m.recordModule(rec)
+}
+
+func (m moduleStorage) getStorage(key string, src string, mode GetMode) (string, bool, error) {
+	// Get the module with the level specified if we were told to.
+	if mode > GetModeNone {
+		log.Printf("[DEBUG] fetching %q with key %q", src, key)
+		if err := m.Storage.Get(key, src, mode == GetModeUpdate); err != nil {
+			return "", false, err
+		}
+	}
+
+	// Get the directory where the module is.
+	dir, found, err := m.Storage.Dir(key)
+	log.Printf("[DEBUG] found %q in %q: %t", src, dir, found)
+	return dir, found, err
 }
