@@ -27,6 +27,17 @@ type Tree struct {
 	children map[string]*Tree
 	path     []string
 	lock     sync.RWMutex
+
+	// version is the final version of the config loaded for the Tree's module
+	version string
+	// source is the "source" string used to load this module. It's possible
+	// for a module source to change, but the path remains the same, preventing
+	// it from being reloaded.
+	source string
+	// parent allows us to walk back up the tree and determine if there are any
+	// versioned ancestor modules which may effect the stored location of
+	// submodules
+	parent *Tree
 }
 
 // NewTree returns a new Tree for the given config structure.
@@ -174,7 +185,6 @@ func (t *Tree) Load(storage getter.Storage, mode GetMode) error {
 
 	// Go through all the modules and get the directory for them.
 	for _, m := range modules {
-
 		if _, ok := children[m.Name]; ok {
 			return fmt.Errorf(
 				"module %s: duplicated. module names must be unique", m.Name)
@@ -185,24 +195,53 @@ func (t *Tree) Load(storage getter.Storage, mode GetMode) error {
 		copy(path, t.path)
 		path = append(path, m.Name)
 
-		// The key is the string that will be hashed to uniquely id the Source.
-		// The leading digit can be incremented to force re-fetch all existing
-		// modules.
-		key := fmt.Sprintf("1.root.%s-%s", strings.Join(path, "."), m.Source)
-
 		log.Printf("[TRACE] module source: %q", m.Source)
 		// Split out the subdir if we have one.
-		// Terraform keeps the entire requested tree for now, so that modules can
+		// Terraform keeps the entire requested tree, so that modules can
 		// reference sibling modules from the same archive or repo.
-		source, subDir := getter.SourceDirSubdir(m.Source)
+		rawSource, subDir := getter.SourceDirSubdir(m.Source)
 
-		// First check if we we need to download anything.
-		// This is also checked by the getter.Storage implementation, but we
-		// want to be able to short-circuit the detection as well, since some
-		// detectors may need to make external calls.
-		dir, found, err := s.Dir(key)
-		if err != nil {
-			return err
+		// The key is the string that will be used to uniquely id the Source in
+		// the local storage.  The prefix digit can be incremented to
+		// invalidate the local module storage.
+		key := "1." + t.versionedPathKey(m)
+
+		// we can't calculate a key without a version, so lookup if we have any
+		// matching modules stored.
+		var dir, version string
+		var found bool
+		// only registry modules have a version, and only full URLs are globally unique
+
+		// TODO: This needs to only check for registry modules, and lookup
+		//       versions if we don't find them here.  Don't continue on as if
+		//       a registry identifier could be some other source.
+		if mode != GetModeUpdate {
+			versions, err := s.moduleVersions(rawSource)
+			if err != nil {
+				log.Println("[ERROR] error looking up versions for %q: %s", m.Source, err)
+				return err
+			}
+
+			match, err := newestRecord(versions, m.Version)
+			if err != nil {
+				// not everything has a recorded version, or a constraint, so just log this
+				log.Printf("[INFO] no matching version for %q<%s>, %s", m.Source, m.Version, err)
+			}
+
+			dir = match.Dir
+			version = match.Version
+			found = dir != ""
+		}
+
+		// It wasn't a versioned module, check for the exact key.
+		// This replaces the Storgae.Dir method with our manifest lookup.
+		var err error
+		if !found {
+			dir, err = s.moduleDir(key)
+			if err != nil {
+				return err
+			}
+			found = dir != ""
 		}
 
 		// looks like we already have it
@@ -212,25 +251,28 @@ func (t *Tree) Load(storage getter.Storage, mode GetMode) error {
 			subDir, err := s.getModuleRoot(dir)
 			if err != nil {
 				// If there's a problem with the subdir record, we'll let the
-				// recordSubdir method fix it up.  Any other errors filesystem
-				// errors will turn up again below.
+				// recordSubdir method fix it up.  Any other filesystem errors
+				// will turn up again below.
 				log.Println("[WARN] error reading subdir record:", err)
 			} else {
 				dir := filepath.Join(dir, subDir)
 				// Load the configurations.Dir(source)
-				children[m.Name], err = NewTreeModule(m.Name, dir)
+				child, err := NewTreeModule(m.Name, dir)
 				if err != nil {
 					return fmt.Errorf("module %s: %s", m.Name, err)
 				}
-				// Set the path of this child
-				children[m.Name].path = path
+				child.path = path
+				child.parent = t
+				child.version = version
+				child.source = m.Source
+				children[m.Name] = child
 				continue
 			}
 		}
 
-		log.Printf("[TRACE] module source: %q", source)
+		log.Printf("[TRACE] module source: %q", rawSource)
 
-		source, err = getter.Detect(source, t.config.Dir, detectors)
+		source, err := getter.Detect(rawSource, t.config.Dir, detectors)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
@@ -257,9 +299,12 @@ func (t *Tree) Load(storage getter.Storage, mode GetMode) error {
 				"module %s: not found, may need to be downloaded using 'terraform get'", m.Name)
 		}
 
+		log.Printf("[TRACE] %q stored in %q", source, dir)
+
 		// expand and record the subDir for later
+		fullDir := dir
 		if subDir != "" {
-			fullDir, err := getter.SubdirGlob(dir, subDir)
+			fullDir, err = getter.SubdirGlob(dir, subDir)
 			if err != nil {
 				return err
 			}
@@ -268,22 +313,29 @@ func (t *Tree) Load(storage getter.Storage, mode GetMode) error {
 			if len(dir)+1 > len(fullDir) {
 				return fmt.Errorf("invalid module storage path %q", fullDir)
 			}
-
 			subDir = fullDir[len(dir)+1:]
-
-			if err := s.recordModuleRoot(dir, subDir); err != nil {
-				return err
-			}
-			dir = fullDir
 		}
 
-		// Load the configurations.Dir(source)
-		children[m.Name], err = NewTreeModule(m.Name, dir)
+		rec := moduleRecord{
+			Source: m.Source,
+			Key:    key,
+			Dir:    dir,
+			Root:   subDir,
+		}
+
+		if err := s.recordModule(rec); err != nil {
+			return err
+		}
+
+		child, err := NewTreeModule(m.Name, fullDir)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
-		// Set the path of this child
-		children[m.Name].path = path
+		child.path = path
+		child.parent = t
+		child.version = version
+		child.source = m.Source
+		children[m.Name] = child
 	}
 
 	// Go through all the children and load them.
@@ -598,6 +650,44 @@ func (t *Tree) Validate() error {
 	}
 
 	return newErr.ErrOrNil()
+}
+
+// versionedPathKey returns a path string with every levels full name, version
+// and source encoded. This is to provide a unique key for our module storage,
+// since submodules need to know which versions of their ancestor modules they
+// are loaded from.
+func (t *Tree) versionedPathKey(m *Module) string {
+	path := make([]string, len(t.path)+1)
+	path[len(path)-1] = m.Name
+	// We're going to load these in order for easier reading and debugging, but
+	// in practice they only need to be unique and consistent.
+
+	p := t
+	i := len(path) - 2
+	for ; i >= 0; i-- {
+		if p == nil {
+			break
+		}
+		// we may have been loaded under a blank Tree, so always check for a name
+		// too.
+		if p.name == "" {
+			break
+		}
+		seg := p.name
+		if p.version != "" {
+			seg += "#" + p.version
+		}
+
+		if p.source != "" {
+			seg += ";" + p.source
+		}
+
+		path[i] = seg
+		p = p.parent
+	}
+
+	key := strings.Join(path, "|")
+	return key
 }
 
 // treeError is an error use by Tree.Validate to accumulates all
