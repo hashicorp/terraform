@@ -23,12 +23,14 @@ type moduleManifest struct {
 // This is compared for equality using '==', so all fields needs to remain
 // comparable.
 type moduleRecord struct {
-	// Source is the module source string, minus any subdirectory.
-	// If it is sourced from a registry, it will include the hostname if it is
-	// supplied in configuration.
+	// Source is the module source string from the config, minus any
+	// subdirectory.
 	Source string
 
-	// Version is the exact version string that is stored in this Key.
+	// Key is the locally unique identifier for this module.
+	Key string
+
+	// Version is the exact version string for the stored module.
 	Version string
 
 	// Dir is the directory name returned by the FileStorage. This is what
@@ -136,6 +138,41 @@ func (m moduleStorage) recordModule(rec moduleRecord) error {
 
 	manifestPath := filepath.Join(m.storageDir, manifestName)
 	return ioutil.WriteFile(manifestPath, js, 0644)
+}
+
+// load the manifest from dir, and return all module versions matching the
+// provided source. Records with no version info will be skipped, as they need
+// to be uniquely identified by other means.
+func (m moduleStorage) moduleVersions(source string) ([]moduleRecord, error) {
+	manifest, err := m.loadManifest()
+	if err != nil {
+		return manifest.Modules, err
+	}
+
+	var matching []moduleRecord
+
+	for _, m := range manifest.Modules {
+		if m.Source == source && m.Version != "" {
+			matching = append(matching, m)
+		}
+	}
+
+	return matching, nil
+}
+
+func (m moduleStorage) moduleDir(key string) (string, error) {
+	manifest, err := m.loadManifest()
+	if err != nil {
+		return "", err
+	}
+
+	for _, m := range manifest.Modules {
+		if m.Key == key {
+			return m.Dir, nil
+		}
+	}
+
+	return "", nil
 }
 
 // return only the root directory of the module stored in dir.
