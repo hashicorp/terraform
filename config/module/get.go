@@ -64,18 +64,6 @@ func GetCopy(dst, src string) error {
 	return copyDir(dst, tmpDir)
 }
 
-func getStorage(s getter.Storage, key string, src string, mode GetMode) (string, bool, error) {
-	// Get the module with the level specified if we were told to.
-	if mode > GetModeNone {
-		if err := s.Get(key, src, mode == GetModeUpdate); err != nil {
-			return "", false, err
-		}
-	}
-
-	// Get the directory where the module is.
-	return s.Dir(key)
-}
-
 const (
 	registryAPI   = "https://registry.terraform.io/v1/modules"
 	xTerraformGet = "X-Terraform-Get"

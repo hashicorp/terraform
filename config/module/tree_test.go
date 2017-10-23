@@ -690,6 +690,45 @@ func TestTreeProviders_implicitMultiLevel(t *testing.T) {
 	}
 }
 
+func TestTreeLoad_conflictingSubmoduleNames(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "conficting-submodule-names"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("load failed: %s", err)
+	}
+
+	if !tree.Loaded() {
+		t.Fatal("should be loaded")
+	}
+
+	// Try to reload
+	if err := tree.Load(storage, GetModeNone); err != nil {
+		t.Fatalf("reload failed: %s", err)
+	}
+
+	// verify that the grand-children are correctly loaded
+	for _, c := range tree.Children() {
+		for _, gc := range c.Children() {
+			if len(gc.config.Resources) != 1 {
+				t.Fatalf("expected 1 resource in %s, got %d", gc.name, len(gc.config.Resources))
+			}
+			res := gc.config.Resources[0]
+			switch gc.path[0] {
+			case "a":
+				if res.Name != "a-c" {
+					t.Fatal("found wrong resource in a/c:", res.Name)
+				}
+			case "b":
+				if res.Name != "b-c" {
+					t.Fatal("found wrong resource in b/c:", res.Name)
+				}
+			}
+
+		}
+	}
+}
+
 const treeLoadStr = `
 root
   foo (path: foo)
