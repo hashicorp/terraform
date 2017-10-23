@@ -44,7 +44,7 @@ LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} $LD_FLAGS"
 
 # In release mode we don't want debug information in the binary
 if [[ -n "${TF_RELEASE}" ]]; then
-    LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/hashicorp/terraform/terraform.VersionPrerelease= -s -w"
+    LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/hashicorp/terraform/version.Prerelease= -s -w"
 fi
 
 # Build!
