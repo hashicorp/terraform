@@ -40,9 +40,8 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 		HTTPS:    connInfo.HTTPS,
 		Insecure: connInfo.Insecure,
 	}
-
-	if connInfo.CACert != nil {
-		endpoint.CACert = *connInfo.CACert
+	if len(connInfo.CACert) > 0 {
+		endpoint.CACert = []byte(connInfo.CACert)
 	}
 
 	comm := &Communicator{
@@ -86,7 +85,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) error {
 			c.connInfo.Password != "",
 			c.connInfo.HTTPS,
 			c.connInfo.Insecure,
-			c.connInfo.CACert != nil,
+			c.connInfo.CACert != "",
 		))
 	}
 
@@ -211,8 +210,8 @@ func (c *Communicator) newCopyClient() (*winrmcp.Winrmcp, error) {
 		MaxOperationsPerShell: 15, // lowest common denominator
 	}
 
-	if c.connInfo.CACert != nil {
-		config.CACertBytes = *c.connInfo.CACert
+	if c.connInfo.CACert != "" {
+		config.CACertBytes = []byte(c.connInfo.CACert)
 	}
 
 	return winrmcp.New(addr, &config)
