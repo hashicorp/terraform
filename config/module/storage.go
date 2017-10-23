@@ -6,6 +6,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
+
+	getter "github.com/hashicorp/go-getter"
 )
 
 const manifestName = "modules.json"
@@ -46,7 +49,35 @@ type moduleRecord struct {
 // abstraction doesn't provide the information needed to know which versions of
 // a module have been stored, or their location.
 type moduleStorage struct {
+	getter.Storage
 	storageDir string
+}
+
+func newModuleStorage(s getter.Storage) moduleStorage {
+	return moduleStorage{
+		Storage:    s,
+		storageDir: storageDir(s),
+	}
+}
+
+// The Tree needs to know where to store the module manifest.
+// Th Storage abstraction doesn't provide access to the storage root directory,
+// so we extract it here.
+// TODO: This needs to be replaced by refactoring the getter.Storage usage for
+//       modules.
+func storageDir(s getter.Storage) string {
+	// get the StorageDir directly if possible
+	switch t := s.(type) {
+	case *getter.FolderStorage:
+		return t.StorageDir
+	case moduleStorage:
+		return t.storageDir
+	}
+
+	// this should be our UI wrapper which is exported here, so we need to
+	// extract the FolderStorage via reflection.
+	fs := reflect.ValueOf(s).Elem().FieldByName("Storage").Interface()
+	return storageDir(fs.(getter.Storage))
 }
 
 // loadManifest returns the moduleManifest file from the parent directory.
