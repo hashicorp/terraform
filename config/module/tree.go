@@ -248,7 +248,7 @@ func (t *Tree) Load(storage getter.Storage, mode GetMode) error {
 
 		log.Printf("[TRACE] getting module source %q", source)
 
-		dir, ok, err := getStorage(s, key, source, mode)
+		dir, ok, err := s.getStorage(key, source, mode)
 		if err != nil {
 			return err
 		}
