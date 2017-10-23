@@ -271,15 +271,17 @@ func TestTree_recordManifest(t *testing.T) {
 	}
 	defer os.RemoveAll(td)
 
+	storage := moduleStorage{storageDir: td}
+
 	dir := filepath.Join(td, "0131bf0fef686e090b16bdbab4910ddf")
 
 	subDir := "subDirName"
 
 	// record and read the subdir path
-	if err := recordModuleRoot(dir, subDir); err != nil {
+	if err := storage.recordModuleRoot(dir, subDir); err != nil {
 		t.Fatal(err)
 	}
-	actual, err := getModuleRoot(dir)
+	actual, err := storage.getModuleRoot(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,10 +292,10 @@ func TestTree_recordManifest(t *testing.T) {
 
 	// overwrite the path, and nmake sure we get the new one
 	subDir = "newSubDir"
-	if err := recordModuleRoot(dir, subDir); err != nil {
+	if err := storage.recordModuleRoot(dir, subDir); err != nil {
 		t.Fatal(err)
 	}
-	actual, err = getModuleRoot(dir)
+	actual, err = storage.getModuleRoot(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,21 +305,21 @@ func TestTree_recordManifest(t *testing.T) {
 	}
 
 	// create a fake entry
-	if err := ioutil.WriteFile(moduleManifestPath(dir), []byte("BAD DATA"), 0644); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(td, manifestName), []byte("BAD DATA"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	// this should fail because there aare now 2 entries
-	actual, err = getModuleRoot(dir)
+	actual, err = storage.getModuleRoot(dir)
 	if err == nil {
 		t.Fatal("expected multiple subdir entries")
 	}
 
 	// writing the subdir entry should remove the incorrect value
-	if err := recordModuleRoot(dir, subDir); err != nil {
+	if err := storage.recordModuleRoot(dir, subDir); err != nil {
 		t.Fatal(err)
 	}
-	actual, err = getModuleRoot(dir)
+	actual, err = storage.getModuleRoot(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
