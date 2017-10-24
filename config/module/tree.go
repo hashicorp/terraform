@@ -270,8 +270,6 @@ func (t *Tree) Load(storage getter.Storage, mode GetMode) error {
 			}
 		}
 
-		log.Printf("[TRACE] module source: %q", rawSource)
-
 		source, err := getter.Detect(rawSource, t.config.Dir, detectors)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
@@ -658,7 +656,7 @@ func (t *Tree) Validate() error {
 // are loaded from.
 func (t *Tree) versionedPathKey(m *Module) string {
 	path := make([]string, len(t.path)+1)
-	path[len(path)-1] = m.Name
+	path[len(path)-1] = m.Name + ";" + m.Source
 	// We're going to load these in order for easier reading and debugging, but
 	// in practice they only need to be unique and consistent.
 
