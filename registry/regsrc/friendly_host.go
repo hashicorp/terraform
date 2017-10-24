@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"golang.org/x/net/idna"
+	"github.com/hashicorp/terraform/svchost"
 )
 
 var (
@@ -110,27 +110,20 @@ func (h *FriendlyHost) Valid() bool {
 // Display returns the host formatted for display to the user in CLI or web
 // output.
 func (h *FriendlyHost) Display() string {
-	parts := strings.SplitN(h.Raw, ":", 2)
-	var err error
-	parts[0], err = idna.Display.ToUnicode(parts[0])
+	hostname, err := svchost.ForComparison(h.Raw)
 	if err != nil {
 		return InvalidHostString
 	}
-	return strings.Join(parts, ":")
+	return hostname.ForDisplay()
 }
 
 // Normalized returns the host formatted for internal reference or comparison.
 func (h *FriendlyHost) Normalized() string {
-	// For now IDNA does all the normalisation we need including case-folding
-	// pure ASCII to lower. But breaks if a custom port is included while we
-	// want to allow that and normalize comparison including it,
-	parts := strings.SplitN(h.Raw, ":", 2)
-	var err error
-	parts[0], err = idna.Lookup.ToASCII(parts[0])
+	hostname, err := svchost.ForComparison(h.Raw)
 	if err != nil {
 		return InvalidHostString
 	}
-	return strings.Join(parts, ":")
+	return hostname.String()
 }
 
 // String returns the host formatted as the user originally typed it assuming it
