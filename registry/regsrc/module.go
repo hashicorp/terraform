@@ -32,6 +32,13 @@ var (
 	moduleSourceRe = regexp.MustCompile(
 		fmt.Sprintf("^(%s)\\/(%s)\\/(%s)(?:\\/\\/(.*))?$",
 			nameSubRe, nameSubRe, providerSubRe))
+
+	// disallowed is a set of hostnames that have special usage in modules and
+	// can't be registry hosts
+	disallowed = map[string]bool{
+		"github.com":    true,
+		"bitbucket.org": true,
+	}
 )
 
 // Module describes a Terraform Registry Module source.
@@ -77,8 +84,10 @@ func NewModule(host, namespace, name, provider, submodule string) *Module {
 func ParseModuleSource(source string) (*Module, error) {
 	// See if there is a friendly host prefix.
 	host, rest := ParseFriendlyHost(source)
-	if host != nil && !host.Valid() {
-		return nil, ErrInvalidModuleSource
+	if host != nil {
+		if !host.Valid() || disallowed[host.Display()] {
+			return nil, ErrInvalidModuleSource
+		}
 	}
 
 	matches := moduleSourceRe.FindStringSubmatch(rest)

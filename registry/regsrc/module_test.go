@@ -96,6 +96,16 @@ func TestModule(t *testing.T) {
 			source:  "foo.com/var/baz?otherthing",
 			wantErr: true,
 		},
+		{
+			name:    "disallow github",
+			source:  "github.com/HashiCorp/Consul/aws",
+			wantErr: true,
+		},
+		{
+			name:    "disallow bitbucket",
+			source:  "bitbucket.org/HashiCorp/Consul/aws",
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
