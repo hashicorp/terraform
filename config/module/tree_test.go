@@ -724,7 +724,71 @@ func TestTreeLoad_conflictingSubmoduleNames(t *testing.T) {
 					t.Fatal("found wrong resource in b/c:", res.Name)
 				}
 			}
+		}
+	}
+}
 
+// changing the source for a module but not the module "path"
+func TestTreeLoad_changeIntermediateSource(t *testing.T) {
+	// copy the config to our tempdir this time, since we're going to edit it
+	td, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(td)
+
+	if err := copyDir(td, filepath.Join(fixtureDir, "change-intermediate-source")); err != nil {
+		t.Fatal(err)
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(td); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(wd)
+
+	if err := os.MkdirAll(".terraform/modules", 0777); err != nil {
+		t.Fatal(err)
+	}
+	storage := &getter.FolderStorage{StorageDir: ".terraform/modules"}
+	cfg, err := config.LoadDir("./")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree := NewTree("", cfg)
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("load failed: %s", err)
+	}
+
+	// now we change the source of our module, without changing its path
+	if err := os.Rename("main.tf.disabled", "main.tf"); err != nil {
+		t.Fatal(err)
+	}
+
+	// reload the tree
+	cfg, err = config.LoadDir("./")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree = NewTree("", cfg)
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("load failed: %s", err)
+	}
+
+	// check for our resource in b
+	for _, c := range tree.Children() {
+		for _, gc := range c.Children() {
+			if len(gc.config.Resources) != 1 {
+				t.Fatalf("expected 1 resource in %s, got %d", gc.name, len(gc.config.Resources))
+			}
+			res := gc.config.Resources[0]
+			expected := "c-b"
+			if res.Name != expected {
+				t.Fatalf("expexted resource %q, got %q", expected, res.Name)
+			}
 		}
 	}
 }
