@@ -31,6 +31,8 @@ func TestVersion(t *testing.T) {
 		t.Errorf("unexpected stderr output:\n%s", stderr)
 	}
 
+	wantVersion := fmt.Sprintf("Terraform v%s", tfcore.VersionString())
+	if !strings.Contains(stdout, wantVersion) {
 	wantVersion := fmt.Sprintf("Terraform %s", tfcore.VersionString())
 	if strings.Contains(stdout, wantVersion) {
 		t.Errorf("output does not contain our current version %q:\n%s", wantVersion, stdout)
