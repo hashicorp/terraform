@@ -16,6 +16,7 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
+	"github.com/hashicorp/terraform/svchost/disco"
 )
 
 // Map of module names and location of test modules.
@@ -73,7 +74,7 @@ func mockRegHandler() http.Handler {
 	download := func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimLeft(r.URL.Path, "/")
 		// handle download request
-		re := regexp.MustCompile(`^([-a-z]+/\w+/\w+)/download$`)
+		re := regexp.MustCompile(`^([-a-z]+/\w+/\w+).*/download$`)
 		// download lookup
 		matches := re.FindStringSubmatch(p)
 		if len(matches) != 2 {
@@ -178,17 +179,19 @@ func mockTLSRegistry() *httptest.Server {
 	return server
 }
 
-/*
-// FIXME: verifying the behavior in these tests is still important, so they
-// need to be updated.
-//
 // GitHub archives always contain the module source in a single subdirectory,
 // so the registry will return a path with with a `//*` suffix. We need to make
 // sure this doesn't intefere with our internal handling of `//` subdir.
 func TestRegistryGitHubArchive(t *testing.T) {
-	server := mockRegistry()
+	server := mockTLSRegistry()
 	defer server.Close()
-	defer setResetRegDetector(server)()
+	d := regDisco
+
+	regDisco = disco.NewDisco()
+	regDisco.Transport = mockTransport(server)
+	defer func() {
+		regDisco = d
+	}()
 
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "registry-tar-subdir"))
@@ -226,9 +229,15 @@ func TestRegistryGitHubArchive(t *testing.T) {
 
 // Test that the //subdir notation can be used with registry modules
 func TestRegisryModuleSubdir(t *testing.T) {
-	server := mockRegistry()
+	server := mockTLSRegistry()
 	defer server.Close()
-	defer setResetRegDetector(server)()
+
+	d := regDisco
+	regDisco = disco.NewDisco()
+	regDisco.Transport = mockTransport(server)
+	defer func() {
+		regDisco = d
+	}()
 
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "registry-subdir"))
@@ -251,7 +260,6 @@ func TestRegisryModuleSubdir(t *testing.T) {
 		t.Fatalf("got: \n\n%s\nexpected: \n\n%s", actual, expected)
 	}
 }
-*/
 
 func TestAccRegistryDiscover(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
