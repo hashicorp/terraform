@@ -116,7 +116,7 @@ func TestFriendlyHost(t *testing.T) {
 
 				// Also verify that host compares equal with all the variants.
 				if !gotHost.Equal(&FriendlyHost{Raw: tt.wantDisplay}) {
-					t.Fatalf("Equal() should be true for %s and %s", tt.wantHost, tt.wantValid)
+					t.Fatalf("Equal() should be true for %s and %t", tt.wantHost, tt.wantValid)
 				}
 
 				// FIXME: Do we need to accept normalized input?
