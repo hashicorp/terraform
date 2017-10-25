@@ -1,20 +1,20 @@
 
-## 0.10.8 (Unreleased)
+## 0.10.8 (October 25, 2017)
 
 NEW FEATURES:
 
-* **New `etcdv3` backend**, for use with the newer etcd api [GH-15680]
-* **New interpolation function `chunklist`**, for spliting a list into a list of lists with specified sublist chunk sizes. [GH-15112]
+* **New `etcdv3` backend**, for use with the newer etcd api ([#15680](https://github.com/hashicorp/terraform/issues/15680))
+* **New interpolation function `chunklist`**, for spliting a list into a list of lists with specified sublist chunk sizes. ([#15112](https://github.com/hashicorp/terraform/issues/15112))
 
 IMPROVEMENTS:
 
-* backend/s3: Add options to skip AWS validation which allows non-AWS S3 backends [GH-15553]
+* backend/s3: Add options to skip AWS validation which allows non-AWS S3 backends ([#15553](https://github.com/hashicorp/terraform/issues/15553))
 
 BUG FIXES:
 
-* command/validate: Respect `-plugin-dir` overridden plugin paths in the `terraform validate` command. [GH-15985]
-* provisioner/chef: Clean clients from `chef-vault` when `recreate_client` enabled [GH-16357]
-* communicator/winrm: Support the `cacert` option for custom certificate authorities when provisioning over WinRM [GH-14783]
+* command/validate: Respect `-plugin-dir` overridden plugin paths in the `terraform validate` command. ([#15985](https://github.com/hashicorp/terraform/issues/15985))
+* provisioner/chef: Clean clients from `chef-vault` when `recreate_client` enabled ([#16357](https://github.com/hashicorp/terraform/issues/16357))
+* communicator/winrm: Support the `cacert` option for custom certificate authorities when provisioning over WinRM ([#14783](https://github.com/hashicorp/terraform/issues/14783))
 
 ## 0.10.7 (October 2, 2017)
 
