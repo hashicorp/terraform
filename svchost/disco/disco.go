@@ -58,6 +58,33 @@ func (d *Disco) SetCredentialsSource(src auth.CredentialsSource) {
 	d.credsSrc = src
 }
 
+// ForceHostServices provides a pre-defined set of services for a given
+// host, which prevents the receiver from attempting network-based discovery
+// for the given host. Instead, the given services map will be returned
+// verbatim.
+//
+// When providing "forced" services, any relative URLs are resolved against
+// the initial discovery URL that would have been used for network-based
+// discovery, yielding the same results as if the given map were published
+// at the host's default discovery URL, though using absolute URLs is strongly
+// recommended to make the configured behavior more explicit.
+func (d *Disco) ForceHostServices(host svchost.Hostname, services map[string]interface{}) {
+	if d.hostCache == nil {
+		d.hostCache = map[svchost.Hostname]Host{}
+	}
+	if services == nil {
+		services = map[string]interface{}{}
+	}
+	d.hostCache[host] = Host{
+		discoURL: &url.URL{
+			Scheme: "https",
+			Host:   string(host),
+			Path:   discoPath,
+		},
+		services: services,
+	}
+}
+
 // Discover runs the discovery protocol against the given hostname (which must
 // already have been validated and prepared with svchost.ForComparison) and
 // returns an object describing the services available at that host.
