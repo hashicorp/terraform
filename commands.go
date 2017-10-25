@@ -39,6 +39,15 @@ func initCommands(config *Config) {
 	credsSrc := credentialsSource(config)
 	services := disco.NewDisco()
 	services.SetCredentialsSource(credsSrc)
+	for userHost, hostConfig := range config.Hosts {
+		host, err := svchost.ForComparison(userHost)
+		if err != nil {
+			// We expect the config was already validated by the time we get
+			// here, so we'll just ignore invalid hostnames.
+			continue
+		}
+		services.ForceHostServices(host, hostConfig.Services)
+	}
 
 	meta := command.Meta{
 		Color:            true,

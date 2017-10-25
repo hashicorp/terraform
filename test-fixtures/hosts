@@ -1,0 +1,6 @@
+
+host "example.com" {
+  services = {
+    "modules.v1" = "https://example.com/",
+  }
+}
