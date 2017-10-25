@@ -1335,8 +1335,8 @@ func TestInterpolateFuncIndex(t *testing.T) {
 
 			{
 				`${index(var.list1, "foo")}`,
-				nil,
-				true,
+				"-1",
+				false,
 			},
 
 			{
