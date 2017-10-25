@@ -1,7 +1,9 @@
 package module
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,6 +16,7 @@ import (
 
 	getter "github.com/hashicorp/go-getter"
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform/registry/response"
 )
 
 // Map of module names and location of test modules.
@@ -26,22 +29,28 @@ type testMod struct {
 // All the locationes from the mockRegistry start with a file:// scheme. If
 // the the location string here doesn't have a scheme, the mockRegistry will
 // find the absolute path and return a complete URL.
-var testMods = map[string]testMod{
-	"registry/foo/bar": {
+var testMods = map[string][]testMod{
+	"registry/foo/bar": {{
 		location: "file:///download/registry/foo/bar/0.2.3//*?archive=tar.gz",
 		version:  "0.2.3",
-	},
-	"registry/foo/baz": {
+	}},
+	"registry/foo/baz": {{
 		location: "file:///download/registry/foo/baz/1.10.0//*?archive=tar.gz",
 		version:  "1.10.0",
-	},
-	"registry/local/sub": {
+	}},
+	"registry/local/sub": {{
 		location: "test-fixtures/registry-tar-subdir/foo.tgz//*?archive=tar.gz",
 		version:  "0.1.2",
-	},
-	"exists-in-registry/identifier/provider": {
+	}},
+	"exists-in-registry/identifier/provider": {{
 		location: "file:///registry/exists",
 		version:  "0.2.0",
+	}},
+	"test-versions/name/provider": {
+		{version: "2.2.0"},
+		{version: "2.1.1"},
+		{version: "1.2.2"},
+		{version: "1.2.1"},
 	},
 }
 
@@ -59,45 +68,114 @@ func latestVersion(versions []string) string {
 	return col[len(col)-1].String()
 }
 
-// Just enough like a registry to exercise our code.
-// Returns the location of the latest version
-func mockRegistry() *httptest.Server {
+func mockRegHandler() http.Handler {
 	mux := http.NewServeMux()
-	server := httptest.NewServer(mux)
+
+	download := func(w http.ResponseWriter, r *http.Request) {
+		p := strings.TrimLeft(r.URL.Path, "/")
+		// handle download request
+		re := regexp.MustCompile(`^([-a-z]+/\w+/\w+)/download$`)
+		// download lookup
+		matches := re.FindStringSubmatch(p)
+		if len(matches) != 2 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		versions, ok := testMods[matches[1]]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		mod := versions[0]
+
+		location := mod.location
+		if !strings.HasPrefix(location, "file:///") {
+			// we can't use filepath.Abs because it will clean `//`
+			wd, _ := os.Getwd()
+			location = fmt.Sprintf("file://%s/%s", wd, location)
+		}
+
+		w.Header().Set("X-Terraform-Get", location)
+		w.WriteHeader(http.StatusNoContent)
+		// no body
+		return
+	}
+
+	versions := func(w http.ResponseWriter, r *http.Request) {
+		p := strings.TrimLeft(r.URL.Path, "/")
+		re := regexp.MustCompile(`^([-a-z]+/\w+/\w+)/versions$`)
+		matches := re.FindStringSubmatch(p)
+		if len(matches) != 2 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		name := matches[1]
+		versions, ok := testMods[name]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+
+		// only adding the single requested module for now
+		// this is the minimal that any regisry is epected to support
+		mpvs := &response.ModuleProviderVersions{
+			Source: name,
+		}
+
+		for _, v := range versions {
+			mv := &response.ModuleVersion{
+				Version: v.version,
+			}
+			mpvs.Versions = append(mpvs.Versions, mv)
+		}
+
+		resp := response.ModuleVersions{
+			Modules: []*response.ModuleProviderVersions{mpvs},
+		}
+
+		js, err := json.Marshal(resp)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+	}
 
 	mux.Handle("/v1/modules/",
 		http.StripPrefix("/v1/modules/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			p := strings.TrimLeft(r.URL.Path, "/")
-			// handle download request
-			download := regexp.MustCompile(`^([-a-z]+/\w+/\w+)/download$`)
-
-			// download lookup
-			matches := download.FindStringSubmatch(p)
-			if len(matches) != 2 {
-				w.WriteHeader(http.StatusBadRequest)
+			if strings.HasSuffix(r.URL.Path, "/download") {
+				download(w, r)
 				return
 			}
 
-			mod, ok := testMods[matches[1]]
-			if !ok {
-				w.WriteHeader(http.StatusNotFound)
+			if strings.HasSuffix(r.URL.Path, "/versions") {
+				versions(w, r)
 				return
 			}
 
-			location := mod.location
-			if !strings.HasPrefix(location, "file:///") {
-				// we can't use filepath.Abs because it will clean `//`
-				wd, _ := os.Getwd()
-				location = fmt.Sprintf("file://%s/%s", wd, location)
-			}
-
-			w.Header().Set("X-Terraform-Get", location)
-			w.WriteHeader(http.StatusNoContent)
-			// no body
-			return
+			http.NotFound(w, r)
 		})),
 	)
 
+	mux.HandleFunc("/.well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"modules.v1":"/v1/modules/"}`)
+	})
+	return mux
+}
+
+// Just enough like a registry to exercise our code.
+// Returns the location of the latest version
+func mockRegistry() *httptest.Server {
+	server := httptest.NewServer(mockRegHandler())
+	return server
+}
+
+func mockTLSRegistry() *httptest.Server {
+	server := httptest.NewTLSServer(mockRegHandler())
 	return server
 }
 
@@ -138,12 +216,12 @@ func TestDetectRegistry(t *testing.T) {
 	}{
 		{
 			source:   "registry/foo/bar",
-			location: testMods["registry/foo/bar"].location,
+			location: testMods["registry/foo/bar"][0].location,
 			found:    true,
 		},
 		{
 			source:   "registry/foo/baz",
-			location: testMods["registry/foo/baz"].location,
+			location: testMods["registry/foo/baz"][0].location,
 			found:    true,
 		},
 		// this should not be found, and is no longer valid as a local source
