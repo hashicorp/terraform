@@ -2,6 +2,7 @@ package module
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"reflect"
 
 	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/registry/regsrc"
 )
 
 const manifestName = "modules.json"
@@ -44,6 +46,12 @@ type moduleRecord struct {
 	// independent from any subdirectory in the original source string, which
 	// may traverse further into the module tree.
 	Root string
+
+	// url is the location of the module source
+	url string
+
+	// Registry is true if this module is sourced from a registry
+	registry bool
 }
 
 // moduleStorage implements methods to record and fetch metadata about the
@@ -53,20 +61,20 @@ type moduleRecord struct {
 type moduleStorage struct {
 	getter.Storage
 	storageDir string
+	mode       GetMode
 }
 
-func newModuleStorage(s getter.Storage) moduleStorage {
+func newModuleStorage(s getter.Storage, mode GetMode) moduleStorage {
 	return moduleStorage{
 		Storage:    s,
 		storageDir: storageDir(s),
+		mode:       mode,
 	}
 }
 
 // The Tree needs to know where to store the module manifest.
 // Th Storage abstraction doesn't provide access to the storage root directory,
 // so we extract it here.
-// TODO: This needs to be replaced by refactoring the getter.Storage usage for
-//       modules.
 func storageDir(s getter.Storage) string {
 	// get the StorageDir directly if possible
 	switch t := s.(type) {
@@ -74,6 +82,8 @@ func storageDir(s getter.Storage) string {
 		return t.StorageDir
 	case moduleStorage:
 		return t.storageDir
+	case nil:
+		return ""
 	}
 
 	// this should be our UI wrapper which is exported here, so we need to
@@ -201,11 +211,11 @@ func (m moduleStorage) recordModuleRoot(dir, root string) error {
 	return m.recordModule(rec)
 }
 
-func (m moduleStorage) getStorage(key string, src string, mode GetMode) (string, bool, error) {
+func (m moduleStorage) getStorage(key string, src string) (string, bool, error) {
 	// Get the module with the level specified if we were told to.
-	if mode > GetModeNone {
+	if m.mode > GetModeNone {
 		log.Printf("[DEBUG] fetching %q with key %q", src, key)
-		if err := m.Storage.Get(key, src, mode == GetModeUpdate); err != nil {
+		if err := m.Storage.Get(key, src, m.mode == GetModeUpdate); err != nil {
 			return "", false, err
 		}
 	}
@@ -214,4 +224,79 @@ func (m moduleStorage) getStorage(key string, src string, mode GetMode) (string,
 	dir, found, err := m.Storage.Dir(key)
 	log.Printf("[DEBUG] found %q in %q: %t", src, dir, found)
 	return dir, found, err
+}
+
+// find a stored module that's not from a registry
+func (m moduleStorage) findModule(key string) (string, error) {
+	if m.mode == GetModeUpdate {
+		return "", nil
+	}
+
+	return m.moduleDir(key)
+}
+
+// find a registry module
+func (m moduleStorage) findRegistryModule(mSource, constraint string) (moduleRecord, error) {
+	rec := moduleRecord{
+		Source: mSource,
+	}
+	// detect if we have a registry source
+	mod, err := regsrc.ParseModuleSource(mSource)
+	switch err {
+	case nil:
+		//ok
+	case regsrc.ErrInvalidModuleSource:
+		return rec, nil
+	default:
+		return rec, err
+	}
+	rec.registry = true
+
+	log.Printf("[TRACE] %q is a registry module", mod.Module())
+
+	versions, err := m.moduleVersions(mod.String())
+	if err != nil {
+		log.Println("[ERROR] error looking up versions for %q: %s", mod.Module(), err)
+		return rec, err
+	}
+
+	match, err := newestRecord(versions, constraint)
+	if err != nil {
+		// TODO: does this allow previously unversioned modules?
+		log.Printf("[INFO] no matching version for %q<%s>, %s", mod.Module(), constraint, err)
+	}
+
+	rec.Dir = match.Dir
+	rec.Version = match.Version
+	found := rec.Dir != ""
+
+	// we need to lookup available versions
+	// Only on Get if it's not found, on unconditionally on Update
+	if (m.mode == GetModeGet && !found) || (m.mode == GetModeUpdate) {
+		resp, err := lookupModuleVersions(nil, mod)
+		if err != nil {
+			return rec, err
+		}
+
+		if len(resp.Modules) == 0 {
+			return rec, fmt.Errorf("module %q not found in registry", mod.Module())
+		}
+
+		match, err := newestVersion(resp.Modules[0].Versions, constraint)
+		if err != nil {
+			return rec, err
+		}
+
+		if match == nil {
+			return rec, fmt.Errorf("no versions for %q found matching %q", mod.Module(), constraint)
+		}
+
+		rec.Version = match.Version
+
+		rec.url, err = lookupModuleLocation(nil, mod, rec.Version)
+		if err != nil {
+			return rec, err
+		}
+	}
+	return rec, nil
 }
