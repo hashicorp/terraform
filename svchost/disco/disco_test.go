@@ -118,6 +118,41 @@ func TestDiscover(t *testing.T) {
 			t.Fatalf("wrong Authorization header\ngot:  %s\nwant: %s", got, want)
 		}
 	})
+	t.Run("forced services override", func(t *testing.T) {
+		forced := map[string]interface{}{
+			"thingy.v1": "http://example.net/foo",
+			"wotsit.v2": "/foo",
+		}
+
+		d := NewDisco()
+		d.ForceHostServices(svchost.Hostname("example.com"), forced)
+
+		givenHost := "example.com"
+		host, err := svchost.ForComparison(givenHost)
+		if err != nil {
+			t.Fatalf("test server hostname is invalid: %s", err)
+		}
+
+		discovered := d.Discover(host)
+		{
+			gotURL := discovered.ServiceURL("thingy.v1")
+			if gotURL == nil {
+				t.Fatalf("found no URL for thingy.v1")
+			}
+			if got, want := gotURL.String(), "http://example.net/foo"; got != want {
+				t.Fatalf("wrong result %q; want %q", got, want)
+			}
+		}
+		{
+			gotURL := discovered.ServiceURL("wotsit.v2")
+			if gotURL == nil {
+				t.Fatalf("found no URL for wotsit.v2")
+			}
+			if got, want := gotURL.String(), "https://example.com/foo"; got != want {
+				t.Fatalf("wrong result %q; want %q", got, want)
+			}
+		}
+	})
 	t.Run("not JSON", func(t *testing.T) {
 		portStr, close := testServer(func(w http.ResponseWriter, r *http.Request) {
 			resp := []byte(`{"thingy.v1": "http://example.com/foo"}`)
