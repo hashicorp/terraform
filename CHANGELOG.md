@@ -1,4 +1,7 @@
 ## 1.0.1 (Unreleased)
+
+* Updated the libraries that we share with Terraform core so that this provider can now use all the same backend features as Terraform Core v0.10.8.
+
 ## 1.0.0 (September 14, 2017)
 
 ENHANCEMENTS:
