@@ -39,6 +39,10 @@ var httpTransport = cleanhttp.DefaultPooledTransport() // overridden during test
 type Disco struct {
 	hostCache map[svchost.Hostname]Host
 	credsSrc  auth.CredentialsSource
+
+	// Transport is a custom http.Transport to use.
+	// A package default is used if this is nil.
+	Transport *http.Transport
 }
 
 func NewDisco() *Disco {
@@ -92,8 +96,14 @@ func (d *Disco) discover(host svchost.Hostname) Host {
 		Host:   string(host),
 		Path:   discoPath,
 	}
+
+	t := d.Transport
+	if t == nil {
+		t = httpTransport
+	}
+
 	client := &http.Client{
-		Transport: httpTransport,
+		Transport: t,
 		Timeout:   discoTimeout,
 
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
