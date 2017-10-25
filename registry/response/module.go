@@ -1,10 +1,7 @@
 package response
 
 import (
-	"fmt"
 	"time"
-
-	"github.com/hashicorp/terraform-registry/api/models"
 )
 
 // Module is the response structure with the data for a single module version.
@@ -93,101 +90,4 @@ type ModuleProviderDep struct {
 type ModuleResource struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
-}
-
-// NewModule creates a Module response object from a model.
-func NewModule(mv *models.ModuleVersion) *Module {
-	m := mv.ModuleProvider.Module
-	mp := mv.ModuleProvider
-
-	// Build the full module
-	return &Module{
-		ID: fmt.Sprintf(
-			"%s/%s/%s/%s",
-			m.Namespace,
-			m.Name,
-			mp.Provider,
-			mv.Version),
-
-		// Base metadata
-		Owner:       m.User.Username,
-		Namespace:   m.Namespace,
-		Name:        m.Name,
-		Version:     mv.Version,
-		Provider:    mv.ModuleProvider.Provider,
-		Description: mv.Description,
-		Source:      mp.Source,
-		PublishedAt: mv.PublishedAt,
-		Downloads:   int(mp.Downloads),
-		Verified:    m.Verified,
-	}
-}
-
-// NewModuleDetail creates a ModuleDetail response object from a model.
-func NewModuleDetail(mv *models.ModuleVersion) *ModuleDetail {
-	m := NewModule(mv)
-
-	// Build the submodule response objects
-	var submodules []*ModuleSubmodule
-	var submoduleRoot *ModuleSubmodule
-	for _, sub := range mv.Submodules {
-		resp := NewModuleSubmodule(&sub)
-
-		if sub.Root() {
-			submoduleRoot = resp
-		} else {
-			submodules = append(submodules, resp)
-		}
-	}
-	return &ModuleDetail{
-		Module:     *m,
-		Root:       submoduleRoot,
-		Submodules: submodules,
-	}
-}
-
-// NewModuleSubmodule creates a ModuleSubmodule response object from a model.
-func NewModuleSubmodule(m *models.ModuleSubmodule) *ModuleSubmodule {
-	inputs := make([]*ModuleInput, 0, len(m.Variables))
-	for _, v := range m.Variables {
-		inputs = append(inputs, &ModuleInput{
-			Name:        v.Name,
-			Description: v.Description.String,
-			Default:     v.Default.String,
-		})
-	}
-
-	outputs := make([]*ModuleOutput, 0, len(m.Outputs))
-	for _, v := range m.Outputs {
-		outputs = append(outputs, &ModuleOutput{
-			Name:        v.Name,
-			Description: v.Description.String,
-		})
-	}
-
-	deps := make([]*ModuleDep, 0, len(m.Dependencies))
-	for _, v := range m.Dependencies {
-		deps = append(deps, &ModuleDep{
-			Name:   v.Name,
-			Source: v.Source,
-		})
-	}
-
-	resources := make([]*ModuleResource, 0, len(m.Resources))
-	for _, v := range m.Resources {
-		resources = append(resources, &ModuleResource{
-			Name: v.Name,
-			Type: v.Type,
-		})
-	}
-
-	return &ModuleSubmodule{
-		Path:         m.Path,
-		Readme:       m.Readme,
-		Empty:        m.Empty,
-		Inputs:       inputs,
-		Outputs:      outputs,
-		Dependencies: deps,
-		Resources:    resources,
-	}
 }
