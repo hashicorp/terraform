@@ -32,8 +32,17 @@ type Config struct {
 	// avoid repeatedly re-downloading over the Internet.
 	PluginCacheDir string `hcl:"plugin_cache_dir"`
 
+	Hosts map[string]*ConfigHost `hcl:"host"`
+
 	Credentials        map[string]map[string]interface{}   `hcl:"credentials"`
 	CredentialsHelpers map[string]*ConfigCredentialsHelper `hcl:"credentials_helper"`
+}
+
+// ConfigHost is the structure of the "host" nested block within the CLI
+// configuration, which can be used to override the default service host
+// discovery behavior for a particular hostname.
+type ConfigHost struct {
+	Services map[string]interface{} `hcl:"services"`
 }
 
 // ConfigCredentialsHelper is the structure of the "credentials_helper"
@@ -204,6 +213,16 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 	// to give proper source references to any errors. We should improve
 	// on this when we change the CLI config parser to use HCL2.
 
+	// Check that all "host" blocks have valid hostnames.
+	for givenHost := range c.Hosts {
+		_, err := svchost.ForComparison(givenHost)
+		if err != nil {
+			diags = diags.Append(
+				fmt.Errorf("The host %q block has an invalid hostname: %s", givenHost, err),
+			)
+		}
+	}
+
 	// Check that all "credentials" blocks have valid hostnames.
 	for givenHost := range c.Credentials {
 		_, err := svchost.ForComparison(givenHost)
@@ -254,6 +273,16 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 	result.PluginCacheDir = c1.PluginCacheDir
 	if result.PluginCacheDir == "" {
 		result.PluginCacheDir = c2.PluginCacheDir
+	}
+
+	if (len(c1.Hosts) + len(c2.Hosts)) > 0 {
+		result.Hosts = make(map[string]*ConfigHost)
+		for name, host := range c1.Hosts {
+			result.Hosts[name] = host
+		}
+		for name, host := range c2.Hosts {
+			result.Hosts[name] = host
+		}
 	}
 
 	if (len(c1.Credentials) + len(c2.Credentials)) > 0 {

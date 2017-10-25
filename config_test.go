@@ -54,6 +54,27 @@ func TestLoadConfig_env(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_hosts(t *testing.T) {
+	got, diags := loadConfigFile(filepath.Join(fixtureDir, "hosts"))
+	if len(diags) != 0 {
+		t.Fatalf("%s", diags.Err())
+	}
+
+	want := &Config{
+		Hosts: map[string]*ConfigHost{
+			"example.com": {
+				Services: map[string]interface{}{
+					"modules.v1": "https://example.com/",
+				},
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("wrong result\ngot:  %swant: %s", spew.Sdump(got), spew.Sdump(want))
+	}
+}
+
 func TestLoadConfig_credentials(t *testing.T) {
 	got, err := loadConfigFile(filepath.Join(fixtureDir, "credentials"))
 	if err != nil {
@@ -94,6 +115,22 @@ func TestConfigValidate(t *testing.T) {
 		"empty": {
 			&Config{},
 			0,
+		},
+		"host good": {
+			&Config{
+				Hosts: map[string]*ConfigHost{
+					"example.com": {},
+				},
+			},
+			0,
+		},
+		"host with bad hostname": {
+			&Config{
+				Hosts: map[string]*ConfigHost{
+					"example..com": {},
+				},
+			},
+			1, // host block has invalid hostname
 		},
 		"credentials good": {
 			&Config{
@@ -157,6 +194,13 @@ func TestConfig_Merge(t *testing.T) {
 			"local":  "local",
 			"remote": "bad",
 		},
+		Hosts: map[string]*ConfigHost{
+			"example.com": {
+				Services: map[string]interface{}{
+					"modules.v1": "http://example.com/",
+				},
+			},
+		},
 		Credentials: map[string]map[string]interface{}{
 			"foo": {
 				"bar": "baz",
@@ -174,6 +218,13 @@ func TestConfig_Merge(t *testing.T) {
 		},
 		Provisioners: map[string]string{
 			"remote": "remote",
+		},
+		Hosts: map[string]*ConfigHost{
+			"example.net": {
+				Services: map[string]interface{}{
+					"modules.v1": "https://example.net/",
+				},
+			},
 		},
 		Credentials: map[string]map[string]interface{}{
 			"fee": {
@@ -194,6 +245,18 @@ func TestConfig_Merge(t *testing.T) {
 		Provisioners: map[string]string{
 			"local":  "local",
 			"remote": "remote",
+		},
+		Hosts: map[string]*ConfigHost{
+			"example.com": {
+				Services: map[string]interface{}{
+					"modules.v1": "http://example.com/",
+				},
+			},
+			"example.net": {
+				Services: map[string]interface{}{
+					"modules.v1": "https://example.net/",
+				},
+			},
 		},
 		Credentials: map[string]map[string]interface{}{
 			"foo": {
