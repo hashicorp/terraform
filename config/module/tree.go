@@ -270,7 +270,7 @@ func (t *Tree) Load(storage getter.Storage, mode GetMode) error {
 			}
 		}
 
-		source, err := getter.Detect(rawSource, t.config.Dir, detectors)
+		source, err := getter.Detect(rawSource, t.config.Dir, getter.Detectors)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
