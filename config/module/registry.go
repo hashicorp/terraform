@@ -3,6 +3,7 @@ package module
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -28,13 +29,14 @@ const (
 )
 
 var (
-	client    *http.Client
-	tfVersion = version.String()
+	httpClient *http.Client
+	tfVersion  = version.String()
+	regDisco   = disco.NewDisco()
 )
 
 func init() {
-	client = cleanhttp.DefaultPooledClient()
-	client.Timeout = requestTimeout
+	httpClient = cleanhttp.DefaultPooledClient()
+	httpClient.Timeout = requestTimeout
 }
 
 type errModuleNotFound string
@@ -43,13 +45,16 @@ func (e errModuleNotFound) Error() string {
 	return `module "` + string(e) + `" not found`
 }
 
-// Lookup module versions in the registry.
-func lookupModuleVersions(regDisco *disco.Disco, module *regsrc.Module) (*response.ModuleVersions, error) {
+func discoverRegURL(d *disco.Disco, module *regsrc.Module) string {
+	if d == nil {
+		d = regDisco
+	}
+
 	if module.RawHost == nil {
 		module.RawHost = regsrc.NewFriendlyHost(defaultRegistry)
 	}
 
-	regURL := regDisco.DiscoverServiceURL(svchost.Hostname(module.RawHost.Normalized()), serviceID)
+	regURL := d.DiscoverServiceURL(svchost.Hostname(module.RawHost.Normalized()), serviceID)
 	if regURL == nil {
 		regURL = &url.URL{
 			Scheme: "https",
@@ -64,7 +69,14 @@ func lookupModuleVersions(regDisco *disco.Disco, module *regsrc.Module) (*respon
 		service += "/"
 	}
 
-	location := fmt.Sprintf("%s%s/%s/%s/versions", service, module.RawNamespace, module.RawName, module.RawProvider)
+	return service
+}
+
+// Lookup module versions in the registry.
+func lookupModuleVersions(d *disco.Disco, module *regsrc.Module) (*response.ModuleVersions, error) {
+	service := discoverRegURL(d, module)
+
+	location := fmt.Sprintf("%s%s/versions", service, module.Module())
 	log.Printf("[DEBUG] fetching module versions from %q", location)
 
 	req, err := http.NewRequest("GET", location, nil)
@@ -74,11 +86,15 @@ func lookupModuleVersions(regDisco *disco.Disco, module *regsrc.Module) (*respon
 
 	req.Header.Set(xTerraformVersion, tfVersion)
 
+	if d == nil {
+		d = regDisco
+	}
+
 	// if discovery required a custom transport, then we should use that too
-	client := client
-	if regDisco.Transport != nil {
+	client := httpClient
+	if d.Transport != nil {
 		client = &http.Client{
-			Transport: regDisco.Transport,
+			Transport: d.Transport,
 			Timeout:   requestTimeout,
 		}
 	}
@@ -106,4 +122,64 @@ func lookupModuleVersions(regDisco *disco.Disco, module *regsrc.Module) (*respon
 	}
 
 	return &versions, nil
+}
+
+// lookup the location of a specific module version in the registry
+func lookupModuleLocation(d *disco.Disco, module *regsrc.Module, version string) (string, error) {
+	service := discoverRegURL(d, module)
+
+	var download string
+	if version == "" {
+		download = fmt.Sprintf("%s%s/download", service, module.Module())
+	} else {
+		download = fmt.Sprintf("%s%s/%s/download", service, module.Module(), version)
+	}
+
+	log.Printf("[DEBUG] looking up module location from %q", download)
+
+	req, err := http.NewRequest("GET", download, nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set(xTerraformVersion, tfVersion)
+
+	// if discovery required a custom transport, then we should use that too
+	client := httpClient
+	if regDisco.Transport != nil {
+		client = &http.Client{
+			Transport: regDisco.Transport,
+			Timeout:   requestTimeout,
+		}
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// there should be no body, but save it for logging
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading response body from registry: %s", err)
+	}
+
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusNoContent:
+		// OK
+	case http.StatusNotFound:
+		return "", fmt.Errorf("module %q version %q not found", module, version)
+	default:
+		// anything else is an error:
+		return "", fmt.Errorf("error getting download location for %q: %s resp:%s", module, resp.Status, body)
+	}
+
+	// the download location is in the X-Terraform-Get header
+	location := resp.Header.Get(xTerraformGet)
+	if location == "" {
+		return "", fmt.Errorf("failed to get download URL for %q: %s resp:%s", module, resp.Status, body)
+	}
+
+	return location, nil
 }
