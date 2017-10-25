@@ -95,16 +95,7 @@ func ParseFriendlyHost(source string) (host *FriendlyHost, rest string) {
 // name specifications. Not that IDN prefixes containing punycode are not valid
 // input which we expect to always be in user-input or normalised display form.
 func (h *FriendlyHost) Valid() bool {
-	if h.Display() == InvalidHostString {
-		return false
-	}
-	if h.Normalized() == InvalidHostString {
-		return false
-	}
-	if containsPuny(h.Raw) {
-		return false
-	}
-	return true
+	return svchost.IsValid(h.Raw)
 }
 
 // Display returns the host formatted for display to the user in CLI or web
