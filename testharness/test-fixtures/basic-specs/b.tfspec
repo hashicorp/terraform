@@ -1,0 +1,4 @@
+
+scenario("third", function ()
+  variables {}
+end)

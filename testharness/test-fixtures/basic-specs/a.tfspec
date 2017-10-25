@@ -1,0 +1,10 @@
+
+scenario("first", function ()
+  variables {
+    foo = "bar",
+  }
+end)
+
+scenario("second", function ()
+
+end)
