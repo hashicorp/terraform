@@ -17,6 +17,15 @@ type hclConfigurable struct {
 	Root *ast.File
 }
 
+var ReservedDataSourceFields = []string{
+	"connection",
+	"count",
+	"depends_on",
+	"lifecycle",
+	"provider",
+	"provisioner",
+}
+
 var ReservedResourceFields = []string{
 	"connection",
 	"count",
@@ -29,7 +38,6 @@ var ReservedResourceFields = []string{
 
 var ReservedProviderFields = []string{
 	"alias",
-	"id",
 	"version",
 }
 

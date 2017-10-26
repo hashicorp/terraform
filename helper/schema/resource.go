@@ -393,19 +393,43 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 				return err
 			}
 		}
+
+		for k, f := range tsm {
+			if isReservedResourceFieldName(k, f) {
+				return fmt.Errorf("%s is a reserved field name", k)
+			}
+		}
 	}
 
-	// Resource-specific checks
-	for k, _ := range tsm {
-		if isReservedResourceFieldName(k) {
-			return fmt.Errorf("%s is a reserved field name for a resource", k)
+	// Data source
+	if r.isTopLevel() && !writable {
+		tsm = schemaMap(r.Schema)
+		for k, _ := range tsm {
+			if isReservedDataSourceFieldName(k) {
+				return fmt.Errorf("%s is a reserved field name", k)
+			}
 		}
 	}
 
 	return schemaMap(r.Schema).InternalValidate(tsm)
 }
 
-func isReservedResourceFieldName(name string) bool {
+func isReservedDataSourceFieldName(name string) bool {
+	for _, reservedName := range config.ReservedDataSourceFields {
+		if name == reservedName {
+			return true
+		}
+	}
+	return false
+}
+
+func isReservedResourceFieldName(name string, s *Schema) bool {
+	// Allow phasing out "id"
+	// See https://github.com/terraform-providers/terraform-provider-aws/pull/1626#issuecomment-328881415
+	if name == "id" && (s.Deprecated != "" || s.Removed != "") {
+		return false
+	}
+
 	for _, reservedName := range config.ReservedResourceFields {
 		if name == reservedName {
 			return true
@@ -450,7 +474,7 @@ func (r *Resource) TestResourceData() *ResourceData {
 // Returns true if the resource is "top level" i.e. not a sub-resource.
 func (r *Resource) isTopLevel() bool {
 	// TODO: This is a heuristic; replace with a definitive attribute?
-	return r.Create != nil
+	return (r.Create != nil || r.Read != nil)
 }
 
 // Determines if a given InstanceState needs to be migrated by checking the
