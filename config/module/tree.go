@@ -395,6 +395,7 @@ func (t *Tree) inheritProviderConfigs(stack []*Tree) {
 			pc.Path = pt.Path()
 			pc.Path = append([]string{RootName}, pt.path...)
 			pc.RawConfig = parentProvider.RawConfig
+			pc.Inherited = true
 			log.Printf("[TRACE] provider %q inheriting config from %q",
 				strings.Join(append(t.Path(), pc.FullName()), "."),
 				strings.Join(append(pt.Path(), parentProvider.FullName()), "."),
