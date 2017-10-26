@@ -135,8 +135,8 @@ func loadSpec(r io.Reader, filename string, L *lua.LState) (*Spec, tfdiags.Diagn
 	topEnv := L.NewTable()
 	L.SetFEnv(fn, topEnv)
 
-	scenariosBuilder := ScenariosBuilder{}
-	topEnv.RawSet(lua.LString("scenario"), L.NewFunction(scenariosBuilder.luaScenarioFunc))
+	scenariosB := scenariosBuilder{}
+	topEnv.RawSet(lua.LString("scenario"), L.NewFunction(scenariosB.luaScenarioFunc))
 
 	L.Push(fn)
 	err = L.PCall(0, 0, nil)
@@ -145,10 +145,10 @@ func loadSpec(r io.Reader, filename string, L *lua.LState) (*Spec, tfdiags.Diagn
 		return nil, diags
 	}
 
-	diags = diags.Append(scenariosBuilder.Diags)
+	diags = diags.Append(scenariosB.Diags)
 
 	return &Spec{
-		scenarios: scenariosBuilder.Scenarios,
+		scenarios: scenariosB.Scenarios,
 		lstate:    L,
 	}, diags
 }

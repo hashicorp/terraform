@@ -17,12 +17,12 @@ type Scenario struct {
 	DefRange tfdiags.SourceRange
 }
 
-type ScenariosBuilder struct {
+type scenariosBuilder struct {
 	Scenarios map[string]*Scenario
 	Diags     tfdiags.Diagnostics
 }
 
-func (b *ScenariosBuilder) luaScenarioFunc(L *lua.LState) int {
+func (b *scenariosBuilder) luaScenarioFunc(L *lua.LState) int {
 	name := L.OptString(1, "")
 	fn := L.OptFunction(2, nil)
 
