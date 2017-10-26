@@ -2,6 +2,8 @@ package testharness
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // A Checklist is the result of evaluating a test specification, describing
@@ -11,7 +13,7 @@ type Checklist []CheckItem
 type CheckItem struct {
 	Result  CheckResult
 	Caption string
-	Detail  string
+	Diags   tfdiags.Diagnostics
 }
 
 type CheckResult rune
