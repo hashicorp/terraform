@@ -24,9 +24,3 @@ func (s *Spec) Scenarios() map[string]*Scenario {
 func (s *Spec) Scenario(name string) *Scenario {
 	return s.scenarios[name]
 }
-
-type Tester interface {
-	Test() // TODO: Flesh out the arguments for this
-}
-
-type Testers []Tester

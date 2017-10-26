@@ -2,3 +2,7 @@
 scenario("third", function ()
   variables {}
 end)
+
+describe("foo", function ()
+
+end)

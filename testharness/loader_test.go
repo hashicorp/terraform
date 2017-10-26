@@ -59,4 +59,23 @@ func TestLoadSpecDir(t *testing.T) {
 			t.Errorf("wrong result\ngot: %swant %s", spew.Sdump(got), spew.Sdump(want))
 		}
 	}
+
+	{
+		if got, want := len(spec.testers), 1; got != want {
+			t.Fatalf("wrong number of testers %d; want %d", got, want)
+		}
+
+		simpleTester := spec.testers[0]
+		if simpleTester, isSimple := simpleTester.(*describe); isSimple {
+			if simpleCtxSet, isSimple := simpleTester.Described.(simpleContextSetter); isSimple {
+				if got, want := string(simpleCtxSet), "foo"; got != want {
+					t.Errorf("spec.testers[0] has wrong name %q; want %q", got, want)
+				}
+			} else {
+				t.Errorf("spec.testers[0].Described is %T; want simpleContextSetter", simpleTester.Described)
+			}
+		} else {
+			t.Errorf("spec.testers[0] is %T; want *describe", spec.testers[0])
+		}
+	}
 }
