@@ -116,12 +116,16 @@ type Schema struct {
 	ForceNew  bool
 	StateFunc SchemaStateFunc
 
-	// The following fields are only set for a TypeList or TypeSet Type.
+	// The following fields are only set for a TypeList, TypeSet, or TypeMap.
 	//
-	// Elem must be either a *Schema or a *Resource only if the Type is
-	// TypeList, and represents what the element type is. If it is *Schema,
-	// the element type is just a simple value. If it is *Resource, the
-	// element type is a complex structure, potentially with its own lifecycle.
+	// Elem represents the element type. For a TypeMap, it must be a *Schema
+	// with a Type of TypeString, otherwise it may be either a *Schema or a
+	// *Resource. If it is *Schema, the element type is just a simple value.
+	// If it is *Resource, the element type is a complex structure,
+	// potentially with its own lifecycle.
+	Elem interface{}
+
+	// The following fields are only set for a TypeList or TypeSet.
 	//
 	// MaxItems defines a maximum amount of items that can exist within a
 	// TypeSet or TypeList. Specific use cases would be if a TypeSet is being
@@ -138,7 +142,6 @@ type Schema struct {
 	// ["foo"] automatically. This is primarily for legacy reasons and the
 	// ambiguity is not recommended for new usage. Promotion is only allowed
 	// for primitive element types.
-	Elem          interface{}
 	MaxItems      int
 	MinItems      int
 	PromoteSingle bool
