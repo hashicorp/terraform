@@ -118,10 +118,11 @@ type Schema struct {
 
 	// The following fields are only set for a TypeList, TypeSet, or TypeMap.
 	//
-	// Elem represents the element type. For a TypeMap, it must be a *Schema,
-	// otherwise it may be either a *Schema or a *Resource. If it is *Schema,
-	// the element type is just a simple value. If it is *Resource, the
-	// element type is a complex structure, potentially with its own lifecycle.
+	// Elem represents the element type. For a TypeMap, it must be a *Schema
+	// with a Type of TypeString, otherwise it may be either a *Schema or a
+	// *Resource. If it is *Schema, the element type is just a simple value.
+	// If it is *Resource, the element type is a complex structure,
+	// potentially with its own lifecycle.
 	Elem interface{}
 
 	// The following fields are only set for a TypeList or TypeSet.
