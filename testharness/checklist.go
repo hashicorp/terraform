@@ -125,3 +125,15 @@ func (s CheckStream) Substream() (CheckStream, Waiter) {
 
 	return ret, Waiter(closeCh)
 }
+
+// Diagnostics is a wrapper around tfdiags.Diagnostics that provides a
+// slice of diagnostics that can be appended to by multiple callers, rather
+// than the usual approach of deriving a new diagnostics slice for each
+// new item added.
+type Diagnostics struct {
+	Diags tfdiags.Diagnostics
+}
+
+func (d *Diagnostics) Append(obj interface{}) {
+	d.Diags = d.Diags.Append(obj)
+}

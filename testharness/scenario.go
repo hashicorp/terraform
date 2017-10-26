@@ -19,7 +19,7 @@ type Scenario struct {
 
 type scenariosBuilder struct {
 	Scenarios map[string]*Scenario
-	Diags     tfdiags.Diagnostics
+	Diags     *Diagnostics
 }
 
 func (b *scenariosBuilder) luaScenarioFunc(L *lua.LState) int {
@@ -27,7 +27,7 @@ func (b *scenariosBuilder) luaScenarioFunc(L *lua.LState) int {
 	fn := L.OptFunction(2, nil)
 
 	if name == "" {
-		b.Diags = b.Diags.Append(&hcl.Diagnostic{
+		b.Diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid scenario declaration",
 			Detail:   "A \"scenario\" call must have a non-empty name as its first argument.",
@@ -36,7 +36,7 @@ func (b *scenariosBuilder) luaScenarioFunc(L *lua.LState) int {
 		return 0
 	}
 	if fn == nil {
-		b.Diags = b.Diags.Append(&hcl.Diagnostic{
+		b.Diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid scenario declaration",
 			Detail:   "A \"scenario\" call must have a definition function as its second argument.",
@@ -45,7 +45,7 @@ func (b *scenariosBuilder) luaScenarioFunc(L *lua.LState) int {
 		return 0
 	}
 	if L.GetTop() != 2 {
-		b.Diags = b.Diags.Append(&hcl.Diagnostic{
+		b.Diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid scenario declaration",
 			Detail:   "The \"scenario\" function expects two arguments: a name and a definition function.",
@@ -71,7 +71,7 @@ func (b *scenariosBuilder) luaScenarioFunc(L *lua.LState) int {
 	variables := func(L *lua.LState) int {
 		table := L.OptTable(1, nil)
 		if table == nil {
-			b.Diags = b.Diags.Append(&hcl.Diagnostic{
+			b.Diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid scenario variables declaration",
 				Detail:   "The \"variables\" function expects one argument: a table of variable values.",
@@ -81,7 +81,7 @@ func (b *scenariosBuilder) luaScenarioFunc(L *lua.LState) int {
 		}
 
 		if b.Scenarios[name].Variables != nil {
-			b.Diags = b.Diags.Append(&hcl.Diagnostic{
+			b.Diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid duplicate variables declaration",
 				Detail:   "The variables for this scenario were already declared. Only one \"variables\" call is allowed per \"scenario\" definition.",
@@ -96,7 +96,7 @@ func (b *scenariosBuilder) luaScenarioFunc(L *lua.LState) int {
 
 		table.ForEach(func(key, value lua.LValue) {
 			if !lua.LVCanConvToString(key) {
-				b.Diags = b.Diags.Append(&hcl.Diagnostic{
+				b.Diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid variable name",
 					Detail:   fmt.Sprintf("The value %q is not a valid variable name.", key.String()),
@@ -109,7 +109,7 @@ func (b *scenariosBuilder) luaScenarioFunc(L *lua.LState) int {
 
 			valCty, err := conv.ToCtyValue(value, cty.DynamicPseudoType)
 			if err != nil {
-				b.Diags = b.Diags.Append(&hcl.Diagnostic{
+				b.Diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid variable value",
 					Detail:   fmt.Sprintf("Unsuitable value for variable %q: %s.", keyStr, err),
@@ -131,7 +131,7 @@ func (b *scenariosBuilder) luaScenarioFunc(L *lua.LState) int {
 	L.Push(fn)
 	err := L.PCall(0, 0, nil)
 	if err != nil {
-		b.Diags = b.Diags.Append(&hcl.Diagnostic{
+		b.Diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Error in scenario definition function",
 			Detail:   fmt.Sprintf("Error occured in the definition function for scenario %q: %s.", name, err),
