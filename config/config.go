@@ -74,6 +74,10 @@ type ProviderConfig struct {
 	// it can be copied into child module providers yet still interpolated in
 	// the correct scope.
 	Path []string
+
+	// Inherited is used to skip validation of this config, since any
+	// interpolated variables won't be declared at this level.
+	Inherited bool
 }
 
 // A resource represents a single Terraform resource in the configuration.
@@ -813,6 +817,10 @@ func (c *Config) rawConfigs() map[string]*RawConfig {
 	}
 
 	for _, pc := range c.ProviderConfigs {
+		// this was an inherited config, so we don't validate it at this level.
+		if pc.Inherited {
+			continue
+		}
 		source := fmt.Sprintf("provider config '%s'", pc.Name)
 		result[source] = pc.RawConfig
 	}
