@@ -591,14 +591,14 @@ func TestResourceInternalValidate(t *testing.T) {
 		Writable bool
 		Err      bool
 	}{
-		{
+		0: {
 			nil,
 			true,
 			true,
 		},
 
 		// No optional and no required
-		{
+		1: {
 			&Resource{
 				Schema: map[string]*Schema{
 					"foo": &Schema{
@@ -613,7 +613,7 @@ func TestResourceInternalValidate(t *testing.T) {
 		},
 
 		// Update undefined for non-ForceNew field
-		{
+		2: {
 			&Resource{
 				Create: func(d *ResourceData, meta interface{}) error { return nil },
 				Schema: map[string]*Schema{
@@ -628,7 +628,7 @@ func TestResourceInternalValidate(t *testing.T) {
 		},
 
 		// Update defined for ForceNew field
-		{
+		3: {
 			&Resource{
 				Create: func(d *ResourceData, meta interface{}) error { return nil },
 				Update: func(d *ResourceData, meta interface{}) error { return nil },
@@ -645,7 +645,7 @@ func TestResourceInternalValidate(t *testing.T) {
 		},
 
 		// non-writable doesn't need Update, Create or Delete
-		{
+		4: {
 			&Resource{
 				Schema: map[string]*Schema{
 					"goo": &Schema{
@@ -659,7 +659,7 @@ func TestResourceInternalValidate(t *testing.T) {
 		},
 
 		// non-writable *must not* have Create
-		{
+		5: {
 			&Resource{
 				Create: func(d *ResourceData, meta interface{}) error { return nil },
 				Schema: map[string]*Schema{
@@ -674,7 +674,7 @@ func TestResourceInternalValidate(t *testing.T) {
 		},
 
 		// writable must have Read
-		{
+		6: {
 			&Resource{
 				Create: func(d *ResourceData, meta interface{}) error { return nil },
 				Update: func(d *ResourceData, meta interface{}) error { return nil },
@@ -691,7 +691,7 @@ func TestResourceInternalValidate(t *testing.T) {
 		},
 
 		// writable must have Delete
-		{
+		7: {
 			&Resource{
 				Create: func(d *ResourceData, meta interface{}) error { return nil },
 				Read:   func(d *ResourceData, meta interface{}) error { return nil },
@@ -765,6 +765,38 @@ func TestResourceInternalValidate(t *testing.T) {
 			true,
 			false,
 		},
+
+		11: { // ID should be allowed in data source
+			&Resource{
+				Read: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"id": &Schema{
+						Type:     TypeString,
+						Optional: true,
+					},
+				},
+			},
+			false,
+			false,
+		},
+
+		12: { // Deprecated ID should be allowed in resource
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Read:   func(d *ResourceData, meta interface{}) error { return nil },
+				Update: func(d *ResourceData, meta interface{}) error { return nil },
+				Delete: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"id": &Schema{
+						Type:       TypeString,
+						Optional:   true,
+						Deprecated: "Use x_id instead",
+					},
+				},
+			},
+			true,
+			false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -775,8 +807,11 @@ func TestResourceInternalValidate(t *testing.T) {
 			}
 
 			err := tc.In.InternalValidate(sm, tc.Writable)
-			if err != nil != tc.Err {
-				t.Fatalf("%d: bad: %s", i, err)
+			if err != nil && !tc.Err {
+				t.Fatalf("%d: expected validation to pass: %s", i, err)
+			}
+			if err == nil && tc.Err {
+				t.Fatalf("%d: expected validation to fail", i)
 			}
 		})
 	}
