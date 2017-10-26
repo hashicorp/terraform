@@ -272,8 +272,9 @@ The supported built-in functions are:
       indented string to be placed after some sort of already-indented preamble.
       Example: `"    \"items\": ${ indent(4, "[\n    \"item1\"\n]") },"`
 
-  * `index(list, elem)` - Finds the index of a given element in a list.
-      This function only works on flat lists.
+  * `index(list, elem)` - Returns the **index** of the first element found
+      in the given list, otherwise -1 is returned. This function only works
+      on flat lists.
       Example: `index(aws_instance.foo.*.tags.Name, "foo-test")`
 
   * `join(delim, list)` - Joins the list with the delimiter for a resultant string.

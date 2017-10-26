@@ -374,8 +374,7 @@ func interpolationFuncContains() ast.Function {
 		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeString},
 		ReturnType: ast.TypeBool,
 		Callback: func(args []interface{}) (interface{}, error) {
-			_, err := interpolationFuncIndex().Callback(args)
-			if err != nil {
+			if rv, _ := interpolationFuncIndex().Callback(args); rv.(int) < 0 {
 				return false, nil
 			}
 			return true, nil
@@ -708,7 +707,7 @@ func interpolationFuncIndex() ast.Function {
 					return index, nil
 				}
 			}
-			return nil, fmt.Errorf("Could not find '%s' in '%s'", needle, haystack)
+			return -1, nil
 		},
 	}
 }
