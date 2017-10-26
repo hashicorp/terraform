@@ -169,6 +169,9 @@ To make a resource importable, please see the
 * digitalocean_ssh_key
 * digitalocean_tag
 * digitalocean_volume
+### Dyn
+
+* dyn_record
 
 ### Fastly
 
