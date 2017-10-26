@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
 * cli: The `terraform versions` command now prints out the version numbers of initialized plugins as well as the version of Terraform core, so that they can be more easily shared when opening GitHub Issues, etc. [GH-16439]
+* helper/schema: Loosen validation for 'id' field [GH-16456]
 
 ## 0.10.8 (October 25, 2017)
 
