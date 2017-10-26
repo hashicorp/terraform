@@ -1,6 +1,8 @@
 package testharness
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -10,10 +12,49 @@ import (
 // A Context is immutable, but derived contexts can be created using the
 // methods of this type.
 type Context struct {
+	name     string
 	resource cty.Value
 	output   cty.Value
 	module   cty.Value
 	each     map[string]cty.Value
+}
+
+var RootContext *Context
+
+func init() {
+	RootContext = &Context{
+		name: "",
+		each: map[string]cty.Value{},
+	}
+}
+
+// Name returns the full name of the object associated with this context.
+// Some objects are _only_ represented by name, and so the name may be
+// more specific than the other specific object methods would imply.
+func (ctx *Context) Name() string {
+	return ctx.name
+}
+
+// WithName returns a a new context that has the given string as its name.
+//
+// This completely replaces any existing name. Usually it's preferable to add
+// a suffix to the name, preserving the context seen so far; to do this,
+// use WithNameSuffix.
+func (ctx *Context) WithName(name string) *Context {
+	retVal := *ctx
+	retVal.name = name
+	return &retVal
+}
+
+// WithNameSuffix returns a new context that has the given string appended to
+// the name of the receiving context.
+func (ctx *Context) WithNameSuffix(suffix string) *Context {
+	if ctx.name == "" {
+		return ctx.WithName(suffix)
+	}
+	retVal := *ctx
+	retVal.name = fmt.Sprintf("%s %s", ctx.name, suffix)
+	return &retVal
 }
 
 // HasResource returns true if there is a resource object associated with
