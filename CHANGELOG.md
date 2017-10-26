@@ -1,5 +1,8 @@
-## 0.10.9 (Unreleased)
+## 0.11.0-beta1 (Unreleased)
 
+IMPROVEMENTS:
+
+* cli: The `terraform versions` command now prints out the version numbers of initialized plugins as well as the version of Terraform core, so that they can be more easily shared when opening GitHub Issues, etc. [GH-16455]
 
 ## 0.10.8 (October 25, 2017)
 
