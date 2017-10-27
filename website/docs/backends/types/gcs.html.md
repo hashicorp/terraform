@@ -8,9 +8,9 @@ description: |-
 
 # gcs
 
-**Kind: Standard (with no locking)**
+**Kind: Standard (with locking)**
 
-Stores the state as a given key in a given bucket on [Google Cloud Storage](https://cloud.google.com/storage/).
+Stores the state as an object in a configurable prefix and bucket on [Google Cloud Storage](https://cloud.google.com/storage/) (GCS).
 
 ## Example Configuration
 
@@ -18,8 +18,7 @@ Stores the state as a given key in a given bucket on [Google Cloud Storage](http
 terraform {
   backend "gcs" {
     bucket  = "tf-state-prod"
-    path    = "path/terraform.tfstate"
-    project = "myproject"
+    prefix  = "terraform/state"
   }
 }
 ```
@@ -30,9 +29,8 @@ terraform {
 data "terraform_remote_state" "foo" {
   backend = "gcs"
   config {
-    bucket  = "terraform-state-prod"
-    path    = "network/terraform.tfstate"
-    project = "goopro"
+    bucket  = "terraform-state"
+    prefix  = "prod"
   }
 }
 
@@ -49,6 +47,15 @@ resource "template_file" "bar" {
 
 The following configuration options are supported:
 
- * `bucket` - (Required) The name of the GCS bucket
- * `path` - (Required) The path where to place/look for state file inside the bucket
- * `credentials` / `GOOGLE_CREDENTIALS` - (Required) Google Cloud Platform account credentials in json format
+ *  `bucket` - (Required) The name of the GCS bucket.
+    This name must be globally unique.
+    For more information, see [Bucket Naming Guidelines](https://cloud.google.com/storage/docs/bucketnaming.html#requirements).
+ *  `credentials` / `GOOGLE_CREDENTIALS` - (Optional) Local path to Google Cloud Platform account credentials in JSON format.
+    If unset, [Google Application Default Credentials](https://developers.google.com/identity/protocols/application-default-credentials) are used.
+    The provided credentials need to have the `devstorage.read_write` scope and `WRITER` permissions on the bucket.
+ *  `prefix` - (Optional) GCS prefix inside the bucket. Named states are stored in an object called `<prefix>/<name>.tfstate`.
+ *  `path` - (Deprecated) GCS path to the state file of the default state. For backwards compatibility only, use `prefix` instead.
+ *  `project` / `GOOGLE_PROJECT` - (Optional) The project ID to which the bucket belongs. This is only used when creating a new bucket during initialization.
+    Since buckets have globally unique names, the project ID is not required to access the bucket during normal operation.
+ *  `region` / `GOOGLE_REGION` - (Optional) The region in which a new bucket is created.
+    For more information, see [Bucket Locations](https://cloud.google.com/storage/docs/bucket-locations).
