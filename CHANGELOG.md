@@ -16,6 +16,7 @@ NEW FEATURES:
 
 * modules: Module configuration blocks now have a "version" attribute, to set a version constraint for modules sourced from a registry. [GH-16466]
 * modules: Module configuration blocks now have a "providers" attribute, to map a provider configuration from the current module into a submodule [GH-16379]
+* backend/gcs: The gcs remote state backend now supports workspaces and locking.
 
 IMPROVEMENTS:
 
