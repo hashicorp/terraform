@@ -6,6 +6,8 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/registry/regsrc"
+	"github.com/hashicorp/terraform/svchost"
+	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
 )
 
@@ -52,6 +54,44 @@ func TestLookupModuleVersions(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestRegistryAuth(t *testing.T) {
+	server := mockRegistry()
+	defer server.Close()
+
+	regDisco := testDisco(server)
+	storage := testStorage(t, regDisco)
+
+	src := "private/name/provider"
+	mod, err := regsrc.ParseModuleSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// both should fail without auth
+	_, err = storage.lookupModuleVersions(mod)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	_, err = storage.lookupModuleLocation(mod, "1.0.0")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	storage.Creds = auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
+		svchost.Hostname(defaultRegistry): {"token": testCredentials},
+	})
+
+	_, err = storage.lookupModuleVersions(mod)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = storage.lookupModuleLocation(mod, "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 }
 
 func TestAccLookupModuleVersions(t *testing.T) {

@@ -155,6 +155,7 @@ func (s *Storage) lookupModuleLocation(module *regsrc.Module, version string) (s
 		return "", err
 	}
 
+	s.addRequestCreds(svchost.Hostname(module.RawHost.Normalized()), req)
 	req.Header.Set(xTerraformVersion, tfVersion)
 
 	resp, err := httpClient.Do(req)
