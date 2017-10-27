@@ -16,7 +16,6 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
-	"github.com/hashicorp/terraform/svchost/disco"
 )
 
 // Map of module names and location of test modules.
@@ -162,7 +161,7 @@ func mockRegHandler() http.Handler {
 
 	mux.HandleFunc("/.well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"modules.v1":"/v1/modules/"}`)
+		io.WriteString(w, `{"modules.v1":"http://localhost/v1/modules/"}`)
 	})
 	return mux
 }
@@ -174,26 +173,16 @@ func mockRegistry() *httptest.Server {
 	return server
 }
 
-func mockTLSRegistry() *httptest.Server {
-	server := httptest.NewTLSServer(mockRegHandler())
-	return server
-}
-
 // GitHub archives always contain the module source in a single subdirectory,
 // so the registry will return a path with with a `//*` suffix. We need to make
 // sure this doesn't intefere with our internal handling of `//` subdir.
 func TestRegistryGitHubArchive(t *testing.T) {
-	server := mockTLSRegistry()
+	server := mockRegistry()
 	defer server.Close()
-	d := regDisco
 
-	regDisco = disco.NewDisco()
-	regDisco.Transport = mockTransport(server)
-	defer func() {
-		regDisco = d
-	}()
+	disco := testDisco(server)
+	storage := testStorage(t, disco)
 
-	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "registry-tar-subdir"))
 
 	storage.Mode = GetModeGet
@@ -232,17 +221,11 @@ func TestRegistryGitHubArchive(t *testing.T) {
 
 // Test that the //subdir notation can be used with registry modules
 func TestRegisryModuleSubdir(t *testing.T) {
-	server := mockTLSRegistry()
+	server := mockRegistry()
 	defer server.Close()
 
-	d := regDisco
-	regDisco = disco.NewDisco()
-	regDisco.Transport = mockTransport(server)
-	defer func() {
-		regDisco = d
-	}()
-
-	storage := testStorage(t)
+	disco := testDisco(server)
+	storage := testStorage(t, disco)
 	tree := NewTree("", testConfig(t, "registry-subdir"))
 
 	storage.Mode = GetModeGet
@@ -277,7 +260,8 @@ func TestAccRegistryDiscover(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	loc, err := lookupModuleLocation(nil, module, "")
+	s := NewStorage("/tmp", nil, nil)
+	loc, err := s.lookupModuleLocation(module, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -301,7 +285,7 @@ func TestAccRegistryLoad(t *testing.T) {
 		t.Skip("skipping ACC test")
 	}
 
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	tree := NewTree("", testConfig(t, "registry-load"))
 
 	storage.Mode = GetModeGet
