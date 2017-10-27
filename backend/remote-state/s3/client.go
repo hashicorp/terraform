@@ -272,6 +272,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 		},
 		ProjectionExpression: aws.String("LockID, Digest"),
 		TableName:            aws.String(c.ddbTable),
+		ConsistentRead:       aws.Bool(true),
 	}
 
 	resp, err := c.dynClient.GetItem(getParams)
@@ -342,6 +343,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 		},
 		ProjectionExpression: aws.String("LockID, Info"),
 		TableName:            aws.String(c.ddbTable),
+		ConsistentRead:       aws.Bool(true),
 	}
 
 	resp, err := c.dynClient.GetItem(getParams)
