@@ -9,14 +9,12 @@ import (
 // call in a spec to establish what any sub-testers are testing. Internally,
 // these objects produce derived Context objects representing what the user
 // passed in.
-//
-// Method Context must at least return a new context with a new name compared
-// to the given parent, even if an error is returned. This changed name will
-// be used to report any errors to the user. If the returned diagnostics
-// contains no errors then it will be used to run tests within the associated
-// "describe" body.
+
+// Method AppendContext must append zero or more new contexts to the given
+// slice (which may be nil) and return the result. Each context appended
+// represents a distinct context in which to run any downstream tests.
 type contextSetter interface {
-	Context(parent *Context, subject *Subject) (*Context, tfdiags.Diagnostics)
+	AppendContexts(parent *Context, subject *Subject, ctxs []*Context) ([]*Context, tfdiags.Diagnostics)
 }
 
 // contextSetter implementations
@@ -30,8 +28,8 @@ var (
 // something being tested.
 type simpleContextSetter string
 
-func (s simpleContextSetter) Context(parent *Context, subject *Subject) (*Context, tfdiags.Diagnostics) {
-	return parent.WithNameSuffix(string(s)), nil
+func (s simpleContextSetter) AppendContexts(parent *Context, subject *Subject, ctxs []*Context) ([]*Context, tfdiags.Diagnostics) {
+	return append(ctxs, parent.WithNameSuffix(string(s))), nil
 }
 
 // A resourceContextSetter is a contextSetter that uses a resource from the
@@ -42,7 +40,10 @@ type resourceContextSetter struct {
 	DefRange tfdiags.SourceRange
 }
 
-func (s *resourceContextSetter) Context(parent *Context, subject *Subject) (*Context, tfdiags.Diagnostics) {
+func (s *resourceContextSetter) AppendContexts(parent *Context, subject *Subject, ctxs []*Context) ([]*Context, tfdiags.Diagnostics) {
 	// TODO: Set the resource object too
-	return parent.WithNameSuffix(s.Addr.String()), nil
+	// TODO: If the resource address refers to a resource block with multiple
+	// instances (e.g. "count" is set) then generate one context for each
+	// of the instances matched.
+	return append(ctxs, parent.WithNameSuffix(s.Addr.String())), nil
 }
