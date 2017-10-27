@@ -750,7 +750,7 @@ func testModule(
 	}
 
 	// Load the modules
-	modStorage := &module.ModuleStorage{
+	modStorage := &module.Storage{
 		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
 		Mode:       module.GetModeGet,
 	}

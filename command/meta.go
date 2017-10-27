@@ -368,8 +368,8 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 
 // moduleStorage returns the module.Storage implementation used to store
 // modules for commands.
-func (m *Meta) moduleStorage(root string, mode module.GetMode) *module.ModuleStorage {
-	return &module.ModuleStorage{
+func (m *Meta) moduleStorage(root string, mode module.GetMode) *module.Storage {
+	return &module.Storage{
 		StorageDir: filepath.Join(root, "modules"),
 		Services:   m.Services,
 		Ui:         m.Ui,

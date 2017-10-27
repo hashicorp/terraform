@@ -107,7 +107,7 @@ func testModule(t *testing.T, name string) *module.Tree {
 		t.Fatalf("err: %s", err)
 	}
 
-	s := &module.ModuleStorage{
+	s := &module.Storage{
 		StorageDir: tempDir(t),
 		Mode:       module.GetModeGet,
 	}

@@ -96,7 +96,7 @@ func testModule(t *testing.T, name string) *module.Tree {
 		t.Fatalf("err: %s", err)
 	}
 
-	s := &module.ModuleStorage{
+	s := &module.Storage{
 		StorageDir: tempDir(t),
 		Mode:       module.GetModeGet,
 	}
@@ -146,7 +146,7 @@ func testModuleInline(t *testing.T, config map[string]string) *module.Tree {
 	}
 
 	// Load the modules
-	modStorage := &module.ModuleStorage{
+	modStorage := &module.Storage{
 		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
 		Mode:       module.GetModeGet,
 	}

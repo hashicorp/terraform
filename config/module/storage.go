@@ -55,19 +55,23 @@ type moduleRecord struct {
 	registry bool
 }
 
-// ModuleStorage implements methods to record and fetch metadata about the
+// Storage implements methods to record and fetch metadata about the
 // modules that have been fetched and stored locally. The getter.Storgae
 // abstraction doesn't provide the information needed to know which versions of
 // a module have been stored, or their location.
-type ModuleStorage struct {
+type Storage struct {
+	// StorageDir is the directory where all modules will be stored.
 	StorageDir string
-	Services   *disco.Disco
-	Ui         cli.Ui
-	Mode       GetMode
+	// Services is a *Disco which ay have services and credentials pre-loaded.
+	Services *disco.Disco
+	// Ui is an optional cli.Ui for user output
+	Ui cli.Ui
+	// Mode is the GetMode that will be used for various operations.
+	Mode GetMode
 }
 
 // loadManifest returns the moduleManifest file from the parent directory.
-func (m ModuleStorage) loadManifest() (moduleManifest, error) {
+func (m Storage) loadManifest() (moduleManifest, error) {
 	manifest := moduleManifest{}
 
 	manifestPath := filepath.Join(m.StorageDir, manifestName)
@@ -90,7 +94,7 @@ func (m ModuleStorage) loadManifest() (moduleManifest, error) {
 // root directory. The storage method loads the entire file and rewrites it
 // each time. This is only done a few times during init, so efficiency is
 // not a concern.
-func (m ModuleStorage) recordModule(rec moduleRecord) error {
+func (m Storage) recordModule(rec moduleRecord) error {
 	manifest, err := m.loadManifest()
 	if err != nil {
 		// if there was a problem with the file, we will attempt to write a new
@@ -127,7 +131,7 @@ func (m ModuleStorage) recordModule(rec moduleRecord) error {
 // load the manifest from dir, and return all module versions matching the
 // provided source. Records with no version info will be skipped, as they need
 // to be uniquely identified by other means.
-func (m ModuleStorage) moduleVersions(source string) ([]moduleRecord, error) {
+func (m Storage) moduleVersions(source string) ([]moduleRecord, error) {
 	manifest, err := m.loadManifest()
 	if err != nil {
 		return manifest.Modules, err
@@ -144,7 +148,7 @@ func (m ModuleStorage) moduleVersions(source string) ([]moduleRecord, error) {
 	return matching, nil
 }
 
-func (m ModuleStorage) moduleDir(key string) (string, error) {
+func (m Storage) moduleDir(key string) (string, error) {
 	manifest, err := m.loadManifest()
 	if err != nil {
 		return "", err
@@ -160,7 +164,7 @@ func (m ModuleStorage) moduleDir(key string) (string, error) {
 }
 
 // return only the root directory of the module stored in dir.
-func (m ModuleStorage) getModuleRoot(dir string) (string, error) {
+func (m Storage) getModuleRoot(dir string) (string, error) {
 	manifest, err := m.loadManifest()
 	if err != nil {
 		return "", err
@@ -176,7 +180,7 @@ func (m ModuleStorage) getModuleRoot(dir string) (string, error) {
 
 // record only the Root directory for the module stored at dir.
 // TODO: remove this compatibility function to store the full moduleRecord.
-func (m ModuleStorage) recordModuleRoot(dir, root string) error {
+func (m Storage) recordModuleRoot(dir, root string) error {
 	rec := moduleRecord{
 		Dir:  dir,
 		Root: root,
@@ -185,7 +189,7 @@ func (m ModuleStorage) recordModuleRoot(dir, root string) error {
 	return m.recordModule(rec)
 }
 
-func (m ModuleStorage) getStorage(key string, src string) (string, bool, error) {
+func (m Storage) getStorage(key string, src string) (string, bool, error) {
 	storage := &getter.FolderStorage{
 		StorageDir: m.StorageDir,
 	}
@@ -213,7 +217,7 @@ func (m ModuleStorage) getStorage(key string, src string) (string, bool, error) 
 }
 
 // find a stored module that's not from a registry
-func (m ModuleStorage) findModule(key string) (string, error) {
+func (m Storage) findModule(key string) (string, error) {
 	if m.Mode == GetModeUpdate {
 		return "", nil
 	}
@@ -222,7 +226,7 @@ func (m ModuleStorage) findModule(key string) (string, error) {
 }
 
 // find a registry module
-func (m ModuleStorage) findRegistryModule(mSource, constraint string) (moduleRecord, error) {
+func (m Storage) findRegistryModule(mSource, constraint string) (moduleRecord, error) {
 	rec := moduleRecord{
 		Source: mSource,
 	}

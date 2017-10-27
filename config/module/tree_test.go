@@ -121,7 +121,7 @@ func TestTreeLoad_duplicate(t *testing.T) {
 
 func TestTreeLoad_copyable(t *testing.T) {
 	dir := tempDir(t)
-	storage := &ModuleStorage{
+	storage := &Storage{
 		StorageDir: dir,
 		Mode:       GetModeGet,
 	}
@@ -167,7 +167,7 @@ func TestTreeLoad_copyable(t *testing.T) {
 		}
 
 		tree := NewTree("", cfg)
-		storage := &ModuleStorage{
+		storage := &Storage{
 			StorageDir: dir2,
 			Mode:       GetModeNone,
 		}
@@ -287,7 +287,7 @@ func TestTree_recordManifest(t *testing.T) {
 	}
 	defer os.RemoveAll(td)
 
-	storage := ModuleStorage{StorageDir: td}
+	storage := Storage{StorageDir: td}
 
 	dir := filepath.Join(td, "0131bf0fef686e090b16bdbab4910ddf")
 
@@ -792,7 +792,7 @@ func TestTreeLoad_changeIntermediateSource(t *testing.T) {
 	if err := os.MkdirAll(".terraform/modules", 0777); err != nil {
 		t.Fatal(err)
 	}
-	storage := &ModuleStorage{StorageDir: ".terraform/modules"}
+	storage := &Storage{StorageDir: ".terraform/modules"}
 	cfg, err := config.LoadDir("./")
 	if err != nil {
 		t.Fatal(err)
