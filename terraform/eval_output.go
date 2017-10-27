@@ -68,22 +68,17 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 
 	// handling the interpolation error
 	if err != nil {
-		switch {
-		case featureOutputErrors:
-			if n.ContinueOnErr {
-				log.Printf("[ERROR] Output interpolation %q failed: %s", n.Name, err)
-				// if we're continueing, make sure the output is included, and
-				// marked as unknown
-				mod.Outputs[n.Name] = &OutputState{
-					Type:  "string",
-					Value: config.UnknownVariableValue,
-				}
-				return nil, EvalEarlyExitError{}
+		if n.ContinueOnErr {
+			log.Printf("[ERROR] Output interpolation %q failed: %s", n.Name, err)
+			// if we're continueing, make sure the output is included, and
+			// marked as unknown
+			mod.Outputs[n.Name] = &OutputState{
+				Type:  "string",
+				Value: config.UnknownVariableValue,
 			}
-			return nil, err
-		default:
-			log.Printf("[WARN] Output interpolation %q failed: %s", n.Name, err)
+			return nil, EvalEarlyExitError{}
 		}
+		return nil, err
 	}
 
 	// Get the value from the config

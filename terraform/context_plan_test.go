@@ -3593,15 +3593,8 @@ output "out" {
 	}
 
 	_, err = ctx.Plan()
-	switch {
-	case featureOutputErrors:
-		if err == nil {
-			t.Fatal("expected error")
-		}
-	default:
-		if err != nil {
-			t.Fatalf("plan err: %s", err)
-		}
+	if err == nil {
+		t.Fatal("expected error")
 	}
 }
 
@@ -3648,15 +3641,7 @@ resource "aws_instance" "foo" {
 	}
 
 	_, err = ctx.Plan()
-	switch {
-	case featureOutputErrors:
-		if err == nil {
-			t.Fatal("expected error")
-		}
-	default:
-		if err != nil {
-			t.Fatalf("plan err: %s", err)
-		}
+	if err == nil {
+		t.Fatal("expected error")
 	}
-
 }
