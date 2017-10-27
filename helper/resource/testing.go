@@ -15,7 +15,6 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/terraform/config/module"
@@ -751,10 +750,11 @@ func testModule(
 	}
 
 	// Load the modules
-	modStorage := &getter.FolderStorage{
+	modStorage := &module.Storage{
 		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
+		Mode:       module.GetModeGet,
 	}
-	err = mod.Load(modStorage, module.GetModeGet)
+	err = mod.Load(modStorage)
 	if err != nil {
 		return nil, fmt.Errorf("Error downloading modules: %s", err)
 	}

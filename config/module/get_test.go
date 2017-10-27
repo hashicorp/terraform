@@ -16,7 +16,6 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
-	"github.com/hashicorp/terraform/svchost/disco"
 )
 
 // Map of module names and location of test modules.
@@ -25,6 +24,10 @@ type testMod struct {
 	location string
 	version  string
 }
+
+const (
+	testCredentials = "test-auth-token"
+)
 
 // All the locationes from the mockRegistry start with a file:// scheme. If
 // the the location string here doesn't have a scheme, the mockRegistry will
@@ -51,6 +54,9 @@ var testMods = map[string][]testMod{
 		{version: "2.1.1"},
 		{version: "1.2.2"},
 		{version: "1.2.1"},
+	},
+	"private/name/provider": {
+		{version: "1.0.0"},
 	},
 }
 
@@ -82,6 +88,13 @@ func mockRegHandler() http.Handler {
 			return
 		}
 
+		// check for auth
+		if strings.Contains(matches[0], "private/") {
+			if !strings.Contains(r.Header.Get("Authorization"), testCredentials) {
+				http.Error(w, "", http.StatusForbidden)
+			}
+		}
+
 		versions, ok := testMods[matches[1]]
 		if !ok {
 			http.NotFound(w, r)
@@ -109,6 +122,13 @@ func mockRegHandler() http.Handler {
 		if len(matches) != 2 {
 			w.WriteHeader(http.StatusBadRequest)
 			return
+		}
+
+		// check for auth
+		if strings.Contains(matches[1], "private/") {
+			if !strings.Contains(r.Header.Get("Authorization"), testCredentials) {
+				http.Error(w, "", http.StatusForbidden)
+			}
 		}
 
 		name := matches[1]
@@ -162,7 +182,7 @@ func mockRegHandler() http.Handler {
 
 	mux.HandleFunc("/.well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{"modules.v1":"/v1/modules/"}`)
+		io.WriteString(w, `{"modules.v1":"http://localhost/v1/modules/"}`)
 	})
 	return mux
 }
@@ -174,29 +194,20 @@ func mockRegistry() *httptest.Server {
 	return server
 }
 
-func mockTLSRegistry() *httptest.Server {
-	server := httptest.NewTLSServer(mockRegHandler())
-	return server
-}
-
 // GitHub archives always contain the module source in a single subdirectory,
 // so the registry will return a path with with a `//*` suffix. We need to make
 // sure this doesn't intefere with our internal handling of `//` subdir.
 func TestRegistryGitHubArchive(t *testing.T) {
-	server := mockTLSRegistry()
+	server := mockRegistry()
 	defer server.Close()
-	d := regDisco
 
-	regDisco = disco.NewDisco()
-	regDisco.Transport = mockTransport(server)
-	defer func() {
-		regDisco = d
-	}()
+	disco := testDisco(server)
+	storage := testStorage(t, disco)
 
-	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "registry-tar-subdir"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -204,7 +215,8 @@ func TestRegistryGitHubArchive(t *testing.T) {
 		t.Fatal("should be loaded")
 	}
 
-	if err := tree.Load(storage, GetModeNone); err != nil {
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -212,7 +224,8 @@ func TestRegistryGitHubArchive(t *testing.T) {
 	server.Close()
 	tree = NewTree("", testConfig(t, "registry-tar-subdir"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -229,20 +242,15 @@ func TestRegistryGitHubArchive(t *testing.T) {
 
 // Test that the //subdir notation can be used with registry modules
 func TestRegisryModuleSubdir(t *testing.T) {
-	server := mockTLSRegistry()
+	server := mockRegistry()
 	defer server.Close()
 
-	d := regDisco
-	regDisco = disco.NewDisco()
-	regDisco.Transport = mockTransport(server)
-	defer func() {
-		regDisco = d
-	}()
-
-	storage := testStorage(t)
+	disco := testDisco(server)
+	storage := testStorage(t, disco)
 	tree := NewTree("", testConfig(t, "registry-subdir"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -250,7 +258,8 @@ func TestRegisryModuleSubdir(t *testing.T) {
 		t.Fatal("should be loaded")
 	}
 
-	if err := tree.Load(storage, GetModeNone); err != nil {
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -272,7 +281,8 @@ func TestAccRegistryDiscover(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	loc, err := lookupModuleLocation(nil, module, "")
+	s := NewStorage("/tmp", nil, nil)
+	loc, err := s.lookupModuleLocation(module, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,10 +306,11 @@ func TestAccRegistryLoad(t *testing.T) {
 		t.Skip("skipping ACC test")
 	}
 
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	tree := NewTree("", testConfig(t, "registry-load"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -307,7 +318,8 @@ func TestAccRegistryLoad(t *testing.T) {
 		t.Fatal("should be loaded")
 	}
 
-	if err := tree.Load(storage, GetModeNone); err != nil {
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

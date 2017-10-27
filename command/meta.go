@@ -16,11 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
@@ -368,13 +368,11 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 
 // moduleStorage returns the module.Storage implementation used to store
 // modules for commands.
-func (m *Meta) moduleStorage(root string) getter.Storage {
-	return &uiModuleStorage{
-		Storage: &getter.FolderStorage{
-			StorageDir: filepath.Join(root, "modules"),
-		},
-		Ui: m.Ui,
-	}
+func (m *Meta) moduleStorage(root string, mode module.GetMode) *module.Storage {
+	s := module.NewStorage(filepath.Join(root, "modules"), m.Services, m.Credentials)
+	s.Ui = m.Ui
+	s.Mode = mode
+	return s
 }
 
 // process will process the meta-parameters out of the arguments. This
