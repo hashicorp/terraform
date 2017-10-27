@@ -11,7 +11,7 @@ description: |-
 
 **Kind: Standard (with state locking)**
 
-Stores the state as a given key in a given bucket on [Microsoft Azure Storage](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/).
+Stores the state as a given key in a given blob container on [Microsoft Azure Storage](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/). This backend also supports state locking and consistency checking via native capabilities of Microsoft Azure Storage.
 
 ## Example Configuration
 
