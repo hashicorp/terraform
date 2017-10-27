@@ -25,6 +25,10 @@ type testMod struct {
 	version  string
 }
 
+const (
+	testCredentials = "a9564ebc3289b7a14551baf8ad5ec60a"
+)
+
 // All the locationes from the mockRegistry start with a file:// scheme. If
 // the the location string here doesn't have a scheme, the mockRegistry will
 // find the absolute path and return a complete URL.
@@ -50,6 +54,9 @@ var testMods = map[string][]testMod{
 		{version: "2.1.1"},
 		{version: "1.2.2"},
 		{version: "1.2.1"},
+	},
+	"private/name/provider": {
+		{version: "1.0.0"},
 	},
 }
 
@@ -81,6 +88,13 @@ func mockRegHandler() http.Handler {
 			return
 		}
 
+		// check for auth
+		if strings.Contains(matches[0], "private/") {
+			if !strings.Contains(r.Header.Get("Authorization"), testCredentials) {
+				http.Error(w, "", http.StatusForbidden)
+			}
+		}
+
 		versions, ok := testMods[matches[1]]
 		if !ok {
 			http.NotFound(w, r)
@@ -108,6 +122,13 @@ func mockRegHandler() http.Handler {
 		if len(matches) != 2 {
 			w.WriteHeader(http.StatusBadRequest)
 			return
+		}
+
+		// check for auth
+		if strings.Contains(matches[1], "private/") {
+			if !strings.Contains(r.Header.Get("Authorization"), testCredentials) {
+				http.Error(w, "", http.StatusForbidden)
+			}
 		}
 
 		name := matches[1]
