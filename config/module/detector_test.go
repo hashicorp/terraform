@@ -30,8 +30,8 @@ func TestParseRegistrySource(t *testing.T) {
 			id:     "namespace/id/provider",
 		},
 		{ // too many parts
-			source:      "registry.com/namespace/id/provider/extra",
-			notRegistry: true,
+			source: "registry.com/namespace/id/provider/extra",
+			err:    true,
 		},
 		{ // local path
 			source:      "./local/file/path",
