@@ -20,7 +20,7 @@ func TestTreeChild(t *testing.T) {
 		t.Fatal("child should be nil")
 	}
 
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	storage.Mode = GetModeGet
 	tree := NewTree("", testConfig(t, "child"))
 	if err := tree.Load(storage); err != nil {
@@ -65,7 +65,7 @@ func TestTreeChild(t *testing.T) {
 }
 
 func TestTreeLoad(t *testing.T) {
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	tree := NewTree("", testConfig(t, "basic"))
 
 	if tree.Loaded() {
@@ -105,7 +105,7 @@ func TestTreeLoad(t *testing.T) {
 }
 
 func TestTreeLoad_duplicate(t *testing.T) {
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	tree := NewTree("", testConfig(t, "dup"))
 
 	if tree.Loaded() {
@@ -184,7 +184,7 @@ func TestTreeLoad_copyable(t *testing.T) {
 }
 
 func TestTreeLoad_parentRef(t *testing.T) {
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	tree := NewTree("", testConfig(t, "basic-parent"))
 
 	if tree.Loaded() {
@@ -228,17 +228,12 @@ func TestTreeLoad_subdir(t *testing.T) {
 	fixtures := []string{
 		"basic-subdir",
 		"basic-tar-subdir",
-
-		// Passing a subpath to go getter extracts only this subpath. The old
-		// internal code would keep the entire directory structure, allowing a
-		// top-level module to reference others through its parent directory.
-		// TODO: this can be removed as a breaking change in a major release.
 		"tar-subdir-to-parent",
 	}
 
 	for _, tc := range fixtures {
 		t.Run(tc, func(t *testing.T) {
-			storage := testStorage(t)
+			storage := testStorage(t, nil)
 			tree := NewTree("", testConfig(t, tc))
 
 			if tree.Loaded() {
@@ -404,7 +399,7 @@ func TestTreeValidate_table(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
 			tree := NewTree("", testConfig(t, tc.Fixture))
-			storage := testStorage(t)
+			storage := testStorage(t, nil)
 			storage.Mode = GetModeGet
 			if err := tree.Load(storage); err != nil {
 				t.Fatalf("err: %s", err)
@@ -427,7 +422,7 @@ func TestTreeValidate_table(t *testing.T) {
 func TestTreeValidate_badChild(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-child-bad"))
 
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	storage.Mode = GetModeGet
 	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
@@ -441,7 +436,7 @@ func TestTreeValidate_badChild(t *testing.T) {
 func TestTreeValidate_badChildOutput(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-bad-output"))
 
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	storage.Mode = GetModeGet
 	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
@@ -455,7 +450,7 @@ func TestTreeValidate_badChildOutput(t *testing.T) {
 func TestTreeValidate_badChildOutputToModule(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-bad-output-to-module"))
 
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	storage.Mode = GetModeGet
 	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
@@ -469,7 +464,7 @@ func TestTreeValidate_badChildOutputToModule(t *testing.T) {
 func TestTreeValidate_badChildVar(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-bad-var"))
 
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	storage.Mode = GetModeGet
 	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
@@ -483,7 +478,7 @@ func TestTreeValidate_badChildVar(t *testing.T) {
 func TestTreeValidate_badRoot(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-root-bad"))
 
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	storage.Mode = GetModeGet
 	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
@@ -497,7 +492,7 @@ func TestTreeValidate_badRoot(t *testing.T) {
 func TestTreeValidate_good(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-child-good"))
 
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	storage.Mode = GetModeGet
 	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
@@ -519,7 +514,7 @@ func TestTreeValidate_notLoaded(t *testing.T) {
 func TestTreeValidate_requiredChildVar(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-required-var"))
 
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	storage.Mode = GetModeGet
 	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
@@ -542,7 +537,7 @@ func TestTreeValidate_requiredChildVar(t *testing.T) {
 func TestTreeValidate_unknownModule(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-module-unknown"))
 
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	storage.Mode = GetModeNone
 	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
@@ -554,7 +549,7 @@ func TestTreeValidate_unknownModule(t *testing.T) {
 }
 
 func TestTreeProviders_basic(t *testing.T) {
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	tree := NewTree("", testConfig(t, "basic-parent-providers"))
 
 	storage.Mode = GetModeGet
@@ -617,7 +612,7 @@ func TestTreeProviders_basic(t *testing.T) {
 }
 
 func TestTreeProviders_implicit(t *testing.T) {
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	tree := NewTree("", testConfig(t, "implicit-parent-providers"))
 
 	storage.Mode = GetModeGet
@@ -658,7 +653,7 @@ func TestTreeProviders_implicit(t *testing.T) {
 }
 
 func TestTreeProviders_implicitMultiLevel(t *testing.T) {
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	tree := NewTree("", testConfig(t, "implicit-grandparent-providers"))
 
 	storage.Mode = GetModeGet
@@ -728,7 +723,7 @@ func TestTreeProviders_implicitMultiLevel(t *testing.T) {
 }
 
 func TestTreeLoad_conflictingSubmoduleNames(t *testing.T) {
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	tree := NewTree("", testConfig(t, "conficting-submodule-names"))
 
 	storage.Mode = GetModeGet

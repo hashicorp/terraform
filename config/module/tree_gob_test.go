@@ -8,7 +8,7 @@ import (
 )
 
 func TestTreeEncodeDecodeGob(t *testing.T) {
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	tree := NewTree("", testConfig(t, "basic"))
 
 	// This should get things
