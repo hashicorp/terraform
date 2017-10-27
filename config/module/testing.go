@@ -24,7 +24,7 @@ func TestTree(t *testing.T, path string) (*Tree, func()) {
 	}
 
 	// Get the child modules
-	s := &ModuleStorage{StorageDir: dir, Mode: GetModeGet}
+	s := &Storage{StorageDir: dir, Mode: GetModeGet}
 	if err := mod.Load(s); err != nil {
 		t.Fatalf("err: %s", err)
 		return nil, nil

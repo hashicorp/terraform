@@ -52,7 +52,7 @@ func NewEmptyTree() *Tree {
 	// We do this dummy load so that the tree is marked as "loaded". It
 	// should never fail because this is just about a no-op. If it does fail
 	// we panic so we can know its a bug.
-	if err := t.Load(&ModuleStorage{Mode: GetModeGet}); err != nil {
+	if err := t.Load(&Storage{Mode: GetModeGet}); err != nil {
 		panic(err)
 	}
 
@@ -169,7 +169,7 @@ func (t *Tree) Name() string {
 // module trees inherently require the configuration to be in a reasonably
 // sane state: no circular dependencies, proper module sources, etc. A full
 // suite of validations can be done by running Validate (after loading).
-func (t *Tree) Load(s *ModuleStorage) error {
+func (t *Tree) Load(s *Storage) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
@@ -196,7 +196,7 @@ func (t *Tree) Load(s *ModuleStorage) error {
 	return nil
 }
 
-func (t *Tree) getChildren(s *ModuleStorage) (map[string]*Tree, error) {
+func (t *Tree) getChildren(s *Storage) (map[string]*Tree, error) {
 	children := make(map[string]*Tree)
 
 	// Go through all the modules and get the directory for them.

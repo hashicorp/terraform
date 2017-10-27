@@ -41,7 +41,7 @@ func testConfig(t *testing.T, n string) *config.Config {
 	return c
 }
 
-func testStorage(t *testing.T) *ModuleStorage {
+func testStorage(t *testing.T) *Storage {
 	t.Helper()
-	return &ModuleStorage{StorageDir: tempDir(t)}
+	return &Storage{StorageDir: tempDir(t)}
 }
