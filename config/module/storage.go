@@ -190,6 +190,14 @@ func (m ModuleStorage) getStorage(key string, src string) (string, bool, error) 
 		StorageDir: m.StorageDir,
 	}
 
+	if m.Ui != nil {
+		update := ""
+		if m.Mode == GetModeUpdate {
+			update = " (update)"
+		}
+		m.Ui.Output(fmt.Sprintf("Get: %s%s", src, update))
+	}
+
 	// Get the module with the level specified if we were told to.
 	if m.Mode > GetModeNone {
 		log.Printf("[DEBUG] fetching %q with key %q", src, key)
