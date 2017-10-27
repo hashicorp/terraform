@@ -243,6 +243,41 @@ func (s Storage) findModule(key string) (string, error) {
 	return s.moduleDir(key)
 }
 
+// GetModule fetches a module source into the specified directory. This is used
+// as a convenience function by the CLI to initialize a configuration.
+func (s Storage) GetModule(dst, src string) error {
+	// reset this in case the caller was going to re-use it
+	mode := s.Mode
+	s.Mode = GetModeUpdate
+	defer func() {
+		s.Mode = mode
+	}()
+
+	rec, err := s.findRegistryModule(src, anyVersion)
+	if err != nil {
+		return err
+	}
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	source := rec.url
+	if source == "" {
+		source, err = getter.Detect(src, pwd, getter.Detectors)
+		if err != nil {
+			return fmt.Errorf("module %s: %s", src, err)
+		}
+	}
+
+	if source == "" {
+		return fmt.Errorf("module %q not found", src)
+	}
+
+	return GetCopy(dst, source)
+}
+
 // find a registry module
 func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, error) {
 	rec := moduleRecord{
