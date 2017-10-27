@@ -638,6 +638,9 @@ func (t *Tree) Validate() error {
 // and source encoded. This is to provide a unique key for our module storage,
 // since submodules need to know which versions of their ancestor modules they
 // are loaded from.
+// For example, if module A has a subdirectory B, if module A's source or
+// version is updated B's storage key must reflect this change in order for the
+// correct version of B's source to be loaded.
 func (t *Tree) versionedPathKey(m *Module) string {
 	path := make([]string, len(t.path)+1)
 	path[len(path)-1] = m.Name + ";" + m.Source
