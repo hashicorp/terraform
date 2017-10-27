@@ -369,12 +369,10 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 // moduleStorage returns the module.Storage implementation used to store
 // modules for commands.
 func (m *Meta) moduleStorage(root string, mode module.GetMode) *module.Storage {
-	return &module.Storage{
-		StorageDir: filepath.Join(root, "modules"),
-		Services:   m.Services,
-		Ui:         m.Ui,
-		Mode:       mode,
-	}
+	s := module.NewStorage(filepath.Join(root, "modules"), m.Services, m.Credentials)
+	s.Ui = m.Ui
+	s.Mode = mode
+	return s
 }
 
 // process will process the meta-parameters out of the arguments. This
