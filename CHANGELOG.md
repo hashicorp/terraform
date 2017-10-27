@@ -1,8 +1,30 @@
 ## 0.11.0-beta1 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* Output interpolation errors are now fatal. Module configs with unused outputs
+  which contained errors will no longer be valid.
+* Module configuration blocks have 2 new reserved attribute names, "providers"
+  and "version". Modules using these as input variables will need to be
+  updated.
+* The module provider inheritance system has been updated. Providers declared
+  with configuration will no longer be merged, and named provider
+  configurations can be explicitly passed between modules. See documentation
+  for details. [TODO]
+
+NEW FEATURES:
+
+* modules: Module configuration blocks now have a "version" attribute, to set a version constraint for modules sourced from a registry. [GH-16466]
+* modules: Module configuration blocks now have a "providers" attribute, to map a provider configuration from the current module into a submodule [GH-16379]
+
 IMPROVEMENTS:
 
 * cli: The `terraform versions` command now prints out the version numbers of initialized plugins as well as the version of Terraform core, so that they can be more easily shared when opening GitHub Issues, etc. [GH-16439]
+
+BUG FIXES:
+
+* config: Provider config in submodules will no longer be be overridden by parent providers with the same name. [GH-16379]
+* core: Module outputs can now produce errors, preventing them from silently propagating through the config. [GH-16204]
 
 PROVIDER FRAMEWORK CHANGES (not user-facing):
 
