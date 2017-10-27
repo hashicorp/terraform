@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
 	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -33,7 +32,6 @@ const (
 var (
 	httpClient *http.Client
 	tfVersion  = version.String()
-	regDisco   = disco.NewDisco()
 )
 
 func init() {
@@ -47,16 +45,8 @@ func (e errModuleNotFound) Error() string {
 	return `module "` + string(e) + `" not found`
 }
 
-func discoverRegURL(d *disco.Disco, module *regsrc.Module) *url.URL {
-	if d == nil {
-		d = regDisco
-	}
-
-	if module.RawHost == nil {
-		module.RawHost = regsrc.NewFriendlyHost(defaultRegistry)
-	}
-
-	regURL := d.DiscoverServiceURL(svchost.Hostname(module.RawHost.Normalized()), serviceID)
+func (s *Storage) discoverRegURL(module *regsrc.Module) *url.URL {
+	regURL := s.Services.DiscoverServiceURL(svchost.Hostname(module.RawHost.Normalized()), serviceID)
 	if regURL == nil {
 		regURL = &url.URL{
 			Scheme: "https",
@@ -72,9 +62,29 @@ func discoverRegURL(d *disco.Disco, module *regsrc.Module) *url.URL {
 	return regURL
 }
 
+func (s *Storage) addRequestCreds(host svchost.Hostname, req *http.Request) {
+	if s.Creds == nil {
+		return
+	}
+
+	creds, err := s.Creds.ForHost(host)
+	if err != nil {
+		log.Printf("[WARNING] Failed to get credentials for %s: %s (ignoring)", host, err)
+		return
+	}
+
+	if creds != nil {
+		creds.PrepareRequest(req)
+	}
+}
+
 // Lookup module versions in the registry.
-func lookupModuleVersions(d *disco.Disco, module *regsrc.Module) (*response.ModuleVersions, error) {
-	service := discoverRegURL(d, module)
+func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleVersions, error) {
+	if module.RawHost == nil {
+		module.RawHost = regsrc.NewFriendlyHost(defaultRegistry)
+	}
+
+	service := s.discoverRegURL(module)
 
 	p, err := url.Parse(path.Join(module.Module(), "versions"))
 	if err != nil {
@@ -90,22 +100,10 @@ func lookupModuleVersions(d *disco.Disco, module *regsrc.Module) (*response.Modu
 		return nil, err
 	}
 
+	s.addRequestCreds(svchost.Hostname(module.RawHost.Normalized()), req)
 	req.Header.Set(xTerraformVersion, tfVersion)
 
-	if d == nil {
-		d = regDisco
-	}
-
-	// if discovery required a custom transport, then we should use that too
-	client := httpClient
-	if d.Transport != nil {
-		client = &http.Client{
-			Transport: d.Transport,
-			Timeout:   requestTimeout,
-		}
-	}
-
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +129,12 @@ func lookupModuleVersions(d *disco.Disco, module *regsrc.Module) (*response.Modu
 }
 
 // lookup the location of a specific module version in the registry
-func lookupModuleLocation(d *disco.Disco, module *regsrc.Module, version string) (string, error) {
-	service := discoverRegURL(d, module)
+func (s *Storage) lookupModuleLocation(module *regsrc.Module, version string) (string, error) {
+	if module.RawHost == nil {
+		module.RawHost = regsrc.NewFriendlyHost(defaultRegistry)
+	}
+
+	service := s.discoverRegURL(module)
 
 	var p *url.URL
 	var err error
@@ -153,18 +155,10 @@ func lookupModuleLocation(d *disco.Disco, module *regsrc.Module, version string)
 		return "", err
 	}
 
+	s.addRequestCreds(svchost.Hostname(module.RawHost.Normalized()), req)
 	req.Header.Set(xTerraformVersion, tfVersion)
 
-	// if discovery required a custom transport, then we should use that too
-	client := httpClient
-	if regDisco.Transport != nil {
-		client = &http.Client{
-			Transport: regDisco.Transport,
-			Timeout:   requestTimeout,
-		}
-	}
-
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return "", err
 	}

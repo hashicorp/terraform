@@ -81,7 +81,7 @@ func getModules(m *Meta, path string, mode module.GetMode) error {
 		return fmt.Errorf("Error loading configuration: %s", err)
 	}
 
-	err = mod.Load(m.moduleStorage(m.DataDir()), mode)
+	err = mod.Load(m.moduleStorage(m.DataDir(), mode))
 	if err != nil {
 		return fmt.Errorf("Error loading modules: %s", err)
 	}

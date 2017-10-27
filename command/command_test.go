@@ -19,7 +19,6 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
@@ -108,8 +107,9 @@ func testModule(t *testing.T, name string) *module.Tree {
 		t.Fatalf("err: %s", err)
 	}
 
-	s := &getter.FolderStorage{StorageDir: tempDir(t)}
-	if err := mod.Load(s, module.GetModeGet); err != nil {
+	s := module.NewStorage(tempDir(t), nil, nil)
+	s.Mode = module.GetModeGet
+	if err := mod.Load(s); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
