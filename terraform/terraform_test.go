@@ -12,7 +12,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/experiment"
@@ -97,8 +96,11 @@ func testModule(t *testing.T, name string) *module.Tree {
 		t.Fatalf("err: %s", err)
 	}
 
-	s := &getter.FolderStorage{StorageDir: tempDir(t)}
-	if err := mod.Load(s, module.GetModeGet); err != nil {
+	s := &module.ModuleStorage{
+		StorageDir: tempDir(t),
+		Mode:       module.GetModeGet,
+	}
+	if err := mod.Load(s); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -144,10 +146,11 @@ func testModuleInline(t *testing.T, config map[string]string) *module.Tree {
 	}
 
 	// Load the modules
-	modStorage := &getter.FolderStorage{
+	modStorage := &module.ModuleStorage{
 		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
+		Mode:       module.GetModeGet,
 	}
-	err = mod.Load(modStorage, module.GetModeGet)
+	err = mod.Load(modStorage)
 	if err != nil {
 		t.Errorf("Error downloading modules: %s", err)
 	}
