@@ -3,6 +3,7 @@ package module
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -263,24 +264,24 @@ func TestTreeLoad_subdir(t *testing.T) {
 	}
 }
 
-func TestTree_recordSubDir(t *testing.T) {
+func TestTree_recordManifest(t *testing.T) {
 	td, err := ioutil.TempDir("", "tf-module")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(td)
 
+	storage := moduleStorage{storageDir: td}
+
 	dir := filepath.Join(td, "0131bf0fef686e090b16bdbab4910ddf")
 
 	subDir := "subDirName"
 
-	tree := Tree{}
-
 	// record and read the subdir path
-	if err := tree.recordSubdir(dir, subDir); err != nil {
+	if err := storage.recordModuleRoot(dir, subDir); err != nil {
 		t.Fatal(err)
 	}
-	actual, err := tree.getSubdir(dir)
+	actual, err := storage.getModuleRoot(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,10 +292,10 @@ func TestTree_recordSubDir(t *testing.T) {
 
 	// overwrite the path, and nmake sure we get the new one
 	subDir = "newSubDir"
-	if err := tree.recordSubdir(dir, subDir); err != nil {
+	if err := storage.recordModuleRoot(dir, subDir); err != nil {
 		t.Fatal(err)
 	}
-	actual, err = tree.getSubdir(dir)
+	actual, err = storage.getModuleRoot(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -304,21 +305,21 @@ func TestTree_recordSubDir(t *testing.T) {
 	}
 
 	// create a fake entry
-	if err := ioutil.WriteFile(subdirRecordsPath(dir), []byte("BAD DATA"), 0644); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(td, manifestName), []byte("BAD DATA"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	// this should fail because there aare now 2 entries
-	actual, err = tree.getSubdir(dir)
+	actual, err = storage.getModuleRoot(dir)
 	if err == nil {
 		t.Fatal("expected multiple subdir entries")
 	}
 
 	// writing the subdir entry should remove the incorrect value
-	if err := tree.recordSubdir(dir, subDir); err != nil {
+	if err := storage.recordModuleRoot(dir, subDir); err != nil {
 		t.Fatal(err)
 	}
-	actual, err = tree.getSubdir(dir)
+	actual, err = storage.getModuleRoot(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -518,6 +519,280 @@ func TestTreeValidate_unknownModule(t *testing.T) {
 	}
 }
 
+func TestTreeProviders_basic(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "basic-parent-providers"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	var a, b *Tree
+	for _, child := range tree.Children() {
+		if child.Name() == "a" {
+			a = child
+		}
+	}
+
+	rootProviders := tree.config.ProviderConfigsByFullName()
+	topRaw := rootProviders["top.foo"]
+
+	if a == nil {
+		t.Fatal("could not find module 'a'")
+	}
+
+	for _, child := range a.Children() {
+		if child.Name() == "c" {
+			b = child
+		}
+	}
+
+	if b == nil {
+		t.Fatal("could not find module 'c'")
+	}
+
+	aProviders := a.config.ProviderConfigsByFullName()
+	bottomRaw := aProviders["bottom.foo"]
+	bProviders := b.config.ProviderConfigsByFullName()
+	bBottom := bProviders["bottom"]
+
+	// compare the configs
+	// top.foo should have been copied to a.top
+	aTop := aProviders["top"]
+	if !reflect.DeepEqual(aTop.RawConfig.RawMap(), topRaw.RawConfig.RawMap()) {
+		log.Fatalf("expected config %#v, got %#v",
+			topRaw.RawConfig.RawMap(),
+			aTop.RawConfig.RawMap(),
+		)
+	}
+
+	if !reflect.DeepEqual(aTop.Path, []string{RootName}) {
+		log.Fatalf(`expected scope for "top": {"root"}, got %#v`, aTop.Path)
+	}
+
+	if !reflect.DeepEqual(bBottom.RawConfig.RawMap(), bottomRaw.RawConfig.RawMap()) {
+		t.Fatalf("expected config %#v, got %#v",
+			bottomRaw.RawConfig.RawMap(),
+			bBottom.RawConfig.RawMap(),
+		)
+	}
+	if !reflect.DeepEqual(bBottom.Path, []string{RootName, "a"}) {
+		t.Fatalf(`expected scope for "bottom": {"root", "a"}, got %#v`, bBottom.Path)
+	}
+}
+
+func TestTreeProviders_implicit(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "implicit-parent-providers"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	var child *Tree
+	for _, c := range tree.Children() {
+		if c.Name() == "child" {
+			child = c
+		}
+	}
+
+	if child == nil {
+		t.Fatal("could not find module 'child'")
+	}
+
+	// child should have inherited foo
+	providers := child.config.ProviderConfigsByFullName()
+	foo := providers["foo"]
+
+	if foo == nil {
+		t.Fatal("could not find provider 'foo' in child module")
+	}
+
+	if !reflect.DeepEqual([]string{RootName}, foo.Path) {
+		t.Fatalf(`expected foo scope of {"root"}, got %#v`, foo.Path)
+	}
+
+	expected := map[string]interface{}{
+		"value": "from root",
+	}
+
+	if !reflect.DeepEqual(expected, foo.RawConfig.RawMap()) {
+		t.Fatalf(`expected "foo" config %#v, got: %#v`, expected, foo.RawConfig.RawMap())
+	}
+}
+
+func TestTreeProviders_implicitMultiLevel(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "implicit-grandparent-providers"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	var child, grandchild *Tree
+	for _, c := range tree.Children() {
+		if c.Name() == "child" {
+			child = c
+		}
+	}
+
+	if child == nil {
+		t.Fatal("could not find module 'child'")
+	}
+
+	for _, c := range child.Children() {
+		if c.Name() == "grandchild" {
+			grandchild = c
+		}
+	}
+	if grandchild == nil {
+		t.Fatal("could not find module 'grandchild'")
+	}
+
+	// child should have inherited foo
+	providers := child.config.ProviderConfigsByFullName()
+	foo := providers["foo"]
+
+	if foo == nil {
+		t.Fatal("could not find provider 'foo' in child module")
+	}
+
+	if !reflect.DeepEqual([]string{RootName}, foo.Path) {
+		t.Fatalf(`expected foo scope of {"root"}, got %#v`, foo.Path)
+	}
+
+	expected := map[string]interface{}{
+		"value": "from root",
+	}
+
+	if !reflect.DeepEqual(expected, foo.RawConfig.RawMap()) {
+		t.Fatalf(`expected "foo" config %#v, got: %#v`, expected, foo.RawConfig.RawMap())
+	}
+
+	// grandchild should have inherited bar
+	providers = grandchild.config.ProviderConfigsByFullName()
+	bar := providers["bar"]
+
+	if bar == nil {
+		t.Fatal("could not find provider 'bar' in grandchild module")
+	}
+
+	if !reflect.DeepEqual([]string{RootName, "child"}, bar.Path) {
+		t.Fatalf(`expected bar scope of {"root", "child"}, got %#v`, bar.Path)
+	}
+
+	expected = map[string]interface{}{
+		"value": "from child",
+	}
+
+	if !reflect.DeepEqual(expected, bar.RawConfig.RawMap()) {
+		t.Fatalf(`expected "bar" config %#v, got: %#v`, expected, bar.RawConfig.RawMap())
+	}
+}
+
+func TestTreeLoad_conflictingSubmoduleNames(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "conficting-submodule-names"))
+
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("load failed: %s", err)
+	}
+
+	if !tree.Loaded() {
+		t.Fatal("should be loaded")
+	}
+
+	// Try to reload
+	if err := tree.Load(storage, GetModeNone); err != nil {
+		t.Fatalf("reload failed: %s", err)
+	}
+
+	// verify that the grand-children are correctly loaded
+	for _, c := range tree.Children() {
+		for _, gc := range c.Children() {
+			if len(gc.config.Resources) != 1 {
+				t.Fatalf("expected 1 resource in %s, got %d", gc.name, len(gc.config.Resources))
+			}
+			res := gc.config.Resources[0]
+			switch gc.path[0] {
+			case "a":
+				if res.Name != "a-c" {
+					t.Fatal("found wrong resource in a/c:", res.Name)
+				}
+			case "b":
+				if res.Name != "b-c" {
+					t.Fatal("found wrong resource in b/c:", res.Name)
+				}
+			}
+		}
+	}
+}
+
+// changing the source for a module but not the module "path"
+func TestTreeLoad_changeIntermediateSource(t *testing.T) {
+	// copy the config to our tempdir this time, since we're going to edit it
+	td, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(td)
+
+	if err := copyDir(td, filepath.Join(fixtureDir, "change-intermediate-source")); err != nil {
+		t.Fatal(err)
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(td); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(wd)
+
+	if err := os.MkdirAll(".terraform/modules", 0777); err != nil {
+		t.Fatal(err)
+	}
+	storage := &getter.FolderStorage{StorageDir: ".terraform/modules"}
+	cfg, err := config.LoadDir("./")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree := NewTree("", cfg)
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("load failed: %s", err)
+	}
+
+	// now we change the source of our module, without changing its path
+	if err := os.Rename("main.tf.disabled", "main.tf"); err != nil {
+		t.Fatal(err)
+	}
+
+	// reload the tree
+	cfg, err = config.LoadDir("./")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree = NewTree("", cfg)
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("load failed: %s", err)
+	}
+
+	// check for our resource in b
+	for _, c := range tree.Children() {
+		for _, gc := range c.Children() {
+			if len(gc.config.Resources) != 1 {
+				t.Fatalf("expected 1 resource in %s, got %d", gc.name, len(gc.config.Resources))
+			}
+			res := gc.config.Resources[0]
+			expected := "c-b"
+			if res.Name != expected {
+				t.Fatalf("expexted resource %q, got %q", expected, res.Name)
+			}
+		}
+	}
+}
+
 const treeLoadStr = `
 root
   foo (path: foo)
@@ -532,4 +807,9 @@ const treeLoadSubdirStr = `
 root
   foo (path: foo)
     bar (path: foo, bar)
+`
+
+const treeLoadRegistrySubdirStr = `
+root
+  foo (path: foo)
 `

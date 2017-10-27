@@ -132,6 +132,12 @@ func (m *Module) String() string {
 	return m.formatWithPrefix(hostPrefix, true)
 }
 
+// Module returns just the registry ID of the module, without a hostname or
+// suffix.
+func (m *Module) Module() string {
+	return fmt.Sprintf("%s/%s/%s", m.RawNamespace, m.RawName, m.RawProvider)
+}
+
 // Equal compares the module source against another instance taking
 // normalization into account.
 func (m *Module) Equal(other *Module) bool {

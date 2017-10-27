@@ -75,16 +75,18 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 		Include *[]string `hcl:"include"`
 		Exclude *[]string `hcl:"exclude"`
 	}
-	type module struct {
-		Name   string    `hcl:"name,label"`
-		Source string    `hcl:"source,attr"`
-		Config hcl2.Body `hcl:",remain"`
-	}
 	type provider struct {
 		Name    string    `hcl:"name,label"`
 		Alias   *string   `hcl:"alias,attr"`
 		Version *string   `hcl:"version,attr"`
 		Config  hcl2.Body `hcl:",remain"`
+	}
+	type module struct {
+		Name      string             `hcl:"name,label"`
+		Source    string             `hcl:"source,attr"`
+		Version   *string            `hcl:"version,attr"`
+		Providers *map[string]string `hcl:"providers,attr"`
+		Config    hcl2.Body          `hcl:",remain"`
 	}
 	type resourceLifecycle struct {
 		CreateBeforeDestroy *bool     `hcl:"create_before_destroy,attr"`
@@ -248,6 +250,15 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 			Source:    rawM.Source,
 			RawConfig: NewRawConfigHCL2(rawM.Config),
 		}
+
+		if rawM.Version != nil {
+			m.Version = *rawM.Version
+		}
+
+		if rawM.Providers != nil {
+			m.Providers = *rawM.Providers
+		}
+
 		config.Modules = append(config.Modules, m)
 	}
 

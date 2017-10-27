@@ -226,10 +226,10 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	}
 }
 
-// Test that import sets up the graph properly for provider inheritance
-func TestContextImport_providerInherit(t *testing.T) {
+// Importing into a module requires a provider config in that module.
+func TestContextImport_providerModule(t *testing.T) {
 	p := testProvider("aws")
-	m := testModule(t, "import-provider-inherit")
+	m := testModule(t, "import-provider-module")
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(

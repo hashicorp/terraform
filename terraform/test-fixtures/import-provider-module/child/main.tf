@@ -1,0 +1,2 @@
+# Empty
+provider "aws" {}

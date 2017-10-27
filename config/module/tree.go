@@ -3,11 +3,8 @@ package module
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -30,6 +27,17 @@ type Tree struct {
 	children map[string]*Tree
 	path     []string
 	lock     sync.RWMutex
+
+	// version is the final version of the config loaded for the Tree's module
+	version string
+	// source is the "source" string used to load this module. It's possible
+	// for a module source to change, but the path remains the same, preventing
+	// it from being reloaded.
+	source string
+	// parent allows us to walk back up the tree and determine if there are any
+	// versioned ancestor modules which may effect the stored location of
+	// submodules
+	parent *Tree
 }
 
 // NewTree returns a new Tree for the given config structure.
@@ -130,8 +138,10 @@ func (t *Tree) Modules() []*Module {
 	result := make([]*Module, len(t.config.Modules))
 	for i, m := range t.config.Modules {
 		result[i] = &Module{
-			Name:   m.Name,
-			Source: m.Source,
+			Name:      m.Name,
+			Version:   m.Version,
+			Source:    m.Source,
+			Providers: m.Providers,
 		}
 	}
 
@@ -159,20 +169,42 @@ func (t *Tree) Name() string {
 // module trees inherently require the configuration to be in a reasonably
 // sane state: no circular dependencies, proper module sources, etc. A full
 // suite of validations can be done by running Validate (after loading).
-func (t *Tree) Load(s getter.Storage, mode GetMode) error {
+func (t *Tree) Load(storage getter.Storage, mode GetMode) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	// Reset the children if we have any
-	t.children = nil
+	s := newModuleStorage(storage, mode)
 
-	modules := t.Modules()
+	children, err := t.getChildren(s)
+	if err != nil {
+		return err
+	}
+
+	// Go through all the children and load them.
+	for _, c := range children {
+		if err := c.Load(storage, mode); err != nil {
+			return err
+		}
+	}
+
+	// Set our tree up
+	t.children = children
+
+	// if we're the root module, we can now set the provider inheritance
+	if len(t.path) == 0 {
+		t.inheritProviderConfigs(nil)
+	}
+
+	return nil
+}
+
+func (t *Tree) getChildren(s moduleStorage) (map[string]*Tree, error) {
 	children := make(map[string]*Tree)
 
 	// Go through all the modules and get the directory for them.
-	for _, m := range modules {
+	for _, m := range t.Modules() {
 		if _, ok := children[m.Name]; ok {
-			return fmt.Errorf(
+			return nil, fmt.Errorf(
 				"module %s: duplicated. module names must be unique", m.Name)
 		}
 
@@ -181,54 +213,68 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		copy(path, t.path)
 		path = append(path, m.Name)
 
-		// The key is the string that will be hashed to uniquely id the Source.
-		// The leading digit can be incremented to force re-fetch all existing
-		// modules.
-		key := fmt.Sprintf("0.root.%s-%s", strings.Join(path, "."), m.Source)
+		log.Printf("[TRACE] module source: %q", m.Source)
 
-		log.Printf("[TRACE] module source %q", m.Source)
-		// Split out the subdir if we have one.
-		// Terraform keeps the entire requested tree for now, so that modules can
-		// reference sibling modules from the same archive or repo.
-		source, subDir := getter.SourceDirSubdir(m.Source)
-
-		// First check if we we need to download anything.
-		// This is also checked by the getter.Storage implementation, but we
-		// want to be able to short-circuit the detection as well, since some
-		// detectors may need to make external calls.
-		dir, found, err := s.Dir(key)
+		// Lookup the local location of the module.
+		// dir is the local directory where the module is stored
+		mod, err := s.findRegistryModule(m.Source, m.Version)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		// looks like we already have it
-		// In order to load the Tree we need to find out if there was another
-		// subDir stored from discovery.
-		if found && mode != GetModeUpdate {
-			subDir, err := t.getSubdir(dir)
+		// The key is the string that will be used to uniquely id the Source in
+		// the local storage.  The prefix digit can be incremented to
+		// invalidate the local module storage.
+		key := "1." + t.versionedPathKey(m)
+		if mod.Version != "" {
+			key += "." + mod.Version
+		}
+
+		// Check for the exact key if it's not a registry module
+		if !mod.registry {
+			mod.Dir, err = s.findModule(key)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if mod.Dir != "" {
+			// We found it locally, but in order to load the Tree we need to
+			// find out if there was another subDir stored from detection.
+			subDir, err := s.getModuleRoot(mod.Dir)
 			if err != nil {
 				// If there's a problem with the subdir record, we'll let the
-				// recordSubdir method fix it up.  Any other errors filesystem
-				// errors will turn up again below.
+				// recordSubdir method fix it up.  Any other filesystem errors
+				// will turn up again below.
 				log.Println("[WARN] error reading subdir record:", err)
 			} else {
-				dir := filepath.Join(dir, subDir)
-				// Load the configurations.Dir(source)
-				children[m.Name], err = NewTreeModule(m.Name, dir)
+				fullDir := filepath.Join(mod.Dir, subDir)
+
+				child, err := NewTreeModule(m.Name, fullDir)
 				if err != nil {
-					return fmt.Errorf("module %s: %s", m.Name, err)
+					return nil, fmt.Errorf("module %s: %s", m.Name, err)
 				}
-				// Set the path of this child
-				children[m.Name].path = path
+				child.path = path
+				child.parent = t
+				child.version = mod.Version
+				child.source = m.Source
+				children[m.Name] = child
 				continue
 			}
 		}
 
-		log.Printf("[TRACE] module source: %q", source)
+		// Split out the subdir if we have one.
+		// Terraform keeps the entire requested tree, so that modules can
+		// reference sibling modules from the same archive or repo.
+		rawSource, subDir := getter.SourceDirSubdir(m.Source)
 
-		source, err = getter.Detect(source, t.config.Dir, detectors)
-		if err != nil {
-			return fmt.Errorf("module %s: %s", m.Name, err)
+		// we haven't found a source, so fallback to the go-getter detectors
+		source := mod.url
+		if source == "" {
+			source, err = getter.Detect(rawSource, t.config.Dir, getter.Detectors)
+			if err != nil {
+				return nil, fmt.Errorf("module %s: %s", m.Name, err)
+			}
 		}
 
 		log.Printf("[TRACE] detected module source %q", source)
@@ -237,126 +283,190 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		// For example, the registry always adds a subdir of `//*`,
 		// indicating that we need to strip off the first component from the
 		// tar archive, though we may not yet know what it is called.
-		//
-		// TODO: This can cause us to lose the previously detected subdir. It
-		// was never an issue before, since none of the supported detectors
-		// previously had this behavior, but we may want to add this ability to
-		// registry modules.
-		source, subDir2 := getter.SourceDirSubdir(source)
-		if subDir2 != "" {
-			subDir = subDir2
+		source, detectedSubDir := getter.SourceDirSubdir(source)
+		if detectedSubDir != "" {
+			subDir = filepath.Join(detectedSubDir, subDir)
 		}
 
-		log.Printf("[TRACE] getting module source %q", source)
-
-		dir, ok, err := getStorage(s, key, source, mode)
+		dir, ok, err := s.getStorage(key, source)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if !ok {
-			return fmt.Errorf(
-				"module %s: not found, may need to be downloaded using 'terraform get'", m.Name)
+			return nil, fmt.Errorf("module %s: not found, may need to run 'terraform init'", m.Name)
 		}
 
+		log.Printf("[TRACE] %q stored in %q", source, dir)
+
 		// expand and record the subDir for later
+		fullDir := dir
 		if subDir != "" {
-			fullDir, err := getter.SubdirGlob(dir, subDir)
+			fullDir, err = getter.SubdirGlob(dir, subDir)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			// +1 to account for the pathsep
 			if len(dir)+1 > len(fullDir) {
-				return fmt.Errorf("invalid module storage path %q", fullDir)
+				return nil, fmt.Errorf("invalid module storage path %q", fullDir)
 			}
-
 			subDir = fullDir[len(dir)+1:]
-
-			if err := t.recordSubdir(dir, subDir); err != nil {
-				return err
-			}
-			dir = fullDir
 		}
 
-		// Load the configurations.Dir(source)
-		children[m.Name], err = NewTreeModule(m.Name, dir)
+		// add new info to the module record
+		mod.Key = key
+		mod.Dir = dir
+		mod.Root = subDir
+
+		// record the module in our manifest
+		if err := s.recordModule(mod); err != nil {
+			return nil, err
+		}
+
+		child, err := NewTreeModule(m.Name, fullDir)
 		if err != nil {
-			return fmt.Errorf("module %s: %s", m.Name, err)
+			return nil, fmt.Errorf("module %s: %s", m.Name, err)
 		}
-		// Set the path of this child
-		children[m.Name].path = path
+		child.path = path
+		child.parent = t
+		child.version = mod.Version
+		child.source = m.Source
+		children[m.Name] = child
 	}
 
-	// Go through all the children and load them.
-	for _, c := range children {
-		if err := c.Load(s, mode); err != nil {
-			return err
+	return children, nil
+}
+
+// inheritProviderConfig resolves all provider config inheritance after the
+// tree is loaded.
+//
+// If there is a provider block without a config, look in the parent's Module
+// block for a provider, and fetch that provider's configuration. If that
+// doesn't exist, assume a default empty config. Implicit providers can still
+// inherit their config all the way up from the root, so walk up the tree and
+// copy the first matching provider into the module.
+func (t *Tree) inheritProviderConfigs(stack []*Tree) {
+	// the recursive calls only append, so we don't need to worry about copying
+	// this slice.
+	stack = append(stack, t)
+	for _, c := range t.children {
+		c.inheritProviderConfigs(stack)
+	}
+
+	providers := make(map[string]*config.ProviderConfig)
+	missingProviders := make(map[string]bool)
+
+	for _, p := range t.config.ProviderConfigs {
+		providers[p.FullName()] = p
+	}
+
+	for _, r := range t.config.Resources {
+		p := r.ProviderFullName()
+		if _, ok := providers[p]; !(ok || strings.Contains(p, ".")) {
+			missingProviders[p] = true
 		}
 	}
 
-	// Set our tree up
-	t.children = children
+	// Search for implicit provider configs
+	// This adds an empty config is no inherited config is found, so that
+	// there is always a provider config present.
+	// This is done in the root module as well, just to set the providers.
+	for missing := range missingProviders {
+		// first create an empty provider config
+		pc := &config.ProviderConfig{
+			Name: missing,
+		}
 
-	return nil
-}
+		// walk up the stack looking for matching providers
+		for i := len(stack) - 2; i >= 0; i-- {
+			pt := stack[i]
+			var parentProvider *config.ProviderConfig
+			for _, p := range pt.config.ProviderConfigs {
+				if p.FullName() == missing {
+					parentProvider = p
+					break
+				}
+			}
 
-func subdirRecordsPath(dir string) string {
-	const filename = "module-subdir.json"
-	// Get the parent directory.
-	// The current FolderStorage implementation needed to be able to create
-	// this directory, so we can be reasonably certain we can use it.
-	parent := filepath.Dir(filepath.Clean(dir))
-	return filepath.Join(parent, filename)
-}
+			if parentProvider == nil {
+				continue
+			}
 
-// unmarshal the records file in the parent directory. Always returns a valid map.
-func loadSubdirRecords(dir string) (map[string]string, error) {
-	records := map[string]string{}
+			pc.Path = pt.Path()
+			pc.Path = append([]string{RootName}, pt.path...)
+			pc.RawConfig = parentProvider.RawConfig
+			pc.Inherited = true
+			log.Printf("[TRACE] provider %q inheriting config from %q",
+				strings.Join(append(t.Path(), pc.FullName()), "."),
+				strings.Join(append(pt.Path(), parentProvider.FullName()), "."),
+			)
+			break
+		}
 
-	recordsPath := subdirRecordsPath(dir)
-	data, err := ioutil.ReadFile(recordsPath)
-	if err != nil && !os.IsNotExist(err) {
-		return records, err
+		// always set a provider config
+		if pc.RawConfig == nil {
+			pc.RawConfig, _ = config.NewRawConfig(map[string]interface{}{})
+		}
+
+		t.config.ProviderConfigs = append(t.config.ProviderConfigs, pc)
 	}
 
-	if len(data) == 0 {
-		return records, nil
+	// After allowing the empty implicit configs to be created in root, there's nothing left to inherit
+	if len(stack) == 1 {
+		return
 	}
 
-	if err := json.Unmarshal(data, &records); err != nil {
-		return records, err
-	}
-	return records, nil
-}
-
-func (t *Tree) getSubdir(dir string) (string, error) {
-	records, err := loadSubdirRecords(dir)
-	if err != nil {
-		return "", err
+	// get our parent's module config block
+	parent := stack[len(stack)-2]
+	var parentModule *config.Module
+	for _, m := range parent.config.Modules {
+		if m.Name == t.name {
+			parentModule = m
+			break
+		}
 	}
 
-	return records[dir], nil
-}
-
-// Mark the location of a detected subdir in a top-level file so we
-// can skip detection when not updating the module.
-func (t *Tree) recordSubdir(dir, subdir string) error {
-	records, err := loadSubdirRecords(dir)
-	if err != nil {
-		// if there was a problem with the file, we will attempt to write a new
-		// one. Any non-data related error should surface there.
-		log.Printf("[WARN] error reading subdir records: %s", err)
+	if parentModule == nil {
+		panic("can't be a module without a parent module config")
 	}
 
-	records[dir] = subdir
+	// now look for providers that need a config
+	for p, pc := range providers {
+		if len(pc.RawConfig.RawMap()) > 0 {
+			log.Printf("[TRACE] provider %q has a config, continuing", p)
+			continue
+		}
 
-	js, err := json.Marshal(records)
-	if err != nil {
-		return err
+		// this provider has no config yet, check for one being passed in
+		parentProviderName, ok := parentModule.Providers[p]
+		if !ok {
+			continue
+		}
+
+		var parentProvider *config.ProviderConfig
+		// there's a config for us in the parent module
+		for _, pp := range parent.config.ProviderConfigs {
+			if pp.FullName() == parentProviderName {
+				parentProvider = pp
+				break
+			}
+		}
+
+		if parentProvider == nil {
+			// no config found, assume defaults
+			continue
+		}
+
+		// Copy it in, but set an interpolation Scope.
+		// An interpolation Scope always need to have "root"
+		pc.Path = append([]string{RootName}, parent.path...)
+		pc.RawConfig = parentProvider.RawConfig
+		log.Printf("[TRACE] provider %q inheriting config from %q",
+			strings.Join(append(t.Path(), pc.FullName()), "."),
+			strings.Join(append(parent.Path(), parentProvider.FullName()), "."),
+		)
 	}
 
-	recordsPath := subdirRecordsPath(dir)
-	return ioutil.WriteFile(recordsPath, js, 0644)
 }
 
 // Path is the full path to this tree.
@@ -522,6 +632,47 @@ func (t *Tree) Validate() error {
 	}
 
 	return newErr.ErrOrNil()
+}
+
+// versionedPathKey returns a path string with every levels full name, version
+// and source encoded. This is to provide a unique key for our module storage,
+// since submodules need to know which versions of their ancestor modules they
+// are loaded from.
+// For example, if module A has a subdirectory B, if module A's source or
+// version is updated B's storage key must reflect this change in order for the
+// correct version of B's source to be loaded.
+func (t *Tree) versionedPathKey(m *Module) string {
+	path := make([]string, len(t.path)+1)
+	path[len(path)-1] = m.Name + ";" + m.Source
+	// We're going to load these in order for easier reading and debugging, but
+	// in practice they only need to be unique and consistent.
+
+	p := t
+	i := len(path) - 2
+	for ; i >= 0; i-- {
+		if p == nil {
+			break
+		}
+		// we may have been loaded under a blank Tree, so always check for a name
+		// too.
+		if p.name == "" {
+			break
+		}
+		seg := p.name
+		if p.version != "" {
+			seg += "#" + p.version
+		}
+
+		if p.source != "" {
+			seg += ";" + p.source
+		}
+
+		path[i] = seg
+		p = p.parent
+	}
+
+	key := strings.Join(path, "|")
+	return key
 }
 
 // treeError is an error use by Tree.Validate to accumulates all
