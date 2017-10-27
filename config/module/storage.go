@@ -256,7 +256,7 @@ func (m moduleStorage) findRegistryModule(mSource, constraint string) (moduleRec
 
 	versions, err := m.moduleVersions(mod.String())
 	if err != nil {
-		log.Println("[ERROR] error looking up versions for %q: %s", mod.Module(), err)
+		log.Printf("[ERROR] error looking up versions for %q: %s", mod.Module(), err)
 		return rec, err
 	}
 
