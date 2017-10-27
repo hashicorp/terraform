@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 
@@ -108,9 +109,10 @@ func TestLookupModuleVersions(t *testing.T) {
 	}
 }
 
-func TestACCLookupModuleVersions(t *testing.T) {
-	server := mockTLSRegistry()
-	defer server.Close()
+func TestAccLookupModuleVersions(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip()
+	}
 	regDisco := disco.NewDisco()
 
 	// test with and without a hostname
