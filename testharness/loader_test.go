@@ -61,7 +61,7 @@ func TestLoadSpecDir(t *testing.T) {
 	}
 
 	{
-		if got, want := len(spec.testers), 1; got != want {
+		if got, want := len(spec.testers), 2; got != want {
 			t.Fatalf("wrong number of testers %d; want %d", got, want)
 		}
 
@@ -76,6 +76,19 @@ func TestLoadSpecDir(t *testing.T) {
 			}
 		} else {
 			t.Errorf("spec.testers[0] is %T; want *describe", spec.testers[0])
+		}
+
+		resourceTester := spec.testers[1]
+		if resourceTester, isResource := resourceTester.(*describe); isResource {
+			if resourceCtxSet, isResource := resourceTester.Described.(*resourceContextSetter); isResource {
+				if got, want := resourceCtxSet.Addr.String(), "test.foo"; got != want {
+					t.Errorf("spec.testers[1] has wrong resource address %q; want %q", got, want)
+				}
+			} else {
+				t.Errorf("spec.testers[1].Described is %T; want resourceContextSetter", resourceTester.Described)
+			}
+		} else {
+			t.Errorf("spec.testers[1] is %T; want *describe", spec.testers[0])
 		}
 	}
 }

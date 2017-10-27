@@ -140,10 +140,12 @@ func loadSpec(r io.Reader, filename string, L *lua.LState) (*Spec, tfdiags.Diagn
 		Diags: builderDiags,
 	}
 	testersB := testersBuilder{
-		Diags: builderDiags,
+		Context: RootContext,
+		Diags:   builderDiags,
 	}
 	topEnv.RawSet(lua.LString("scenario"), L.NewFunction(scenariosB.luaScenarioFunc))
 	topEnv.RawSet(lua.LString("describe"), L.NewFunction(testersB.luaDescribeFunc))
+	topEnv.RawSet(lua.LString("resource"), testersB.luaResourceObj(L))
 
 	L.Push(fn)
 	err = L.PCall(0, 0, nil)

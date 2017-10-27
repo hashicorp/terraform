@@ -6,3 +6,7 @@ end)
 describe("foo", function ()
 
 end)
+
+describe(resource("test.foo"), function ()
+
+end)

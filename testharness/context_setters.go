@@ -42,7 +42,7 @@ type resourceContextSetter struct {
 	DefRange tfdiags.SourceRange
 }
 
-func (s resourceContextSetter) Context(parent *Context, subject *Subject) (*Context, tfdiags.Diagnostics) {
+func (s *resourceContextSetter) Context(parent *Context, subject *Subject) (*Context, tfdiags.Diagnostics) {
 	// TODO: Set the resource object too
 	return parent.WithNameSuffix(s.Addr.String()), nil
 }
