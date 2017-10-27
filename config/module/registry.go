@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path"
+	"strings"
 	"time"
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
@@ -45,7 +47,7 @@ func (e errModuleNotFound) Error() string {
 	return `module "` + string(e) + `" not found`
 }
 
-func discoverRegURL(d *disco.Disco, module *regsrc.Module) string {
+func discoverRegURL(d *disco.Disco, module *regsrc.Module) *url.URL {
 	if d == nil {
 		d = regDisco
 	}
@@ -63,23 +65,27 @@ func discoverRegURL(d *disco.Disco, module *regsrc.Module) string {
 		}
 	}
 
-	service := regURL.String()
-
-	if service[len(service)-1] != '/' {
-		service += "/"
+	if !strings.HasSuffix(regURL.Path, "/") {
+		regURL.Path += "/"
 	}
 
-	return service
+	return regURL
 }
 
 // Lookup module versions in the registry.
 func lookupModuleVersions(d *disco.Disco, module *regsrc.Module) (*response.ModuleVersions, error) {
 	service := discoverRegURL(d, module)
 
-	location := fmt.Sprintf("%s%s/versions", service, module.Module())
-	log.Printf("[DEBUG] fetching module versions from %q", location)
+	p, err := url.Parse(path.Join(module.Module(), "versions"))
+	if err != nil {
+		return nil, err
+	}
 
-	req, err := http.NewRequest("GET", location, nil)
+	service = service.ResolveReference(p)
+
+	log.Printf("[DEBUG] fetching module versions from %q", service)
+
+	req, err := http.NewRequest("GET", service.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -128,16 +134,21 @@ func lookupModuleVersions(d *disco.Disco, module *regsrc.Module) (*response.Modu
 func lookupModuleLocation(d *disco.Disco, module *regsrc.Module, version string) (string, error) {
 	service := discoverRegURL(d, module)
 
-	var download string
+	var p *url.URL
+	var err error
 	if version == "" {
-		download = fmt.Sprintf("%s%s/download", service, module.Module())
+		p, err = url.Parse(path.Join(module.Module(), "download"))
 	} else {
-		download = fmt.Sprintf("%s%s/%s/download", service, module.Module(), version)
+		p, err = url.Parse(path.Join(module.Module(), version, "download"))
 	}
+	if err != nil {
+		return "", err
+	}
+	download := service.ResolveReference(p)
 
 	log.Printf("[DEBUG] looking up module location from %q", download)
 
-	req, err := http.NewRequest("GET", download, nil)
+	req, err := http.NewRequest("GET", download.String(), nil)
 	if err != nil {
 		return "", err
 	}
