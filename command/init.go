@@ -9,8 +9,6 @@ import (
 
 	"github.com/posener/complete"
 
-	"github.com/hashicorp/go-getter"
-
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
@@ -131,7 +129,8 @@ func (c *InitCommand) Run(args []string) int {
 		)))
 		header = true
 
-		if err := c.copyConfigFromModule(path, src, pwd); err != nil {
+		s := module.NewStorage("", c.Services, c.Credentials)
+		if err := s.GetModule(path, src); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error copying source module: %s", err))
 			return 1
 		}
@@ -270,19 +269,6 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	return 0
-}
-
-func (c *InitCommand) copyConfigFromModule(dst, src, pwd string) error {
-	// errors from this function will be prefixed with "Error copying source module: "
-	// when returned to the user.
-	var err error
-
-	src, err = getter.Detect(src, pwd, getter.Detectors)
-	if err != nil {
-		return fmt.Errorf("invalid module source: %s", err)
-	}
-
-	return module.GetCopy(dst, src)
 }
 
 // Load the complete module tree, and fetch any missing providers.
