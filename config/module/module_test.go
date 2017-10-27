@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -42,7 +41,7 @@ func testConfig(t *testing.T, n string) *config.Config {
 	return c
 }
 
-func testStorage(t *testing.T) getter.Storage {
+func testStorage(t *testing.T) *ModuleStorage {
 	t.Helper()
-	return &getter.FolderStorage{StorageDir: tempDir(t)}
+	return &ModuleStorage{StorageDir: tempDir(t)}
 }
