@@ -26,7 +26,7 @@ type testMod struct {
 }
 
 const (
-	testCredentials = "a9564ebc3289b7a14551baf8ad5ec60a"
+	testCredentials = "test-auth-token"
 )
 
 // All the locationes from the mockRegistry start with a file:// scheme. If
