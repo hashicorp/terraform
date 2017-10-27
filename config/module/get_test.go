@@ -196,7 +196,8 @@ func TestRegistryGitHubArchive(t *testing.T) {
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "registry-tar-subdir"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -204,7 +205,8 @@ func TestRegistryGitHubArchive(t *testing.T) {
 		t.Fatal("should be loaded")
 	}
 
-	if err := tree.Load(storage, GetModeNone); err != nil {
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -212,7 +214,8 @@ func TestRegistryGitHubArchive(t *testing.T) {
 	server.Close()
 	tree = NewTree("", testConfig(t, "registry-tar-subdir"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -242,7 +245,8 @@ func TestRegisryModuleSubdir(t *testing.T) {
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "registry-subdir"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -250,7 +254,8 @@ func TestRegisryModuleSubdir(t *testing.T) {
 		t.Fatal("should be loaded")
 	}
 
-	if err := tree.Load(storage, GetModeNone); err != nil {
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -299,7 +304,8 @@ func TestAccRegistryLoad(t *testing.T) {
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "registry-load"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -307,7 +313,8 @@ func TestAccRegistryLoad(t *testing.T) {
 		t.Fatal("should be loaded")
 	}
 
-	if err := tree.Load(storage, GetModeNone); err != nil {
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

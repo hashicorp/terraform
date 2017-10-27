@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/copy"
 )
@@ -22,8 +21,9 @@ func TestTreeChild(t *testing.T) {
 	}
 
 	storage := testStorage(t)
+	storage.Mode = GetModeGet
 	tree := NewTree("", testConfig(t, "child"))
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -73,7 +73,7 @@ func TestTreeLoad(t *testing.T) {
 	}
 
 	// This should error because we haven't gotten things yet
-	if err := tree.Load(storage, GetModeNone); err == nil {
+	if err := tree.Load(storage); err == nil {
 		t.Fatal("should error")
 	}
 
@@ -82,7 +82,8 @@ func TestTreeLoad(t *testing.T) {
 	}
 
 	// This should get things
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -91,7 +92,8 @@ func TestTreeLoad(t *testing.T) {
 	}
 
 	// This should no longer error
-	if err := tree.Load(storage, GetModeNone); err != nil {
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -111,19 +113,23 @@ func TestTreeLoad_duplicate(t *testing.T) {
 	}
 
 	// This should get things
-	if err := tree.Load(storage, GetModeGet); err == nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err == nil {
 		t.Fatalf("should error")
 	}
 }
 
 func TestTreeLoad_copyable(t *testing.T) {
 	dir := tempDir(t)
-	storage := &getter.FolderStorage{StorageDir: dir}
+	storage := &ModuleStorage{
+		StorageDir: dir,
+		Mode:       GetModeGet,
+	}
 	cfg := testConfig(t, "basic")
 	tree := NewTree("", cfg)
 
 	// This should get things
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -132,7 +138,8 @@ func TestTreeLoad_copyable(t *testing.T) {
 	}
 
 	// This should no longer error
-	if err := tree.Load(storage, GetModeNone); err != nil {
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -160,10 +167,13 @@ func TestTreeLoad_copyable(t *testing.T) {
 		}
 
 		tree := NewTree("", cfg)
-		storage := &getter.FolderStorage{StorageDir: dir2}
+		storage := &ModuleStorage{
+			StorageDir: dir2,
+			Mode:       GetModeNone,
+		}
 
 		// This should not error since we already got it!
-		if err := tree.Load(storage, GetModeNone); err != nil {
+		if err := tree.Load(storage); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
@@ -182,7 +192,8 @@ func TestTreeLoad_parentRef(t *testing.T) {
 	}
 
 	// This should error because we haven't gotten things yet
-	if err := tree.Load(storage, GetModeNone); err == nil {
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err == nil {
 		t.Fatal("should error")
 	}
 
@@ -191,7 +202,8 @@ func TestTreeLoad_parentRef(t *testing.T) {
 	}
 
 	// This should get things
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -200,7 +212,8 @@ func TestTreeLoad_parentRef(t *testing.T) {
 	}
 
 	// This should no longer error
-	if err := tree.Load(storage, GetModeNone); err != nil {
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -233,7 +246,8 @@ func TestTreeLoad_subdir(t *testing.T) {
 			}
 
 			// This should error because we haven't gotten things yet
-			if err := tree.Load(storage, GetModeNone); err == nil {
+			storage.Mode = GetModeNone
+			if err := tree.Load(storage); err == nil {
 				t.Fatal("should error")
 			}
 
@@ -242,7 +256,8 @@ func TestTreeLoad_subdir(t *testing.T) {
 			}
 
 			// This should get things
-			if err := tree.Load(storage, GetModeGet); err != nil {
+			storage.Mode = GetModeGet
+			if err := tree.Load(storage); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 
@@ -251,7 +266,8 @@ func TestTreeLoad_subdir(t *testing.T) {
 			}
 
 			// This should no longer error
-			if err := tree.Load(storage, GetModeNone); err != nil {
+			storage.Mode = GetModeNone
+			if err := tree.Load(storage); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 
@@ -271,7 +287,7 @@ func TestTree_recordManifest(t *testing.T) {
 	}
 	defer os.RemoveAll(td)
 
-	storage := moduleStorage{storageDir: td}
+	storage := ModuleStorage{StorageDir: td}
 
 	dir := filepath.Join(td, "0131bf0fef686e090b16bdbab4910ddf")
 
@@ -388,7 +404,9 @@ func TestTreeValidate_table(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
 			tree := NewTree("", testConfig(t, tc.Fixture))
-			if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+			storage := testStorage(t)
+			storage.Mode = GetModeGet
+			if err := tree.Load(storage); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 
@@ -409,7 +427,9 @@ func TestTreeValidate_table(t *testing.T) {
 func TestTreeValidate_badChild(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-child-bad"))
 
-	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+	storage := testStorage(t)
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -421,7 +441,9 @@ func TestTreeValidate_badChild(t *testing.T) {
 func TestTreeValidate_badChildOutput(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-bad-output"))
 
-	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+	storage := testStorage(t)
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -433,7 +455,9 @@ func TestTreeValidate_badChildOutput(t *testing.T) {
 func TestTreeValidate_badChildOutputToModule(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-bad-output-to-module"))
 
-	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+	storage := testStorage(t)
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -445,7 +469,9 @@ func TestTreeValidate_badChildOutputToModule(t *testing.T) {
 func TestTreeValidate_badChildVar(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-bad-var"))
 
-	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+	storage := testStorage(t)
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -457,7 +483,9 @@ func TestTreeValidate_badChildVar(t *testing.T) {
 func TestTreeValidate_badRoot(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-root-bad"))
 
-	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+	storage := testStorage(t)
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -469,7 +497,9 @@ func TestTreeValidate_badRoot(t *testing.T) {
 func TestTreeValidate_good(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-child-good"))
 
-	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+	storage := testStorage(t)
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -489,7 +519,9 @@ func TestTreeValidate_notLoaded(t *testing.T) {
 func TestTreeValidate_requiredChildVar(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-required-var"))
 
-	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+	storage := testStorage(t)
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -510,7 +542,9 @@ func TestTreeValidate_requiredChildVar(t *testing.T) {
 func TestTreeValidate_unknownModule(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-module-unknown"))
 
-	if err := tree.Load(testStorage(t), GetModeNone); err != nil {
+	storage := testStorage(t)
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -523,7 +557,8 @@ func TestTreeProviders_basic(t *testing.T) {
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "basic-parent-providers"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -585,7 +620,8 @@ func TestTreeProviders_implicit(t *testing.T) {
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "implicit-parent-providers"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -625,7 +661,8 @@ func TestTreeProviders_implicitMultiLevel(t *testing.T) {
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "implicit-grandparent-providers"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -694,7 +731,8 @@ func TestTreeLoad_conflictingSubmoduleNames(t *testing.T) {
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "conficting-submodule-names"))
 
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("load failed: %s", err)
 	}
 
@@ -703,7 +741,8 @@ func TestTreeLoad_conflictingSubmoduleNames(t *testing.T) {
 	}
 
 	// Try to reload
-	if err := tree.Load(storage, GetModeNone); err != nil {
+	storage.Mode = GetModeNone
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("reload failed: %s", err)
 	}
 
@@ -753,13 +792,14 @@ func TestTreeLoad_changeIntermediateSource(t *testing.T) {
 	if err := os.MkdirAll(".terraform/modules", 0777); err != nil {
 		t.Fatal(err)
 	}
-	storage := &getter.FolderStorage{StorageDir: ".terraform/modules"}
+	storage := &ModuleStorage{StorageDir: ".terraform/modules"}
 	cfg, err := config.LoadDir("./")
 	if err != nil {
 		t.Fatal(err)
 	}
 	tree := NewTree("", cfg)
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("load failed: %s", err)
 	}
 
@@ -774,7 +814,7 @@ func TestTreeLoad_changeIntermediateSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	tree = NewTree("", cfg)
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("load failed: %s", err)
 	}
 
