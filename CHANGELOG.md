@@ -11,6 +11,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
   with configuration will no longer be merged, and named provider
   configurations can be explicitly passed between modules. See documentation
   for details. [TODO]
+* When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. Previously this file could potentially be used to recover a previous state to help recover after a mistake, but it also caused a potentially-sensitive state file to be generated in an unexpected location that may be inadvertently copied or checked in to version control. With this local backup now removed, we recommend instead relying on versioning or backup mechanisms provided by the backend, such as Amazon S3 versioning or Terraform Enterprise's built-in state history mechanism. (Terraform will still create the local file `errored.tfstate` in the unlikely event that there is an error when writing to the remote backend.)
 
 NEW FEATURES:
 
@@ -26,6 +27,7 @@ BUG FIXES:
 
 * config: Provider config in submodules will no longer be be overridden by parent providers with the same name. [GH-16379]
 * core: Module outputs can now produce errors, preventing them from silently propagating through the config. [GH-16204]
+* cli: When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. [GH-16464]
 
 PROVIDER FRAMEWORK CHANGES (not user-facing):
 
