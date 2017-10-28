@@ -19,9 +19,6 @@ func TestRemoteClient_impl(t *testing.T) {
 }
 
 func TestRemoteClient(t *testing.T) {
-	srv := newConsulTestServer(t)
-	defer srv.Stop()
-
 	// Get the backend
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"address": srv.HTTPAddr,
@@ -40,9 +37,6 @@ func TestRemoteClient(t *testing.T) {
 
 // test the gzip functionality of the client
 func TestRemoteClient_gzipUpgrade(t *testing.T) {
-	srv := newConsulTestServer(t)
-	defer srv.Stop()
-
 	statePath := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// Get the backend
@@ -78,9 +72,6 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 }
 
 func TestConsul_stateLock(t *testing.T) {
-	srv := newConsulTestServer(t)
-	defer srv.Stop()
-
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// create 2 instances to get 2 remote.Clients
@@ -104,9 +95,6 @@ func TestConsul_stateLock(t *testing.T) {
 }
 
 func TestConsul_destroyLock(t *testing.T) {
-	srv := newConsulTestServer(t)
-	defer srv.Stop()
-
 	// Get the backend
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"address": srv.HTTPAddr,
@@ -144,9 +132,6 @@ func TestConsul_destroyLock(t *testing.T) {
 }
 
 func TestConsul_lostLock(t *testing.T) {
-	srv := newConsulTestServer(t)
-	defer srv.Stop()
-
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// create 2 instances to get 2 remote.Clients
@@ -194,9 +179,6 @@ func TestConsul_lostLock(t *testing.T) {
 }
 
 func TestConsul_lostLockConnection(t *testing.T) {
-	srv := newConsulTestServer(t)
-	defer srv.Stop()
-
 	// create an "unreliable" network by closing all the consul client's
 	// network connections
 	conns := &unreliableConns{}
@@ -225,31 +207,17 @@ func TestConsul_lostLockConnection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// set a callback to know when the monitor loop re-connects
-	dialed := make(chan struct{})
-	conns.dialCallback = func() {
-		close(dialed)
-		conns.dialCallback = nil
+	// kill the connection a few times
+	for i := 0; i < 3; i++ {
+		dialed := conns.dialedDone()
+		// kill any open connections
+		conns.Kill()
+		// wait for a new connection to be dialed, and kill it again
+		<-dialed
 	}
 
-	// kill any open connections
-	// once the consul client is fixed, we should loop over this a few time to
-	// be sure, since we can't hook into the client's internal lock monitor
-	// loop.
-	conns.Kill()
-	// wait for a new connection to be dialed, and kill it again
-	<-dialed
-	conns.Kill()
-
-	// since the lock monitor loop is hidden in the consul api client, we can
-	// only wait a bit to make sure we were notified of the failure
-	time.Sleep(time.Second)
-
-	// once the consul client can reconnect properly, there will no longer be
-	// an error here
-	//if err := s.Unlock(id); err != nil {
-	if err := s.Unlock(id); err != lostLockErr {
-		t.Fatalf("expected lost lock error, got %v", err)
+	if err := s.Unlock(id); err != nil {
+		t.Fatal("unlock error:", err)
 	}
 }
 
@@ -276,6 +244,18 @@ func (u *unreliableConns) DialContext(ctx context.Context, netw, addr string) (n
 	}
 
 	return conn, nil
+}
+
+func (u *unreliableConns) dialedDone() chan struct{} {
+	u.Lock()
+	defer u.Unlock()
+	dialed := make(chan struct{})
+	u.dialCallback = func() {
+		defer close(dialed)
+		u.dialCallback = nil
+	}
+
+	return dialed
 }
 
 // Kill these with a deadline, just to make sure we don't end up with any EOFs
