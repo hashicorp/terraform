@@ -186,5 +186,25 @@ func (s *Storage) lookupModuleLocation(module *regsrc.Module, version string) (s
 		return "", fmt.Errorf("failed to get download URL for %q: %s resp:%s", module, resp.Status, body)
 	}
 
+	// If location looks like it's trying to be a relative URL, treat it as
+	// one.
+	//
+	// We don't do this for just _any_ location, since the X-Terraform-Get
+	// header is a go-getter location rather than a URL, and so not all
+	// possible values will parse reasonably as URLs.)
+	//
+	// When used in conjunction with go-getter we normally require this header
+	// to be an absolute URL, but we are more liberal here because third-party
+	// registry implementations may not "know" their own absolute URLs if
+	// e.g. they are running behind a reverse proxy frontend, or such.
+	if strings.HasPrefix(location, "/") || strings.HasPrefix(location, "./") || strings.HasPrefix(location, "../") {
+		locationURL, err := url.Parse(location)
+		if err != nil {
+			return "", fmt.Errorf("invalid relative URL for %q: %s", module, err)
+		}
+		locationURL = download.ResolveReference(locationURL)
+		location = locationURL.String()
+	}
+
 	return location, nil
 }
