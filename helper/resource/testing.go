@@ -372,6 +372,15 @@ func LogOutput(t TestT) (logOutput io.Writer, err error) {
 	}
 
 	logOutput = os.Stderr
+
+	if logPath := os.Getenv(logging.EnvLogFile); logPath != "" {
+		var err error
+		logOutput, err = os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if logPathMask := os.Getenv(EnvLogPathMask); logPathMask != "" {
 		logPath := fmt.Sprintf(logPathMask, t.Name())
 		var err error
