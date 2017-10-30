@@ -2268,10 +2268,10 @@
 			"revisionTime": "2017-01-14T04:22:49Z"
 		},
 		{
-			"checksumSHA1": "hyK05cmzm+vPH1OO+F1AkvES3sw=",
+			"checksumSHA1": "6AmgST478RkzWypvthanPXFDTrw=",
 			"path": "golang.org/x/oauth2",
-			"revision": "314dd2c0bf3ebd592ec0d20847d27e79d0dbe8dd",
-			"revisionTime": "2016-12-14T09:25:55Z"
+			"revision": "bb50c06baba3d0c76f9d125c0719093e315b5b44",
+			"revisionTime": "2017-09-28T00:25:42Z"
 		},
 		{
 			"checksumSHA1": "JTBn9MQUhwHtjwv7rC9Zg4KRN7g=",
