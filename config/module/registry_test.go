@@ -93,7 +93,30 @@ func TestRegistryAuth(t *testing.T) {
 	}
 
 }
+func TestLookupModuleLocationRelative(t *testing.T) {
+	server := mockRegistry()
+	defer server.Close()
 
+	regDisco := testDisco(server)
+	storage := testStorage(t, regDisco)
+
+	src := "relative/foo/bar"
+	mod, err := regsrc.ParseModuleSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := storage.lookupModuleLocation(mod, "0.2.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := server.URL + "/relative-path"
+	if got != want {
+		t.Errorf("wrong location %s; want %s", got, want)
+	}
+
+}
 func TestAccLookupModuleVersions(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip()

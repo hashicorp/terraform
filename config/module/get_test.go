@@ -49,6 +49,10 @@ var testMods = map[string][]testMod{
 		location: "file:///registry/exists",
 		version:  "0.2.0",
 	}},
+	"relative/foo/bar": {{ // There is an exception for the "relative/" prefix in the test registry server
+		location: "/relative-path",
+		version:  "0.2.0",
+	}},
 	"test-versions/name/provider": {
 		{version: "2.2.0"},
 		{version: "2.1.1"},
@@ -103,7 +107,7 @@ func mockRegHandler() http.Handler {
 		mod := versions[0]
 
 		location := mod.location
-		if !strings.HasPrefix(location, "file:///") {
+		if !strings.HasPrefix(matches[0], "relative/") && !strings.HasPrefix(location, "file:///") {
 			// we can't use filepath.Abs because it will clean `//`
 			wd, _ := os.Getwd()
 			location = fmt.Sprintf("file://%s/%s", wd, location)
