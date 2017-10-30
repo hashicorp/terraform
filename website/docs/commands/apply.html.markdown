@@ -18,13 +18,9 @@ Usage: `terraform apply [options] [dir-or-plan]`
 
 By default, `apply` scans the current directory for the configuration
 and applies the changes appropriately. However, a path to another configuration
-or an execution plan can be provided. Execution plans can be used to only
-execute a pre-determined set of actions.
-
-The `dir` argument can also be a [module source](/docs/modules/index.html).
-In this case, `apply` behaves as though `init` were called with that
-argument followed by an `apply` in the current directory. This is meant
-as a shortcut for getting started.
+or an execution plan can be provided. Explicit execution plans files can be
+used to split plan and apply into separate steps within
+[automation systems](/guides/running-terraform-in-automation.html).
 
 The command-line flags are all optional. The list of available flags are:
 
@@ -37,8 +33,7 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-input=true` - Ask for input for variables if not directly set.
 
-* `-auto-approve=true` - Skip interactive approval of plan before applying. In a
-  future version of Terraform, this flag's default value will change to false.
+* `-auto-approve` - Skip interactive approval of plan before applying.
 
 * `-no-color` - Disables output with coloring.
 

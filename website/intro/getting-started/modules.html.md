@@ -89,10 +89,10 @@ updates.
 ## Planning and Apply Modules
 
 With the modules downloaded, we can now plan and apply it. If you run
-`terraform plan`, you should see output similar to below:
+`terraform apply`, you should see output similar to below:
 
 ```
-$ terraform plan
+$ terraform apply
 # ...
 + module.consul.aws_instance.server.0
 # ...
@@ -106,18 +106,16 @@ $ terraform plan
 Plan: 4 to add, 0 to change, 0 to destroy.
 ```
 
-Conceptually, the module is treated like a black box. In the plan, however
+Conceptually, the module is treated like a black box. In the plan however,
 Terraform shows each resource the module manages so you can see each detail
-about what the plan will do. If you'd like compressed plan output, you can
-specify the `-module-depth=` flag to get Terraform to output summaries by
-module.
+about what actions the plan will take.
 
-Next, run `terraform apply` to create the module. Note that as we warned above,
+As usual, Terraform waits for confirmation before making any changes. Answer
+`yes` to create the resources from the module. Note that, as we warned above,
 the resources this module creates are outside of the AWS free tier, so this
 will have some cost associated with it.
 
 ```
-$ terraform apply
 # ...
 Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
 ```

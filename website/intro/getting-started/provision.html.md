@@ -60,6 +60,8 @@ then run `apply`:
 
 ```
 $ terraform apply
+# ...
+
 aws_instance.example: Creating...
   ami:           "" => "ami-b374d5a5"
   instance_type: "" => "t2.micro"
