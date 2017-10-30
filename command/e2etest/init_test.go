@@ -101,3 +101,37 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Errorf("null plugin is not in cache after install")
 	}
 }
+
+func TestInit_fromModule(t *testing.T) {
+	t.Parallel()
+
+	// This test reaches out to registry.terraform.io and github.com to lookup
+	// and fetch a module.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("test-fixtures", "empty")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
+	defer tf.Close()
+
+	cmd := tf.Cmd("init", "-from-module=hashicorp/vault/aws")
+	cmd.Stdin = nil
+	cmd.Stderr = &bytes.Buffer{}
+
+	err := cmd.Run()
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+
+	stderr := cmd.Stderr.(*bytes.Buffer).String()
+	if stderr != "" {
+		t.Errorf("unexpected stderr output:\n%s", stderr)
+	}
+
+	content, err := tf.ReadFile("main.tf")
+	if err != nil {
+		t.Fatalf("failed to read main.tf: %s", err)
+	}
+	if !bytes.Contains(content, []byte("vault")) {
+		t.Fatalf("main.tf doesn't appear to be a vault configuration: \n%s", content)
+	}
+}
