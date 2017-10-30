@@ -26,6 +26,10 @@ install:
 # See: https://github.com/golang/go/issues/12933
 - bash scripts/gogetcookie.sh
 - go get github.com/kardianos/govendor
+
+before_script:
+- git config --global url.https://github.com/.insteadOf ssh://git@github.com/
+
 script:
 - make vendor-status
 - make test
