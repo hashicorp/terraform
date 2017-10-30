@@ -21,7 +21,6 @@ import (
 
 const (
 	defaultRegistry   = "registry.terraform.io"
-	defaultApiPath    = "/v1/modules"
 	registryServiceID = "registry.v1"
 	xTerraformGet     = "X-Terraform-Get"
 	xTerraformVersion = "X-Terraform-Version"
@@ -48,11 +47,7 @@ func (e errModuleNotFound) Error() string {
 func (s *Storage) discoverRegURL(module *regsrc.Module) *url.URL {
 	regURL := s.Services.DiscoverServiceURL(svchost.Hostname(module.RawHost.Normalized()), serviceID)
 	if regURL == nil {
-		regURL = &url.URL{
-			Scheme: "https",
-			Host:   module.RawHost.String(),
-			Path:   defaultApiPath,
-		}
+		return nil
 	}
 
 	if !strings.HasSuffix(regURL.Path, "/") {
@@ -85,6 +80,9 @@ func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleV
 	}
 
 	service := s.discoverRegURL(module)
+	if service == nil {
+		return nil, fmt.Errorf("host %s does not provide Terraform modules", module.RawHost.Display())
+	}
 
 	p, err := url.Parse(path.Join(module.Module(), "versions"))
 	if err != nil {
@@ -135,6 +133,9 @@ func (s *Storage) lookupModuleLocation(module *regsrc.Module, version string) (s
 	}
 
 	service := s.discoverRegURL(module)
+	if service == nil {
+		return "", fmt.Errorf("host %s does not provide Terraform modules", module.RawHost.Display())
+	}
 
 	var p *url.URL
 	var err error
