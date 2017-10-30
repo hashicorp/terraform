@@ -11,8 +11,17 @@ description: |-
 The `terraform plan` command is used to create an execution plan. Terraform
 performs a refresh, unless explicitly disabled, and then determines what
 actions are necessary to achieve the desired state specified in the
-configuration files. The plan can be saved using `-out`, and then provided
-to `terraform apply` to ensure only the pre-planned actions are executed.
+configuration files.
+
+This command is a convenient way to check whether the execution plan for a
+set of changes matches your expectations without making any changes to
+real resources or to the state. For example, `terraform plan` might be run
+before committing a change to version control, to create confidence that it
+will behave as expected.
+
+The optional `-out` argument can be used to save the generated plan to a file
+for later execution with `terraform apply`, which can be useful when
+[running Terraform in automation](/guides/running-terraform-in-automation.html).
 
 ## Usage
 

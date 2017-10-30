@@ -40,12 +40,13 @@ an Ubuntu 16.10 AMI. Terraform configurations are meant to be
 changed like this. You can also completely remove resources
 and Terraform will know to destroy the old one.
 
-## Execution Plan
+## Apply Changes
 
-Let's see what Terraform will do with the change we made.
+After changing the configuration, run `terraform apply` again to see how
+Terraform will apply this change to the existing resources.
 
 ```
-$ terraform plan
+$ terraform apply
 # ...
 
 -/+ aws_instance.example
@@ -63,25 +64,23 @@ $ terraform plan
     vpc_security_group_ids.#: "1" => "<computed>"
 ```
 
-The prefix "-/+" means that Terraform will destroy and recreate
-the resource, versus purely updating it in-place. While some attributes
-can do in-place updates (which are shown with a "~" prefix), AMI
-changing on EC2 instance requires a new resource. Terraform handles
-these details for you, and the execution plan makes it clear what
-Terraform will do.
+The prefix `-/+` means that Terraform will destroy and recreate
+the resource, rather than updating it in-place. While some attributes
+can be updated in-place (which are shown with the `~` prefix), changing the
+AMI for an EC2 instance requires recreating it. Terraform handles these details
+for you, and the execution plan makes it clear what Terraform will do.
 
-Additionally, the plan output shows that the AMI change is what
-necessitated the creation of a new resource. Using this information,
-you can tweak your changes to possibly avoid destroy/create updates
-if you didn't want to do them at this time.
+Additionally, the execution plan shows that the AMI change is what
+required resource to be replaced. Using this information,
+you can adjust your changes to possibly avoid destroy/create updates
+if they are not acceptable in some situations.
 
-## Apply
+Once again, Terraform prompts for approval of the execution plan before
+proceeding. Answer `yes` to execute the planned steps:
 
-From the plan, we know what will happen. Let's apply and enact
-the change.
 
 ```
-$ terraform apply
+# ...
 aws_instance.example: Refreshing state... (ID: i-64c268fe)
 aws_instance.example: Destroying...
 aws_instance.example: Destruction complete
@@ -113,9 +112,9 @@ Apply complete! Resources: 1 added, 0 changed, 1 destroyed.
 # ...
 ```
 
-As the plan predicted, Terraform started by destroying our old
-instance, then creating the new one. You can use `terraform show`
-again to see the new properties associated with this instance.
+As indicated by the execution plan, Terraform first destroyed the existing
+instance and then created a new one in its place. You can use `terraform show`
+again to see the new values associated with this instance.
 
 ## Next
 

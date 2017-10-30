@@ -35,6 +35,7 @@ func TestApply(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -72,6 +73,7 @@ func TestApply_lockedState(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code == 0 {
@@ -113,6 +115,7 @@ func TestApply_lockedStateWait(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"-lock-timeout", "4s",
+		"-auto-approve",
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -186,6 +189,7 @@ func TestApply_parallelism(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		fmt.Sprintf("-parallelism=%d", par),
 		testFixturePath("parallelism"),
 	}
@@ -239,6 +243,7 @@ func TestApply_configInvalid(t *testing.T) {
 
 	args := []string{
 		"-state", testTempFile(t),
+		"-auto-approve",
 		testFixturePath("apply-config-invalid"),
 	}
 	if code := c.Run(args); code != 1 {
@@ -281,6 +286,7 @@ func TestApply_defaultState(t *testing.T) {
 	serial := localState.State().Serial
 
 	args := []string{
+		"-auto-approve",
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -344,6 +350,7 @@ func TestApply_error(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		testFixturePath("apply-error"),
 	}
 	if code := c.Run(args); code != 1 {
@@ -385,6 +392,7 @@ func TestApply_input(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		testFixturePath("apply-input"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -420,6 +428,7 @@ func TestApply_inputPartial(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		"-var", "foo=foovalue",
 		testFixturePath("apply-input-partial"),
 	}
@@ -460,6 +469,7 @@ func TestApply_noArgs(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -783,6 +793,7 @@ func TestApply_refresh(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -875,6 +886,7 @@ func TestApply_shutdown(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		testFixturePath("apply-shutdown"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -934,6 +946,7 @@ func TestApply_state(t *testing.T) {
 	// Run the apply command pointing to our existing state
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -1008,6 +1021,7 @@ func TestApply_sensitiveOutput(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		testFixturePath("apply-sensitive-output"),
 	}
 
@@ -1040,6 +1054,7 @@ func TestApply_stateFuture(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code == 0 {
@@ -1071,6 +1086,7 @@ func TestApply_statePast(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-auto-approve",
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -1103,6 +1119,7 @@ func TestApply_vars(t *testing.T) {
 	}
 
 	args := []string{
+		"-auto-approve",
 		"-var", "foo=bar",
 		"-state", statePath,
 		testFixturePath("apply-vars"),
@@ -1146,6 +1163,7 @@ func TestApply_varFile(t *testing.T) {
 	}
 
 	args := []string{
+		"-auto-approve",
 		"-var-file", varFilePath,
 		"-state", statePath,
 		testFixturePath("apply-vars"),
@@ -1199,6 +1217,7 @@ func TestApply_varFileDefault(t *testing.T) {
 	}
 
 	args := []string{
+		"-auto-approve",
 		"-state", statePath,
 		testFixturePath("apply-vars"),
 	}
@@ -1251,6 +1270,7 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	}
 
 	args := []string{
+		"-auto-approve",
 		"-state", statePath,
 		testFixturePath("apply-vars"),
 	}
@@ -1303,6 +1323,7 @@ func TestApply_backup(t *testing.T) {
 
 	// Run the apply command pointing to our existing state
 	args := []string{
+		"-auto-approve",
 		"-state", statePath,
 		"-backup", backupPath,
 		testFixturePath("apply"),
@@ -1353,6 +1374,7 @@ func TestApply_disableBackup(t *testing.T) {
 
 	// Run the apply command pointing to our existing state
 	args := []string{
+		"-auto-approve",
 		"-state", statePath,
 		"-backup", "-",
 		testFixturePath("apply"),
@@ -1411,6 +1433,7 @@ func TestApply_terraformEnv(t *testing.T) {
 	}
 
 	args := []string{
+		"-auto-approve",
 		"-state", statePath,
 		testFixturePath("apply-terraform-env"),
 	}
@@ -1466,6 +1489,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	}
 
 	args := []string{
+		"-auto-approve",
 		testFixturePath("apply-terraform-env"),
 	}
 	if code := c.Run(args); code != 0 {

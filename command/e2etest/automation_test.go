@@ -149,7 +149,7 @@ func TestAutoApplyInAutomation(t *testing.T) {
 	}
 
 	//// APPLY
-	stdout, stderr, err = tf.Run("apply", "-input=false", "-auto-approve=true")
+	stdout, stderr, err = tf.Run("apply", "-input=false", "-auto-approve")
 	if err != nil {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
 	}

@@ -52,13 +52,13 @@ The syntax for this interpolation should be straightforward:
 it requests the "id" attribute from the "aws\_instance.example"
 resource.
 
-## Plan and Execute
+## Apply Changes
 
-Run `terraform plan` to view the execution plan. The output
-will look something like the following:
+Run `terraform apply` to see how Terraform plans to apply this change.
+The output will look similar to the following:
 
 ```
-$ terraform plan
+$ terraform apply
 
 + aws_eip.ip
     allocation_id:     "<computed>"
@@ -96,11 +96,12 @@ raw interpolation is still present. This is because this variable
 won't be known until the "aws\_instance" is created. It will be
 replaced at apply-time.
 
-Next, run `terraform apply`. The output will look similar to the
+As usual, Terraform prompts for confirmation before making any changes.
+Answer `yes` to apply. The continued output will look similar to the
 following:
 
 ```
-$ terraform apply
+# ...
 aws_instance.example: Creating...
   ami:                      "" => "ami-b374d5a5"
   instance_type:            "" => "t2.micro"
@@ -120,12 +121,10 @@ aws_eip.ip: Creation complete
 Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 ```
 
-It is clearer to see from actually running Terraform, but
-Terraform creates the EC2 instance before the elastic IP
-address. Due to the interpolation earlier where the elastic
-IP requires the ID of the EC2 instance, Terraform is able
-to infer a dependency, and knows to create the instance
-first.
+As shown above, Terraform created the EC2 instance before creating the Elastic
+IP address. Due to the interpolation expression that passes the ID of the EC2
+instance to the Elastic IP address, Terraform is able to infer a dependency,
+and knows it must create the instance first.
 
 ## Implicit and Explicit Dependencies
 

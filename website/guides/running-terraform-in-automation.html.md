@@ -174,15 +174,15 @@ Where manual approval is not required, a simpler sequence of commands
 can be used:
 
 * `terraform init -input=false`
-* `terraform apply -input=false -auto-approve=true`
+* `terraform apply -input=false -auto-approve`
 
 This variant of the `apply` command implicitly creates a new plan and then
-immediately applies it. The `-auto-approve=true` option tells Terraform not
+immediately applies it. The `-auto-approve` option tells Terraform not
 to require interactive approval of the plan before applying it.
 
 ~> When Terraform is empowered to make destructive changes to infrastructure,
 manual review of plans is always recommended unless downtime is tolerated
-in the event of unintended changes. Use automatic apply **only** with
+in the event of unintended changes. Use automatic approval **only** with
 non-critical infrastructure.
 
 ## Testing Pull Requests with `terraform plan`

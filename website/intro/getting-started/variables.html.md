@@ -66,7 +66,7 @@ You can set variables directly on the command-line with the
 accepts this flag, such as `apply`, `plan`, and `refresh`:
 
 ```
-$ terraform plan \
+$ terraform apply \
   -var 'access_key=foo' \
   -var 'secret_key=bar'
 # ...
@@ -100,7 +100,7 @@ You can use multiple `-var-file` arguments in a single command, with some
 checked in to version control and others not checked in. For example:
 
 ```
-$ terraform plan \
+$ terraform apply \
   -var-file="secret.tfvars" \
   -var-file="production.tfvars"
 ```
@@ -116,10 +116,11 @@ List and map type variables must be populated via one of the other mechanisms.
 
 #### UI Input
 
-If you execute `terraform plan` or apply without doing anything,
-Terraform will ask you to input the variables interactively.  These
-variables are not saved, but provides a nice user experience for getting
-started with Terraform.
+If you execute `terraform apply` with certain variables unspecified,
+Terraform will ask you to input their values interactively.  These
+values are not saved, but this provides a convenient workflow when getting
+started with Terraform. UI Input is not recommended for everyday use of
+Terraform.
 
 -> **Note**: UI Input is only supported for string variables. List and map
 variables must be populated via one of the other mechanisms.
@@ -199,7 +200,7 @@ We set defaults above, but maps can also be set using the `-var` and
 `-var-file` values. For example:
 
 ```
-$ terraform plan -var 'amis={ us-east-1 = "foo", us-west-2 = "bar" }'
+$ terraform apply -var 'amis={ us-east-1 = "foo", us-west-2 = "bar" }'
 # ...
 ```
 
