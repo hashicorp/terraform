@@ -33,7 +33,7 @@ const protocolVersionHeader = "x-terraform-protocol-version"
 
 var releaseHost = "https://releases.hashicorp.com"
 
-var httpClient = cleanhttp.DefaultClient()
+var httpClient = cleanhttp.DefaultPooledClient()
 
 // An Installer maintains a local cache of plugins by downloading plugins
 // from an online repository.
