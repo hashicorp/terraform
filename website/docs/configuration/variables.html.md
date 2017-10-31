@@ -69,6 +69,12 @@ These are the parameters that can be set:
   future version of Terraform will expose these descriptions as part of some
   Terraform CLI command.
 
+The name of a variable can be any valid identifier. However, due to the
+interpretation of [module configuration blocks](/docs/configuration/modules.html),
+the names `source`, `version` and `providers` are reserved for Terraform's own
+use and are thus not recommended for any module intended to be used as a
+child module.
+
 -> **Note**: Default values can be strings, lists, or maps. If a default is
 specified, it must match the declared type of the variable.
 
