@@ -339,7 +339,7 @@ func TestParentProviderTransformer_moduleGrandchild(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformParentProviderModuleGrandchildStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
