@@ -27,6 +27,7 @@ type GraphNodeCloseProvider interface {
 // a provider must implement. ProvidedBy must return the name of the provider
 // to use.
 type GraphNodeProviderConsumer interface {
+	// TODO: make this return s string instead of a []string
 	ProvidedBy() []string
 }
 
@@ -41,18 +42,45 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	m := providerVertexMap(g)
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
-			for _, p := range pv.ProvidedBy() {
-				target := m[providerMapKey(p, pv)]
-				if target == nil {
-					println(fmt.Sprintf("%#v\n\n%#v", m, providerMapKey(p, pv)))
-					err = multierror.Append(err, fmt.Errorf(
-						"%s: provider %s couldn't be found",
-						dag.VertexName(v), p))
-					continue
+			p := pv.ProvidedBy()[0]
+
+			key := providerMapKey(p, pv)
+			target := m[key]
+
+			sp, ok := pv.(GraphNodeSubPath)
+			if !ok && target == nil {
+				// no target, and no path to walk up
+				err = multierror.Append(err, fmt.Errorf(
+					"%s: provider %s couldn't be found",
+					dag.VertexName(v), p))
+				break
+			}
+
+			// if we don't have a provider at this level, walk up the path looking for one
+			for i := 1; target == nil; i++ {
+				pathPrefix := ""
+				raw := normalizeModulePath(sp.Path())
+				if len(raw) < i {
+					break
 				}
 
-				g.Connect(dag.BasicEdge(v, target))
+				raw = raw[:len(raw)-i]
+
+				if len(raw) > len(rootModulePath) {
+					pathPrefix = modulePrefixStr(raw) + "."
+				}
+				key = pathPrefix + p
+				target = m[key]
 			}
+
+			if target == nil {
+				err = multierror.Append(err, fmt.Errorf(
+					"%s: provider %s couldn't be found",
+					dag.VertexName(v), p))
+				break
+			}
+
+			g.Connect(dag.BasicEdge(v, target))
 		}
 	}
 
@@ -173,12 +201,17 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			}
 
 			key := providerMapKey(p, pv)
+
+			// TODO: jbardin come back to this
+			//       only adding root level missing providers
+			key = p
 			if _, ok := m[key]; ok {
 				// This provider already exists as a configure node
 				continue
 			}
 
 			// If the provider has an alias in it, we just want the type
+			// TODO: jbardin -- stop adding aliased providers altogether
 			ptype := p
 			if idx := strings.IndexRune(p, '.'); idx != -1 {
 				ptype = p[:idx]
@@ -195,7 +228,10 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			// Add the missing provider node to the graph
 			v := t.Concrete(&NodeAbstractProvider{
 				NameValue: p,
-				PathValue: path,
+
+				// TODO: jbardin come back to this
+				//       only adding root level missing providers
+				//PathValue: path,
 			}).(dag.Vertex)
 			m[key] = g.Add(v)
 		}
