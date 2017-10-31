@@ -382,7 +382,10 @@ func LogOutput(t TestT) (logOutput io.Writer, err error) {
 	}
 
 	if logPathMask := os.Getenv(EnvLogPathMask); logPathMask != "" {
-		logPath := fmt.Sprintf(logPathMask, t.Name())
+		// Escape special characters which may appear if we have subtests
+		testName := strings.Replace(t.Name(), "/", "__", -1)
+
+		logPath := fmt.Sprintf(logPathMask, testName)
 		var err error
 		logOutput, err = os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
 		if err != nil {
