@@ -1,0 +1,180 @@
+---
+layout: "downloads"
+page_title: "Upgrading to Terraform 0.11"
+sidebar_current: "upgrade-guides-0-11"
+description: |-
+  Upgrading to Terraform v0.11
+---
+
+# Upgrading to Terraform v0.11
+
+Terraform v0.11 is a major release and thus includes some changes that
+you'll need to consider when upgrading. This guide is intended to help with
+that process.
+
+The goal of this guide is to cover the most common upgrade concerns and
+issues that would benefit from more explanation and background. The exhaustive
+list of changes will always be the
+[Terraform Changelog](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md).
+After reviewing this guide, we recommend reviewing the Changelog to check on
+specific notes about the resources and providers you use.
+
+This guide focuses on changes from v0.10 to v0.11. Each previous major release
+has its own upgrade guide, so please consult the other guides (available
+in the navigation) if you are upgrading directly from an earlier version.
+
+## Interactive Approval in `terraform apply`
+
+Terraform 0.10 introduced a new mode for `terraform apply` (when run without
+an explicit plan file) where it would show a plan and prompt for approval
+before proceeding, similar to `terraform destroy`.
+
+Terraform 0.11 adopts this as the default behavior for this command, which
+means that for interactive use in a terminal it is not necessary to separately
+run `terraform plan -out=...` to safely review and apply a plan.
+
+The new behavior also has the additional advantage that, when using a backend
+that supports locking, the state lock will be held throughout the refresh,
+plan, confirmation and apply steps, ensuring that a concurrent execution
+of `terraform apply` will not invalidate the execution plan.
+
+A consequence of this change is that `terraform apply` is now interactive by
+default unless a plan file is provided on the command line. When
+[running Terraform in automation](/guides/running-terraform-in-automation.html)
+it is always recommended to separate plan from apply, but if existing automation
+was running `terraform apply` with no arguments it may now be necessary to
+update it to either generate an explicit plan using `terraform plan -out=...`
+or to run `terraform apply -auto-approve` to bypass the interactive confirmation
+step. The latter should be done only in unimportant environments.
+
+**Action:** For interactive use in a terminal, prefer to use `terraform apply`
+with out an explicit plan argument rather than `terraform plan -out=tfplan`
+followed by `terraform apply tfplan`.
+
+**Action:** Update any automation scripts that run Terraform non-interactively
+so that they either use separated plan and apply or override the confirmation
+behavior using the `-auto-approve` option.
+
+## Relative Paths in Module `source`
+
+Terraform 0.11 introduces full support for module installation from
+[Terraform Registry](https://registry.terraform.io/) as well as other
+private, in-house registries using concise module source strings like
+`hashicorp/consul/aws`.
+
+As a consequence, module source strings like `"child"` are no longer
+interpreted as relative paths. Instead, relative paths must be expressed
+explicitly by beginning the string with either `./` (for a module in a child
+directory) or `../` (for a module in the parent directory).
+
+**Action:** Update existing module `source` values containing relative paths
+to start eith either `./` or `../` to prevent misinterpretation of the source
+as a Terraform Registry module.
+
+## Interactions Between Providers and Modules
+
+Prior to Terraform 0.11 there were several limitations in deficiencies in
+how providers interact with child modules, such as:
+
+* Ancestor module provider configurations always overrode the associated
+  settings in descendent modules.
+
+* There was no well-defined mechanism for passing "aliased" providers from
+  an ancestor module to a descendent, where the descendent needs access to
+  multiple provider instances.
+
+Terraform 0.11 changes some of the details of how each resource block is
+associated with a provider configuration, which may change how Terraform
+interprets existing configurations. This is notably true in the following
+situations:
+
+* If the same provider is configured in both an ancestor and a descendent
+  module, the ancestor configuration no longer overrides attributes from
+  the descendent and the descendent no longer inherits attributes from
+  its ancestor. Instead, each configuration is entirely distinct.
+
+* Only unaliased provider configurations can be automatically inherited from
+  ancestor modules. Aliased providers must be passed explicitly using
+  [the new `providers` attribute](/docs/modules/usage.html#providers-within-modules).
+
+* When a module containing its own `provider` blocks is removed from its
+  parent module, Terraform will no longer attempt to associate it with
+  another provider of the same name in a parent module, since that would
+  often cause undesirable effects such as attempting to refresh resources
+  in the wrong region. Instead, the resources in the module resources must be
+  explicitly destroyed _before_ removing the module, so that the provider
+  configuration is still available: `terraform destroy -target=module.example`.
+
+The recommended design pattern moving forward is to place all explicit
+`provider` blocks in the root module of the configuration, and to pass
+providers explicitly to child modules so that the associations are obvious
+from configuration:
+
+```hcl
+provider "aws" {
+  region = "us-east-1"
+  alias  = "use1"
+}
+
+provider "aws" {
+  region = "us-west-1"
+  alias  = "usw1"
+}
+
+module "example-use1" {
+  source = "./example"
+
+  providers = {
+    "aws": "aws.use1",
+  }
+}
+
+module "example-usw1" {
+  source = "./example"
+
+  providers = {
+    "aws": "aws.usw1",
+  }
+}
+```
+
+With the above configuration, any `aws` provider resources in the module
+`./example` will use the us-east-1 provider configuration for
+`module.example-use1` and the us-west-1 provider configuration for
+`module.example-usw1`.
+
+When only default (non-aliased) providers are in use, automatic inheritance
+to child modules is still supported.
+
+**Action**: In existing configurations where both a descendent module and
+one of its ancestor modules both configure the same provider, copy any
+settings from the ancestor into the descendent because provider configurations
+now inherit only as a whole, rather than on a per-argument basis.
+
+**Action**: In existing configurations where a descendent module inherits
+_aliased_ providers from an ancestor module, use
+[the new `providers` attribute](/docs/modules/usage.html#providers-within-modules)
+to explicitly pass those aliased providers.
+
+**Action**: Consider refactoring existing configurations so that all provider
+configurations are set in the root module and passed explicitly to child
+modules.
+
+## Error Checking for Output Values
+
+Prior to Terraform 0.11, if an error occured when evaluating the `value`
+expression within an `output` block then it would be silently ignored and
+the empty string used as the result. This was inconvenient because it made it
+very hard to debug errors within output expressions.
+
+To give better feedback, Terraform now halts and displays an error message
+when such errors occur, similar to the behavior for expressions elsewhere
+in the configuration.
+
+Unfortunately, this means that existing configurations may have erroneous
+outputs lurking that will become fatal errors after upgrading to Terraform 0.11.
+The prior behavior is no longer available; to apply such a configuration with
+Terraform 0.11 will require adjusting the configuration to avoid the error.
+
+**Action:** If any existing output value expressions contain errors, change these
+expressions to fix the error.
