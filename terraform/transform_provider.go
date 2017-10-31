@@ -104,10 +104,10 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	return err
 }
 
-// MissingProviderTransformer is a GraphTransformer that adds nodes
-// for missing providers into the graph. Specifically, it creates provider
-// configuration nodes for all the providers that we support. These are
-// pruned later during an optimization pass.
+// MissingProviderTransformer is a GraphTransformer that adds nodes for all
+// required providers into the graph. Specifically, it creates provider
+// configuration nodes for all the providers that we support. These are pruned
+// later during an optimization pass.
 type MissingProviderTransformer struct {
 	// Providers is the list of providers we support.
 	Providers []string
@@ -160,6 +160,18 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		}
 
 		for _, p := range pv.ProvidedBy() {
+			// always add the parent nodes to check, since configured providers
+			// may have already been added for modules.
+			if len(path) > 0 {
+				// We'll need the parent provider as well, so let's
+				// add a dummy node to check to make sure that we add
+				// that parent provider.
+				check = append(check, &graphNodeProviderConsumerDummy{
+					ProviderValue: p,
+					PathValue:     path[:len(path)-1],
+				})
+			}
+
 			key := providerMapKey(p, pv)
 			if _, ok := m[key]; ok {
 				// This provider already exists as a configure node
@@ -185,16 +197,6 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 				NameValue: p,
 				PathValue: path,
 			}).(dag.Vertex)
-			if len(path) > 0 {
-				// We'll need the parent provider as well, so let's
-				// add a dummy node to check to make sure that we add
-				// that parent provider.
-				check = append(check, &graphNodeProviderConsumerDummy{
-					ProviderValue: p,
-					PathValue:     path[:len(path)-1],
-				})
-			}
-
 			m[key] = g.Add(v)
 		}
 	}

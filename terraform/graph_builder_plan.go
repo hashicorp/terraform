@@ -93,6 +93,13 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Module: b.Module},
 
+		// add configured providers
+		&ProviderConfigTransformer{
+			Module:    b.Module,
+			Providers: b.Providers,
+			Concrete:  b.ConcreteProvider,
+		},
+
 		// Create all the providers
 		&MissingProviderTransformer{Providers: b.Providers, Concrete: b.ConcreteProvider},
 		&ProviderTransformer{},
