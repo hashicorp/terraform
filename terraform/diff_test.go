@@ -1131,6 +1131,82 @@ func TestInstanceDiffSame(t *testing.T) {
 			true,
 			"",
 		},
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "1",
+						New: "2",
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "1",
+						New: "3",
+					},
+				},
+			},
+			false,
+			"value mismatch: foo",
+		},
+
+		// Make sure that DestroyTainted diffs pass as well, especially when diff
+		// two works off of no state.
+		{
+			&InstanceDiff{
+				DestroyTainted: true,
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "foo",
+						New: "foo",
+					},
+				},
+			},
+			&InstanceDiff{
+				DestroyTainted: true,
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+				},
+			},
+			true,
+			"",
+		},
+		// RequiresNew in different attribute
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "foo",
+						New: "foo",
+					},
+					"bar": &ResourceAttrDiff{
+						Old:         "bar",
+						New:         "baz",
+						RequiresNew: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"bar": &ResourceAttrDiff{
+						Old:         "",
+						New:         "baz",
+						RequiresNew: true,
+					},
+				},
+			},
+			true,
+			"",
+		},
 	}
 
 	for i, tc := range cases {

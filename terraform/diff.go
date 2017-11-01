@@ -748,7 +748,7 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 		delete(checkOld, k)
 		delete(checkNew, k)
 
-		_, ok := d2.GetAttribute(k)
+		diffNew, ok := d2.GetAttribute(k)
 		if !ok {
 			// If there's no new attribute, and the old diff expected the attribute
 			// to be removed, that's just fine.
@@ -837,7 +837,31 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 			}
 		}
 
-		// TODO: check for the same value if not computed
+		// If our attributes are not computed, then there is no reason why we can't
+		// check to make sure the diff values are the same. Do that now.
+		//
+		// There are several conditions that we need to pass here as they are
+		// allowed cases even if values don't match, so let's check those first.
+		switch {
+		case diffOld.NewComputed:
+			// NewComputed values pass
+		case strings.Contains(k, "~"):
+			// Computed keys for sets and lists
+		case strings.HasSuffix(k, "#"):
+			// Counts for sets need to be skipped as well as we have determined that
+			// we may not know the full value due to interpolation
+		case strings.HasSuffix(k, "%") && diffOld.New == "0" && diffOld.Old != "0":
+			// Lists can be skipped if they are being removed (going from n > 0 to 0)
+		case d.DestroyTainted && d2.GetDestroyTainted() && diffOld.New == diffNew.New:
+			// Same for DestoryTainted
+		case d.requiresNew() && d2.RequiresNew() && diffOld.New == diffNew.New:
+			// Same for RequiresNew
+		default:
+			// Anything that gets here should be able to be checked for deep equality.
+			if !reflect.DeepEqual(diffOld, diffNew) {
+				return false, fmt.Sprintf("value mismatch: %s", k)
+			}
+		}
 	}
 
 	// Check for leftover attributes

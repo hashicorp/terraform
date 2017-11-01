@@ -18,7 +18,7 @@ func TestResourceDataRaw(
 	}
 
 	sm := schemaMap(schema)
-	diff, err := sm.Diff(nil, terraform.NewResourceConfig(c))
+	diff, err := sm.Diff(nil, terraform.NewResourceConfig(c), nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
