@@ -22,11 +22,11 @@ type EvalContext interface {
 	// Input is the UIInput object for interacting with the UI.
 	Input() UIInput
 
-	// InitProvider initializes the provider with the given name and
+	// InitProvider initializes the provider with the given type and name, and
 	// returns the implementation of the resource provider or an error.
 	//
 	// It is an error to initialize the same provider more than once.
-	InitProvider(string) (ResourceProvider, error)
+	InitProvider(typ string, name string) (ResourceProvider, error)
 
 	// Provider gets the provider instance with the given name (already
 	// initialized) or returns nil if the provider isn't initialized.

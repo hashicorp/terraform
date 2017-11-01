@@ -335,8 +335,13 @@ func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) []string {
 }
 
 func modulePrefixStr(p []string) string {
+	// strip "root"
+	if len(p) > 0 && p[0] == rootModulePath[0] {
+		p = p[1:]
+	}
+
 	parts := make([]string, 0, len(p)*2)
-	for _, p := range p[1:] {
+	for _, p := range p {
 		parts = append(parts, "module", p)
 	}
 

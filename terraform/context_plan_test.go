@@ -687,13 +687,10 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	}
 
 	expected := []string{
-		"root\n",
-		// this test originally verified that a parent provider config can
-		// partially override a child. That's no longer the case, so the child
-		// config is used in its entirety here.
-		//"root\nchild\n",
 		"child\nchild\n",
+		"root\n",
 	}
+	sort.Strings(calls)
 	if !reflect.DeepEqual(calls, expected) {
 		t.Fatalf("expected:\n%#v\ngot:\n%#v\n", expected, calls)
 	}

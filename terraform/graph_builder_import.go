@@ -52,6 +52,13 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Add the import steps
 		&ImportStateTransformer{Targets: b.ImportTargets},
 
+		// add configured providers
+		&ProviderConfigTransformer{
+			Module:    b.Module,
+			Providers: b.Providers,
+			Concrete:  concreteProvider,
+		},
+
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
 		&ProviderTransformer{},

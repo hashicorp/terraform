@@ -107,7 +107,7 @@ func (c *MockEvalContext) Input() UIInput {
 	return c.InputInput
 }
 
-func (c *MockEvalContext) InitProvider(n string) (ResourceProvider, error) {
+func (c *MockEvalContext) InitProvider(t, n string) (ResourceProvider, error) {
 	c.InitProviderCalled = true
 	c.InitProviderName = n
 	return c.InitProviderProvider, c.InitProviderError

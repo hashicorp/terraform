@@ -861,7 +861,7 @@ func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCreateBeforeStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, actual)
 	}
 }
 
