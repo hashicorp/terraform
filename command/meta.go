@@ -71,6 +71,11 @@ type Meta struct {
 	// into the given directory.
 	PluginCacheDir string
 
+	// OverrideDataDir, if non-empty, overrides the return value of the
+	// DataDir method for situations where the local .terraform/ directory
+	// is not suitable, e.g. because of a read-only filesystem.
+	OverrideDataDir string
+
 	//----------------------------------------------------------
 	// Protected: commands can set these
 	//----------------------------------------------------------
@@ -202,14 +207,12 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 }
 
 // DataDir returns the directory where local data will be stored.
-// Defaults to DefaultsDataDir in the current working directory.
+// Defaults to DefaultDataDir in the current working directory.
 func (m *Meta) DataDir() string {
-	dataDir := DefaultDataDir
-	if m.dataDir != "" {
-		dataDir = m.dataDir
+	if m.OverrideDataDir != "" {
+		return m.OverrideDataDir
 	}
-
-	return dataDir
+	return DefaultDataDir
 }
 
 const (
