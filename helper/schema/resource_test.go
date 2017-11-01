@@ -226,7 +226,7 @@ func TestResourceDiff_Timeout_diff(t *testing.T) {
 	var s *terraform.InstanceState = nil
 	conf := terraform.NewResourceConfig(raw)
 
-	actual, err := r.Diff(s, conf)
+	actual, err := r.Diff(s, conf, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -251,6 +251,44 @@ func TestResourceDiff_Timeout_diff(t *testing.T) {
 
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("Not equal in Timeout Diff:\n\texpected: %#v\n\tactual: %#v", expected.Meta, actual.Meta)
+	}
+}
+
+func TestResourceDiff_CustomizeFunc(t *testing.T) {
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	var called bool
+
+	r.CustomizeDiff = func(d *ResourceDiff, m interface{}) error {
+		called = true
+		return nil
+	}
+
+	raw, err := config.NewRawConfig(
+		map[string]interface{}{
+			"foo": 42,
+		})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	var s *terraform.InstanceState
+	conf := terraform.NewResourceConfig(raw)
+
+	_, err = r.Diff(s, conf, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !called {
+		t.Fatalf("diff customization not called")
 	}
 }
 
@@ -796,6 +834,21 @@ func TestResourceInternalValidate(t *testing.T) {
 			},
 			true,
 			false,
+		},
+
+		13: { // non-writable must not define CustomizeDiff
+			&Resource{
+				Read: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"goo": &Schema{
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+				CustomizeDiff: func(*ResourceDiff, interface{}) error { return nil },
+			},
+			false,
+			true,
 		},
 	}
 

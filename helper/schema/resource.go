@@ -85,6 +85,37 @@ type Resource struct {
 	Delete DeleteFunc
 	Exists ExistsFunc
 
+	// CustomizeDiff is a custom function for working with the diff that
+	// Terraform has created for this resource - it can be used to customize the
+	// diff that has been created, diff values not controlled by configuration,
+	// or even veto the diff altogether and abort the plan. It is passed a
+	// *ResourceDiff, a structure similar to ResourceData but lacking most write
+	// functions like Set, while introducing new functions that work with the
+	// diff such as SetNew, SetNewComputed, and ForceNew.
+	//
+	// The phases Terraform runs this in, and the state available via functions
+	// like Get and GetChange, are as follows:
+	//
+	//  * New resource: One run with no state
+	//  * Existing resource: One run with state
+	//   * Existing resource, forced new: One run with state (before ForceNew),
+	//     then one run without state (as if new resource)
+	//  * Tainted resource: No runs (custom diff logic is skipped)
+	//  * Destroy: No runs (standard diff logic is skipped on destroy diffs)
+	//
+	// This function needs to be resilient to support all scenarios.
+	//
+	// If this function needs to access external API resources, remember to flag
+	// the RequiresRefresh attribute mentioned below to ensure that
+	// -refresh=false is blocked when running plan or apply, as this means that
+	// this resource requires refresh-like behaviour to work effectively.
+	//
+	// For the most part, only computed fields can be customized by this
+	// function.
+	//
+	// This function is only allowed on regular resources (not data sources).
+	CustomizeDiff CustomizeDiffFunc
+
 	// Importer is the ResourceImporter implementation for this resource.
 	// If this is nil, then this resource does not support importing. If
 	// this is non-nil, then it supports importing and ResourceImporter
@@ -125,6 +156,9 @@ type ExistsFunc func(*ResourceData, interface{}) (bool, error)
 // See Resource documentation.
 type StateMigrateFunc func(
 	int, *terraform.InstanceState, interface{}) (*terraform.InstanceState, error)
+
+// See Resource documentation.
+type CustomizeDiffFunc func(*ResourceDiff, interface{}) error
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
@@ -202,11 +236,11 @@ func (r *Resource) Apply(
 	return r.recordCurrentSchemaVersion(data.State()), err
 }
 
-// Diff returns a diff of this resource and is API compatible with the
-// ResourceProvider interface.
+// Diff returns a diff of this resource.
 func (r *Resource) Diff(
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	c *terraform.ResourceConfig,
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	t := &ResourceTimeout{}
 	err := t.ConfigDecode(r, c)
@@ -215,7 +249,7 @@ func (r *Resource) Diff(
 		return nil, fmt.Errorf("[ERR] Error decoding timeout: %s", err)
 	}
 
-	instanceDiff, err := schemaMap(r.Schema).Diff(s, c)
+	instanceDiff, err := schemaMap(r.Schema).Diff(s, c, r.CustomizeDiff, meta)
 	if err != nil {
 		return instanceDiff, err
 	}
@@ -345,6 +379,11 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 	if !writable {
 		if r.Create != nil || r.Update != nil || r.Delete != nil {
 			return fmt.Errorf("must not implement Create, Update or Delete")
+		}
+
+		// CustomizeDiff cannot be defined for read-only resources
+		if r.CustomizeDiff != nil {
+			return fmt.Errorf("cannot implement CustomizeDiff")
 		}
 	}
 
