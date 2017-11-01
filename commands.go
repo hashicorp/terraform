@@ -49,6 +49,8 @@ func initCommands(config *Config) {
 		services.ForceHostServices(host, hostConfig.Services)
 	}
 
+	dataDir := os.Getenv("TF_DATA_DIR")
+
 	meta := command.Meta{
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),
@@ -60,6 +62,7 @@ func initCommands(config *Config) {
 
 		RunningInAutomation: inAutomation,
 		PluginCacheDir:      config.PluginCacheDir,
+		OverrideDataDir:     dataDir,
 	}
 
 	// The command list is included in the terraform -help

@@ -88,6 +88,23 @@ The value of the flag is parsed as if you typed it directly to the shell.
 Double and single quotes are allowed to capture strings and arguments will
 be separated by spaces otherwise.
 
+## TF_DATA_DIR
+
+`TF_DATA_DIR` changes the location where Terraform keeps its
+per-working-directory data, such as the current remote backend configuration.
+
+By default this data is written into a `.terraform` subdirectory of the
+current directory, but the path given in `TF_DATA_DIR` will be used instead
+if non-empty.
+
+In most cases it should not be necessary to set this variable, but it may
+be useful to do so if e.g. the working directory is not writable.
+
+The data directory is used to retain data that must persist from one command
+to the next, so it's important to have this variable set consistently throughout
+all of the Terraform workflow commands (starting with `terraform init`) or else
+Terraform may be unable to find providers, modules, and other artifacts.
+
 ## TF_SKIP_REMOTE_TESTS
 
 This can be set prior to running the unit tests to opt-out of any tests
