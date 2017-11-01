@@ -10,10 +10,12 @@ import (
 )
 
 // GraphNodeProvider is an interface that nodes that can be a provider
-// must implement. The ProviderName returned is the name of the provider
-// they satisfy.
+// must implement.
+// ProviderName returns the name of the provider this satisfies.
+// Name returns the full name of the provider in the config.
 type GraphNodeProvider interface {
 	ProviderName() string
+	Name() string
 }
 
 // GraphNodeCloseProvider is an interface that nodes that can be a close
@@ -29,6 +31,8 @@ type GraphNodeCloseProvider interface {
 type GraphNodeProviderConsumer interface {
 	// TODO: make this return s string instead of a []string
 	ProvidedBy() []string
+	// Set the resolved provider address for this resource.
+	SetProvider(string)
 }
 
 // ProviderTransformer is a GraphTransformer that maps resources to
@@ -58,19 +62,16 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 
 			// if we don't have a provider at this level, walk up the path looking for one
 			for i := 1; target == nil; i++ {
-				pathPrefix := ""
-				raw := normalizeModulePath(sp.Path())
-				if len(raw) < i {
+				path := normalizeModulePath(sp.Path())
+				if len(path) < i {
 					break
 				}
 
-				raw = raw[:len(raw)-i]
-
-				if len(raw) > len(rootModulePath) {
-					pathPrefix = modulePrefixStr(raw) + "."
-				}
-				key = pathPrefix + p
+				key = ResolveProviderName(p, path[:len(path)-i])
 				target = m[key]
+				if target != nil {
+					break
+				}
 			}
 
 			if target == nil {
@@ -80,6 +81,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				break
 			}
 
+			pv.SetProvider(key)
 			g.Connect(dag.BasicEdge(v, target))
 		}
 	}
@@ -95,36 +97,32 @@ type CloseProviderTransformer struct{}
 
 func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	pm := providerVertexMap(g)
-	cpm := closeProviderVertexMap(g)
+	cpm := make(map[string]*graphNodeCloseProvider)
 	var err error
-	for _, v := range g.Vertices() {
-		if pv, ok := v.(GraphNodeProviderConsumer); ok {
-			for _, p := range pv.ProvidedBy() {
-				key := p
-				source := cpm[key]
 
-				if source == nil {
-					// Create a new graphNodeCloseProvider and add it to the graph
-					source = &graphNodeCloseProvider{ProviderNameValue: p}
-					g.Add(source)
+	for _, v := range pm {
+		p := v.(GraphNodeProvider)
 
-					// Close node needs to depend on provider
-					provider, ok := pm[key]
-					if !ok {
-						err = multierror.Append(err, fmt.Errorf(
-							"%s: provider %s couldn't be found for closing",
-							dag.VertexName(v), p))
-						continue
-					}
-					g.Connect(dag.BasicEdge(source, provider))
+		// get the close provider of this type if we alread created it
+		closer := cpm[p.ProviderName()]
 
-					// Make sure we also add the new graphNodeCloseProvider to the map
-					// so we don't create and add any duplicate graphNodeCloseProviders.
-					cpm[key] = source
-				}
+		if closer == nil {
+			// create a closer for this provider type
+			closer = &graphNodeCloseProvider{ProviderNameValue: p.ProviderName()}
+			g.Add(closer)
+			cpm[p.ProviderName()] = closer
+		}
 
-				// Close node depends on all nodes provided by the provider
-				g.Connect(dag.BasicEdge(source, v))
+		// Close node depends on the provider itself
+		// this is added unconditionally, so it will connect to all instances
+		// of the provider. Extra edges will be removed by transitive
+		// reduction.
+		g.Connect(dag.BasicEdge(closer, p))
+
+		// connect all the provider's resources to the close node
+		for _, s := range g.UpEdges(p).List() {
+			if _, ok := s.(GraphNodeResource); ok {
+				g.Connect(dag.BasicEdge(closer, s))
 			}
 		}
 	}
@@ -187,54 +185,47 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			}
 		}
 
-		for _, p := range pv.ProvidedBy() {
-			// always add the parent nodes to check, since configured providers
-			// may have already been added for modules.
-			if len(path) > 0 {
-				// We'll need the parent provider as well, so let's
-				// add a dummy node to check to make sure that we add
-				// that parent provider.
-				check = append(check, &graphNodeProviderConsumerDummy{
-					ProviderValue: p,
-					PathValue:     path[:len(path)-1],
-				})
-			}
+		p := pv.ProvidedBy()[0]
+		// always add the parent nodes to check, since configured providers
+		// may have already been added for modules.
+		if len(path) > 0 {
+			// We'll need the parent provider as well, so let's
+			// add a dummy node to check to make sure that we add
+			// that parent provider.
+			check = append(check, &graphNodeProviderConsumerDummy{
+				ProviderValue: p,
+				PathValue:     path[:len(path)-1],
+			})
+		}
 
-			key := providerMapKey(p, pv)
+		key := providerMapKey(p, pv)
+		if _, ok := m[key]; ok {
+			// This provider already exists as a configure node
+			continue
+		}
 
-			// TODO: jbardin come back to this
-			//       only adding root level missing providers
-			key = p
-			if _, ok := m[key]; ok {
-				// This provider already exists as a configure node
+		// If the provider has an alias in it, we just want the type
+		// TODO: jbardin -- stop adding aliased providers altogether
+		ptype := p
+		if idx := strings.IndexRune(p, '.'); idx != -1 {
+			ptype = p[:idx]
+		}
+
+		if !t.AllowAny {
+			if _, ok := supported[ptype]; !ok {
+				// If we don't support the provider type, skip it.
+				// Validation later will catch this as an error.
 				continue
 			}
-
-			// If the provider has an alias in it, we just want the type
-			// TODO: jbardin -- stop adding aliased providers altogether
-			ptype := p
-			if idx := strings.IndexRune(p, '.'); idx != -1 {
-				ptype = p[:idx]
-			}
-
-			if !t.AllowAny {
-				if _, ok := supported[ptype]; !ok {
-					// If we don't support the provider type, skip it.
-					// Validation later will catch this as an error.
-					continue
-				}
-			}
-
-			// Add the missing provider node to the graph
-			v := t.Concrete(&NodeAbstractProvider{
-				NameValue: p,
-
-				// TODO: jbardin come back to this
-				//       only adding root level missing providers
-				//PathValue: path,
-			}).(dag.Vertex)
-			m[key] = g.Add(v)
 		}
+
+		// Add the missing provider node to the graph
+		provider := t.Concrete(&NodeAbstractProvider{
+			NameValue: p,
+			PathValue: path,
+		}).(dag.Vertex)
+
+		m[key] = g.Add(provider)
 	}
 
 	return nil
@@ -274,15 +265,14 @@ func (t *ParentProviderTransformer) Transform(g *Graph) error {
 		}
 		path = normalizeModulePath(path)
 
-		// Build the key with path.name i.e. "child.subchild.aws"
-		key := fmt.Sprintf("%s.%s", strings.Join(path, "."), pn.ProviderName())
+		key := ResolveProviderName(pn.ProviderName(), path)
 		m[key] = raw
 
 		// Determine the parent if we're non-root. This is length 1 since
 		// the 0 index should be "root" since we normalize above.
 		if len(path) > 1 {
 			path = path[:len(path)-1]
-			key := fmt.Sprintf("%s.%s", strings.Join(path, "."), pn.ProviderName())
+			key := ResolveProviderName(pn.ProviderName(), path)
 			parentMap[raw] = key
 		}
 	}
@@ -323,23 +313,19 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 // providerMapKey is a helper that gives us the key to use for the
 // maps returned by things such as providerVertexMap.
 func providerMapKey(k string, v dag.Vertex) string {
-	pathPrefix := ""
+	// we create a dummy provider to
+	var path []string
 	if sp, ok := v.(GraphNodeSubPath); ok {
-		raw := normalizeModulePath(sp.Path())
-		if len(raw) > len(rootModulePath) {
-			pathPrefix = modulePrefixStr(raw) + "."
-		}
+		path = normalizeModulePath(sp.Path())
 	}
-
-	return pathPrefix + k
+	return ResolveProviderName(k, path)
 }
 
 func providerVertexMap(g *Graph) map[string]dag.Vertex {
 	m := make(map[string]dag.Vertex)
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProvider); ok {
-			key := providerMapKey(pv.ProviderName(), v)
-			m[key] = v
+			m[pv.Name()] = v
 		}
 	}
 
@@ -416,3 +402,5 @@ func (n *graphNodeProviderConsumerDummy) Path() []string {
 func (n *graphNodeProviderConsumerDummy) ProvidedBy() []string {
 	return []string{n.ProviderValue}
 }
+
+func (n *graphNodeProviderConsumerDummy) SetProvider(string) {}

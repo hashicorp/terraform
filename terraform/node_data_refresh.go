@@ -27,6 +27,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
+		a.ResolvedProvider = n.ResolvedProvider
 
 		return &NodeRefreshableDataResourceInstance{
 			NodeAbstractResource: a,
@@ -185,7 +186,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			// provider configurations that need this data during
 			// refresh/plan.
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 

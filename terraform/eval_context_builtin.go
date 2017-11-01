@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
@@ -79,12 +78,12 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) {
+func (ctx *BuiltinEvalContext) InitProvider(typeName, name string) (ResourceProvider, error) {
 	ctx.once.Do(ctx.init)
 
 	// If we already initialized, it is an error
-	if p := ctx.Provider(n); p != nil {
-		return nil, fmt.Errorf("Provider '%s' already initialized", n)
+	if p := ctx.Provider(name); p != nil {
+		return nil, fmt.Errorf("Provider '%s' already initialized", name)
 	}
 
 	// Warning: make sure to acquire these locks AFTER the call to Provider
@@ -92,13 +91,12 @@ func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) 
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	typeName := strings.SplitN(n, ".", 2)[0]
-	p, err := ctx.Components.ResourceProvider(typeName, n)
+	p, err := ctx.Components.ResourceProvider(typeName, name)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx.ProviderCache[n] = p
+	ctx.ProviderCache[name] = p
 	return p, nil
 }
 
