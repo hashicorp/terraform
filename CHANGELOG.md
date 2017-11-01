@@ -11,6 +11,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
   with configuration will no longer be merged, and named provider
   configurations can be explicitly passed between modules. See documentation
   for details. [TODO]
+* The command `terraform apply` with no explicit plan argument is now interactive by default. Specifically, it will show the generated plan and wait for confirmation before applying it. The behavior is unchanged when a plan file argument is provided, and the previous behavior can be obtained _without_ a plan file by using the `-auto-approve` option.
 * When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. Previously this file could potentially be used to recover a previous state to help recover after a mistake, but it also caused a potentially-sensitive state file to be generated in an unexpected location that may be inadvertently copied or checked in to version control. With this local backup now removed, we recommend instead relying on versioning or backup mechanisms provided by the backend, such as Amazon S3 versioning or Terraform Enterprise's built-in state history mechanism. (Terraform will still create the local file `errored.tfstate` in the unlikely event that there is an error when writing to the remote backend.)
 
 NEW FEATURES:
@@ -21,6 +22,7 @@ NEW FEATURES:
 
 IMPROVEMENTS:
 
+* cli: The `terraform apply` command now waits for interactive approval of the generated plan before applying it, unless an explicit plan file is provided. [GH-16502]
 * cli: The `terraform versions` command now prints out the version numbers of initialized plugins as well as the version of Terraform core, so that they can be more easily shared when opening GitHub Issues, etc. [GH-16439]
 
 BUG FIXES:
