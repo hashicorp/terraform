@@ -9,8 +9,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
   updated.
 * The module provider inheritance system has been updated. Providers declared
   with configuration will no longer be merged, and named provider
-  configurations can be explicitly passed between modules. See documentation
-  for details. [TODO]
+  configurations can be explicitly passed between modules. See [the upgrade guide](./website/upgrade-guides/0-11.html.markdown#interactions-between-providers-and-modules) for more details.
 * The command `terraform apply` with no explicit plan argument is now interactive by default. Specifically, it will show the generated plan and wait for confirmation before applying it. The behavior is unchanged when a plan file argument is provided, and the previous behavior can be obtained _without_ a plan file by using the `-auto-approve` option.
 * When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. Previously this file could potentially be used to recover a previous state to help recover after a mistake, but it also caused a potentially-sensitive state file to be generated in an unexpected location that may be inadvertently copied or checked in to version control. With this local backup now removed, we recommend instead relying on versioning or backup mechanisms provided by the backend, such as Amazon S3 versioning or Terraform Enterprise's built-in state history mechanism. (Terraform will still create the local file `errored.tfstate` in the unlikely event that there is an error when writing to the remote backend.)
 
