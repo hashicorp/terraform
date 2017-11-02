@@ -478,49 +478,41 @@ provider.foo (close)
 const testTransformMissingGrandchildProviderStr = `
 module.sub.module.subsub.bar_instance.two
   module.sub.module.subsub.provider.bar
-  provider.bar
 module.sub.module.subsub.foo_instance.one
   module.sub.module.subsub.provider.foo
-  provider.foo
 module.sub.module.subsub.provider.bar
-  provider.bar
+  provider.bar (disabled)
 module.sub.module.subsub.provider.foo
-  provider.foo
+  provider.foo (disabled)
 module.sub.provider.foo (disabled)
-  provider.foo
-provider.bar
-provider.foo
+  provider.foo (disabled)
+provider.bar (disabled)
+provider.foo (disabled)
 `
 
 const testTransformMissingProviderModuleChildStr = `
 module.moo.foo_instance.qux (import id: bar)
-module.moo.provider.foo
 provider.foo
 `
 
 const testTransformMissingProviderModuleGrandchildStr = `
 module.a.module.b.foo_instance.qux (import id: bar)
-module.a.module.b.provider.foo
-module.a.provider.foo
 provider.foo
 `
 
 const testTransformParentProviderStr = `
 module.moo.foo_instance.qux (import id: bar)
-  provider.foo
 provider.foo
 `
 
 const testTransformParentProviderModuleGrandchildStr = `
 module.a.module.b.foo_instance.qux (import id: bar)
-  provider.foo
 provider.foo
 `
 
 const testTransformProviderModuleChildStr = `
 module.moo.foo_instance.qux (import id: bar)
-  module.moo.provider.foo
-module.moo.provider.foo
+  provider.foo
 provider.foo
 `
 
