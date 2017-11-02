@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
@@ -79,12 +78,12 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) {
+func (ctx *BuiltinEvalContext) InitProvider(typeName, name string) (ResourceProvider, error) {
 	ctx.once.Do(ctx.init)
 
 	// If we already initialized, it is an error
-	if p := ctx.Provider(n); p != nil {
-		return nil, fmt.Errorf("Provider '%s' already initialized", n)
+	if p := ctx.Provider(name); p != nil {
+		return nil, fmt.Errorf("Provider '%s' already initialized", name)
 	}
 
 	// Warning: make sure to acquire these locks AFTER the call to Provider
@@ -92,18 +91,12 @@ func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) 
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	providerPath := make([]string, len(ctx.Path())+1)
-	copy(providerPath, ctx.Path())
-	providerPath[len(providerPath)-1] = n
-	key := PathCacheKey(providerPath)
-
-	typeName := strings.SplitN(n, ".", 2)[0]
-	p, err := ctx.Components.ResourceProvider(typeName, key)
+	p, err := ctx.Components.ResourceProvider(typeName, name)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx.ProviderCache[key] = p
+	ctx.ProviderCache[name] = p
 	return p, nil
 }
 
@@ -113,11 +106,7 @@ func (ctx *BuiltinEvalContext) Provider(n string) ResourceProvider {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	providerPath := make([]string, len(ctx.Path())+1)
-	copy(providerPath, ctx.Path())
-	providerPath[len(providerPath)-1] = n
-
-	return ctx.ProviderCache[PathCacheKey(providerPath)]
+	return ctx.ProviderCache[n]
 }
 
 func (ctx *BuiltinEvalContext) CloseProvider(n string) error {
@@ -126,15 +115,11 @@ func (ctx *BuiltinEvalContext) CloseProvider(n string) error {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	providerPath := make([]string, len(ctx.Path())+1)
-	copy(providerPath, ctx.Path())
-	providerPath[len(providerPath)-1] = n
-
 	var provider interface{}
-	provider = ctx.ProviderCache[PathCacheKey(providerPath)]
+	provider = ctx.ProviderCache[n]
 	if provider != nil {
 		if p, ok := provider.(ResourceProviderCloser); ok {
-			delete(ctx.ProviderCache, PathCacheKey(providerPath))
+			delete(ctx.ProviderCache, n)
 			return p.Close()
 		}
 	}

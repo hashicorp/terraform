@@ -33,6 +33,9 @@ type NodeAbstractResource struct {
 	ResourceState *ResourceState   // ResourceState is the ResourceState for this
 
 	Targets []ResourceAddress // Set from GraphNodeTargetable
+
+	// The address of the provider this resource will use
+	ResolvedProvider string
 }
 
 func (n *NodeAbstractResource) Name() string {
@@ -168,6 +171,10 @@ func (n *NodeAbstractResource) StateReferences() []string {
 	}
 
 	return deps
+}
+
+func (n *NodeAbstractResource) SetProvider(p string) {
+	n.ResolvedProvider = p
 }
 
 // GraphNodeProviderConsumer

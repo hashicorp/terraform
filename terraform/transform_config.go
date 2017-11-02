@@ -133,3 +133,78 @@ func (t *ConfigTransformer) transformSingle(g *Graph, m *module.Tree) error {
 
 	return nil
 }
+
+type ProviderConfigTransformer struct {
+	Providers []string
+	Concrete  ConcreteProviderNodeFunc
+
+	// Module is the module to add resources from.
+	Module *module.Tree
+}
+
+func (t *ProviderConfigTransformer) Transform(g *Graph) error {
+	// If no module is given, we don't do anything
+	if t.Module == nil {
+		return nil
+	}
+
+	// If the module isn't loaded, that is simply an error
+	if !t.Module.Loaded() {
+		return errors.New("module must be loaded for ProviderConfigTransformer")
+	}
+
+	// Start the transformation process
+	return t.transform(g, t.Module)
+}
+
+func (t *ProviderConfigTransformer) transform(g *Graph, m *module.Tree) error {
+	// If no config, do nothing
+	if m == nil {
+		return nil
+	}
+
+	// Add our resources
+	if err := t.transformSingle(g, m); err != nil {
+		return err
+	}
+
+	// Transform all the children.
+	for _, c := range m.Children() {
+		if err := t.transform(g, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (t *ProviderConfigTransformer) transformSingle(g *Graph, m *module.Tree) error {
+	log.Printf("[TRACE] ProviderConfigTransformer: Starting for path: %v", m.Path())
+
+	// Get the configuration for this module
+	conf := m.Config()
+
+	// Build the path we're at
+	path := m.Path()
+	if len(path) > 0 {
+		path = append([]string{RootModuleName}, path...)
+	}
+
+	// Write all the resources out
+	for _, p := range conf.ProviderConfigs {
+		name := p.Name
+		if p.Alias != "" {
+			name += "." + p.Alias
+		}
+
+		v := t.Concrete(&NodeAbstractProvider{
+			NameValue: name,
+			PathValue: path,
+		}).(dag.Vertex)
+
+		// Add it to the graph
+		g.Add(v)
+	}
+
+	return nil
+}

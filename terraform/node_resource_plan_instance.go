@@ -97,7 +97,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(
 			},
 
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 
@@ -143,7 +143,7 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(
 				Output:   &resourceConfig,
 			},
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 			// Re-run validation to catch any errors we missed, e.g. type

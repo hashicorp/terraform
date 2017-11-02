@@ -3,6 +3,8 @@ package terraform
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/dag"
 )
 
 func TestProviderTransformer(t *testing.T) {
@@ -179,6 +181,13 @@ func TestMissingProviderTransformer(t *testing.T) {
 	}
 
 	{
+		transform := &ProviderTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
 		transform := &CloseProviderTransformer{}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -188,7 +197,47 @@ func TestMissingProviderTransformer(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformMissingProviderBasicStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestMissingProviderTransformer_grandchildMissing(t *testing.T) {
+	mod := testModule(t, "transform-provider-missing-grandchild")
+
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Module: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := TransformProviders([]string{"aws", "foo", "bar"}, concrete, mod)
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		transform := &TransitiveReductionTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformMissingGrandchildProviderStr)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
@@ -256,7 +305,7 @@ func TestMissingProviderTransformer_moduleGrandchild(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformMissingProviderModuleGrandchildStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
@@ -297,7 +346,7 @@ func TestParentProviderTransformer(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformParentProviderStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
@@ -339,7 +388,7 @@ func TestParentProviderTransformer_moduleGrandchild(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformParentProviderModuleGrandchildStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
@@ -413,7 +462,9 @@ provider.aws (close)
 
 const testTransformMissingProviderBasicStr = `
 aws_instance.web
+  provider.aws
 foo_instance.web
+  provider.foo
 provider.aws
 provider.aws (close)
   aws_instance.web
@@ -424,39 +475,40 @@ provider.foo (close)
   provider.foo
 `
 
+const testTransformMissingGrandchildProviderStr = `
+module.sub.module.subsub.bar_instance.two
+  provider.bar
+module.sub.module.subsub.foo_instance.one
+  module.sub.provider.foo
+module.sub.provider.foo
+  provider.foo (disabled)
+provider.bar
+provider.foo (disabled)
+`
+
 const testTransformMissingProviderModuleChildStr = `
 module.moo.foo_instance.qux (import id: bar)
-module.moo.provider.foo
 provider.foo
 `
 
 const testTransformMissingProviderModuleGrandchildStr = `
 module.a.module.b.foo_instance.qux (import id: bar)
-module.a.module.b.provider.foo
-module.a.provider.foo
 provider.foo
 `
 
 const testTransformParentProviderStr = `
 module.moo.foo_instance.qux (import id: bar)
-module.moo.provider.foo
-  provider.foo
 provider.foo
 `
 
 const testTransformParentProviderModuleGrandchildStr = `
 module.a.module.b.foo_instance.qux (import id: bar)
-module.a.module.b.provider.foo
-  module.a.provider.foo
-module.a.provider.foo
-  provider.foo
 provider.foo
 `
 
 const testTransformProviderModuleChildStr = `
 module.moo.foo_instance.qux (import id: bar)
-  module.moo.provider.foo
-module.moo.provider.foo
+  provider.foo
 provider.foo
 `
 

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
@@ -57,14 +58,10 @@ func TestGet_multipleArgs(t *testing.T) {
 }
 
 func TestGet_noArgs(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("get")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("get"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
 	c := &GetCommand{

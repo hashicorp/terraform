@@ -52,11 +52,12 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 // and returns nothing. The provider can be retrieved again with the
 // EvalGetProvider node.
 type EvalInitProvider struct {
-	Name string
+	TypeName string
+	Name     string
 }
 
 func (n *EvalInitProvider) Eval(ctx EvalContext) (interface{}, error) {
-	return ctx.InitProvider(n.Name)
+	return ctx.InitProvider(n.TypeName, n.Name)
 }
 
 // EvalCloseProvider is an EvalNode implementation that closes provider
@@ -129,6 +130,7 @@ func (n *EvalInputProvider) Eval(ctx EvalContext) (interface{}, error) {
 			}
 		}
 	}
+
 	ctx.SetProviderInput(n.Name, confMap)
 
 	return nil, nil
