@@ -497,16 +497,13 @@ meta.count-boundary (count boundary fixup)
   aws_instance.other
   module.child.aws_instance.create
   module.child.aws_instance.other
-  module.child.provider.aws
   module.child.provisioner.exec
   provider.aws
 module.child.aws_instance.create
-  module.child.provider.aws
   module.child.provisioner.exec
+  provider.aws
 module.child.aws_instance.other
   module.child.aws_instance.create
-  module.child.provider.aws
-module.child.provider.aws
   provider.aws
 module.child.provisioner.exec
 provider.aws
@@ -515,7 +512,6 @@ provider.aws (close)
   aws_instance.other
   module.child.aws_instance.create
   module.child.aws_instance.other
-  module.child.provider.aws
   provider.aws
 provisioner.exec (close)
   module.child.aws_instance.create

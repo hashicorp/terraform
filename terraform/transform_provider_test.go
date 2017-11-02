@@ -477,16 +477,12 @@ provider.foo (close)
 
 const testTransformMissingGrandchildProviderStr = `
 module.sub.module.subsub.bar_instance.two
-  module.sub.module.subsub.provider.bar
+  provider.bar
 module.sub.module.subsub.foo_instance.one
-  module.sub.module.subsub.provider.foo
-module.sub.module.subsub.provider.bar
-  provider.bar (disabled)
-module.sub.module.subsub.provider.foo
+  module.sub.provider.foo
+module.sub.provider.foo
   provider.foo (disabled)
-module.sub.provider.foo (disabled)
-  provider.foo (disabled)
-provider.bar (disabled)
+provider.bar
 provider.foo (disabled)
 `
 
