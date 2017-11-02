@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -40,6 +42,9 @@ func (t *graphTransformerMulti) Transform(g *Graph) error {
 		if err := t.Transform(g); err != nil {
 			return err
 		}
+		log.Printf(
+			"[TRACE] Graph after step %T:\n\n%s",
+			t, g.StringWithNodeTypes())
 	}
 
 	return nil

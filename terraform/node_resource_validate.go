@@ -39,6 +39,7 @@ func (n *NodeValidatableResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
+		a.ResolvedProvider = n.ResolvedProvider
 
 		return &NodeValidatableResourceInstance{
 			NodeAbstractResource: a,
@@ -108,7 +109,7 @@ func (n *NodeValidatableResourceInstance) EvalTree() EvalNode {
 				Config: &n.Config.RawConfig,
 			},
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 			&EvalInterpolate{

@@ -6,14 +6,49 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 )
 
+// TODO: return the transformers and append them to the list, so we don't lose the log steps
+func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, mod *module.Tree) GraphTransformer {
+	// If we have no providers, let the MissingProviderTransformer add anything required.
+	// This is used by the destroy edge transformer's internal dependency graph.
+	allowAny := providers == nil
+
+	return GraphTransformMulti(
+		// Add providers from the config
+		&ProviderConfigTransformer{
+			Module:    mod,
+			Providers: providers,
+			Concrete:  concrete,
+		},
+		// Add any remaining missing providers
+		&MissingProviderTransformer{
+			AllowAny:  allowAny,
+			Providers: providers,
+			Concrete:  concrete,
+		},
+		// Connect the providers
+		&ProviderTransformer{},
+		// Disable unused providers
+		&DisableProviderTransformer{},
+		// Connect provider to their parent provider nodes
+		&ParentProviderTransformer{},
+		// Attach configuration to each provider instance
+		&AttachProviderConfigTransformer{
+			Module: mod,
+		},
+	)
+}
+
 // GraphNodeProvider is an interface that nodes that can be a provider
-// must implement. The ProviderName returned is the name of the provider
-// they satisfy.
+// must implement.
+// ProviderName returns the name of the provider this satisfies.
+// Name returns the full name of the provider in the config.
 type GraphNodeProvider interface {
 	ProviderName() string
+	Name() string
 }
 
 // GraphNodeCloseProvider is an interface that nodes that can be a close
@@ -27,7 +62,10 @@ type GraphNodeCloseProvider interface {
 // a provider must implement. ProvidedBy must return the name of the provider
 // to use.
 type GraphNodeProviderConsumer interface {
+	// TODO: make this return s string instead of a []string
 	ProvidedBy() []string
+	// Set the resolved provider address for this resource.
+	SetProvider(string)
 }
 
 // ProviderTransformer is a GraphTransformer that maps resources to
@@ -41,18 +79,43 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	m := providerVertexMap(g)
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
-			for _, p := range pv.ProvidedBy() {
-				target := m[providerMapKey(p, pv)]
-				if target == nil {
-					println(fmt.Sprintf("%#v\n\n%#v", m, providerMapKey(p, pv)))
-					err = multierror.Append(err, fmt.Errorf(
-						"%s: provider %s couldn't be found",
-						dag.VertexName(v), p))
-					continue
+			p := pv.ProvidedBy()[0]
+
+			key := providerMapKey(p, pv)
+			target := m[key]
+
+			sp, ok := pv.(GraphNodeSubPath)
+			if !ok && target == nil {
+				// no target, and no path to walk up
+				err = multierror.Append(err, fmt.Errorf(
+					"%s: provider %s couldn't be found",
+					dag.VertexName(v), p))
+				break
+			}
+
+			// if we don't have a provider at this level, walk up the path looking for one
+			for i := 1; target == nil; i++ {
+				path := normalizeModulePath(sp.Path())
+				if len(path) < i {
+					break
 				}
 
-				g.Connect(dag.BasicEdge(v, target))
+				key = ResolveProviderName(p, path[:len(path)-i])
+				target = m[key]
+				if target != nil {
+					break
+				}
 			}
+
+			if target == nil {
+				err = multierror.Append(err, fmt.Errorf(
+					"%s: provider %s couldn't be found",
+					dag.VertexName(v), p))
+				break
+			}
+
+			pv.SetProvider(key)
+			g.Connect(dag.BasicEdge(v, target))
 		}
 	}
 
@@ -65,38 +128,35 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 // in the graph are evaluated.
 type CloseProviderTransformer struct{}
 
+// FIXME: this doesn't close providers if the root provider is disabled
 func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	pm := providerVertexMap(g)
-	cpm := closeProviderVertexMap(g)
+	cpm := make(map[string]*graphNodeCloseProvider)
 	var err error
-	for _, v := range g.Vertices() {
-		if pv, ok := v.(GraphNodeProviderConsumer); ok {
-			for _, p := range pv.ProvidedBy() {
-				key := p
-				source := cpm[key]
 
-				if source == nil {
-					// Create a new graphNodeCloseProvider and add it to the graph
-					source = &graphNodeCloseProvider{ProviderNameValue: p}
-					g.Add(source)
+	for _, v := range pm {
+		p := v.(GraphNodeProvider)
 
-					// Close node needs to depend on provider
-					provider, ok := pm[key]
-					if !ok {
-						err = multierror.Append(err, fmt.Errorf(
-							"%s: provider %s couldn't be found for closing",
-							dag.VertexName(v), p))
-						continue
-					}
-					g.Connect(dag.BasicEdge(source, provider))
+		// get the close provider of this type if we alread created it
+		closer := cpm[p.ProviderName()]
 
-					// Make sure we also add the new graphNodeCloseProvider to the map
-					// so we don't create and add any duplicate graphNodeCloseProviders.
-					cpm[key] = source
-				}
+		if closer == nil {
+			// create a closer for this provider type
+			closer = &graphNodeCloseProvider{ProviderNameValue: p.ProviderName()}
+			g.Add(closer)
+			cpm[p.ProviderName()] = closer
+		}
 
-				// Close node depends on all nodes provided by the provider
-				g.Connect(dag.BasicEdge(source, v))
+		// Close node depends on the provider itself
+		// this is added unconditionally, so it will connect to all instances
+		// of the provider. Extra edges will be removed by transitive
+		// reduction.
+		g.Connect(dag.BasicEdge(closer, p))
+
+		// connect all the provider's resources to the close node
+		for _, s := range g.UpEdges(p).List() {
+			if _, ok := s.(GraphNodeProviderConsumer); ok {
+				g.Connect(dag.BasicEdge(closer, s))
 			}
 		}
 	}
@@ -104,10 +164,10 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	return err
 }
 
-// MissingProviderTransformer is a GraphTransformer that adds nodes
-// for missing providers into the graph. Specifically, it creates provider
-// configuration nodes for all the providers that we support. These are
-// pruned later during an optimization pass.
+// MissingProviderTransformer is a GraphTransformer that adds nodes for all
+// required providers into the graph. Specifically, it creates provider
+// configuration nodes for all the providers that we support. These are pruned
+// later during an optimization pass.
 type MissingProviderTransformer struct {
 	// Providers is the list of providers we support.
 	Providers []string
@@ -134,93 +194,62 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		supported[v] = struct{}{}
 	}
 
-	// Get the map of providers we already have in our graph
+	var err error
 	m := providerVertexMap(g)
-
-	// Go through all the provider consumers and make sure we add
-	// that provider if it is missing. We use a for loop here instead
-	// of "range" since we'll modify check as we go to add more to check.
-	check := g.Vertices()
-	for i := 0; i < len(check); i++ {
-		v := check[i]
-
+	for _, v := range g.Vertices() {
 		pv, ok := v.(GraphNodeProviderConsumer)
 		if !ok {
 			continue
 		}
 
-		// If this node has a subpath, then we use that as a prefix
-		// into our map to check for an existing provider.
+		p := pv.ProvidedBy()[0]
+
 		var path []string
 		if sp, ok := pv.(GraphNodeSubPath); ok {
-			raw := normalizeModulePath(sp.Path())
-			if len(raw) > len(rootModulePath) {
-				path = raw
-			}
+			path = sp.Path()
 		}
 
-		for _, p := range pv.ProvidedBy() {
-			key := providerMapKey(p, pv)
-			if _, ok := m[key]; ok {
-				// This provider already exists as a configure node
+		key := providerMapKey(p, pv)
+
+		provider := m[key]
+
+		// if we don't have a provider at this level, walk up the path looking for one
+		for i := 1; provider == nil && len(path) >= i; i++ {
+			key = ResolveProviderName(p, normalizeModulePath(path[:len(path)-i]))
+			provider = m[key]
+		}
+
+		if provider != nil {
+			// we found a provider, but make sure there's a top-level provider too
+			if _, ok := m[ResolveProviderName(p, nil)]; ok {
 				continue
 			}
-
-			// If the provider has an alias in it, we just want the type
-			ptype := p
-			if idx := strings.IndexRune(p, '.'); idx != -1 {
-				ptype = p[:idx]
-			}
-
-			if !t.AllowAny {
-				if _, ok := supported[ptype]; !ok {
-					// If we don't support the provider type, skip it.
-					// Validation later will catch this as an error.
-					continue
-				}
-			}
-
-			// Add the missing provider node to the graph
-			v := t.Concrete(&NodeAbstractProvider{
-				NameValue: p,
-				PathValue: path,
-			}).(dag.Vertex)
-			if len(path) > 0 {
-				// We'll need the parent provider as well, so let's
-				// add a dummy node to check to make sure that we add
-				// that parent provider.
-				check = append(check, &graphNodeProviderConsumerDummy{
-					ProviderValue: p,
-					PathValue:     path[:len(path)-1],
-				})
-			}
-
-			m[key] = g.Add(v)
 		}
+
+		// always add a new top level provider
+		provider = t.Concrete(&NodeAbstractProvider{
+			NameValue: p,
+		}).(dag.Vertex)
+
+		key = ResolveProviderName(p, nil)
+		m[key] = g.Add(provider)
+
+		pv.SetProvider(key)
 	}
 
-	return nil
+	return err
 }
 
 // ParentProviderTransformer connects provider nodes to their parents.
 //
 // This works by finding nodes that are both GraphNodeProviders and
 // GraphNodeSubPath. It then connects the providers to their parent
-// path.
+// path. The parent provider is always at the root level.
 type ParentProviderTransformer struct{}
 
 func (t *ParentProviderTransformer) Transform(g *Graph) error {
-	// Make a mapping of path to dag.Vertex, where path is: "path.name"
-	m := make(map[string]dag.Vertex)
-
-	// Also create a map that maps a provider to its parent
-	parentMap := make(map[dag.Vertex]string)
-	for _, raw := range g.Vertices() {
-		// If it is the flat version, then make it the non-flat version.
-		// We eventually want to get rid of the flat version entirely so
-		// this is a stop-gap while it still exists.
-		var v dag.Vertex = raw
-
+	pm := providerVertexMap(g)
+	for _, v := range g.Vertices() {
 		// Only care about providers
 		pn, ok := v.(GraphNodeProvider)
 		if !ok || pn.ProviderName() == "" {
@@ -228,34 +257,22 @@ func (t *ParentProviderTransformer) Transform(g *Graph) error {
 		}
 
 		// Also require a subpath, if there is no subpath then we
-		// just totally ignore it. The expectation of this transform is
-		// that it is used with a graph builder that is already flattened.
-		var path []string
-		if pn, ok := raw.(GraphNodeSubPath); ok {
-			path = pn.Path()
+		// can't have a parent.
+		if pn, ok := v.(GraphNodeSubPath); ok {
+			if len(normalizeModulePath(pn.Path())) <= 1 {
+				continue
+			}
 		}
-		path = normalizeModulePath(path)
 
-		// Build the key with path.name i.e. "child.subchild.aws"
-		key := fmt.Sprintf("%s.%s", strings.Join(path, "."), pn.ProviderName())
-		m[key] = raw
-
-		// Determine the parent if we're non-root. This is length 1 since
-		// the 0 index should be "root" since we normalize above.
-		if len(path) > 1 {
-			path = path[:len(path)-1]
-			key := fmt.Sprintf("%s.%s", strings.Join(path, "."), pn.ProviderName())
-			parentMap[raw] = key
-		}
-	}
-
-	// Connect!
-	for v, key := range parentMap {
-		if parent, ok := m[key]; ok {
+		// this provider may be disabled, but we can only get it's name from
+		// the ProviderName string
+		name := ResolveProviderName(strings.SplitN(pn.ProviderName(), " ", 2)[0], nil)
+		parent := pm[name]
+		if parent != nil {
 			g.Connect(dag.BasicEdge(v, parent))
 		}
-	}
 
+	}
 	return nil
 }
 
@@ -285,23 +302,21 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 // providerMapKey is a helper that gives us the key to use for the
 // maps returned by things such as providerVertexMap.
 func providerMapKey(k string, v dag.Vertex) string {
-	pathPrefix := ""
+	// we create a dummy provider to
+	var path []string
 	if sp, ok := v.(GraphNodeSubPath); ok {
-		raw := normalizeModulePath(sp.Path())
-		if len(raw) > len(rootModulePath) {
-			pathPrefix = modulePrefixStr(raw) + "."
-		}
+		path = normalizeModulePath(sp.Path())
 	}
-
-	return pathPrefix + k
+	return ResolveProviderName(k, path)
 }
 
 func providerVertexMap(g *Graph) map[string]dag.Vertex {
 	m := make(map[string]dag.Vertex)
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProvider); ok {
-			key := providerMapKey(pv.ProviderName(), v)
-			m[key] = v
+			// TODO:  The Name may have meta info, like " (disabled)"
+			name := strings.SplitN(pv.Name(), " ", 2)[0]
+			m[name] = v
 		}
 	}
 
@@ -378,3 +393,5 @@ func (n *graphNodeProviderConsumerDummy) Path() []string {
 func (n *graphNodeProviderConsumerDummy) ProvidedBy() []string {
 	return []string{n.ProviderValue}
 }
+
+func (n *graphNodeProviderConsumerDummy) SetProvider(string) {}

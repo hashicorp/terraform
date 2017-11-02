@@ -135,7 +135,7 @@ func (n *NodeApplyableResource) evalTreeDataResource(
 			},
 
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 
@@ -242,7 +242,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				Output:   &resourceConfig,
 			},
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 			&EvalReadState{
@@ -283,7 +283,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 			},
 
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 			&EvalReadState{

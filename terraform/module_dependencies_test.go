@@ -73,8 +73,7 @@ func TestModuleTreeDependencies(t *testing.T) {
 				Providers: moduledeps.Providers{
 					"foo": moduledeps.ProviderDependency{
 						Constraints: discovery.AllVersions,
-						//Reason:      moduledeps.ProviderDependencyImplicit,
-						Reason: moduledeps.ProviderDependencyExplicit,
+						Reason:      moduledeps.ProviderDependencyImplicit,
 					},
 					"foo.baz": moduledeps.ProviderDependency{
 						Constraints: discovery.AllVersions,
@@ -119,27 +118,24 @@ func TestModuleTreeDependencies(t *testing.T) {
 						Providers: moduledeps.Providers{
 							"foo": moduledeps.ProviderDependency{
 								Constraints: discovery.AllVersions,
-								//Reason:      moduledeps.ProviderDependencyInherited,
-								Reason: moduledeps.ProviderDependencyExplicit,
+								Reason:      moduledeps.ProviderDependencyInherited,
 							},
 							"baz": moduledeps.ProviderDependency{
 								Constraints: discovery.AllVersions,
-								//Reason:      moduledeps.ProviderDependencyImplicit,
-								Reason: moduledeps.ProviderDependencyExplicit,
+								Reason:      moduledeps.ProviderDependencyImplicit,
 							},
 						},
 						Children: []*moduledeps.Module{
 							{
 								Name: "grandchild",
 								Providers: moduledeps.Providers{
+									"bar": moduledeps.ProviderDependency{
+										Constraints: discovery.AllVersions,
+										Reason:      moduledeps.ProviderDependencyInherited,
+									},
 									"foo": moduledeps.ProviderDependency{
 										Constraints: discovery.AllVersions,
 										Reason:      moduledeps.ProviderDependencyExplicit,
-									},
-									"bar": moduledeps.ProviderDependency{
-										Constraints: discovery.AllVersions,
-										//Reason:      moduledeps.ProviderDependencyInherited,
-										Reason: moduledeps.ProviderDependencyExplicit,
 									},
 								},
 							},
