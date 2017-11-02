@@ -2,6 +2,8 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
+The following items give an overview of the incompatibilities and other noteworthy changes in this release. For more details on some of these changes, along with information on how to upgrade existing configurations where needed, see [the v0.11 upgrade guide](./website/upgrade-guides/0-11.html.markdown).
+
 * Output interpolation errors are now fatal. Module configs with unused outputs
   which contained errors will no longer be valid.
 * Module configuration blocks have 2 new reserved attribute names, "providers"
