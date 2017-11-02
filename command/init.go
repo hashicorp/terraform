@@ -172,7 +172,7 @@ func (c *InitCommand) Run(args []string) int {
 					"[reset][bold]Upgrading modules...")))
 			} else {
 				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-					"[reset][bold]Downloading modules...")))
+					"[reset][bold]Initializing modules...")))
 			}
 
 			if err := getModules(&c.Meta, path, getMode); err != nil {
