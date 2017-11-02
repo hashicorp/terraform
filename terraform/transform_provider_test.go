@@ -179,6 +179,13 @@ func TestMissingProviderTransformer(t *testing.T) {
 	}
 
 	{
+		transform := &ProviderTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
 		transform := &CloseProviderTransformer{}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -188,7 +195,7 @@ func TestMissingProviderTransformer(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformMissingProviderBasicStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
@@ -413,7 +420,9 @@ provider.aws (close)
 
 const testTransformMissingProviderBasicStr = `
 aws_instance.web
+  provider.aws
 foo_instance.web
+  provider.foo
 provider.aws
 provider.aws (close)
   aws_instance.web
