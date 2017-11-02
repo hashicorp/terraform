@@ -126,19 +126,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Module: b.Module},
 
-		// add configured providers
-		&ProviderConfigTransformer{
-			Module:    b.Module,
-			Providers: b.Providers,
-			Concrete:  concreteProvider,
-		},
-
-		// Create all the providers
-		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
-		&ProviderTransformer{},
-		&DisableProviderTransformer{},
-		&ParentProviderTransformer{},
-		&AttachProviderConfigTransformer{Module: b.Module},
+		TransformProviders(b.Providers, concreteProvider, b.Module),
 
 		// Add the local values
 		&LocalTransformer{Module: b.Module},
