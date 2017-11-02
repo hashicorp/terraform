@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
+// TODO: return the transformers and append them to the list, so we don't lose the log steps
 func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, mod *module.Tree) GraphTransformer {
 	// If we have no providers, let the MissingProviderTransformer add anything required.
 	// This is used by the destroy edge transformer's internal dependency graph.
@@ -127,6 +128,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 // in the graph are evaluated.
 type CloseProviderTransformer struct{}
 
+// FIXME: this doesn't close providers if the root provider is disabled
 func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	pm := providerVertexMap(g)
 	cpm := make(map[string]*graphNodeCloseProvider)
@@ -192,96 +194,62 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		supported[v] = struct{}{}
 	}
 
-	// Get the map of providers we already have in our graph
+	var err error
 	m := providerVertexMap(g)
-
-	// Go through all the provider consumers and make sure we add
-	// that provider if it is missing. We use a for loop here instead
-	// of "range" since we'll modify check as we go to add more to check.
-	check := g.Vertices()
-	for i := 0; i < len(check); i++ {
-		v := check[i]
-
+	for _, v := range g.Vertices() {
 		pv, ok := v.(GraphNodeProviderConsumer)
 		if !ok {
 			continue
 		}
 
-		// If this node has a subpath, then we use that as a prefix
-		// into our map to check for an existing provider.
+		p := pv.ProvidedBy()[0]
+
 		var path []string
 		if sp, ok := pv.(GraphNodeSubPath); ok {
-			raw := normalizeModulePath(sp.Path())
-			if len(raw) > len(rootModulePath) {
-				path = raw
-			}
-		}
-
-		p := pv.ProvidedBy()[0]
-		// always add the parent nodes to check, since configured providers
-		// may have already been added for modules.
-		if len(path) > 0 {
-			// We'll need the parent provider as well, so let's
-			// add a dummy node to check to make sure that we add
-			// that parent provider.
-			check = append(check, &graphNodeProviderConsumerDummy{
-				ProviderValue: p,
-				PathValue:     path[:len(path)-1],
-			})
+			path = sp.Path()
 		}
 
 		key := providerMapKey(p, pv)
-		if _, ok := m[key]; ok {
-			// This provider already exists as a configure node
-			continue
+
+		provider := m[key]
+
+		// if we don't have a provider at this level, walk up the path looking for one
+		for i := 1; provider == nil && len(path) >= i; i++ {
+			key = ResolveProviderName(p, normalizeModulePath(path[:len(path)-i]))
+			provider = m[key]
 		}
 
-		// If the provider has an alias in it, we just want the type
-		// TODO: jbardin -- stop adding aliased providers altogether
-		ptype := p
-		if idx := strings.IndexRune(p, '.'); idx != -1 {
-			ptype = p[:idx]
-		}
-
-		if !t.AllowAny {
-			if _, ok := supported[ptype]; !ok {
-				// If we don't support the provider type, skip it.
-				// Validation later will catch this as an error.
+		if provider != nil {
+			// we found a provider, but make sure there's a top-level provider too
+			if _, ok := m[ResolveProviderName(p, nil)]; ok {
 				continue
 			}
 		}
 
-		// Add the missing provider node to the graph
-		provider := t.Concrete(&NodeAbstractProvider{
+		// always add a new top level provider
+		provider = t.Concrete(&NodeAbstractProvider{
 			NameValue: p,
-			PathValue: path,
 		}).(dag.Vertex)
 
+		key = ResolveProviderName(p, nil)
 		m[key] = g.Add(provider)
+
+		pv.SetProvider(key)
 	}
 
-	return nil
+	return err
 }
 
 // ParentProviderTransformer connects provider nodes to their parents.
 //
 // This works by finding nodes that are both GraphNodeProviders and
 // GraphNodeSubPath. It then connects the providers to their parent
-// path.
+// path. The parent provider is always at the root level.
 type ParentProviderTransformer struct{}
 
 func (t *ParentProviderTransformer) Transform(g *Graph) error {
-	// Make a mapping of path to dag.Vertex, where path is: "path.name"
-	m := make(map[string]dag.Vertex)
-
-	// Also create a map that maps a provider to its parent
-	parentMap := make(map[dag.Vertex]string)
-	for _, raw := range g.Vertices() {
-		// If it is the flat version, then make it the non-flat version.
-		// We eventually want to get rid of the flat version entirely so
-		// this is a stop-gap while it still exists.
-		var v dag.Vertex = raw
-
+	pm := providerVertexMap(g)
+	for _, v := range g.Vertices() {
 		// Only care about providers
 		pn, ok := v.(GraphNodeProvider)
 		if !ok || pn.ProviderName() == "" {
@@ -289,33 +257,22 @@ func (t *ParentProviderTransformer) Transform(g *Graph) error {
 		}
 
 		// Also require a subpath, if there is no subpath then we
-		// just totally ignore it. The expectation of this transform is
-		// that it is used with a graph builder that is already flattened.
-		var path []string
-		if pn, ok := raw.(GraphNodeSubPath); ok {
-			path = pn.Path()
+		// can't have a parent.
+		if pn, ok := v.(GraphNodeSubPath); ok {
+			if len(normalizeModulePath(pn.Path())) <= 1 {
+				continue
+			}
 		}
-		path = normalizeModulePath(path)
 
-		key := ResolveProviderName(pn.ProviderName(), path)
-		m[key] = raw
-
-		// Determine the parent if we're non-root. This is length 1 since
-		// the 0 index should be "root" since we normalize above.
-		if len(path) > 1 {
-			path = path[:len(path)-1]
-			key := ResolveProviderName(pn.ProviderName(), path)
-			parentMap[raw] = key
-		}
-	}
-
-	// Connect!
-	for v, key := range parentMap {
-		if parent, ok := m[key]; ok {
+		// this provider may be disabled, but we can only get it's name from
+		// the ProviderName string
+		name := ResolveProviderName(strings.SplitN(pn.ProviderName(), " ", 2)[0], nil)
+		parent := pm[name]
+		if parent != nil {
 			g.Connect(dag.BasicEdge(v, parent))
 		}
-	}
 
+	}
 	return nil
 }
 
@@ -357,7 +314,9 @@ func providerVertexMap(g *Graph) map[string]dag.Vertex {
 	m := make(map[string]dag.Vertex)
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProvider); ok {
-			m[pv.Name()] = v
+			// TODO:  The Name may have meta info, like " (disabled)"
+			name := strings.SplitN(pv.Name(), " ", 2)[0]
+			m[name] = v
 		}
 	}
 
