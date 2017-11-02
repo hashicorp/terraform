@@ -84,7 +84,7 @@ func TestApplyGraphBuilder(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testApplyGraphBuilderStr)
 	if actual != expected {
-		t.Fatalf("bad: %s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
@@ -515,6 +515,7 @@ provider.aws (close)
   aws_instance.other
   module.child.aws_instance.create
   module.child.aws_instance.other
+  module.child.provider.aws
   provider.aws
 provisioner.exec (close)
   module.child.aws_instance.create
