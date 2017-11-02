@@ -321,55 +321,53 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 	}
 }
 
-//// FIXME: provider must still exist in config, but we should be able to locate
-////        it elsewhere
-//func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
-//    m := testModule(t, "validate-module-pc-inherit-orphan")
-//    p := testProvider("aws")
-//    c := testContext2(t, &ContextOpts{
-//        Module: m,
-//        ProviderResolver: ResourceProviderResolverFixed(
-//            map[string]ResourceProviderFactory{
-//                "aws": testProviderFuncFixed(p),
-//            },
-//        ),
-//        State: &State{
-//            Modules: []*ModuleState{
-//                &ModuleState{
-//                    Path: []string{"root", "child"},
-//                    Resources: map[string]*ResourceState{
-//                        "aws_instance.bar": &ResourceState{
-//                            Type: "aws_instance",
-//                            Primary: &InstanceState{
-//                                ID: "bar",
-//                            },
-//                        },
-//                    },
-//                },
-//            },
-//        },
-//    })
+func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
+	m := testModule(t, "validate-module-pc-inherit-orphan")
+	p := testProvider("aws")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: []string{"root", "child"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.bar": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
 
-//    p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-//        v, ok := c.Get("set")
-//        if !ok {
-//            return nil, []error{fmt.Errorf("not set")}
-//        }
-//        if v != "bar" {
-//            return nil, []error{fmt.Errorf("bad: %#v", v)}
-//        }
+	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
+		v, ok := c.Get("set")
+		if !ok {
+			return nil, []error{fmt.Errorf("not set")}
+		}
+		if v != "bar" {
+			return nil, []error{fmt.Errorf("bad: %#v", v)}
+		}
 
-//        return nil, nil
-//    }
+		return nil, nil
+	}
 
-//    w, e := c.Validate()
-//    if len(w) > 0 {
-//        t.Fatalf("bad: %#v", w)
-//    }
-//    if len(e) > 0 {
-//        t.Fatalf("bad: %s", e)
-//    }
-//}
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
 
 func TestContext2Validate_moduleProviderVar(t *testing.T) {
 	m := testModule(t, "validate-module-pc-vars")
