@@ -6,8 +6,40 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 )
+
+func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, mod *module.Tree) GraphTransformer {
+	// If we have no providers, let the MissingProviderTransformer add anything required.
+	// This is used by the destroy edge transformer's internal dependency graph.
+	allowAny := providers == nil
+
+	return GraphTransformMulti(
+		// Add providers from the config
+		&ProviderConfigTransformer{
+			Module:    mod,
+			Providers: providers,
+			Concrete:  concrete,
+		},
+		// Add any remaining missing providers
+		&MissingProviderTransformer{
+			AllowAny:  allowAny,
+			Providers: providers,
+			Concrete:  concrete,
+		},
+		// Connect the providers
+		&ProviderTransformer{},
+		// Disable unused providers
+		&DisableProviderTransformer{},
+		// Connect provider to their parent provider nodes
+		&ParentProviderTransformer{},
+		// Attach configuration to each provider instance
+		&AttachProviderConfigTransformer{
+			Module: mod,
+		},
+	)
+}
 
 // GraphNodeProvider is an interface that nodes that can be a provider
 // must implement.

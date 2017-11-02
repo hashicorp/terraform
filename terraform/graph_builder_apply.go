@@ -87,19 +87,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
-		// add configured providers
-		&ProviderConfigTransformer{
-			Module:    b.Module,
-			Providers: b.Providers,
-			Concrete:  concreteProvider,
-		},
-
-		// Create all the providers
-		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
-		&ProviderTransformer{},
-		&DisableProviderTransformer{},
-		&ParentProviderTransformer{},
-		&AttachProviderConfigTransformer{Module: b.Module},
+		// add providers
+		TransformProviders(b.Providers, concreteProvider, b.Module),
 
 		// Destruction ordering
 		&DestroyEdgeTransformer{Module: b.Module, State: b.State},
