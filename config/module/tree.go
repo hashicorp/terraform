@@ -365,50 +365,6 @@ func (t *Tree) inheritProviderConfigs(stack []*Tree) {
 		}
 	}
 
-	// Search for implicit provider configs
-	// This adds an empty config is no inherited config is found, so that
-	// there is always a provider config present.
-	// This is done in the root module as well, just to set the providers.
-	for missing := range missingProviders {
-		// first create an empty provider config
-		pc := &config.ProviderConfig{
-			Name: missing,
-		}
-
-		// walk up the stack looking for matching providers
-		for i := len(stack) - 2; i >= 0; i-- {
-			pt := stack[i]
-			var parentProvider *config.ProviderConfig
-			for _, p := range pt.config.ProviderConfigs {
-				if p.FullName() == missing {
-					parentProvider = p
-					break
-				}
-			}
-
-			if parentProvider == nil {
-				continue
-			}
-
-			pc.Path = pt.Path()
-			pc.Path = append([]string{RootName}, pt.path...)
-			pc.RawConfig = parentProvider.RawConfig
-			pc.Inherited = true
-			log.Printf("[TRACE] provider %q inheriting config from %q",
-				strings.Join(append(t.Path(), pc.FullName()), "."),
-				strings.Join(append(pt.Path(), parentProvider.FullName()), "."),
-			)
-			break
-		}
-
-		// always set a provider config
-		if pc.RawConfig == nil {
-			pc.RawConfig, _ = config.NewRawConfig(map[string]interface{}{})
-		}
-
-		t.config.ProviderConfigs = append(t.config.ProviderConfigs, pc)
-	}
-
 	// After allowing the empty implicit configs to be created in root, there's nothing left to inherit
 	if len(stack) == 1 {
 		return
