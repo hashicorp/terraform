@@ -310,6 +310,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	))
 
 	missing := c.missingPlugins(available, requirements)
+	internal := c.internalProviders()
 
 	var errs error
 	if c.getPlugins {
@@ -319,6 +320,12 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		}
 
 		for provider, reqd := range missing {
+			if _, isInternal := internal[provider]; isInternal {
+				// Ignore internal providers; they are not eligible for
+				// installation.
+				continue
+			}
+
 			_, err := c.providerInstaller.Get(provider, reqd.Versions)
 
 			if err != nil {
@@ -376,7 +383,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	// again. If anything changes, other commands that use providers will
 	// fail with an error instructing the user to re-run this command.
 	available = c.providerPluginSet() // re-discover to see newly-installed plugins
-	chosen := choosePlugins(available, requirements)
+	chosen := choosePlugins(available, internal, requirements)
 	digests := map[string][]byte{}
 	for name, meta := range chosen {
 		digest, err := meta.SHA256()

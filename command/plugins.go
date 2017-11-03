@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	plugin "github.com/hashicorp/go-plugin"
+	terraformProvider "github.com/hashicorp/terraform/builtin/providers/terraform"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/terraform"
@@ -25,12 +26,25 @@ import (
 // each that satisfies the given constraints.
 type multiVersionProviderResolver struct {
 	Available discovery.PluginMetaSet
+
+	// Internal is a map that overrides the usual plugin selection process
+	// for internal plugins. These plugins do not support version constraints
+	// (will produce an error if one is set). This should be used only in
+	// exceptional circumstances since it forces the provider's release
+	// schedule to be tied to that of Terraform Core.
+	Internal map[string]terraform.ResourceProviderFactory
 }
 
-func choosePlugins(avail discovery.PluginMetaSet, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
+func choosePlugins(avail discovery.PluginMetaSet, internal map[string]terraform.ResourceProviderFactory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
 	candidates := avail.ConstrainVersions(reqd)
 	ret := map[string]discovery.PluginMeta{}
 	for name, metas := range candidates {
+		// If the provider is in our internal map then we ignore any
+		// discovered plugins for it since these are dealt with separately.
+		if _, isInternal := internal[name]; isInternal {
+			continue
+		}
+
 		if len(metas) == 0 {
 			continue
 		}
@@ -45,8 +59,17 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 	factories := make(map[string]terraform.ResourceProviderFactory, len(reqd))
 	var errs []error
 
-	chosen := choosePlugins(r.Available, reqd)
+	chosen := choosePlugins(r.Available, r.Internal, reqd)
 	for name, req := range reqd {
+		if factory, isInternal := r.Internal[name]; isInternal {
+			if !req.Versions.Unconstrained() {
+				errs = append(errs, fmt.Errorf("provider.%s: this provider is built in to Terraform and so it does not support version constraints", name))
+				continue
+			}
+			factories[name] = factory
+			continue
+		}
+
 		if newest, available := chosen[name]; available {
 			digest, err := newest.SHA256()
 			if err != nil {
@@ -233,6 +256,15 @@ func (m *Meta) providerPluginManuallyInstalledSet() discovery.PluginMetaSet {
 func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
 	return &multiVersionProviderResolver{
 		Available: m.providerPluginSet(),
+		Internal:  m.internalProviders(),
+	}
+}
+
+func (m *Meta) internalProviders() map[string]terraform.ResourceProviderFactory {
+	return map[string]terraform.ResourceProviderFactory{
+		"terraform": func() (terraform.ResourceProvider, error) {
+			return terraformProvider.Provider(), nil
+		},
 	}
 }
 
