@@ -25,12 +25,12 @@ NEW FEATURES:
 IMPROVEMENTS:
 
 * cli: The `terraform apply` command now waits for interactive approval of the generated plan before applying it, unless an explicit plan file is provided. [GH-16502]
-* cli: The `terraform versions` command now prints out the version numbers of initialized plugins as well as the version of Terraform core, so that they can be more easily shared when opening GitHub Issues, etc. [GH-16439]
+* cli: The `terraform version` command now prints out the version numbers of initialized plugins as well as the version of Terraform core, so that they can be more easily shared when opening GitHub Issues, etc. [GH-16439]
 * cli: A new `TF_DATA_DIR` environment variable can be used to override the location where Terraform stores the files normally placed in the `.terraform` directory. [GH-16207]
 
 BUG FIXES:
 
-* config: Provider config in submodules will no longer be be overridden by parent providers with the same name. [GH-16379]
+* config: Provider config in submodules will no longer be overridden by parent providers with the same name. [GH-16379]
 * core: Module outputs can now produce errors, preventing them from silently propagating through the config. [GH-16204]
 * cli: When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. [GH-16464]
 
