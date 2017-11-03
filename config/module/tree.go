@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -216,7 +215,7 @@ func (t *Tree) getChildren(s *Storage) (map[string]*Tree, error) {
 
 		// add the module path to help indicate where modules with relative
 		// paths are being loaded from
-		s.output(fmt.Sprintf("- Module %q", path.Join(modPath...)))
+		s.output(fmt.Sprintf("- module.%s", strings.Join(modPath, ".")))
 
 		// Lookup the local location of the module.
 		// dir is the local directory where the module is stored
