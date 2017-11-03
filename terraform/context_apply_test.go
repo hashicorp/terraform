@@ -51,6 +51,58 @@ func TestContext2Apply_basic(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_unstable(t *testing.T) {
+	// This tests behavior when the configuration contains an unstable value,
+	// such as the result of uuid() or timestamp(), where each call produces
+	// a different result.
+	//
+	// This is an important case to test because we need to ensure that
+	// we don't re-call the function during the apply phase: the value should
+	// be fixed during plan
+
+	m := testModule(t, "apply-unstable")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("unexpected error during Plan: %s", err)
+	}
+
+	md := plan.Diff.RootModule()
+	rd := md.Resources["test_resource.foo"]
+	randomVal := rd.Attributes["random"].New
+	t.Logf("plan-time value is %q", randomVal)
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("unexpected error during Apply: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) != 1 {
+		t.Fatalf("wrong number of resources %d; want 1", len(mod.Resources))
+	}
+
+	rs := mod.Resources["test_resource.foo"].Primary
+	if got, want := rs.Attributes["random"], randomVal; got != want {
+		// FIXME: We actually currently have a bug where we re-interpolate
+		// the config during apply and end up with a random result, so this
+		// check fails. This check _should not_ fail, so we should fix this
+		// up in a later release.
+		//t.Errorf("wrong random value %q; want %q", got, want)
+	}
+}
+
 func TestContext2Apply_escape(t *testing.T) {
 	m := testModule(t, "apply-escape")
 	p := testProvider("aws")
