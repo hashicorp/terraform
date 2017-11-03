@@ -160,6 +160,7 @@ func (s Storage) moduleVersions(source string) ([]moduleRecord, error) {
 
 	for _, m := range manifest.Modules {
 		if m.Source == source && m.Version != "" {
+			log.Printf("[DEBUG] found local version %q for module %s", m.Version, m.Source)
 			matching = append(matching, m)
 		}
 	}
@@ -207,18 +208,19 @@ func (s Storage) recordModuleRoot(dir, root string) error {
 	return s.recordModule(rec)
 }
 
+func (s Storage) output(msg string) {
+	if s.Ui == nil || s.Mode == GetModeNone {
+		return
+	}
+	s.Ui.Output(msg)
+}
+
 func (s Storage) getStorage(key string, src string) (string, bool, error) {
 	storage := &getter.FolderStorage{
 		StorageDir: s.StorageDir,
 	}
 
-	if s.Ui != nil {
-		update := ""
-		if s.Mode == GetModeUpdate {
-			update = " (update)"
-		}
-		s.Ui.Output(fmt.Sprintf("Get: %s%s", src, update))
-	}
+	log.Printf("[DEBUG] fetching module from %s", src)
 
 	// Get the module with the level specified if we were told to.
 	if s.Mode > GetModeNone {
@@ -307,6 +309,7 @@ func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, e
 	if err != nil {
 		log.Printf("[INFO] no matching version for %q<%s>, %s", mod.Module(), constraint, err)
 	}
+	log.Printf("[DEBUG] matched %q version %s for %s", mod, match.Version, constraint)
 
 	rec.Dir = match.Dir
 	rec.Version = match.Version
@@ -339,6 +342,9 @@ func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, e
 		if err != nil {
 			return rec, err
 		}
+
+		s.output(fmt.Sprintf("  Found version %s of %s on %s", rec.Version, mod.Module(), mod.RawHost.Display()))
+
 	}
 	return rec, nil
 }

@@ -207,11 +207,15 @@ func (t *Tree) getChildren(s *Storage) (map[string]*Tree, error) {
 		}
 
 		// Determine the path to this child
-		path := make([]string, len(t.path), len(t.path)+1)
-		copy(path, t.path)
-		path = append(path, m.Name)
+		modPath := make([]string, len(t.path), len(t.path)+1)
+		copy(modPath, t.path)
+		modPath = append(modPath, m.Name)
 
 		log.Printf("[TRACE] module source: %q", m.Source)
+
+		// add the module path to help indicate where modules with relative
+		// paths are being loaded from
+		s.output(fmt.Sprintf("- module.%s", strings.Join(modPath, ".")))
 
 		// Lookup the local location of the module.
 		// dir is the local directory where the module is stored
@@ -236,7 +240,7 @@ func (t *Tree) getChildren(s *Storage) (map[string]*Tree, error) {
 			}
 		}
 
-		if mod.Dir != "" {
+		if mod.Dir != "" && s.Mode != GetModeUpdate {
 			// We found it locally, but in order to load the Tree we need to
 			// find out if there was another subDir stored from detection.
 			subDir, err := s.getModuleRoot(mod.Dir)
@@ -245,20 +249,20 @@ func (t *Tree) getChildren(s *Storage) (map[string]*Tree, error) {
 				// recordSubdir method fix it up.  Any other filesystem errors
 				// will turn up again below.
 				log.Println("[WARN] error reading subdir record:", err)
-			} else {
-				fullDir := filepath.Join(mod.Dir, subDir)
-
-				child, err := NewTreeModule(m.Name, fullDir)
-				if err != nil {
-					return nil, fmt.Errorf("module %s: %s", m.Name, err)
-				}
-				child.path = path
-				child.parent = t
-				child.version = mod.Version
-				child.source = m.Source
-				children[m.Name] = child
-				continue
 			}
+
+			fullDir := filepath.Join(mod.Dir, subDir)
+
+			child, err := NewTreeModule(m.Name, fullDir)
+			if err != nil {
+				return nil, fmt.Errorf("module %s: %s", m.Name, err)
+			}
+			child.path = modPath
+			child.parent = t
+			child.version = mod.Version
+			child.source = m.Source
+			children[m.Name] = child
+			continue
 		}
 
 		// Split out the subdir if we have one.
@@ -285,6 +289,15 @@ func (t *Tree) getChildren(s *Storage) (map[string]*Tree, error) {
 		if detectedSubDir != "" {
 			subDir = filepath.Join(detectedSubDir, subDir)
 		}
+
+		output := ""
+		switch s.Mode {
+		case GetModeUpdate:
+			output = fmt.Sprintf("  Updating source %q", m.Source)
+		default:
+			output = fmt.Sprintf("  Getting source %q", m.Source)
+		}
+		s.output(output)
 
 		dir, ok, err := s.getStorage(key, source)
 		if err != nil {
@@ -325,7 +338,7 @@ func (t *Tree) getChildren(s *Storage) (map[string]*Tree, error) {
 		if err != nil {
 			return nil, fmt.Errorf("module %s: %s", m.Name, err)
 		}
-		child.path = path
+		child.path = modPath
 		child.parent = t
 		child.version = mod.Version
 		child.source = m.Source
@@ -351,6 +364,10 @@ func (t *Tree) inheritProviderConfigs(stack []*Tree) {
 		c.inheritProviderConfigs(stack)
 	}
 
+	if len(stack) == 1 {
+		return
+	}
+
 	providers := make(map[string]*config.ProviderConfig)
 	missingProviders := make(map[string]bool)
 
@@ -363,11 +380,6 @@ func (t *Tree) inheritProviderConfigs(stack []*Tree) {
 		if _, ok := providers[p]; !(ok || strings.Contains(p, ".")) {
 			missingProviders[p] = true
 		}
-	}
-
-	// After allowing the empty implicit configs to be created in root, there's nothing left to inherit
-	if len(stack) == 1 {
-		return
 	}
 
 	// get our parent's module config block
