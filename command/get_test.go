@@ -30,7 +30,7 @@ func TestGet(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, `Module "foo"`) {
+	if !strings.Contains(output, "module.foo") {
 		t.Fatalf("doesn't look like get: %s", output)
 	}
 	if strings.Contains(output, "(update)") {
@@ -78,7 +78,7 @@ func TestGet_noArgs(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, `Module "foo"`) {
+	if !strings.Contains(output, "module.foo") {
 		t.Fatalf("doesn't look like get: %s", output)
 	}
 	if strings.Contains(output, "(update)") {
