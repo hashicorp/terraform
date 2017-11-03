@@ -170,7 +170,7 @@ func TestInit_get(t *testing.T) {
 
 	// Check output
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "Get: file://") {
+	if !strings.Contains(output, "Getting source") {
 		t.Fatalf("doesn't look like get: %s", output)
 	}
 }
@@ -203,7 +203,7 @@ func TestInit_getUpgradeModules(t *testing.T) {
 
 	// Check output
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "(update)") {
+	if !strings.Contains(output, "Updating source") {
 		t.Fatalf("doesn't look like get upgrade: %s", output)
 	}
 }
