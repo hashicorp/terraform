@@ -1,4 +1,4 @@
-## 0.11.0-beta1 (Unreleased)
+## 0.11.0-beta1 (November 3, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
