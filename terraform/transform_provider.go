@@ -12,10 +12,6 @@ import (
 
 // TODO: return the transformers and append them to the list, so we don't lose the log steps
 func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, mod *module.Tree) GraphTransformer {
-	// If we have no providers, let the MissingProviderTransformer add anything required.
-	// This is used by the destroy edge transformer's internal dependency graph.
-	allowAny := providers == nil
-
 	return GraphTransformMulti(
 		// Add providers from the config
 		&ProviderConfigTransformer{
@@ -25,7 +21,6 @@ func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, m
 		},
 		// Add any remaining missing providers
 		&MissingProviderTransformer{
-			AllowAny:  allowAny,
 			Providers: providers,
 			Concrete:  concrete,
 		},
@@ -172,10 +167,6 @@ type MissingProviderTransformer struct {
 	// Providers is the list of providers we support.
 	Providers []string
 
-	// AllowAny will not check that a provider is supported before adding
-	// it to the graph.
-	AllowAny bool
-
 	// Concrete, if set, overrides how the providers are made.
 	Concrete ConcreteProviderNodeFunc
 }
@@ -188,12 +179,6 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		}
 	}
 
-	// Create a set of our supported providers
-	supported := make(map[string]struct{}, len(t.Providers))
-	for _, v := range t.Providers {
-		supported[v] = struct{}{}
-	}
-
 	var err error
 	m := providerVertexMap(g)
 	for _, v := range g.Vertices() {
@@ -203,38 +188,20 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		}
 
 		p := pv.ProvidedBy()[0]
-
-		var path []string
-		if sp, ok := pv.(GraphNodeSubPath); ok {
-			path = sp.Path()
-		}
-
-		key := providerMapKey(p, pv)
-
+		key := ResolveProviderName(p, nil)
 		provider := m[key]
 
-		// if we don't have a provider at this level, walk up the path looking for one
-		for i := 1; provider == nil && len(path) >= i; i++ {
-			key = ResolveProviderName(p, normalizeModulePath(path[:len(path)-i]))
-			provider = m[key]
-		}
-
+		// we already have it
 		if provider != nil {
-			// we found a provider, but make sure there's a top-level provider too
-			if _, ok := m[ResolveProviderName(p, nil)]; ok {
-				continue
-			}
+			continue
 		}
 
-		// always add a new top level provider
+		// create the misisng top-level provider
 		provider = t.Concrete(&NodeAbstractProvider{
 			NameValue: p,
 		}).(dag.Vertex)
 
-		key = ResolveProviderName(p, nil)
 		m[key] = g.Add(provider)
-
-		pv.SetProvider(key)
 	}
 
 	return err
