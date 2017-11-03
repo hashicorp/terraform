@@ -123,6 +123,12 @@ func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleV
 		return nil, err
 	}
 
+	for _, mod := range versions.Modules {
+		for _, v := range mod.Versions {
+			log.Printf("[DEBUG] found available version %q for %s", v.Version, mod.Source)
+		}
+	}
+
 	return &versions, nil
 }
 
