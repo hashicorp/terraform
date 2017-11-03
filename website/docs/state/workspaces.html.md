@@ -19,6 +19,7 @@ found on [the _purpose_ page](/docs/state/purpose.html).
 
 Multiple workspaces are currently supported by the following backends:
 
+ * [AzureRM](/docs/backends/types/azurerm.html)
  * [Consul](/docs/backends/types/consul.html)
  * [S3](/docs/backends/types/s3.html)
 
