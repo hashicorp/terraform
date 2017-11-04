@@ -19,8 +19,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-type provisionFn func(terraform.UIOutput, communicator.Communicator) error
-
 type provisioner struct {
 	SkipBootstrap     bool
 	BootstrapArgs     string
