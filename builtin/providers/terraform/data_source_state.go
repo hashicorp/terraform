@@ -43,6 +43,13 @@ func dataSourceRemoteState() *schema.Resource {
 			},
 
 			"environment": {
+				Type:       schema.TypeString,
+				Optional:   true,
+				Default:    backend.DefaultStateName,
+				Deprecated: "Terraform environments are now called workspaces. Please use the workspace key instead.",
+			},
+
+			"workspace": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  backend.DefaultStateName,
@@ -84,9 +91,13 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("error initializing backend: %s", err)
 	}
 
-	// Get the state
-	env := d.Get("environment").(string)
-	state, err := b.State(env)
+	// environment is deprecated in favour of workspace.
+	// If both keys are set workspace should win.
+	name := d.Get("environment").(string)
+	if ws, ok := d.GetOk("workspace"); ok {
+		name = ws.(string)
+	}
+	state, err := b.State(name)
 	if err != nil {
 		return fmt.Errorf("error loading the remote state: %s", err)
 	}
