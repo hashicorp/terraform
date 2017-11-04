@@ -393,8 +393,6 @@ func (i *ProviderInstaller) listProviderVersions(name string) ([]Version, error)
 	return versions, nil
 }
 
-var errVersionNotFound = errors.New("version not found")
-
 // take the list of available versions for a plugin, and filter out those that
 // don't fit the constraints.
 func allowedVersions(available []Version, required Constraints) []Version {
