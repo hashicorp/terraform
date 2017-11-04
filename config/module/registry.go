@@ -21,7 +21,6 @@ import (
 
 const (
 	defaultRegistry   = "registry.terraform.io"
-	registryServiceID = "registry.v1"
 	xTerraformGet     = "X-Terraform-Get"
 	xTerraformVersion = "X-Terraform-Version"
 	requestTimeout    = 10 * time.Second
