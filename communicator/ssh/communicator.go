@@ -41,7 +41,6 @@ type Communicator struct {
 	client   *ssh.Client
 	config   *sshConfig
 	conn     net.Conn
-	address  string
 
 	lock sync.Mutex
 }
