@@ -866,12 +866,3 @@ func pushTFVars() []atlas.TFVar {
 		{Key: "foo", Value: "bar", IsHCL: false},
 	}
 }
-
-// the structure returned from the push-tfvars test fixture
-func pushTFVarsMap() map[string]atlas.TFVar {
-	vars := make(map[string]atlas.TFVar)
-	for _, v := range pushTFVars() {
-		vars[v.Key] = v
-	}
-	return vars
-}
