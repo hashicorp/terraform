@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"sync"
 
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/version"
@@ -74,8 +73,6 @@ type Plan struct {
 
 	// Destroy indicates that this plan was created for a full destroy operation
 	Destroy bool
-
-	once sync.Once
 }
 
 // Context returns a Context with the data encapsulated in this plan.
@@ -143,24 +140,6 @@ func (p *Plan) String() string {
 	buf.WriteString("\n\nSTATE:\n\n")
 	buf.WriteString(p.State.String())
 	return buf.String()
-}
-
-func (p *Plan) init() {
-	p.once.Do(func() {
-		if p.Diff == nil {
-			p.Diff = new(Diff)
-			p.Diff.init()
-		}
-
-		if p.State == nil {
-			p.State = new(State)
-			p.State.init()
-		}
-
-		if p.Vars == nil {
-			p.Vars = make(map[string]interface{})
-		}
-	})
 }
 
 // The format byte is prefixed into the plan file format so that we have

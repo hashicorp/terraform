@@ -90,31 +90,3 @@ type testGraphSubPath struct {
 }
 
 func (v *testGraphSubPath) Path() []string { return v.PathFn() }
-
-type testGraphDependable struct {
-	VertexName      string
-	DependentOnMock []string
-}
-
-func (v *testGraphDependable) Name() string {
-	return v.VertexName
-}
-
-func (v *testGraphDependable) DependableName() []string {
-	return []string{v.VertexName}
-}
-
-func (v *testGraphDependable) DependentOn() []string {
-	return v.DependentOnMock
-}
-
-const testGraphAddStr = `
-42
-84
-`
-
-const testGraphConnectDepsStr = `
-a
-b
-  a
-`

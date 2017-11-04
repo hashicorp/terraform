@@ -290,17 +290,6 @@ func providerVertexMap(g *Graph) map[string]dag.Vertex {
 	return m
 }
 
-func closeProviderVertexMap(g *Graph) map[string]dag.Vertex {
-	m := make(map[string]dag.Vertex)
-	for _, v := range g.Vertices() {
-		if pv, ok := v.(GraphNodeCloseProvider); ok {
-			m[pv.CloseProviderName()] = v
-		}
-	}
-
-	return m
-}
-
 type graphNodeCloseProvider struct {
 	ProviderNameValue string
 }
@@ -343,22 +332,3 @@ func (n *graphNodeCloseProvider) RemoveIfNotTargeted() bool {
 	// it isn't targeted or a dependency of a target.
 	return true
 }
-
-// graphNodeProviderConsumerDummy is a struct that never enters the real
-// graph (though it could to no ill effect). It implements
-// GraphNodeProviderConsumer and GraphNodeSubpath as a way to force
-// certain transformations.
-type graphNodeProviderConsumerDummy struct {
-	ProviderValue string
-	PathValue     []string
-}
-
-func (n *graphNodeProviderConsumerDummy) Path() []string {
-	return n.PathValue
-}
-
-func (n *graphNodeProviderConsumerDummy) ProvidedBy() []string {
-	return []string{n.ProviderValue}
-}
-
-func (n *graphNodeProviderConsumerDummy) SetProvider(string) {}

@@ -108,7 +108,6 @@ type Context struct {
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]interface{}
 	providerSHA256s     map[string][]byte
-	runLock             sync.Mutex
 	runCond             *sync.Cond
 	runContext          context.Context
 	runContextCancel    context.CancelFunc

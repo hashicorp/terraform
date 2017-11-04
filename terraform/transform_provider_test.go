@@ -520,28 +520,3 @@ provider.foo (close)
   foo_instance.web
   provider.foo
 `
-
-const testTransformDisableProviderBasicStr = `
-module.child
-  provider.aws (disabled)
-  var.foo
-provider.aws (close)
-  module.child
-  provider.aws (disabled)
-provider.aws (disabled)
-var.foo
-`
-
-const testTransformDisableProviderKeepStr = `
-aws_instance.foo
-  provider.aws
-module.child
-  provider.aws
-  var.foo
-provider.aws
-provider.aws (close)
-  aws_instance.foo
-  module.child
-  provider.aws
-var.foo
-`
