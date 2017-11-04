@@ -239,23 +239,3 @@ func testOperationApply() *backend.Operation {
 		Type: backend.OperationTypeApply,
 	}
 }
-
-// testApplyState is just a common state that we use for testing refresh.
-func testApplyState() *terraform.State {
-	return &terraform.State{
-		Version: 2,
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	}
-}

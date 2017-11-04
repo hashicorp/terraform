@@ -40,9 +40,6 @@ type Backend struct {
 	// schema is the schema for configuration, set by init
 	schema *schema.Backend
 	once   sync.Once
-
-	// opLock locks operations
-	opLock sync.Mutex
 }
 
 func (b *Backend) Input(

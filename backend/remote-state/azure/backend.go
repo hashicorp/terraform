@@ -98,7 +98,6 @@ type Backend struct {
 
 	containerName string
 	keyName       string
-	leaseID       string
 }
 
 type BackendConfig struct {

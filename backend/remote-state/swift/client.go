@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/md5"
 	"log"
-	"os"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
@@ -103,13 +102,4 @@ func (c *RemoteClient) ensureContainerExists() error {
 	}
 
 	return nil
-}
-
-func multiEnv(ks []string) string {
-	for _, k := range ks {
-		if v := os.Getenv(k); v != "" {
-			return v
-		}
-	}
-	return ""
 }
