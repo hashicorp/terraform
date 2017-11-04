@@ -15,12 +15,12 @@ func testResourceGH12183() *schema.Resource {
 		Update: testResourceUpdate_gh12183,
 		Delete: testResourceDelete_gh12183,
 		Schema: map[string]*schema.Schema{
-			"key": &schema.Schema{
+			"key": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"config": &schema.Schema{
+			"config": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,

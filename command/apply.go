@@ -369,7 +369,7 @@ func outputsAsString(state *terraform.State, modPath []string, schema []*config.
 		// Output the outputs in alphabetical order
 		keyLen := 0
 		ks := make([]string, 0, len(outputs))
-		for key, _ := range outputs {
+		for key := range outputs {
 			ks = append(ks, key)
 			if len(key) > keyLen {
 				keyLen = len(key)

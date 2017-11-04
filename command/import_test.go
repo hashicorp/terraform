@@ -30,7 +30,7 @@ func TestImport(t *testing.T) {
 
 	p.ImportStateFn = nil
 	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
+		{
 			ID: "yay",
 			Ephemeral: terraform.EphemeralState{
 				Type: "test_instance",
@@ -70,7 +70,7 @@ func TestImport_providerConfig(t *testing.T) {
 
 	p.ImportStateFn = nil
 	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
+		{
 			ID: "yay",
 			Ephemeral: terraform.EphemeralState{
 				Type: "test_instance",
@@ -130,7 +130,7 @@ func TestImport_remoteState(t *testing.T) {
 		Meta: m,
 		providerInstaller: &mockProviderInstaller{
 			Providers: map[string][]string{
-				"test": []string{"1.2.3"},
+				"test": {"1.2.3"},
 			},
 
 			Dir: m.pluginDir(),
@@ -152,7 +152,7 @@ func TestImport_remoteState(t *testing.T) {
 
 	p.ImportStateFn = nil
 	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
+		{
 			ID: "yay",
 			Ephemeral: terraform.EphemeralState{
 				Type: "test_instance",
@@ -208,7 +208,7 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 
 	p.ImportStateFn = nil
 	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
+		{
 			ID: "yay",
 			Ephemeral: terraform.EphemeralState{
 				Type: "test_instance",
@@ -265,7 +265,7 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 
 	p.ImportStateFn = nil
 	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
+		{
 			ID: "yay",
 			Ephemeral: terraform.EphemeralState{
 				Type: "test_instance",
@@ -321,7 +321,7 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 
 	p.ImportStateFn = nil
 	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
+		{
 			ID: "yay",
 			Ephemeral: terraform.EphemeralState{
 				Type: "test_instance",
@@ -378,7 +378,7 @@ func TestImport_customProvider(t *testing.T) {
 
 	p.ImportStateFn = nil
 	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
+		{
 			ID: "yay",
 			Ephemeral: terraform.EphemeralState{
 				Type: "test_instance",

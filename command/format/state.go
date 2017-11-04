@@ -53,7 +53,7 @@ func State(opts *StateOpts) string {
 
 		// Sort the outputs
 		ks := make([]string, 0, len(m.Outputs))
-		for k, _ := range m.Outputs {
+		for k := range m.Outputs {
 			ks = append(ks, k)
 		}
 		sort.Strings(ks)
@@ -88,7 +88,7 @@ func formatStateModuleExpand(
 	// First get the names of all the resources so we can show them
 	// in alphabetical order.
 	names := make([]string, 0, len(m.Resources))
-	for name, _ := range m.Resources {
+	for name := range m.Resources {
 		names = append(names, name)
 	}
 	sort.Strings(names)
@@ -121,7 +121,7 @@ func formatStateModuleExpand(
 		if is != nil {
 			// Sort the attributes
 			attrKeys := make([]string, 0, len(is.Attributes))
-			for ak, _ := range is.Attributes {
+			for ak := range is.Attributes {
 				// Skip the id attribute since we just show the id directly
 				if ak == "id" {
 					continue
@@ -210,7 +210,7 @@ func formatListOutput(indent, outputName string, outputList []interface{}) strin
 
 func formatNestedMap(indent string, outputMap map[string]interface{}) string {
 	ks := make([]string, 0, len(outputMap))
-	for k, _ := range outputMap {
+	for k := range outputMap {
 		ks = append(ks, k)
 	}
 	sort.Strings(ks)
@@ -235,7 +235,7 @@ func formatNestedMap(indent string, outputMap map[string]interface{}) string {
 
 func formatMapOutput(indent, outputName string, outputMap map[string]interface{}) string {
 	ks := make([]string, 0, len(outputMap))
-	for k, _ := range outputMap {
+	for k := range outputMap {
 		ks = append(ks, k)
 	}
 	sort.Strings(ks)

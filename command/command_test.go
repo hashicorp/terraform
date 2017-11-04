@@ -154,10 +154,10 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 func testState() *terraform.State {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -271,7 +271,7 @@ func testProvider() *terraform.MockResourceProvider {
 		return s, nil
 	}
 	p.ResourcesReturn = []terraform.ResourceType{
-		terraform.ResourceType{
+		{
 			Name: "test_instance",
 		},
 	}

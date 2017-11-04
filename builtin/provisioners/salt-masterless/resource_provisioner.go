@@ -43,60 +43,60 @@ const DefaultPillarRootDir = "/srv/pillar"
 func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
-			"local_state_tree": &schema.Schema{
+			"local_state_tree": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"local_pillar_roots": &schema.Schema{
+			"local_pillar_roots": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"remote_state_tree": &schema.Schema{
+			"remote_state_tree": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"remote_pillar_roots": &schema.Schema{
+			"remote_pillar_roots": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"temp_config_dir": &schema.Schema{
+			"temp_config_dir": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/tmp/salt",
 			},
-			"skip_bootstrap": &schema.Schema{
+			"skip_bootstrap": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"no_exit_on_failure": &schema.Schema{
+			"no_exit_on_failure": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"bootstrap_args": &schema.Schema{
+			"bootstrap_args": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"disable_sudo": &schema.Schema{
+			"disable_sudo": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"custom_state": &schema.Schema{
+			"custom_state": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"minion_config_file": &schema.Schema{
+			"minion_config_file": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"cmd_args": &schema.Schema{
+			"cmd_args": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"salt_call_args": &schema.Schema{
+			"salt_call_args": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"log_level": &schema.Schema{
+			"log_level": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},

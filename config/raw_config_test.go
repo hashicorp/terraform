@@ -44,7 +44,7 @@ func TestRawConfig_basic(t *testing.T) {
 	}
 
 	vars := map[string]ast.Variable{
-		"var.bar": ast.Variable{
+		"var.bar": {
 			Value: "baz",
 			Type:  ast.TypeString,
 		},
@@ -77,7 +77,7 @@ func TestRawConfig_double(t *testing.T) {
 	}
 
 	vars := map[string]ast.Variable{
-		"var.bar": ast.Variable{
+		"var.bar": {
 			Value: "baz",
 			Type:  ast.TypeString,
 		},
@@ -96,7 +96,7 @@ func TestRawConfig_double(t *testing.T) {
 	}
 
 	vars = map[string]ast.Variable{
-		"var.bar": ast.Variable{
+		"var.bar": {
 			Value: "what",
 			Type:  ast.TypeString,
 		},
@@ -160,11 +160,11 @@ func TestRawConfig_merge(t *testing.T) {
 
 	{
 		vars := map[string]ast.Variable{
-			"var.foo": ast.Variable{
+			"var.foo": {
 				Value: "foovalue",
 				Type:  ast.TypeString,
 			},
-			"var.bar": ast.Variable{
+			"var.bar": {
 				Value: "nope",
 				Type:  ast.TypeString,
 			},
@@ -186,11 +186,11 @@ func TestRawConfig_merge(t *testing.T) {
 
 	{
 		vars := map[string]ast.Variable{
-			"var.bar": ast.Variable{
+			"var.bar": {
 				Value: "barvalue",
 				Type:  ast.TypeString,
 			},
-			"var.baz": ast.Variable{
+			"var.baz": {
 				Value: UnknownVariableValue,
 				Type:  ast.TypeUnknown,
 			},
@@ -250,7 +250,7 @@ func TestRawConfig_unknown(t *testing.T) {
 	}
 
 	vars := map[string]ast.Variable{
-		"var.bar": ast.Variable{
+		"var.bar": {
 			Value: UnknownVariableValue,
 			Type:  ast.TypeUnknown,
 		},
@@ -283,7 +283,7 @@ func TestRawConfig_unknownPartial(t *testing.T) {
 	}
 
 	vars := map[string]ast.Variable{
-		"var.bar": ast.Variable{
+		"var.bar": {
 			Value: UnknownVariableValue,
 			Type:  ast.TypeUnknown,
 		},
@@ -318,7 +318,7 @@ func TestRawConfig_unknownPartialList(t *testing.T) {
 	}
 
 	vars := map[string]ast.Variable{
-		"var.bar": ast.Variable{
+		"var.bar": {
 			Value: UnknownVariableValue,
 			Type:  ast.TypeUnknown,
 		},
@@ -347,7 +347,7 @@ func TestRawConfig_unknownPartialList(t *testing.T) {
 func TestRawConfig_sliceIndexLoss(t *testing.T) {
 	raw := map[string]interface{}{
 		"slice": []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"foo": []interface{}{"foo/${var.unknown}"},
 				"bar": []interface{}{"bar"},
 			},
@@ -355,11 +355,11 @@ func TestRawConfig_sliceIndexLoss(t *testing.T) {
 	}
 
 	vars := map[string]ast.Variable{
-		"var.unknown": ast.Variable{
+		"var.unknown": {
 			Value: UnknownVariableValue,
 			Type:  ast.TypeUnknown,
 		},
-		"var.known": ast.Variable{
+		"var.known": {
 			Value: "123456",
 			Type:  ast.TypeString,
 		},
@@ -400,7 +400,7 @@ func TestRawConfigCopy(t *testing.T) {
 
 	// Interpolate the first one
 	vars := map[string]ast.Variable{
-		"var.bar": ast.Variable{
+		"var.bar": {
 			Value: "baz",
 			Type:  ast.TypeString,
 		},
@@ -421,7 +421,7 @@ func TestRawConfigCopy(t *testing.T) {
 		}
 
 		vars := map[string]ast.Variable{
-			"var.bar": ast.Variable{
+			"var.bar": {
 				Value: "qux",
 				Type:  ast.TypeString,
 			},
@@ -469,7 +469,7 @@ func TestRawConfigValue(t *testing.T) {
 	}
 
 	vars := map[string]ast.Variable{
-		"var.bar": ast.Variable{
+		"var.bar": {
 			Value: "baz",
 			Type:  ast.TypeString,
 		},

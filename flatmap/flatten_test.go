@@ -38,7 +38,7 @@ func TestFlatten(t *testing.T) {
 		{
 			Input: map[string]interface{}{
 				"foo": []map[interface{}]interface{}{
-					map[interface{}]interface{}{
+					{
 						"name":    "bar",
 						"port":    3000,
 						"enabled": true,
@@ -56,7 +56,7 @@ func TestFlatten(t *testing.T) {
 		{
 			Input: map[string]interface{}{
 				"foo": []map[interface{}]interface{}{
-					map[interface{}]interface{}{
+					{
 						"name": "bar",
 						"ports": []string{
 							"1",

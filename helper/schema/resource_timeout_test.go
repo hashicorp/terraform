@@ -47,7 +47,7 @@ func TestResourceTimeout_ConfigDecode_badkey(t *testing.T) {
 			Name: "Use something besides 'minutes'",
 			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 3),
 			Config: []map[string]interface{}{
-				map[string]interface{}{
+				{
 					"create": "2h",
 				}},
 			Expected:  timeoutForValues(120, 0, 5, 0, 3),
@@ -105,10 +105,10 @@ func TestResourceTimeout_ConfigDecode(t *testing.T) {
 		map[string]interface{}{
 			"foo": "bar",
 			TimeoutsConfigKey: []map[string]interface{}{
-				map[string]interface{}{
+				{
 					"create": "2m",
 				},
-				map[string]interface{}{
+				{
 					"update": "1m",
 				},
 			},

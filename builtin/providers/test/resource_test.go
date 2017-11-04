@@ -15,7 +15,7 @@ func TestResource_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
 	required = "yep"
@@ -38,7 +38,7 @@ func TestResource_ignoreChangesRequired(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
         required = "yep"
@@ -63,7 +63,7 @@ func TestResource_ignoreChangesEmpty(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
 	required           = "yep"
@@ -80,7 +80,7 @@ resource "test_resource" "foo" {
 					return nil
 				},
 			},
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
 	required           = "yep"
@@ -106,7 +106,7 @@ func TestResource_ignoreChangesForceNew(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
 	required           = "yep"
@@ -123,7 +123,7 @@ resource "test_resource" "foo" {
 					return nil
 				},
 			},
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
 	required           = "yep"
@@ -151,7 +151,7 @@ func TestResource_ignoreChangesForceNewBoolean(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
   required           = "yep"
@@ -169,7 +169,7 @@ resource "test_resource" "foo" {
 					return nil
 				},
 			},
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
   required           = "yep"
@@ -197,7 +197,7 @@ func TestResource_dataSourceListPlanPanic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 data "test_data_source" "foo" {}
 resource "test_resource" "foo" {
@@ -222,7 +222,7 @@ func TestResource_dataSourceListApplyPanic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
   required = "ok"
@@ -251,7 +251,7 @@ func TestResource_ignoreChangesMap(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
 	required           = "yep"
@@ -270,7 +270,7 @@ resource "test_resource" "foo" {
 					return nil
 				},
 			},
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
 	required           = "yep"
@@ -299,7 +299,7 @@ func TestResource_ignoreChangesDependent(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
 	count = 2
@@ -322,7 +322,7 @@ resource "test_resource" "bar" {
 					return nil
 				},
 			},
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
 	count = 2
@@ -354,7 +354,7 @@ func TestResource_ignoreChangesStillReplaced(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
   required     = "yep"
@@ -372,7 +372,7 @@ resource "test_resource" "foo" {
 					return nil
 				},
 			},
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
   required     = "yep"
@@ -403,7 +403,7 @@ func TestResource_dataSourceListMapPanic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
   required = "val"
@@ -433,7 +433,7 @@ func TestResource_dataSourceIndexMapList(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource" "foo" {
   required = "val"

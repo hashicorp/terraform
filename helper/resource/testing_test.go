@@ -102,7 +102,7 @@ func TestTest(t *testing.T) {
 		},
 		CheckDestroy: checkDestroyFn,
 		Steps: []TestStep{
-			TestStep{
+			{
 				Config: testConfigStr,
 				Check:  checkStepFn,
 			},
@@ -143,7 +143,7 @@ func TestTest_plan_only(t *testing.T) {
 		},
 		CheckDestroy: checkDestroyFn,
 		Steps: []TestStep{
-			TestStep{
+			{
 				Config:             testConfigStr,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
@@ -211,7 +211,7 @@ func TestTest_idRefresh(t *testing.T) {
 			"test": mp,
 		},
 		Steps: []TestStep{
-			TestStep{
+			{
 				Config: testConfigStr,
 			},
 		},
@@ -263,7 +263,7 @@ func TestTest_idRefreshCustomName(t *testing.T) {
 			"test": mp,
 		},
 		Steps: []TestStep{
-			TestStep{
+			{
 				Config: testConfigStr,
 			},
 		},
@@ -324,7 +324,7 @@ func TestTest_idRefreshFail(t *testing.T) {
 			"test": mp,
 		},
 		Steps: []TestStep{
-			TestStep{
+			{
 				Config: testConfigStr,
 			},
 		},
@@ -453,7 +453,7 @@ func TestTest_stepError(t *testing.T) {
 		},
 		CheckDestroy: checkDestroyFn,
 		Steps: []TestStep{
-			TestStep{
+			{
 				Config: testConfigStr,
 				Check:  checkStepFn,
 			},
@@ -486,7 +486,7 @@ func TestTest_factoryError(t *testing.T) {
 			"test": factory,
 		},
 		Steps: []TestStep{
-			TestStep{
+			{
 				ExpectError: regexp.MustCompile("resource factory error"),
 			},
 		},
@@ -509,7 +509,7 @@ func TestTest_resetError(t *testing.T) {
 			"test": mp,
 		},
 		Steps: []TestStep{
-			TestStep{
+			{
 				ExpectError: regexp.MustCompile("provider reset error"),
 			},
 		},
@@ -651,13 +651,13 @@ func testProvider() *terraform.MockResourceProvider {
 	mp := new(terraform.MockResourceProvider)
 	mp.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"foo": &terraform.ResourceAttrDiff{
+			"foo": {
 				New: "bar",
 			},
 		},
 	}
 	mp.ResourcesReturn = []terraform.ResourceType{
-		terraform.ResourceType{Name: "test_instance"},
+		{Name: "test_instance"},
 	}
 
 	return mp
@@ -680,7 +680,7 @@ func TestTest_Main(t *testing.T) {
 		{
 			Name: "normal",
 			Sweepers: map[string]*Sweeper{
-				"aws_dummy": &Sweeper{
+				"aws_dummy": {
 					Name: "aws_dummy",
 					F:    mockSweeperFunc,
 				},
@@ -690,16 +690,16 @@ func TestTest_Main(t *testing.T) {
 		{
 			Name: "with dep",
 			Sweepers: map[string]*Sweeper{
-				"aws_dummy": &Sweeper{
+				"aws_dummy": {
 					Name: "aws_dummy",
 					F:    mockSweeperFunc,
 				},
-				"aws_top": &Sweeper{
+				"aws_top": {
 					Name:         "aws_top",
 					Dependencies: []string{"aws_sub"},
 					F:            mockSweeperFunc,
 				},
-				"aws_sub": &Sweeper{
+				"aws_sub": {
 					Name: "aws_sub",
 					F:    mockSweeperFunc,
 				},
@@ -709,16 +709,16 @@ func TestTest_Main(t *testing.T) {
 		{
 			Name: "with filter",
 			Sweepers: map[string]*Sweeper{
-				"aws_dummy": &Sweeper{
+				"aws_dummy": {
 					Name: "aws_dummy",
 					F:    mockSweeperFunc,
 				},
-				"aws_top": &Sweeper{
+				"aws_top": {
 					Name:         "aws_top",
 					Dependencies: []string{"aws_sub"},
 					F:            mockSweeperFunc,
 				},
-				"aws_sub": &Sweeper{
+				"aws_sub": {
 					Name: "aws_sub",
 					F:    mockSweeperFunc,
 				},
@@ -729,16 +729,16 @@ func TestTest_Main(t *testing.T) {
 		{
 			Name: "with two filters",
 			Sweepers: map[string]*Sweeper{
-				"aws_dummy": &Sweeper{
+				"aws_dummy": {
 					Name: "aws_dummy",
 					F:    mockSweeperFunc,
 				},
-				"aws_top": &Sweeper{
+				"aws_top": {
 					Name:         "aws_top",
 					Dependencies: []string{"aws_sub"},
 					F:            mockSweeperFunc,
 				},
-				"aws_sub": &Sweeper{
+				"aws_sub": {
 					Name: "aws_sub",
 					F:    mockSweeperFunc,
 				},
@@ -749,16 +749,16 @@ func TestTest_Main(t *testing.T) {
 		{
 			Name: "with dep and filter",
 			Sweepers: map[string]*Sweeper{
-				"aws_dummy": &Sweeper{
+				"aws_dummy": {
 					Name: "aws_dummy",
 					F:    mockSweeperFunc,
 				},
-				"aws_top": &Sweeper{
+				"aws_top": {
 					Name:         "aws_top",
 					Dependencies: []string{"aws_sub"},
 					F:            mockSweeperFunc,
 				},
-				"aws_sub": &Sweeper{
+				"aws_sub": {
 					Name: "aws_sub",
 					F:    mockSweeperFunc,
 				},
@@ -769,16 +769,16 @@ func TestTest_Main(t *testing.T) {
 		{
 			Name: "filter and none",
 			Sweepers: map[string]*Sweeper{
-				"aws_dummy": &Sweeper{
+				"aws_dummy": {
 					Name: "aws_dummy",
 					F:    mockSweeperFunc,
 				},
-				"aws_top": &Sweeper{
+				"aws_top": {
 					Name:         "aws_top",
 					Dependencies: []string{"aws_sub"},
 					F:            mockSweeperFunc,
 				},
-				"aws_sub": &Sweeper{
+				"aws_sub": {
 					Name: "aws_sub",
 					F:    mockSweeperFunc,
 				},
@@ -801,7 +801,7 @@ func TestTest_Main(t *testing.T) {
 
 			// get list of tests ran from sweeperRunList keys
 			var keys []string
-			for k, _ := range sweeperRunList {
+			for k := range sweeperRunList {
 				keys = append(keys, k)
 			}
 

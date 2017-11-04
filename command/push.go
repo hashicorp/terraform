@@ -196,7 +196,7 @@ func (c *PushCommand) Run(args []string) int {
 	// the user for input.
 	ctxVars := ctx.Variables()
 	atlasVarSentry := "ATLAS_78AC153CA649EAA44815DAD6CBD4816D"
-	for k, _ := range atlasVars {
+	for k := range atlasVars {
 		if _, ok := ctxVars[k]; !ok {
 			ctx.SetVariable(k, atlasVarSentry)
 		}

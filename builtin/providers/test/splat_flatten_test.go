@@ -21,7 +21,7 @@ func TestSplatFlatten(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: `
 resource "test_resource" "source" {
 	required = "foo ${count.index}"

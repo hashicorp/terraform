@@ -13,10 +13,10 @@ import (
 func TestStateMv(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -27,7 +27,7 @@ func TestStateMv(t *testing.T) {
 						},
 					},
 
-					"test_instance.baz": &terraform.ResourceState{
+					"test_instance.baz": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
@@ -86,10 +86,10 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -100,7 +100,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 						},
 					},
 
-					"test_instance.baz": &terraform.ResourceState{
+					"test_instance.baz": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
@@ -164,10 +164,10 @@ func TestStateMv_backupExplicit(t *testing.T) {
 
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -178,7 +178,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 						},
 					},
 
-					"test_instance.baz": &terraform.ResourceState{
+					"test_instance.baz": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
@@ -226,10 +226,10 @@ func TestStateMv_backupExplicit(t *testing.T) {
 func TestStateMv_stateOutNew(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -283,10 +283,10 @@ func TestStateMv_stateOutNew(t *testing.T) {
 func TestStateMv_stateOutExisting(t *testing.T) {
 	stateSrc := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -305,10 +305,10 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 
 	stateDst := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.qux": &terraform.ResourceState{
+					"test_instance.qux": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -384,10 +384,10 @@ func TestStateMv_noState(t *testing.T) {
 func TestStateMv_stateOutNew_count(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo.0": &terraform.ResourceState{
+					"test_instance.foo.0": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
@@ -398,7 +398,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.1": &terraform.ResourceState{
+					"test_instance.foo.1": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -409,7 +409,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 						},
 					},
 
-					"test_instance.bar": &terraform.ResourceState{
+					"test_instance.bar": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -465,10 +465,10 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo.0": &terraform.ResourceState{
+					"test_instance.foo.0": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo0",
@@ -479,7 +479,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.1": &terraform.ResourceState{
+					"test_instance.foo.1": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo1",
@@ -490,7 +490,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.2": &terraform.ResourceState{
+					"test_instance.foo.2": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo2",
@@ -501,7 +501,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.3": &terraform.ResourceState{
+					"test_instance.foo.3": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo3",
@@ -512,7 +512,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.4": &terraform.ResourceState{
+					"test_instance.foo.4": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo4",
@@ -523,7 +523,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.5": &terraform.ResourceState{
+					"test_instance.foo.5": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo5",
@@ -534,7 +534,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.6": &terraform.ResourceState{
+					"test_instance.foo.6": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo6",
@@ -545,7 +545,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.7": &terraform.ResourceState{
+					"test_instance.foo.7": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo7",
@@ -556,7 +556,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.8": &terraform.ResourceState{
+					"test_instance.foo.8": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo8",
@@ -567,7 +567,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.9": &terraform.ResourceState{
+					"test_instance.foo.9": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo9",
@@ -578,7 +578,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.10": &terraform.ResourceState{
+					"test_instance.foo.10": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo10",
@@ -589,7 +589,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 						},
 					},
 
-					"test_instance.bar": &terraform.ResourceState{
+					"test_instance.bar": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -643,20 +643,20 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path:      []string{"root"},
 				Resources: map[string]*terraform.ResourceState{},
 			},
 
-			&terraform.ModuleState{
+			{
 				Path:      []string{"root", "foo"},
 				Resources: map[string]*terraform.ResourceState{},
 			},
 
-			&terraform.ModuleState{
+			{
 				Path: []string{"root", "foo", "child1"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -669,10 +669,10 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 				},
 			},
 
-			&terraform.ModuleState{
+			{
 				Path: []string{"root", "foo", "child2"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -731,10 +731,10 @@ func TestStateMv_withinBackend(t *testing.T) {
 
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -745,7 +745,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 						},
 					},
 
-					"test_instance.baz": &terraform.ResourceState{
+					"test_instance.baz": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
@@ -806,10 +806,10 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -820,7 +820,7 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 						},
 					},
 
-					"test_instance.baz": &terraform.ResourceState{
+					"test_instance.baz": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",

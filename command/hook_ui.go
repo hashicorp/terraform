@@ -94,7 +94,7 @@ func (h *UiHook) PreApply(
 
 	dAttrs := d.CopyAttributes()
 	keys := make([]string, 0, len(dAttrs))
-	for key, _ := range dAttrs {
+	for key := range dAttrs {
 		// Skip the ID since we do that specially
 		if key == "id" {
 			continue

@@ -24,7 +24,7 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 	}
 	h.init()
 	h.resources = map[string]uiResourceState{
-		"data.aws_availability_zones.available": uiResourceState{
+		"data.aws_availability_zones.available": {
 			Op:    uiResourceDestroy,
 			Start: time.Now(),
 		},
@@ -95,7 +95,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 	}
 	h.init()
 	h.resources = map[string]uiResourceState{
-		"data.aws_availability_zones.available": uiResourceState{
+		"data.aws_availability_zones.available": {
 			Op:    uiResourceDestroy,
 			Start: time.Now(),
 		},
@@ -155,7 +155,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 	}
 	h.init()
 	h.resources = map[string]uiResourceState{
-		"data.google_compute_zones.available": uiResourceState{
+		"data.google_compute_zones.available": {
 			Op:    uiResourceDestroy,
 			Start: time.Now(),
 		},

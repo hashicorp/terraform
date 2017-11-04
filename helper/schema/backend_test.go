@@ -20,7 +20,7 @@ func TestBackendValidate(t *testing.T) {
 			"Basic required field",
 			&Backend{
 				Schema: map[string]*Schema{
-					"foo": &Schema{
+					"foo": {
 						Required: true,
 						Type:     TypeString,
 					},
@@ -34,7 +34,7 @@ func TestBackendValidate(t *testing.T) {
 			"Basic required field set",
 			&Backend{
 				Schema: map[string]*Schema{
-					"foo": &Schema{
+					"foo": {
 						Required: true,
 						Type:     TypeString,
 					},
@@ -73,7 +73,7 @@ func TestBackendConfigure(t *testing.T) {
 			"Basic config",
 			&Backend{
 				Schema: map[string]*Schema{
-					"foo": &Schema{
+					"foo": {
 						Type:     TypeInt,
 						Optional: true,
 					},

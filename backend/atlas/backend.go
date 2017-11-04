@@ -91,20 +91,20 @@ func (b *Backend) Colorize() *colorstring.Colorize {
 func (b *Backend) init() {
 	b.schema = &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: schemaDescriptions["name"],
 			},
 
-			"access_token": &schema.Schema{
+			"access_token": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: schemaDescriptions["access_token"],
 				DefaultFunc: schema.EnvDefaultFunc("ATLAS_TOKEN", nil),
 			},
 
-			"address": &schema.Schema{
+			"address": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: schemaDescriptions["address"],

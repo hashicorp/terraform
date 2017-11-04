@@ -131,7 +131,7 @@ func (b *ResourceBuilder) Diff(
 		// Find all the keys that are in our attributes right now that
 		// we also care about.
 		matchingKeys := make(map[string]struct{})
-		for k, _ := range s.Attributes {
+		for k := range s.Attributes {
 			// Find only the attributes that match our prefix
 			if !strings.HasPrefix(k, ak) {
 				continue
@@ -164,7 +164,7 @@ func (b *ResourceBuilder) Diff(
 		for _, k := range seenKeys {
 			delete(matchingKeys, k)
 		}
-		for k, _ := range matchingKeys {
+		for k := range matchingKeys {
 			attrs[k] = &terraform.ResourceAttrDiff{
 				Old:        s.Attributes[k],
 				NewRemoved: true,

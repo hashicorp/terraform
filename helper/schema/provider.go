@@ -92,7 +92,7 @@ func (p *Provider) InternalValidate() error {
 	}
 
 	// Provider-specific checks
-	for k, _ := range sm {
+	for k := range sm {
 		if isReservedProviderFieldName(k) {
 			return fmt.Errorf("%s is a reserved field name for a provider", k)
 		}
@@ -311,7 +311,7 @@ func (p *Provider) Refresh(
 // Resources implementation of terraform.ResourceProvider interface.
 func (p *Provider) Resources() []terraform.ResourceType {
 	keys := make([]string, 0, len(p.ResourcesMap))
-	for k, _ := range p.ResourcesMap {
+	for k := range p.ResourcesMap {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -429,7 +429,7 @@ func (p *Provider) ReadDataApply(
 // DataSources implementation of terraform.ResourceProvider interface.
 func (p *Provider) DataSources() []terraform.DataSource {
 	keys := make([]string, 0, len(p.DataSourcesMap))
-	for k, _ := range p.DataSourcesMap {
+	for k := range p.DataSourcesMap {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

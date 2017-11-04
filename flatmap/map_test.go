@@ -43,7 +43,7 @@ func TestMapDelete(t *testing.T) {
 	m := Flatten(map[string]interface{}{
 		"foo": "bar",
 		"routes": []map[string]string{
-			map[string]string{
+			{
 				"foo": "bar",
 			},
 		},

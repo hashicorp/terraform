@@ -76,7 +76,7 @@ func (v *Validator) Validate(
 	}
 
 	// The rest are unknown
-	for k, _ := range flat {
+	for k := range flat {
 		es = append(es, fmt.Errorf("Unknown configuration: %s", k))
 	}
 
@@ -116,7 +116,7 @@ type basicValidatorKey struct {
 
 func (v *basicValidatorKey) Validate(
 	m map[string]string) ([]string, []string, []error) {
-	for k, _ := range m {
+	for k := range m {
 		// If we have the exact key its a match
 		if k == v.Key {
 			return []string{k}, nil, nil
@@ -188,7 +188,7 @@ func (v *nestedValidatorKey) validate(
 		u = append(u, prefix)
 
 		// Mark all prefixes of this
-		for k, _ := range m {
+		for k := range m {
 			if !strings.HasPrefix(k, prefix+".") {
 				continue
 			}

@@ -76,7 +76,7 @@ func TestEvalReadState(t *testing.T) {
 	}{
 		"ReadState gets primary instance state": {
 			Resources: map[string]*ResourceState{
-				"aws_instance.bar": &ResourceState{
+				"aws_instance.bar": {
 					Primary: &InstanceState{
 						ID: "i-abc123",
 					},
@@ -90,9 +90,9 @@ func TestEvalReadState(t *testing.T) {
 		},
 		"ReadStateDeposed gets deposed instance": {
 			Resources: map[string]*ResourceState{
-				"aws_instance.bar": &ResourceState{
+				"aws_instance.bar": {
 					Deposed: []*InstanceState{
-						&InstanceState{ID: "i-abc123"},
+						{ID: "i-abc123"},
 					},
 				},
 			},
@@ -109,7 +109,7 @@ func TestEvalReadState(t *testing.T) {
 		ctx := new(MockEvalContext)
 		ctx.StateState = &State{
 			Modules: []*ModuleState{
-				&ModuleState{
+				{
 					Path:      rootModulePath,
 					Resources: c.Resources,
 				},

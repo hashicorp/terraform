@@ -146,7 +146,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	//
 	var tempG Graph
 	var tempDestroyed []dag.Vertex
-	for d, _ := range destroyers {
+	for d := range destroyers {
 		// d is what is being destroyed. We parse the resource address
 		// which it came from it is a panic if this fails.
 		addr, err := ParseResourceAddress(d)

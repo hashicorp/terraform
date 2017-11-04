@@ -104,7 +104,7 @@ func TestBackendPath(t *testing.T) {
 	state1.AddModuleState(&terraform.ModuleState{
 		Path: []string{"root"},
 		Outputs: map[string]*terraform.OutputState{
-			"bar": &terraform.OutputState{
+			"bar": {
 				Type:      "string",
 				Sensitive: false,
 				Value:     "baz",
@@ -159,7 +159,7 @@ func TestBackendArchive(t *testing.T) {
 	state1.AddModuleState(&terraform.ModuleState{
 		Path: []string{"root"},
 		Outputs: map[string]*terraform.OutputState{
-			"bar": &terraform.OutputState{
+			"bar": {
 				Type:      "string",
 				Sensitive: false,
 				Value:     "baz",

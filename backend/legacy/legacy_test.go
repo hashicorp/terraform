@@ -11,7 +11,7 @@ func TestInit(t *testing.T) {
 	m := make(map[string]func() backend.Backend)
 	Init(m)
 
-	for k, _ := range remote.BuiltinClients {
+	for k := range remote.BuiltinClients {
 		b, ok := m[k]
 		if !ok {
 			t.Fatalf("missing: %s", k)

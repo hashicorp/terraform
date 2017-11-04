@@ -13,24 +13,24 @@ func TestApplyGraphBuilder_impl(t *testing.T) {
 func TestApplyGraphBuilder(t *testing.T) {
 	diff := &Diff{
 		Modules: []*ModuleDiff{
-			&ModuleDiff{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
 					// Verify noop doesn't show up in graph
-					"aws_instance.noop": &InstanceDiff{},
+					"aws_instance.noop": {},
 
-					"aws_instance.create": &InstanceDiff{
+					"aws_instance.create": {
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"name": {
 								Old: "",
 								New: "foo",
 							},
 						},
 					},
 
-					"aws_instance.other": &InstanceDiff{
+					"aws_instance.other": {
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"name": {
 								Old: "",
 								New: "foo",
 							},
@@ -39,21 +39,21 @@ func TestApplyGraphBuilder(t *testing.T) {
 				},
 			},
 
-			&ModuleDiff{
+			{
 				Path: []string{"root", "child"},
 				Resources: map[string]*InstanceDiff{
-					"aws_instance.create": &InstanceDiff{
+					"aws_instance.create": {
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"name": {
 								Old: "",
 								New: "foo",
 							},
 						},
 					},
 
-					"aws_instance.other": &InstanceDiff{
+					"aws_instance.other": {
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"name": {
 								Old: "",
 								New: "foo",
 							},
@@ -93,11 +93,11 @@ func TestApplyGraphBuilder(t *testing.T) {
 func TestApplyGraphBuilder_depCbd(t *testing.T) {
 	diff := &Diff{
 		Modules: []*ModuleDiff{
-			&ModuleDiff{
+			{
 				Path: []string{"root"},
-				Resources: map[string]*InstanceDiff{"aws_instance.A": &InstanceDiff{Destroy: true,
+				Resources: map[string]*InstanceDiff{"aws_instance.A": {Destroy: true,
 					Attributes: map[string]*ResourceAttrDiff{
-						"name": &ResourceAttrDiff{
+						"name": {
 							Old:         "",
 							New:         "foo",
 							RequiresNew: true,
@@ -105,9 +105,9 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 					},
 				},
 
-					"aws_instance.B": &InstanceDiff{
+					"aws_instance.B": {
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"name": {
 								Old: "",
 								New: "foo",
 							},
@@ -157,23 +157,23 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 	diff := &Diff{
 		Modules: []*ModuleDiff{
-			&ModuleDiff{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
-					"aws_instance.A": &InstanceDiff{
+					"aws_instance.A": {
 						Destroy: true,
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"name": {
 								Old: "",
 								New: "foo",
 							},
 						},
 					},
 
-					"aws_instance.B": &InstanceDiff{
+					"aws_instance.B": {
 						Destroy: true,
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"name": {
 								Old: "",
 								New: "foo",
 							},
@@ -213,14 +213,14 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 	diff := &Diff{
 		Modules: []*ModuleDiff{
-			&ModuleDiff{
+			{
 				Path: []string{"root", "child"},
 				Resources: map[string]*InstanceDiff{
-					"aws_instance.A": &InstanceDiff{
+					"aws_instance.A": {
 						Destroy: true,
 					},
 
-					"aws_instance.B": &InstanceDiff{
+					"aws_instance.B": {
 						Destroy: true,
 					},
 				},
@@ -230,10 +230,10 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: []string{"root", "child"},
 				Resources: map[string]*ResourceState{
-					"aws_instance.A": &ResourceState{
+					"aws_instance.A": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID:         "foo",
@@ -241,7 +241,7 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 						},
 					},
 
-					"aws_instance.B": &ResourceState{
+					"aws_instance.B": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID:         "bar",
@@ -282,16 +282,16 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 	diff := &Diff{
 		Modules: []*ModuleDiff{
-			&ModuleDiff{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
-					"aws_instance.A.1": &InstanceDiff{
+					"aws_instance.A.1": {
 						Destroy: true,
 					},
 
-					"aws_instance.B": &InstanceDiff{
+					"aws_instance.B": {
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"name": {
 								Old: "",
 								New: "foo",
 							},
@@ -329,19 +329,19 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 	diff := &Diff{
 		Modules: []*ModuleDiff{
-			&ModuleDiff{
+			{
 				Path: []string{"root", "A"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"null_resource.foo": {
 						Destroy: true,
 					},
 				},
 			},
 
-			&ModuleDiff{
+			{
 				Path: []string{"root", "B"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"null_resource.foo": {
 						Destroy: true,
 					},
 				},
@@ -369,12 +369,12 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 func TestApplyGraphBuilder_provisioner(t *testing.T) {
 	diff := &Diff{
 		Modules: []*ModuleDiff{
-			&ModuleDiff{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"null_resource.foo": {
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"name": {
 								Old: "",
 								New: "foo",
 							},
@@ -407,10 +407,10 @@ func TestApplyGraphBuilder_provisioner(t *testing.T) {
 func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 	diff := &Diff{
 		Modules: []*ModuleDiff{
-			&ModuleDiff{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"null_resource.foo": {
 						Destroy: true,
 					},
 				},
@@ -441,12 +441,12 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 func TestApplyGraphBuilder_targetModule(t *testing.T) {
 	diff := &Diff{
 		Modules: []*ModuleDiff{
-			&ModuleDiff{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"null_resource.foo": {
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"name": {
 								Old: "",
 								New: "foo",
 							},
@@ -455,12 +455,12 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 				},
 			},
 
-			&ModuleDiff{
+			{
 				Path: []string{"root", "child2"},
 				Resources: map[string]*InstanceDiff{
-					"null_resource.foo": &InstanceDiff{
+					"null_resource.foo": {
 						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
+							"name": {
 								Old: "",
 								New: "foo",
 							},

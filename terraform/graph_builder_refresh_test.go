@@ -8,53 +8,53 @@ func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
+					"aws_instance.foo.0": {
 						Type: "aws_instance",
 						Deposed: []*InstanceState{
-							&InstanceState{
+							{
 								ID: "foo",
 							},
 						},
 					},
-					"aws_instance.foo.1": &ResourceState{
+					"aws_instance.foo.1": {
 						Type: "aws_instance",
 						Deposed: []*InstanceState{
-							&InstanceState{
+							{
 								ID: "bar",
 							},
 						},
 					},
-					"aws_instance.foo.2": &ResourceState{
+					"aws_instance.foo.2": {
 						Type: "aws_instance",
 						Deposed: []*InstanceState{
-							&InstanceState{
+							{
 								ID: "baz",
 							},
 						},
 					},
-					"data.aws_instance.foo.0": &ResourceState{
+					"data.aws_instance.foo.0": {
 						Type: "aws_instance",
 						Deposed: []*InstanceState{
-							&InstanceState{
+							{
 								ID: "foo",
 							},
 						},
 					},
-					"data.aws_instance.foo.1": &ResourceState{
+					"data.aws_instance.foo.1": {
 						Type: "aws_instance",
 						Deposed: []*InstanceState{
-							&InstanceState{
+							{
 								ID: "bar",
 							},
 						},
 					},
-					"data.aws_instance.foo.2": &ResourceState{
+					"data.aws_instance.foo.2": {
 						Type: "aws_instance",
 						Deposed: []*InstanceState{
-							&InstanceState{
+							{
 								ID: "baz",
 							},
 						},

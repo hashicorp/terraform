@@ -82,7 +82,7 @@ func TestValidator_complex(t *testing.T) {
 	c = testConfig(t, map[string]interface{}{
 		"foo": "bar",
 		"nested": []map[string]interface{}{
-			map[string]interface{}{"foo": "bar"},
+			{"foo": "bar"},
 		},
 	})
 	testValid(v, c)
@@ -112,7 +112,7 @@ func TestValidator_complexNested(t *testing.T) {
 	// Valid
 	c = testConfig(t, map[string]interface{}{
 		"ingress": []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"from_port": "80",
 			},
 		},
@@ -122,7 +122,7 @@ func TestValidator_complexNested(t *testing.T) {
 	// Valid
 	c = testConfig(t, map[string]interface{}{
 		"ingress": []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"from_port":   "80",
 				"cidr_blocks": []interface{}{"foo"},
 			},
@@ -145,7 +145,7 @@ func TestValidator_complexDeepRequired(t *testing.T) {
 	c = testConfig(t, map[string]interface{}{
 		"foo": "bar",
 		"nested": []map[string]interface{}{
-			map[string]interface{}{"foo": "bar"},
+			{"foo": "bar"},
 		},
 	})
 	testValid(v, c)

@@ -194,7 +194,7 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{},
 				BlockTypes: map[string]*configschema.NestedBlock{
-					"foo": &configschema.NestedBlock{
+					"foo": {
 						Nesting: configschema.NestingList,
 						Block: configschema.Block{
 							Attributes: map[string]*configschema.Attribute{

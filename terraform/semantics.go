@@ -66,11 +66,11 @@ func smcUserVariables(c *config.Config, vs map[string]interface{}) []error {
 			required[v.Name] = struct{}{}
 		}
 	}
-	for k, _ := range vs {
+	for k := range vs {
 		delete(required, k)
 	}
 	if len(required) > 0 {
-		for k, _ := range required {
+		for k := range required {
 			errs = append(errs, fmt.Errorf(
 				"Required variable not set: %s", k))
 		}

@@ -110,10 +110,10 @@ func TestGraph_plan(t *testing.T) {
 	planPath := testPlanFile(t, &terraform.Plan{
 		Diff: &terraform.Diff{
 			Modules: []*terraform.ModuleDiff{
-				&terraform.ModuleDiff{
+				{
 					Path: []string{"root"},
 					Resources: map[string]*terraform.InstanceDiff{
-						"test_instance.bar": &terraform.InstanceDiff{
+						"test_instance.bar": {
 							Destroy: true,
 						},
 					},

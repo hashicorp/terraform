@@ -808,7 +808,7 @@ func (i *Interpolater) resourceCountMax(
 	// use "cr.Count()" but that doesn't work if the count is interpolated
 	// and we can't guarantee that so we instead depend on the state.
 	max := -1
-	for k, _ := range ms.Resources {
+	for k := range ms.Resources {
 		// Get the index number for this resource
 		index := ""
 		if k == id {

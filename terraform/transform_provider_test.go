@@ -50,7 +50,7 @@ func TestProviderTransformer_moduleChild(t *testing.T) {
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
-				&ImportTarget{
+				{
 					Addr: "module.moo.foo_instance.qux",
 					ID:   "bar",
 				},
@@ -250,7 +250,7 @@ func TestMissingProviderTransformer_moduleChild(t *testing.T) {
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
-				&ImportTarget{
+				{
 					Addr: "module.moo.foo_instance.qux",
 					ID:   "bar",
 				},
@@ -284,7 +284,7 @@ func TestMissingProviderTransformer_moduleGrandchild(t *testing.T) {
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
-				&ImportTarget{
+				{
 					Addr: "module.a.module.b.foo_instance.qux",
 					ID:   "bar",
 				},
@@ -316,7 +316,7 @@ func TestParentProviderTransformer(t *testing.T) {
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
-				&ImportTarget{
+				{
 					Addr: "module.moo.foo_instance.qux",
 					ID:   "bar",
 				},
@@ -359,7 +359,7 @@ func TestParentProviderTransformer_moduleGrandchild(t *testing.T) {
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
-				&ImportTarget{
+				{
 					Addr: "module.a.module.b.foo_instance.qux",
 					ID:   "bar",
 				},

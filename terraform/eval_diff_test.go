@@ -36,7 +36,7 @@ func TestEvalFilterDiff(t *testing.T) {
 			&InstanceDiff{
 				Destroy: true,
 				Attributes: map[string]*ResourceAttrDiff{
-					"foo": &ResourceAttrDiff{},
+					"foo": {},
 				},
 			},
 			&InstanceDiff{Destroy: true},
@@ -45,7 +45,7 @@ func TestEvalFilterDiff(t *testing.T) {
 			&EvalFilterDiff{Destroy: true},
 			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
-					"foo": &ResourceAttrDiff{
+					"foo": {
 						RequiresNew: true,
 					},
 				},
@@ -56,7 +56,7 @@ func TestEvalFilterDiff(t *testing.T) {
 			&EvalFilterDiff{Destroy: true},
 			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
-					"foo": &ResourceAttrDiff{},
+					"foo": {},
 				},
 			},
 			&InstanceDiff{Destroy: false},

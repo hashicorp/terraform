@@ -37,7 +37,7 @@ func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
 	}
 
 	// Go through the orphans and add them all to the state
-	for key, _ := range ms.Resources {
+	for key := range ms.Resources {
 		// Build the address
 		addr, err := parseResourceAddressInternal(key)
 		if err != nil {

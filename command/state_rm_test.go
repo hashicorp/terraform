@@ -14,10 +14,10 @@ import (
 func TestStateRm(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -28,7 +28,7 @@ func TestStateRm(t *testing.T) {
 						},
 					},
 
-					"test_instance.bar": &terraform.ResourceState{
+					"test_instance.bar": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
@@ -78,10 +78,10 @@ func TestStateRm(t *testing.T) {
 func TestStateRmNoArgs(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -92,7 +92,7 @@ func TestStateRmNoArgs(t *testing.T) {
 						},
 					},
 
-					"test_instance.bar": &terraform.ResourceState{
+					"test_instance.bar": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
@@ -140,10 +140,10 @@ func TestStateRm_backupExplicit(t *testing.T) {
 
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -154,7 +154,7 @@ func TestStateRm_backupExplicit(t *testing.T) {
 						},
 					},
 
-					"test_instance.bar": &terraform.ResourceState{
+					"test_instance.bar": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
@@ -254,10 +254,10 @@ func TestStateRm_backendState(t *testing.T) {
 
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -268,7 +268,7 @@ func TestStateRm_backendState(t *testing.T) {
 						},
 					},
 
-					"test_instance.bar": &terraform.ResourceState{
+					"test_instance.bar": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",

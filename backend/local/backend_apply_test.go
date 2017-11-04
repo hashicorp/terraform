@@ -135,7 +135,7 @@ func TestLocal_applyError(t *testing.T) {
 		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		return &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"ami": &terraform.ResourceAttrDiff{
+				"ami": {
 					New: "bar",
 				},
 			},

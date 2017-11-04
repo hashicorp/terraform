@@ -22,7 +22,7 @@ func TestEvalWriteMapOutput(t *testing.T) {
 			&ResourceConfig{
 				Config: map[string]interface{}{
 					"value": []map[string]interface{}{
-						map[string]interface{}{"a": "b"},
+						{"a": "b"},
 					},
 				},
 			},
@@ -34,8 +34,8 @@ func TestEvalWriteMapOutput(t *testing.T) {
 			&ResourceConfig{
 				Config: map[string]interface{}{
 					"value": []map[string]interface{}{
-						map[string]interface{}{"a": "b"},
-						map[string]interface{}{"c": "d"},
+						{"a": "b"},
+						{"c": "d"},
 					},
 				},
 			},

@@ -151,13 +151,13 @@ func TestEvalVariableBlock(t *testing.T) {
 			"foo": "foo",
 		},
 		"known_list_of_maps": []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"foo": "foo",
 			},
 		},
 		"computed_map": map[string]interface{}{},
 		"computed_list_of_maps": []map[string]interface{}{
-			map[string]interface{}{},
+			{},
 		},
 		// No computed_list right now, because that isn't currently supported:
 		// EvalVariableBlock assumes the final step of the path will always

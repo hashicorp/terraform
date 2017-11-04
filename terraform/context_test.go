@@ -346,7 +346,7 @@ func testProvider(prefix string) *MockResourceProvider {
 		return s, nil
 	}
 	p.ResourcesReturn = []ResourceType{
-		ResourceType{
+		{
 			Name: fmt.Sprintf("%s_instance", prefix),
 		},
 	}

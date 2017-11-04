@@ -72,9 +72,9 @@ func initCommands(config *Config) {
 	// that to match.
 
 	PlumbingCommands = map[string]struct{}{
-		"state":        struct{}{}, // includes all subcommands
-		"debug":        struct{}{}, // includes all subcommands
-		"force-unlock": struct{}{},
+		"state":        {}, // includes all subcommands
+		"debug":        {}, // includes all subcommands
+		"force-unlock": {},
 	}
 
 	Commands = map[string]cli.CommandFactory{

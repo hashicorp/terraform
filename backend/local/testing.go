@@ -38,7 +38,7 @@ func TestLocalProvider(t *testing.T, b *Local, name string) *terraform.MockResou
 		return s, nil
 	}
 	p.ResourcesReturn = []terraform.ResourceType{
-		terraform.ResourceType{
+		{
 			Name: "test_instance",
 		},
 	}

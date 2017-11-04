@@ -62,10 +62,10 @@ func TestInterpolater_moduleVariable(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
+					"aws_instance.web": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
@@ -73,10 +73,10 @@ func TestInterpolater_moduleVariable(t *testing.T) {
 					},
 				},
 			},
-			&ModuleState{
+			{
 				Path: []string{RootModuleName, "child"},
 				Outputs: map[string]*OutputState{
-					"foo": &OutputState{
+					"foo": {
 						Type:  "string",
 						Value: "bar",
 					},
@@ -104,7 +104,7 @@ func TestInterpolater_localVal(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Locals: map[string]interface{}{
 					"foo": "hello!",
@@ -180,10 +180,10 @@ func TestInterpolater_resourceVariableMap(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
+					"aws_instance.web": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
@@ -224,10 +224,10 @@ func TestInterpolater_resourceVariableComplexMap(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
+					"aws_instance.web": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
@@ -269,10 +269,10 @@ func TestInterpolater_resourceVariable(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
+					"aws_instance.web": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
@@ -311,7 +311,7 @@ func TestInterpolater_resourceVariableMissingDuringInput(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path:      rootModulePath,
 				Resources: map[string]*ResourceState{
 				// No resources at all yet, because we're still dealing
@@ -360,10 +360,10 @@ func TestInterpolater_resourceVariableMulti(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
+					"aws_instance.web": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
@@ -402,10 +402,10 @@ func TestInterpolater_resourceVariableMultiPartialUnknown(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.web.0": &ResourceState{
+					"aws_instance.web.0": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
@@ -414,7 +414,7 @@ func TestInterpolater_resourceVariableMultiPartialUnknown(t *testing.T) {
 							},
 						},
 					},
-					"aws_instance.web.1": &ResourceState{
+					"aws_instance.web.1": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
@@ -423,7 +423,7 @@ func TestInterpolater_resourceVariableMultiPartialUnknown(t *testing.T) {
 							},
 						},
 					},
-					"aws_instance.web.2": &ResourceState{
+					"aws_instance.web.2": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
@@ -500,10 +500,10 @@ func TestInterpolater_resourceVariableMultiList(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.web.0": &ResourceState{
+					"aws_instance.web.0": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
@@ -513,7 +513,7 @@ func TestInterpolater_resourceVariableMultiList(t *testing.T) {
 						},
 					},
 
-					"aws_instance.web.1": &ResourceState{
+					"aws_instance.web.1": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
@@ -552,10 +552,10 @@ func TestInterpolater_resourceVariableMulti_interpolated(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.web.0": &ResourceState{
+					"aws_instance.web.0": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID:         "a",
@@ -563,7 +563,7 @@ func TestInterpolater_resourceVariableMulti_interpolated(t *testing.T) {
 						},
 					},
 
-					"aws_instance.web.1": &ResourceState{
+					"aws_instance.web.1": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID:         "b",
@@ -721,10 +721,10 @@ func TestInterpolator_resourceMultiAttributesComputed(t *testing.T) {
 	// it can/does exist that way in memory during the plan phase.
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_route53_zone.yada": &ResourceState{
+					"aws_route53_zone.yada": {
 						Type: "aws_route53_zone",
 						Primary: &InstanceState{
 							ID: "z-abc123",
@@ -759,10 +759,10 @@ func TestInterpolator_resourceAttributeComputed(t *testing.T) {
 	// it can/does exist that way in memory during the plan phase.
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_route53_zone.yada": &ResourceState{
+					"aws_route53_zone.yada": {
 						Type: "aws_route53_zone",
 						Primary: &InstanceState{
 							ID: "z-abc123",
@@ -812,10 +812,10 @@ func TestInterpolater_selfVarWithoutResource(t *testing.T) {
 func TestInterpolator_interpolatedListOrder(t *testing.T) {
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_route53_zone.yada": &ResourceState{
+					"aws_route53_zone.yada": {
 						Type:         "aws_route53_zone",
 						Dependencies: []string{},
 						Primary: &InstanceState{
@@ -862,10 +862,10 @@ func getInterpolaterFixture(t *testing.T) *Interpolater {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_route53_zone.terra.0": &ResourceState{
+					"aws_route53_zone.terra.0": {
 						Type:         "aws_route53_zone",
 						Dependencies: []string{},
 						Primary: &InstanceState{
@@ -884,7 +884,7 @@ func getInterpolaterFixture(t *testing.T) *Interpolater {
 							},
 						},
 					},
-					"aws_route53_zone.terra.1": &ResourceState{
+					"aws_route53_zone.terra.1": {
 						Type:         "aws_route53_zone",
 						Dependencies: []string{},
 						Primary: &InstanceState{
@@ -920,10 +920,10 @@ func getInterpolaterFixture(t *testing.T) *Interpolater {
 func TestInterpolator_nestedMapsAndLists(t *testing.T) {
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_route53_zone.yada": &ResourceState{
+					"aws_route53_zone.yada": {
 						Type:         "aws_route53_zone",
 						Dependencies: []string{},
 						Primary: &InstanceState{
@@ -976,10 +976,10 @@ func TestInterpolator_nestedMapsAndLists(t *testing.T) {
 func TestInterpolator_sets(t *testing.T) {
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_route53_zone.yada": &ResourceState{
+					"aws_route53_zone.yada": {
 						Type:         "aws_network_interface",
 						Dependencies: []string{},
 						Primary: &InstanceState{
