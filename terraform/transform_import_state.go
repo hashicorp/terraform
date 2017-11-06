@@ -48,8 +48,8 @@ func (n *graphNodeImportState) Name() string {
 	return fmt.Sprintf("%s (import id: %s)", n.Addr, n.ID)
 }
 
-func (n *graphNodeImportState) ProvidedBy() []string {
-	return []string{resourceProvider(n.Addr.Type, n.ProviderName)}
+func (n *graphNodeImportState) ProvidedBy() string {
+	return resourceProvider(n.Addr.Type, n.ProviderName)
 }
 
 func (n *graphNodeImportState) SetProvider(p string) {
