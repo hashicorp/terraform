@@ -50,7 +50,7 @@ func (t *OrphanOutputTransformer) transform(g *Graph, m *module.Tree) error {
 	}
 
 	// Go through the outputs and find the ones that aren't in our config.
-	for n, _ := range state.Outputs {
+	for n := range state.Outputs {
 		// If it is in the valid map, then ignore
 		if _, ok := valid[n]; ok {
 			continue

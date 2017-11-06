@@ -461,7 +461,7 @@ func TestHCL2Basic(t *testing.T) {
 			}
 
 			wantConfig := map[string][]string{
-				"value": []string{"sg-abc123"},
+				"value": {"sg-abc123"},
 			}
 			var gotConfig map[string][]string
 			ctx := &hcl2.EvalContext{

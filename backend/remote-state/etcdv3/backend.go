@@ -25,7 +25,7 @@ const (
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			endpointsKey: &schema.Schema{
+			endpointsKey: {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -35,49 +35,49 @@ func New() backend.Backend {
 				Description: "Endpoints for the etcd cluster.",
 			},
 
-			usernameKey: &schema.Schema{
+			usernameKey: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Username used to connect to the etcd cluster.",
 				DefaultFunc: schema.EnvDefaultFunc(usernameEnvVarName, ""),
 			},
 
-			passwordKey: &schema.Schema{
+			passwordKey: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Password used to connect to the etcd cluster.",
 				DefaultFunc: schema.EnvDefaultFunc(passwordEnvVarName, ""),
 			},
 
-			prefixKey: &schema.Schema{
+			prefixKey: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An optional prefix to be added to keys when to storing state in etcd.",
 				Default:     "",
 			},
 
-			lockKey: &schema.Schema{
+			lockKey: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Whether to lock state access.",
 				Default:     true,
 			},
 
-			cacertPathKey: &schema.Schema{
+			cacertPathKey: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The path to a PEM-encoded CA bundle with which to verify certificates of TLS-enabled etcd servers.",
 				Default:     "",
 			},
 
-			certPathKey: &schema.Schema{
+			certPathKey: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The path to a PEM-encoded certificate to provide to etcd for secure client identification.",
 				Default:     "",
 			},
 
-			keyPathKey: &schema.Schema{
+			keyPathKey: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The path to a PEM-encoded key to provide to etcd for secure client identification.",

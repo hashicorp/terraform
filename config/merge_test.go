@@ -20,22 +20,22 @@ func TestMerge(t *testing.T) {
 					Name: "foo",
 				},
 				Modules: []*Module{
-					&Module{Name: "foo"},
+					{Name: "foo"},
 				},
 				Outputs: []*Output{
-					&Output{Name: "foo"},
+					{Name: "foo"},
 				},
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Name: "foo"},
+					{Name: "foo"},
 				},
 				Resources: []*Resource{
-					&Resource{Name: "foo"},
+					{Name: "foo"},
 				},
 				Variables: []*Variable{
-					&Variable{Name: "foo"},
+					{Name: "foo"},
 				},
 				Locals: []*Local{
-					&Local{Name: "foo"},
+					{Name: "foo"},
 				},
 
 				unknownKeys: []string{"foo"},
@@ -46,22 +46,22 @@ func TestMerge(t *testing.T) {
 					Name: "bar",
 				},
 				Modules: []*Module{
-					&Module{Name: "bar"},
+					{Name: "bar"},
 				},
 				Outputs: []*Output{
-					&Output{Name: "bar"},
+					{Name: "bar"},
 				},
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Name: "bar"},
+					{Name: "bar"},
 				},
 				Resources: []*Resource{
-					&Resource{Name: "bar"},
+					{Name: "bar"},
 				},
 				Variables: []*Variable{
-					&Variable{Name: "bar"},
+					{Name: "bar"},
 				},
 				Locals: []*Local{
-					&Local{Name: "bar"},
+					{Name: "bar"},
 				},
 
 				unknownKeys: []string{"bar"},
@@ -72,28 +72,28 @@ func TestMerge(t *testing.T) {
 					Name: "bar",
 				},
 				Modules: []*Module{
-					&Module{Name: "foo"},
-					&Module{Name: "bar"},
+					{Name: "foo"},
+					{Name: "bar"},
 				},
 				Outputs: []*Output{
-					&Output{Name: "foo"},
-					&Output{Name: "bar"},
+					{Name: "foo"},
+					{Name: "bar"},
 				},
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Name: "foo"},
-					&ProviderConfig{Name: "bar"},
+					{Name: "foo"},
+					{Name: "bar"},
 				},
 				Resources: []*Resource{
-					&Resource{Name: "foo"},
-					&Resource{Name: "bar"},
+					{Name: "foo"},
+					{Name: "bar"},
 				},
 				Variables: []*Variable{
-					&Variable{Name: "foo"},
-					&Variable{Name: "bar"},
+					{Name: "foo"},
+					{Name: "bar"},
 				},
 				Locals: []*Local{
-					&Local{Name: "foo"},
-					&Local{Name: "bar"},
+					{Name: "foo"},
+					{Name: "bar"},
 				},
 
 				unknownKeys: []string{"foo", "bar"},
@@ -108,20 +108,20 @@ func TestMerge(t *testing.T) {
 		{
 			&Config{
 				Outputs: []*Output{
-					&Output{Name: "foo"},
+					{Name: "foo"},
 				},
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Name: "foo"},
+					{Name: "foo"},
 				},
 				Resources: []*Resource{
-					&Resource{Name: "foo"},
+					{Name: "foo"},
 				},
 				Variables: []*Variable{
-					&Variable{Name: "foo", Default: "foo"},
-					&Variable{Name: "foo"},
+					{Name: "foo", Default: "foo"},
+					{Name: "foo"},
 				},
 				Locals: []*Local{
-					&Local{Name: "foo"},
+					{Name: "foo"},
 				},
 
 				unknownKeys: []string{"foo"},
@@ -129,20 +129,20 @@ func TestMerge(t *testing.T) {
 
 			&Config{
 				Outputs: []*Output{
-					&Output{Name: "bar"},
+					{Name: "bar"},
 				},
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Name: "bar"},
+					{Name: "bar"},
 				},
 				Resources: []*Resource{
-					&Resource{Name: "bar"},
+					{Name: "bar"},
 				},
 				Variables: []*Variable{
-					&Variable{Name: "foo", Default: "bar"},
-					&Variable{Name: "bar"},
+					{Name: "foo", Default: "bar"},
+					{Name: "bar"},
 				},
 				Locals: []*Local{
-					&Local{Name: "foo"},
+					{Name: "foo"},
 				},
 
 				unknownKeys: []string{"bar"},
@@ -150,25 +150,25 @@ func TestMerge(t *testing.T) {
 
 			&Config{
 				Outputs: []*Output{
-					&Output{Name: "foo"},
-					&Output{Name: "bar"},
+					{Name: "foo"},
+					{Name: "bar"},
 				},
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Name: "foo"},
-					&ProviderConfig{Name: "bar"},
+					{Name: "foo"},
+					{Name: "bar"},
 				},
 				Resources: []*Resource{
-					&Resource{Name: "foo"},
-					&Resource{Name: "bar"},
+					{Name: "foo"},
+					{Name: "bar"},
 				},
 				Variables: []*Variable{
-					&Variable{Name: "foo", Default: "bar"},
-					&Variable{Name: "foo"},
-					&Variable{Name: "bar"},
+					{Name: "foo", Default: "bar"},
+					{Name: "foo"},
+					{Name: "bar"},
 				},
 				Locals: []*Local{
-					&Local{Name: "foo"},
-					&Local{Name: "foo"},
+					{Name: "foo"},
+					{Name: "foo"},
 				},
 
 				unknownKeys: []string{"foo", "bar"},
@@ -212,13 +212,13 @@ func TestMerge(t *testing.T) {
 		{
 			&Config{
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Alias: "foo"},
+					{Alias: "foo"},
 				},
 			},
 			&Config{},
 			&Config{
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Alias: "foo"},
+					{Alias: "foo"},
 				},
 			},
 			false,
@@ -228,12 +228,12 @@ func TestMerge(t *testing.T) {
 			&Config{},
 			&Config{
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Alias: "foo"},
+					{Alias: "foo"},
 				},
 			},
 			&Config{
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Alias: "foo"},
+					{Alias: "foo"},
 				},
 			},
 			false,
@@ -242,17 +242,17 @@ func TestMerge(t *testing.T) {
 		{
 			&Config{
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Alias: "bar"},
+					{Alias: "bar"},
 				},
 			},
 			&Config{
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Alias: "foo"},
+					{Alias: "foo"},
 				},
 			},
 			&Config{
 				ProviderConfigs: []*ProviderConfig{
-					&ProviderConfig{Alias: "foo"},
+					{Alias: "foo"},
 				},
 			},
 			false,
@@ -262,13 +262,13 @@ func TestMerge(t *testing.T) {
 		{
 			&Config{
 				Variables: []*Variable{
-					&Variable{DeclaredType: "foo"},
+					{DeclaredType: "foo"},
 				},
 			},
 			&Config{},
 			&Config{
 				Variables: []*Variable{
-					&Variable{DeclaredType: "foo"},
+					{DeclaredType: "foo"},
 				},
 			},
 			false,
@@ -278,12 +278,12 @@ func TestMerge(t *testing.T) {
 			&Config{},
 			&Config{
 				Variables: []*Variable{
-					&Variable{DeclaredType: "foo"},
+					{DeclaredType: "foo"},
 				},
 			},
 			&Config{
 				Variables: []*Variable{
-					&Variable{DeclaredType: "foo"},
+					{DeclaredType: "foo"},
 				},
 			},
 			false,
@@ -292,17 +292,17 @@ func TestMerge(t *testing.T) {
 		{
 			&Config{
 				Variables: []*Variable{
-					&Variable{DeclaredType: "bar"},
+					{DeclaredType: "bar"},
 				},
 			},
 			&Config{
 				Variables: []*Variable{
-					&Variable{DeclaredType: "foo"},
+					{DeclaredType: "foo"},
 				},
 			},
 			&Config{
 				Variables: []*Variable{
-					&Variable{DeclaredType: "foo"},
+					{DeclaredType: "foo"},
 				},
 			},
 			false,
@@ -312,13 +312,13 @@ func TestMerge(t *testing.T) {
 		{
 			&Config{
 				Outputs: []*Output{
-					&Output{Description: "foo"},
+					{Description: "foo"},
 				},
 			},
 			&Config{},
 			&Config{
 				Outputs: []*Output{
-					&Output{Description: "foo"},
+					{Description: "foo"},
 				},
 			},
 			false,
@@ -328,12 +328,12 @@ func TestMerge(t *testing.T) {
 			&Config{},
 			&Config{
 				Outputs: []*Output{
-					&Output{Description: "foo"},
+					{Description: "foo"},
 				},
 			},
 			&Config{
 				Outputs: []*Output{
-					&Output{Description: "foo"},
+					{Description: "foo"},
 				},
 			},
 			false,
@@ -342,17 +342,17 @@ func TestMerge(t *testing.T) {
 		{
 			&Config{
 				Outputs: []*Output{
-					&Output{Description: "bar"},
+					{Description: "bar"},
 				},
 			},
 			&Config{
 				Outputs: []*Output{
-					&Output{Description: "foo"},
+					{Description: "foo"},
 				},
 			},
 			&Config{
 				Outputs: []*Output{
-					&Output{Description: "foo"},
+					{Description: "foo"},
 				},
 			},
 			false,
@@ -362,13 +362,13 @@ func TestMerge(t *testing.T) {
 		{
 			&Config{
 				Outputs: []*Output{
-					&Output{DependsOn: []string{"foo"}},
+					{DependsOn: []string{"foo"}},
 				},
 			},
 			&Config{},
 			&Config{
 				Outputs: []*Output{
-					&Output{DependsOn: []string{"foo"}},
+					{DependsOn: []string{"foo"}},
 				},
 			},
 			false,
@@ -378,12 +378,12 @@ func TestMerge(t *testing.T) {
 			&Config{},
 			&Config{
 				Outputs: []*Output{
-					&Output{DependsOn: []string{"foo"}},
+					{DependsOn: []string{"foo"}},
 				},
 			},
 			&Config{
 				Outputs: []*Output{
-					&Output{DependsOn: []string{"foo"}},
+					{DependsOn: []string{"foo"}},
 				},
 			},
 			false,
@@ -392,17 +392,17 @@ func TestMerge(t *testing.T) {
 		{
 			&Config{
 				Outputs: []*Output{
-					&Output{DependsOn: []string{"bar"}},
+					{DependsOn: []string{"bar"}},
 				},
 			},
 			&Config{
 				Outputs: []*Output{
-					&Output{DependsOn: []string{"foo"}},
+					{DependsOn: []string{"foo"}},
 				},
 			},
 			&Config{
 				Outputs: []*Output{
-					&Output{DependsOn: []string{"foo"}},
+					{DependsOn: []string{"foo"}},
 				},
 			},
 			false,
@@ -412,13 +412,13 @@ func TestMerge(t *testing.T) {
 		{
 			&Config{
 				Outputs: []*Output{
-					&Output{Sensitive: true},
+					{Sensitive: true},
 				},
 			},
 			&Config{},
 			&Config{
 				Outputs: []*Output{
-					&Output{Sensitive: true},
+					{Sensitive: true},
 				},
 			},
 			false,
@@ -428,12 +428,12 @@ func TestMerge(t *testing.T) {
 			&Config{},
 			&Config{
 				Outputs: []*Output{
-					&Output{Sensitive: true},
+					{Sensitive: true},
 				},
 			},
 			&Config{
 				Outputs: []*Output{
-					&Output{Sensitive: true},
+					{Sensitive: true},
 				},
 			},
 			false,
@@ -442,17 +442,17 @@ func TestMerge(t *testing.T) {
 		{
 			&Config{
 				Outputs: []*Output{
-					&Output{Sensitive: false},
+					{Sensitive: false},
 				},
 			},
 			&Config{
 				Outputs: []*Output{
-					&Output{Sensitive: true},
+					{Sensitive: true},
 				},
 			},
 			&Config{
 				Outputs: []*Output{
-					&Output{Sensitive: true},
+					{Sensitive: true},
 				},
 			},
 			false,

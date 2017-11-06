@@ -10,21 +10,21 @@ func TestNodeDestroyResourceDynamicExpand_deposedCount(t *testing.T) {
 	var stateLock sync.RWMutex
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.bar.0": &ResourceState{
+					"aws_instance.bar.0": {
 						Type: "aws_instance",
 						Deposed: []*InstanceState{
-							&InstanceState{
+							{
 								ID: "foo",
 							},
 						},
 					},
-					"aws_instance.bar.1": &ResourceState{
+					"aws_instance.bar.1": {
 						Type: "aws_instance",
 						Deposed: []*InstanceState{
-							&InstanceState{
+							{
 								ID: "bar",
 							},
 						},

@@ -17,19 +17,19 @@ import (
 func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
-			"source": &schema.Schema{
+			"source": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"content"},
 			},
 
-			"content": &schema.Schema{
+			"content": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"source"},
 			},
 
-			"destination": &schema.Schema{
+			"destination": {
 				Type:     schema.TypeString,
 				Required: true,
 			},

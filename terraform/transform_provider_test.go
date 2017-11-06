@@ -50,7 +50,7 @@ func TestProviderTransformer_moduleChild(t *testing.T) {
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
-				&ImportTarget{
+				{
 					Addr: "module.moo.foo_instance.qux",
 					ID:   "bar",
 				},
@@ -250,7 +250,7 @@ func TestMissingProviderTransformer_moduleChild(t *testing.T) {
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
-				&ImportTarget{
+				{
 					Addr: "module.moo.foo_instance.qux",
 					ID:   "bar",
 				},
@@ -284,7 +284,7 @@ func TestMissingProviderTransformer_moduleGrandchild(t *testing.T) {
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
-				&ImportTarget{
+				{
 					Addr: "module.a.module.b.foo_instance.qux",
 					ID:   "bar",
 				},
@@ -316,7 +316,7 @@ func TestParentProviderTransformer(t *testing.T) {
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
-				&ImportTarget{
+				{
 					Addr: "module.moo.foo_instance.qux",
 					ID:   "bar",
 				},
@@ -359,7 +359,7 @@ func TestParentProviderTransformer_moduleGrandchild(t *testing.T) {
 	{
 		tf := &ImportStateTransformer{
 			Targets: []*ImportTarget{
-				&ImportTarget{
+				{
 					Addr: "module.a.module.b.foo_instance.qux",
 					ID:   "bar",
 				},
@@ -519,29 +519,4 @@ provider.foo
 provider.foo (close)
   foo_instance.web
   provider.foo
-`
-
-const testTransformDisableProviderBasicStr = `
-module.child
-  provider.aws (disabled)
-  var.foo
-provider.aws (close)
-  module.child
-  provider.aws (disabled)
-provider.aws (disabled)
-var.foo
-`
-
-const testTransformDisableProviderKeepStr = `
-aws_instance.foo
-  provider.aws
-module.child
-  provider.aws
-  var.foo
-provider.aws
-provider.aws (close)
-  aws_instance.foo
-  module.child
-  provider.aws
-var.foo
 `

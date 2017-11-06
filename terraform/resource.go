@@ -128,15 +128,6 @@ func (i *InstanceInfo) ResourceAddress() *ResourceAddress {
 	return addr
 }
 
-func (i *InstanceInfo) uniqueId() string {
-	prefix := i.HumanId()
-	if v := i.uniqueExtra; v != "" {
-		prefix += " " + v
-	}
-
-	return prefix
-}
-
 // ResourceConfig holds the configuration given for a resource. This is
 // done instead of a raw `map[string]interface{}` type so that rich
 // methods can be added to it to make dealing with it easier.

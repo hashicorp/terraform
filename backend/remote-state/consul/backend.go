@@ -15,76 +15,76 @@ import (
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"path": &schema.Schema{
+			"path": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Path to store state in Consul",
 			},
 
-			"access_token": &schema.Schema{
+			"access_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Access token for a Consul ACL",
 				Default:     "", // To prevent input
 			},
 
-			"address": &schema.Schema{
+			"address": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Address to the Consul Cluster",
 				Default:     "", // To prevent input
 			},
 
-			"scheme": &schema.Schema{
+			"scheme": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Scheme to communicate to Consul with",
 				Default:     "", // To prevent input
 			},
 
-			"datacenter": &schema.Schema{
+			"datacenter": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Datacenter to communicate with",
 				Default:     "", // To prevent input
 			},
 
-			"http_auth": &schema.Schema{
+			"http_auth": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "HTTP Auth in the format of 'username:password'",
 				Default:     "", // To prevent input
 			},
 
-			"gzip": &schema.Schema{
+			"gzip": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Compress the state data using gzip",
 				Default:     false,
 			},
 
-			"lock": &schema.Schema{
+			"lock": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Lock state access",
 				Default:     true,
 			},
 
-			"ca_file": &schema.Schema{
+			"ca_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A path to a PEM-encoded certificate authority used to verify the remote agent's certificate.",
 				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CACERT", ""),
 			},
 
-			"cert_file": &schema.Schema{
+			"cert_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A path to a PEM-encoded certificate provided to the remote agent; requires use of key_file.",
 				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CLIENT_CERT", ""),
 			},
 
-			"key_file": &schema.Schema{
+			"key_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A path to a PEM-encoded private key, required if cert_file is specified.",

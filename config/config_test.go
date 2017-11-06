@@ -105,7 +105,7 @@ func TestConfigCount_list(t *testing.T) {
 
 	// The key is to interpolate so it doesn't fail parsing
 	c.Resources[0].RawCount.Interpolate(map[string]ast.Variable{
-		"var.list": ast.Variable{
+		"var.list": {
 			Value: []ast.Variable{},
 			Type:  ast.TypeList,
 		},
@@ -711,10 +711,10 @@ func TestConfigValidate_localValuesMultiFile(t *testing.T) {
 
 func TestProviderConfigName(t *testing.T) {
 	pcs := []*ProviderConfig{
-		&ProviderConfig{Name: "aw"},
-		&ProviderConfig{Name: "aws"},
-		&ProviderConfig{Name: "a"},
-		&ProviderConfig{Name: "gce_"},
+		{Name: "aw"},
+		{Name: "aws"},
+		{Name: "a"},
+		{Name: "gce_"},
 	}
 
 	n := ProviderConfigName("aws_instance", pcs)

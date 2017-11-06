@@ -46,7 +46,7 @@ func TestSMCUserVariables_mapFromJSON(t *testing.T) {
 	// will be coerced later to a map
 	err := smcUserVariables(c, map[string]interface{}{
 		"test_map": []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"foo": "bar",
 			},
 		},

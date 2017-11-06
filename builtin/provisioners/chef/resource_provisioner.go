@@ -128,121 +128,121 @@ type provisioner struct {
 func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
-			"node_name": &schema.Schema{
+			"node_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"server_url": &schema.Schema{
+			"server_url": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"user_name": &schema.Schema{
+			"user_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"user_key": &schema.Schema{
+			"user_key": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"attributes_json": &schema.Schema{
+			"attributes_json": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"client_options": &schema.Schema{
+			"client_options": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
-			"disable_reporting": &schema.Schema{
+			"disable_reporting": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"environment": &schema.Schema{
+			"environment": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  defaultEnv,
 			},
-			"fetch_chef_certificates": &schema.Schema{
+			"fetch_chef_certificates": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"log_to_file": &schema.Schema{
+			"log_to_file": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"use_policyfile": &schema.Schema{
+			"use_policyfile": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"policy_group": &schema.Schema{
+			"policy_group": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"policy_name": &schema.Schema{
+			"policy_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"http_proxy": &schema.Schema{
+			"http_proxy": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"https_proxy": &schema.Schema{
+			"https_proxy": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"no_proxy": &schema.Schema{
+			"no_proxy": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
-			"named_run_list": &schema.Schema{
+			"named_run_list": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"ohai_hints": &schema.Schema{
+			"ohai_hints": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
-			"os_type": &schema.Schema{
+			"os_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"recreate_client": &schema.Schema{
+			"recreate_client": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"prevent_sudo": &schema.Schema{
+			"prevent_sudo": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"run_list": &schema.Schema{
+			"run_list": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
-			"secret_key": &schema.Schema{
+			"secret_key": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"skip_install": &schema.Schema{
+			"skip_install": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"skip_register": &schema.Schema{
+			"skip_register": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"ssl_verify_mode": &schema.Schema{
+			"ssl_verify_mode": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"vault_json": &schema.Schema{
+			"vault_json": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"version": &schema.Schema{
+			"version": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},

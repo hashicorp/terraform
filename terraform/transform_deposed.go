@@ -39,7 +39,7 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 
 		deposed := rs.Deposed
 
-		for i, _ := range deposed {
+		for i := range deposed {
 			g.Add(&graphNodeDeposedResource{
 				Index:            i,
 				ResourceName:     k,

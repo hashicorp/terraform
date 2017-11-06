@@ -346,7 +346,7 @@ func testProvider(prefix string) *MockResourceProvider {
 		return s, nil
 	}
 	p.ResourcesReturn = []ResourceType{
-		ResourceType{
+		{
 			Name: fmt.Sprintf("%s_instance", prefix),
 		},
 	}
@@ -397,18 +397,6 @@ func testCheckDeadlock(t *testing.T, f func()) {
 		// ok
 	}
 }
-
-const testContextGraph = `
-root: root
-aws_instance.bar
-  aws_instance.bar -> provider.aws
-aws_instance.foo
-  aws_instance.foo -> provider.aws
-provider.aws
-root
-  root -> aws_instance.bar
-  root -> aws_instance.foo
-`
 
 const testContextRefreshModuleStr = `
 aws_instance.web: (tainted)

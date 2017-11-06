@@ -83,16 +83,16 @@ func TestLoadConfig_credentials(t *testing.T) {
 
 	want := &Config{
 		Credentials: map[string]map[string]interface{}{
-			"example.com": map[string]interface{}{
+			"example.com": {
 				"token": "foo the bar baz",
 			},
-			"example.net": map[string]interface{}{
+			"example.net": {
 				"username": "foo",
 				"password": "baz",
 			},
 		},
 		CredentialsHelpers: map[string]*ConfigCredentialsHelper{
-			"foo": &ConfigCredentialsHelper{
+			"foo": {
 				Args: []string{"bar", "baz"},
 			},
 		},
@@ -135,7 +135,7 @@ func TestConfigValidate(t *testing.T) {
 		"credentials good": {
 			&Config{
 				Credentials: map[string]map[string]interface{}{
-					"example.com": map[string]interface{}{
+					"example.com": {
 						"token": "foo",
 					},
 				},
@@ -145,7 +145,7 @@ func TestConfigValidate(t *testing.T) {
 		"credentials with bad hostname": {
 			&Config{
 				Credentials: map[string]map[string]interface{}{
-					"example..com": map[string]interface{}{
+					"example..com": {
 						"token": "foo",
 					},
 				},

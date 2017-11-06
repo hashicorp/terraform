@@ -43,15 +43,15 @@ var ReservedProviderFields = []string{
 
 func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
-		"atlas":     struct{}{},
-		"data":      struct{}{},
-		"locals":    struct{}{},
-		"module":    struct{}{},
-		"output":    struct{}{},
-		"provider":  struct{}{},
-		"resource":  struct{}{},
-		"terraform": struct{}{},
-		"variable":  struct{}{},
+		"atlas":     {},
+		"data":      {},
+		"locals":    {},
+		"module":    {},
+		"output":    {},
+		"provider":  {},
+		"resource":  {},
+		"terraform": {},
+		"variable":  {},
 	}
 
 	// Top-level item should be the object list
@@ -1258,7 +1258,7 @@ func unwrapHCLObjectKeysFromJSON(item *ast.ObjectItem, depth int) {
 			item.Val = &ast.ObjectType{
 				List: &ast.ObjectList{
 					Items: []*ast.ObjectItem{
-						&ast.ObjectItem{
+						{
 							Keys: []*ast.ObjectKey{key},
 							Val:  item.Val,
 						},

@@ -82,23 +82,6 @@ func metaOverridesForProvider(p terraform.ResourceProvider) *testingOverrides {
 	}
 }
 
-func metaOverridesForProviderAndProvisioner(p terraform.ResourceProvider, pr terraform.ResourceProvisioner) *testingOverrides {
-	return &testingOverrides{
-		ProviderResolver: terraform.ResourceProviderResolverFixed(
-			map[string]terraform.ResourceProviderFactory{
-				"test": func() (terraform.ResourceProvider, error) {
-					return p, nil
-				},
-			},
-		),
-		Provisioners: map[string]terraform.ResourceProvisionerFactory{
-			"shell": func() (terraform.ResourceProvisioner, error) {
-				return pr, nil
-			},
-		},
-	}
-}
-
 func testModule(t *testing.T, name string) *module.Tree {
 	t.Helper()
 
@@ -171,10 +154,10 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 func testState() *terraform.State {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -288,7 +271,7 @@ func testProvider() *terraform.MockResourceProvider {
 		return s, nil
 	}
 	p.ResourcesReturn = []terraform.ResourceType{
-		terraform.ResourceType{
+		{
 			Name: "test_instance",
 		},
 	}
@@ -311,26 +294,6 @@ func testTempDir(t *testing.T) string {
 	}
 
 	return d
-}
-
-// testRename renames the path to new and returns a function to defer to
-// revert the rename.
-func testRename(t *testing.T, base, path, new string) func() {
-	t.Helper()
-
-	if base != "" {
-		path = filepath.Join(base, path)
-		new = filepath.Join(base, new)
-	}
-
-	if err := os.Rename(path, new); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	return func() {
-		// Just re-rename and ignore the return value
-		testRename(t, "", new, path)
-	}
 }
 
 // testChdir changes the directory and returns a function to defer to

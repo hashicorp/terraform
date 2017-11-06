@@ -84,7 +84,7 @@ resource "test_resource" "foo" {
 				`),
 				Check: func(s *terraform.State) error {
 					count := 0
-					for k, _ := range s.RootModule().Resources {
+					for k := range s.RootModule().Resources {
 						if strings.HasPrefix(k, "test_resource.foo.") {
 							count++
 						}

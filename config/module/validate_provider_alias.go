@@ -47,7 +47,7 @@ func (t *Tree) validateProviderAlias() error {
 				parents = append(parents, pv)
 			}
 		}
-		for k, _ := range pv.Used {
+		for k := range pv.Used {
 			// Check if we define this
 			if _, ok := pv.Defined[k]; ok {
 				continue

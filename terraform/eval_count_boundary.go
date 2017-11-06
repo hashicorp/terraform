@@ -35,7 +35,7 @@ func (n *EvalCountFixZeroOneBoundaryGlobal) Eval(ctx EvalContext) (interface{}, 
 func (n *EvalCountFixZeroOneBoundaryGlobal) fixModule(m *ModuleState) error {
 	// Counts keeps track of keys and their counts
 	counts := make(map[string]int)
-	for k, _ := range m.Resources {
+	for k := range m.Resources {
 		// Parse the key
 		key, err := ParseResourceStateKey(k)
 		if err != nil {

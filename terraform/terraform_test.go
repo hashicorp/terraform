@@ -217,19 +217,6 @@ func (h *HookRecordApplyOrder) PreApply(
 // Below are all the constant strings that are the expected output for
 // various tests.
 
-const testTerraformInputProviderStr = `
-aws_instance.bar:
-  ID = foo
-  bar = override
-  foo = us-east-1
-  type = aws_instance
-aws_instance.foo:
-  ID = foo
-  bar = baz
-  num = 2
-  type = aws_instance
-`
-
 const testTerraformInputProviderOnlyStr = `
 aws_instance.foo:
   ID = foo
@@ -934,22 +921,6 @@ STATE:
 <no state>
 `
 
-const testTerraformPlanComputedIdStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "<computed>"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo
-  foo:  "" => "<computed>"
-  num:  "" => "2"
-  type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
 const testTerraformPlanComputedListStr = `
 DIFF:
 
@@ -1451,19 +1422,6 @@ STATE:
 <no state>
 `
 
-const testTerraformPlanModuleVarIntStr = `
-DIFF:
-
-module.child:
-  CREATE: aws_instance.foo
-    num:  "" => "2"
-    type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
 const testTerraformPlanOrphanStr = `
 DIFF:
 
@@ -1523,39 +1481,6 @@ aws_instance.foo: (tainted)
   ID = foo
   type = aws_instance
   vars = foo
-`
-
-const testTerraformPlanMultipleTaintStr = `
-DIFF:
-
-DESTROY/CREATE: aws_instance.bar
-  foo:  "" => "2"
-  type: "" => "aws_instance"
-
-STATE:
-
-aws_instance.bar: (2 tainted)
-  ID = <not created>
-  Tainted ID 1 = baz
-  Tainted ID 2 = zip
-aws_instance.foo:
-  ID = bar
-  num = 2
-`
-
-const testTerraformPlanVarMultiCountOneStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "2"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo
-  num:  "" => "2"
-  type: "" => "aws_instance"
-
-STATE:
-
-<no state>
 `
 
 const testTerraformPlanPathVarStr = `

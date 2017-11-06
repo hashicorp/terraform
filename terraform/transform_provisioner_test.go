@@ -58,19 +58,19 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 		var state State
 		state.init()
 		state.Modules = []*ModuleState{
-			&ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
+					"aws_instance.foo": {
 						Primary: &InstanceState{ID: "foo"},
 					},
 				},
 			},
 
-			&ModuleState{
+			{
 				Path: []string{"root", "child"},
 				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
+					"aws_instance.foo": {
 						Primary: &InstanceState{ID: "foo"},
 					},
 				},

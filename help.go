@@ -57,7 +57,7 @@ func listCommands(commands map[string]cli.CommandFactory, maxKeyLen int) string 
 	// Get the list of keys so we can sort them, and also get the maximum
 	// key length so they can be aligned properly.
 	keys := make([]string, 0, len(commands))
-	for key, _ := range commands {
+	for key := range commands {
 		// This is an internal command that users should never call directly so
 		// we will hide it from the command listing.
 		if key == "internal-plugin" {

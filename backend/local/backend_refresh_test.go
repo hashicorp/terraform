@@ -184,10 +184,10 @@ func testRefreshState() *terraform.State {
 	return &terraform.State{
 		Version: 2,
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",

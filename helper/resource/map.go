@@ -124,7 +124,7 @@ func (m *Map) Refresh(
 // a ResourceProvider.
 func (m *Map) Resources() []terraform.ResourceType {
 	ks := make([]string, 0, len(m.Mapping))
-	for k, _ := range m.Mapping {
+	for k := range m.Mapping {
 		ks = append(ks, k)
 	}
 	sort.Strings(ks)

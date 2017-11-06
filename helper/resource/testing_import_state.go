@@ -59,7 +59,7 @@ func testStepImportState(
 		Module: mod,
 
 		Targets: []*terraform.ImportTarget{
-			&terraform.ImportTarget{
+			{
 				Addr: step.ResourceName,
 				ID:   importId,
 			},
@@ -114,12 +114,12 @@ func testStepImportState(
 
 			// Remove fields we're ignoring
 			for _, v := range step.ImportStateVerifyIgnore {
-				for k, _ := range actual {
+				for k := range actual {
 					if strings.HasPrefix(k, v) {
 						delete(actual, k)
 					}
 				}
-				for k, _ := range expected {
+				for k := range expected {
 					if strings.HasPrefix(k, v) {
 						delete(expected, k)
 					}

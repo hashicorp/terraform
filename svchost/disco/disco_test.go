@@ -109,7 +109,7 @@ func TestDiscover(t *testing.T) {
 
 		d := NewDisco()
 		d.SetCredentialsSource(auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
-			host: map[string]interface{}{
+			host: {
 				"token": "abc123",
 			},
 		}))

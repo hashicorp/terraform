@@ -451,10 +451,10 @@ func TestPlan_destroyDeposed(t *testing.T) {
 	plan := &terraform.Plan{
 		Diff: &terraform.Diff{
 			Modules: []*terraform.ModuleDiff{
-				&terraform.ModuleDiff{
+				{
 					Path: []string{"root"},
 					Resources: map[string]*terraform.InstanceDiff{
-						"aws_instance.foo": &terraform.InstanceDiff{
+						"aws_instance.foo": {
 							DestroyDeposed: true,
 						},
 					},
@@ -478,12 +478,12 @@ func TestPlan_displayInterpolations(t *testing.T) {
 	plan := &terraform.Plan{
 		Diff: &terraform.Diff{
 			Modules: []*terraform.ModuleDiff{
-				&terraform.ModuleDiff{
+				{
 					Path: []string{"root"},
 					Resources: map[string]*terraform.InstanceDiff{
-						"aws_instance.foo": &terraform.InstanceDiff{
+						"aws_instance.foo": {
 							Attributes: map[string]*terraform.ResourceAttrDiff{
-								"computed_field": &terraform.ResourceAttrDiff{
+								"computed_field": {
 									New:         "${aws_instance.other.id}",
 									NewComputed: true,
 								},
@@ -515,13 +515,13 @@ func TestPlan_forcesNewResource(t *testing.T) {
 	plan := &terraform.Plan{
 		Diff: &terraform.Diff{
 			Modules: []*terraform.ModuleDiff{
-				&terraform.ModuleDiff{
+				{
 					Path: []string{"root"},
 					Resources: map[string]*terraform.InstanceDiff{
-						"test_resource.foo": &terraform.InstanceDiff{
+						"test_resource.foo": {
 							Destroy: true,
 							Attributes: map[string]*terraform.ResourceAttrDiff{
-								"A": &terraform.ResourceAttrDiff{
+								"A": {
 									New:         "B",
 									RequiresNew: true,
 								},
@@ -549,12 +549,12 @@ func TestPlan_rootDataSource(t *testing.T) {
 	plan := &terraform.Plan{
 		Diff: &terraform.Diff{
 			Modules: []*terraform.ModuleDiff{
-				&terraform.ModuleDiff{
+				{
 					Path: []string{"root"},
 					Resources: map[string]*terraform.InstanceDiff{
-						"data.type.name": &terraform.InstanceDiff{
+						"data.type.name": {
 							Attributes: map[string]*terraform.ResourceAttrDiff{
-								"A": &terraform.ResourceAttrDiff{
+								"A": {
 									New:         "B",
 									RequiresNew: true,
 								},
@@ -582,12 +582,12 @@ func TestPlan_nestedDataSource(t *testing.T) {
 	plan := &terraform.Plan{
 		Diff: &terraform.Diff{
 			Modules: []*terraform.ModuleDiff{
-				&terraform.ModuleDiff{
+				{
 					Path: []string{"root", "nested"},
 					Resources: map[string]*terraform.InstanceDiff{
-						"data.type.name": &terraform.InstanceDiff{
+						"data.type.name": {
 							Attributes: map[string]*terraform.ResourceAttrDiff{
-								"A": &terraform.ResourceAttrDiff{
+								"A": {
 									New:         "B",
 									RequiresNew: true,
 								},

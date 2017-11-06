@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"encoding/base64"
+
 	"github.com/Azure/azure-sdk-for-go/storage"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
@@ -17,7 +18,6 @@ import (
 )
 
 const (
-	leaseHeader = "x-ms-lease-id"
 	// Must be lower case
 	lockInfoMetaKey = "terraformlockid"
 )

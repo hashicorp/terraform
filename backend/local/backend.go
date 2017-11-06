@@ -275,19 +275,19 @@ func (b *Local) Colorize() *colorstring.Colorize {
 func (b *Local) init() {
 	b.schema = &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"path": &schema.Schema{
+			"path": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
 
-			"workspace_dir": &schema.Schema{
+			"workspace_dir": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
 
-			"environment_dir": &schema.Schema{
+			"environment_dir": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Default:       "",

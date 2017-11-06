@@ -21,7 +21,7 @@ func TestMultiLevelFieldReaderReadFieldExact(t *testing.T) {
 			Readers: []FieldReader{
 				&MapFieldReader{
 					Schema: map[string]*Schema{
-						"foo": &Schema{Type: TypeString},
+						"foo": {Type: TypeString},
 					},
 					Map: BasicMapReader(map[string]string{
 						"foo": "bar",
@@ -29,7 +29,7 @@ func TestMultiLevelFieldReaderReadFieldExact(t *testing.T) {
 				},
 				&MapFieldReader{
 					Schema: map[string]*Schema{
-						"foo": &Schema{Type: TypeString},
+						"foo": {Type: TypeString},
 					},
 					Map: BasicMapReader(map[string]string{
 						"foo": "baz",
@@ -37,7 +37,7 @@ func TestMultiLevelFieldReaderReadFieldExact(t *testing.T) {
 				},
 				&MapFieldReader{
 					Schema: map[string]*Schema{
-						"foo": &Schema{Type: TypeString},
+						"foo": {Type: TypeString},
 					},
 					Map: BasicMapReader(map[string]string{}),
 				},
@@ -88,12 +88,12 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 			Readers: []FieldReader{
 				&DiffFieldReader{
 					Schema: map[string]*Schema{
-						"availability_zone": &Schema{Type: TypeString},
+						"availability_zone": {Type: TypeString},
 					},
 
 					Source: &MapFieldReader{
 						Schema: map[string]*Schema{
-							"availability_zone": &Schema{Type: TypeString},
+							"availability_zone": {Type: TypeString},
 						},
 						Map: BasicMapReader(map[string]string{
 							"availability_zone": "foo",
@@ -102,7 +102,7 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 
 					Diff: &terraform.InstanceDiff{
 						Attributes: map[string]*terraform.ResourceAttrDiff{
-							"availability_zone": &terraform.ResourceAttrDiff{
+							"availability_zone": {
 								Old:         "foo",
 								New:         "bar",
 								RequiresNew: true,
@@ -124,7 +124,7 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 			Readers: []FieldReader{
 				&MapFieldReader{
 					Schema: map[string]*Schema{
-						"availability_zone": &Schema{Type: TypeString},
+						"availability_zone": {Type: TypeString},
 					},
 
 					Map: BasicMapReader(map[string]string{
@@ -134,12 +134,12 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 
 				&DiffFieldReader{
 					Schema: map[string]*Schema{
-						"availability_zone": &Schema{Type: TypeString},
+						"availability_zone": {Type: TypeString},
 					},
 
 					Source: &MapFieldReader{
 						Schema: map[string]*Schema{
-							"availability_zone": &Schema{Type: TypeString},
+							"availability_zone": {Type: TypeString},
 						},
 
 						Map: BasicMapReader(map[string]string{
@@ -149,7 +149,7 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 
 					Diff: &terraform.InstanceDiff{
 						Attributes: map[string]*terraform.ResourceAttrDiff{
-							"availability_zone": &terraform.ResourceAttrDiff{
+							"availability_zone": {
 								Old:         "foo",
 								New:         "bar",
 								NewComputed: true,
@@ -172,7 +172,7 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 			Readers: []FieldReader{
 				&DiffFieldReader{
 					Schema: map[string]*Schema{
-						"config_vars": &Schema{
+						"config_vars": {
 							Type: TypeList,
 							Elem: &Schema{Type: TypeMap},
 						},
@@ -180,7 +180,7 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 
 					Source: &MapFieldReader{
 						Schema: map[string]*Schema{
-							"config_vars": &Schema{
+							"config_vars": {
 								Type: TypeList,
 								Elem: &Schema{Type: TypeMap},
 							},
@@ -196,7 +196,7 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 
 					Diff: &terraform.InstanceDiff{
 						Attributes: map[string]*terraform.ResourceAttrDiff{
-							"config_vars.0.bar": &terraform.ResourceAttrDiff{
+							"config_vars.0.bar": {
 								NewRemoved: true,
 							},
 						},
@@ -223,7 +223,7 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 			Readers: []FieldReader{
 				&MapFieldReader{
 					Schema: map[string]*Schema{
-						"foo": &Schema{Type: TypeString},
+						"foo": {Type: TypeString},
 					},
 					Map: BasicMapReader(map[string]string{
 						"foo": "bar",
@@ -231,7 +231,7 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 				},
 				&MapFieldReader{
 					Schema: map[string]*Schema{
-						"foo": &Schema{Type: TypeString},
+						"foo": {Type: TypeString},
 					},
 					Map: BasicMapReader(map[string]string{}),
 				},

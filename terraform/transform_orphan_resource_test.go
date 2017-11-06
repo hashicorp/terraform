@@ -12,10 +12,10 @@ func TestOrphanResourceTransformer(t *testing.T) {
 	mod := testModule(t, "transform-orphan-basic")
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: RootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
+					"aws_instance.web": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "foo",
@@ -23,7 +23,7 @@ func TestOrphanResourceTransformer(t *testing.T) {
 					},
 
 					// The orphan
-					"aws_instance.db": &ResourceState{
+					"aws_instance.db": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "foo",
@@ -88,17 +88,17 @@ func TestOrphanResourceTransformer_countGood(t *testing.T) {
 	mod := testModule(t, "transform-orphan-count")
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: RootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
+					"aws_instance.foo.0": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "foo",
 						},
 					},
 
-					"aws_instance.foo.1": &ResourceState{
+					"aws_instance.foo.1": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "foo",
@@ -138,17 +138,17 @@ func TestOrphanResourceTransformer_countBad(t *testing.T) {
 	mod := testModule(t, "transform-orphan-count-empty")
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: RootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
+					"aws_instance.foo.0": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "foo",
 						},
 					},
 
-					"aws_instance.foo.1": &ResourceState{
+					"aws_instance.foo.1": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "foo",
@@ -188,10 +188,10 @@ func TestOrphanResourceTransformer_modules(t *testing.T) {
 	mod := testModule(t, "transform-orphan-modules")
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: RootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
+					"aws_instance.foo": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "foo",
@@ -200,10 +200,10 @@ func TestOrphanResourceTransformer_modules(t *testing.T) {
 				},
 			},
 
-			&ModuleState{
+			{
 				Path: []string{"root", "child"},
 				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
+					"aws_instance.web": {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "foo",

@@ -135,7 +135,7 @@ func TestLocal_applyError(t *testing.T) {
 		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		return &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"ami": &terraform.ResourceAttrDiff{
+				"ami": {
 					New: "bar",
 				},
 			},
@@ -237,25 +237,5 @@ func (s failingState) WriteState(state *terraform.State) error {
 func testOperationApply() *backend.Operation {
 	return &backend.Operation{
 		Type: backend.OperationTypeApply,
-	}
-}
-
-// testApplyState is just a common state that we use for testing refresh.
-func testApplyState() *terraform.State {
-	return &terraform.State{
-		Version: 2,
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
 	}
 }

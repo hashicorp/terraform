@@ -8,7 +8,7 @@ import (
 
 func TestStaticCredentialsSource(t *testing.T) {
 	src := StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
-		svchost.Hostname("example.com"): map[string]interface{}{
+		svchost.Hostname("example.com"): {
 			"token": "abc123",
 		},
 	})

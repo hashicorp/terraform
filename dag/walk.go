@@ -432,7 +432,7 @@ func (w *Walker) waitDeps(
 	// Dependencies satisfied! We need to check if any errored
 	w.errLock.Lock()
 	defer w.errLock.Unlock()
-	for dep, _ := range deps {
+	for dep := range deps {
 		if w.errMap[dep] != nil {
 			// One of our dependencies failed, so return false
 			doneCh <- false

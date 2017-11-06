@@ -107,7 +107,7 @@ func TestMain(m *testing.M) {
 			}
 
 			log.Printf("Sweeper Tests ran:\n")
-			for s, _ := range sweeperRunList {
+			for s := range sweeperRunList {
 				fmt.Printf("\t- %s\n", s)
 			}
 		}
@@ -694,12 +694,12 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	expected := r.Primary.Attributes
 	// Remove fields we're ignoring
 	for _, v := range c.IDRefreshIgnore {
-		for k, _ := range actual {
+		for k := range actual {
 			if strings.HasPrefix(k, v) {
 				delete(actual, k)
 			}
 		}
-		for k, _ := range expected {
+		for k := range expected {
 			if strings.HasPrefix(k, v) {
 				delete(expected, k)
 			}

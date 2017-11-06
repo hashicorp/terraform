@@ -23,12 +23,12 @@ func TestDiffTransformer(t *testing.T) {
 		Module: testModule(t, "transform-diff-basic"),
 		Diff: &Diff{
 			Modules: []*ModuleDiff{
-				&ModuleDiff{
+				{
 					Path: []string{"root"},
 					Resources: map[string]*InstanceDiff{
-						"aws_instance.foo": &InstanceDiff{
+						"aws_instance.foo": {
 							Attributes: map[string]*ResourceAttrDiff{
-								"name": &ResourceAttrDiff{
+								"name": {
 									Old: "",
 									New: "foo",
 								},

@@ -11,10 +11,10 @@ import (
 func TestSession_basicState(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -26,10 +26,10 @@ func TestSession_basicState(t *testing.T) {
 				},
 			},
 
-			&terraform.ModuleState{
+			{
 				Path: []string{"root", "module"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",

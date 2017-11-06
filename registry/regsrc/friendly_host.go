@@ -131,12 +131,3 @@ func (h *FriendlyHost) Equal(other *FriendlyHost) bool {
 	}
 	return h.Normalized() == other.Normalized()
 }
-
-func containsPuny(host string) bool {
-	for _, lbl := range strings.Split(host, ".") {
-		if strings.HasPrefix(strings.ToLower(lbl), "xn--") {
-			return true
-		}
-	}
-	return false
-}

@@ -154,16 +154,3 @@ data "terraform_remote_state" "foo" {
 		foo = "bar"
 	}
 }`
-
-const testAccState_defaults = `
-data "terraform_remote_state" "foo" {
-	backend = "local"
-
-	config {
-		path = "./test-fixtures/basic.tfstate"
-	}
-
-	defaults {
-		foo = "not bar"
-	}
-}`

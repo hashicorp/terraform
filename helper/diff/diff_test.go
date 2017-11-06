@@ -49,7 +49,7 @@ func testResourceDiffStr(rd *terraform.InstanceDiff) string {
 
 	keyLen := 0
 	keys := make([]string, 0, len(rd.Attributes))
-	for key, _ := range rd.Attributes {
+	for key := range rd.Attributes {
 		keys = append(keys, key)
 		if len(key) > keyLen {
 			keyLen = len(key)

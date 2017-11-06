@@ -162,7 +162,7 @@ func TestResourceConfigGet(t *testing.T) {
 		{
 			Config: map[string]interface{}{
 				"mapname": []map[string]interface{}{
-					map[string]interface{}{"key": 1},
+					{"key": 1},
 				},
 			},
 			Key:   "mapname.0.key",
@@ -173,7 +173,7 @@ func TestResourceConfigGet(t *testing.T) {
 		{
 			Config: map[string]interface{}{
 				"mapname": []map[string]interface{}{
-					map[string]interface{}{"key.name": 1},
+					{"key.name": 1},
 				},
 			},
 			Key:   "mapname.0.key.name",
@@ -184,7 +184,7 @@ func TestResourceConfigGet(t *testing.T) {
 		{
 			Config: map[string]interface{}{
 				"mapname": []map[string]interface{}{
-					map[string]interface{}{
+					{
 						"key.name":   1,
 						"key.name.2": 2,
 					},
@@ -196,7 +196,7 @@ func TestResourceConfigGet(t *testing.T) {
 		{
 			Config: map[string]interface{}{
 				"mapname": []map[string]interface{}{
-					map[string]interface{}{
+					{
 						"key.name":     1,
 						"key.name.foo": 2,
 					},
@@ -208,7 +208,7 @@ func TestResourceConfigGet(t *testing.T) {
 		{
 			Config: map[string]interface{}{
 				"mapname": []map[string]interface{}{
-					map[string]interface{}{
+					{
 						"listkey": []map[string]interface{}{
 							{"key": 3},
 						},
@@ -271,7 +271,7 @@ func TestResourceConfigGet(t *testing.T) {
 		{
 			Config: map[string]interface{}{
 				"mapname": []map[string]interface{}{
-					map[string]interface{}{
+					{
 						"key.name":   1,
 						"key.name.0": 2,
 						"key":        map[string]interface{}{"name": 3},
@@ -536,7 +536,7 @@ func TestResourceConfigIsComputed(t *testing.T) {
 			Name: "nested set with computed elements",
 			Config: map[string]interface{}{
 				"route": []map[string]interface{}{
-					map[string]interface{}{
+					{
 						"index":   "1",
 						"gateway": []interface{}{"${var.foo}"},
 					},

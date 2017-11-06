@@ -30,13 +30,6 @@ func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
 }
 
-func testAccPreCheck(t *testing.T) {
-	v := os.Getenv("OS_AUTH_URL")
-	if v == "" {
-		t.Fatal("OS_AUTH_URL must be set for acceptance tests")
-	}
-}
-
 func TestBackendConfig(t *testing.T) {
 	testACC(t)
 
@@ -111,7 +104,7 @@ func TestBackendPath(t *testing.T) {
 	state1.AddModuleState(&terraform.ModuleState{
 		Path: []string{"root"},
 		Outputs: map[string]*terraform.OutputState{
-			"bar": &terraform.OutputState{
+			"bar": {
 				Type:      "string",
 				Sensitive: false,
 				Value:     "baz",
@@ -166,7 +159,7 @@ func TestBackendArchive(t *testing.T) {
 	state1.AddModuleState(&terraform.ModuleState{
 		Path: []string{"root"},
 		Outputs: map[string]*terraform.OutputState{
-			"bar": &terraform.OutputState{
+			"bar": {
 				Type:      "string",
 				Sensitive: false,
 				Value:     "baz",

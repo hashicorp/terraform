@@ -314,7 +314,7 @@ func (c *Config) Validate() error {
 		varMap[v.Name] = v
 	}
 
-	for k, _ := range varMap {
+	for k := range varMap {
 		if !NameRegexp.MatchString(k) {
 			errs = append(errs, fmt.Errorf(
 				"variable %q: variable name must match regular expresion %s",

@@ -11,44 +11,44 @@ func TestMapFieldWriter_impl(t *testing.T) {
 
 func TestMapFieldWriter(t *testing.T) {
 	schema := map[string]*Schema{
-		"bool":   &Schema{Type: TypeBool},
-		"int":    &Schema{Type: TypeInt},
-		"string": &Schema{Type: TypeString},
-		"list": &Schema{
+		"bool":   {Type: TypeBool},
+		"int":    {Type: TypeInt},
+		"string": {Type: TypeString},
+		"list": {
 			Type: TypeList,
 			Elem: &Schema{Type: TypeString},
 		},
-		"listInt": &Schema{
+		"listInt": {
 			Type: TypeList,
 			Elem: &Schema{Type: TypeInt},
 		},
-		"listResource": &Schema{
+		"listResource": {
 			Type:     TypeList,
 			Optional: true,
 			Computed: true,
 			Elem: &Resource{
 				Schema: map[string]*Schema{
-					"value": &Schema{
+					"value": {
 						Type:     TypeInt,
 						Optional: true,
 					},
 				},
 			},
 		},
-		"map": &Schema{Type: TypeMap},
-		"set": &Schema{
+		"map": {Type: TypeMap},
+		"set": {
 			Type: TypeSet,
 			Elem: &Schema{Type: TypeInt},
 			Set: func(a interface{}) int {
 				return a.(int)
 			},
 		},
-		"setDeep": &Schema{
+		"setDeep": {
 			Type: TypeSet,
 			Elem: &Resource{
 				Schema: map[string]*Schema{
-					"index": &Schema{Type: TypeInt},
-					"value": &Schema{Type: TypeString},
+					"index": {Type: TypeInt},
+					"value": {Type: TypeString},
 				},
 			},
 			Set: func(a interface{}) int {

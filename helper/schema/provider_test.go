@@ -29,7 +29,7 @@ func TestProviderGetSchema(t *testing.T) {
 			},
 		},
 		ResourcesMap: map[string]*Resource{
-			"foo": &Resource{
+			"foo": {
 				Schema: map[string]*Schema{
 					"bar": {
 						Type:     TypeString,
@@ -39,7 +39,7 @@ func TestProviderGetSchema(t *testing.T) {
 			},
 		},
 		DataSourcesMap: map[string]*Resource{
-			"baz": &Resource{
+			"baz": {
 				Schema: map[string]*Schema{
 					"bur": {
 						Type:     TypeString,
@@ -53,7 +53,7 @@ func TestProviderGetSchema(t *testing.T) {
 	want := &terraform.ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
-				"bar": &configschema.Attribute{
+				"bar": {
 					Type:     cty.String,
 					Required: true,
 				},
@@ -61,9 +61,9 @@ func TestProviderGetSchema(t *testing.T) {
 			BlockTypes: map[string]*configschema.NestedBlock{},
 		},
 		ResourceTypes: map[string]*configschema.Block{
-			"foo": &configschema.Block{
+			"foo": {
 				Attributes: map[string]*configschema.Attribute{
-					"bar": &configschema.Attribute{
+					"bar": {
 						Type:     cty.String,
 						Required: true,
 					},
@@ -72,9 +72,9 @@ func TestProviderGetSchema(t *testing.T) {
 			},
 		},
 		DataSources: map[string]*configschema.Block{
-			"baz": &configschema.Block{
+			"baz": {
 				Attributes: map[string]*configschema.Attribute{
-					"bur": &configschema.Attribute{
+					"bur": {
 						Type:     cty.String,
 						Required: true,
 					},
@@ -111,7 +111,7 @@ func TestProviderConfigure(t *testing.T) {
 		{
 			P: &Provider{
 				Schema: map[string]*Schema{
-					"foo": &Schema{
+					"foo": {
 						Type:     TypeInt,
 						Optional: true,
 					},
@@ -134,7 +134,7 @@ func TestProviderConfigure(t *testing.T) {
 		{
 			P: &Provider{
 				Schema: map[string]*Schema{
-					"foo": &Schema{
+					"foo": {
 						Type:     TypeInt,
 						Optional: true,
 					},
@@ -186,8 +186,8 @@ func TestProviderResources(t *testing.T) {
 				},
 			},
 			Result: []terraform.ResourceType{
-				terraform.ResourceType{Name: "bar", SchemaAvailable: true},
-				terraform.ResourceType{Name: "foo", SchemaAvailable: true},
+				{Name: "bar", SchemaAvailable: true},
+				{Name: "foo", SchemaAvailable: true},
 			},
 		},
 
@@ -195,14 +195,14 @@ func TestProviderResources(t *testing.T) {
 			P: &Provider{
 				ResourcesMap: map[string]*Resource{
 					"foo": nil,
-					"bar": &Resource{Importer: &ResourceImporter{}},
+					"bar": {Importer: &ResourceImporter{}},
 					"baz": nil,
 				},
 			},
 			Result: []terraform.ResourceType{
-				terraform.ResourceType{Name: "bar", Importable: true, SchemaAvailable: true},
-				terraform.ResourceType{Name: "baz", SchemaAvailable: true},
-				terraform.ResourceType{Name: "foo", SchemaAvailable: true},
+				{Name: "bar", Importable: true, SchemaAvailable: true},
+				{Name: "baz", SchemaAvailable: true},
+				{Name: "foo", SchemaAvailable: true},
 			},
 		},
 	}
@@ -233,8 +233,8 @@ func TestProviderDataSources(t *testing.T) {
 				},
 			},
 			Result: []terraform.DataSource{
-				terraform.DataSource{Name: "bar", SchemaAvailable: true},
-				terraform.DataSource{Name: "foo", SchemaAvailable: true},
+				{Name: "bar", SchemaAvailable: true},
+				{Name: "foo", SchemaAvailable: true},
 			},
 		},
 	}
@@ -256,7 +256,7 @@ func TestProviderValidate(t *testing.T) {
 		{
 			P: &Provider{
 				Schema: map[string]*Schema{
-					"foo": &Schema{},
+					"foo": {},
 				},
 			},
 			Config: nil,
@@ -294,7 +294,7 @@ func TestProviderValidateResource(t *testing.T) {
 		{
 			P: &Provider{
 				ResourcesMap: map[string]*Resource{
-					"foo": &Resource{},
+					"foo": {},
 				},
 			},
 			Type:   "foo",
@@ -319,7 +319,7 @@ func TestProviderValidateResource(t *testing.T) {
 func TestProviderImportState_default(t *testing.T) {
 	p := &Provider{
 		ResourcesMap: map[string]*Resource{
-			"foo": &Resource{
+			"foo": {
 				Importer: &ResourceImporter{},
 			},
 		},
@@ -349,7 +349,7 @@ func TestProviderImportState_setsId(t *testing.T) {
 
 	p := &Provider{
 		ResourcesMap: map[string]*Resource{
-			"foo": &Resource{
+			"foo": {
 				Importer: &ResourceImporter{
 					State: stateFunc,
 				},
@@ -379,7 +379,7 @@ func TestProviderImportState_setsType(t *testing.T) {
 
 	p := &Provider{
 		ResourcesMap: map[string]*Resource{
-			"foo": &Resource{
+			"foo": {
 				Importer: &ResourceImporter{
 					State: stateFunc,
 				},

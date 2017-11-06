@@ -16,7 +16,7 @@ func TestResourceGH12183_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckResourceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: strings.TrimSpace(`
 resource "test_resource_gh12183" "a" {
 	config {

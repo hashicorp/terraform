@@ -9,11 +9,9 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 	"testing"
 
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
 )
@@ -62,20 +60,6 @@ var testMods = map[string][]testMod{
 	"private/name/provider": {
 		{version: "1.0.0"},
 	},
-}
-
-func latestVersion(versions []string) string {
-	var col version.Collection
-	for _, v := range versions {
-		ver, err := version.NewVersion(v)
-		if err != nil {
-			panic(err)
-		}
-		col = append(col, ver)
-	}
-
-	sort.Sort(col)
-	return col[len(col)-1].String()
 }
 
 func mockRegHandler() http.Handler {

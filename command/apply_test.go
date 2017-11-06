@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -341,7 +338,7 @@ func TestApply_error(t *testing.T) {
 		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		return &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"ami": &terraform.ResourceAttrDiff{
+				"ami": {
 					New: "bar",
 				},
 			},
@@ -766,10 +763,10 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 func TestApply_refresh(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -848,7 +845,7 @@ func TestApply_shutdown(t *testing.T) {
 		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		return &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"ami": &terraform.ResourceAttrDiff{
+				"ami": {
 					New: "bar",
 				},
 			},
@@ -910,10 +907,10 @@ func TestApply_shutdown(t *testing.T) {
 func TestApply_state(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -929,7 +926,7 @@ func TestApply_state(t *testing.T) {
 	p := testProvider()
 	p.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"ami": &terraform.ResourceAttrDiff{
+			"ami": {
 				New: "bar",
 			},
 		},
@@ -1286,10 +1283,10 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 func TestApply_backup(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -1307,7 +1304,7 @@ func TestApply_backup(t *testing.T) {
 	p := testProvider()
 	p.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"ami": &terraform.ResourceAttrDiff{
+			"ami": {
 				New: "bar",
 			},
 		},
@@ -1358,7 +1355,7 @@ func TestApply_disableBackup(t *testing.T) {
 	p := testProvider()
 	p.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"ami": &terraform.ResourceAttrDiff{
+			"ami": {
 				New: "bar",
 			},
 		},
@@ -1504,31 +1501,6 @@ Outputs:
 output = test
 	`)
 	testStateOutput(t, statePath, expected)
-}
-
-func testHttpServer(t *testing.T) net.Listener {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/header", testHttpHandlerHeader)
-
-	var server http.Server
-	server.Handler = mux
-	go server.Serve(ln)
-
-	return ln
-}
-
-func testHttpHandlerHeader(w http.ResponseWriter, r *http.Request) {
-	var url url.URL
-	url.Scheme = "file"
-	url.Path = filepath.ToSlash(testFixturePath("init"))
-
-	w.Header().Add("X-Terraform-Get", url.String())
-	w.WriteHeader(200)
 }
 
 const applyVarFile = `

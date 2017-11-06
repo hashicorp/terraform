@@ -237,7 +237,7 @@ func TestProviderInstallerPurgeUnused(t *testing.T) {
 		Ui:                    cli.NewMockUi(),
 	}
 	purged, err := i.PurgeUnused(map[string]PluginMeta{
-		"test": PluginMeta{
+		"test": {
 			Name:    "test",
 			Version: VersionStr("1.2.3"),
 			Path:    wantedPath,

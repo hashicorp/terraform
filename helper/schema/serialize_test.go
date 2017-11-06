@@ -13,7 +13,7 @@ func TestSerializeForHash(t *testing.T) {
 	}
 
 	tests := []testCase{
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeInt,
 			},
@@ -21,7 +21,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "0;",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeInt,
 			},
@@ -29,7 +29,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "200;",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeBool,
 			},
@@ -37,7 +37,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "1;",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeBool,
 			},
@@ -45,7 +45,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "0;",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeFloat,
 			},
@@ -53,7 +53,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "1;",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeFloat,
 			},
@@ -61,7 +61,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "1.54;",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeFloat,
 			},
@@ -69,7 +69,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "0.1;",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeString,
 			},
@@ -77,7 +77,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "hello;",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeString,
 			},
@@ -85,7 +85,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "1;",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeList,
 				Elem: &Schema{
@@ -96,7 +96,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "();",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeList,
 				Elem: &Schema{
@@ -107,16 +107,16 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "(hello;world;);",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeList,
 				Elem: &Resource{
 					Schema: map[string]*Schema{
-						"fo": &Schema{
+						"fo": {
 							Type:     TypeString,
 							Required: true,
 						},
-						"fum": &Schema{
+						"fum": {
 							Type:     TypeString,
 							Required: true,
 						},
@@ -135,7 +135,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "(<fo:bar;fum:;>;<fo:baz;fum:boz;>;);",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeSet,
 				Elem: &Schema{
@@ -149,7 +149,7 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "{woo;hello;};",
 		},
 
-		testCase{
+		{
 			Schema: &Schema{
 				Type: TypeMap,
 				Elem: &Schema{
@@ -163,23 +163,23 @@ func TestSerializeForHash(t *testing.T) {
 			Expected: "[baz:foo;foo:bar;];",
 		},
 
-		testCase{
+		{
 			Schema: &Resource{
 				Schema: map[string]*Schema{
-					"name": &Schema{
+					"name": {
 						Type:     TypeString,
 						Required: true,
 					},
-					"size": &Schema{
+					"size": {
 						Type:     TypeInt,
 						Optional: true,
 					},
-					"green": &Schema{
+					"green": {
 						Type:     TypeBool,
 						Optional: true,
 						Computed: true,
 					},
-					"upside_down": &Schema{
+					"upside_down": {
 						Type:     TypeBool,
 						Computed: true,
 					},
@@ -194,10 +194,10 @@ func TestSerializeForHash(t *testing.T) {
 		},
 
 		// test TypeMap nested in Schema: GH-7091
-		testCase{
+		{
 			Schema: &Resource{
 				Schema: map[string]*Schema{
-					"outer": &Schema{
+					"outer": {
 						Type:     TypeSet,
 						Required: true,
 						Elem: &Schema{

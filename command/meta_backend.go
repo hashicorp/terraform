@@ -1473,27 +1473,11 @@ with a backend, we must delete the local state file. Please resolve the
 issue above and retry the command.
 `
 
-const errBackendMigrateNew = `
-Error migrating local state to backend: %s
-
-Your local state remains intact and unmodified. Please resolve the error
-above and try again.
-`
-
 const errBackendNewConfig = `
 Error configuring the backend %q: %s
 
 Please update the configuration in your Terraform files to fix this error
 then run this command again.
-`
-
-const errBackendNewRead = `
-Error reading newly configured backend state: %s
-
-Terraform is trying to read the state from your newly configured backend
-to determine the copy process for your existing state. Backends are expected
-to not error even if there is no state yet written. Please resolve the
-error above and try again.
 `
 
 const errBackendNewUnknown = `
@@ -1506,15 +1490,6 @@ backend type. Please check your configuration and your Terraform version.
 
 If you'd like to run Terraform and store state locally, you can fix this
 error by removing the backend configuration from your configuration.
-`
-
-const errBackendRemoteRead = `
-Error reading backend state: %s
-
-Terraform is trying to read the state from your configured backend to
-determine if there is any migration steps necessary. Terraform can't continue
-without this check because that would risk losing state. Please resolve the
-error above and try again.
 `
 
 const errBackendSavedConfig = `

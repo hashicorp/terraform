@@ -278,7 +278,7 @@ func (d *ResourceData) State() *terraform.InstanceState {
 	// integrity check of fields existing in the schema, allowing dynamic
 	// keys to be created.
 	hasDynamicAttributes := false
-	for k, _ := range d.schema {
+	for k := range d.schema {
 		if k == "__has_dynamic_attributes" {
 			hasDynamicAttributes = true
 			log.Printf("[INFO] Resource %s has dynamic attributes", result.ID)

@@ -79,7 +79,7 @@ func (c *StateShowCommand) Run(args []string) int {
 
 	// Sort the keys
 	var keys []string
-	for k, _ := range is.Attributes {
+	for k := range is.Attributes {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

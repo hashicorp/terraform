@@ -552,11 +552,11 @@ func TestInit_getProvider(t *testing.T) {
 	installer := &mockProviderInstaller{
 		Providers: map[string][]string{
 			// looking for an exact version
-			"exact": []string{"1.2.3"},
+			"exact": {"1.2.3"},
 			// config requires >= 2.3.3
-			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			"greater_than": {"2.3.4", "2.3.3", "2.3.0"},
 			// config specifies
-			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+			"between": {"3.4.5", "2.3.4", "1.2.3"},
 		},
 
 		Dir: m.pluginDir(),
@@ -704,11 +704,11 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 	installer := &mockProviderInstaller{
 		Providers: map[string][]string{
 			// looking for an exact version
-			"exact": []string{"1.2.3"},
+			"exact": {"1.2.3"},
 			// config requires >= 2.3.3
-			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			"greater_than": {"2.3.4", "2.3.3", "2.3.0"},
 			// config specifies
-			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+			"between": {"3.4.5", "2.3.4", "1.2.3"},
 		},
 
 		Dir: m.pluginDir(),
@@ -796,11 +796,11 @@ func TestInit_getProviderMissing(t *testing.T) {
 	installer := &mockProviderInstaller{
 		Providers: map[string][]string{
 			// looking for exact version 1.2.3
-			"exact": []string{"1.2.4"},
+			"exact": {"1.2.4"},
 			// config requires >= 2.3.3
-			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			"greater_than": {"2.3.4", "2.3.3", "2.3.0"},
 			// config specifies
-			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+			"between": {"3.4.5", "2.3.4", "1.2.3"},
 		},
 
 		Dir: m.pluginDir(),
@@ -891,7 +891,7 @@ func TestInit_providerLockFile(t *testing.T) {
 
 	installer := &mockProviderInstaller{
 		Providers: map[string][]string{
-			"test": []string{"1.2.3"},
+			"test": {"1.2.3"},
 		},
 
 		Dir: m.pluginDir(),

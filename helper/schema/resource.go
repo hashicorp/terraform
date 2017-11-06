@@ -443,7 +443,7 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 	// Data source
 	if r.isTopLevel() && !writable {
 		tsm = schemaMap(r.Schema)
-		for k, _ := range tsm {
+		for k := range tsm {
 			if isReservedDataSourceFieldName(k) {
 				return fmt.Errorf("%s is a reserved field name", k)
 			}
