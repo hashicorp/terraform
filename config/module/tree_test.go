@@ -3,7 +3,6 @@ package module
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -545,69 +544,6 @@ func TestTreeValidate_unknownModule(t *testing.T) {
 
 	if err := tree.Validate(); err == nil {
 		t.Fatal("should error")
-	}
-}
-
-func TestTreeProviders_basic(t *testing.T) {
-	storage := testStorage(t, nil)
-	tree := NewTree("", testConfig(t, "basic-parent-providers"))
-
-	storage.Mode = GetModeGet
-	if err := tree.Load(storage); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	var a, b *Tree
-	for _, child := range tree.Children() {
-		if child.Name() == "a" {
-			a = child
-		}
-	}
-
-	rootProviders := tree.config.ProviderConfigsByFullName()
-	topRaw := rootProviders["top.foo"]
-
-	if a == nil {
-		t.Fatal("could not find module 'a'")
-	}
-
-	for _, child := range a.Children() {
-		if child.Name() == "c" {
-			b = child
-		}
-	}
-
-	if b == nil {
-		t.Fatal("could not find module 'c'")
-	}
-
-	aProviders := a.config.ProviderConfigsByFullName()
-	bottomRaw := aProviders["bottom.foo"]
-	bProviders := b.config.ProviderConfigsByFullName()
-	bBottom := bProviders["bottom"]
-
-	// compare the configs
-	// top.foo should have been copied to a.top
-	aTop := aProviders["top"]
-	if !reflect.DeepEqual(aTop.RawConfig.RawMap(), topRaw.RawConfig.RawMap()) {
-		log.Fatalf("expected config %#v, got %#v",
-			topRaw.RawConfig.RawMap(),
-			aTop.RawConfig.RawMap(),
-		)
-	}
-
-	if !reflect.DeepEqual(aTop.Path, []string{RootName}) {
-		log.Fatalf(`expected scope for "top": {"root"}, got %#v`, aTop.Path)
-	}
-
-	if !reflect.DeepEqual(bBottom.RawConfig.RawMap(), bottomRaw.RawConfig.RawMap()) {
-		t.Fatalf("expected config %#v, got %#v",
-			bottomRaw.RawConfig.RawMap(),
-			bBottom.RawConfig.RawMap(),
-		)
-	}
-	if !reflect.DeepEqual(bBottom.Path, []string{RootName, "a"}) {
-		t.Fatalf(`expected scope for "bottom": {"root", "a"}, got %#v`, bBottom.Path)
 	}
 }
 
