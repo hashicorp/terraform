@@ -18,6 +18,10 @@ func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, m
 			Providers: providers,
 			Concrete:  concrete,
 		},
+		// Attach configuration to each provider instance
+		&AttachProviderConfigTransformer{
+			Module: mod,
+		},
 		// Add any remaining missing providers
 		&MissingProviderTransformer{
 			Providers: providers,
@@ -29,10 +33,6 @@ func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, m
 		&DisableProviderTransformer{},
 		// Connect provider to their parent provider nodes
 		&ParentProviderTransformer{},
-		// Attach configuration to each provider instance
-		&AttachProviderConfigTransformer{
-			Module: mod,
-		},
 	)
 }
 
@@ -107,6 +107,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				break
 			}
 
+			log.Printf("[DEBUG] resource %s using provider %s", dag.VertexName(pv), key)
 			pv.SetProvider(key)
 			g.Connect(dag.BasicEdge(v, target))
 		}
@@ -191,6 +192,12 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 
 		// we already have it
 		if provider != nil {
+			continue
+		}
+
+		// we don't implicitly create aliased providers
+		if strings.Contains(p, ".") {
+			log.Println("[DEBUG] not adding missing provider alias", p)
 			continue
 		}
 
