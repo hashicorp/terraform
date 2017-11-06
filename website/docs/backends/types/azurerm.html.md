@@ -58,7 +58,7 @@ The following configuration options are supported:
 The following configuration options must be supplied if `access_key` is not.
 
  * `resource_group_name` - The resource group which contains the storage account.
- * `subscription_id` / `ARM_SUBSCRIPTION_ID` - The Azure Subscription ID.
- * `client_id` / `ARM_CLIENT_ID` - The Azure Client ID.
- * `client_secret` / `ARM_CLIENT_SECRET` - The Azure Client Secret.
- * `tenant_id` / `ARM_TENANT_ID` - The Azure Tenant ID.
+ * `arm_subscription_id` / `ARM_SUBSCRIPTION_ID` - The Azure Subscription ID.
+ * `arm_client_id` / `ARM_CLIENT_ID` - The Azure Client ID.
+ * `arm_client_secret` / `ARM_CLIENT_SECRET` - The Azure Client Secret.
+ * `arm_tenant_id` / `ARM_TENANT_ID` - The Azure Tenant ID.
