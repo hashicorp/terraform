@@ -725,9 +725,43 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	}
 }
 
-func TestContextImport_customProvider(t *testing.T) {
+// import missing a provider alias should fail
+func TestContextImport_customProviderMissing(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+	}
+
+	_, err := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr:     "aws_instance.foo",
+				ID:       "bar",
+				Provider: "aws.alias",
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestContextImport_customProvider(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "import-provider-alias")
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
