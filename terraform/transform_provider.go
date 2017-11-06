@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
-// TODO: return the transformers and append them to the list, so we don't lose the log steps
 func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, mod *module.Tree) GraphTransformer {
 	return GraphTransformMulti(
 		// Add providers from the config
@@ -57,8 +56,7 @@ type GraphNodeCloseProvider interface {
 // a provider must implement. ProvidedBy must return the name of the provider
 // to use.
 type GraphNodeProviderConsumer interface {
-	// TODO: make this return s string instead of a []string
-	ProvidedBy() []string
+	ProvidedBy() string
 	// Set the resolved provider address for this resource.
 	SetProvider(string)
 }
@@ -74,7 +72,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	m := providerVertexMap(g)
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
-			p := pv.ProvidedBy()[0]
+			p := pv.ProvidedBy()
 
 			key := providerMapKey(p, pv)
 			target := m[key]
@@ -187,7 +185,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		p := pv.ProvidedBy()[0]
+		p := pv.ProvidedBy()
 		key := ResolveProviderName(p, nil)
 		provider := m[key]
 
@@ -357,8 +355,8 @@ func (n *graphNodeProviderConsumerDummy) Path() []string {
 	return n.PathValue
 }
 
-func (n *graphNodeProviderConsumerDummy) ProvidedBy() []string {
-	return []string{n.ProviderValue}
+func (n *graphNodeProviderConsumerDummy) ProvidedBy() string {
+	return n.ProviderValue
 }
 
 func (n *graphNodeProviderConsumerDummy) SetProvider(string) {}

@@ -66,8 +66,8 @@ func (n *graphNodeDeposedResource) Name() string {
 	return fmt.Sprintf("%s (deposed #%d)", n.ResourceName, n.Index)
 }
 
-func (n *graphNodeDeposedResource) ProvidedBy() []string {
-	return []string{resourceProvider(n.ResourceName, n.ProviderName)}
+func (n *graphNodeDeposedResource) ProvidedBy() string {
+	return resourceProvider(n.ResourceName, n.ProviderName)
 }
 
 func (n *graphNodeDeposedResource) SetProvider(p string) {
