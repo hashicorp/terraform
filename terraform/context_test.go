@@ -361,6 +361,7 @@ func testProvisioner() *MockResourceProvisioner {
 }
 
 func checkStateString(t *testing.T, state *State, expected string) {
+	t.Helper()
 	actual := strings.TrimSpace(state.String())
 	expected = strings.TrimSpace(expected)
 
@@ -381,6 +382,7 @@ func resourceState(resourceType, resourceID string) *ResourceState {
 // Test helper that gives a function 3 seconds to finish, assumes deadlock and
 // fails test if it does not.
 func testCheckDeadlock(t *testing.T, f func()) {
+	t.Helper()
 	timeout := make(chan bool, 1)
 	done := make(chan bool, 1)
 	go func() {
