@@ -24,6 +24,9 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// Name of ENV variable which (if not empty) prefers panic over error
+const PanicOnErr = "TF_SCHEMA_PANIC_ON_ERROR"
+
 // type used for schema package context keys
 type contextKey string
 
@@ -357,6 +360,13 @@ func (s *Schema) finalizeDiff(
 // schemaMap is a wrapper that adds nice functions on top of schemas.
 type schemaMap map[string]*Schema
 
+func (m schemaMap) panicOnError() bool {
+	if os.Getenv(PanicOnErr) != "" {
+		return true
+	}
+	return false
+}
+
 // Data returns a ResourceData for the given schema, state, and diff.
 //
 // The diff is optional.
@@ -364,9 +374,10 @@ func (m schemaMap) Data(
 	s *terraform.InstanceState,
 	d *terraform.InstanceDiff) (*ResourceData, error) {
 	return &ResourceData{
-		schema: m,
-		state:  s,
-		diff:   d,
+		schema:       m,
+		state:        s,
+		diff:         d,
+		panicOnError: m.panicOnError(),
 	}, nil
 }
 
@@ -384,9 +395,10 @@ func (m schemaMap) Diff(
 	}
 
 	d := &ResourceData{
-		schema: m,
-		state:  s,
-		config: c,
+		schema:       m,
+		state:        s,
+		config:       c,
+		panicOnError: m.panicOnError(),
 	}
 
 	for k, schema := range m {
