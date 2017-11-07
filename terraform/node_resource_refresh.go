@@ -251,7 +251,7 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState(
 			&EvalWriteState{
 				Name:         stateID,
 				ResourceType: n.Config.Type,
-				Provider:     n.Config.Provider,
+				Provider:     n.ResolvedProvider,
 				Dependencies: stateDeps,
 				State:        &state,
 			},

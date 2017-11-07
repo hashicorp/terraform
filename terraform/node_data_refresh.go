@@ -108,7 +108,9 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 	// Get the state if we have it, if not we build it
 	rs := n.ResourceState
 	if rs == nil {
-		rs = &ResourceState{}
+		rs = &ResourceState{
+			Provider: n.ResolvedProvider,
+		}
 	}
 
 	// If the config isn't empty we update the state

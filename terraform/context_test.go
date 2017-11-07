@@ -147,6 +147,7 @@ func TestNewContextState(t *testing.T) {
 }
 
 func testContext2(t *testing.T, opts *ContextOpts) *Context {
+	t.Helper()
 	// Enable the shadow graph
 	opts.Shadow = true
 

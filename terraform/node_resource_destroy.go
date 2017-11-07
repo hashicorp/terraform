@@ -149,7 +149,9 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 	// Get our state
 	rs := n.ResourceState
 	if rs == nil {
-		rs = &ResourceState{}
+		rs = &ResourceState{
+			Provider: n.ResolvedProvider,
+		}
 	}
 
 	var diffApply *InstanceDiff

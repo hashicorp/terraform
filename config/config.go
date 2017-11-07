@@ -261,7 +261,9 @@ func (r *Resource) ProviderFullName() string {
 // the provider name is inferred from the resource type name.
 func ResourceProviderFullName(resourceType, explicitProvider string) string {
 	if explicitProvider != "" {
-		return explicitProvider
+		// check for an explicit provider name, or return the original
+		parts := strings.SplitAfter(explicitProvider, "provider.")
+		return parts[len(parts)-1]
 	}
 
 	idx := strings.IndexRune(resourceType, '_')

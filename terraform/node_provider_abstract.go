@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
@@ -25,6 +26,11 @@ type NodeAbstractProvider struct {
 }
 
 func ResolveProviderName(name string, path []string) string {
+	if strings.Contains(name, "provider.") {
+		// already resolved
+		return name
+	}
+
 	name = fmt.Sprintf("provider.%s", name)
 	if len(path) >= 1 {
 		name = fmt.Sprintf("%s.%s", modulePrefixStr(path), name)
