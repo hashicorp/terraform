@@ -445,6 +445,39 @@ func TestPruneProviderTransformer(t *testing.T) {
 	}
 }
 
+// the child module resource is attached to the configured parent provider
+func TestProviderConfigTransformer_parentProviders(t *testing.T) {
+	mod := testModule(t, "transform-provider-inherit")
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := &AttachResourceConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := TransformProviders([]string{"aws"}, concrete, mod)
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformModuleProviderConfigStr)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 const testTransformProviderBasicStr = `
 aws_instance.web
   provider.aws
@@ -544,4 +577,10 @@ provider.aws (close)
   module.child
   provider.aws
 var.foo
+`
+
+const testTransformModuleProviderConfigStr = `
+module.child.aws_instance.thing
+  provider.aws.foo
+provider.aws.foo
 `
