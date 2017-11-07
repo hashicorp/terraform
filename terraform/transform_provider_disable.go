@@ -7,9 +7,9 @@ import (
 )
 
 // DisableProviderTransformer "disables" any providers that are not actually
-// used by anything. This avoids the provider being initialized and configured.
-// This both saves resources but also avoids errors since configuration
-// may imply initialization which may require auth.
+// used by anything, and provider proxies. This avoids the provider being
+// initialized and configured.  This both saves resources but also avoids
+// errors since configuration may imply initialization which may require auth.
 type DisableProviderTransformer struct{}
 
 func (t *DisableProviderTransformer) Transform(g *Graph) error {
@@ -17,6 +17,12 @@ func (t *DisableProviderTransformer) Transform(g *Graph) error {
 		// We only care about providers
 		pn, ok := v.(GraphNodeProvider)
 		if !ok || pn.ProviderName() == "" {
+			continue
+		}
+
+		// remove the proxy nodes now that we're done with them
+		if pn, ok := v.(*graphNodeProxyProvider); ok {
+			g.Remove(pn)
 			continue
 		}
 

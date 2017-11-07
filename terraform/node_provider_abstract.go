@@ -26,7 +26,7 @@ type NodeAbstractProvider struct {
 
 func ResolveProviderName(name string, path []string) string {
 	name = fmt.Sprintf("provider.%s", name)
-	if len(path) > 1 {
+	if len(path) >= 1 {
 		name = fmt.Sprintf("%s.%s", modulePrefixStr(path), name)
 	}
 
