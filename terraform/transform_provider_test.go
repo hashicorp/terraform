@@ -478,6 +478,39 @@ func TestProviderConfigTransformer_parentProviders(t *testing.T) {
 	}
 }
 
+// the child module resource is attached to the configured grand-parent provider
+func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
+	mod := testModule(t, "transform-provider-grandchild-inherit")
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := &AttachResourceConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := TransformProviders([]string{"aws"}, concrete, mod)
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformModuleProviderGrandparentStr)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 const testTransformProviderBasicStr = `
 aws_instance.web
   provider.aws
@@ -514,9 +547,7 @@ module.sub.module.subsub.bar_instance.two
 module.sub.module.subsub.foo_instance.one
   module.sub.provider.foo
 module.sub.provider.foo
-  provider.foo (disabled)
 provider.bar
-provider.foo (disabled)
 `
 
 const testTransformMissingProviderModuleChildStr = `
@@ -581,6 +612,12 @@ var.foo
 
 const testTransformModuleProviderConfigStr = `
 module.child.aws_instance.thing
+  provider.aws.foo
+provider.aws.foo
+`
+
+const testTransformModuleProviderGrandparentStr = `
+module.child.module.grandchild.aws_instance.baz
   provider.aws.foo
 provider.aws.foo
 `
