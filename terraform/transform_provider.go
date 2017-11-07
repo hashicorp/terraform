@@ -52,7 +52,8 @@ type GraphNodeCloseProvider interface {
 
 // GraphNodeProviderConsumer is an interface that nodes that require
 // a provider must implement. ProvidedBy must return the name of the provider
-// to use.
+// to use. This may be a provider by type, type.alias or a fully resolved
+// provider name
 type GraphNodeProviderConsumer interface {
 	ProvidedBy() string
 	// Set the resolved provider address for this resource.
@@ -127,7 +128,6 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 // in the graph are evaluated.
 type CloseProviderTransformer struct{}
 
-// FIXME: this doesn't close providers if the root provider is disabled
 func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	pm := providerVertexMap(g)
 	cpm := make(map[string]*graphNodeCloseProvider)
@@ -286,6 +286,11 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 // providerMapKey is a helper that gives us the key to use for the
 // maps returned by things such as providerVertexMap.
 func providerMapKey(k string, v dag.Vertex) string {
+	if strings.Contains(k, "provider.") {
+		// this is already resolved
+		return k
+	}
+
 	// we create a dummy provider to
 	var path []string
 	if sp, ok := v.(GraphNodeSubPath); ok {
