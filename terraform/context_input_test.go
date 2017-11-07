@@ -564,6 +564,7 @@ func TestContext2Input_varWithDefault(t *testing.T) {
 	expectedStr := strings.TrimSpace(`
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
   foo = 123
   type = aws_instance
 	`)
