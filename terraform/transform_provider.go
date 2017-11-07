@@ -27,8 +27,8 @@ func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, m
 		},
 		// Connect the providers
 		&ProviderTransformer{},
-		// Disable unused providers
-		&DisableProviderTransformer{},
+		// Remove unused providers and proxies
+		&PruneProviderTransformer{},
 		// Connect provider to their parent provider nodes
 		&ParentProviderTransformer{},
 	)
@@ -108,8 +108,8 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			// see if this in  an inherited provider
 			if p, ok := target.(*graphNodeProxyProvider); ok {
 				g.Remove(p)
-				target = p.Target
-				key = p.Target.Name()
+				target = p.Target()
+				key = target.(GraphNodeProvider).Name()
 			}
 
 			log.Printf("[DEBUG] resource %s using provider %s", dag.VertexName(pv), key)
@@ -253,22 +253,29 @@ func (t *ParentProviderTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-// PruneProviderTransformer is a GraphTransformer that prunes all the
-// providers that aren't needed from the graph. A provider is unneeded if
-// no resource or module is using that provider.
+// PruneProviderTransformer removes any providers that are not actually used by
+// anything, and provider proxies. This avoids the provider being initialized
+// and configured.  This both saves resources but also avoids errors since
+// configuration may imply initialization which may require auth.
 type PruneProviderTransformer struct{}
 
 func (t *PruneProviderTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
-		// We only care about the providers
-		if pn, ok := v.(GraphNodeProvider); !ok || pn.ProviderName() == "" {
+		// We only care about providers
+		pn, ok := v.(GraphNodeProvider)
+		if !ok || pn.ProviderName() == "" {
 			continue
 		}
-		// Does anything depend on this? If not, then prune it.
-		if s := g.UpEdges(v); s.Len() == 0 {
-			if nv, ok := v.(dag.NamedVertex); ok {
-				log.Printf("[DEBUG] Pruning provider with no dependencies: %s", nv.Name())
-			}
+
+		// ProxyProviders will have up edges, but we're now done with them in the graph
+		if _, ok := v.(*graphNodeProxyProvider); ok {
+			log.Printf("[DEBUG] pruning proxy provider %s", dag.VertexName(v))
+			g.Remove(v)
+		}
+
+		// Remove providers with no dependencies.
+		if g.UpEdges(v).Len() == 0 {
+			log.Printf("[DEBUG] pruning unused provider %s", dag.VertexName(v))
 			g.Remove(v)
 		}
 	}
@@ -360,17 +367,27 @@ func (n *graphNodeCloseProvider) RemoveIfNotTargeted() bool {
 // configurations, and are removed after all the resources have been connected
 // to their providers.
 type graphNodeProxyProvider struct {
-	NameValue string
-	Path      []string
-	Target    GraphNodeProvider
+	nameValue string
+	path      []string
+	target    GraphNodeProvider
 }
 
 func (n *graphNodeProxyProvider) ProviderName() string {
-	return n.Target.ProviderName()
+	return n.Target().ProviderName()
 }
 
 func (n *graphNodeProxyProvider) Name() string {
-	return ResolveProviderName(n.NameValue, n.Path)
+	return ResolveProviderName(n.nameValue, n.path)
+}
+
+// find the concrete provider instance
+func (n *graphNodeProxyProvider) Target() GraphNodeProvider {
+	switch t := n.target.(type) {
+	case *graphNodeProxyProvider:
+		return t.Target()
+	default:
+		return n.target
+	}
 }
 
 // ProviderConfigTransformer adds all provider nodes from the configuration and
@@ -511,14 +528,14 @@ func (t *ProviderConfigTransformer) addProxyProvider(g *Graph, m *module.Tree, p
 	}
 
 	v := &graphNodeProxyProvider{
-		NameValue: name,
-		Path:      path,
-		Target:    parentProvider,
+		nameValue: name,
+		path:      path,
+		target:    parentProvider,
 	}
 
 	// Add it to the graph
 	g.Add(v)
-	t.providers[v.NameValue] = v
+	t.providers[ResolveProviderName(name, path)] = v
 	return true
 }
 
