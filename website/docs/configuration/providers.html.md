@@ -12,14 +12,14 @@ Providers are responsible in Terraform for managing the lifecycle
 of a [resource](/docs/configuration/resources.html): create,
 read, update, delete.
 
-Every resource in Terraform is mapped to a provider based
-on longest-prefix matching. For example the `aws_instance`
-resource type would map to the `aws` provider (if that exists).
-
 Most providers require some sort of configuration to provide
-authentication information, endpoint URLs, etc. Provider configuration
-blocks are a way to set this information globally for all
-matching resources.
+authentication information, endpoint URLs, etc. Where explicit configuration
+is required, a `provider` block is used within the configuration as
+illustrated in the following sections.
+
+By default, resources are matched with provider configurations by matching
+the start of the resource name. For example, a resource of type
+`vsphere_virtual_machine` is associated with a provider called `vsphere`.
 
 This page assumes you're familiar with the
 [configuration syntax](/docs/configuration/syntax.html)
@@ -39,21 +39,21 @@ provider "aws" {
 
 ## Description
 
-The `provider` block configures the provider of the given `NAME`.
-Multiple provider blocks can be used to configure multiple providers.
+A `provider` block represents a configuration for the provider named in its
+header. For example, `provider "aws"` above is a configuration for the
+`aws` provider.
 
-Terraform matches providers to resources by matching two criteria.
-Both criteria must be matched for a provider to manage a resource:
-
-- They must share a common prefix. Longest matching prefixes are tried first.
-  For example, `aws_instance` would choose the `aws` provider.
-
-- The provider must report that it supports the given resource type. Providers
-  internally tell Terraform the list of resources they support.
-
-Within the block (the `{ }`) is configuration for the resource.
+Within the block body (between `{ }`) is configuration for the provider.
 The configuration is dependent on the type, and is documented
 [for each provider](/docs/providers/index.html).
+
+The arguments `alias` and `version`, if present, are special arguments
+handled by Terraform Core for their respective features described above. All
+other arguments are defined by the provider itself.
+
+A `provider` block may be omitted if its body would be empty. Using a resource
+in configuration implicitly creates an empty provider configuration for it
+unless a `provider` block is explicitly provided.
 
 ## Initialization
 
@@ -118,30 +118,42 @@ to the latest versions of all Terraform modules.
 
 ## Multiple Provider Instances
 
-You can define multiple instances of the same provider in order to support
+You can define multiple configurations for the same provider in order to support
 multiple regions, multiple hosts, etc. The primary use case for this is
-utilizing multiple cloud regions. Other use cases include targeting multiple
+using multiple cloud regions. Other use-cases include targeting multiple
 Docker hosts, multiple Consul hosts, etc.
 
-To define multiple provider instances, repeat the provider configuration
-multiple times, but set the `alias` field and name the provider. For
-example:
+To include multiple configurations fo a given provider, include multiple
+`provider` blocks with the same provider name, but set the `alias` field to an
+instance name to use for each additional instance. For example:
 
 ```hcl
-# The default provider
+# The default provider configuration
 provider "aws" {
   # ...
 }
 
-# West coast region
+# Additional provider configuration for west coast region
 provider "aws" {
   alias  = "west"
   region = "us-west-2"
 }
 ```
 
-After naming a provider, you reference it in resources with the `provider`
-field:
+A `provider` block with out `alias` set is known as the _default_ provider
+configuration. When `alias` is set, it creates an _additional_ provider
+configuration. For providers that have no required configuration arguments, the
+implied _empty_ configuration is also considered to be a _default_ provider
+configuration.
+
+Resources are normally associated with the default provider configuration
+inferred from the resource type name. For example, a resource of type
+`aws_instance` uses the _default_ (un-aliased) `aws` provider configuration
+unless otherwise stated.
+
+The `provider` argument within any `resource` or `data` block overrides this
+default behavior and allows an additional provider configuration to be
+selected using its alias:
 
 ```hcl
 resource "aws_instance" "foo" {
@@ -151,33 +163,17 @@ resource "aws_instance" "foo" {
 }
 ```
 
-If a provider isn't specified, then the default provider configuration
-is used (the provider configuration with no `alias` set). The value of the
-`provider` field is `TYPE.ALIAS`, such as "aws.west" above.
+The value of the `provider` argument is always the provider name and an
+alias separated by a period, such as `"aws.west"` above.
 
-## Syntax
-
-The full syntax is:
-
-```text
-provider NAME {
-  CONFIG ...
-  [alias = ALIAS]
-}
-```
-
-where `CONFIG` is:
-
-```text
-KEY = VALUE
-
-KEY {
-  CONFIG
-}
-```
+Provider configurations may also be passed from a parent module into a
+child module, as described in
+[_Providers within Modules_](/docs/modules/usage.html#providers-within-modules).
 
 ## Interpolation
-Providers support [interpolation syntax](/docs/configuration/interpolation.html) allowing dynamic configuration at run time.
+
+Provider configurations may use [interpolation syntax](/docs/configuration/interpolation.html)
+to allow dynamic configuration:
 
 ```hcl
 provider "aws" {
@@ -185,14 +181,19 @@ provider "aws" {
 }
 ```
 
-An exception to this is the special `version` attribute that applies to all `provider` blocks for specifying [provider versions](#provider-versions); interpolation is not supported for provider versions since provider compatibility is a property of the configuration rather than something dynamic, and provider plugin installation happens too early for variables to be resolvable in this context.
+Interpolation is supported only for the per-provider configuration arguments.
+It is not supported for the special `alias` and `version` arguments.
 
--> **NOTE:** Because providers are one of the first things loaded when Terraform parses the graph, it is not possible to
-use the output from modules or resources as inputs to the provider. At this time, only
-[variables](/docs/configuration/variables.html) and [data sources](/docs/configuration/data-sources.html), including
-[remote state](/docs/providers/terraform/d/remote_state.html) may be used in an interpolation inside a provider stanza.
-[Local values](/docs/configuration/locals.html) can also be used, but currently may fail when running `terraform destroy`.
+Although in principle it is possible to use any interpolation expression within
+a provider configuration argument, providers must be configurable to perform
+almost all operations within Terraform, and so it is not possible to use
+expressions whose value cannot be known until after configuration is applied,
+such as the id of a resource.
 
+It is always valid to use [input variables](/docs/configuration/variables.html)
+and [data sources](/docs/configuration/data-sources.html) whose configurations
+do not in turn depend on as-yet-unknown values. [Local values](/docs/configuration/locals.html)
+may also be used, but currently may cause errors when running `terraform destroy`.
 
 ## Third-party Plugins
 
