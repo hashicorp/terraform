@@ -5957,12 +5957,13 @@ func TestContext2Apply_destroyOrder(t *testing.T) {
 
 	t.Logf("State 1: %s", state)
 
-	// Next, plan and apply config-less to force a destroy with "apply"
+	// Next, plan and apply a destroy
 	h.Active = true
 	ctx = testContext2(t, &ContextOpts{
-		State:  state,
-		Module: module.NewEmptyTree(),
-		Hooks:  []Hook{h},
+		Destroy: true,
+		State:   state,
+		Module:  m,
+		Hooks:   []Hook{h},
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
