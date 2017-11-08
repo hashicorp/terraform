@@ -220,7 +220,7 @@ func TestLocal_planDestroyNoConfig(t *testing.T) {
 	}
 	<-run.Done()
 	if run.Err != nil {
-		t.Fatalf("err: %s", err)
+		t.Fatalf("err: %s", run.Err)
 	}
 
 	if !p.RefreshCalled {

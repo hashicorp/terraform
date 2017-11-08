@@ -53,6 +53,7 @@ func TestLocal_applyBasic(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 
@@ -160,6 +161,7 @@ func TestLocal_applyError(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = foo
+  provider = provider.test
 	`)
 }
 
@@ -211,6 +213,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	checkState(t, "errored.tfstate", `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 

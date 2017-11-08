@@ -27,6 +27,7 @@ func TestLocal_backend(t *testing.T) {
 }
 
 func checkState(t *testing.T, path, expected string) {
+	t.Helper()
 	// Read the state
 	f, err := os.Open(path)
 	if err != nil {
