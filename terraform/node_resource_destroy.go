@@ -275,7 +275,7 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 				&EvalWriteState{
 					Name:         stateId,
 					ResourceType: n.Addr.Type,
-					Provider:     rs.Provider,
+					Provider:     n.ResolvedProvider,
 					Dependencies: rs.Dependencies,
 					State:        &state,
 				},
