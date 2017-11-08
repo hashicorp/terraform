@@ -9016,10 +9016,79 @@ func TestContext2Apply_providerWithLocals(t *testing.T) {
 		t.Fatal("expected no state, got:", state)
 	}
 
-	// Destroy won't work because the local value is removed before the
-	// provider.  Once this is fixed this test will start to fail, and we
-	// can remove the invalid interpolation string;
 	if providerRegion != "bar" {
 		t.Fatalf("expected region %q, got: %q", "bar", providerRegion)
+	}
+}
+
+func TestContext2Apply_destroyWithProviders(t *testing.T) {
+	m := testModule(t, "destroy-module-with-provider")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+			},
+			&ModuleState{
+				Path: []string{"root", "child"},
+			},
+			&ModuleState{
+				Path: []string{"root", "mod", "removed"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.child": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+						// this provider doesn't exist
+						Provider: "provider.aws.baz",
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State:   s,
+		Destroy: true,
+	})
+
+	// test that we can't destroy if the provider is missing
+	if _, err := ctx.Plan(); err == nil {
+		t.Fatal("expected plan error, provider.aws.baz doesn't exist")
+	}
+
+	// correct the state
+	s.Modules[2].Resources["aws_instance.child"].Provider = "provider.aws.bar"
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatal(err)
+	}
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("error during apply: %s", err)
+	}
+
+	got := strings.TrimSpace(state.String())
+
+	// This should fail once modules are removed from the state entirely.
+	want := strings.TrimSpace(`
+<no state>
+module.child:
+  <no state>
+module.mod.removed:
+  <no state>`)
+
+	if got != want {
+		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
 	}
 }
