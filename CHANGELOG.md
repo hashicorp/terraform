@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* core: state now includes a reference to the provider configuration most recently used to create or update a resource, so that the same configuration can be used to destroy that resource if its configuration (including the explicit pointer to a provider configuration) is removed [GH-16586]
 * backend/gcs: will now automatically add a slash to the given prefix if not present, since without it the workspace enumeration does not function correctly [GH-16585]
 
 ## 0.11.0-beta1 (November 3, 2017)
