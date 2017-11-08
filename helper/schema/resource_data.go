@@ -35,6 +35,8 @@ type ResourceData struct {
 	partialMap  map[string]struct{}
 	once        sync.Once
 	isNew       bool
+
+	panicOnError bool
 }
 
 // getResult is the internal structure that is generated when a Get
@@ -184,7 +186,11 @@ func (d *ResourceData) Set(key string, value interface{}) error {
 		}
 	}
 
-	return d.setWriter.WriteField(strings.Split(key, "."), value)
+	err := d.setWriter.WriteField(strings.Split(key, "."), value)
+	if err != nil && d.panicOnError {
+		panic(err)
+	}
+	return err
 }
 
 // SetPartial adds the key to the final state output while
