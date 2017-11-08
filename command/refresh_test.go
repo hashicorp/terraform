@@ -802,8 +802,10 @@ foo = "bar"
 const testRefreshStr = `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 `
 const testRefreshCwdStr = `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 `
