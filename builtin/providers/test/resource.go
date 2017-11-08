@@ -49,7 +49,6 @@ func testResource() *schema.Resource {
 			"computed_read_only": {
 				Type:     schema.TypeString,
 				Computed: true,
-				ForceNew: true,
 			},
 			"computed_from_required": {
 				Type:     schema.TypeString,
