@@ -129,6 +129,7 @@ func TestContext2Apply_escape(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar:
   ID = foo
+  provider = provider.aws
   foo = "bar"
   type = aws_instance
 `)
@@ -160,6 +161,7 @@ func TestContext2Apply_resourceCountOneList(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(`null_resource.foo:
   ID = foo
+  provider = provider.null
 
 Outputs:
 
@@ -578,6 +580,7 @@ amis_from_module = {eu-west-1:ami-789012 eu-west-2:ami-989484 us-west-1:ami-1234
 module.test:
   null_resource.noop:
     ID = foo
+    provider = provider.null
 
   Outputs:
 
@@ -745,6 +748,7 @@ func TestContext2Apply_providerWarning(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
 	`)
 	if actual != expected {
 		t.Fatalf("got: \n%s\n\nexpected:\n%s", actual, expected)
@@ -1032,11 +1036,13 @@ func TestContext2Apply_createBeforeDestroy_dependsNonCBD(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar:
   ID = foo
+  provider = provider.aws
   require_new = yes
   type = aws_instance
   value = foo
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
   require_new = yes
   type = aws_instance
 	`)
@@ -1170,10 +1176,12 @@ func TestContext2Apply_createBeforeDestroy_deposedCount(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar.0:
   ID = foo
+  provider = provider.aws
   foo = bar
   type = aws_instance
 aws_instance.bar.1:
   ID = foo
+  provider = provider.aws
   foo = bar
   type = aws_instance
 	`)
@@ -1233,6 +1241,7 @@ func TestContext2Apply_createBeforeDestroy_deposedOnly(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar:
   ID = bar
+  provider = provider.aws
 	`)
 }
 
@@ -2007,6 +2016,7 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
 	`)
 }
 
@@ -2066,6 +2076,7 @@ func TestContext2Apply_cancelProvisioner(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo: (tainted)
   ID = foo
+  provider = provider.aws
   num = 2
   type = aws_instance
 	`)
@@ -2448,10 +2459,12 @@ func TestContext2Apply_mapVariableOverride(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.bar:
   ID = foo
+  provider = provider.aws
   ami = overridden
   type = aws_instance
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
   ami = image-1234
   type = aws_instance
 	`)
@@ -2619,7 +2632,7 @@ func TestContext2Apply_moduleInheritAlias(t *testing.T) {
 module.child:
   aws_instance.foo:
     ID = foo
-    provider = aws.eu
+    provider = provider.aws.eu
 	`)
 }
 
@@ -3140,6 +3153,7 @@ func TestContext2Apply_moduleTarget(t *testing.T) {
 module.A:
   aws_instance.foo:
     ID = foo
+    provider = provider.aws
     foo = bar
     type = aws_instance
 
@@ -3149,6 +3163,7 @@ module.A:
 module.B:
   aws_instance.bar:
     ID = foo
+    provider = provider.aws
     foo = foo
     type = aws_instance
 	`)
@@ -3929,6 +3944,7 @@ func TestContext2Apply_outputDependsOn(t *testing.T) {
 		checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
 
 Outputs:
 
@@ -4560,6 +4576,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.web: (1 deposed)
   ID = bar
+  provider = provider.aws
   Deposed ID 1 = foo
 	`)
 
@@ -4584,6 +4601,7 @@ aws_instance.web: (1 deposed)
 	checkStateString(t, state, `
 aws_instance.web: (2 deposed)
   ID = baz
+  provider = provider.aws
   Deposed ID 1 = foo
   Deposed ID 2 = bar
 	`)
@@ -4611,6 +4629,7 @@ aws_instance.web: (2 deposed)
 	checkStateString(t, state, `
 aws_instance.web: (1 deposed)
   ID = qux
+  provider = provider.aws
   Deposed ID 1 = bar
 	`)
 
@@ -4632,6 +4651,7 @@ aws_instance.web: (1 deposed)
 	checkStateString(t, state, `
 aws_instance.web:
   ID = quux
+  provider = provider.aws
 	`)
 }
 
@@ -4672,6 +4692,7 @@ func TestContext2Apply_provisionerFailContinue(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
   foo = bar
   type = aws_instance
   `)
@@ -5067,6 +5088,7 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
   foo = bar
   type = aws_instance
 	`)
@@ -5935,12 +5957,13 @@ func TestContext2Apply_destroyOrder(t *testing.T) {
 
 	t.Logf("State 1: %s", state)
 
-	// Next, plan and apply config-less to force a destroy with "apply"
+	// Next, plan and apply a destroy
 	h.Active = true
 	ctx = testContext2(t, &ContextOpts{
-		State:  state,
-		Module: module.NewEmptyTree(),
-		Hooks:  []Hook{h},
+		Destroy: true,
+		State:   state,
+		Module:  m,
+		Hooks:   []Hook{h},
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -7370,6 +7393,7 @@ func TestContext2Apply_targeted(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
   num = 2
   type = aws_instance
 	`)
@@ -7402,10 +7426,13 @@ func TestContext2Apply_targetedCount(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo.0:
   ID = foo
+  provider = provider.aws
 aws_instance.foo.1:
   ID = foo
+  provider = provider.aws
 aws_instance.foo.2:
   ID = foo
+  provider = provider.aws
 	`)
 }
 
@@ -7436,6 +7463,7 @@ func TestContext2Apply_targetedCountIndex(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo.1:
   ID = foo
+  provider = provider.aws
 	`)
 }
 
@@ -7673,10 +7701,12 @@ func TestContext2Apply_targetedModule(t *testing.T) {
 module.child:
   aws_instance.bar:
     ID = foo
+    provider = provider.aws
     num = 2
     type = aws_instance
   aws_instance.foo:
     ID = foo
+    provider = provider.aws
     num = 2
     type = aws_instance
 	`)
@@ -7712,6 +7742,7 @@ func TestContext2Apply_targetedModuleDep(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
   foo = foo
   type = aws_instance
 
@@ -7721,6 +7752,7 @@ aws_instance.foo:
 module.child:
   aws_instance.mod:
     ID = foo
+    provider = provider.aws
 
   Outputs:
 
@@ -7795,6 +7827,7 @@ module.child1:
 module.child2:
   aws_instance.foo:
     ID = foo
+    provider = provider.aws
 
   Outputs:
 
@@ -7836,6 +7869,7 @@ func TestContext2Apply_targetedModuleResource(t *testing.T) {
 module.child:
   aws_instance.foo:
     ID = foo
+    provider = provider.aws
     num = 2
     type = aws_instance
 	`)
@@ -8289,6 +8323,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	expected := strings.TrimSpace(`
 template_file.child:
   ID = foo
+  provider = provider.template
   template = Hi
   type = template_file
 
@@ -8296,6 +8331,7 @@ template_file.child:
     template_file.parent.*
 template_file.parent:
   ID = foo
+  provider = provider.template
   template = Hi
   type = template_file
 		`)
@@ -8371,6 +8407,7 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.iambeingadded:
   ID = foo
+  provider = provider.aws
 aws_instance.ifailedprovisioners: (tainted)
   ID = ifailedprovisioners
 		`)
@@ -8416,6 +8453,7 @@ func TestContext2Apply_ignoreChangesCreate(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
   required_field = set
   type = aws_instance
 `)
@@ -8560,6 +8598,7 @@ func TestContext2Apply_ignoreChangesWildcard(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.foo:
   ID = foo
+  provider = provider.aws
   required_field = set
   type = aws_instance
 `)
@@ -8820,6 +8859,7 @@ func TestContext2Apply_targetedModuleRecursive(t *testing.T) {
 module.child.subchild:
   aws_instance.foo:
     ID = foo
+    provider = provider.aws
     num = 2
     type = aws_instance
 	`)
@@ -8868,7 +8908,6 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
 		d, err := testDiffFn(info, s, c)
-		fmt.Println("DIFF:", d)
 		return d, err
 	}
 
@@ -8977,10 +9016,79 @@ func TestContext2Apply_providerWithLocals(t *testing.T) {
 		t.Fatal("expected no state, got:", state)
 	}
 
-	// Destroy won't work because the local value is removed before the
-	// provider.  Once this is fixed this test will start to fail, and we
-	// can remove the invalid interpolation string;
 	if providerRegion != "bar" {
 		t.Fatalf("expected region %q, got: %q", "bar", providerRegion)
+	}
+}
+
+func TestContext2Apply_destroyWithProviders(t *testing.T) {
+	m := testModule(t, "destroy-module-with-provider")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+			},
+			&ModuleState{
+				Path: []string{"root", "child"},
+			},
+			&ModuleState{
+				Path: []string{"root", "mod", "removed"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.child": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+						// this provider doesn't exist
+						Provider: "provider.aws.baz",
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State:   s,
+		Destroy: true,
+	})
+
+	// test that we can't destroy if the provider is missing
+	if _, err := ctx.Plan(); err == nil {
+		t.Fatal("expected plan error, provider.aws.baz doesn't exist")
+	}
+
+	// correct the state
+	s.Modules[2].Resources["aws_instance.child"].Provider = "provider.aws.bar"
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatal(err)
+	}
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("error during apply: %s", err)
+	}
+
+	got := strings.TrimSpace(state.String())
+
+	// This should fail once modules are removed from the state entirely.
+	want := strings.TrimSpace(`
+<no state>
+module.child:
+  <no state>
+module.mod.removed:
+  <no state>`)
+
+	if got != want {
+		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
 	}
 }

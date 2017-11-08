@@ -112,7 +112,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(
 			&EvalWriteState{
 				Name:         stateId,
 				ResourceType: n.Config.Type,
-				Provider:     n.Config.Provider,
+				Provider:     n.ResolvedProvider,
 				Dependencies: stateDeps,
 				State:        &state,
 			},
@@ -177,7 +177,7 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(
 			&EvalWriteState{
 				Name:         stateId,
 				ResourceType: n.Config.Type,
-				Provider:     n.Config.Provider,
+				Provider:     n.ResolvedProvider,
 				Dependencies: stateDeps,
 				State:        &state,
 			},

@@ -108,7 +108,9 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 	// Get the state if we have it, if not we build it
 	rs := n.ResourceState
 	if rs == nil {
-		rs = &ResourceState{}
+		rs = &ResourceState{
+			Provider: n.ResolvedProvider,
+		}
 	}
 
 	// If the config isn't empty we update the state
@@ -146,7 +148,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			&EvalWriteState{
 				Name:         stateId,
 				ResourceType: rs.Type,
-				Provider:     rs.Provider,
+				Provider:     n.ResolvedProvider,
 				Dependencies: rs.Dependencies,
 				State:        &state, // state is nil here
 			},
@@ -208,7 +210,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			&EvalWriteState{
 				Name:         stateId,
 				ResourceType: rs.Type,
-				Provider:     rs.Provider,
+				Provider:     n.ResolvedProvider,
 				Dependencies: rs.Dependencies,
 				State:        &state,
 			},

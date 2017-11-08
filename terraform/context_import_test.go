@@ -801,13 +801,13 @@ func TestContextImport_customProvider(t *testing.T) {
 const testImportStr = `
 aws_instance.foo:
   ID = foo
-  provider = aws
+  provider = provider.aws
 `
 
 const testImportCountIndexStr = `
 aws_instance.foo.0:
   ID = foo
-  provider = aws
+  provider = provider.aws
 `
 
 const testImportCollisionStr = `
@@ -820,7 +820,7 @@ const testImportModuleStr = `
 module.foo:
   aws_instance.foo:
     ID = foo
-    provider = aws
+    provider = provider.aws
 `
 
 const testImportModuleDepth2Str = `
@@ -828,7 +828,7 @@ const testImportModuleDepth2Str = `
 module.a.b:
   aws_instance.foo:
     ID = foo
-    provider = aws
+    provider = provider.aws
 `
 
 const testImportModuleDiffStr = `
@@ -838,7 +838,7 @@ module.bar:
 module.foo:
   aws_instance.foo:
     ID = foo
-    provider = aws
+    provider = provider.aws
 `
 
 const testImportModuleExistingStr = `
@@ -847,39 +847,39 @@ module.foo:
     ID = bar
   aws_instance.foo:
     ID = foo
-    provider = aws
+    provider = provider.aws
 `
 
 const testImportMultiStr = `
 aws_instance.foo:
   ID = foo
-  provider = aws
+  provider = provider.aws
 aws_instance_thing.foo:
   ID = bar
-  provider = aws
+  provider = provider.aws
 `
 
 const testImportMultiSameStr = `
 aws_instance.foo:
   ID = foo
-  provider = aws
+  provider = provider.aws
 aws_instance_thing.foo:
   ID = bar
-  provider = aws
+  provider = provider.aws
 aws_instance_thing.foo-1:
   ID = qux
-  provider = aws
+  provider = provider.aws
 `
 
 const testImportRefreshStr = `
 aws_instance.foo:
   ID = foo
-  provider = aws
+  provider = provider.aws
   foo = bar
 `
 
 const testImportCustomProviderStr = `
 aws_instance.foo:
   ID = foo
-  provider = aws.alias
+  provider = provider.aws.alias
 `

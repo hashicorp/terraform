@@ -663,11 +663,11 @@ func TestImport_pluginDir(t *testing.T) {
 const testImportStr = `
 test_instance.foo:
   ID = yay
-  provider = test
+  provider = provider.test
 `
 
 const testImportCustomProviderStr = `
 test_instance.foo:
   ID = yay
-  provider = test.alias
+  provider = provider.test.alias
 `
