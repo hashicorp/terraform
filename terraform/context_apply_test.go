@@ -8908,7 +8908,6 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
 		d, err := testDiffFn(info, s, c)
-		fmt.Println("DIFF:", d)
 		return d, err
 	}
 
