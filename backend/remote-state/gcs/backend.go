@@ -96,6 +96,9 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 
 	b.bucketName = data.Get("bucket").(string)
 	b.prefix = strings.TrimLeft(data.Get("prefix").(string), "/")
+	if b.prefix != "" && !strings.HasSuffix(b.prefix, "/") {
+		b.prefix = b.prefix + "/"
+	}
 
 	b.defaultStateFile = strings.TrimLeft(data.Get("path").(string), "/")
 
