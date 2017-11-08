@@ -713,11 +713,6 @@ const testTerraformApplyDestroyStr = `
 <no state>
 `
 
-const testTerraformApplyDestroyNestedModuleStr = `
-module.child.subchild:
-  <no state>
-`
-
 const testTerraformApplyErrorStr = `
 aws_instance.bar:
   ID = bar

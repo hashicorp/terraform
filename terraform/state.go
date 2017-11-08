@@ -1339,6 +1339,10 @@ func (m *ModuleState) String() string {
 	return buf.String()
 }
 
+func (m *ModuleState) Empty() bool {
+	return len(m.Locals) == 0 && len(m.Outputs) == 0 && len(m.Resources) == 0
+}
+
 // ResourceStateKey is a structured representation of the key used for the
 // ModuleState.Resources mapping
 type ResourceStateKey struct {
