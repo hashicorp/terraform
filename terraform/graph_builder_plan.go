@@ -84,6 +84,12 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Module:   b.Module,
 		},
 
+		// Create orphan output nodes
+		&OrphanOutputTransformer{
+			Module: b.Module,
+			State:  b.State,
+		},
+
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Module: b.Module},
 
