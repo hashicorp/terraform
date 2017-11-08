@@ -37,6 +37,7 @@ func TestLocal_refresh(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 
@@ -64,6 +65,7 @@ func TestLocal_refreshNilModule(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 
@@ -94,6 +96,7 @@ func TestLocal_refreshNilModuleWithInput(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 
@@ -137,6 +140,7 @@ func TestLocal_refreshInput(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 
@@ -170,6 +174,7 @@ func TestLocal_refreshValidate(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
+  provider = provider.test
 	`)
 }
 
