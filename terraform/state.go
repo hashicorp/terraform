@@ -1089,7 +1089,7 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 	defer m.Unlock()
 
 	keys := make(map[string]struct{})
-	for k, _ := range m.Resources {
+	for k := range m.Resources {
 		keys[k] = struct{}{}
 	}
 
@@ -1097,7 +1097,7 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 		for _, r := range c.Resources {
 			delete(keys, r.Id())
 
-			for k, _ := range keys {
+			for k := range keys {
 				if strings.HasPrefix(k, r.Id()+".") {
 					delete(keys, k)
 				}
@@ -1106,7 +1106,32 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 	}
 
 	result := make([]string, 0, len(keys))
-	for k, _ := range keys {
+	for k := range keys {
+		result = append(result, k)
+	}
+
+	return result
+}
+
+// OrphanOutputs returns a list of outputs that are in the State but aren't
+// present in the configuration itself.
+func (m *ModuleState) OrphanOutputs(c *config.Config) []string {
+	m.Lock()
+	defer m.Unlock()
+
+	keys := make(map[string]struct{})
+	for k := range m.Outputs {
+		keys[k] = struct{}{}
+	}
+
+	if c != nil {
+		for _, o := range c.Outputs {
+			delete(keys, o.Name)
+		}
+	}
+
+	result := make([]string, 0, len(keys))
+	for k := range keys {
 		result = append(result, k)
 	}
 
