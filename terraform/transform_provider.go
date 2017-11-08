@@ -101,8 +101,9 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 
 			if target == nil {
 				err = multierror.Append(err, fmt.Errorf(
-					"%s: provider %s couldn't be found",
-					dag.VertexName(v), p))
+					"%s: configuration for %s is not present; a provider configuration block is required for all operations",
+					dag.VertexName(v), p,
+				))
 				break
 			}
 
