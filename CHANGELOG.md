@@ -1,5 +1,8 @@
 ## 0.11.0-rc1 (Unreleased)
 
+BUG FIXES:
+
+* backend/gcs: will now automatically add a slash to the given prefix if not present, since without it the workspace enumeration does not function correctly [GH-16585]
 
 ## 0.11.0-beta1 (November 3, 2017)
 
