@@ -240,7 +240,7 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 			&EvalWriteState{
 				Name:         key.String(),
 				ResourceType: info.Type,
-				Provider:     resourceProvider(info.Type, n.ProviderName),
+				Provider:     n.ResolvedProvider,
 				State:        &state,
 			},
 		},
