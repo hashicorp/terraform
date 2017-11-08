@@ -114,7 +114,7 @@ func TestBackendWithPrefix(t *testing.T) {
 	be0 := setupBackend(t, prefix)
 	defer teardownBackend(t, be0, prefix)
 
-	be1 := setupBackend(t, prefix)
+	be1 := setupBackend(t, prefix+"/")
 
 	backend.TestBackend(t, be0, be1)
 }
