@@ -133,6 +133,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&CloseProviderTransformer{},
 		&CloseProvisionerTransformer{},
 
+		// Remove modules no longer present in the config
+		&RemovedModuleTransformer{Module: b.Module, State: b.State},
+
 		// Single root
 		&RootTransformer{},
 	}
