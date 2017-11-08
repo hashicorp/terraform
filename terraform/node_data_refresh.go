@@ -148,7 +148,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			&EvalWriteState{
 				Name:         stateId,
 				ResourceType: rs.Type,
-				Provider:     rs.Provider,
+				Provider:     n.ResolvedProvider,
 				Dependencies: rs.Dependencies,
 				State:        &state, // state is nil here
 			},
@@ -210,7 +210,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			&EvalWriteState{
 				Name:         stateId,
 				ResourceType: rs.Type,
-				Provider:     rs.Provider,
+				Provider:     n.ResolvedProvider,
 				Dependencies: rs.Dependencies,
 				State:        &state,
 			},

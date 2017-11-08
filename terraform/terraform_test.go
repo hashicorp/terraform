@@ -1754,6 +1754,7 @@ hcl_instance.hcltest:
 const testTerraformRefreshDataRefDataStr = `
 data.null_data_source.bar:
   ID = foo
+  provider = provider.null
   bar = yes
   type = null_data_source
 
@@ -1761,6 +1762,7 @@ data.null_data_source.bar:
     data.null_data_source.foo
 data.null_data_source.foo:
   ID = foo
+  provider = provider.null
   foo = yes
   type = null_data_source
 `
