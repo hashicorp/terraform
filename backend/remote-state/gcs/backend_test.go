@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 )
 
+const noPrefix = ""
+
 func TestStateFile(t *testing.T) {
 	t.Parallel()
 
@@ -46,8 +48,8 @@ func TestStateFile(t *testing.T) {
 func TestRemoteClient(t *testing.T) {
 	t.Parallel()
 
-	be := setupBackend(t)
-	defer teardownBackend(t, be)
+	be := setupBackend(t, noPrefix)
+	defer teardownBackend(t, be, noPrefix)
 
 	ss, err := be.State(backend.DefaultStateName)
 	if err != nil {
@@ -65,8 +67,8 @@ func TestRemoteClient(t *testing.T) {
 func TestRemoteLocks(t *testing.T) {
 	t.Parallel()
 
-	be := setupBackend(t)
-	defer teardownBackend(t, be)
+	be := setupBackend(t, noPrefix)
+	defer teardownBackend(t, be, noPrefix)
 
 	remoteClient := func() (remote.Client, error) {
 		ss, err := be.State(backend.DefaultStateName)
@@ -97,16 +99,28 @@ func TestRemoteLocks(t *testing.T) {
 func TestBackend(t *testing.T) {
 	t.Parallel()
 
-	be0 := setupBackend(t)
-	defer teardownBackend(t, be0)
+	be0 := setupBackend(t, noPrefix)
+	defer teardownBackend(t, be0, noPrefix)
 
-	be1 := setupBackend(t)
+	be1 := setupBackend(t, noPrefix)
+
+	backend.TestBackend(t, be0, be1)
+}
+func TestBackendWithPrefix(t *testing.T) {
+	t.Parallel()
+
+	prefix := "test/prefix"
+
+	be0 := setupBackend(t, prefix)
+	defer teardownBackend(t, be0, prefix)
+
+	be1 := setupBackend(t, prefix+"/")
 
 	backend.TestBackend(t, be0, be1)
 }
 
 // setupBackend returns a new GCS backend.
-func setupBackend(t *testing.T) backend.Backend {
+func setupBackend(t *testing.T, prefix string) backend.Backend {
 	t.Helper()
 
 	projectID := os.Getenv("GOOGLE_PROJECT")
@@ -119,7 +133,7 @@ func setupBackend(t *testing.T) backend.Backend {
 	config := map[string]interface{}{
 		"project": projectID,
 		"bucket":  toBucketName(projectID + "-" + t.Name()),
-		"prefix":  "",
+		"prefix":  prefix,
 	}
 
 	if creds := os.Getenv("GOOGLE_CREDENTIALS"); creds != "" {
@@ -133,7 +147,7 @@ func setupBackend(t *testing.T) backend.Backend {
 }
 
 // teardownBackend deletes all states from be except the default state.
-func teardownBackend(t *testing.T, be backend.Backend) {
+func teardownBackend(t *testing.T, be backend.Backend, prefix string) {
 	t.Helper()
 
 	// Delete all states. The bucket must be empty before it can be deleted.
@@ -158,8 +172,12 @@ func teardownBackend(t *testing.T, be backend.Backend) {
 
 	// Delete the default state, which DeleteState() will refuse to do.
 	// It's okay if this fails, not all tests create a default state.
-	if err := gcsBE.storageClient.Bucket(gcsBE.bucketName).Object("default.tfstate").Delete(ctx); err != nil {
-		t.Logf("deleting \"default.tfstate\": %v; manual clean-up may be required", err)
+	ds := "default.tfstate"
+	if prefix != "" {
+		ds = fmt.Sprintf("%s/%s", prefix, ds)
+	}
+	if err := gcsBE.storageClient.Bucket(gcsBE.bucketName).Object(ds).Delete(ctx); err != nil {
+		t.Logf("deleting \"%s\": %v; manual clean-up may be required", ds, err)
 	}
 
 	// Delete the bucket itself.
