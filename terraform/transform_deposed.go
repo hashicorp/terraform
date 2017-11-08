@@ -108,7 +108,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				&EvalWriteStateDeposed{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
-					Provider:     n.ProviderName,
+					Provider:     n.ResolvedProvider,
 					State:        &state,
 					Index:        n.Index,
 				},
@@ -157,7 +157,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				&EvalWriteStateDeposed{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
-					Provider:     n.ProviderName,
+					Provider:     n.ResolvedProvider,
 					State:        &state,
 					Index:        n.Index,
 				},

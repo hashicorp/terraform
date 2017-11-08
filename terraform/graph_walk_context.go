@@ -66,13 +66,12 @@ func (w *ContextGraphWalker) EnterPath(path []string) EvalContext {
 	w.interpolaterVarLock.Unlock()
 
 	ctx := &BuiltinEvalContext{
-		StopContext:   w.StopContext,
-		PathValue:     path,
-		Hooks:         w.Context.hooks,
-		InputValue:    w.Context.uiInput,
-		Components:    w.Context.components,
-		ProviderCache: w.providerCache,
-		//ProviderConfigCache: w.providerConfigCache,
+		StopContext:         w.StopContext,
+		PathValue:           path,
+		Hooks:               w.Context.hooks,
+		InputValue:          w.Context.uiInput,
+		Components:          w.Context.components,
+		ProviderCache:       w.providerCache,
 		ProviderInputConfig: w.Context.providerInputConfig,
 		ProviderLock:        &w.providerLock,
 		ProvisionerCache:    w.provisionerCache,
@@ -150,7 +149,6 @@ func (w *ContextGraphWalker) ExitEvalTree(
 func (w *ContextGraphWalker) init() {
 	w.contexts = make(map[string]*BuiltinEvalContext, 5)
 	w.providerCache = make(map[string]ResourceProvider, 5)
-	//w.providerConfigCache = make(map[string]*ResourceConfig, 5)
 	w.provisionerCache = make(map[string]ResourceProvisioner, 5)
 	w.interpolaterVars = make(map[string]map[string]interface{}, 5)
 }

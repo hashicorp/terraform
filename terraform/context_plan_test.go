@@ -3527,28 +3527,34 @@ STATE:
 
 aws_instance.bar.0:
   ID = bar0
+  provider = provider.aws
 
   Dependencies:
     aws_instance.foo.*
 aws_instance.bar.1:
   ID = bar1
+  provider = provider.aws
 
   Dependencies:
     aws_instance.foo.*
 aws_instance.baz.0:
   ID = baz0
+  provider = provider.aws
 
   Dependencies:
     aws_instance.bar.*
 aws_instance.baz.1:
   ID = baz1
+  provider = provider.aws
 
   Dependencies:
     aws_instance.bar.*
 aws_instance.foo.0:
   ID = foo0
+  provider = provider.aws
 aws_instance.foo.1:
   ID = foo1
+  provider = provider.aws
 `)
 	if actual != expected {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
