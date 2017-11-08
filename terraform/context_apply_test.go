@@ -4036,7 +4036,7 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: state,
+		State: state.DeepCopy(),
 	})
 
 	if _, err := ctx.Plan(); err != nil {
@@ -4051,7 +4051,34 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyOutputOrphanModuleStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+
+	// now apply with no module in the config, which should remove the
+	// remaining output
+	ctx = testContext2(t, &ContextOpts{
+		Module: module.NewEmptyTree(),
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: state.DeepCopy(),
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected = "<no state>"
+	actual = strings.TrimSpace(state.String())
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }
 
