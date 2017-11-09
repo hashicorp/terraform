@@ -1113,9 +1113,9 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 	return result
 }
 
-// OrphanOutputs returns a list of outputs that are in the State but aren't
+// RemovedOutputs returns a list of outputs that are in the State but aren't
 // present in the configuration itself.
-func (m *ModuleState) OrphanOutputs(c *config.Config) []string {
+func (m *ModuleState) RemovedOutputs(c *config.Config) []string {
 	m.Lock()
 	defer m.Unlock()
 

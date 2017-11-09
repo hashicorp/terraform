@@ -44,7 +44,7 @@ func (t *OrphanOutputTransformer) transform(g *Graph, ms *ModuleState) error {
 	}
 
 	// add all the orphaned outputs to the graph
-	for _, n := range ms.OrphanOutputs(c) {
+	for _, n := range ms.RemovedOutputs(c) {
 		g.Add(&NodeOutputOrphan{OutputName: n, PathValue: path})
 
 	}
