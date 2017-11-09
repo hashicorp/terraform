@@ -113,6 +113,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Add module variables
 		&ModuleVariableTransformer{Module: b.Module},
 
+		// Remove modules no longer present in the config
+		&RemovedModuleTransformer{Module: b.Module, State: b.State},
+
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
 

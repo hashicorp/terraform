@@ -342,11 +342,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 			t.Fatal("should check")
 		}
 
-		checkStateString(t, state, `
-<no state>
-module.child:
-  <no state>
-		`)
+		checkStateString(t, state, "<no state>")
 	}
 }
 
@@ -2698,10 +2694,7 @@ func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 		t.Fatal("must call configure")
 	}
 
-	checkStateString(t, state, `
-module.child:
-  <no state>
-  `)
+	checkStateString(t, state, "")
 }
 
 func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
@@ -4036,7 +4029,7 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 				"aws": testProviderFuncFixed(p),
 			},
 		),
-		State: state,
+		State: state.DeepCopy(),
 	})
 
 	if _, err := ctx.Plan(); err != nil {
@@ -4051,7 +4044,33 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyOutputOrphanModuleStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+
+	// now apply with no module in the config, which should remove the
+	// remaining output
+	ctx = testContext2(t, &ContextOpts{
+		Module: module.NewEmptyTree(),
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: state.DeepCopy(),
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual = strings.TrimSpace(state.String())
+	if actual != "" {
+		t.Fatalf("expected no state, got:\n%s", actual)
 	}
 }
 
@@ -6100,9 +6119,8 @@ func TestContext2Apply_destroyNestedModule(t *testing.T) {
 
 	// Test that things were destroyed
 	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testTerraformApplyDestroyNestedModuleStr)
-	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+	if actual != "" {
+		t.Fatalf("expected no state, got: %s", actual)
 	}
 }
 
@@ -6150,12 +6168,8 @@ func TestContext2Apply_destroyDeeplyNestedModule(t *testing.T) {
 
 	// Test that things were destroyed
 	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(`
-module.child.subchild.subsubchild:
-  <no state>
-	`)
-	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+	if actual != "" {
+		t.Fatalf("epected no state, got: %s", actual)
 	}
 }
 
@@ -9080,14 +9094,7 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 
 	got := strings.TrimSpace(state.String())
 
-	// This should fail once modules are removed from the state entirely.
-	want := strings.TrimSpace(`
-<no state>
-module.child:
-  <no state>
-module.mod.removed:
-  <no state>`)
-
+	want := strings.TrimSpace("<no state>")
 	if got != want {
 		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
 	}
