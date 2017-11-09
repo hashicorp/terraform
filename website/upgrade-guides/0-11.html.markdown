@@ -125,7 +125,7 @@ module "example-use1" {
   source = "./example"
 
   providers = {
-    "aws" = "aws.use1",
+    "aws" = "aws.use1"
   }
 }
 
@@ -133,7 +133,7 @@ module "example-usw1" {
   source = "./example"
 
   providers = {
-    "aws" = "aws.usw1",
+    "aws" = "aws.usw1"
   }
 }
 ```
