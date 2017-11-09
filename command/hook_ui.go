@@ -246,7 +246,7 @@ func (h *UiHook) PostApply(
 
 	colorized := h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: %s after %s%s[reset]",
-		addr, msg, time.Now().Round(time.Second).Sub(state.Start), stateIdSuffix))
+		addr, msg, time.Now().Round(time.Millisecond).Sub(state.Start), stateIdSuffix))
 
 	h.ui.Output(colorized)
 
