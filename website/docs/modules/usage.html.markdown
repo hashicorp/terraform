@@ -147,10 +147,10 @@ than waiting for the entire module to be complete before proceeding.
 
 ## Providers within Modules
 
-For convenience in simple configurations, child modules by default inherit
-provider configurations from their parent. This means that in most cases
-only the root module needs explicit `provider` blocks, and then any defined
-provider can be freely used with the same settings in child modules.
+For convenience in simple configurations, child modules automatically inherit
+default (un-aliased) provider configurations from their parent. This means that
+in most cases only the root module needs explicit `provider` blocks, and then
+any defined provider can be freely used with the same settings in child modules.
 
 In more complex situations it may be necessary for a child module to use
 different provider settings than its parent. In this situation it is
@@ -193,8 +193,9 @@ the default inheritance behavior, so it is necessary to enumerate mappings
 for _all_ of the required providers. This is to avoid confusion and surprises
 when mixing both implicit and explicit provider passing.
 
-In more complex situations it may be necessary for a child module _itself_
-to have multiple instances of the same provider. For example, a module
+Additional provider configurations (those with the `alias` argument set) are
+_never_ inherited automatically by child modules, and so must always be passed
+explicitly using the `providers` map. For example, a module
 that configures connectivity between networks in two AWS regions is likely
 to need both a source and a destination region. In that case, the root module
 may look something like this:
@@ -219,8 +220,12 @@ module "tunnel" {
 }
 ```
 
-The subdirectory `./tunnel` should then contain configuration like the
-following, to declare the two provider aliases it expects:
+In the `providers` map, the keys are provider names as expected by the child
+module, while the values are the names of corresponding configurations in
+the _current_ module. The subdirectory `./tunnel` must then contain
+`alias`-only configuration blocks like the following, to declare that it
+requires these names to be passed from a `providers` block in the parent's
+`module` block:
 
 ```
 provider "aws" {
@@ -233,18 +238,31 @@ provider "aws" {
 ```
 
 Each resource should then have its own `provider` attribute set to either
-`"aws.src"` or `"aws.dst"` to choose which of the provider instances to use.
+`"aws.src"` or `"aws.dst"` to choose which of the two provider instances to use.
 
 It is recommended to use the default inheritance behavior in most cases where
 only a single default instance of each provider is used, and switch to
-passing providers explicitly as soon as multiple instances are needed.
+passing providers explicitly only if multiple instances are needed.
 
-In all cases it is recommended to keep explicit provider declarations only in
+In all cases it is recommended to keep explicit provider configurations only in
 the root module and pass them (either implicitly or explicitly) down to
 descendent modules. This avoids the provider configurations being "lost"
 when descendent providers are removed from the configuration. It also allows
 the user of a configuration to determine which providers require credentials
 by inspecting only the root module.
+
+Provider configurations are used for all operations on resources, including
+destroying remote objects and refreshing state. Terraform retains, as part of
+its state, a reference to the provider configuration that was most recently
+used to apply changes to each resource. When a resource is removed from the
+configuration, this record in state is used to locate the appropriate
+configuration because the resource's `provider` argument is no longer present
+in the configuration.
+
+As a consequence, it is required that all resources created for a particular
+provider configuration must be destroyed before that provider configuration is
+removed, unless the related resources are re-configured to use a different
+provider configuration first.
 
 ## Multiple Instances of a Module
 
