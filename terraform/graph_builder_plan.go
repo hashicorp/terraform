@@ -115,6 +115,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Module: b.Module,
 		},
 
+		// Remove modules no longer present in the config
+		&RemovedModuleTransformer{Module: b.Module, State: b.State},
+
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
