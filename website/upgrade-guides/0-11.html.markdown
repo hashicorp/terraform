@@ -158,7 +158,111 @@ to explicitly pass those aliased providers.
 
 **Action**: Consider refactoring existing configurations so that all provider
 configurations are set in the root module and passed explicitly to child
-modules.
+modules, as described in the following section.
+
+### Moving Provider Configurations to the Root Module
+
+With the new provider inheritance model, it is strongly recommended to refactor
+any configuration where child modules define their own `provider` blocks so
+that all explicit configuration is defined in the _root_ module. This approach
+will ensure that removing a module from the configuration will not cause
+any provider configurations to be removed along with it, and thus ensure that
+all of the module's resources can be successfully refreshed and destroyed.
+
+A common configuration is where two child modules have different configurations
+for the same provider, like this:
+
+```
+# root.tf
+
+module "network-use1" {
+  source = "./network"
+  region = "us-east-1"
+}
+
+module "network-usw2" {
+  source = "./network"
+  region = "us-west-2"
+}
+```
+
+```
+# network/network.tf
+
+variable "region" {
+}
+
+provider "aws" {
+  region = "${var.region}"
+}
+
+resource "aws_vpc" "example" {
+  # ...
+}
+```
+
+The above example is problematic because removing either `module.network-use1`
+or `module.network-usw2` from the root module will make the corresponding
+provider configuration no longer available, as described in
+[issue #15762](https://github.com/hashicorp/terraform/issues/15762), which
+prevents Terraform from refreshing or destroying that module's `aws_vpc.example`
+resource.
+
+This can be addressed by moving the `provider` blocks into the root module
+as _additional configurations_, and then passing them down to the child
+modules as _default configurations_ via the explicit `providers` map:
+
+```
+# root.tf
+
+provider "aws" {
+  region = "us-east-1"
+  alias  = "use1"
+}
+
+provider "aws" {
+  region = "us-west-2"
+  alias  = "usw2"
+}
+
+module "network-use1" {
+  source = "./network"
+
+  providers = {
+    "aws" = "aws.use1"
+  }
+}
+
+module "network-usw2" {
+  source = "./network"
+
+  providers = {
+    "aws" = "aws.usw2"
+  }
+}
+```
+
+```
+# network/network.tf
+
+# Empty provider block signals that we expect a default (unaliased) "aws"
+# provider to be passed in from the caller.
+provider "aws" {
+}
+
+resource "aws_vpc" "example" {
+  # ...
+}
+```
+
+After the above refactoring, run `terraform apply` to re-synchoronize
+Terraform's record (in [the Terraform state](/docs/state/index.html)) of the
+location of each resource's provider configuration. This should make no changes
+to actual infrastructure, since no resource configurations were changed.
+
+For more details on the explicit `providers` map, and discussion of more
+complex possibilities such as child modules with additional (aliased) provider
+configurations, see [_Providers Within Modules_](/docs/modules/usage.html#providers-within-modules).
 
 ## Error Checking for Output Values
 
