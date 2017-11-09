@@ -60,9 +60,7 @@ func (n *EvalDeleteModule) Eval(ctx EvalContext) (interface{}, error) {
 				log.Printf("[DEBUG] cannot remove module %s, not empty", modulePrefixStr(n.PathValue))
 				break
 			}
-			tail := len(state.Modules) - 1
-			state.Modules[i] = state.Modules[tail]
-			state.Modules = state.Modules[:tail]
+			state.Modules = append(state.Modules[:i], state.Modules[i+1:]...)
 			break
 		}
 	}
