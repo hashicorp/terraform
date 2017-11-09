@@ -1,9 +1,9 @@
-## 0.11.0-rc1 (Unreleased)
+## 0.11.0-rc1 (November 9, 2017)
 
 BUG FIXES:
 
-* core: state now includes a reference to the provider configuration most recently used to create or update a resource, so that the same configuration can be used to destroy that resource if its configuration (including the explicit pointer to a provider configuration) is removed [GH-16586]
-* backend/gcs: will now automatically add a slash to the given prefix if not present, since without it the workspace enumeration does not function correctly [GH-16585]
+* core: state now includes a reference to the provider configuration most recently used to create or update a resource, so that the same configuration can be used to destroy that resource if its configuration (including the explicit pointer to a provider configuration) is removed ([#16586](https://github.com/hashicorp/terraform/issues/16586))
+* backend/gcs: will now automatically add a slash to the given prefix if not present, since without it the workspace enumeration does not function correctly ([#16585](https://github.com/hashicorp/terraform/issues/16585))
 
 ## 0.11.0-beta1 (November 3, 2017)
 
@@ -25,27 +25,27 @@ The following items give an overview of the incompatibilities and other notewort
 
 NEW FEATURES:
 
-* modules: Module configuration blocks now have a "version" attribute, to set a version constraint for modules sourced from a registry. [GH-16466]
-* modules: Module configuration blocks now have a "providers" attribute, to map a provider configuration from the current module into a submodule [GH-16379]
+* modules: Module configuration blocks now have a "version" attribute, to set a version constraint for modules sourced from a registry. ([#16466](https://github.com/hashicorp/terraform/issues/16466))
+* modules: Module configuration blocks now have a "providers" attribute, to map a provider configuration from the current module into a submodule ([#16379](https://github.com/hashicorp/terraform/issues/16379))
 * backend/gcs: The gcs remote state backend now supports workspaces and locking.
-* backend/manta: The Manta backend now supports workspaces and locking [GH-16296]
+* backend/manta: The Manta backend now supports workspaces and locking ([#16296](https://github.com/hashicorp/terraform/issues/16296))
 
 IMPROVEMENTS:
 
-* cli: The `terraform apply` command now waits for interactive approval of the generated plan before applying it, unless an explicit plan file is provided. [GH-16502]
-* cli: The `terraform version` command now prints out the version numbers of initialized plugins as well as the version of Terraform core, so that they can be more easily shared when opening GitHub Issues, etc. [GH-16439]
-* cli: A new `TF_DATA_DIR` environment variable can be used to override the location where Terraform stores the files normally placed in the `.terraform` directory. [GH-16207]
-* provider/terraform: now built in to Terraform Core so that it will always have the same backend functionality as the Terraform release it corresponds to. [GH-16543]
+* cli: The `terraform apply` command now waits for interactive approval of the generated plan before applying it, unless an explicit plan file is provided. ([#16502](https://github.com/hashicorp/terraform/issues/16502))
+* cli: The `terraform version` command now prints out the version numbers of initialized plugins as well as the version of Terraform core, so that they can be more easily shared when opening GitHub Issues, etc. ([#16439](https://github.com/hashicorp/terraform/issues/16439))
+* cli: A new `TF_DATA_DIR` environment variable can be used to override the location where Terraform stores the files normally placed in the `.terraform` directory. ([#16207](https://github.com/hashicorp/terraform/issues/16207))
+* provider/terraform: now built in to Terraform Core so that it will always have the same backend functionality as the Terraform release it corresponds to. ([#16543](https://github.com/hashicorp/terraform/issues/16543))
 
 BUG FIXES:
 
-* config: Provider config in submodules will no longer be overridden by parent providers with the same name. [GH-16379]
-* core: Module outputs can now produce errors, preventing them from silently propagating through the config. [GH-16204]
-* cli: When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. [GH-16464]
+* config: Provider config in submodules will no longer be overridden by parent providers with the same name. ([#16379](https://github.com/hashicorp/terraform/issues/16379))
+* core: Module outputs can now produce errors, preventing them from silently propagating through the config. ([#16204](https://github.com/hashicorp/terraform/issues/16204))
+* cli: When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. ([#16464](https://github.com/hashicorp/terraform/issues/16464))
 
 PROVIDER FRAMEWORK CHANGES (not user-facing):
 
-* helper/schema: Loosen validation for 'id' field [GH-16456]
+* helper/schema: Loosen validation for 'id' field ([#16456](https://github.com/hashicorp/terraform/issues/16456))
 
 ## 0.10.8 (October 25, 2017)
 
