@@ -31,6 +31,14 @@ func (n *NodeModuleRemoved) EvalTree() EvalNode {
 	}
 }
 
+func (n *NodeModuleRemoved) ReferenceGlobal() bool {
+	return true
+}
+
+func (n *NodeModuleRemoved) References() []string {
+	return []string{modulePrefixStr(n.PathValue)}
+}
+
 // EvalDeleteModule is an EvalNode implementation that removes an empty module
 // entry from the state.
 type EvalDeleteModule struct {
