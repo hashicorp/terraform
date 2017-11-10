@@ -219,6 +219,12 @@ func TestConfigValidate_table(t *testing.T) {
 			true,
 			"invalid version constraint",
 		},
+		{
+			"invalid provider name in module block",
+			"validate-missing-provider",
+			true,
+			"does not exist",
+		},
 	}
 
 	for i, tc := range cases {
