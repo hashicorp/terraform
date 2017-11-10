@@ -428,7 +428,7 @@ func (t *ProviderConfigTransformer) Transform(g *Graph) error {
 
 	// Start the transformation process
 	if err := t.transform(g, t.Module); err != nil {
-		return nil
+		return err
 	}
 
 	// finally attach the configs to the new nodes
@@ -524,6 +524,7 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, m *module.Tree) 
 	for name, parentName := range parentCfg.Providers {
 		fullName := ResolveProviderName(name, path)
 		fullParentName := ResolveProviderName(parentName, parentPath)
+
 		parentProvider := t.providers[fullParentName]
 
 		if parentProvider == nil {
