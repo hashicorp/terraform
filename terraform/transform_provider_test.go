@@ -511,6 +511,40 @@ func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
 	}
 }
 
+// pass a specific provider into a module using it implicitly
+func TestProviderConfigTransformer_implicitModule(t *testing.T) {
+	mod := testModule(t, "transform-provider-implicit-module")
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := &AttachResourceConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := TransformProviders([]string{"aws"}, concrete, mod)
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`module.mod.aws_instance.bar
+  provider.aws.foo
+provider.aws.foo`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 const testTransformProviderBasicStr = `
 aws_instance.web
   provider.aws
