@@ -147,16 +147,86 @@ than waiting for the entire module to be complete before proceeding.
 
 ## Providers within Modules
 
-For convenience in simple configurations, child modules automatically inherit
-default (un-aliased) provider configurations from their parent. This means that
-in most cases only the root module needs explicit `provider` blocks, and then
-any defined provider can be freely used with the same settings in child modules.
+In a configuration with multiple modules, there are some special considerations
+for how resources are associated with provider configurations.
 
-In more complex situations it may be necessary for a child module to use
-different provider settings than its parent. In this situation it is
-possible to define
-[multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances)
-and pass them explicitly and selectively to a child module:
+While in principle `provider` blocks can appear in any module, it is recommended
+that they be placed only in the _root_ module of a configuration, since this
+approach allows users to configure providers just once and re-use them across
+all descendent modules.
+
+Each resource in the configuration must be associated with one provider
+configuration, which may either be within the same module as the resource
+or be passed from the parent module. Providers can be passed down to descendent
+modules in two ways: either _implicitly_ through inheritance, or _explicitly_
+via the `providers` argument within a `module` block. These two options are
+discussed in more detail in the following sections.
+
+In all cases it is recommended to keep explicit provider configurations only in
+the root module and pass them (whether implicitly or explicitly) down to
+descendent modules. This avoids the provider configurations from being "lost"
+when descendent modules are removed from the configuration. It also allows
+the user of a configuration to determine which providers require credentials
+by inspecting only the root module.
+
+Provider configurations are used for all operations on associated resources,
+including destroying remote objects and refreshing state. Terraform retains, as
+part of its state, a reference to the provider configuration that was most
+recently used to apply changes to each resource. When a `resource` block is
+removed from the configuration, this record in the state is used to locate the
+appropriate configuration because the resource's `provider` argument (if any)
+is no longer present in the configuration.
+
+As a consequence, it is required that all resources created for a particular
+provider configuration must be destroyed before that provider configuration is
+removed, unless the related resources are re-configured to use a different
+provider configuration first.
+
+### Implicit Provider Inheritance
+
+For convenience in simple configurations, a child module automatically inherits
+default (un-aliased) provider configurations from its parent. This means that
+explicit `provider` blocks appear only in the root module, and downstream
+modules can simply declare resources for that provider and have them
+automatically associated with the root provider configurations.
+
+For example, the root module might contain only a `provider` block and a
+`module` block to instantiate a child module:
+
+```hcl
+provider "aws" {
+  region = "us-west-1"
+}
+
+module "child" {
+  source = "./child"
+}
+```
+
+The child module can then use any resource from this provider with no further
+provider configuration required:
+
+```hcl
+resource "aws_s3_bucket" "example" {
+  bucket = "provider-inherit-example"
+}
+```
+
+This approach is recommended in the common case where only a single
+configuration is needed for each provider across the entire configuration.
+
+In more complex situations there may be [multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances),
+or a child module may need to use different provider settings than
+its parent. For such situations, it's necessary to pass providers explicitly
+as we will see in the next section.
+
+## Passing Providers Explicitly
+
+When child modules each need a different configuration of a particular
+provider, or where the child module requires a different provider configuration
+than its parent, the `providers` argument within a `module` block can be
+used to define explicitly which provider configs are made available to the
+child module. For example:
 
 ```hcl
 # The default "aws" configuration is used for AWS resources in the root
@@ -182,16 +252,16 @@ module "example" {
 }
 ```
 
-The `providers` argument within a `module` block serves the same purpose as
+The `providers` argument within a `module` block is similar to
 the `provider` argument within a resource as described for
 [multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances),
 but is a map rather than a single string because a module may contain resources
 from many different providers.
 
-Once the `providers` argument is used in a `module` block it overrides all of
+Once the `providers` argument is used in a `module` block, it overrides all of
 the default inheritance behavior, so it is necessary to enumerate mappings
 for _all_ of the required providers. This is to avoid confusion and surprises
-when mixing both implicit and explicit provider passing.
+that may result when mixing both implicit and explicit provider passing.
 
 Additional provider configurations (those with the `alias` argument set) are
 _never_ inherited automatically by child modules, and so must always be passed
@@ -223,11 +293,11 @@ module "tunnel" {
 In the `providers` map, the keys are provider names as expected by the child
 module, while the values are the names of corresponding configurations in
 the _current_ module. The subdirectory `./tunnel` must then contain
-`alias`-only configuration blocks like the following, to declare that it
-requires these names to be passed from a `providers` block in the parent's
-`module` block:
+_proxy configuration blocks_ like the following, to declare that it
+requires configurations to be passed with these from the `providers` block in
+the parent's `module` block:
 
-```
+```hcl
 provider "aws" {
   alias = "src"
 }
@@ -240,29 +310,19 @@ provider "aws" {
 Each resource should then have its own `provider` attribute set to either
 `"aws.src"` or `"aws.dst"` to choose which of the two provider instances to use.
 
-It is recommended to use the default inheritance behavior in most cases where
-only a single default instance of each provider is used, and switch to
-passing providers explicitly only if multiple instances are needed.
+At this time it is required to write an explicit proxy configuration block
+even for default (un-aliased) provider configurations when they will be passed
+via an explicit `providers` block:
 
-In all cases it is recommended to keep explicit provider configurations only in
-the root module and pass them (either implicitly or explicitly) down to
-descendent modules. This avoids the provider configurations being "lost"
-when descendent providers are removed from the configuration. It also allows
-the user of a configuration to determine which providers require credentials
-by inspecting only the root module.
+```hcl
+provider "aws" {
+}
+```
 
-Provider configurations are used for all operations on resources, including
-destroying remote objects and refreshing state. Terraform retains, as part of
-its state, a reference to the provider configuration that was most recently
-used to apply changes to each resource. When a resource is removed from the
-configuration, this record in state is used to locate the appropriate
-configuration because the resource's `provider` argument is no longer present
-in the configuration.
-
-As a consequence, it is required that all resources created for a particular
-provider configuration must be destroyed before that provider configuration is
-removed, unless the related resources are re-configured to use a different
-provider configuration first.
+If such a block is not present, the child module will behave as if it has no
+configurations of this type at all, which may cause input prompts to supply
+any required provider configuration arguments. This limitation will be
+addressed in a future version of Terraform.
 
 ## Multiple Instances of a Module
 
