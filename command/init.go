@@ -182,20 +182,21 @@ func (c *InitCommand) Run(args []string) int {
 			}
 
 		}
-
 		// If we're requesting backend configuration or looking for required
 		// plugins, load the backend
 		if flagBackend {
 			header = true
 
-			// Only output that we're initializing a backend if we have
-			// something in the config. We can be UNSETTING a backend as well
-			// in which case we choose not to show this.
+			// Output that we're initializing a backend if we have
+			// something in the config. We can be UNSETTING a backend
+			// as well in that case there would be warning.
 			if conf.Terraform != nil && conf.Terraform.Backend != nil {
 				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
 					"\n[reset][bold]Initializing the backend...")))
+			} else {
+				c.Ui.Warn(c.Colorize().Color(fmt.Sprintf(
+					"\n[reset][bold]Backend configuration not found. Not initializing the backend...")))
 			}
-
 			opts := &BackendOpts{
 				Config:      conf,
 				ConfigExtra: flagConfigExtra,
@@ -206,6 +207,10 @@ func (c *InitCommand) Run(args []string) int {
 				return 1
 			}
 		}
+	}
+
+	if !flagBackend {
+		back = nil
 	}
 
 	if back == nil {
