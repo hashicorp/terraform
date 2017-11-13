@@ -158,6 +158,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 			},
 
 			"enhanced_vpc_routing": {

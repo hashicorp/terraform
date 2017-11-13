@@ -40,19 +40,22 @@ in [resource addressing format](/docs/commands/state/addressing.html).
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-backup=path` - Path to a backup file Defaults to the state path plus
-                   a timestamp with the ".backup" extension.
+* `-backup=path` - Path where Terraform should write the backup for the
+  original state. This can't be disabled. If not set, Terraform will write it
+  to the same path as the statefile with a ".backup" extension.
 
-* `-backup-out=path` - Path to the backup file for the output state.
-                       This is only necessary if `-state-out` is specified.
+* `-backup-out=path` - Path where Terraform should write the backup for the
+  destination state. This can't be disabled. If not set, Terraform will write
+  it to the same path as the destination state file with a backup extension.
+  This only needs to be specified if -state-out is set to a different path than
+  -state.
 
-* `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+* `-state=path` - Path to the source state file to read from. Defaults to the
+  configured backend, or "terraform.tfstate".
 
-* `-state-out=path` - Path to the state file to write to. If this isn't specified
-                      the state specified by `-state` will be used. This can be
-                      a new or existing path. Ignored when
-                      [remote state](/docs/state/remote.html) is used.
+* `-state-out=path` - Path to the destination state file to write to. If this
+  isn't specified the source state file will be used. This can be a new or
+  existing path.
 
 ## Example: Rename a Resource
 

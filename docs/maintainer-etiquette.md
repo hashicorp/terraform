@@ -26,7 +26,7 @@ These apply to all contributors, but maintainers should lead by examples! :wink:
  - if the PR submitter has push privileges (recognizable via `Collaborator`, `Member` or `Owner` badge) - we expect **the submitter** to merge their own PR after receiving a positive review from either HC employee or another maintainer. _Exceptions apply - see below._
  - we prefer to use the Github's interface or API to do this, just click the green button
  - squash?
-   - squash when you think the commit history is irrelevant (will not be helpful for any readers in T+6mons)
+   - squash when you think the commit history is irrelevant (will not be helpful for any readers in T+6months)
  - Add the new PR to the **Changelog** if it may affect the user (almost any PR except test changes and docs updates)
    - we prefer to use the Github's web interface to modify the Changelog and use `[GH-12345]` to format the PR number. These will be turned into links as part of the release process. Breaking changes should be always documented separately.
 

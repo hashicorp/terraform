@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/flatmap"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestNewContextRequiredVersion(t *testing.T) {
@@ -62,9 +63,9 @@ func TestNewContextRequiredVersion(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
 			// Reset the version for the tests
-			old := SemVersion
-			SemVersion = version.Must(version.NewVersion(tc.Version))
-			defer func() { SemVersion = old }()
+			old := tfversion.SemVer
+			tfversion.SemVer = version.Must(version.NewVersion(tc.Version))
+			defer func() { tfversion.SemVer = old }()
 
 			name := "context-required-version"
 			if tc.Module != "" {
@@ -108,7 +109,7 @@ func TestNewContextState(t *testing.T) {
 
 		"equal TFVersion": {
 			&ContextOpts{
-				State: &State{TFVersion: Version},
+				State: &State{TFVersion: tfversion.Version},
 			},
 			false,
 		},
@@ -139,13 +140,14 @@ func TestNewContextState(t *testing.T) {
 		}
 
 		// Version should always be set to our current
-		if ctx.state.TFVersion != Version {
+		if ctx.state.TFVersion != tfversion.Version {
 			t.Fatalf("%s: state not set to current version", k)
 		}
 	}
 }
 
 func testContext2(t *testing.T, opts *ContextOpts) *Context {
+	t.Helper()
 	// Enable the shadow graph
 	opts.Shadow = true
 
@@ -359,6 +361,7 @@ func testProvisioner() *MockResourceProvisioner {
 }
 
 func checkStateString(t *testing.T, state *State, expected string) {
+	t.Helper()
 	actual := strings.TrimSpace(state.String())
 	expected = strings.TrimSpace(expected)
 
@@ -379,6 +382,7 @@ func resourceState(resourceType, resourceID string) *ResourceState {
 // Test helper that gives a function 3 seconds to finish, assumes deadlock and
 // fails test if it does not.
 func testCheckDeadlock(t *testing.T, f func()) {
+	t.Helper()
 	timeout := make(chan bool, 1)
 	done := make(chan bool, 1)
 	go func() {
@@ -412,15 +416,18 @@ root
 const testContextRefreshModuleStr = `
 aws_instance.web: (tainted)
   ID = bar
+  provider = provider.aws
 
 module.child:
   aws_instance.web:
     ID = new
+    provider = provider.aws
 `
 
 const testContextRefreshOutputStr = `
 aws_instance.web:
   ID = foo
+  provider = provider.aws
   foo = bar
 
 Outputs:
@@ -435,4 +442,5 @@ const testContextRefreshOutputPartialStr = `
 const testContextRefreshTaintedStr = `
 aws_instance.web: (tainted)
   ID = foo
+  provider = provider.aws
 `

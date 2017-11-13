@@ -26,10 +26,6 @@ func TestEvalBuildProviderConfig(t *testing.T) {
 	}
 
 	ctx := &MockEvalContext{
-		ParentProviderConfigConfig: testResourceConfig(t, map[string]interface{}{
-			"inherited_from_parent":    "parent",
-			"set_in_config_and_parent": "parent",
-		}),
 		ProviderInputConfig: map[string]interface{}{
 			"set_in_config": "input",
 			"set_by_input":  "input",
@@ -39,51 +35,15 @@ func TestEvalBuildProviderConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// This is a merger of the following, with later items taking precedence:
-	// - "config" (the config as written in the current module, with all
-	//   interpolation expressions resolved)
-	// - ProviderInputConfig (mock of config produced by the input walk, after
-	//   prompting the user interactively for values unspecified in config)
-	// - ParentProviderConfigConfig (mock of config inherited from a parent module)
+	// We expect the provider config with the added input value
 	expected := map[string]interface{}{
-		"set_in_config":            "input", // in practice, input map contains identical literals from config
-		"set_in_config_and_parent": "parent",
-		"inherited_from_parent":    "parent",
+		"set_in_config":            "config",
+		"set_in_config_and_parent": "config",
 		"computed_in_config":       "config",
 		"set_by_input":             "input",
 	}
 	if !reflect.DeepEqual(config.Raw, expected) {
-		t.Fatalf("incorrect merged config %#v; want %#v", config.Raw, expected)
-	}
-}
-
-func TestEvalBuildProviderConfig_parentPriority(t *testing.T) {
-	config := testResourceConfig(t, map[string]interface{}{})
-	provider := "foo"
-
-	n := &EvalBuildProviderConfig{
-		Provider: provider,
-		Config:   &config,
-		Output:   &config,
-	}
-
-	ctx := &MockEvalContext{
-		ParentProviderConfigConfig: testResourceConfig(t, map[string]interface{}{
-			"foo": "bar",
-		}),
-		ProviderInputConfig: map[string]interface{}{
-			"foo": "baz",
-		},
-	}
-	if _, err := n.Eval(ctx); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	expected := map[string]interface{}{
-		"foo": "bar",
-	}
-	if !reflect.DeepEqual(config.Raw, expected) {
-		t.Fatalf("bad: %#v", config.Raw)
+		t.Fatalf("incorrect merged config:\n%#v\nwanted:\n%#v", config.Raw, expected)
 	}
 }
 
@@ -177,9 +137,7 @@ func TestEvalInputProvider(t *testing.T) {
 			}
 
 			rawConfig, err := config.NewRawConfig(map[string]interface{}{
-				"set_in_config": "input",
-				"set_by_input":  "input",
-				"computed":      "fake_computed",
+				"set_by_input": "input",
 			})
 			if err != nil {
 				return nil, err
@@ -192,7 +150,8 @@ func TestEvalInputProvider(t *testing.T) {
 	}
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	rawConfig, err := config.NewRawConfig(map[string]interface{}{
-		"mock_config": "mock",
+		"mock_config":   "mock",
+		"set_in_config": "input",
 	})
 	if err != nil {
 		t.Fatalf("NewRawConfig failed: %s", err)
@@ -222,12 +181,12 @@ func TestEvalInputProvider(t *testing.T) {
 	}
 
 	inputCfg := ctx.SetProviderInputConfig
+
+	// we should only have the value that was set during Input
 	want := map[string]interface{}{
-		"set_in_config": "input",
-		"set_by_input":  "input",
-		// "computed" is omitted because it value isn't known at input time
+		"set_by_input": "input",
 	}
 	if !reflect.DeepEqual(inputCfg, want) {
-		t.Errorf("got incorrect input config %#v; want %#v", inputCfg, want)
+		t.Errorf("got incorrect input config:\n%#v\nwant:\n%#v", inputCfg, want)
 	}
 }

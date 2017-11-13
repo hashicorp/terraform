@@ -17,7 +17,6 @@ import (
 	"net/url"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -76,19 +75,13 @@ type DefaultSender struct {
 
 // Send is the default retry strategy in the client
 func (ds *DefaultSender) Send(c *Client, req *http.Request) (resp *http.Response, err error) {
-	b := []byte{}
-	if req.Body != nil {
-		b, err = ioutil.ReadAll(req.Body)
+	rr := autorest.NewRetriableRequest(req)
+	for attempts := 0; attempts < ds.RetryAttempts; attempts++ {
+		err = rr.Prepare()
 		if err != nil {
 			return resp, err
 		}
-	}
-
-	for attempts := 0; attempts < ds.RetryAttempts; attempts++ {
-		if len(b) > 0 {
-			req.Body = ioutil.NopCloser(bytes.NewBuffer(b))
-		}
-		resp, err = c.HTTPClient.Do(req)
+		resp, err = c.HTTPClient.Do(rr.Request())
 		if err != nil || !autorest.ResponseHasStatusCode(resp, ds.ValidStatusCodes...) {
 			return resp, err
 		}
@@ -129,7 +122,7 @@ type storageResponse struct {
 
 type odataResponse struct {
 	storageResponse
-	odata odataErrorMessage
+	odata odataErrorWrapper
 }
 
 // AzureStorageServiceError contains fields of the error response from
@@ -142,24 +135,25 @@ type AzureStorageServiceError struct {
 	QueryParameterName        string `xml:"QueryParameterName"`
 	QueryParameterValue       string `xml:"QueryParameterValue"`
 	Reason                    string `xml:"Reason"`
+	Lang                      string
 	StatusCode                int
 	RequestID                 string
 	Date                      string
 	APIVersion                string
 }
 
-type odataErrorMessageMessage struct {
+type odataErrorMessage struct {
 	Lang  string `json:"lang"`
 	Value string `json:"value"`
 }
 
-type odataErrorMessageInternal struct {
-	Code    string                   `json:"code"`
-	Message odataErrorMessageMessage `json:"message"`
+type odataError struct {
+	Code    string            `json:"code"`
+	Message odataErrorMessage `json:"message"`
 }
 
-type odataErrorMessage struct {
-	Err odataErrorMessageInternal `json:"odata.error"`
+type odataErrorWrapper struct {
+	Err odataError `json:"odata.error"`
 }
 
 // UnexpectedStatusCodeError is returned when a storage service responds with neither an error
@@ -404,18 +398,17 @@ func (c Client) exec(verb, url string, headers map[string]string, body io.Reader
 		return nil, errors.New("azure/storage: error creating request: " + err.Error())
 	}
 
-	if clstr, ok := headers["Content-Length"]; ok {
-		// content length header is being signed, but completely ignored by golang.
-		// instead we have to use the ContentLength property on the request struct
-		// (see https://golang.org/src/net/http/request.go?s=18140:18370#L536 and
-		// https://golang.org/src/net/http/transfer.go?s=1739:2467#L49)
-		req.ContentLength, err = strconv.ParseInt(clstr, 10, 64)
-		if err != nil {
-			return nil, err
+	// if a body was provided ensure that the content length was set.
+	// http.NewRequest() will automatically do this for a handful of types
+	// and for those that it doesn't we will handle here.
+	if body != nil && req.ContentLength < 1 {
+		if lr, ok := body.(*io.LimitedReader); ok {
+			setContentLengthFromLimitedReader(req, lr)
 		}
 	}
+
 	for k, v := range headers {
-		req.Header.Add(k, v)
+		req.Header[k] = append(req.Header[k], v) // Must bypass case munging present in `Add` by using map functions directly. See https://github.com/Azure/azure-sdk-for-go/issues/645
 	}
 
 	resp, err := c.Sender.Send(&c, req)
@@ -423,8 +416,7 @@ func (c Client) exec(verb, url string, headers map[string]string, body io.Reader
 		return nil, err
 	}
 
-	statusCode := resp.StatusCode
-	if statusCode >= 400 && statusCode <= 505 {
+	if resp.StatusCode >= 400 && resp.StatusCode <= 505 {
 		var respBody []byte
 		respBody, err = readAndCloseBody(resp.Body)
 		if err != nil {
@@ -436,10 +428,23 @@ func (c Client) exec(verb, url string, headers map[string]string, body io.Reader
 			// no error in response body, might happen in HEAD requests
 			err = serviceErrFromStatusCode(resp.StatusCode, resp.Status, requestID, date, version)
 		} else {
+			storageErr := AzureStorageServiceError{
+				StatusCode: resp.StatusCode,
+				RequestID:  requestID,
+				Date:       date,
+				APIVersion: version,
+			}
 			// response contains storage service error object, unmarshal
-			storageErr, errIn := serviceErrFromXML(respBody, resp.StatusCode, requestID, date, version)
-			if err != nil { // error unmarshaling the error response
-				err = errIn
+			if resp.Header.Get("Content-Type") == "application/xml" {
+				errIn := serviceErrFromXML(respBody, &storageErr)
+				if err != nil { // error unmarshaling the error response
+					err = errIn
+				}
+			} else {
+				errIn := serviceErrFromJSON(respBody, &storageErr)
+				if err != nil { // error unmarshaling the error response
+					err = errIn
+				}
 			}
 			err = storageErr
 		}
@@ -595,18 +600,24 @@ func readAndCloseBody(body io.ReadCloser) ([]byte, error) {
 	return out, err
 }
 
-func serviceErrFromXML(body []byte, statusCode int, requestID, date, version string) (AzureStorageServiceError, error) {
-	storageErr := AzureStorageServiceError{
-		StatusCode: statusCode,
-		RequestID:  requestID,
-		Date:       date,
-		APIVersion: version,
-	}
-	if err := xml.Unmarshal(body, &storageErr); err != nil {
+func serviceErrFromXML(body []byte, storageErr *AzureStorageServiceError) error {
+	if err := xml.Unmarshal(body, storageErr); err != nil {
 		storageErr.Message = fmt.Sprintf("Response body could no be unmarshaled: %v. Body: %v.", err, string(body))
-		return storageErr, err
+		return err
 	}
-	return storageErr, nil
+	return nil
+}
+
+func serviceErrFromJSON(body []byte, storageErr *AzureStorageServiceError) error {
+	odataError := odataErrorWrapper{}
+	if err := json.Unmarshal(body, &odataError); err != nil {
+		storageErr.Message = fmt.Sprintf("Response body could no be unmarshaled: %v. Body: %v.", err, string(body))
+		return err
+	}
+	storageErr.Code = odataError.Err.Code
+	storageErr.Message = odataError.Err.Message.Value
+	storageErr.Lang = odataError.Err.Message.Lang
+	return nil
 }
 
 func serviceErrFromStatusCode(code int, status string, requestID, date, version string) AzureStorageServiceError {

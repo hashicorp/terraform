@@ -7,13 +7,16 @@ description: Explains the use of the source parameter, which tells Terraform whe
 
 # Module Sources
 
-As documented in the [Usage section](/docs/modules/usage.html), the only required parameter when using a module is `source`. The `source` parameter tells Terraform where the module can be found and what constraints to put on the module. Constraints can include a specific version or Git branch.
+As documented in the [Usage section](/docs/modules/usage.html), the only required parameter when using a module is `source`.
 
+The `source` parameter tells Terraform where the module can be found.
 Terraform manages modules for you: it downloads them, organizes them on disk, checks for updates, etc. Terraform uses this `source` parameter to determine where it should retrieve and update modules from.
 
 Terraform supports the following sources:
 
   * Local file paths
+
+  * [Terraform Registry](/docs/registry/index.html)
 
   * GitHub
 
@@ -38,6 +41,27 @@ module "consul" {
 ```
 
 Updates for file paths are automatic: when "downloading" the module using the [get command](/docs/commands/get.html), Terraform will create a symbolic link to the original directory. Therefore, any changes are automatically available.
+
+## Terraform Registry
+
+The [Terraform Registry](https://registry.terraform.io) is an index of modules
+written by the Terraform community.
+The Terraform Registry is the easiest
+way to get started with Terraform and to find modules to start with.
+The registry is integrated directly into Terraform:
+
+```hcl
+module "consul" {
+  source = "hashicorp/consul/aws"
+}
+```
+
+The above example would use the
+[Consul module for AWS](https://registry.terraform.io/modules/hashicorp/consul/aws)
+from the public registry.
+
+You can learn more about the registry at the
+[Terraform Registry documentation section](/docs/registry/index.html).
 
 ## GitHub
 
@@ -112,7 +136,7 @@ Private bitbucket repositories must be specified similar to the Generic Git Resp
 
 ```hcl
 module "consul" {
-  source = "git::https://bitbucket.org/foocompany/module_name.git
+  source = "git::https://bitbucket.org/foocompany/module_name.git"
 }
 ```
 
@@ -120,7 +144,7 @@ You can also specify branches and version withs the ?ref query
 
 ```hcl
 module "consul" {
-  source = "git::https://bitbucket.org/foocompany/module_name.git?hotfix
+  source = "git::https://bitbucket.org/foocompany/module_name.git?ref=hotfix"
 }
 ```
 
@@ -194,7 +218,7 @@ Terraform then looks for the resulting module URL in the following order:
 2. Terraform will look for a `<meta>` tag with the name of `terraform-get`, for example:
 
 ```html
-<meta name="terraform-get” content="github.com/hashicorp/example" />
+<meta name="terraform-get" content="github.com/hashicorp/example" />
 ```
 
 ### S3 Bucket

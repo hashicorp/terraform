@@ -38,3 +38,31 @@ The following arguments are supported:
   as a relative path to the current working directory or as an absolute path.
   It is evaluated in a shell, and can use environment variables or Terraform
   variables.
+
+* `interpreter` - (Optional) If provided, this is a list of interpreter
+  arguments used to execute the command. The first argument is the
+  interpreter itself. It can be provided as a relative path to the current
+  working directory or as an absolute path.  The remaining arguments are
+  appended prior to the command.  This allows building command lines of the
+  form "/bin/bash", "-c", "echo foo". If `interpreter` is unspecified,
+  sensible defaults will be chosen based on the system OS.
+
+### Interpreter Examples
+
+```hcl
+resource "null_resource" "example1" {
+  provisioner "local-exec" {
+    command = "open WFH, '>completed.txt' and print WFH scalar localtime"
+    interpreter = ["perl", "-e"]
+  }
+}
+```
+
+```hcl
+resource "null_resource" "example2" {
+  provisioner "local-exec" {
+    command = "Get-Date > completed.txt"
+    interpreter = ["PowerShell", "-Command"]
+  }
+}
+```

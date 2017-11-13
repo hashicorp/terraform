@@ -11,17 +11,23 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
+	"github.com/hashicorp/terraform/svchost/auth"
+	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 )
@@ -40,12 +46,51 @@ type Meta struct {
 	// ExtraHooks are extra hooks to add to the context.
 	ExtraHooks []terraform.Hook
 
+	// Services provides access to remote endpoint information for
+	// "terraform-native' services running at a specific user-facing hostname.
+	Services *disco.Disco
+
+	// Credentials provides access to credentials for "terraform-native"
+	// services, which are accessed by a service hostname.
+	Credentials auth.CredentialsSource
+
+	// RunningInAutomation indicates that commands are being run by an
+	// automated system rather than directly at a command prompt.
+	//
+	// This is a hint to various command routines that it may be confusing
+	// to print out messages that suggest running specific follow-up
+	// commands, since the user consuming the output will not be
+	// in a position to run such commands.
+	//
+	// The intended use-case of this flag is when Terraform is running in
+	// some sort of workflow orchestration tool which is abstracting away
+	// the specific commands being run.
+	RunningInAutomation bool
+
+	// PluginCacheDir, if non-empty, enables caching of downloaded plugins
+	// into the given directory.
+	PluginCacheDir string
+
+	// OverrideDataDir, if non-empty, overrides the return value of the
+	// DataDir method for situations where the local .terraform/ directory
+	// is not suitable, e.g. because of a read-only filesystem.
+	OverrideDataDir string
+
 	//----------------------------------------------------------
 	// Protected: commands can set these
 	//----------------------------------------------------------
 
-	// Modify the data directory location. Defaults to DefaultDataDir
+	// Modify the data directory location. This should be accessed through the
+	// DataDir method.
 	dataDir string
+
+	// pluginPath is a user defined set of directories to look for plugins.
+	// This is set during init with the `-plugin-dir` flag, saved to a file in
+	// the data directory.
+	// This overrides all other search paths when discovering plugins.
+	pluginPath []string
+
+	ignorePluginChecksum bool
 
 	// Override certain behavior for tests within this package
 	testingOverrides *testingOverrides
@@ -118,6 +163,9 @@ type Meta struct {
 	errWriter *io.PipeWriter
 	// done chan to wait for the scanner goroutine
 	errScannerDone chan struct{}
+
+	// Used with the import command to allow import of state when no matching config exists.
+	allowMissingConfig bool
 }
 
 type PluginOverrides struct {
@@ -159,13 +207,12 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 }
 
 // DataDir returns the directory where local data will be stored.
+// Defaults to DefaultDataDir in the current working directory.
 func (m *Meta) DataDir() string {
-	dataDir := DefaultDataDir
-	if m.dataDir != "" {
-		dataDir = m.dataDir
+	if m.OverrideDataDir != "" {
+		return m.OverrideDataDir
 	}
-
-	return dataDir
+	return DefaultDataDir
 }
 
 const (
@@ -216,6 +263,10 @@ func (m *Meta) StdinPiped() bool {
 	return fi.Mode()&os.ModeNamedPipe != 0
 }
 
+const (
+	ProviderSkipVerifyEnvVar = "TF_SKIP_PROVIDER_VERIFY"
+)
+
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
@@ -252,6 +303,9 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	}
 
 	opts.ProviderSHA256s = m.providerPluginsLock().Read()
+	if v := os.Getenv(ProviderSkipVerifyEnvVar); v != "" {
+		opts.SkipProviderVerify = true
+	}
 
 	opts.Meta = &terraform.ContextMeta{
 		Env: m.Workspace(),
@@ -317,13 +371,11 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 
 // moduleStorage returns the module.Storage implementation used to store
 // modules for commands.
-func (m *Meta) moduleStorage(root string) getter.Storage {
-	return &uiModuleStorage{
-		Storage: &getter.FolderStorage{
-			StorageDir: filepath.Join(root, "modules"),
-		},
-		Ui: m.Ui,
-	}
+func (m *Meta) moduleStorage(root string, mode module.GetMode) *module.Storage {
+	s := module.NewStorage(filepath.Join(root, "modules"), m.Services, m.Credentials)
+	s.Ui = m.Ui
+	s.Mode = mode
+	return s
 }
 
 // process will process the meta-parameters out of the arguments. This
@@ -331,7 +383,7 @@ func (m *Meta) moduleStorage(root string) getter.Storage {
 // slice.
 //
 // vars says whether or not we support variables.
-func (m *Meta) process(args []string, vars bool) []string {
+func (m *Meta) process(args []string, vars bool) ([]string, error) {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
 	if m.oldUi != nil {
@@ -364,24 +416,48 @@ func (m *Meta) process(args []string, vars bool) []string {
 	// the args...
 	m.autoKey = ""
 	if vars {
+		var preArgs []string
+
 		if _, err := os.Stat(DefaultVarsFilename); err == nil {
 			m.autoKey = "var-file-default"
-			args = append(args, "", "")
-			copy(args[2:], args[0:])
-			args[0] = "-" + m.autoKey
-			args[1] = DefaultVarsFilename
+			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename)
 		}
 
 		if _, err := os.Stat(DefaultVarsFilename + ".json"); err == nil {
 			m.autoKey = "var-file-default"
-			args = append(args, "", "")
-			copy(args[2:], args[0:])
-			args[0] = "-" + m.autoKey
-			args[1] = DefaultVarsFilename + ".json"
+			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename+".json")
 		}
+
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+
+		fis, err := ioutil.ReadDir(wd)
+		if err != nil {
+			return nil, err
+		}
+
+		// make sure we add the files in order
+		sort.Slice(fis, func(i, j int) bool {
+			return fis[i].Name() < fis[j].Name()
+		})
+
+		for _, fi := range fis {
+			name := fi.Name()
+			// Ignore directories, non-var-files, and ignored files
+			if fi.IsDir() || !isAutoVarFile(name) || config.IsIgnoredFile(name) {
+				continue
+			}
+
+			m.autoKey = "var-file-default"
+			preArgs = append(preArgs, "-"+m.autoKey, name)
+		}
+
+		args = append(preArgs, args...)
 	}
 
-	return args
+	return args, nil
 }
 
 // uiHook returns the UiHook to use with the context.
@@ -394,8 +470,8 @@ func (m *Meta) uiHook() *UiHook {
 
 // confirm asks a yes/no confirmation.
 func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
-	if !m.input {
-		return false, errors.New("input disabled")
+	if !m.Input() {
+		return false, errors.New("input is disabled")
 	}
 	for {
 		v, err := m.UIInput().Input(opts)
@@ -409,6 +485,36 @@ func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
 			return false, nil
 		case "yes":
 			return true, nil
+		}
+	}
+}
+
+// showDiagnostics displays error and warning messages in the UI.
+//
+// "Diagnostics" here means the Diagnostics type from the tfdiag package,
+// though as a convenience this function accepts anything that could be
+// passed to the "Append" method on that type, converting it to Diagnostics
+// before displaying it.
+//
+// Internally this function uses Diagnostics.Append, and so it will panic
+// if given unsupported value types, just as Append does.
+func (m *Meta) showDiagnostics(vals ...interface{}) {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(vals...)
+
+	for _, diag := range diags {
+		// TODO: Actually measure the terminal width and pass it here.
+		// For now, we don't have easy access to the writer that
+		// ui.Error (etc) are writing to and thus can't interrogate
+		// to see if it's a terminal and what size it is.
+		msg := format.Diagnostic(diag, m.Colorize(), 78)
+		switch diag.Severity() {
+		case tfdiags.Error:
+			m.Ui.Error(msg)
+		case tfdiags.Warning:
+			m.Ui.Warn(msg)
+		default:
+			m.Ui.Output(msg)
 		}
 	}
 }
@@ -498,12 +604,7 @@ func (m *Meta) WorkspaceOverridden() (string, bool) {
 		return envVar, true
 	}
 
-	dataDir := m.dataDir
-	if m.dataDir == "" {
-		dataDir = DefaultDataDir
-	}
-
-	envData, err := ioutil.ReadFile(filepath.Join(dataDir, local.DefaultWorkspaceFile))
+	envData, err := ioutil.ReadFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
 	current := string(bytes.TrimSpace(envData))
 	if current == "" {
 		current = backend.DefaultStateName
@@ -520,19 +621,20 @@ func (m *Meta) WorkspaceOverridden() (string, bool) {
 // SetWorkspace saves the given name as the current workspace in the local
 // filesystem.
 func (m *Meta) SetWorkspace(name string) error {
-	dataDir := m.dataDir
-	if m.dataDir == "" {
-		dataDir = DefaultDataDir
-	}
-
-	err := os.MkdirAll(dataDir, 0755)
+	err := os.MkdirAll(m.DataDir(), 0755)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(dataDir, local.DefaultWorkspaceFile), []byte(name), 0644)
+	err = ioutil.WriteFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile), []byte(name), 0644)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// isAutoVarFile determines if the file ends with .auto.tfvars or .auto.tfvars.json
+func isAutoVarFile(path string) bool {
+	return strings.HasSuffix(path, ".auto.tfvars") ||
+		strings.HasSuffix(path, ".auto.tfvars.json")
 }

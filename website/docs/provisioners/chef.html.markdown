@@ -51,6 +51,8 @@ resource "aws_instance" "web" {
     user_name       = "bork"
     user_key        = "${file("../bork.pem")}"
     version         = "12.4.1"
+    # If you have a self signed cert on your chef server change this to :verify_none
+    ssl_verify_mode = ":verify_peer"
   }
 }
 ```
@@ -142,7 +144,7 @@ The following arguments are supported:
   provisioner.
 
 * `ssl_verify_mode (string)` - (Optional) Used to set the verify mode for Chef Client HTTPS
-  requests.
+  requests. The options are `:verify_none`, or `:verify_peer` which is default.
 
 * `user_name (string)` - (Required) The name of an existing Chef user to register
   the new Chef Client and optionally configure Chef Vaults.

@@ -128,3 +128,90 @@ func TestHashResource_nil(t *testing.T) {
 		t.Fatalf("Expected 0 when hashing nil, given: %d", idx)
 	}
 }
+
+func TestHashEqual(t *testing.T) {
+	nested := &Resource{
+		Schema: map[string]*Schema{
+			"foo": {
+				Type:     TypeString,
+				Optional: true,
+			},
+		},
+	}
+	root := &Resource{
+		Schema: map[string]*Schema{
+			"bar": {
+				Type:     TypeString,
+				Optional: true,
+			},
+			"nested": {
+				Type:     TypeSet,
+				Optional: true,
+				Elem:     nested,
+			},
+		},
+	}
+	n1 := map[string]interface{}{"foo": "bar"}
+	n2 := map[string]interface{}{"foo": "baz"}
+
+	r1 := map[string]interface{}{
+		"bar":    "baz",
+		"nested": NewSet(HashResource(nested), []interface{}{n1}),
+	}
+	r2 := map[string]interface{}{
+		"bar":    "qux",
+		"nested": NewSet(HashResource(nested), []interface{}{n2}),
+	}
+	r3 := map[string]interface{}{
+		"bar":    "baz",
+		"nested": NewSet(HashResource(nested), []interface{}{n2}),
+	}
+	r4 := map[string]interface{}{
+		"bar":    "qux",
+		"nested": NewSet(HashResource(nested), []interface{}{n1}),
+	}
+	s1 := NewSet(HashResource(root), []interface{}{r1})
+	s2 := NewSet(HashResource(root), []interface{}{r2})
+	s3 := NewSet(HashResource(root), []interface{}{r3})
+	s4 := NewSet(HashResource(root), []interface{}{r4})
+
+	cases := []struct {
+		name     string
+		set      *Set
+		compare  *Set
+		expected bool
+	}{
+		{
+			name:     "equal",
+			set:      s1,
+			compare:  s1,
+			expected: true,
+		},
+		{
+			name:     "not equal",
+			set:      s1,
+			compare:  s2,
+			expected: false,
+		},
+		{
+			name:     "outer equal, should still not be equal",
+			set:      s1,
+			compare:  s3,
+			expected: false,
+		},
+		{
+			name:     "inner equal, should still not be equal",
+			set:      s1,
+			compare:  s4,
+			expected: false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := tc.set.HashEqual(tc.compare)
+			if tc.expected != actual {
+				t.Fatalf("expected %t, got %t", tc.expected, actual)
+			}
+		})
+	}
+}

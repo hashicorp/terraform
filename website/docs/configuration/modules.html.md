@@ -19,51 +19,39 @@ already.
 
 ## Example
 
-Module configuration looks like the following:
-
 ```hcl
 module "consul" {
-  source  = "github.com/hashicorp/consul/terraform/aws"
+  source  = "hashicorp/consul/aws"
   servers = 5
 }
 ```
 
 ## Description
 
-The `module` block configures a module and tells Terraform to build
-its resources. Multiple module blocks may be used to configure and use
-multiple modules.
+A `module` block instructs Terraform to create an instance of a module,
+and in turn to instantiate any resources defined within it.
 
-The NAME of the module is logical: it is used only to reference the
-module in other places in the configuration. It has no effect on the
-source of the module. Therefore, you may name modules whatever you'd like.
+The name given in the block header is used to reference the particular module
+instance from expressions within the calling module, and to refer to the
+module on the command line. It has no meaning outside of a particular
+Terraform configuration.
 
-Within the block (the `{ }`) is configuration for the module.
-The only required key is `source`, which tells Terraform where this module
-can be downloaded from. Valid source values are covered in more detail
-in the
-[module section](/docs/modules/index.html).
+Within the block body is the configuration for the module. All attributes
+within the block must correspond to [variables](/docs/configuration/variables.html)
+within the module, with the exception of the following which Terraform
+treats as special:
 
-Other configuration within the module are dependent on the module itself.
-Module configuration maps directly to
-[variables](/docs/configuration/variables.html) within the module, so
-parameters can have any of the data types that variables support, including
-lists and maps.
+* `source` - (Required) A [module source](/docs/modules/sources.html) string
+  specifying the location of the child module source code.
 
-## Syntax
+* `version` - (Optional) A [version constraint](/docs/modules/usage.html#module-versions)
+  string that specifies which versions of the referenced module are acceptable.
+  The newest version matching the constraint will be used. `version` is supported
+  only for modules retrieved from module registries.
 
-The full syntax is:
-
-```text
-module NAME {
-  source = SOURCE_URL
-
-  CONFIG ...
-}
-```
-
-where `CONFIG` is:
-
-```text
-KEY = VALUE
-```
+* `providers` - (Optional) A map whose keys are provider configuration names
+  that are expected by child module and whose values are corresponding
+  provider names in the calling module. This allows
+  [provider configurations to be passed explicitly to child modules](/docs/modules/usage.html#providers-within-modules).
+  If not specified, the child module inherits all of the default (un-aliased)
+  provider configurations from the calling module.

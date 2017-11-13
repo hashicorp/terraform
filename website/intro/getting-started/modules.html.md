@@ -21,9 +21,9 @@ This section of the getting started will cover the basics of using modules.
 Writing modules is covered in more detail in the
 [modules documentation](/docs/modules/index.html).
 
-~> **Warning!** The examples on this page are _**not** eligible_ for the AWS
-[free-tier](https://aws.amazon.com/free/). Do not execute the examples on this
-page unless you're willing to spend a small amount of money.
+~> **Warning!** The examples on this page are _**not** eligible_ for
+[the AWS free tier](https://aws.amazon.com/free/). Do not try the examples
+on this page unless you're willing to spend a small amount of money.
 
 ## Using Modules
 
@@ -31,10 +31,15 @@ If you have any instances running from prior steps in the getting
 started guide, use `terraform destroy` to destroy them, and remove all
 configuration files.
 
-As an example, we're going to use the
-[Consul Terraform module](https://github.com/hashicorp/consul/tree/master/terraform)
-which will setup a complete [Consul](https://www.consul.io) cluster
-for us.
+The [Terraform Registry](https://registry.terraform.io/) includes a directory
+of ready-to-use modules for various common purposes, which can serve as
+larger building-blocks for your infrastructure.
+
+In this example, we're going to use
+[the Consul Terraform module for AWS](https://registry.terraform.io/modules/hashicorp/consul/aws),
+which will set up a complete [Consul](https://www.consul.io) cluster.
+This and other modules can found via the search feature on the Terraform
+Registry site.
 
 Create a configuration file with the following contents:
 
@@ -42,123 +47,224 @@ Create a configuration file with the following contents:
 provider "aws" {
   access_key = "AWS ACCESS KEY"
   secret_key = "AWS SECRET KEY"
-  region     = "AWS REGION"
+  region     = "us-east-1"
 }
 
 module "consul" {
-  source = "github.com/hashicorp/consul/terraform/aws"
+  source = "hashicorp/consul/aws"
 
-  key_name = "AWS SSH KEY NAME"
-  key_path = "PATH TO ABOVE PRIVATE KEY"
-  region   = "us-east-1"
-  servers  = "3"
+  aws_region  = "us-east-1" # should match provider region
+  num_servers = "3"
 }
 ```
+
+The `module` block begins with the example given on the Terraform Registry
+page for this module, telling Terraform to create and manage this module.
+This is similar to a `resource` block: it has a name used within this
+configuration -- in this case, `"consul"` -- and a set of input values
+that are listed in
+[the module's "Inputs" documentation](https://registry.terraform.io/modules/hashicorp/consul/aws?tab=inputs).
 
 (Note that the `provider` block can be omitted in favor of environment
 variables. See the [AWS Provider docs](/docs/providers/aws/index.html)
 for details.  This module requires that your AWS account has a default VPC.)
 
-The `module` block tells Terraform to create and manage a module. It is
-very similar to the `resource` block. It has a logical name -- in this
-case "consul" -- and a set of configurations.
-
-The `source` configuration is the only mandatory key for modules. It tells
+The `source` attribute is the only mandatory argument for modules. It tells
 Terraform where the module can be retrieved. Terraform automatically
-downloads and manages modules for you. For our example, we're getting the
-module directly from GitHub. Terraform can retrieve modules from a variety
-of sources including Git, Mercurial, HTTP, and file paths.
+downloads and manages modules for you.
 
-The other configurations are parameters to our module. Please fill them
-in with the proper values.
+In this case, the module is retrieved from the official Terraform Registry.
+Terraform can also retrieve modules from a variety of sources, including
+private module registries or directly from Git, Mercurial, HTTP, and local
+files.
 
-Prior to running any command such as `plan` with a configuration that
-uses modules, you'll have to [get](/docs/commands/get.html) the modules.
-This is done using the [get command](/docs/commands/get.html).
+The other attributes shown are inputs to our module. This module supports many
+additional inputs, but all are optional and have reasonable values for
+experimentation.
 
-```
-$ terraform get
-# ...
-```
-
-This command will download the modules if they haven't been already.
-By default, the command will not check for updates, so it is safe (and fast)
-to run multiple times. You can use the `-update` flag to check and download
-updates.
-
-## Planning and Apply Modules
-
-With the modules downloaded, we can now plan and apply it. If you run
-`terraform plan`, you should see output similar to below:
+After adding a new module to configuration, it is necessary to run (or re-run)
+`terraform init` to obtain and install the new module's source code:
 
 ```
-$ terraform plan
+$ terraform init
 # ...
-+ module.consul.aws_instance.server.0
-# ...
-+ module.consul.aws_instance.server.1
-# ...
-+ module.consul.aws_instance.server.2
-# ...
-+ module.consul.aws_security_group.consul
-# ...
-
-Plan: 4 to add, 0 to change, 0 to destroy.
 ```
 
-Conceptually, the module is treated like a black box. In the plan, however
-Terraform shows each resource the module manages so you can see each detail
-about what the plan will do. If you'd like compressed plan output, you can
-specify the `-module-depth=` flag to get Terraform to output summaries by
-module.
+By default, this command does not check for new module versions that may be
+available, so it is safe to run multiple times. The `-update` option will
+additionally check for any newer versions of existing modules and providers
+that may be available.
 
-Next, run `terraform apply` to create the module. Note that as we warned above,
-the resources this module creates are outside of the AWS free tier, so this
-will have some cost associated with it.
+## Apply Changes
+
+With the Consul module (and its dependencies) installed, we can now apply
+these changes to create the resources described within.
+
+If you run `terraform apply`, you will see a large list of all of the
+resources encapsulated in the module. The output is similar to what we
+saw when using resources directly, but the resource names now have
+module paths prefixed to their names, like in the following example:
 
 ```
-$ terraform apply
+  + module.consul.module.consul_clients.aws_autoscaling_group.autoscaling_group
+      id:                                        <computed>
+      arn:                                       <computed>
+      default_cooldown:                          <computed>
+      desired_capacity:                          "6"
+      force_delete:                              "false"
+      health_check_grace_period:                 "300"
+      health_check_type:                         "EC2"
+      launch_configuration:                      "${aws_launch_configuration.launch_configuration.name}"
+      max_size:                                  "6"
+      metrics_granularity:                       "1Minute"
+      min_size:                                  "6"
+      name:                                      <computed>
+      protect_from_scale_in:                     "false"
+      tag.#:                                     "2"
+      tag.2151078592.key:                        "consul-clients"
+      tag.2151078592.propagate_at_launch:        "true"
+      tag.2151078592.value:                      "consul-example"
+      tag.462896764.key:                         "Name"
+      tag.462896764.propagate_at_launch:         "true"
+      tag.462896764.value:                       "consul-example-client"
+      termination_policies.#:                    "1"
+      termination_policies.0:                    "Default"
+      vpc_zone_identifier.#:                     "6"
+      vpc_zone_identifier.1880739334:            "subnet-5ce4282a"
+      vpc_zone_identifier.3458061785:            "subnet-16600f73"
+      vpc_zone_identifier.4176925006:            "subnet-485abd10"
+      vpc_zone_identifier.4226228233:            "subnet-40a9b86b"
+      vpc_zone_identifier.595613151:             "subnet-5131b95d"
+      vpc_zone_identifier.765942872:             "subnet-595ae164"
+      wait_for_capacity_timeout:                 "10m"
+```
+
+The `module.consul.module.consul_clients` prefix shown above indicates
+not only that the resource is from the `module "consul"` block we wrote,
+but in fact that this module has its own `module "consul_clients"` block
+within it. Modules can be nested to decompose complex systems into
+managable components.
+
+The full set of resources created by this module includes an autoscaling group,
+security groups, IAM roles and other individual resources that all support
+the Consul cluster that will be created.
+
+Note that as we warned above, the resources created by this module are
+not eligible for the AWS free tier and so proceeding further will have some
+cost associated. To proceed with the creation of the Consul cluster, type
+`yes` at the confirmation prompt.
+
+```
 # ...
-Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+
+module.consul.module.consul_clients.aws_security_group.lc_security_group: Creating...
+  description:            "" => "Security group for the consul-example-client launch configuration"
+  egress.#:               "" => "<computed>"
+  ingress.#:              "" => "<computed>"
+  name:                   "" => "<computed>"
+  name_prefix:            "" => "consul-example-client"
+  owner_id:               "" => "<computed>"
+  revoke_rules_on_delete: "" => "false"
+  vpc_id:                 "" => "vpc-22099946"
+
+# ...
+
+Apply complete! Resources: 34 added, 0 changed, 0 destroyed.
 ```
 
-After a few minutes, you'll have a three server Consul cluster up and
-running! Without any knowledge of how Consul works, how to install Consul,
-or how to configure Consul into a cluster, you've created a real cluster in
-just minutes.
+After several minutes and many log messages about all of the resources
+being created, you'll have a three-server Consul cluster up and running.
+Without needing any knowledge of how Consul works, how to install Consul,
+or how to form a Consul cluster, you've created a working cluster in just
+a few minutes.
 
 ## Module Outputs
 
-Just as we parameterized the module with configurations such as
-`servers` above, modules can also output information (just like a resource).
+Just as the module instance had input arguments such as `num_servers` above,
+module can also produce _output_ values, similar to resource attributes.
 
-You'll have to reference the module's code or documentation to know what
-outputs it supports for now, but for this guide we'll just tell you that the
-Consul module has an output named `server_address` that has the address of
-one of the Consul servers that was setup.
+[The module's outputs reference](https://registry.terraform.io/modules/hashicorp/consul/aws?tab=outputs)
+describes all of the different values it produces. Overall, it exposes the
+id of each of the resources it creates, as well as echoing back some of the
+input values.
 
-To reference this, we'll just put it into our own output variable. But this
-value could be used anywhere: in another resource, to configure another
-provider, etc.
+One of the supported outputs is called `asg_name_servers`, and its value
+is the name of the auto-scaling group that was created to manage the Consul
+servers.
+
+To reference this, we'll just put it into our _own_ output value. This
+value could actually be used anywhere: in another resource, to configure
+another provider, etc.
+
+Add the following to the end of the existing configuration file created
+above:
 
 ```hcl
-output "consul_address" {
-  value = "${module.consul.server_address}"
+output "consul_server_asg_name" {
+  value = "${module.consul.asg_name_servers}"
 }
 ```
 
-The syntax for referencing module outputs should be very familiar. The
-syntax is `${module.NAME.ATTRIBUTE}`. The `NAME` is the logical name
-we assigned earlier, and the `ATTRIBUTE` is the output attribute.
+The syntax for referencing module outputs is `${module.NAME.OUTPUT}`, where
+`NAME` is the module name given in the header of the `module` configuration
+block and `OUTPUT` is the name of the output to reference.
 
-If you run `terraform apply` again, Terraform should make no changes, but
-you'll now see the "consul\_address" output with the address of our Consul
-server.
+If you run `terraform apply` again, Terraform will make no changes to
+infrastructure, but you'll now see the "consul\_server\_asg\_name" output with
+the name of the created auto-scaling group:
+
+```
+# ...
+
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+consul_server_asg_name = tf-asg-2017103123350991200000000a
+```
+
+If you look in the Auto-scaling Groups section of the EC2 console you should
+find an autoscaling group of this name, and from there find the three
+Consul servers it is running. (If you can't find it, make sure you're looking
+in the right region!)
+
+## Destroy
+
+Just as with top-level resources, we can destroy the resources created by
+the Consul module to avoid ongoing costs:
+
+```
+$ terraform destroy
+# ...
+
+Terraform will perform the following actions:
+
+  - module.consul.module.consul_clients.aws_autoscaling_group.autoscaling_group
+
+  - module.consul.module.consul_clients.aws_iam_instance_profile.instance_profile
+
+  - module.consul.module.consul_clients.aws_iam_role.instance_role
+
+# ...
+```
+
+As usual, Terraform describes all of the actions it will take. In this case,
+it plans to destroy all of the resources that were created by the module.
+Type `yes` to confirm and, after a few minutes and even more log output,
+all of the resources should be destroyed:
+
+```
+Destroy complete! Resources: 34 destroyed.
+```
+
+With all of the resources destroyed, you can delete the configuration file
+we created above. We will not make any further use of it, and so this avoids
+the risk of accidentally re-creating the Consul cluster.
 
 ## Next
 
 For more information on modules, the types of sources supported, how
-to write modules, and more, read the in depth
+to write modules, and more, read the in-depth
 [module documentation](/docs/modules/index.html).
 
-Next, we learn how to [use Terraform remotely and the associated benefits](/intro/getting-started/remote.html).
+Next, we learn about [Terraform's remote collaboration features](/intro/getting-started/remote.html).

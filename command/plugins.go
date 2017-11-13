@@ -1,14 +1,19 @@
 package command
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	plugin "github.com/hashicorp/go-plugin"
+	terraformProvider "github.com/hashicorp/terraform/builtin/providers/terraform"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/terraform"
@@ -21,12 +26,25 @@ import (
 // each that satisfies the given constraints.
 type multiVersionProviderResolver struct {
 	Available discovery.PluginMetaSet
+
+	// Internal is a map that overrides the usual plugin selection process
+	// for internal plugins. These plugins do not support version constraints
+	// (will produce an error if one is set). This should be used only in
+	// exceptional circumstances since it forces the provider's release
+	// schedule to be tied to that of Terraform Core.
+	Internal map[string]terraform.ResourceProviderFactory
 }
 
-func choosePlugins(avail discovery.PluginMetaSet, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
+func choosePlugins(avail discovery.PluginMetaSet, internal map[string]terraform.ResourceProviderFactory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
 	candidates := avail.ConstrainVersions(reqd)
 	ret := map[string]discovery.PluginMeta{}
 	for name, metas := range candidates {
+		// If the provider is in our internal map then we ignore any
+		// discovered plugins for it since these are dealt with separately.
+		if _, isInternal := internal[name]; isInternal {
+			continue
+		}
+
 		if len(metas) == 0 {
 			continue
 		}
@@ -41,8 +59,17 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 	factories := make(map[string]terraform.ResourceProviderFactory, len(reqd))
 	var errs []error
 
-	chosen := choosePlugins(r.Available, reqd)
-	for name := range reqd {
+	chosen := choosePlugins(r.Available, r.Internal, reqd)
+	for name, req := range reqd {
+		if factory, isInternal := r.Internal[name]; isInternal {
+			if !req.Versions.Unconstrained() {
+				errs = append(errs, fmt.Errorf("provider.%s: this provider is built in to Terraform and so it does not support version constraints", name))
+				continue
+			}
+			factories[name] = factory
+			continue
+		}
+
 		if newest, available := chosen[name]; available {
 			digest, err := newest.SHA256()
 			if err != nil {
@@ -50,23 +77,75 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 				continue
 			}
 			if !reqd[name].AcceptsSHA256(digest) {
-				// This generic error message is intended to avoid troubling
-				// users with implementation details. The main useful point
-				// here is that they need to run "terraform init" to
-				// fix this, which is covered by the UI code reporting these
-				// error messages.
-				errs = append(errs, fmt.Errorf("provider.%s: installed but not yet initialized", name))
+				errs = append(errs, fmt.Errorf("provider.%s: new or changed plugin executable", name))
 				continue
 			}
 
 			client := tfplugin.Client(newest)
 			factories[name] = providerFactory(client)
 		} else {
-			errs = append(errs, fmt.Errorf("provider.%s: no suitable version installed", name))
+			msg := fmt.Sprintf("provider.%s: no suitable version installed", name)
+
+			required := req.Versions.String()
+			// no version is unconstrained
+			if required == "" {
+				required = "(any version)"
+			}
+
+			foundVersions := []string{}
+			for meta := range r.Available.WithName(name) {
+				foundVersions = append(foundVersions, fmt.Sprintf("%q", meta.Version))
+			}
+
+			found := "none"
+			if len(foundVersions) > 0 {
+				found = strings.Join(foundVersions, ", ")
+			}
+
+			msg += fmt.Sprintf("\n  version requirements: %q\n  versions installed: %s", required, found)
+
+			errs = append(errs, errors.New(msg))
 		}
 	}
 
 	return factories, errs
+}
+
+// store the user-supplied path for plugin discovery
+func (m *Meta) storePluginPath(pluginPath []string) error {
+	if len(pluginPath) == 0 {
+		return nil
+	}
+
+	js, err := json.MarshalIndent(pluginPath, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	// if this fails, so will WriteFile
+	os.MkdirAll(m.DataDir(), 0755)
+
+	return ioutil.WriteFile(filepath.Join(m.DataDir(), PluginPathFile), js, 0644)
+}
+
+// Load the user-defined plugin search path into Meta.pluginPath if the file
+// exists.
+func (m *Meta) loadPluginPath() ([]string, error) {
+	js, err := ioutil.ReadFile(filepath.Join(m.DataDir(), PluginPathFile))
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	var pluginPath []string
+	if err := json.Unmarshal(js, &pluginPath); err != nil {
+		return nil, err
+	}
+
+	return pluginPath, nil
 }
 
 // the default location for automatically installed plugins
@@ -80,6 +159,10 @@ func (m *Meta) pluginDir() string {
 // of the same plugin version are found, but newer versions always override
 // older versions where both satisfy the provider version constraints.
 func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
+	// user defined paths take precedence
+	if len(m.pluginPath) > 0 {
+		return m.pluginPath
+	}
 
 	// When searching the following directories, earlier entries get precedence
 	// if the same plugin version is found twice, but newer versions will
@@ -97,17 +180,38 @@ func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
 		dirs = append(dirs, filepath.Dir(exePath))
 	}
 
+	// add the user vendor directory
+	dirs = append(dirs, DefaultPluginVendorDir)
+
 	if includeAutoInstalled {
 		dirs = append(dirs, m.pluginDir())
 	}
 	dirs = append(dirs, m.GlobalPluginDirs...)
+
 	return dirs
+}
+
+func (m *Meta) pluginCache() discovery.PluginCache {
+	dir := m.PluginCacheDir
+	if dir == "" {
+		return nil // cache disabled
+	}
+
+	dir = filepath.Join(dir, pluginMachineName)
+
+	return discovery.NewLocalPluginCache(dir)
 }
 
 // providerPluginSet returns the set of valid providers that were discovered in
 // the defined search paths.
 func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
 	plugins := discovery.FindPlugins("provider", m.pluginDirs(true))
+
+	// Add providers defined in the legacy .terraformrc,
+	if m.PluginOverrides != nil {
+		plugins = plugins.OverridePaths(m.PluginOverrides.Providers)
+	}
+
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
@@ -134,6 +238,12 @@ func (m *Meta) providerPluginAutoInstalledSet() discovery.PluginMetaSet {
 // in all locations *except* the auto-install directory.
 func (m *Meta) providerPluginManuallyInstalledSet() discovery.PluginMetaSet {
 	plugins := discovery.FindPlugins("provider", m.pluginDirs(false))
+
+	// Add providers defined in the legacy .terraformrc,
+	if m.PluginOverrides != nil {
+		plugins = plugins.OverridePaths(m.PluginOverrides.Providers)
+	}
+
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
@@ -146,6 +256,15 @@ func (m *Meta) providerPluginManuallyInstalledSet() discovery.PluginMetaSet {
 func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
 	return &multiVersionProviderResolver{
 		Available: m.providerPluginSet(),
+		Internal:  m.internalProviders(),
+	}
+}
+
+func (m *Meta) internalProviders() map[string]terraform.ResourceProviderFactory {
+	return map[string]terraform.ResourceProviderFactory{
+		"terraform": func() (terraform.ResourceProvider, error) {
+			return terraformProvider.Provider(), nil
+		},
 	}
 }
 

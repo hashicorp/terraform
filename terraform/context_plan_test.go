@@ -643,67 +643,6 @@ func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_moduleProviderDefaults(t *testing.T) {
-	var l sync.Mutex
-	var calls []string
-	toCount := 0
-
-	m := testModule(t, "plan-module-provider-defaults")
-	ctx := testContext2(t, &ContextOpts{
-		Module: m,
-		ProviderResolver: ResourceProviderResolverFixed(
-			map[string]ResourceProviderFactory{
-				"aws": func() (ResourceProvider, error) {
-					l.Lock()
-					defer l.Unlock()
-
-					p := testProvider("aws")
-					p.ConfigureFn = func(c *ResourceConfig) error {
-						if v, ok := c.Get("from"); !ok || v.(string) != "root" {
-							return fmt.Errorf("bad")
-						}
-						if v, ok := c.Get("to"); ok && v.(string) == "child" {
-							toCount++
-						}
-
-						return nil
-					}
-					p.DiffFn = func(
-						info *InstanceInfo,
-						state *InstanceState,
-						c *ResourceConfig) (*InstanceDiff, error) {
-						v, _ := c.Get("from")
-
-						l.Lock()
-						defer l.Unlock()
-						calls = append(calls, v.(string))
-						return testDiffFn(info, state, c)
-					}
-					return p, nil
-				},
-			},
-		),
-	})
-
-	_, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if toCount != 1 {
-		t.Fatalf(
-			"provider in child didn't set proper config\n\n"+
-				"toCount: %d", toCount)
-	}
-
-	actual := calls
-	sort.Strings(actual)
-	expected := []string{"child", "root"}
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
 func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	var l sync.Mutex
 	var calls []string
@@ -748,11 +687,12 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	}
 
 	expected := []string{
+		"child\nchild\n",
 		"root\n",
-		"root\nchild\n",
 	}
+	sort.Strings(calls)
 	if !reflect.DeepEqual(calls, expected) {
-		t.Fatalf("BAD: %#v", calls)
+		t.Fatalf("expected:\n%#v\ngot:\n%#v\n", expected, calls)
 	}
 }
 
@@ -1288,6 +1228,39 @@ func TestContext2Plan_computedDataCountResource(t *testing.T) {
 	// make sure we created 3 "bar"s
 	for i := 0; i < 3; i++ {
 		resource := fmt.Sprintf("data.aws_vpc.bar.%d", i)
+		if _, ok := moduleDiff.Resources[resource]; !ok {
+			t.Fatalf("missing diff for %s", resource)
+		}
+	}
+}
+
+func TestContext2Plan_localValueCount(t *testing.T) {
+	m := testModule(t, "plan-local-value-count")
+	p := testProvider("test")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"test": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if got := len(plan.Diff.Modules); got != 1 {
+		t.Fatalf("got %d modules; want 1", got)
+	}
+
+	moduleDiff := plan.Diff.Modules[0]
+
+	// make sure we created 3 "bar"s
+	for i := 0; i < 3; i++ {
+		resource := fmt.Sprintf("test_resource.foo.%d", i)
 		if _, ok := moduleDiff.Resources[resource]; !ok {
 			t.Fatalf("missing diff for %s", resource)
 		}
@@ -3554,30 +3527,124 @@ STATE:
 
 aws_instance.bar.0:
   ID = bar0
+  provider = provider.aws
 
   Dependencies:
     aws_instance.foo.*
 aws_instance.bar.1:
   ID = bar1
+  provider = provider.aws
 
   Dependencies:
     aws_instance.foo.*
 aws_instance.baz.0:
   ID = baz0
+  provider = provider.aws
 
   Dependencies:
     aws_instance.bar.*
 aws_instance.baz.1:
   ID = baz1
+  provider = provider.aws
 
   Dependencies:
     aws_instance.bar.*
 aws_instance.foo.0:
   ID = foo0
+  provider = provider.aws
 aws_instance.foo.1:
   ID = foo1
+  provider = provider.aws
 `)
 	if actual != expected {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	}
+}
+
+func TestContext2Plan_invalidOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "aws_instance" "name" {}
+
+output "out" {
+  value = "${data.aws_instance.name.missing}"
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	// if this ever fails to pass validate, add a resource to reference in the config
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		t.Fatalf("warnings generated on validate: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("errors generated on validate: %v", e)
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("refresh err: %s", err)
+	}
+
+	_, err = ctx.Plan()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestContext2Plan_invalidModuleOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"child/main.tf": `
+data "aws_instance" "name" {}
+
+output "out" {
+  value = "${data.aws_instance.name.missing}"
+}`,
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+
+resource "aws_instance" "foo" {
+  foo = "${module.child.out}"
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	// if this ever fails to pass validate, add a resource to reference in the config
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		t.Fatalf("warnings generated on validate: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("errors generated on validate: %v", e)
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("refresh err: %s", err)
+	}
+
+	_, err = ctx.Plan()
+	if err == nil {
+		t.Fatal("expected error")
 	}
 }

@@ -213,20 +213,6 @@ func updateByteMatchSetResourceWR(d *schema.ResourceData, oldT, newT []interface
 	return nil
 }
 
-func expandFieldToMatchWR(d map[string]interface{}) *waf.FieldToMatch {
-	return &waf.FieldToMatch{
-		Type: aws.String(d["type"].(string)),
-		Data: aws.String(d["data"].(string)),
-	}
-}
-
-func flattenFieldToMatchWR(fm *waf.FieldToMatch) map[string]interface{} {
-	m := make(map[string]interface{})
-	m["data"] = *fm.Data
-	m["type"] = *fm.Type
-	return m
-}
-
 func diffByteMatchSetTuple(oldT, newT []interface{}) []*waf.ByteMatchSetUpdate {
 	updates := make([]*waf.ByteMatchSetUpdate, 0)
 

@@ -193,7 +193,7 @@ func resourceAwsIamPolicyDelete(d *schema.ResourceData, meta interface{}) error 
 		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
 			return nil
 		}
-		return fmt.Errorf("Error reading IAM policy %s: %#v", d.Id(), err)
+		return fmt.Errorf("Error deleting IAM policy %s: %#v", d.Id(), err)
 	}
 	return nil
 }

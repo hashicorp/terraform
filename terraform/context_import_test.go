@@ -226,10 +226,10 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	}
 }
 
-// Test that import sets up the graph properly for provider inheritance
-func TestContextImport_providerInherit(t *testing.T) {
+// Importing into a module requires a provider config in that module.
+func TestContextImport_providerModule(t *testing.T) {
 	p := testProvider("aws")
-	m := testModule(t, "import-provider-inherit")
+	m := testModule(t, "import-provider-module")
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -725,9 +725,43 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	}
 }
 
-func TestContextImport_customProvider(t *testing.T) {
+// import missing a provider alias should fail
+func TestContextImport_customProviderMissing(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+	}
+
+	_, err := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr:     "aws_instance.foo",
+				ID:       "bar",
+				Provider: "aws.alias",
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestContextImport_customProvider(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "import-provider-alias")
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
@@ -767,13 +801,13 @@ func TestContextImport_customProvider(t *testing.T) {
 const testImportStr = `
 aws_instance.foo:
   ID = foo
-  provider = aws
+  provider = provider.aws
 `
 
 const testImportCountIndexStr = `
 aws_instance.foo.0:
   ID = foo
-  provider = aws
+  provider = provider.aws
 `
 
 const testImportCollisionStr = `
@@ -786,7 +820,7 @@ const testImportModuleStr = `
 module.foo:
   aws_instance.foo:
     ID = foo
-    provider = aws
+    provider = provider.aws
 `
 
 const testImportModuleDepth2Str = `
@@ -794,7 +828,7 @@ const testImportModuleDepth2Str = `
 module.a.b:
   aws_instance.foo:
     ID = foo
-    provider = aws
+    provider = provider.aws
 `
 
 const testImportModuleDiffStr = `
@@ -804,7 +838,7 @@ module.bar:
 module.foo:
   aws_instance.foo:
     ID = foo
-    provider = aws
+    provider = provider.aws
 `
 
 const testImportModuleExistingStr = `
@@ -813,39 +847,39 @@ module.foo:
     ID = bar
   aws_instance.foo:
     ID = foo
-    provider = aws
+    provider = provider.aws
 `
 
 const testImportMultiStr = `
 aws_instance.foo:
   ID = foo
-  provider = aws
+  provider = provider.aws
 aws_instance_thing.foo:
   ID = bar
-  provider = aws
+  provider = provider.aws
 `
 
 const testImportMultiSameStr = `
 aws_instance.foo:
   ID = foo
-  provider = aws
+  provider = provider.aws
 aws_instance_thing.foo:
   ID = bar
-  provider = aws
+  provider = provider.aws
 aws_instance_thing.foo-1:
   ID = qux
-  provider = aws
+  provider = provider.aws
 `
 
 const testImportRefreshStr = `
 aws_instance.foo:
   ID = foo
-  provider = aws
+  provider = provider.aws
   foo = bar
 `
 
 const testImportCustomProviderStr = `
 aws_instance.foo:
   ID = foo
-  provider = aws.alias
+  provider = provider.aws.alias
 `

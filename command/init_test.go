@@ -55,6 +55,99 @@ func TestInit_multipleArgs(t *testing.T) {
 	}
 }
 
+func TestInit_fromModule_explicitDest(t *testing.T) {
+	dir := tempDir(t)
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-from-module=" + testFixturePath("init"),
+		dir,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "hello.tf")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestInit_fromModule_cwdDest(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	os.MkdirAll(td, os.ModePerm)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-from-module=" + testFixturePath("init"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(filepath.Join(td, "hello.tf")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+// https://github.com/hashicorp/terraform/issues/518
+func TestInit_fromModule_dstInSrc(t *testing.T) {
+	dir := tempDir(t)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Change to the temporary directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	if _, err := os.Create("issue518.tf"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-from-module=.",
+		"foo",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "foo", "issue518.tf")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestInit_get(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -77,7 +170,7 @@ func TestInit_get(t *testing.T) {
 
 	// Check output
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "Get: file://") {
+	if !strings.Contains(output, "Getting source") {
 		t.Fatalf("doesn't look like get: %s", output)
 	}
 }
@@ -110,7 +203,7 @@ func TestInit_getUpgradeModules(t *testing.T) {
 
 	// Check output
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "(update)") {
+	if !strings.Contains(output, "Updating source") {
 		t.Fatalf("doesn't look like get upgrade: %s", output)
 	}
 }
@@ -305,12 +398,12 @@ func TestInit_targetSubdir(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	if _, err := os.Stat(filepath.Join(td, "source", DefaultDataDir, DefaultStateFilename)); err != nil {
+	if _, err := os.Stat(filepath.Join(td, DefaultDataDir, DefaultStateFilename)); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// a data directory should not have been added to out working dir
-	if _, err := os.Stat(filepath.Join(td, DefaultDataDir)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(td, "source", DefaultDataDir)); !os.IsNotExist(err) {
 		t.Fatalf("err: %s", err)
 	}
 }
@@ -474,9 +567,15 @@ func TestInit_getProvider(t *testing.T) {
 		providerInstaller: installer,
 	}
 
-	args := []string{}
+	args := []string{
+		"-backend=false", // should be possible to install plugins without backend init
+	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	if !installer.PurgeUnusedCalled {
+		t.Errorf("init didn't purge providers, but should have")
 	}
 
 	// check that we got the providers for our config
@@ -491,6 +590,101 @@ func TestInit_getProvider(t *testing.T) {
 	betweenPath := filepath.Join(c.pluginDir(), installer.FileName("between", "2.3.4"))
 	if _, err := os.Stat(betweenPath); os.IsNotExist(err) {
 		t.Fatal("provider 'between' not downloaded")
+	}
+}
+
+// make sure we can locate providers in various paths
+func TestInit_findVendoredProviders(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+
+	configDirName := "init-get-providers"
+	copy.CopyDir(testFixturePath(configDirName), filepath.Join(td, configDirName))
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make our plugin paths
+	if err := os.MkdirAll(c.pluginDir(), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(DefaultPluginVendorDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// add some dummy providers
+	// the auto plugin directory
+	exactPath := filepath.Join(c.pluginDir(), "terraform-provider-exact_v1.2.3_x4")
+	if err := ioutil.WriteFile(exactPath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	// the vendor path
+	greaterThanPath := filepath.Join(DefaultPluginVendorDir, "terraform-provider-greater_than_v2.3.4_x4")
+	if err := ioutil.WriteFile(greaterThanPath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	// Check the current directory too
+	betweenPath := filepath.Join(".", "terraform-provider-between_v2.3.4_x4")
+	if err := ioutil.WriteFile(betweenPath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	args := []string{configDirName}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
+// make sure we can locate providers defined in the legacy rc file
+func TestInit_rcProviders(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+
+	configDirName := "init-legacy-rc"
+	copy.CopyDir(testFixturePath(configDirName), filepath.Join(td, configDirName))
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	pluginDir := filepath.Join(td, "custom")
+	pluginPath := filepath.Join(pluginDir, "terraform-provider-legacy")
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		Ui: ui,
+		PluginOverrides: &PluginOverrides{
+			Providers: map[string]string{
+				"legacy": pluginPath,
+			},
+		},
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make our plugin paths
+	if err := os.MkdirAll(pluginDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ioutil.WriteFile(pluginPath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	args := []string{configDirName}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 }
 
@@ -661,6 +855,27 @@ func TestInit_getProviderHaveLegacyVersion(t *testing.T) {
 	}
 }
 
+func TestInit_getProviderCheckRequiredVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-check-required-version"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
 func TestInit_providerLockFile(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -708,5 +923,103 @@ func TestInit_providerLockFile(t *testing.T) {
 `)
 	if string(buf) != wantLockFile {
 		t.Errorf("wrong provider lock file contents\ngot:  %s\nwant: %s", buf, wantLockFile)
+	}
+}
+
+// Test user-supplied -plugin-dir
+func TestInit_pluginDirProviders(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make our vendor paths
+	pluginPath := []string{"a", "b", "c"}
+	for _, p := range pluginPath {
+		if err := os.MkdirAll(p, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// add some dummy providers in our plugin dirs
+	for i, name := range []string{
+		"terraform-provider-exact_v1.2.3_x4",
+		"terraform-provider-greater_than_v2.3.4_x4",
+		"terraform-provider-between_v2.3.4_x4",
+	} {
+
+		if err := ioutil.WriteFile(filepath.Join(pluginPath[i], name), []byte("test bin"), 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	args := []string{
+		"-plugin-dir", "a",
+		"-plugin-dir", "b",
+		"-plugin-dir", "c",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter)
+	}
+}
+
+// Test user-supplied -plugin-dir doesn't allow auto-install
+func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+		providerInstaller: callbackPluginInstaller(func(provider string, req discovery.Constraints) (discovery.PluginMeta, error) {
+			t.Fatalf("plugin installer should not have been called for %q", provider)
+			return discovery.PluginMeta{}, nil
+		}),
+	}
+
+	// make our vendor paths
+	pluginPath := []string{"a", "b"}
+	for _, p := range pluginPath {
+		if err := os.MkdirAll(p, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// add some dummy providers in our plugin dirs
+	for i, name := range []string{
+		"terraform-provider-exact_v1.2.3_x4",
+		"terraform-provider-greater_than_v2.3.4_x4",
+	} {
+
+		if err := ioutil.WriteFile(filepath.Join(pluginPath[i], name), []byte("test bin"), 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	args := []string{
+		"-plugin-dir", "a",
+		"-plugin-dir", "b",
+	}
+	if code := c.Run(args); code == 0 {
+		// should have been an error
+		t.Fatalf("bad: \n%s", ui.OutputWriter)
 	}
 }

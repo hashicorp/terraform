@@ -2,6 +2,8 @@ package s3
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -25,6 +27,14 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The path to the state file inside the bucket",
+				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+					// s3 will strip leading slashes from an object, so while this will
+					// technically be accepted by s3, it will break our workspace hierarchy.
+					if strings.HasPrefix(v.(string), "/") {
+						return nil, []error{fmt.Errorf("key must not start with '/'")}
+					}
+					return nil, nil
+				},
 			},
 
 			"region": {
@@ -112,6 +122,34 @@ func New() backend.Backend {
 				Default:     "",
 			},
 
+			"skip_credentials_validation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Skip the credentials validation via STS API.",
+				Default:     false,
+			},
+
+			"skip_get_ec2_platforms": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Skip getting the supported EC2 platforms.",
+				Default:     false,
+			},
+
+			"skip_requesting_account_id": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Skip requesting the account ID.",
+				Default:     false,
+			},
+
+			"skip_metadata_api_check": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Skip the AWS Metadata API check.",
+				Default:     false,
+			},
+
 			"role_arn": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -139,6 +177,13 @@ func New() backend.Backend {
 				Description: "The permissions applied when assuming a role.",
 				Default:     "",
 			},
+
+			"workspace_key_prefix": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The prefix applied to the non-default state path inside the bucket",
+				Default:     "env:",
+			},
 		},
 	}
 
@@ -160,6 +205,7 @@ type Backend struct {
 	acl                  string
 	kmsKeyID             string
 	ddbTable             string
+	workspaceKeyPrefix   string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -175,6 +221,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.serverSideEncryption = data.Get("encrypt").(bool)
 	b.acl = data.Get("acl").(string)
 	b.kmsKeyID = data.Get("kms_key_id").(string)
+	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
 
 	b.ddbTable = data.Get("dynamodb_table").(string)
 	if b.ddbTable == "" {
@@ -183,17 +230,21 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	cfg := &terraformAWS.Config{
-		AccessKey:             data.Get("access_key").(string),
-		AssumeRoleARN:         data.Get("role_arn").(string),
-		AssumeRoleExternalID:  data.Get("external_id").(string),
-		AssumeRolePolicy:      data.Get("assume_role_policy").(string),
-		AssumeRoleSessionName: data.Get("session_name").(string),
-		CredsFilename:         data.Get("shared_credentials_file").(string),
-		Profile:               data.Get("profile").(string),
-		Region:                data.Get("region").(string),
-		S3Endpoint:            data.Get("endpoint").(string),
-		SecretKey:             data.Get("secret_key").(string),
-		Token:                 data.Get("token").(string),
+		AccessKey:               data.Get("access_key").(string),
+		AssumeRoleARN:           data.Get("role_arn").(string),
+		AssumeRoleExternalID:    data.Get("external_id").(string),
+		AssumeRolePolicy:        data.Get("assume_role_policy").(string),
+		AssumeRoleSessionName:   data.Get("session_name").(string),
+		CredsFilename:           data.Get("shared_credentials_file").(string),
+		Profile:                 data.Get("profile").(string),
+		Region:                  data.Get("region").(string),
+		S3Endpoint:              data.Get("endpoint").(string),
+		SecretKey:               data.Get("secret_key").(string),
+		Token:                   data.Get("token").(string),
+		SkipCredsValidation:     data.Get("skip_credentials_validation").(bool),
+		SkipGetEC2Platforms:     data.Get("skip_get_ec2_platforms").(bool),
+		SkipRequestingAccountId: data.Get("skip_requesting_account_id").(bool),
+		SkipMetadataApiCheck:    data.Get("skip_metadata_api_check").(bool),
 	}
 
 	client, err := cfg.Client()

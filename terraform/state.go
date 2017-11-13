@@ -20,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
 	"github.com/satori/go.uuid"
+
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 const (
@@ -533,6 +535,43 @@ func (s *State) equal(other *State) bool {
 	return true
 }
 
+// MarshalEqual is similar to Equal but provides a stronger definition of
+// "equal", where two states are equal if and only if their serialized form
+// is byte-for-byte identical.
+//
+// This is primarily useful for callers that are trying to save snapshots
+// of state to persistent storage, allowing them to detect when a new
+// snapshot must be taken.
+//
+// Note that the serial number and lineage are included in the serialized form,
+// so it's the caller's responsibility to properly manage these attributes
+// so that this method is only called on two states that have the same
+// serial and lineage, unless detecting such differences is desired.
+func (s *State) MarshalEqual(other *State) bool {
+	if s == nil && other == nil {
+		return true
+	} else if s == nil || other == nil {
+		return false
+	}
+
+	recvBuf := &bytes.Buffer{}
+	otherBuf := &bytes.Buffer{}
+
+	err := WriteState(s, recvBuf)
+	if err != nil {
+		// should never happen, since we're writing to a buffer
+		panic(err)
+	}
+
+	err = WriteState(other, otherBuf)
+	if err != nil {
+		// should never happen, since we're writing to a buffer
+		panic(err)
+	}
+
+	return bytes.Equal(recvBuf.Bytes(), otherBuf.Bytes())
+}
+
 type StateAgeComparison int
 
 const (
@@ -603,36 +642,16 @@ func (s *State) SameLineage(other *State) bool {
 // DeepCopy performs a deep copy of the state structure and returns
 // a new structure.
 func (s *State) DeepCopy() *State {
+	if s == nil {
+		return nil
+	}
+
 	copy, err := copystructure.Config{Lock: true}.Copy(s)
 	if err != nil {
 		panic(err)
 	}
 
 	return copy.(*State)
-}
-
-// IncrementSerialMaybe increments the serial number of this state
-// if it different from the other state.
-func (s *State) IncrementSerialMaybe(other *State) {
-	if s == nil {
-		return
-	}
-	if other == nil {
-		return
-	}
-	s.Lock()
-	defer s.Unlock()
-
-	if s.Serial > other.Serial {
-		return
-	}
-	if other.TFVersion != s.TFVersion || !s.equal(other) {
-		if other.Serial > s.Serial {
-			s.Serial = other.Serial
-		}
-
-		s.Serial++
-	}
 }
 
 // FromFutureTerraform checks if this state was written by a Terraform
@@ -647,7 +666,7 @@ func (s *State) FromFutureTerraform() bool {
 	}
 
 	v := version.Must(version.NewVersion(s.TFVersion))
-	return SemVersion.LessThan(v)
+	return tfversion.SemVer.LessThan(v)
 }
 
 func (s *State) Init() {
@@ -660,6 +679,7 @@ func (s *State) init() {
 	if s.Version == 0 {
 		s.Version = StateVersion
 	}
+
 	if s.moduleByPath(rootModulePath) == nil {
 		s.addModule(rootModulePath)
 	}
@@ -959,6 +979,10 @@ type ModuleState struct {
 	// always disjoint, so the path represents amodule tree
 	Path []string `json:"path"`
 
+	// Locals are kept only transiently in-memory, because we can always
+	// re-compute them.
+	Locals map[string]interface{} `json:"-"`
+
 	// Outputs declared by the module and maintained for each module
 	// even though only the root module technically needs to be kept.
 	// This allows operators to inspect values at the boundaries.
@@ -1065,7 +1089,7 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 	defer m.Unlock()
 
 	keys := make(map[string]struct{})
-	for k, _ := range m.Resources {
+	for k := range m.Resources {
 		keys[k] = struct{}{}
 	}
 
@@ -1073,7 +1097,7 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 		for _, r := range c.Resources {
 			delete(keys, r.Id())
 
-			for k, _ := range keys {
+			for k := range keys {
 				if strings.HasPrefix(k, r.Id()+".") {
 					delete(keys, k)
 				}
@@ -1082,7 +1106,32 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 	}
 
 	result := make([]string, 0, len(keys))
-	for k, _ := range keys {
+	for k := range keys {
+		result = append(result, k)
+	}
+
+	return result
+}
+
+// RemovedOutputs returns a list of outputs that are in the State but aren't
+// present in the configuration itself.
+func (m *ModuleState) RemovedOutputs(c *config.Config) []string {
+	m.Lock()
+	defer m.Unlock()
+
+	keys := make(map[string]struct{})
+	for k := range m.Outputs {
+		keys[k] = struct{}{}
+	}
+
+	if c != nil {
+		for _, o := range c.Outputs {
+			delete(keys, o.Name)
+		}
+	}
+
+	result := make([]string, 0, len(keys))
+	for k := range keys {
 		result = append(result, k)
 	}
 
@@ -1288,6 +1337,10 @@ func (m *ModuleState) String() string {
 	}
 
 	return buf.String()
+}
+
+func (m *ModuleState) Empty() bool {
+	return len(m.Locals) == 0 && len(m.Outputs) == 0 && len(m.Resources) == 0
 }
 
 // ResourceStateKey is a structured representation of the key used for the
@@ -1663,7 +1716,20 @@ func (s *InstanceState) Equal(other *InstanceState) bool {
 		// We only do the deep check if both are non-nil. If one is nil
 		// we treat it as equal since their lengths are both zero (check
 		// above).
-		if !reflect.DeepEqual(s.Meta, other.Meta) {
+		//
+		// Since this can contain numeric values that may change types during
+		// serialization, let's compare the serialized values.
+		sMeta, err := json.Marshal(s.Meta)
+		if err != nil {
+			// marshaling primitives shouldn't ever error out
+			panic(err)
+		}
+		otherMeta, err := json.Marshal(other.Meta)
+		if err != nil {
+			panic(err)
+		}
+
+		if !bytes.Equal(sMeta, otherMeta) {
 			return false
 		}
 	}
@@ -1873,7 +1939,7 @@ func ReadState(src io.Reader) (*State, error) {
 		result = v3State
 	default:
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			SemVersion.String(), versionIdentifier.Version)
+			tfversion.SemVer.String(), versionIdentifier.Version)
 	}
 
 	// If we reached this place we must have a result set
@@ -1917,7 +1983,7 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 	// version that we don't understand
 	if state.Version > StateVersion {
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			SemVersion.String(), state.Version)
+			tfversion.SemVer.String(), state.Version)
 	}
 
 	// Make sure the version is semantic
@@ -1952,7 +2018,7 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 	// version that we don't understand
 	if state.Version > StateVersion {
 		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			SemVersion.String(), state.Version)
+			tfversion.SemVer.String(), state.Version)
 	}
 
 	// Make sure the version is semantic

@@ -169,6 +169,9 @@ To make a resource importable, please see the
 * digitalocean_ssh_key
 * digitalocean_tag
 * digitalocean_volume
+### Dyn
+
+* dyn_record
 
 ### Fastly
 
@@ -191,6 +194,7 @@ To make a resource importable, please see the
 * google_bigquery_table
 * google_compute_address
 * google_compute_autoscaler
+* google_compute_backend_service
 * google_compute_disk
 * google_compute_firewall
 * google_compute_forwarding_rule
@@ -206,8 +210,18 @@ To make a resource importable, please see the
 * google_compute_target_pool
 * google_dns_managed_zone
 * google_project
+* google_sql_database_instance
+* google_sql_database
 * google_sql_user
 * google_storage_bucket
+
+### Heroku
+
+* heroku_app
+* heroku_addon
+* heroku_space
+* heroku_pipeline
+* heroku_pipeline_coupling
 
 ### OpenStack
 

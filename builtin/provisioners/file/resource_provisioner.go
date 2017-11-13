@@ -78,18 +78,12 @@ func applyFn(ctx context.Context) error {
 	}
 }
 
-func validateFn(d *schema.ResourceData) (ws []string, es []error) {
-	numSrc := 0
-	if _, ok := d.GetOk("source"); ok == true {
-		numSrc++
+func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
+	if !c.IsSet("source") && !c.IsSet("content") {
+		es = append(es, fmt.Errorf("Must provide one of 'source' or 'content'"))
 	}
-	if _, ok := d.GetOk("content"); ok == true {
-		numSrc++
-	}
-	if numSrc != 1 {
-		es = append(es, fmt.Errorf("Must provide one of 'content' or 'source'"))
-	}
-	return
+
+	return ws, es
 }
 
 // getSrc returns the file to use as source

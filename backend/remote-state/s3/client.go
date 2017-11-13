@@ -22,7 +22,10 @@ import (
 )
 
 // Store the last saved serial in dynamo with this suffix for consistency checks.
-const stateIDSuffix = "-md5"
+const (
+	stateIDSuffix          = "-md5"
+	s3ErrCodeInternalError = "InternalError"
+)
 
 type RemoteClient struct {
 	s3Client             *s3.S3
@@ -92,21 +95,33 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 }
 
 func (c *RemoteClient) get() (*remote.Payload, error) {
-	output, err := c.s3Client.GetObject(&s3.GetObjectInput{
-		Bucket: &c.bucketName,
-		Key:    &c.path,
-	})
+	var output *s3.GetObjectOutput
+	var err error
 
-	if err != nil {
-		if awserr := err.(awserr.Error); awserr != nil {
-			if awserr.Code() == "NoSuchKey" {
-				return nil, nil
-			} else {
-				return nil, err
+	// we immediately retry on an internal error, as those are usually transient
+	maxRetries := 2
+	for retryCount := 0; ; retryCount++ {
+		output, err = c.s3Client.GetObject(&s3.GetObjectInput{
+			Bucket: &c.bucketName,
+			Key:    &c.path,
+		})
+
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok {
+				switch awserr.Code() {
+				case s3.ErrCodeNoSuchKey:
+					return nil, nil
+				case s3ErrCodeInternalError:
+					if retryCount > maxRetries {
+						return nil, err
+					}
+					log.Println("[WARN] s3 internal error, retrying...")
+					continue
+				}
 			}
-		} else {
 			return nil, err
 		}
+		break
 	}
 
 	defer output.Body.Close()
@@ -134,32 +149,46 @@ func (c *RemoteClient) Put(data []byte) error {
 	contentType := "application/json"
 	contentLength := int64(len(data))
 
-	i := &s3.PutObjectInput{
-		ContentType:   &contentType,
-		ContentLength: &contentLength,
-		Body:          bytes.NewReader(data),
-		Bucket:        &c.bucketName,
-		Key:           &c.path,
-	}
-
-	if c.serverSideEncryption {
-		if c.kmsKeyID != "" {
-			i.SSEKMSKeyId = &c.kmsKeyID
-			i.ServerSideEncryption = aws.String("aws:kms")
-		} else {
-			i.ServerSideEncryption = aws.String("AES256")
+	// we immediately retry on an internal error, as those are usually transient
+	maxRetries := 2
+	for retryCount := 0; ; retryCount++ {
+		i := &s3.PutObjectInput{
+			ContentType:   &contentType,
+			ContentLength: &contentLength,
+			Body:          bytes.NewReader(data),
+			Bucket:        &c.bucketName,
+			Key:           &c.path,
 		}
-	}
 
-	if c.acl != "" {
-		i.ACL = aws.String(c.acl)
-	}
+		if c.serverSideEncryption {
+			if c.kmsKeyID != "" {
+				i.SSEKMSKeyId = &c.kmsKeyID
+				i.ServerSideEncryption = aws.String("aws:kms")
+			} else {
+				i.ServerSideEncryption = aws.String("AES256")
+			}
+		}
 
-	log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
+		if c.acl != "" {
+			i.ACL = aws.String(c.acl)
+		}
 
-	_, err := c.s3Client.PutObject(i)
-	if err != nil {
-		return fmt.Errorf("Failed to upload state: %v", err)
+		log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
+
+		_, err := c.s3Client.PutObject(i)
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok {
+				if awserr.Code() == s3ErrCodeInternalError {
+					if retryCount > maxRetries {
+						return fmt.Errorf("failed to upload state: %s", err)
+					}
+					log.Println("[WARN] s3 internal error, retrying...")
+					continue
+				}
+			}
+			return fmt.Errorf("failed to upload state: %s", err)
+		}
+		break
 	}
 
 	sum := md5.Sum(data)
@@ -243,6 +272,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 		},
 		ProjectionExpression: aws.String("LockID, Digest"),
 		TableName:            aws.String(c.ddbTable),
+		ConsistentRead:       aws.Bool(true),
 	}
 
 	resp, err := c.dynClient.GetItem(getParams)
@@ -313,6 +343,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 		},
 		ProjectionExpression: aws.String("LockID, Info"),
 		TableName:            aws.String(c.ddbTable),
+		ConsistentRead:       aws.Bool(true),
 	}
 
 	resp, err := c.dynClient.GetItem(getParams)

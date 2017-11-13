@@ -192,24 +192,6 @@ func flattenWafByteMatchTuples(bmt []*waf.ByteMatchTuple) []interface{} {
 	return out
 }
 
-func expandFieldToMatch(d map[string]interface{}) *waf.FieldToMatch {
-	return &waf.FieldToMatch{
-		Type: aws.String(d["type"].(string)),
-		Data: aws.String(d["data"].(string)),
-	}
-}
-
-func flattenFieldToMatch(fm *waf.FieldToMatch) []interface{} {
-	m := make(map[string]interface{})
-	if fm.Data != nil {
-		m["data"] = *fm.Data
-	}
-	if fm.Type != nil {
-		m["type"] = *fm.Type
-	}
-	return []interface{}{m}
-}
-
 func diffWafByteMatchSetTuples(oldT, newT []interface{}) []*waf.ByteMatchSetUpdate {
 	updates := make([]*waf.ByteMatchSetUpdate, 0)
 

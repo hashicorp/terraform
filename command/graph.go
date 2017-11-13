@@ -24,7 +24,10 @@ func (c *GraphCommand) Run(args []string) int {
 	var drawCycles bool
 	var graphTypeStr string
 
-	args = c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := flag.NewFlagSet("graph", flag.ContinueOnError)
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
@@ -83,6 +86,12 @@ func (c *GraphCommand) Run(args []string) int {
 	if !ok {
 		c.Ui.Error(ErrUnsupportedLocalOp)
 		return 1
+	}
+
+	// Building a graph may require config module to be present, even if it's
+	// empty.
+	if mod == nil && plan == nil {
+		mod = module.NewEmptyTree()
 	}
 
 	// Build the operation

@@ -33,6 +33,9 @@ const (
 
 	// managedIdentitySettingsPath is the path to the MSI Extension settings file (to discover the endpoint)
 	managedIdentitySettingsPath = "/var/lib/waagent/ManagedIdentity-Settings"
+
+	// metadataHeader is the header required by MSI extension
+	metadataHeader = "Metadata"
 )
 
 var expirationBase time.Time
@@ -364,6 +367,9 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 
 	req.ContentLength = int64(len(s))
 	req.Header.Set(contentType, mimeTypeFormPost)
+	if _, ok := spt.secret.(*ServicePrincipalMSISecret); ok {
+		req.Header.Set(metadataHeader, "true")
+	}
 	resp, err := spt.sender.Do(req)
 	if err != nil {
 		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)

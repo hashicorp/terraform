@@ -109,6 +109,11 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"dbi_resource_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"auto_minor_version_upgrade": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -152,6 +157,11 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  0,
+			},
+
+			"availability_zone": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"tags": tagsSchema(),
@@ -284,12 +294,14 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	d.Set("cluster_identifier", db.DBClusterIdentifier)
 	d.Set("instance_class", db.DBInstanceClass)
 	d.Set("identifier", db.DBInstanceIdentifier)
+	d.Set("dbi_resource_id", db.DbiResourceId)
 	d.Set("storage_encrypted", db.StorageEncrypted)
 	d.Set("kms_key_id", db.KmsKeyId)
 	d.Set("auto_minor_version_upgrade", db.AutoMinorVersionUpgrade)
 	d.Set("promotion_tier", db.PromotionTier)
 	d.Set("preferred_backup_window", db.PreferredBackupWindow)
 	d.Set("preferred_maintenance_window", db.PreferredMaintenanceWindow)
+	d.Set("availability_zone", db.AvailabilityZone)
 
 	if db.MonitoringInterval != nil {
 		d.Set("monitoring_interval", db.MonitoringInterval)

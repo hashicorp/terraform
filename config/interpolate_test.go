@@ -9,10 +9,10 @@ import (
 )
 
 func TestNewInterpolatedVariable(t *testing.T) {
-	cases := []struct {
-		Input  string
-		Result InterpolatedVariable
-		Error  bool
+	tests := []struct {
+		Input string
+		Want  InterpolatedVariable
+		Error bool
 	}{
 		{
 			"var.foo",
@@ -21,6 +21,18 @@ func TestNewInterpolatedVariable(t *testing.T) {
 				key:  "var.foo",
 			},
 			false,
+		},
+		{
+			"local.foo",
+			&LocalVariable{
+				Name: "foo",
+			},
+			false,
+		},
+		{
+			"local.foo.nope",
+			nil,
+			true,
 		},
 		{
 			"module.foo.bar",
@@ -73,14 +85,19 @@ func TestNewInterpolatedVariable(t *testing.T) {
 		},
 	}
 
-	for i, tc := range cases {
-		actual, err := NewInterpolatedVariable(tc.Input)
-		if err != nil != tc.Error {
-			t.Fatalf("%d. Error: %s", i, err)
-		}
-		if !reflect.DeepEqual(actual, tc.Result) {
-			t.Fatalf("%d bad: %#v", i, actual)
-		}
+	for i, test := range tests {
+		t.Run(test.Input, func(t *testing.T) {
+			got, err := NewInterpolatedVariable(test.Input)
+			if err != nil != test.Error {
+				t.Errorf("%d. Error: %s", i, err)
+			}
+			if !test.Error && !reflect.DeepEqual(got, test.Want) {
+				t.Errorf(
+					"wrong result\ninput: %s\ngot:   %#v\nwant:  %#v",
+					test.Input, got, test.Want,
+				)
+			}
+		})
 	}
 }
 

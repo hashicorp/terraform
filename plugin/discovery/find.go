@@ -3,12 +3,10 @@ package discovery
 import (
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
-
-const machineName = runtime.GOOS + "_" + runtime.GOARCH
 
 // FindPlugins looks in the given directories for files whose filenames
 // suggest that they are plugins of the given kind (e.g. "provider") and
@@ -41,76 +39,80 @@ func FindPluginPaths(kind string, dirs []string) []string {
 	// This is just a thin wrapper around findPluginPaths so that we can
 	// use the latter in tests with a fake machineName so we can use our
 	// test fixtures.
-	return findPluginPaths(kind, machineName, dirs)
+	return findPluginPaths(kind, dirs)
 }
 
-func findPluginPaths(kind string, machineName string, dirs []string) []string {
+func findPluginPaths(kind string, dirs []string) []string {
 	prefix := "terraform-" + kind + "-"
 
 	ret := make([]string, 0, len(dirs))
 
-	for _, baseDir := range dirs {
-		baseItems, err := ioutil.ReadDir(baseDir)
+	for _, dir := range dirs {
+		items, err := ioutil.ReadDir(dir)
 		if err != nil {
 			// Ignore missing dirs, non-dirs, etc
 			continue
 		}
 
-		log.Printf("[DEBUG] checking for plugins in %q", baseDir)
+		log.Printf("[DEBUG] checking for %s in %q", kind, dir)
 
-		for _, item := range baseItems {
+		for _, item := range items {
 			fullName := item.Name()
 
-			if fullName == machineName && item.Mode().IsDir() {
-				// Current-style $GOOS-$GOARCH directory prefix
-				machineDir := filepath.Join(baseDir, machineName)
-				machineItems, err := ioutil.ReadDir(machineDir)
-				if err != nil {
-					continue
-				}
-
-				log.Printf("[DEBUG] checking for plugins in %q", machineDir)
-
-				for _, item := range machineItems {
-					fullName := item.Name()
-
-					if !strings.HasPrefix(fullName, prefix) {
-						continue
-					}
-
-					// New-style paths must have a version segment in filename
-					if !strings.Contains(strings.ToLower(fullName), "_v") {
-						continue
-					}
-
-					absPath, err := filepath.Abs(filepath.Join(machineDir, fullName))
-					if err != nil {
-						continue
-					}
-
-					log.Printf("[DEBUG] found plugin %q", fullName)
-
-					ret = append(ret, filepath.Clean(absPath))
-				}
-
+			if !strings.HasPrefix(fullName, prefix) {
 				continue
 			}
 
-			if strings.HasPrefix(fullName, prefix) {
-				// Legacy style with files directly in the base directory
-				absPath, err := filepath.Abs(filepath.Join(baseDir, fullName))
+			// New-style paths must have a version segment in filename
+			if strings.Contains(strings.ToLower(fullName), "_v") {
+				absPath, err := filepath.Abs(filepath.Join(dir, fullName))
 				if err != nil {
+					log.Printf("[ERROR] plugin filepath error: %s", err)
 					continue
 				}
 
-				log.Printf("[DEBUG] found legacy plugin %q", fullName)
+				// Check that the file we found is usable
+				if !pathIsFile(absPath) {
+					log.Printf("[ERROR] ignoring non-file %s", absPath)
+					continue
+				}
 
+				log.Printf("[DEBUG] found %s %q", kind, fullName)
 				ret = append(ret, filepath.Clean(absPath))
+				continue
 			}
+
+			// Legacy style with files directly in the base directory
+			absPath, err := filepath.Abs(filepath.Join(dir, fullName))
+			if err != nil {
+				log.Printf("[ERROR] plugin filepath error: %s", err)
+				continue
+			}
+
+			// Check that the file we found is usable
+			if !pathIsFile(absPath) {
+				log.Printf("[ERROR] ignoring non-file %s", absPath)
+				continue
+			}
+
+			log.Printf("[WARNING] found legacy %s %q", kind, fullName)
+
+			ret = append(ret, filepath.Clean(absPath))
 		}
 	}
 
 	return ret
+}
+
+// Returns true if and only if the given path refers to a file or a symlink
+// to a file.
+func pathIsFile(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+
+	return !info.IsDir()
 }
 
 // ResolvePluginPaths takes a list of paths to plugin executables (as returned
@@ -150,9 +152,15 @@ func ResolvePluginPaths(paths []string) PluginMetaSet {
 			continue
 		}
 
+		// Trim the .exe suffix used on Windows before we start wrangling
+		// the remainder of the path.
+		if strings.HasSuffix(baseName, ".exe") {
+			baseName = baseName[:len(baseName)-4]
+		}
+
 		parts := strings.SplitN(baseName, "_v", 2)
 		name := parts[0]
-		version := "0.0.0"
+		version := VersionZero
 		if len(parts) == 2 {
 			version = parts[1]
 		}

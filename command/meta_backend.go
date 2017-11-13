@@ -96,13 +96,14 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 
 	// Setup the CLI opts we pass into backends that support it
 	cliOpts := &backend.CLIOpts{
-		CLI:             m.Ui,
-		CLIColor:        m.Colorize(),
-		StatePath:       m.statePath,
-		StateOutPath:    m.stateOutPath,
-		StateBackupPath: m.backupPath,
-		ContextOpts:     m.contextOpts(),
-		Input:           m.Input(),
+		CLI:                 m.Ui,
+		CLIColor:            m.Colorize(),
+		StatePath:           m.statePath,
+		StateOutPath:        m.stateOutPath,
+		StateBackupPath:     m.backupPath,
+		ContextOpts:         m.contextOpts(),
+		Input:               m.Input(),
+		RunningInAutomation: m.RunningInAutomation,
 	}
 
 	// Don't validate if we have a plan.  Validation is normally harmless here,
@@ -168,6 +169,7 @@ func (m *Meta) Operation() *backend.Operation {
 		PlanOutBackend:   m.backendState,
 		Targets:          m.targets,
 		UIIn:             m.UIInput(),
+		UIOut:            m.Ui,
 		Workspace:        m.Workspace(),
 		LockState:        m.stateLock,
 		StateLockTimeout: m.stateLockTimeout,
@@ -946,8 +948,7 @@ func (m *Meta) backend_C_R_s(
 	}
 
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-		"[reset][green]\n\n"+
-			strings.TrimSpace(successBackendSet), s.Backend.Type)))
+		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
 
 	return b, nil
 }
@@ -1050,8 +1051,7 @@ func (m *Meta) backend_C_r_s(
 	}
 
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-		"[reset][green]\n\n"+
-			strings.TrimSpace(successBackendSet), s.Backend.Type)))
+		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
 
 	// Return the backend
 	return b, nil
@@ -1082,8 +1082,8 @@ func (m *Meta) backend_C_r_S_changed(
 	if !copy {
 		copy, err = m.confirm(&terraform.InputOpts{
 			Id:          "backend-migrate-to-new",
-			Query:       fmt.Sprintf("Do you want to copy the state from %q?", c.Type),
-			Description: strings.TrimSpace(fmt.Sprintf(inputBackendMigrateChange, c.Type, s.Backend.Type)),
+			Query:       fmt.Sprintf("Do you want to copy the state from %q?", s.Backend.Type),
+			Description: strings.TrimSpace(fmt.Sprintf(inputBackendMigrateChange, s.Backend.Type, c.Type)),
 		})
 		if err != nil {
 			return nil, fmt.Errorf(
@@ -1148,8 +1148,7 @@ func (m *Meta) backend_C_r_S_changed(
 
 	if output {
 		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-			"[reset][green]\n\n"+
-				strings.TrimSpace(successBackendSet), s.Backend.Type)))
+			"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
 	}
 
 	return b, nil

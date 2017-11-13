@@ -792,6 +792,13 @@ func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error deleting ELB: %s", err)
 	}
 
+	name := d.Get("name").(string)
+
+	err := cleanupELBNetworkInterfaces(meta.(*AWSClient).ec2conn, name)
+	if err != nil {
+		log.Printf("[WARN] Failed to cleanup ENIs for ELB %q: %#v", name, err)
+	}
+
 	return nil
 }
 
@@ -973,4 +980,104 @@ func isValidProtocol(s string) bool {
 	}
 
 	return true
+}
+
+// ELB automatically creates ENI(s) on creation
+// but the cleanup is asynchronous and may take time
+// which then blocks IGW, SG or VPC on deletion
+// So we make the cleanup "synchronous" here
+func cleanupELBNetworkInterfaces(conn *ec2.EC2, name string) error {
+	out, err := conn.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("attachment.instance-owner-id"),
+				Values: []*string{aws.String("amazon-elb")},
+			},
+			{
+				Name:   aws.String("description"),
+				Values: []*string{aws.String("ELB " + name)},
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] Found %d ENIs to cleanup for ELB %q",
+		len(out.NetworkInterfaces), name)
+
+	if len(out.NetworkInterfaces) == 0 {
+		// Nothing to cleanup
+		return nil
+	}
+
+	err = detachNetworkInterfaces(conn, out.NetworkInterfaces)
+	if err != nil {
+		return err
+	}
+
+	err = deleteNetworkInterfaces(conn, out.NetworkInterfaces)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func detachNetworkInterfaces(conn *ec2.EC2, nis []*ec2.NetworkInterface) error {
+	log.Printf("[DEBUG] Trying to detach %d leftover ENIs", len(nis))
+	for _, ni := range nis {
+		if ni.Attachment == nil {
+			log.Printf("[DEBUG] ENI %s is already detached", *ni.NetworkInterfaceId)
+			continue
+		}
+		_, err := conn.DetachNetworkInterface(&ec2.DetachNetworkInterfaceInput{
+			AttachmentId: ni.Attachment.AttachmentId,
+			Force:        aws.Bool(true),
+		})
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if ok && awsErr.Code() == "InvalidAttachmentID.NotFound" {
+				log.Printf("[DEBUG] ENI %s is already detached", *ni.NetworkInterfaceId)
+				continue
+			}
+			return err
+		}
+
+		log.Printf("[DEBUG] Waiting for ENI (%s) to become detached", *ni.NetworkInterfaceId)
+		stateConf := &resource.StateChangeConf{
+			Pending: []string{"true"},
+			Target:  []string{"false"},
+			Refresh: networkInterfaceAttachmentRefreshFunc(conn, *ni.NetworkInterfaceId),
+			Timeout: 10 * time.Minute,
+		}
+
+		if _, err := stateConf.WaitForState(); err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if ok && awsErr.Code() == "InvalidNetworkInterfaceID.NotFound" {
+				continue
+			}
+			return fmt.Errorf(
+				"Error waiting for ENI (%s) to become detached: %s", *ni.NetworkInterfaceId, err)
+		}
+	}
+	return nil
+}
+
+func deleteNetworkInterfaces(conn *ec2.EC2, nis []*ec2.NetworkInterface) error {
+	log.Printf("[DEBUG] Trying to delete %d leftover ENIs", len(nis))
+	for _, ni := range nis {
+		_, err := conn.DeleteNetworkInterface(&ec2.DeleteNetworkInterfaceInput{
+			NetworkInterfaceId: ni.NetworkInterfaceId,
+		})
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if ok && awsErr.Code() == "InvalidNetworkInterfaceID.NotFound" {
+				log.Printf("[DEBUG] ENI %s is already deleted", *ni.NetworkInterfaceId)
+				continue
+			}
+			return err
+		}
+	}
+	return nil
 }

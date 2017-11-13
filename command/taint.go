@@ -18,7 +18,10 @@ type TaintCommand struct {
 }
 
 func (c *TaintCommand) Run(args []string) int {
-	args = c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 
 	var allowMissing bool
 	var module string

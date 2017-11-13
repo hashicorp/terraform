@@ -186,7 +186,7 @@ func (s PluginMetaSet) OverridePaths(paths map[string]string) PluginMetaSet {
 	for name, path := range paths {
 		ret.Add(PluginMeta{
 			Name:    name,
-			Version: "0.0.0",
+			Version: VersionZero,
 			Path:    path,
 		})
 	}

@@ -18,13 +18,9 @@ Usage: `terraform apply [options] [dir-or-plan]`
 
 By default, `apply` scans the current directory for the configuration
 and applies the changes appropriately. However, a path to another configuration
-or an execution plan can be provided. Execution plans can be used to only
-execute a pre-determined set of actions.
-
-The `dir` argument can also be a [module source](/docs/modules/index.html).
-In this case, `apply` behaves as though `init` were called with that
-argument followed by an `apply` in the current directory. This is meant
-as a shortcut for getting started.
+or an execution plan can be provided. Explicit execution plans files can be
+used to split plan and apply into separate steps within
+[automation systems](/guides/running-terraform-in-automation.html).
 
 The command-line flags are all optional. The list of available flags are:
 
@@ -36,6 +32,8 @@ The command-line flags are all optional. The list of available flags are:
 * `-lock-timeout=0s` - Duration to retry a state lock.
 
 * `-input=true` - Ask for input for variables if not directly set.
+
+* `-auto-approve` - Skip interactive approval of plan before applying.
 
 * `-no-color` - Disables output with coloring.
 
@@ -54,9 +52,9 @@ The command-line flags are all optional. The list of available flags are:
   [remote state](/docs/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
-  Address](/docs/internals/resource-addressing.html) to target. Operation will
-  be limited to this resource and its dependencies. This flag can be used
-  multiple times.
+  Address](/docs/internals/resource-addressing.html) to target. For more
+  information, see
+  [the targeting docs from `terraform plan`](/docs/commands/plan.html#resource-targeting).
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
@@ -64,7 +62,9 @@ The command-line flags are all optional. The list of available flags are:
   specified via this flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-   a [variable file](/docs/configuration/variables.html#variable-files). If
-  "terraform.tfvars" is present, it will be automatically loaded first. Any
-  files specified by `-var-file` override any values in a "terraform.tfvars".
-  This flag can be used multiple times.
+  a [variable file](/docs/configuration/variables.html#variable-files). If
+  a `terraform.tfvars` or any `.auto.tfvars` files are present in the current
+  directory, they will be automatically loaded. `terraform.tfvars` is loaded
+  first and the `.auto.tfvars` files after in alphabetical order. Any files
+  specified by `-var-file` override any values set automatically from files in
+  the working directory. This flag can be used multiple times.

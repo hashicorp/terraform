@@ -82,10 +82,11 @@ func makeProviderMap(items []plugin) string {
 
 // makeProvisionerMap creates a map of provisioners like this:
 //
-//	"chef":        chefprovisioner.Provisioner,
-//	"file":        fileprovisioner.Provisioner,
-//	"local-exec":  localexecprovisioner.Provisioner,
-//	"remote-exec": remoteexecprovisioner.Provisioner,
+//	"chef":            chefprovisioner.Provisioner,
+//	"salt-masterless": saltmasterlessprovisioner.Provisioner,
+//	"file":            fileprovisioner.Provisioner,
+//	"local-exec":      localexecprovisioner.Provisioner,
+//	"remote-exec":     remoteexecprovisioner.Provisioner,
 //
 func makeProvisionerMap(items []plugin) string {
 	output := ""

@@ -12,14 +12,14 @@ Providers are responsible in Terraform for managing the lifecycle
 of a [resource](/docs/configuration/resources.html): create,
 read, update, delete.
 
-Every resource in Terraform is mapped to a provider based
-on longest-prefix matching. For example the `aws_instance`
-resource type would map to the `aws` provider (if that exists).
-
 Most providers require some sort of configuration to provide
-authentication information, endpoint URLs, etc. Provider configuration
-blocks are a way to set this information globally for all
-matching resources.
+authentication information, endpoint URLs, etc. Where explicit configuration
+is required, a `provider` block is used within the configuration as
+illustrated in the following sections.
+
+By default, resources are matched with provider configurations by matching
+the start of the resource name. For example, a resource of type
+`vsphere_virtual_machine` is associated with a provider called `vsphere`.
 
 This page assumes you're familiar with the
 [configuration syntax](/docs/configuration/syntax.html)
@@ -39,21 +39,21 @@ provider "aws" {
 
 ## Description
 
-The `provider` block configures the provider of the given `NAME`.
-Multiple provider blocks can be used to configure multiple providers.
+A `provider` block represents a configuration for the provider named in its
+header. For example, `provider "aws"` above is a configuration for the
+`aws` provider.
 
-Terraform matches providers to resources by matching two criteria.
-Both criteria must be matched for a provider to manage a resource:
-
-- They must share a common prefix. Longest matching prefixes are tried first.
-  For example, `aws_instance` would choose the `aws` provider.
-
-- The provider must report that it supports the given resource type. Providers
-  internally tell Terraform the list of resources they support.
-
-Within the block (the `{ }`) is configuration for the resource.
+Within the block body (between `{ }`) is configuration for the provider.
 The configuration is dependent on the type, and is documented
 [for each provider](/docs/providers/index.html).
+
+The arguments `alias` and `version`, if present, are special arguments
+handled by Terraform Core for their respective features described above. All
+other arguments are defined by the provider itself.
+
+A `provider` block may be omitted if its body would be empty. Using a resource
+in configuration implicitly creates an empty provider configuration for it
+unless a `provider` block is explicitly provided.
 
 ## Initialization
 
@@ -110,32 +110,50 @@ This special argument applies to _all_ providers.
 view the specified version constraints for all providers used in the
 current configuration.
 
+When `terraform init` is re-run with providers already installed, it will
+use an already-installed provider that meets the constraints in preference
+to downloading a new version. To upgrade to the latest acceptable version
+of each provider, run `terraform init -upgrade`. This command also upgrades
+to the latest versions of all Terraform modules.
+
 ## Multiple Provider Instances
 
-You can define multiple instances of the same provider in order to support
+You can define multiple configurations for the same provider in order to support
 multiple regions, multiple hosts, etc. The primary use case for this is
-utilizing multiple cloud regions. Other use cases include targeting multiple
+using multiple cloud regions. Other use-cases include targeting multiple
 Docker hosts, multiple Consul hosts, etc.
 
-To define multiple provider instances, repeat the provider configuration
-multiple times, but set the `alias` field and name the provider. For
-example:
+To include multiple configurations fo a given provider, include multiple
+`provider` blocks with the same provider name, but set the `alias` field to an
+instance name to use for each additional instance. For example:
 
 ```hcl
-# The default provider
+# The default provider configuration
 provider "aws" {
   # ...
 }
 
-# West coast region
+# Additional provider configuration for west coast region
 provider "aws" {
   alias  = "west"
   region = "us-west-2"
 }
 ```
 
-After naming a provider, you reference it in resources with the `provider`
-field:
+A `provider` block with out `alias` set is known as the _default_ provider
+configuration. When `alias` is set, it creates an _additional_ provider
+configuration. For providers that have no required configuration arguments, the
+implied _empty_ configuration is also considered to be a _default_ provider
+configuration.
+
+Resources are normally associated with the default provider configuration
+inferred from the resource type name. For example, a resource of type
+`aws_instance` uses the _default_ (un-aliased) `aws` provider configuration
+unless otherwise stated.
+
+The `provider` argument within any `resource` or `data` block overrides this
+default behavior and allows an additional provider configuration to be
+selected using its alias:
 
 ```hcl
 resource "aws_instance" "foo" {
@@ -145,33 +163,17 @@ resource "aws_instance" "foo" {
 }
 ```
 
-If a provider isn't specified, then the default provider configuration
-is used (the provider configuration with no `alias` set). The value of the
-`provider` field is `TYPE.ALIAS`, such as "aws.west" above.
+The value of the `provider` argument is always the provider name and an
+alias separated by a period, such as `"aws.west"` above.
 
-## Syntax
-
-The full syntax is:
-
-```text
-provider NAME {
-  CONFIG ...
-  [alias = ALIAS]
-}
-```
-
-where `CONFIG` is:
-
-```text
-KEY = VALUE
-
-KEY {
-  CONFIG
-}
-```
+Provider configurations may also be passed from a parent module into a
+child module, as described in
+[_Providers within Modules_](/docs/modules/usage.html#providers-within-modules).
 
 ## Interpolation
-Providers support [interpolation syntax](/docs/configuration/interpolation.html) allowing dynamic configuration at run time.
+
+Provider configurations may use [interpolation syntax](/docs/configuration/interpolation.html)
+to allow dynamic configuration:
 
 ```hcl
 provider "aws" {
@@ -179,4 +181,98 @@ provider "aws" {
 }
 ```
 
--> **NOTE:** Because providers are one of the first things loaded when Terraform parses the graph, it is not possible to use the output from modules or resources as inputs to the provider. At this time, only [variables](/docs/configuration/variables.html) and [data sources](/docs/configuration/data-sources.html), including [remote state](/docs/providers/terraform/d/remote_state.html) may be used in an interpolation inside a provider stanza.
+Interpolation is supported only for the per-provider configuration arguments.
+It is not supported for the special `alias` and `version` arguments.
+
+Although in principle it is possible to use any interpolation expression within
+a provider configuration argument, providers must be configurable to perform
+almost all operations within Terraform, and so it is not possible to use
+expressions whose value cannot be known until after configuration is applied,
+such as the id of a resource.
+
+It is always valid to use [input variables](/docs/configuration/variables.html)
+and [data sources](/docs/configuration/data-sources.html) whose configurations
+do not in turn depend on as-yet-unknown values. [Local values](/docs/configuration/locals.html)
+may also be used, but currently may cause errors when running `terraform destroy`.
+
+## Third-party Plugins
+
+At present Terraform can automatically install only the providers distributed
+by HashiCorp. Third-party providers can be manually installed by placing
+their plugin executables in one of the following locations depending on the
+host operating system:
+
+* On Windows, in the sub-path `terraform.d/plugins` beneath your user's
+  "Application Data" directory.
+* On all other systems, in the sub-path `.terraform.d/plugins` in your
+  user's home directory.
+
+`terraform init` will search this directory for additional plugins during
+plugin initialization.
+
+The naming scheme for provider plugins is `terraform-provider-NAME-vX.Y.Z`,
+and Terraform uses the name to understand the name and version of a particular
+provider binary. Third-party plugins will often be distributed with an
+appropriate filename already set in the distribution archive so that it can
+be extracted directly into the plugin directory described above.
+
+## Provider Plugin Cache
+
+By default, `terraform init` downloads plugins into a subdirectory of the
+working directory so that each working directory is self-contained. As a
+consequence, if you have multiple configurations that use the same provider
+then a separate copy of its plugin will be downloaded for each configuration.
+
+Given that provider plugins can be quite large (on the order of hundreds of
+megabytes), this default behavior can be inconvenient for those with slow
+or metered Internet connections. Therefore Terraform optionally allows the
+use of a local directory as a shared plugin cache, which then allows each
+distinct plugin binary to be downloaded only once.
+
+To enable the plugin cache, use the `plugin_cache_dir` setting in
+[the CLI configuration file](https://www.terraform.io/docs/commands/cli-config.html).
+For example:
+
+```hcl
+# (Note that the CLI configuration file is _not_ the same as the .tf files
+#  used to configure infrastructure.)
+
+plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"
+```
+
+Please note that on Windows it is necessary to use forward slash separators
+(`/`) rather than the conventional backslash (`\`) since the configuration
+file parser considers a backslash to begin an escape sequence.
+
+Setting this in the configuration file is the recommended approach for a
+persistent setting. Alternatively, the `TF_PLUGIN_CACHE_DIR` environment
+variable can be used to enable caching or to override an existing cache
+directory within a particular shell session:
+
+```bash
+export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
+```
+
+When a plugin cache directory is enabled, the `terraform init` command will
+still access the plugin distribution server to obtain metadata about which
+plugins are available, but once a suitable version has been selected it will
+first check to see if the selected plugin is already available in the cache
+directory. If so, the already-downloaded plugin binary will be used.
+
+If the selected plugin is not already in the cache, it will be downloaded
+into the cache first and then copied from there into the correct location
+under your current working directory.
+
+When possible, Terraform will use hardlinks or symlinks to avoid storing
+a separate copy of a cached plugin in multiple directories. At present, this
+is not supported on Windows and instead a copy is always created.
+
+The plugin cache directory must *not* be the third-party plugin directory
+or any other directory Terraform searches for pre-installed plugins, since
+the cache management logic conflicts with the normal plugin discovery logic
+when operating on the same directory.
+
+Please note that Terraform will never itself delete a plugin from the
+plugin cache once it's been placed there. Over time, as plugins are upgraded,
+the cache directory may grow to contain several unused versions which must be
+manually deleted.

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
@@ -29,8 +30,11 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(args []string) int {
-	var destroyForce, refresh bool
-	args = c.Meta.process(args, true)
+	var destroyForce, refresh, autoApprove bool
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	cmdName := "apply"
 	if c.Destroy {
@@ -42,6 +46,9 @@ func (c *ApplyCommand) Run(args []string) int {
 		cmdFlags.BoolVar(&destroyForce, "force", false, "force")
 	}
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
+	if !c.Destroy {
+		cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of plan before applying")
+	}
 	cmdFlags.IntVar(
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
@@ -62,6 +69,12 @@ func (c *ApplyCommand) Run(args []string) int {
 	configPath, err := ModulePath(args)
 	if err != nil {
 		c.Ui.Error(err.Error())
+		return 1
+	}
+
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
 
@@ -113,7 +126,8 @@ func (c *ApplyCommand) Run(args []string) int {
 	if plan == nil {
 		mod, err = c.Module(configPath)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+			err = errwrap.Wrapf("Failed to load root config module: {{err}}", err)
+			c.showDiagnostics(err)
 			return 1
 		}
 	}
@@ -147,41 +161,6 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	// If we're not forcing and we're destroying, verify with the
-	// user at this point.
-	if !destroyForce && c.Destroy {
-		// Default destroy message
-		desc := "Terraform will delete all your managed infrastructure.\n" +
-			"There is no undo. Only 'yes' will be accepted to confirm."
-
-		// If targets are specified, list those to user
-		if c.Meta.targets != nil {
-			var descBuffer bytes.Buffer
-			descBuffer.WriteString("Terraform will delete the following infrastructure:\n")
-			for _, target := range c.Meta.targets {
-				descBuffer.WriteString("\t")
-				descBuffer.WriteString(target)
-				descBuffer.WriteString("\n")
-			}
-			descBuffer.WriteString("There is no undo. Only 'yes' will be accepted to confirm")
-			desc = descBuffer.String()
-		}
-
-		v, err := c.UIInput().Input(&terraform.InputOpts{
-			Id:          "destroy",
-			Query:       "Do you really want to destroy?",
-			Description: desc,
-		})
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
-			return 1
-		}
-		if v != "yes" {
-			c.Ui.Output("Destroy cancelled.")
-			return 1
-		}
-	}
-
 	// Build the operation
 	opReq := c.Operation()
 	opReq.Destroy = c.Destroy
@@ -189,6 +168,8 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.Plan = plan
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypeApply
+	opReq.AutoApprove = autoApprove
+	opReq.DestroyForce = destroyForce
 
 	// Perform the operation
 	ctx, ctxCancel := context.WithCancel(context.Background())
@@ -219,7 +200,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	case <-op.Done():
 		if err := op.Err; err != nil {
-			c.Ui.Error(err.Error())
+			c.showDiagnostics(err)
 			return 1
 		}
 	}
@@ -267,12 +248,6 @@ Usage: terraform apply [options] [DIR-OR-PLAN]
   configuration or an execution plan can be provided. Execution plans can be
   used to only execute a pre-determined set of actions.
 
-  DIR can also be a SOURCE as given to the "init" command. In this case,
-  apply behaves as though "init" was called followed by "apply". This only
-  works for sources that aren't files, and only if the current working
-  directory is empty of Terraform files. This is a shortcut for getting
-  started.
-
 Options:
 
   -backup=path           Path to backup the existing state file before
@@ -282,6 +257,8 @@ Options:
   -lock=true             Lock the state file when locking is supported.
 
   -lock-timeout=0s       Duration to retry a state lock.
+
+  -auto-approve          Skip interactive approval of plan before applying.
 
   -input=true            Ask for input for variables if not directly set.
 
@@ -308,8 +285,8 @@ Options:
                          flag can be set multiple times.
 
   -var-file=foo          Set variables in the Terraform configuration from
-                         a file. If "terraform.tfvars" is present, it will be
-                         automatically loaded if this flag is not specified.
+                         a file. If "terraform.tfvars" or any ".auto.tfvars"
+                         files are present, they will be automatically loaded.
 
 
 `
@@ -357,8 +334,8 @@ Options:
                          flag can be set multiple times.
 
   -var-file=foo          Set variables in the Terraform configuration from
-                         a file. If "terraform.tfvars" is present, it will be
-                         automatically loaded if this flag is not specified.
+                         a file. If "terraform.tfvars" or any ".auto.tfvars"
+                         files are present, they will be automatically loaded.
 
 
 `

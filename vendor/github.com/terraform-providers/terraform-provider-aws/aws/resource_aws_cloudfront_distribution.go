@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCloudFrontDistribution() *schema.Resource {
@@ -358,16 +357,14 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 										Required: true,
 									},
 									"origin_keepalive_timeout": {
-										Type:         schema.TypeInt,
-										Optional:     true,
-										Default:      5,
-										ValidateFunc: validation.IntBetween(1, 60),
+										Type:     schema.TypeInt,
+										Optional: true,
+										Default:  5,
 									},
 									"origin_read_timeout": {
-										Type:         schema.TypeInt,
-										Optional:     true,
-										Default:      30,
-										ValidateFunc: validation.IntBetween(4, 60),
+										Type:     schema.TypeInt,
+										Optional: true,
+										Default:  30,
 									},
 									"origin_protocol_policy": {
 										Type:     schema.TypeString,

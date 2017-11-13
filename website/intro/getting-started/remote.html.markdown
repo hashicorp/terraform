@@ -66,11 +66,11 @@ configuring a backend, run `terraform init` to setup Terraform. It should
 ask if you want to migrate your state to Consul. Say "yes" and Terraform
 will copy your state.
 
-Now, if you run `terraform plan`, Terraform should state that there are
+Now, if you run `terraform apply`, Terraform should state that there are
 no changes:
 
 ```
-$ terraform plan
+$ terraform apply
 # ...
 
 No changes. Infrastructure is up-to-date.

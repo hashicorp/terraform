@@ -1,4 +1,330 @@
-## 0.10.0-beta1 (Unreleased)
+## 0.11.0 (Unreleased)
+
+
+## 0.11.0-rc1 (November 9, 2017)
+
+BUG FIXES:
+
+* core: state now includes a reference to the provider configuration most recently used to create or update a resource, so that the same configuration can be used to destroy that resource if its configuration (including the explicit pointer to a provider configuration) is removed ([#16586](https://github.com/hashicorp/terraform/issues/16586))
+* backend/gcs: will now automatically add a slash to the given prefix if not present, since without it the workspace enumeration does not function correctly ([#16585](https://github.com/hashicorp/terraform/issues/16585))
+
+## 0.11.0-beta1 (November 3, 2017)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+The following items give an overview of the incompatibilities and other noteworthy changes in this release. For more details on some of these changes, along with information on how to upgrade existing configurations where needed, see [the v0.11 upgrade guide](./website/upgrade-guides/0-11.html.markdown).
+
+* Output interpolation errors are now fatal. Module configs with unused outputs
+  which contained errors will no longer be valid.
+* Module configuration blocks have 2 new reserved attribute names, "providers"
+  and "version". Modules using these as input variables will need to be
+  updated.
+* The module provider inheritance system has been updated. Providers declared
+  with configuration will no longer be merged, and named provider
+  configurations can be explicitly passed between modules. See [the upgrade guide](./website/upgrade-guides/0-11.html.markdown#interactions-between-providers-and-modules) for more details.
+* The command `terraform apply` with no explicit plan argument is now interactive by default. Specifically, it will show the generated plan and wait for confirmation before applying it. The behavior is unchanged when a plan file argument is provided, and the previous behavior can be obtained _without_ a plan file by using the `-auto-approve` option.
+* The `terraform` provider (that is, the provider that contains the `terraform_remote_state` data source) has been re-incorporated as a built-in provider in the Terraform Core executable. In 0.10 it was split into a separate plugin along with all of the other providers, but this provider uses several internal Terraform Core APIs and so in practice it's been confusing to version that separately from Terraform Core. As a consequence, this provider no longer supports version constraints, and so `version` attributes for this provider in configuration must be removed.
+* When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. Previously this file could potentially be used to recover a previous state to help recover after a mistake, but it also caused a potentially-sensitive state file to be generated in an unexpected location that may be inadvertently copied or checked in to version control. With this local backup now removed, we recommend instead relying on versioning or backup mechanisms provided by the backend, such as Amazon S3 versioning or Terraform Enterprise's built-in state history mechanism. (Terraform will still create the local file `errored.tfstate` in the unlikely event that there is an error when writing to the remote backend.)
+
+NEW FEATURES:
+
+* modules: Module configuration blocks now have a "version" attribute, to set a version constraint for modules sourced from a registry. ([#16466](https://github.com/hashicorp/terraform/issues/16466))
+* modules: Module configuration blocks now have a "providers" attribute, to map a provider configuration from the current module into a submodule ([#16379](https://github.com/hashicorp/terraform/issues/16379))
+* backend/gcs: The gcs remote state backend now supports workspaces and locking.
+* backend/manta: The Manta backend now supports workspaces and locking ([#16296](https://github.com/hashicorp/terraform/issues/16296))
+
+IMPROVEMENTS:
+
+* cli: The `terraform apply` command now waits for interactive approval of the generated plan before applying it, unless an explicit plan file is provided. ([#16502](https://github.com/hashicorp/terraform/issues/16502))
+* cli: The `terraform version` command now prints out the version numbers of initialized plugins as well as the version of Terraform core, so that they can be more easily shared when opening GitHub Issues, etc. ([#16439](https://github.com/hashicorp/terraform/issues/16439))
+* cli: A new `TF_DATA_DIR` environment variable can be used to override the location where Terraform stores the files normally placed in the `.terraform` directory. ([#16207](https://github.com/hashicorp/terraform/issues/16207))
+* provider/terraform: now built in to Terraform Core so that it will always have the same backend functionality as the Terraform release it corresponds to. ([#16543](https://github.com/hashicorp/terraform/issues/16543))
+
+BUG FIXES:
+
+* config: Provider config in submodules will no longer be overridden by parent providers with the same name. ([#16379](https://github.com/hashicorp/terraform/issues/16379))
+* core: Module outputs can now produce errors, preventing them from silently propagating through the config. ([#16204](https://github.com/hashicorp/terraform/issues/16204))
+* cli: When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. ([#16464](https://github.com/hashicorp/terraform/issues/16464))
+
+PROVIDER FRAMEWORK CHANGES (not user-facing):
+
+* helper/schema: Loosen validation for 'id' field ([#16456](https://github.com/hashicorp/terraform/issues/16456))
+
+## 0.10.8 (October 25, 2017)
+
+NEW FEATURES:
+
+* **New `etcdv3` backend**, for use with the newer etcd api ([#15680](https://github.com/hashicorp/terraform/issues/15680))
+* **New interpolation function `chunklist`**, for spliting a list into a list of lists with specified sublist chunk sizes. ([#15112](https://github.com/hashicorp/terraform/issues/15112))
+
+IMPROVEMENTS:
+
+* backend/s3: Add options to skip AWS validation which allows non-AWS S3 backends ([#15553](https://github.com/hashicorp/terraform/issues/15553))
+
+BUG FIXES:
+
+* command/validate: Respect `-plugin-dir` overridden plugin paths in the `terraform validate` command. ([#15985](https://github.com/hashicorp/terraform/issues/15985))
+* provisioner/chef: Clean clients from `chef-vault` when `recreate_client` enabled ([#16357](https://github.com/hashicorp/terraform/issues/16357))
+* communicator/winrm: Support the `cacert` option for custom certificate authorities when provisioning over WinRM ([#14783](https://github.com/hashicorp/terraform/issues/14783))
+
+## 0.10.7 (October 2, 2017)
+
+NEW FEATURES:
+
+* Provider plugins can now optionally be cached in a shared directory to avoid re-downloading them for each configuration working directory. For more information, see [the documentation](https://github.com/hashicorp/terraform/blob/34956cd12449cb77db3f55e3286cd369e8332eeb/website/docs/configuration/providers.html.md#provider-plugin-cache). ([#16000](https://github.com/hashicorp/terraform/issues/16000))
+
+IMPROVEMENTS:
+
+* config: New `abs` interpolation function, returning the absolute value of a number ([#16168](https://github.com/hashicorp/terraform/issues/16168))
+* config: New `transpose` interpolation function, which swaps the keys and values in a map of lists of strings. ([#16192](https://github.com/hashicorp/terraform/issues/16192))
+* cli: The Terraform CLI now supports tab-completion for commands and certain arguments for `bash` and `zsh` users. See [the tab-completion docs](https://github.com/hashicorp/terraform/blob/2c782e60fad78e6fc976d850162322608f074e57/website/docs/commands/index.html.markdown#shell-tab-completion) for information on how to enable it. ([#16176](https://github.com/hashicorp/terraform/issues/16176))
+* cli: `terraform state rm` now includes in its output the count of resources that were removed from the state. ([#16137](https://github.com/hashicorp/terraform/issues/16137))
+
+BUG FIXES:
+
+* modules: Update go-getter to fix crash when fetching invalid source subdir ([#16161](https://github.com/hashicorp/terraform/issues/16161))
+* modules: Fix regression in the handling of modules sourcing other modules with relative paths ([#16160](https://github.com/hashicorp/terraform/issues/16160))
+* core: Skip local value interpolation during destroy ([#16213](https://github.com/hashicorp/terraform/issues/16213))
+
+## 0.10.6 (September 19, 2017)
+
+UPGRADE NOTES:
+
+* The internal storage of modules has changed in this release, so after
+  upgrading `terraform init` must be run to re-install modules in the new
+  on-disk format. The existing installed versions of modules will be ignored,
+  so the latest version of each module will be installed.
+
+IMPROVEMENTS:
+
+* Modules can now be installed from [the Terraform Registry](https://registry.terraform.io/)
+* cli: `terraform import` now accepts an option `-allow-missing-config` that overrides the default requirement that a configuration block must already be present for the resource being imported. ([#15876](https://github.com/hashicorp/terraform/issues/15876))
+
+## 0.10.5 (September 14, 2017)
+
+NEW FEATURES:
+
+* config: `indent` interpolation function appends spaces to all but the first line of a multi-line string ([#15311](https://github.com/hashicorp/terraform/issues/15311))
+
+IMPROVEMENTS:
+
+* cli: `terraform fmt` has a new option `-check` which makes it return a non-zero exit status if any formatting changes are required ([#15387](https://github.com/hashicorp/terraform/issues/15387))
+* cli: When [running Terraform in automation](https://www.terraform.io/guides/running-terraform-in-automation.html), a new environment variable `TF_IN_AUTOMATION` can be used to disable or adjust certain prompts that would normally include specific CLI commands to run. This assumes that the wrapping automation tool is providing its own UI for guiding the user through the workflow, and thus the standard advice would be redundant and/or confusing. ([#16059](https://github.com/hashicorp/terraform/issues/16059))
+
+BUG FIXES:
+
+* cli: restore the "(forces new resource)" annotations on attributes that were inadvertently disabled in 0.10.4. ([#16067](https://github.com/hashicorp/terraform/issues/16067))
+* cli: fix regression with installing modules from git when the `GIT_SSH_COMMAND` environment variable is set ([#16099](https://github.com/hashicorp/terraform/issues/16099))
+
+## 0.10.4 (September 6, 2017)
+
+IMPROVEMENTS:
+* `terraform apply` now uses the standard resource address syntax to refer to resources in its log ([#15884](https://github.com/hashicorp/terraform/issues/15884))
+* `terraform plan` output has some minor adjustments to improve readability and accessibility for those who can't see its colors ([#15884](https://github.com/hashicorp/terraform/issues/15884))
+
+BUG FIXES:
+
+* backend/consul: fix crash during consul backend initialization ([#15976](https://github.com/hashicorp/terraform/issues/15976))
+* backend/azurerm: ensure that blob storage metadata is preserved when updating state blobs, to avoid losing track of lock metadata ([#16015](https://github.com/hashicorp/terraform/issues/16015))
+* config: local values now work properly in resource `count` and in modules with more than one `.tf` file ([#15995](https://github.com/hashicorp/terraform/issues/15995)] [[#15982](https://github.com/hashicorp/terraform/issues/15982))
+* cli: removed some inconsistencies in how data sources are counted and tallied in plan vs. apply and apply vs. destroy. In particular, data sources are no longer incorrectly counted as destroyed in `terraform destroy` ([#15884](https://github.com/hashicorp/terraform/issues/15884))
+
+## 0.10.3 (August 30, 2017)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* LGPL Dependencies Removed ([#15862](https://github.com/hashicorp/terraform/issues/15862))
+
+NEW FEATURES:
+
+* **Local Values**: this new configuration language feature allows assigning a symbolic local name to an expression so it can be used multiple times in configuration without repetition. See [the documentation](https://github.com/hashicorp/terraform/blob/master/website/docs/configuration/locals.html.md) for how to define and use local values. ([#15449](https://github.com/hashicorp/terraform/issues/15449))
+* **`base64gzip` interpolation function**: compresses a string with gzip and then base64-encodes the result ([#3858](https://github.com/hashicorp/terraform/issues/3858))
+* **`flatten` interpolation function**: turns a list of lists, or list of lists of lists, etc into a flat list of primitive values ([#15278](https://github.com/hashicorp/terraform/issues/15278))
+* **`urlencode` interpolation function**: applies standard URL encoding to a string so that it can be embedded in a URL without making it invalid and without any of the characters being interpreted as part of the URL structure ([#15871](https://github.com/hashicorp/terraform/issues/15871))
+* **`salt-masterless` provisioner**: runs Salt in masterless mode on a target server ([#14720](https://github.com/hashicorp/terraform/issues/14720))
+
+IMPROVEMENTS:
+
+* config: The `jsonencode` interpolation function now accepts nested list and map structures, where before it would accept only strings, lists of strings, and maps of strings. ([#14884](https://github.com/hashicorp/terraform/issues/14884))
+* cli: The "creation complete" (and similar) messages from `terraform apply` now include a total elapsed time for each operation. ([#15548](https://github.com/hashicorp/terraform/issues/15548))
+* cli: Module installation (with either `terraform init` or `terraform get`) now detects and recursively initializes submodules when the source is a git repository. ([#15891](https://github.com/hashicorp/terraform/issues/15891))
+* cli: Modules can now be installed from `.tar.xz` archives, in addition to the existing `.tar.gz`, `.tar.bz2` and `.zip`. ([#15891](https://github.com/hashicorp/terraform/issues/15891))
+* provisioner/local-exec: now possible to specify a custom "interpreter", overriding the default of either `bash -c` (on Unix) or `cmd.exe /C` (on Windows) ([#15166](https://github.com/hashicorp/terraform/issues/15166))
+* backend/consul: can now set the path to a specific CA certificate file, client certificate file, and client key file that will be used when configuring the underlying Consul client. ([#15405](https://github.com/hashicorp/terraform/issues/15405))
+* backend/http: now has optional support for locking, with special support from the target server. Additionally, the update operation can now optionally be implemented via `PUT` rather than `POST`. ([#15793](https://github.com/hashicorp/terraform/issues/15793))
+* helper/resource: Add `TestStep.SkipFunc` ([#15957](https://github.com/hashicorp/terraform/issues/15957))
+
+BUG FIXES:
+
+* cli: `terraform init` now verifies the required Terraform version from the root module config. Previously this was verified only on subsequent commands, after initialization. ([#15935](https://github.com/hashicorp/terraform/issues/15935))
+* cli: `terraform validate` now consults `terraform.tfvars`, if present, to set variable values. This is now consistent with the behavior of other commands. ([#15938](https://github.com/hashicorp/terraform/issues/15938))
+
+## 0.10.2 (August 16, 2017)
+
+BUG FIXES:
+
+* tools/terraform-bundle: Add missing Ui to ProviderInstaller (fix crash) ([#15826](https://github.com/hashicorp/terraform/issues/15826))
+* go-plugin: don't crash when server emits non-key-value JSON ([go-plugin#43](https://github.com/hashicorp/go-plugin/pull/43))
+
+## 0.10.1 (August 15, 2017)
+
+BUG FIXES:
+
+* Fix `terraform state rm` and `mv` commands to work correctly with remote state backends ([#15652](https://github.com/hashicorp/terraform/issues/15652))
+* Fix errors when interpolations fail during input ([#15780](https://github.com/hashicorp/terraform/issues/15780))
+* Backoff retries in remote-execution provisioner ([#15772](https://github.com/hashicorp/terraform/issues/15772))
+* Load plugins from `~/.terraform.d/plugins/OS_ARCH/` and `.terraformrc` ([#15769](https://github.com/hashicorp/terraform/issues/15769))
+* The `import` command was ignoring the remote state configuration ([#15768](https://github.com/hashicorp/terraform/issues/15768))
+* Don't allow leading slashes in s3 bucket names for remote state ([#15738](https://github.com/hashicorp/terraform/issues/15738))
+
+IMPROVEMENTS:
+
+* helper/schema: Add `GetOkExists` schema function ([#15723](https://github.com/hashicorp/terraform/issues/15723))
+* helper/schema: Make 'id' a reserved field name ([#15695](https://github.com/hashicorp/terraform/issues/15695))
+* command/init: Display version + source when initializing plugins ([#15804](https://github.com/hashicorp/terraform/issues/15804))
+
+INTERNAL CHANGES:
+
+* DiffFieldReader.ReadField caches results to optimize deeply nested schemas ([#15663](https://github.com/hashicorp/terraform/issues/15663))
+
+
+## 0.10.0 (August 2, 2017)
+
+**This is the complete 0.9.11 to 0.10.0 CHANGELOG**
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* A new flag `-auto-approve` has been added to `terraform apply`. This flag controls whether an interactive approval is applied before
+  making the changes in the plan. For now this flag defaults to `true` to preserve previous behavior, but this will become the new default
+  in a future version. We suggest that anyone running `terraform apply` in wrapper scripts or automation refer to the upgrade guide to learn
+  how to prepare such wrapper scripts for the later breaking change.
+* The `validate` command now checks that all variables are specified by default.  The validation will fail by default if that's not the
+  case. ([#13872](https://github.com/hashicorp/terraform/issues/13872))
+* `terraform state rm` now requires at least one argument. Previously, calling it with no arguments would remove all resources from state,
+  which is consistent with the other `terraform state` commands but unlikely enough that we considered it better to be inconsistent here to
+  reduce the risk of accidentally destroying the state.
+* Terraform providers are no longer distributed as part of the main Terraform distribution. Instead, they are installed automatically as
+  part of running `terraform init`. It is therefore now mandatory to run `terraform init` before any other operations that use provider
+  plugins, to ensure that the required plugins are installed and properly initialized.
+* The `terraform env` family of commands have been renamed to `terraform workspace`, in response to feedback that the previous naming was
+  confusing due to collisions with other concepts of the same name. The commands still work the same as they did before, and the `env`
+  subcommand is still supported as an alias for backward compatibility. The `env` subcommand will be removed altogether in a future release,
+  so it's recommended to update any automation or wrapper scripts that use these commands.
+* The `terraform init` subcommand no longer takes a SOURCE argument to copy to the current directory. The behavior has been changed to match
+  that of `plan` and `apply`, so that a configuration can be provided as an argument on the commandline while initializing the current
+  directory. If a module needs to be copied into the current directory before initialization, it will have to be done manually.
+* The `-target` option available on several Terraform subcommands has changed behavior and **now matches potentially more resources**.  In
+  particular, given an option `-target=module.foo`, resources in any descendent modules of `foo` will also be targeted, where before this
+  was not true. After upgrading, be sure to look carefully at the set of changes proposed by `terraform plan` when using `-target` to ensure
+  that the target is being interpreted as expected. Note that the `-target` argument is offered for exceptional circumstances only and is
+  not intended for routine use.
+* The `import` command requires that imported resources be specified in the configuration file. Previously, users were encouraged to import
+  a resource and _then_ write the configuration block for it. This creates the risk that users could import a resource and subsequently
+  create no configuration for it, which results in Terraform deleting the resource. If the imported resource is not present in the
+  configuration file, the `import` command will fail.
+
+FEATURES:
+
+* **Separate Provider Releases:** Providers are now released independently from Terraform.
+* **Automatic Provider Installation:** The required providers will be automatically installed during `terraform init`.
+* **Provider Constraints:** Provider are now versioned, and version constraints may be declared in the configuration.
+
+PROVIDERS:
+
+* Providers now maintain their own CHANGELOGs in their respective repositories: [terraform-providers](https://github.com/terraform-providers)
+
+IMPROVEMENTS:
+
+* cli: Add a `-from-module` flag to `terraform init` to re-introduce the legacy `terraform init` behavior of fetching a module. ([#15666](https://github.com/hashicorp/terraform/issues/15666))
+* backend/s3: Add `workspace_key_prefix` to allow a user-configurable prefix for workspaces in the S3 Backend. ([#15370](https://github.com/hashicorp/terraform/issues/15370))
+* cli: `terraform apply` now has an option `-auto-approve=false` that produces an interactive prompt to approve the generated plan. This will become the default workflow in a future Terraform version. ([#7251](https://github.com/hashicorp/terraform/issues/7251))
+* cli: `terraform workspace show` command prints the current workspace name in a way that's more convenient for processing in wrapper scripts. ([#15157](https://github.com/hashicorp/terraform/issues/15157))
+* cli: `terraform state rm` will now generate an error if no arguments are passed, whereas before it treated it as an open resource address selecting _all_ resources ([#15283](https://github.com/hashicorp/terraform/issues/15283))
+* cli: Files in the config directory ending in `.auto.tfvars` are now loaded automatically (in lexicographical order) in addition to the single `terraform.tfvars` file that auto-loaded previously. ([#13306](https://github.com/hashicorp/terraform/issues/13306))
+* Providers no longer in the main Terraform distribution; installed automatically by init instead ([#15208](https://github.com/hashicorp/terraform/issues/15208))
+* cli: `terraform env` command renamed to `terraform workspace` ([#14952](https://github.com/hashicorp/terraform/issues/14952))
+* cli: `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
+* cli: The `-target` option to various Terraform operation can now target resources in descendent modules. ([#15314](https://github.com/hashicorp/terraform/issues/15314))
+* cli: Minor updates to `terraform plan` output: use standard resource address syntax, more visually-distinct `-/+` actions, and more ([#15362](https://github.com/hashicorp/terraform/issues/15362))
+* config: New interpolation function `contains`, to find if a given string exists in a list of strings. ([#15322](https://github.com/hashicorp/terraform/issues/15322))
+
+BUG FIXES:
+
+* provisioner/chef: fix panic ([#15617](https://github.com/hashicorp/terraform/issues/15617))
+* Don't show a message about the path to the state file if the state is remote ([#15435](https://github.com/hashicorp/terraform/issues/15435))
+* Fix crash when `terraform graph` is run with no configuration ([#15588](https://github.com/hashicorp/terraform/issues/15588))
+* Handle correctly the `.exe` suffix on locally-compiled provider plugins on Windows systems. ([#15587](https://github.com/hashicorp/terraform/issues/15587))
+* config: Fixed a parsing issue in the interpolation language HIL that was causing misinterpretation of literal strings ending with escaped backslashes ([#15415](https://github.com/hashicorp/terraform/issues/15415))
+* core: the S3 Backend was failing to remove the state file checksums from DynamoDB when deleting a workspace ([#15383](https://github.com/hashicorp/terraform/issues/15383))
+* core: Improved reslience against crashes for a certain kind of inconsistency in the representation of list values in state. ([#15390](https://github.com/hashicorp/terraform/issues/15390))
+* core: Display correct to and from backends in copy message when migrating to new remote state ([#15318](https://github.com/hashicorp/terraform/issues/15318))
+* core: Fix a regression from 0.9.6 that was causing the tally of resources to create to be double-counted sometimes in the plan output ([#15344](https://github.com/hashicorp/terraform/issues/15344))
+* cli: the state `rm` and `mv` commands were always loading a state from a Backend, and ignoring the `-state` flag ([#15388](https://github.com/hashicorp/terraform/issues/15388))
+* cli: certain prompts in `terraform init` were respecting `-input=false` but not the `TF_INPUT` environment variable ([#15391](https://github.com/hashicorp/terraform/issues/15391))
+* state: Further work, building on [#15423](https://github.com/hashicorp/terraform/issues/15423), to improve the internal design of the state managers to make this code more maintainable and reduce the risk of regressions; this may lead to slight changes to the number of times Terraform writes to remote state and how the serial is implemented with respect to those writes, which does not affect outward functionality but is worth noting if you log or inspect state updates for debugging purposes.
+* config: Interpolation function `cidrhost` was not correctly calcluating host addresses under IPv6 CIDR prefixes ([#15321](https://github.com/hashicorp/terraform/issues/15321))
+* provisioner/chef: Prevent a panic while trying to read the connection info ([#15271](https://github.com/hashicorp/terraform/issues/15271))
+* provisioner/file: Refactor the provisioner validation function to prevent false positives ([#15273](https://github.com/hashicorp/terraform/issues/15273))
+
+INTERNAL CHANGES:
+
+* helper/schema: Actively disallow reserved field names in schema ([#15522](https://github.com/hashicorp/terraform/issues/15522))
+* helper/schema: Force field names to be alphanum lowercase + underscores ([#15562](https://github.com/hashicorp/terraform/issues/15562))
+
+
+## 0.10.0-rc1 to 0.10.0 (August 2, 2017)
+
+BUG FIXES:
+
+* provisioner/chef: fix panic ([#15617](https://github.com/hashicorp/terraform/issues/15617))
+
+IMPROVEMENTS:
+
+* cli: Add a `-from-module` flag to `terraform init` to re-introduce the legacy `terraform init` behavior of fetching a module. ([#15666](https://github.com/hashicorp/terraform/issues/15666))
+
+
+## 0.10.0-rc1 (July 19, 2017)
+
+BUG FIXES:
+
+* Don't show a message about the path to the state file if the state is remote ([#15435](https://github.com/hashicorp/terraform/issues/15435))
+* Fix crash when `terraform graph` is run with no configuration ([#15588](https://github.com/hashicorp/terraform/issues/15588))
+* Handle correctly the `.exe` suffix on locally-compiled provider plugins on Windows systems. ([#15587](https://github.com/hashicorp/terraform/issues/15587))
+
+INTERNAL CHANGES:
+
+* helper/schema: Actively disallow reserved field names in schema ([#15522](https://github.com/hashicorp/terraform/issues/15522))
+* helper/schema: Force field names to be alphanum lowercase + underscores ([#15562](https://github.com/hashicorp/terraform/issues/15562))
+
+## 0.10.0-beta2 (July 6, 2017)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* A new flag `-auto-approve` has been added to `terraform apply`. This flag controls whether an interactive approval is applied before making the changes in the plan. For now this flag defaults to `true` to preserve previous behavior, but this will become the new default in a future version. We suggest that anyone running `terraform apply` in wrapper scripts or automation refer to the upgrade guide to learn how to prepare such wrapper scripts for the later breaking change.
+* The `validate` command now checks that all variables are specified by default.
+  The validation will fail by default if that's not the case. ([#13872](https://github.com/hashicorp/terraform/issues/13872))
+* `terraform state rm` now requires at least one argument. Previously, calling it with no arguments would remove all resources from state, which is consistent with the other `terraform state` commands but unlikely enough that we considered it better to be inconsistent here to reduce the risk of accidentally destroying the state.
+
+IMPROVEMENTS:
+
+* backend/s3: Add `workspace_key_prefix` to allow a user-configurable prefix for workspaces in the S3 Backend. ([#15370](https://github.com/hashicorp/terraform/issues/15370))
+* cli: `terraform apply` now has an option `-auto-approve=false` that produces an interactive prompt to approve the generated plan. This will become the default workflow in a future Terraform version. ([#7251](https://github.com/hashicorp/terraform/issues/7251))
+* cli: `terraform workspace show` command prints the current workspace name in a way that's more convenient for processing in wrapper scripts. ([#15157](https://github.com/hashicorp/terraform/issues/15157))
+* cli: `terraform state rm` will now generate an error if no arguments are passed, whereas before it treated it as an open resource address selecting _all_ resources ([#15283](https://github.com/hashicorp/terraform/issues/15283))
+* cli: Files in the config directory ending in `.auto.tfvars` are now loaded automatically (in lexicographical order) in addition to the single `terraform.tfvars` file that auto-loaded previously. ([#13306](https://github.com/hashicorp/terraform/issues/13306))
+
+BUG FIXES:
+
+* config: Fixed a parsing issue in the interpolation language HIL that was causing misinterpretation of literal strings ending with escaped backslashes ([#15415](https://github.com/hashicorp/terraform/issues/15415))
+* core: the S3 Backend was failing to remove the state file checksums from DynamoDB when deleting a workspace ([#15383](https://github.com/hashicorp/terraform/issues/15383))
+* core: Improved reslience against crashes for a certain kind of inconsistency in the representation of list values in state. ([#15390](https://github.com/hashicorp/terraform/issues/15390))
+* core: Display correct to and from backends in copy message when migrating to new remote state ([#15318](https://github.com/hashicorp/terraform/issues/15318))
+* core: Fix a regression from 0.9.6 that was causing the tally of resources to create to be double-counted sometimes in the plan output ([#15344](https://github.com/hashicorp/terraform/issues/15344))
+* cli: the state `rm` and `mv` commands were always loading a state from a Backend, and ignoring the `-state` flag ([#15388](https://github.com/hashicorp/terraform/issues/15388))
+* cli: certain prompts in `terraform init` were respecting `-input=false` but not the `TF_INPUT` environment variable ([#15391](https://github.com/hashicorp/terraform/issues/15391))
+* state: Further work, building on [#15423](https://github.com/hashicorp/terraform/issues/15423), to improve the internal design of the state managers to make this code more maintainable and reduce the risk of regressions; this may lead to slight changes to the number of times Terraform writes to remote state and how the serial is implemented with respect to those writes, which does not affect outward functionality but is worth noting if you log or inspect state updates for debugging purposes.
+
+## 0.10.0-beta1 (June 22, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
@@ -9,12 +335,55 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
   was confusing due to collisions with other concepts of the same name. The commands still work the same as they did before, and
   the `env` subcommand is still supported as an alias for backward compatibility. The `env` subcommand will be removed altogether in
   a future release, so it's recommended to update any automation or wrapper scripts that use these commands.
+* The `terraform init` subcommand no longer takes a SOURCE argument to copy to the current directory. The behavior has
+  been changed to match that of `plan` and `apply`, so that a configuration can be provided as an argument on the
+  commandline while initializing the current directory. If a module needs to be copied into the current directory before
+  initialization, it will have to be done manually.
+* The `-target` option available on several Terraform subcommands has changed behavior and **now matches potentially more resources**.
+  In particular, given an option `-target=module.foo`, resources in any descendent modules of `foo` will also be targeted, where before
+  this was not true. After upgrading, be sure to look carefully at the set of changes proposed by `terraform plan` when using `-target`
+  to ensure that the target is being interpreted as expected. Note that the `-target` argument is offered for exceptional circumstances
+  only and is not intended for routine use.
+* The `import` command requires that imported resources be specified in the configuration file. Previously, users were encouraged to
+  import a resource and _then_ write the configuration block for it. This creates the risk that users could import a resource and
+  subsequently create no configuration for it, which results in Terraform deleting the resource. If the imported resource is not
+  present in the configuration file, the `import` command will fail.
 
 IMPROVEMENTS:
 
-* Providers no longer in the main Terraform distribution; installed automatically by init instead [GH-15208]
-* `terraform env` command renamed to `terraform workspace` [GH-14952]
-* `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
+* Providers no longer in the main Terraform distribution; installed automatically by init instead ([#15208](https://github.com/hashicorp/terraform/issues/15208))
+* cli: `terraform env` command renamed to `terraform workspace` ([#14952](https://github.com/hashicorp/terraform/issues/14952))
+* cli: `terraform init` command now has `-upgrade` option to download the latest versions (within specified constraints) of modules and provider plugins.
+* cli: The `-target` option to various Terraform operation can now target resources in descendent modules. ([#15314](https://github.com/hashicorp/terraform/issues/15314))
+* cli: Minor updates to `terraform plan` output: use standard resource address syntax, more visually-distinct `-/+` actions, and more ([#15362](https://github.com/hashicorp/terraform/issues/15362))
+* config: New interpolation function `contains`, to find if a given string exists in a list of strings. ([#15322](https://github.com/hashicorp/terraform/issues/15322))
+
+BUG FIXES:
+
+* config: Interpolation function `cidrhost` was not correctly calcluating host addresses under IPv6 CIDR prefixes ([#15321](https://github.com/hashicorp/terraform/issues/15321))
+* provisioner/chef: Prevent a panic while trying to read the connection info ([#15271](https://github.com/hashicorp/terraform/issues/15271))
+* provisioner/file: Refactor the provisioner validation function to prevent false positives ([#15273](https://github.com/hashicorp/terraform/issues/15273))
+
+## 0.9.11 (Jul 3, 2017)
+
+BUG FIXES:
+
+* core: Hotfix for issue where a state from a plan was reported as not equal to the same state stored to a backend. This arose from the fix for the previous issue where the incorrect copy of the state was being used when applying with a plan. ([#15460](https://github.com/hashicorp/terraform/issues/15460))
+
+
+## 0.9.10 (June 29, 2017)
+
+BUG FIXES:
+
+* core: Hotfix for issue where state index wasn't getting properly incremented when applying a change containing only data source updates and/or resource drift. (That is, state changes made during refresh.)
+  This issue is significant only for the "atlas" backend, since that backend verifies on the server that state serial numbers are being used consistently. ([#15423](https://github.com/hashicorp/terraform/issues/15423))
+
+## 0.9.9 (June 26, 2017)
+
+BUG FIXES:
+
+ * provisioner/file: Refactor the provisioner validation function to prevent false positives ([#15273](https://github.com/hashicorp/terraform/issues/15273)))
+ * provisioner/chef: Prevent a panic while trying to read the connection info ([#15271](https://github.com/hashicorp/terraform/issues/15271)))
 
 ## 0.9.8 (June 7, 2017)
 
@@ -488,7 +857,7 @@ BUG FIXES:
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
  * provider/aws: Fix a critical bug in `aws_emr_cluster` in order to preserve the ordering
-   of any arguments in `bootstrap_action`. Terraform will now enforce the ordering  
+   of any arguments in `bootstrap_action`. Terraform will now enforce the ordering
    from the configuration. As a result, `aws_emr_cluster` resources may need to be
    recreated, as there is no API to update them in-place ([#13580](https://github.com/hashicorp/terraform/issues/13580))
 

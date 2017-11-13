@@ -6,11 +6,15 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 
+	"github.com/mitchellh/colorstring"
+
 	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mattn/go-colorable"
@@ -95,7 +99,19 @@ func realMain() int {
 	return wrappedMain()
 }
 
+func init() {
+	Ui = &cli.PrefixedUi{
+		AskPrefix:    OutputPrefix,
+		OutputPrefix: OutputPrefix,
+		InfoPrefix:   OutputPrefix,
+		ErrorPrefix:  ErrorPrefix,
+		Ui:           &cli.BasicUi{Writer: os.Stdout},
+	}
+}
+
 func wrappedMain() int {
+	var err error
+
 	// We always need to close the DebugInfo before we exit.
 	defer terraform.CloseDebugInfo()
 
@@ -106,34 +122,40 @@ func wrappedMain() int {
 	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
 	log.Printf("[INFO] CLI args: %#v", os.Args)
 
-	// Load the configuration
-	config := BuiltinConfig
-
-	// Load the configuration file if we have one, that can be used to
-	// define extra providers and provisioners.
-	clicfgFile, err := cliConfigFile()
-	if err != nil {
-		Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
-		return 1
-	}
-
-	if clicfgFile != "" {
-		usrcfg, err := LoadConfig(clicfgFile)
-		if err != nil {
-			Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
-			return 1
+	config, diags := LoadConfig()
+	if len(diags) > 0 {
+		// Since we haven't instantiated a command.Meta yet, we need to do
+		// some things manually here and use some "safe" defaults for things
+		// that command.Meta could otherwise figure out in smarter ways.
+		Ui.Error("There are some problems with the CLI configuration:")
+		for _, diag := range diags {
+			earlyColor := &colorstring.Colorize{
+				Colors:  colorstring.DefaultColors,
+				Disable: true, // Disable color to be conservative until we know better
+				Reset:   true,
+			}
+			Ui.Error(format.Diagnostic(diag, earlyColor, 78))
 		}
+		if diags.HasErrors() {
+			Ui.Error("As a result of the above problems, Terraform may not behave as intended.\n\n")
+			// We continue to run anyway, since Terraform has reasonable defaults.
+		}
+	}
+	log.Printf("[DEBUG] CLI config is %#v", config)
 
-		config = *config.Merge(usrcfg)
+	// In tests, Commands may already be set to provide mock commands
+	if Commands == nil {
+		initCommands(config)
 	}
 
 	// Run checkpoint
-	go runCheckpoint(&config)
+	go runCheckpoint(config)
 
 	// Make sure we clean up any managed plugins at the end of this
 	defer plugin.CleanupClients()
 
 	// Get the command line args.
+	binName := filepath.Base(os.Args[0])
 	args := os.Args[1:]
 
 	// Build the CLI so far, we do this so we can query the subcommand.
@@ -175,10 +197,15 @@ func wrappedMain() int {
 	// Rebuild the CLI with any modified args.
 	log.Printf("[INFO] CLI command args: %#v", args)
 	cliRunner = &cli.CLI{
+		Name:       binName,
 		Args:       args,
 		Commands:   Commands,
 		HelpFunc:   helpFunc,
 		HelpWriter: os.Stdout,
+
+		Autocomplete:          true,
+		AutocompleteInstall:   "install-autocomplete",
+		AutocompleteUninstall: "uninstall-autocomplete",
 	}
 
 	// Pass in the overriding plugin paths from config

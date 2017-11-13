@@ -18,29 +18,27 @@ environments. But if you're using Terraform to spin up multiple
 environments such as development, test, QA environments, then
 destroying is a useful action.
 
-## Plan
+## Destroy
 
-Before destroying our infrastructure, we can use the plan command
-to see what resources Terraform will destroy.
+Resources can be destroyed using the `terraform destroy` command, which is
+similar to `terraform apply` but it behaves as if all of the resources have
+been removed from the configuration.
 
 ```
-$ terraform plan -destroy
+$ terraform destroy
 # ...
 
 - aws_instance.example
 ```
 
-With the `-destroy` flag, we're asking Terraform to plan a destroy,
-where all resources under Terraform management are destroyed. You can
-use this output to verify exactly what resources Terraform is managing
-and will destroy.
+The `-` prefix indicates that a the instance will be destroyed. As with apply,
+Terraform shows its execution plan and waits for approval before making any
+changes.
 
-## Destroy
-
-Let's destroy the infrastructure now:
+Answer `yes` to execute this plan and destroy the infrastructure:
 
 ```
-$ terraform destroy
+# ...
 aws_instance.example: Destroying...
 
 Apply complete! Resources: 0 added, 0 changed, 1 destroyed.
@@ -48,15 +46,11 @@ Apply complete! Resources: 0 added, 0 changed, 1 destroyed.
 # ...
 ```
 
-The `terraform destroy` command should ask you to verify that you
-really want to destroy the infrastructure. Terraform only accepts the
-literal "yes" as an answer as a safety mechanism. Once entered, Terraform
-will go through and destroy the infrastructure.
-
-Just like with `apply`, Terraform is smart enough to determine what order
-things should be destroyed. In our case, we only had one resource, so there
-wasn't any ordering necessary. But in more complicated cases with multiple
-resources, Terraform will destroy in the proper order.
+Just like with `apply`, Terraform determines the order in which
+things must be destroyed. In this case there was only one resource, so no
+ordering was necessary. In more complicated cases with multiple resources,
+Terraform will destroy them in a suitable order to respect dependencies,
+as we'll see later in this guide.
 
 ## Next
 

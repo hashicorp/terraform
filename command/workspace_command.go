@@ -15,7 +15,10 @@ type WorkspaceCommand struct {
 }
 
 func (c *WorkspaceCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
@@ -35,6 +38,7 @@ Usage: terraform workspace
 
 Subcommands:
 
+    show      Show the current workspace name.
     list      List workspaces.
     select    Select a workspace.
     new       Create a new workspace.

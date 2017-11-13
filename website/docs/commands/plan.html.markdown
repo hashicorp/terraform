@@ -11,8 +11,17 @@ description: |-
 The `terraform plan` command is used to create an execution plan. Terraform
 performs a refresh, unless explicitly disabled, and then determines what
 actions are necessary to achieve the desired state specified in the
-configuration files. The plan can be saved using `-out`, and then provided
-to `terraform apply` to ensure only the pre-planned actions are executed.
+configuration files.
+
+This command is a convenient way to check whether the execution plan for a
+set of changes matches your expectations without making any changes to
+real resources or to the state. For example, `terraform plan` might be run
+before committing a change to version control, to create confidence that it
+will behave as expected.
+
+The optional `-out` argument can be used to save the generated plan to a file
+for later execution with `terraform apply`, which can be useful when
+[running Terraform in automation](/guides/running-terraform-in-automation.html).
 
 ## Usage
 
@@ -63,9 +72,8 @@ The command-line flags are all optional. The list of available flags are:
   Ignored when [remote state](/docs/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
-  Address](/docs/internals/resource-addressing.html) to target. Operation will
-  be limited to this resource and its dependencies. This flag can be used
-  multiple times.
+  Address](/docs/internals/resource-addressing.html) to target. This flag can
+  be used multiple times. See below for more information.
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
@@ -73,10 +81,43 @@ The command-line flags are all optional. The list of available flags are:
   specified via this flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-   a [variable file](/docs/configuration/variables.html#variable-files). If
-  "terraform.tfvars" is present, it will be automatically loaded first. Any
-  files specified by `-var-file` override any values in a "terraform.tfvars".
-  This flag can be used multiple times.
+  a [variable file](/docs/configuration/variables.html#variable-files). If
+  a `terraform.tfvars` or any `.auto.tfvars` files are present in the current
+  directory, they will be automatically loaded. `terraform.tfvars` is loaded
+  first and the `.auto.tfvars` files after in alphabetical order. Any files
+  specified by `-var-file` override any values set automatically from files in
+  the working directory. This flag can be used multiple times.
+
+## Resource Targeting
+
+The `-target` option can be used to focus Terraform's attention on only a
+subset of resources.
+[Resource Address](/docs/internals/resource-addressing.html) syntax is used
+to specify the constraint. The resource address is interpreted as follows:
+
+* If the given address has a _resource spec_, only the specified resource
+  is targeted. If the named resource uses `count` and no explicit index
+  is specified in the address, all of the instances sharing the given
+  resource name are targeted.
+
+* The the given address _does not_ have a resource spec, and instead just
+  specifies a module path, the target applies to all resources in the
+  specified module _and_ all of the descendent modules of the specified
+  module.
+
+This targeting capability is provided for exceptional circumstances, such
+as recovering from mistakes or working around Terraform limitations. It
+is *not recommended* to use `-target` for routine operations, since this can
+lead to undetected configuration drift and confusion about how the true state
+of resources relates to configuration.
+
+Instead of using `-target` as a means to operate on isolated portions of very
+large configurations, prefer instead to break large configurations into
+several smaller configurations that can each be independently applied.
+[Data sources](/docs/configuration/data-sources.html) can be used to access
+information about resources created in other configurations, allowing
+a complex system architecture to be broken down into more managable parts
+that can be updated independently.
 
 ## Security Warning
 

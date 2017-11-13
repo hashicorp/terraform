@@ -3,12 +3,12 @@ package aws
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -17,6 +17,7 @@ import (
 
 const awsSNSPendingConfirmationMessage = "pending confirmation"
 const awsSNSPendingConfirmationMessageWithoutSpaces = "pendingconfirmation"
+const awsSNSPasswordObfuscationPattern = "****"
 
 var SNSSubscriptionAttributeMap = map[string]string{
 	"topic_arn":            "TopicArn",
@@ -36,40 +37,40 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     false,
 				ValidateFunc: validateSNSSubscriptionProtocol,
 			},
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"endpoint_auto_confirms": &schema.Schema{
+			"endpoint_auto_confirms": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"confirmation_timeout_in_minutes": &schema.Schema{
+			"confirmation_timeout_in_minutes": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1,
 			},
-			"topic_arn": &schema.Schema{
+			"topic_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"delivery_policy": &schema.Schema{
+			"delivery_policy": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"raw_message_delivery": &schema.Schema{
+			"raw_message_delivery": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -104,7 +105,7 @@ func resourceAwsSnsTopicSubscriptionUpdate(d *schema.ResourceData, meta interfac
 	snsconn := meta.(*AWSClient).snsconn
 
 	// If any changes happened, un-subscribe and re-subscribe
-	if d.HasChange("protocol") || d.HasChange("endpoint") || d.HasChange("topic_arn") {
+	if !d.IsNewResource() && (d.HasChange("protocol") || d.HasChange("endpoint") || d.HasChange("topic_arn")) {
 		log.Printf("[DEBUG] Updating subscription %s", d.Id())
 		// Unsubscribe
 		_, err := snsconn.Unsubscribe(&sns.UnsubscribeInput{
@@ -259,31 +260,31 @@ func findSubscriptionByNonID(d *schema.ResourceData, snsconn *sns.SNS) (*sns.Sub
 	protocol := d.Get("protocol").(string)
 	endpoint := d.Get("endpoint").(string)
 	topic_arn := d.Get("topic_arn").(string)
+	obfuscatedEndpoint := obfuscateEndpoint(endpoint)
 
 	req := &sns.ListSubscriptionsByTopicInput{
 		TopicArn: aws.String(topic_arn),
 	}
 
 	for {
-
 		res, err := snsconn.ListSubscriptionsByTopic(req)
 
 		if err != nil {
-			return nil, fmt.Errorf("Error fetching subscripitions for topic %s : %s", topic_arn, err)
+			return nil, fmt.Errorf("Error fetching subscriptions for topic %s : %s", topic_arn, err)
 		}
 
 		for _, subscription := range res.Subscriptions {
-			log.Printf("[DEBUG] check subscription with EndPoint %s, Protocol %s,  topicARN %s and SubscriptionARN %s", *subscription.Endpoint, *subscription.Protocol, *subscription.TopicArn, *subscription.SubscriptionArn)
-			if *subscription.Endpoint == endpoint && *subscription.Protocol == protocol && *subscription.TopicArn == topic_arn && !subscriptionHasPendingConfirmation(subscription.SubscriptionArn) {
+			log.Printf("[DEBUG] check subscription with Subscription EndPoint %s (local: %s), Protocol %s, topicARN %s and SubscriptionARN %s", *subscription.Endpoint, obfuscatedEndpoint, *subscription.Protocol, *subscription.TopicArn, *subscription.SubscriptionArn)
+			if *subscription.Endpoint == obfuscatedEndpoint && *subscription.Protocol == protocol && *subscription.TopicArn == topic_arn && !subscriptionHasPendingConfirmation(subscription.SubscriptionArn) {
 				return subscription, nil
 			}
 		}
 
-		// if there are more than 100 subscriptions then go to the next 100 otherwise return nil
+		// if there are more than 100 subscriptions then go to the next 100 otherwise return an error
 		if res.NextToken != nil {
 			req.NextToken = res.NextToken
 		} else {
-			return nil, nil
+			return nil, fmt.Errorf("Error finding subscription for topic %s with endpoint %s and protocol %s", topic_arn, endpoint, protocol)
 		}
 	}
 }
@@ -295,4 +296,23 @@ func subscriptionHasPendingConfirmation(arn *string) bool {
 	}
 
 	return true
+}
+
+// returns the endpoint with obfuscated password, if any
+func obfuscateEndpoint(endpoint string) string {
+	res, err := url.Parse(endpoint)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	var obfuscatedEndpoint = res.String()
+
+	// If the user is defined, we try to get the username and password, if defined.
+	// Then, we update the user with the obfuscated version.
+	if res.User != nil {
+		if password, ok := res.User.Password(); ok {
+			obfuscatedEndpoint = strings.Replace(obfuscatedEndpoint, password, awsSNSPasswordObfuscationPattern, 1)
+		}
+	}
+	return obfuscatedEndpoint
 }

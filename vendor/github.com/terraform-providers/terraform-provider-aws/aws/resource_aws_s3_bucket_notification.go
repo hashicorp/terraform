@@ -378,6 +378,9 @@ func resourceAwsS3BucketNotificationRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 	log.Printf("[DEBUG] S3 Bucket: %s, get notification: %v", d.Id(), notificationConfigs)
+
+	d.Set("bucket", d.Id())
+
 	// Topic Notification
 	if err := d.Set("topic", flattenTopicConfigurations(notificationConfigs.TopicConfigurations)); err != nil {
 		return fmt.Errorf("error reading S3 bucket \"%s\" topic notification: %s", d.Id(), err)

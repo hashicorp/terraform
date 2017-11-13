@@ -129,13 +129,13 @@ func TestModuleTreeDependencies(t *testing.T) {
 							{
 								Name: "grandchild",
 								Providers: moduledeps.Providers{
-									"foo": moduledeps.ProviderDependency{
-										Constraints: discovery.AllVersions,
-										Reason:      moduledeps.ProviderDependencyExplicit,
-									},
 									"bar": moduledeps.ProviderDependency{
 										Constraints: discovery.AllVersions,
 										Reason:      moduledeps.ProviderDependencyInherited,
+									},
+									"foo": moduledeps.ProviderDependency{
+										Constraints: discovery.AllVersions,
+										Reason:      moduledeps.ProviderDependencyExplicit,
 									},
 								},
 							},

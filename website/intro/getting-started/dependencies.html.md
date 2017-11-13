@@ -52,13 +52,13 @@ The syntax for this interpolation should be straightforward:
 it requests the "id" attribute from the "aws\_instance.example"
 resource.
 
-## Plan and Execute
+## Apply Changes
 
-Run `terraform plan` to view the execution plan. The output
-will look something like the following:
+Run `terraform apply` to see how Terraform plans to apply this change.
+The output will look similar to the following:
 
 ```
-$ terraform plan
+$ terraform apply
 
 + aws_eip.ip
     allocation_id:     "<computed>"
@@ -96,11 +96,12 @@ raw interpolation is still present. This is because this variable
 won't be known until the "aws\_instance" is created. It will be
 replaced at apply-time.
 
-Next, run `terraform apply`. The output will look similar to the
+As usual, Terraform prompts for confirmation before making any changes.
+Answer `yes` to apply. The continued output will look similar to the
 following:
 
 ```
-$ terraform apply
+# ...
 aws_instance.example: Creating...
   ami:                      "" => "ami-b374d5a5"
   instance_type:            "" => "t2.micro"
@@ -120,49 +121,59 @@ aws_eip.ip: Creation complete
 Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 ```
 
-It is clearer to see from actually running Terraform, but
-Terraform creates the EC2 instance before the elastic IP
-address. Due to the interpolation earlier where the elastic
-IP requires the ID of the EC2 instance, Terraform is able
-to infer a dependency, and knows to create the instance
-first.
+As shown above, Terraform created the EC2 instance before creating the Elastic
+IP address. Due to the interpolation expression that passes the ID of the EC2
+instance to the Elastic IP address, Terraform is able to infer a dependency,
+and knows it must create the instance first.
 
 ## Implicit and Explicit Dependencies
 
-Most dependencies in Terraform are implicit: Terraform is able
-to infer dependencies based on usage of attributes of other
-resources.
+By studying the resource attributes used in interpolation expressions,
+Terraform can automatically infer when one resource depends on another.
+In the example above, the expression `${aws_instance.example.id}` creates
+an _implicit dependency_ on the `aws_instance` named `example`.
 
-Using this information, Terraform builds a graph of resources.
-This tells Terraform not only in what order to create resources,
-but also what resources can be created in parallel. In our example,
-since the IP address depended on the EC2 instance, they could
-not be created in parallel.
+Terraform uses this dependency information to determine the correct order
+in which to create the different resources. In the example above, Terraform
+knows that the `aws_instance` must be created before the `aws_eip`.
 
-Implicit dependencies work well and are usually all you ever need.
-However, you can also specify explicit dependencies with the
-`depends_on` parameter which is available on any resource. For example,
-we could modify the "aws\_eip" resource to the following, which
-effectively does the same thing and is redundant:
+Implicit dependencies via interpolation expressions are the primary way
+to inform Terraform about these relationships, and should be used whenever
+possible.
+
+Sometimes there are dependencies between resources that are _not_ visible to
+Terraform. The `depends_on` argument is accepted by any resource and accepts
+a list of resources to create _explicit dependencies_ for.
+
+For example, perhaps an application we will run on our EC2 instance expects
+to use a specific Amazon S3 bucket, but that dependency is configured
+inside the application code and thus not visible to Terraform. In
+that case, we can use `depends_on` to explicitly declare the dependency:
 
 ```hcl
-resource "aws_eip" "ip" {
-  instance   = "${aws_instance.example.id}"
-  depends_on = ["aws_instance.example"]
+# New resource for the S3 bucket our application will use.
+resource "aws_s3_bucket" "example" {
+  # NOTE: S3 bucket names must be unique across _all_ AWS accounts, so
+  # this name must be changed before applying this example to avoid naming
+  # conflicts.
+  bucket = "terraform_getting_started_guide"
+  acl    = "private"
+}
+
+# Change the aws_instance we declared earlier to now include "depends_on"
+resource "aws_instance" "example" {
+  ami           = "ami-2757f631"
+  instance_type = "t2.micro"
+
+  # Tells Terraform that this EC2 instance must be created only after the
+  # S3 bucket has been created.
+  depends_on = ["aws_s3_bucket.example"]
 }
 ```
 
-If you're ever unsure about the dependency chain that Terraform
-is creating, you can use the [`terraform graph` command](/docs/commands/graph.html) to view
-the graph. This command outputs a dot-formatted graph which can be
-viewed with
-[Graphviz](http://www.graphviz.org/).
-
 ## Non-Dependent Resources
 
-We can now augment the configuration with another EC2 instance.
-Because this doesn't rely on any other resource, it can be
-created in parallel to everything else.
+We can continue to build this configuration by adding another EC2 instance:
 
 ```hcl
 resource "aws_instance" "another" {
@@ -171,19 +182,20 @@ resource "aws_instance" "another" {
 }
 ```
 
-You can view the graph with `terraform graph` to see that
-nothing depends on this and that it will likely be created
-in parallel.
+Because this new instance does not depend on any other resource, it can
+be created in parallel with the other resources. Where possible, Terraform
+will perform operations concurrently to reduce the total time taken to
+apply changes.
 
-Before moving on, remove this resource from your configuration
-and `terraform apply` again to destroy it. We won't use the
-second instance anymore in the getting started guide.
+Before moving on, remove this new resource from your configuration and
+run `terraform apply` again to destroy it. We won't use this second instance
+any further in the getting started guide.
 
 ## Next
 
-In this page you were introduced to both multiple resources
-as well as basic resource dependencies and resource attribute
-interpolation.
+In this page you were introduced to using multiple resources, interpolating
+attributes from one resource into another, and declaring dependencies between
+resources to define operation ordering.
 
-Moving on, [we'll use provisioners](/intro/getting-started/provision.html)
+In the next section, [we'll use provisioners](/intro/getting-started/provision.html)
 to do some basic bootstrapping of our launched instance.

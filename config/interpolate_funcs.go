@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -12,6 +14,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -55,9 +58,11 @@ func listVariableValueToStringSlice(values []ast.Variable) ([]string, error) {
 // Funcs is the mapping of built-in functions for configuration.
 func Funcs() map[string]ast.Function {
 	return map[string]ast.Function{
+		"abs":          interpolationFuncAbs(),
 		"basename":     interpolationFuncBasename(),
 		"base64decode": interpolationFuncBase64Decode(),
 		"base64encode": interpolationFuncBase64Encode(),
+		"base64gzip":   interpolationFuncBase64Gzip(),
 		"base64sha256": interpolationFuncBase64Sha256(),
 		"base64sha512": interpolationFuncBase64Sha512(),
 		"bcrypt":       interpolationFuncBcrypt(),
@@ -70,14 +75,18 @@ func Funcs() map[string]ast.Function {
 		"coalescelist": interpolationFuncCoalesceList(),
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
+		"contains":     interpolationFuncContains(),
 		"dirname":      interpolationFuncDirname(),
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
+		"chunklist":    interpolationFuncChunklist(),
 		"file":         interpolationFuncFile(),
 		"matchkeys":    interpolationFuncMatchKeys(),
+		"flatten":      interpolationFuncFlatten(),
 		"floor":        interpolationFuncFloor(),
 		"format":       interpolationFuncFormat(),
 		"formatlist":   interpolationFuncFormatList(),
+		"indent":       interpolationFuncIndent(),
 		"index":        interpolationFuncIndex(),
 		"join":         interpolationFuncJoin(),
 		"jsonencode":   interpolationFuncJSONEncode(),
@@ -104,8 +113,10 @@ func Funcs() map[string]ast.Function {
 		"substr":       interpolationFuncSubstr(),
 		"timestamp":    interpolationFuncTimestamp(),
 		"title":        interpolationFuncTitle(),
+		"transpose":    interpolationFuncTranspose(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
+		"urlencode":    interpolationFuncURLEncode(),
 		"zipmap":       interpolationFuncZipMap(),
 	}
 }
@@ -352,6 +363,22 @@ func interpolationFuncCoalesceList() ast.Function {
 				}
 			}
 			return make([]ast.Variable, 0), nil
+		},
+	}
+}
+
+// interpolationFuncContains returns true if an element is in the list
+// and return false otherwise
+func interpolationFuncContains() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeString},
+		ReturnType: ast.TypeBool,
+		Callback: func(args []interface{}) (interface{}, error) {
+			_, err := interpolationFuncIndex().Callback(args)
+			if err != nil {
+				return false, nil
+			}
+			return true, nil
 		},
 	}
 }
@@ -652,6 +679,21 @@ func interpolationFuncFormatList() ast.Function {
 	}
 }
 
+// interpolationFuncIndent indents a multi-line string with the
+// specified number of spaces
+func interpolationFuncIndent() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeInt, ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			spaces := args[0].(int)
+			data := args[1].(string)
+			pad := strings.Repeat(" ", spaces)
+			return strings.Replace(data, "\n", "\n"+pad, -1), nil
+		},
+	}
+}
+
 // interpolationFuncIndex implements the "index" function that allows one to
 // find the index of a specific element in a list
 func interpolationFuncIndex() ast.Function {
@@ -806,8 +848,7 @@ func interpolationFuncJoin() ast.Function {
 }
 
 // interpolationFuncJSONEncode implements the "jsonencode" function that encodes
-// a string, list, or map as its JSON representation. For now, values in the
-// list or map may only be strings.
+// a string, list, or map as its JSON representation.
 func interpolationFuncJSONEncode() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeAny},
@@ -820,28 +861,36 @@ func interpolationFuncJSONEncode() ast.Function {
 				toEncode = typedArg
 
 			case []ast.Variable:
-				// We preallocate the list here. Note that it's important that in
-				// the length 0 case, we have an empty list rather than nil, as
-				// they encode differently.
-				// XXX It would be nice to support arbitrarily nested data here. Is
-				// there an inverse of hil.InterfaceToVariable?
 				strings := make([]string, len(typedArg))
 
 				for i, v := range typedArg {
 					if v.Type != ast.TypeString {
-						return "", fmt.Errorf("list elements must be strings")
+						variable, _ := hil.InterfaceToVariable(typedArg)
+						toEncode, _ = hil.VariableToInterface(variable)
+
+						jEnc, err := json.Marshal(toEncode)
+						if err != nil {
+							return "", fmt.Errorf("failed to encode JSON data '%s'", toEncode)
+						}
+						return string(jEnc), nil
+
 					}
 					strings[i] = v.Value.(string)
 				}
 				toEncode = strings
 
 			case map[string]ast.Variable:
-				// XXX It would be nice to support arbitrarily nested data here. Is
-				// there an inverse of hil.InterfaceToVariable?
 				stringMap := make(map[string]string)
 				for k, v := range typedArg {
 					if v.Type != ast.TypeString {
-						return "", fmt.Errorf("map values must be strings")
+						variable, _ := hil.InterfaceToVariable(typedArg)
+						toEncode, _ = hil.VariableToInterface(variable)
+
+						jEnc, err := json.Marshal(toEncode)
+						if err != nil {
+							return "", fmt.Errorf("failed to encode JSON data '%s'", toEncode)
+						}
+						return string(jEnc), nil
 					}
 					stringMap[k] = v.Value.(string)
 				}
@@ -1081,6 +1130,56 @@ func interpolationFuncElement() ast.Function {
 	}
 }
 
+// returns the `list` items chunked by `size`.
+func interpolationFuncChunklist() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeList, // inputList
+			ast.TypeInt,  // size
+		},
+		ReturnType: ast.TypeList,
+		Callback: func(args []interface{}) (interface{}, error) {
+			output := make([]ast.Variable, 0)
+
+			values, _ := args[0].([]ast.Variable)
+			size, _ := args[1].(int)
+
+			// errors if size is negative
+			if size < 0 {
+				return nil, fmt.Errorf("The size argument must be positive")
+			}
+
+			// if size is 0, returns a list made of the initial list
+			if size == 0 {
+				output = append(output, ast.Variable{
+					Type:  ast.TypeList,
+					Value: values,
+				})
+				return output, nil
+			}
+
+			variables := make([]ast.Variable, 0)
+			chunk := ast.Variable{
+				Type:  ast.TypeList,
+				Value: variables,
+			}
+			l := len(values)
+			for i, v := range values {
+				variables = append(variables, v)
+
+				// Chunk when index isn't 0, or when reaching the values's length
+				if (i+1)%size == 0 || (i+1) == l {
+					chunk.Value = variables
+					output = append(output, chunk)
+					variables = make([]ast.Variable, 0)
+				}
+			}
+
+			return output, nil
+		},
+	}
+}
+
 // interpolationFuncKeys implements the "keys" function that yields a list of
 // keys of map types within a Terraform configuration.
 func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
@@ -1176,6 +1275,32 @@ func interpolationFuncBase64Decode() ast.Function {
 				return "", fmt.Errorf("failed to decode base64 data '%s'", s)
 			}
 			return string(sDec), nil
+		},
+	}
+}
+
+// interpolationFuncBase64Gzip implements the "gzip" function that allows gzip
+// compression encoding the result using base64
+func interpolationFuncBase64Gzip() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+
+			var b bytes.Buffer
+			gz := gzip.NewWriter(&b)
+			if _, err := gz.Write([]byte(s)); err != nil {
+				return "", fmt.Errorf("failed to write gzip raw data: '%s'", s)
+			}
+			if err := gz.Flush(); err != nil {
+				return "", fmt.Errorf("failed to flush gzip writer: '%s'", s)
+			}
+			if err := gz.Close(); err != nil {
+				return "", fmt.Errorf("failed to close gzip writer: '%s'", s)
+			}
+
+			return base64.StdEncoding.EncodeToString(b.Bytes()), nil
 		},
 	}
 }
@@ -1433,6 +1558,102 @@ func interpolationFuncSubstr() ast.Function {
 			}
 
 			return str[offset:length], nil
+		},
+	}
+}
+
+// Flatten until it's not ast.TypeList
+func flattener(finalList []ast.Variable, flattenList []ast.Variable) []ast.Variable {
+	for _, val := range flattenList {
+		if val.Type == ast.TypeList {
+			finalList = flattener(finalList, val.Value.([]ast.Variable))
+		} else {
+			finalList = append(finalList, val)
+		}
+	}
+	return finalList
+}
+
+// Flatten to single list
+func interpolationFuncFlatten() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeList},
+		ReturnType: ast.TypeList,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			inputList := args[0].([]ast.Variable)
+
+			var outputList []ast.Variable
+			return flattener(outputList, inputList), nil
+		},
+	}
+}
+
+func interpolationFuncURLEncode() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			return url.QueryEscape(s), nil
+		},
+	}
+}
+
+// interpolationFuncTranspose implements the "transpose" function
+// that converts a map (string,list) to a map (string,list) where
+// the unique values of the original lists become the keys of the
+// new map and the keys of the original map become values for the
+// corresponding new keys.
+func interpolationFuncTranspose() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeMap},
+		ReturnType: ast.TypeMap,
+		Callback: func(args []interface{}) (interface{}, error) {
+
+			inputMap := args[0].(map[string]ast.Variable)
+			outputMap := make(map[string]ast.Variable)
+			tmpMap := make(map[string][]string)
+
+			for inKey, inVal := range inputMap {
+				if inVal.Type != ast.TypeList {
+					return nil, fmt.Errorf("transpose requires a map of lists of strings")
+				}
+				values := inVal.Value.([]ast.Variable)
+				for _, listVal := range values {
+					if listVal.Type != ast.TypeString {
+						return nil, fmt.Errorf("transpose requires the given map values to be lists of strings")
+					}
+					outKey := listVal.Value.(string)
+					if _, ok := tmpMap[outKey]; !ok {
+						tmpMap[outKey] = make([]string, 0)
+					}
+					outVal := tmpMap[outKey]
+					outVal = append(outVal, inKey)
+					sort.Strings(outVal)
+					tmpMap[outKey] = outVal
+				}
+			}
+
+			for outKey, outVal := range tmpMap {
+				values := make([]ast.Variable, 0)
+				for _, v := range outVal {
+					values = append(values, ast.Variable{Type: ast.TypeString, Value: v})
+				}
+				outputMap[outKey] = ast.Variable{Type: ast.TypeList, Value: values}
+			}
+			return outputMap, nil
+		},
+	}
+}
+
+// interpolationFuncAbs returns the absolute value of a given float.
+func interpolationFuncAbs() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeFloat},
+		ReturnType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return math.Abs(args[0].(float64)), nil
 		},
 	}
 }

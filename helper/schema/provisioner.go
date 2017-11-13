@@ -43,7 +43,7 @@ type Provisioner struct {
 
 	// ValidateFunc is a function for extended validation. This is optional
 	// and should be used when individual field validation is not enough.
-	ValidateFunc func(*ResourceData) ([]string, []error)
+	ValidateFunc func(*terraform.ResourceConfig) ([]string, []error)
 
 	stopCtx       context.Context
 	stopCtxCancel context.CancelFunc
@@ -121,32 +121,6 @@ func (p *Provisioner) Stop() error {
 	return nil
 }
 
-func (p *Provisioner) Validate(config *terraform.ResourceConfig) ([]string, []error) {
-	if err := p.InternalValidate(); err != nil {
-		return nil, []error{fmt.Errorf(
-			"Internal validation of the provisioner failed! This is always a bug\n"+
-				"with the provisioner itself, and not a user issue. Please report\n"+
-				"this bug:\n\n%s", err)}
-	}
-	w := []string{}
-	e := []error{}
-	if p.Schema != nil {
-		w2, e2 := schemaMap(p.Schema).Validate(config)
-		w = append(w, w2...)
-		e = append(e, e2...)
-	}
-	if p.ValidateFunc != nil {
-		data := &ResourceData{
-			schema: p.Schema,
-			config: config,
-		}
-		w2, e2 := p.ValidateFunc(data)
-		w = append(w, w2...)
-		e = append(e, e2...)
-	}
-	return w, e
-}
-
 // Apply implementation of terraform.ResourceProvisioner interface.
 func (p *Provisioner) Apply(
 	o terraform.UIOutput,
@@ -172,7 +146,7 @@ func (p *Provisioner) Apply(
 		}
 
 		sm := schemaMap(p.ConnSchema)
-		diff, err := sm.Diff(nil, terraform.NewResourceConfig(c))
+		diff, err := sm.Diff(nil, terraform.NewResourceConfig(c), nil, nil)
 		if err != nil {
 			return err
 		}
@@ -186,7 +160,7 @@ func (p *Provisioner) Apply(
 		// Build the configuration data. Doing this requires making a "diff"
 		// even though that's never used. We use that just to get the correct types.
 		configMap := schemaMap(p.Schema)
-		diff, err := configMap.Diff(nil, c)
+		diff, err := configMap.Diff(nil, c, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -203,4 +177,28 @@ func (p *Provisioner) Apply(
 	ctx = context.WithValue(ctx, ProvOutputKey, o)
 	ctx = context.WithValue(ctx, ProvRawStateKey, s)
 	return p.ApplyFunc(ctx)
+}
+
+// Validate implements the terraform.ResourceProvisioner interface.
+func (p *Provisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
+	if err := p.InternalValidate(); err != nil {
+		return nil, []error{fmt.Errorf(
+			"Internal validation of the provisioner failed! This is always a bug\n"+
+				"with the provisioner itself, and not a user issue. Please report\n"+
+				"this bug:\n\n%s", err)}
+	}
+
+	if p.Schema != nil {
+		w, e := schemaMap(p.Schema).Validate(c)
+		ws = append(ws, w...)
+		es = append(es, e...)
+	}
+
+	if p.ValidateFunc != nil {
+		w, e := p.ValidateFunc(c)
+		ws = append(ws, w...)
+		es = append(es, e...)
+	}
+
+	return ws, es
 }

@@ -128,9 +128,12 @@ func resourceAwsOpsworksSetPermission(d *schema.ResourceData, meta interface{}) 
 	req := &opsworks.SetPermissionInput{
 		AllowSudo:  aws.Bool(d.Get("allow_sudo").(bool)),
 		AllowSsh:   aws.Bool(d.Get("allow_ssh").(bool)),
-		Level:      aws.String(d.Get("level").(string)),
 		IamUserArn: aws.String(d.Get("user_arn").(string)),
 		StackId:    aws.String(d.Get("stack_id").(string)),
+	}
+
+	if v, ok := d.GetOk("level"); ok {
+		req.Level = aws.String(v.(string))
 	}
 
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {

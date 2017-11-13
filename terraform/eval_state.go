@@ -1,6 +1,8 @@
 package terraform
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // EvalReadState is an EvalNode implementation that reads the
 // primary InstanceState for a specific resource out of the state.
@@ -208,37 +210,6 @@ func writeInstanceToState(
 	if err := writerFn(rs); err != nil {
 		return nil, err
 	}
-
-	return nil, nil
-}
-
-// EvalClearPrimaryState is an EvalNode implementation that clears the primary
-// instance from a resource state.
-type EvalClearPrimaryState struct {
-	Name string
-}
-
-func (n *EvalClearPrimaryState) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
-
-	// Get a read lock so we can access this instance
-	lock.RLock()
-	defer lock.RUnlock()
-
-	// Look for the module state. If we don't have one, then it doesn't matter.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		return nil, nil
-	}
-
-	// Look for the resource state. If we don't have one, then it is okay.
-	rs := mod.Resources[n.Name]
-	if rs == nil {
-		return nil, nil
-	}
-
-	// Clear primary from the resource state
-	rs.Primary = nil
 
 	return nil, nil
 }

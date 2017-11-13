@@ -943,6 +943,43 @@ func TestInterpolateFuncConcat(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncContains(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.listOfStrings": interfaceToVariableSwallowError([]string{"notfoo", "stillnotfoo", "bar"}),
+			"var.listOfInts":    interfaceToVariableSwallowError([]int{1, 2, 3}),
+		},
+		Cases: []testFunctionCase{
+			{
+				`${contains(var.listOfStrings, "bar")}`,
+				"true",
+				false,
+			},
+
+			{
+				`${contains(var.listOfStrings, "foo")}`,
+				"false",
+				false,
+			},
+			{
+				`${contains(var.listOfInts, 1)}`,
+				"true",
+				false,
+			},
+			{
+				`${contains(var.listOfInts, 10)}`,
+				"false",
+				false,
+			},
+			{
+				`${contains(var.listOfInts, "2")}`,
+				"true",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncMerge(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -1317,6 +1354,34 @@ func TestInterpolateFuncIndex(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncIndent(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${indent(4, "Fleas:
+Adam
+Had'em
+
+E.E. Cummings")}`,
+				"Fleas:\n    Adam\n    Had'em\n    \n    E.E. Cummings",
+				false,
+			},
+			{
+				`${indent(4, "oneliner")}`,
+				"oneliner",
+				false,
+			},
+			{
+				`${indent(4, "#!/usr/bin/env bash
+date
+pwd")}`,
+				"#!/usr/bin/env bash\n    date\n    pwd",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncJoin(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
@@ -1369,8 +1434,6 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 				Type:  ast.TypeString,
 			},
 			"list": interfaceToVariableSwallowError([]string{"foo", "bar\tbaz"}),
-			// XXX can't use InterfaceToVariable as it converts empty slice into empty
-			// map.
 			"emptylist": ast.Variable{
 				Value: []ast.Variable{},
 				Type:  ast.TypeList,
@@ -1379,9 +1442,7 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 				"foo":     "bar",
 				"ba \n z": "q\\x",
 			}),
-			"emptymap": interfaceToVariableSwallowError(map[string]string{}),
-
-			// Not yet supported (but it would be nice)
+			"emptymap":   interfaceToVariableSwallowError(map[string]string{}),
 			"nestedlist": interfaceToVariableSwallowError([][]string{{"foo"}}),
 			"nestedmap":  interfaceToVariableSwallowError(map[string][]string{"foo": {"bar"}}),
 		},
@@ -1433,13 +1494,13 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 			},
 			{
 				`${jsonencode(nestedlist)}`,
-				nil,
-				true,
+				`[["foo"]]`,
+				false,
 			},
 			{
 				`${jsonencode(nestedmap)}`,
-				nil,
-				true,
+				`{"foo":["bar"]}`,
+				false,
 			},
 		},
 	})
@@ -2045,6 +2106,44 @@ func TestInterpolateFuncElement(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncChunklist(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// normal usage
+			{
+				`${chunklist(list("a", "b", "c"), 1)}`,
+				[]interface{}{
+					[]interface{}{"a"},
+					[]interface{}{"b"},
+					[]interface{}{"c"},
+				},
+				false,
+			},
+			// `size` is pair and the list has an impair number of items
+			{
+				`${chunklist(list("a", "b", "c"), 2)}`,
+				[]interface{}{
+					[]interface{}{"a", "b"},
+					[]interface{}{"c"},
+				},
+				false,
+			},
+			// list made of the same list, since size is 0
+			{
+				`${chunklist(list("a", "b", "c"), 0)}`,
+				[]interface{}{[]interface{}{"a", "b", "c"}},
+				false,
+			},
+			// negative size of chunks
+			{
+				`${chunklist(list("a", "b", "c"), -1)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncBasename(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -2216,6 +2315,18 @@ func TestInterpolateFuncTrimSpace(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncBase64Gzip(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${base64gzip("test")}`,
+				"H4sIAAAAAAAA/ypJLS4BAAAA//8BAAD//wx+f9gEAAAA",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncBase64Sha256(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -2327,21 +2438,23 @@ type testFunctionCase struct {
 }
 
 func testFunction(t *testing.T, config testFunctionConfig) {
-	for i, tc := range config.Cases {
-		ast, err := hil.Parse(tc.Input)
-		if err != nil {
-			t.Fatalf("Case #%d: input: %#v\nerr: %v", i, tc.Input, err)
-		}
+	t.Helper()
+	for _, tc := range config.Cases {
+		t.Run(tc.Input, func(t *testing.T) {
+			ast, err := hil.Parse(tc.Input)
+			if err != nil {
+				t.Fatalf("unexpected parse error: %s", err)
+			}
 
-		result, err := hil.Eval(ast, langEvalConfig(config.Vars))
-		if err != nil != tc.Error {
-			t.Fatalf("Case #%d:\ninput: %#v\nerr: %v", i, tc.Input, err)
-		}
+			result, err := hil.Eval(ast, langEvalConfig(config.Vars))
+			if err != nil != tc.Error {
+				t.Fatalf("unexpected eval error: %s", err)
+			}
 
-		if !reflect.DeepEqual(result.Value, tc.Result) {
-			t.Fatalf("%d: bad output for input: %s\n\nOutput: %#v\nExpected: %#v",
-				i, tc.Input, result.Value, tc.Result)
-		}
+			if !reflect.DeepEqual(result.Value, tc.Result) {
+				t.Errorf("wrong result\ngiven: %s\ngot:   %#v\nwant:  %#v", tc.Input, result.Value, tc.Result)
+			}
+		})
 	}
 }
 
@@ -2462,6 +2575,207 @@ func TestInterpolateFuncBcrypt(t *testing.T) {
 				`${bcrypt("test", 15, 12)}`,
 				nil,
 				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncFlatten(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// empty string within array
+			{
+				`${flatten(split(",", "a,,b"))}`,
+				[]interface{}{"a", "", "b"},
+				false,
+			},
+
+			// typical array
+			{
+				`${flatten(split(",", "a,b,c"))}`,
+				[]interface{}{"a", "b", "c"},
+				false,
+			},
+
+			// empty array
+			{
+				`${flatten(split(",", ""))}`,
+				[]interface{}{""},
+				false,
+			},
+
+			// list of lists
+			{
+				`${flatten(list(list("a"), list("b")))}`,
+				[]interface{}{"a", "b"},
+				false,
+			},
+			// list of lists of lists
+			{
+				`${flatten(list(list("a"), list(list("b","c"))))}`,
+				[]interface{}{"a", "b", "c"},
+				false,
+			},
+			// list of strings
+			{
+				`${flatten(list("a", "b", "c"))}`,
+				[]interface{}{"a", "b", "c"},
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncURLEncode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${urlencode("abc123-_")}`,
+				"abc123-_",
+				false,
+			},
+			{
+				`${urlencode("foo:bar@localhost?foo=bar&bar=baz")}`,
+				"foo%3Abar%40localhost%3Ffoo%3Dbar%26bar%3Dbaz",
+				false,
+			},
+			{
+				`${urlencode("mailto:email?subject=this+is+my+subject")}`,
+				"mailto%3Aemail%3Fsubject%3Dthis%2Bis%2Bmy%2Bsubject",
+				false,
+			},
+			{
+				`${urlencode("foo/bar")}`,
+				"foo%2Fbar",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncTranspose(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.map": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"key1": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeString, Value: "a"},
+							{Type: ast.TypeString, Value: "b"},
+						},
+					},
+					"key2": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeString, Value: "a"},
+							{Type: ast.TypeString, Value: "b"},
+							{Type: ast.TypeString, Value: "c"},
+						},
+					},
+					"key3": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeString, Value: "c"},
+						},
+					},
+					"key4": ast.Variable{
+						Type:  ast.TypeList,
+						Value: []ast.Variable{},
+					},
+				}},
+			"var.badmap": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"key1": ast.Variable{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{Type: ast.TypeList, Value: []ast.Variable{}},
+							{Type: ast.TypeList, Value: []ast.Variable{}},
+						},
+					},
+				}},
+			"var.worsemap": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"key1": ast.Variable{
+						Type:  ast.TypeString,
+						Value: "not-a-list",
+					},
+				}},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${transpose(var.map)}`,
+				map[string]interface{}{
+					"a": []interface{}{"key1", "key2"},
+					"b": []interface{}{"key1", "key2"},
+					"c": []interface{}{"key2", "key3"},
+				},
+				false,
+			},
+			{
+				`${transpose(var.badmap)}`,
+				nil,
+				true,
+			},
+			{
+				`${transpose(var.worsemap)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncAbs(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${abs()}`,
+				nil,
+				true,
+			},
+			{
+				`${abs("")}`,
+				nil,
+				true,
+			},
+			{
+				`${abs(0)}`,
+				"0",
+				false,
+			},
+			{
+				`${abs(1)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(-1)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(1.0)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(-1.0)}`,
+				"1",
+				false,
+			},
+			{
+				`${abs(-3.14)}`,
+				"3.14",
+				false,
+			},
+			{
+				`${abs(-42.001)}`,
+				"42.001",
+				false,
 			},
 		},
 	})

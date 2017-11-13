@@ -1,7 +1,10 @@
 package consul
 
 import (
+	"context"
 	"fmt"
+	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -16,9 +19,6 @@ func TestRemoteClient_impl(t *testing.T) {
 }
 
 func TestRemoteClient(t *testing.T) {
-	srv := newConsulTestServer(t)
-	defer srv.Stop()
-
 	// Get the backend
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"address": srv.HTTPAddr,
@@ -37,9 +37,6 @@ func TestRemoteClient(t *testing.T) {
 
 // test the gzip functionality of the client
 func TestRemoteClient_gzipUpgrade(t *testing.T) {
-	srv := newConsulTestServer(t)
-	defer srv.Stop()
-
 	statePath := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// Get the backend
@@ -75,9 +72,6 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 }
 
 func TestConsul_stateLock(t *testing.T) {
-	srv := newConsulTestServer(t)
-	defer srv.Stop()
-
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// create 2 instances to get 2 remote.Clients
@@ -101,9 +95,6 @@ func TestConsul_stateLock(t *testing.T) {
 }
 
 func TestConsul_destroyLock(t *testing.T) {
-	srv := newConsulTestServer(t)
-	defer srv.Stop()
-
 	// Get the backend
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"address": srv.HTTPAddr,
@@ -141,9 +132,6 @@ func TestConsul_destroyLock(t *testing.T) {
 }
 
 func TestConsul_lostLock(t *testing.T) {
-	srv := newConsulTestServer(t)
-	defer srv.Stop()
-
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// create 2 instances to get 2 remote.Clients
@@ -173,6 +161,7 @@ func TestConsul_lostLock(t *testing.T) {
 	reLocked := make(chan struct{})
 	testLockHook = func() {
 		close(reLocked)
+		testLockHook = nil
 	}
 
 	// now we use the second client to break the lock
@@ -187,4 +176,96 @@ func TestConsul_lostLock(t *testing.T) {
 	if err := sA.Unlock(id); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestConsul_lostLockConnection(t *testing.T) {
+	// create an "unreliable" network by closing all the consul client's
+	// network connections
+	conns := &unreliableConns{}
+	origDialFn := dialContext
+	defer func() {
+		dialContext = origDialFn
+	}()
+	dialContext = conns.DialContext
+
+	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
+
+	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"address": srv.HTTPAddr,
+		"path":    path,
+	})
+
+	s, err := b.State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	info := state.NewLockInfo()
+	info.Operation = "test-lost-lock-connection"
+	id, err := s.Lock(info)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// kill the connection a few times
+	for i := 0; i < 3; i++ {
+		dialed := conns.dialedDone()
+		// kill any open connections
+		conns.Kill()
+		// wait for a new connection to be dialed, and kill it again
+		<-dialed
+	}
+
+	if err := s.Unlock(id); err != nil {
+		t.Fatal("unlock error:", err)
+	}
+}
+
+type unreliableConns struct {
+	sync.Mutex
+	conns        []net.Conn
+	dialCallback func()
+}
+
+func (u *unreliableConns) DialContext(ctx context.Context, netw, addr string) (net.Conn, error) {
+	u.Lock()
+	defer u.Unlock()
+
+	dialer := &net.Dialer{}
+	conn, err := dialer.DialContext(ctx, netw, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	u.conns = append(u.conns, conn)
+
+	if u.dialCallback != nil {
+		u.dialCallback()
+	}
+
+	return conn, nil
+}
+
+func (u *unreliableConns) dialedDone() chan struct{} {
+	u.Lock()
+	defer u.Unlock()
+	dialed := make(chan struct{})
+	u.dialCallback = func() {
+		defer close(dialed)
+		u.dialCallback = nil
+	}
+
+	return dialed
+}
+
+// Kill these with a deadline, just to make sure we don't end up with any EOFs
+// that get ignored.
+func (u *unreliableConns) Kill() {
+	u.Lock()
+	defer u.Unlock()
+
+	for _, conn := range u.conns {
+		conn.(*net.TCPConn).SetDeadline(time.Now())
+	}
+	u.conns = nil
 }

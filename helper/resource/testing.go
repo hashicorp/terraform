@@ -11,11 +11,12 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
@@ -186,6 +187,10 @@ type TestCheckFunc func(*terraform.State) error
 // ImportStateCheckFunc is the check function for ImportState tests
 type ImportStateCheckFunc func([]*terraform.InstanceState) error
 
+// ImportStateIdFunc is an ID generation function to help with complex ID
+// generation for ImportState tests.
+type ImportStateIdFunc func(*terraform.State) (string, error)
+
 // TestCase is a single acceptance test case used to test the apply/destroy
 // lifecycle of a resource in a specific configuration.
 //
@@ -308,6 +313,10 @@ type TestStep struct {
 	// are tested alongside real resources
 	PreventPostDestroyRefresh bool
 
+	// SkipFunc is called before applying config, but after PreConfig
+	// This is useful for defining test steps with platform-dependent checks
+	SkipFunc func() (bool, error)
+
 	//---------------------------------------------------------------
 	// ImportState testing
 	//---------------------------------------------------------------
@@ -329,6 +338,12 @@ type TestStep struct {
 	// the unset ImportStateId field.
 	ImportStateIdPrefix string
 
+	// ImportStateIdFunc is a function that can be used to dynamically generate
+	// the ID for the ImportState tests. It is sent the state, which can be
+	// checked to derive the attributes necessary and generate the string in the
+	// desired format.
+	ImportStateIdFunc ImportStateIdFunc
+
 	// ImportStateCheck checks the results of ImportState. It should be
 	// used to verify that the resulting value of ImportState has the
 	// proper resources, IDs, and attributes.
@@ -343,6 +358,49 @@ type TestStep struct {
 	// be refreshed and don't matter.
 	ImportStateVerify       bool
 	ImportStateVerifyIgnore []string
+}
+
+// Set to a file mask in sprintf format where %s is test name
+const EnvLogPathMask = "TF_LOG_PATH_MASK"
+
+func LogOutput(t TestT) (logOutput io.Writer, err error) {
+	logOutput = ioutil.Discard
+
+	logLevel := logging.LogLevel()
+	if logLevel == "" {
+		return
+	}
+
+	logOutput = os.Stderr
+
+	if logPath := os.Getenv(logging.EnvLogFile); logPath != "" {
+		var err error
+		logOutput, err = os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if logPathMask := os.Getenv(EnvLogPathMask); logPathMask != "" {
+		// Escape special characters which may appear if we have subtests
+		testName := strings.Replace(t.Name(), "/", "__", -1)
+
+		logPath := fmt.Sprintf(logPathMask, testName)
+		var err error
+		logOutput, err = os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// This was the default since the beginning
+	logOutput = &logutils.LevelFilter{
+		Levels:   logging.ValidLevels,
+		MinLevel: logutils.LogLevel(logLevel),
+		Writer:   logOutput,
+	}
+
+	return
 }
 
 // Test performs an acceptance test on a resource.
@@ -366,7 +424,7 @@ func Test(t TestT, c TestCase) {
 		return
 	}
 
-	logWriter, err := logging.LogOutput()
+	logWriter, err := LogOutput(t)
 	if err != nil {
 		t.Error(fmt.Errorf("error setting up logging: %s", err))
 	}
@@ -398,7 +456,18 @@ func Test(t TestT, c TestCase) {
 	errored := false
 	for i, step := range c.Steps {
 		var err error
-		log.Printf("[WARN] Test: Executing step %d", i)
+		log.Printf("[DEBUG] Test: Executing step %d", i)
+
+		if step.SkipFunc != nil {
+			skip, err := step.SkipFunc()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if skip {
+				log.Printf("[WARN] Skipping step %d", i)
+				continue
+			}
+		}
 
 		if step.Config == "" && !step.ImportState {
 			err = fmt.Errorf(
@@ -406,6 +475,10 @@ func Test(t TestT, c TestCase) {
 				step)
 		} else {
 			if step.ImportState {
+				if step.Config == "" {
+					step.Config = testProviderConfig(c)
+				}
+
 				// Can optionally set step.Config in addition to
 				// step.ImportState, to provide config for the import.
 				state, err = testStepImportState(opts, state, step)
@@ -497,6 +570,18 @@ func Test(t TestT, c TestCase) {
 	} else {
 		log.Printf("[WARN] Skipping destroy test since there is no state.")
 	}
+}
+
+// testProviderConfig takes the list of Providers in a TestCase and returns a
+// config with only empty provider blocks. This is useful for Import, where no
+// config is provided, but the providers must be defined.
+func testProviderConfig(c TestCase) string {
+	var lines []string
+	for p := range c.Providers {
+		lines = append(lines, fmt.Sprintf("provider %q {}\n", p))
+	}
+
+	return strings.Join(lines, "")
 }
 
 // testProviderResolver is a helper to build a ResourceProviderResolver
@@ -677,10 +762,11 @@ func testModule(
 	}
 
 	// Load the modules
-	modStorage := &getter.FolderStorage{
+	modStorage := &module.Storage{
 		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
+		Mode:       module.GetModeGet,
 	}
-	err = mod.Load(modStorage, module.GetModeGet)
+	err = mod.Load(modStorage)
 	if err != nil {
 		return nil, fmt.Errorf("Error downloading modules: %s", err)
 	}
@@ -920,6 +1006,7 @@ type TestT interface {
 	Error(args ...interface{})
 	Fatal(args ...interface{})
 	Skip(args ...interface{})
+	Name() string
 }
 
 // This is set to true by unit tests to alter some behavior

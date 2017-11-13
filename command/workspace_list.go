@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+
+	"github.com/posener/complete"
 )
 
 type WorkspaceListCommand struct {
@@ -12,7 +14,10 @@ type WorkspaceListCommand struct {
 }
 
 func (c *WorkspaceListCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
@@ -70,6 +75,14 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	}
 
 	return 0
+}
+
+func (c *WorkspaceListCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictDirs("")
+}
+
+func (c *WorkspaceListCommand) AutocompleteFlags() complete.Flags {
+	return nil
 }
 
 func (c *WorkspaceListCommand) Help() string {

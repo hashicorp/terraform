@@ -2,10 +2,6 @@ package aws
 
 import (
 	"fmt"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -19,6 +15,11 @@ func dataSourceAwsIAMRole() *schema.Resource {
 				Computed: true,
 			},
 			"assume_role_policy_document": {
+				Type:       schema.TypeString,
+				Computed:   true,
+				Deprecated: "Use `assume_role_policy` instead",
+			},
+			"assume_role_policy": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -27,41 +28,55 @@ func dataSourceAwsIAMRole() *schema.Resource {
 				Computed: true,
 			},
 			"role_id": {
+				Type:       schema.TypeString,
+				Computed:   true,
+				Deprecated: "Use `unique_id` instead",
+			},
+			"unique_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"description": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"role_name": {
+				Type:       schema.TypeString,
+				Optional:   true,
+				Deprecated: "Use `name` instead",
+			},
+			"name": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+			},
+			"create_date": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
 }
 
 func dataSourceAwsIAMRoleRead(d *schema.ResourceData, meta interface{}) error {
-	iamconn := meta.(*AWSClient).iamconn
+	name, hasName := d.GetOk("name")
+	roleName, hasRoleName := d.GetOk("role_name")
 
-	roleName := d.Get("role_name").(string)
-
-	req := &iam.GetRoleInput{
-		RoleName: aws.String(roleName),
+	if !hasName && !hasRoleName {
+		return fmt.Errorf("`%s` must be set", "name")
 	}
 
-	resp, err := iamconn.GetRole(req)
-	if err != nil {
-		return errwrap.Wrapf("Error getting roles: {{err}}", err)
+	var id string
+	if hasName {
+		id = name.(string)
+	} else if hasRoleName {
+		id = roleName.(string)
 	}
-	if resp == nil {
-		return fmt.Errorf("no IAM role found")
-	}
+	d.SetId(id)
 
-	role := resp.Role
+	data := resourceAwsIamRoleRead(d, meta)
+	// Keep backward compatibility with previous attributes
+	d.Set("role_id", d.Get("unique_id").(string))
+	d.Set("assume_role_policy_document", d.Get("assume_role_policy").(string))
 
-	d.SetId(*role.RoleId)
-	d.Set("arn", role.Arn)
-	d.Set("assume_role_policy_document", role.AssumeRolePolicyDocument)
-	d.Set("path", role.Path)
-	d.Set("role_id", role.RoleId)
-
-	return nil
+	return data
 }

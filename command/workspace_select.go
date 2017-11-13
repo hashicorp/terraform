@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mitchellh/cli"
+	"github.com/posener/complete"
 )
 
 type WorkspaceSelectCommand struct {
@@ -13,7 +14,10 @@ type WorkspaceSelectCommand struct {
 }
 
 func (c *WorkspaceSelectCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
@@ -98,6 +102,18 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	)
 
 	return 0
+}
+
+func (c *WorkspaceSelectCommand) AutocompleteArgs() complete.Predictor {
+	return completePredictSequence{
+		complete.PredictNothing, // the "select" subcommand itself (already matched)
+		c.completePredictWorkspaceName(),
+		complete.PredictDirs(""),
+	}
+}
+
+func (c *WorkspaceSelectCommand) AutocompleteFlags() complete.Flags {
+	return nil
 }
 
 func (c *WorkspaceSelectCommand) Help() string {

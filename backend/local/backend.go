@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
@@ -22,7 +23,6 @@ const (
 	DefaultWorkspaceDir    = "terraform.tfstate.d"
 	DefaultWorkspaceFile   = "environment"
 	DefaultStateFilename   = "terraform.tfstate"
-	DefaultDataDir         = ".terraform"
 	DefaultBackupExtension = ".backup"
 )
 
@@ -77,6 +77,15 @@ type Local struct {
 	//
 	// If this is nil, local performs normal state loading and storage.
 	Backend backend.Backend
+
+	// RunningInAutomation indicates that commands are being run by an
+	// automated system rather than directly at a command prompt.
+	//
+	// This is a hint not to produce messages that expect that a user can
+	// run a follow-up command, perhaps because Terraform is running in
+	// some sort of workflow automation tool that abstracts away the
+	// exact commands that are being run.
+	RunningInAutomation bool
 
 	schema *schema.Backend
 	opLock sync.Mutex
@@ -171,28 +180,9 @@ func (b *Local) DeleteState(name string) error {
 func (b *Local) State(name string) (state.State, error) {
 	statePath, stateOutPath, backupPath := b.StatePaths(name)
 
-	// If we have a backend handling state, defer to that.
+	// If we have a backend handling state, delegate to that.
 	if b.Backend != nil {
-		s, err := b.Backend.State(name)
-		if err != nil {
-			return nil, err
-		}
-
-		// make sure we always have a backup state, unless it disabled
-		if backupPath == "" {
-			return s, nil
-		}
-
-		// see if the delegated backend returned a BackupState of its own
-		if s, ok := s.(*state.BackupState); ok {
-			return s, nil
-		}
-
-		s = &state.BackupState{
-			Real: s,
-			Path: backupPath,
-		}
-		return s, nil
+		return b.Backend.State(name)
 	}
 
 	if s, ok := b.states[name]; ok {
@@ -407,3 +397,25 @@ func (b *Local) stateWorkspaceDir() string {
 
 	return DefaultWorkspaceDir
 }
+
+func (b *Local) pluginInitRequired(providerErr *terraform.ResourceProviderError) {
+	b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
+		strings.TrimSpace(errPluginInit)+"\n",
+		providerErr)))
+}
+
+// this relies on multierror to format the plugin errors below the copy
+const errPluginInit = `
+[reset][bold][yellow]Plugin reinitialization required. Please run "terraform init".[reset]
+[yellow]Reason: Could not satisfy plugin requirements.
+
+Plugins are external binaries that Terraform uses to access and manipulate
+resources. The configuration provided requires plugins which can't be located,
+don't satisfy the version constraints, or are otherwise incompatible.
+
+[reset][red]%s
+
+[reset][yellow]Terraform automatically discovers provider requirements from your
+configuration, including providers used in child modules. To see the
+requirements and constraints from each module, run "terraform providers".
+`

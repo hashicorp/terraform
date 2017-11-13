@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
@@ -17,7 +18,10 @@ type RefreshCommand struct {
 }
 
 func (c *RefreshCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := c.Meta.flagSet("refresh")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
@@ -40,7 +44,14 @@ func (c *RefreshCommand) Run(args []string) int {
 	// Load the module
 	mod, err := c.Module(configPath)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+		err = errwrap.Wrapf("Failed to load root config module: {{err}}", err)
+		c.showDiagnostics(err)
+		return 1
+	}
+
+	// Check for user-supplied plugin path
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
 
@@ -73,7 +84,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	// Wait for the operation to complete
 	<-op.Done()
 	if err := op.Err; err != nil {
-		c.Ui.Error(err.Error())
+		c.showDiagnostics(err)
 		return 1
 	}
 
@@ -124,8 +135,8 @@ Options:
                       flag can be set multiple times.
 
   -var-file=foo       Set variables in the Terraform configuration from
-                      a file. If "terraform.tfvars" is present, it will be
-                      automatically loaded if this flag is not specified.
+                      a file. If "terraform.tfvars" or any ".auto.tfvars"
+                      files are present, they will be automatically loaded.
 
 `
 	return strings.TrimSpace(helpText)

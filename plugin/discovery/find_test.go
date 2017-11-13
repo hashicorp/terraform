@@ -10,9 +10,8 @@ import (
 func TestFindPluginPaths(t *testing.T) {
 	got := findPluginPaths(
 		"foo",
-		"mockos_mockarch",
 		[]string{
-			"test-fixtures/current-style-plugins",
+			"test-fixtures/current-style-plugins/mockos_mockarch",
 			"test-fixtures/legacy-style-plugins",
 			"test-fixtures/non-existent",
 			"test-fixtures/not-a-dir",
@@ -20,7 +19,9 @@ func TestFindPluginPaths(t *testing.T) {
 	)
 	want := []string{
 		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v0.0.1"),
-		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v1.0.0"),
+		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v1.0.0.exe"),
+		// un-versioned plugins are still picked up, even in current-style paths
+		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-missing-version"),
 		filepath.Join("test-fixtures", "legacy-style-plugins", "terraform-foo-bar"),
 		filepath.Join("test-fixtures", "legacy-style-plugins", "terraform-foo-baz"),
 	}
@@ -58,6 +59,9 @@ func TestResolvePluginPaths(t *testing.T) {
 		"/example/terraform-foo-bar",
 		"/example/mockos_mockarch/terraform-foo-bar_vbananas",
 		"/example/mockos_mockarch/terraform-foo-bar_v",
+		"/example/mockos_mockarch/terraform-foo-windowsthing1_v1.0.0.exe",
+		"/example/mockos_mockarch/terraform-foo-windowsthing2_v1.0.0_x4.exe",
+		"/example/mockos_mockarch/terraform-foo-windowsthing3.exe",
 		"/example2/mockos_mockarch/terraform-foo-bar_v0.0.1",
 	})
 
@@ -101,6 +105,21 @@ func TestResolvePluginPaths(t *testing.T) {
 			Name:    "bar",
 			Version: "",
 			Path:    "/example/mockos_mockarch/terraform-foo-bar_v",
+		},
+		{
+			Name:    "windowsthing1",
+			Version: "1.0.0",
+			Path:    "/example/mockos_mockarch/terraform-foo-windowsthing1_v1.0.0.exe",
+		},
+		{
+			Name:    "windowsthing2",
+			Version: "1.0.0",
+			Path:    "/example/mockos_mockarch/terraform-foo-windowsthing2_v1.0.0_x4.exe",
+		},
+		{
+			Name:    "windowsthing3",
+			Version: "0.0.0",
+			Path:    "/example/mockos_mockarch/terraform-foo-windowsthing3.exe",
 		},
 	}
 

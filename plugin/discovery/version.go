@@ -7,6 +7,8 @@ import (
 	version "github.com/hashicorp/go-version"
 )
 
+const VersionZero = "0.0.0"
+
 // A VersionStr is a string containing a possibly-invalid representation
 // of a semver version number. Call Parse on it to obtain a real Version
 // object, or discover that it is invalid.

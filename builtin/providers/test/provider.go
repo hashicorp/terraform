@@ -17,8 +17,9 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"test_resource":         testResource(),
-			"test_resource_gh12183": testResourceGH12183(),
+			"test_resource":                  testResource(),
+			"test_resource_gh12183":          testResourceGH12183(),
+			"test_resource_with_custom_diff": testResourceCustomDiff(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"test_data_source":    testDataSource(),

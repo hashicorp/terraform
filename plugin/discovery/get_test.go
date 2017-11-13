@@ -13,6 +13,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/mitchellh/cli"
 )
 
 const testProviderFile = "test provider binary"
@@ -20,6 +22,30 @@ const testProviderFile = "test provider binary"
 // return the directory listing for the "test" provider
 func testListingHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(versionList))
+}
+
+func testChecksumHandler(w http.ResponseWriter, r *http.Request) {
+	// this exact plugin has a signnature and checksum file
+	if r.URL.Path == "/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS" {
+		http.ServeFile(w, r, "testdata/terraform-provider-template_0.1.0_SHA256SUMS")
+		return
+	}
+	if r.URL.Path == "/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig" {
+		http.ServeFile(w, r, "testdata/terraform-provider-template_0.1.0_SHA256SUMS.sig")
+		return
+	}
+
+	// this this checksum file is corrupt and doesn't match the sig
+	if r.URL.Path == "/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS" {
+		http.ServeFile(w, r, "testdata/terraform-provider-badsig_0.1.0_SHA256SUMS")
+		return
+	}
+	if r.URL.Path == "/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS.sig" {
+		http.ServeFile(w, r, "testdata/terraform-provider-badsig_0.1.0_SHA256SUMS.sig")
+		return
+	}
+
+	http.Error(w, "signtaure files not found", http.StatusNotFound)
 }
 
 // returns a 200 for a valid provider url, using the patch number for the
@@ -62,6 +88,8 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 func testReleaseServer() *httptest.Server {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/terraform-provider-test/", testHandler)
+	handler.HandleFunc("/terraform-provider-template/", testChecksumHandler)
+	handler.HandleFunc("/terraform-provider-badsig/", testChecksumHandler)
 
 	return httptest.NewServer(handler)
 }
@@ -74,7 +102,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestVersionListing(t *testing.T) {
-	versions, err := listProviderVersions("test")
+	i := &ProviderInstaller{}
+	versions, err := i.listProviderVersions("test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,11 +128,12 @@ func TestVersionListing(t *testing.T) {
 }
 
 func TestCheckProtocolVersions(t *testing.T) {
-	if checkPlugin(providerURL("test", VersionStr("1.2.3").MustParse().String()), 4) {
+	i := &ProviderInstaller{}
+	if checkPlugin(i.providerURL("test", VersionStr("1.2.3").MustParse().String()), 4) {
 		t.Fatal("protocol version 4 is not compatible")
 	}
 
-	if !checkPlugin(providerURL("test", VersionStr("1.2.3").MustParse().String()), 3) {
+	if !checkPlugin(i.providerURL("test", VersionStr("1.2.3").MustParse().String()), 3) {
 		t.Fatal("protocol version 3 should be compatible")
 	}
 }
@@ -119,19 +149,36 @@ func TestProviderInstallerGet(t *testing.T) {
 	// attempt to use an incompatible protocol version
 	i := &ProviderInstaller{
 		Dir: tmpDir,
-
 		PluginProtocolVersion: 5,
+		SkipVerify:            true,
+		Ui:                    cli.NewMockUi(),
 	}
 	_, err = i.Get("test", AllVersions)
-	if err == nil {
+	if err != ErrorNoVersionCompatible {
 		t.Fatal("want error for incompatible version")
 	}
 
 	i = &ProviderInstaller{
 		Dir: tmpDir,
-
 		PluginProtocolVersion: 3,
+		SkipVerify:            true,
+		Ui:                    cli.NewMockUi(),
 	}
+
+	{
+		_, err := i.Get("test", ConstraintStr(">9.0.0").MustParse())
+		if err != ErrorNoSuitableVersion {
+			t.Fatal("want error for mismatching constraints")
+		}
+	}
+
+	{
+		_, err := i.Get("nonexist", AllVersions)
+		if err != ErrorNoSuchProvider {
+			t.Fatal("want error for no such provider")
+		}
+	}
+
 	gotMeta, err := i.Get("test", AllVersions)
 	if err != nil {
 		t.Fatal(err)
@@ -185,8 +232,9 @@ func TestProviderInstallerPurgeUnused(t *testing.T) {
 
 	i := &ProviderInstaller{
 		Dir: tmpDir,
-
 		PluginProtocolVersion: 3,
+		SkipVerify:            true,
+		Ui:                    cli.NewMockUi(),
 	}
 	purged, err := i.PurgeUnused(map[string]PluginMeta{
 		"test": PluginMeta{
@@ -219,6 +267,48 @@ func TestProviderInstallerPurgeUnused(t *testing.T) {
 
 	if !reflect.DeepEqual(gotFilenames, wantFilenames) {
 		t.Errorf("wrong filenames after purge\ngot:  %#v\nwant: %#v", gotFilenames, wantFilenames)
+	}
+}
+
+// Test fetching a provider's checksum file while verifying its signature.
+func TestProviderChecksum(t *testing.T) {
+	i := &ProviderInstaller{}
+
+	// we only need the checksum, as getter is doing the actual file comparison.
+	sha256sum, err := i.getProviderChecksum("template", "0.1.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// get the expected checksum for our os/arch
+	sumData, err := ioutil.ReadFile("testdata/terraform-provider-template_0.1.0_SHA256SUMS")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := checksumForFile(sumData, i.providerFileName("template", "0.1.0"))
+
+	if sha256sum != expected {
+		t.Fatalf("expected: %s\ngot %s\n", sha256sum, expected)
+	}
+}
+
+// Test fetching a provider's checksum file witha bad signature
+func TestProviderChecksumBadSignature(t *testing.T) {
+	i := &ProviderInstaller{}
+
+	// we only need the checksum, as getter is doing the actual file comparison.
+	sha256sum, err := i.getProviderChecksum("badsig", "0.1.0")
+	if err == nil {
+		t.Fatal("expcted error")
+	}
+
+	if !strings.Contains(err.Error(), "signature") {
+		t.Fatal("expected signature error, got:", err)
+	}
+
+	if sha256sum != "" {
+		t.Fatal("expected no checksum, got:", sha256sum)
 	}
 }
 

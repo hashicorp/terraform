@@ -19,7 +19,7 @@ resource "aws_instance" "web" {
   # ...
 
   provisioner "local-exec" {
-    command = "echo ${self.private_ip_address} > file.txt"
+    command = "echo ${self.private_ip} > file.txt"
   }
 }
 ```
@@ -114,7 +114,7 @@ resource "aws_instance" "web" {
   # ...
 
   provisioner "local-exec" {
-    command    = "echo ${self.private_ip_address} > file.txt"
+    command    = "echo ${self.private_ip} > file.txt"
     on_failure = "continue"
   }
 }
