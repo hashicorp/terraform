@@ -193,6 +193,11 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		}
 
 		p := pv.ProvidedBy()
+		// this may be the resolved provider from the state, so we need to get
+		// the base provider name.
+		parts := strings.SplitAfter(p, "provider.")
+		p = parts[len(parts)-1]
+
 		key := ResolveProviderName(p, nil)
 		provider := m[key]
 
@@ -203,9 +208,11 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 
 		// we don't implicitly create aliased providers
 		if strings.Contains(p, ".") {
-			log.Println("[DEBUG] not adding missing provider alias", p)
+			log.Println("[DEBUG] not adding missing provider alias:", p)
 			continue
 		}
+
+		log.Println("[DEBUG] adding missing provider:", p)
 
 		// create the misisng top-level provider
 		provider = t.Concrete(&NodeAbstractProvider{
