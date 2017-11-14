@@ -9099,3 +9099,117 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestContext2Apply_providersFromState(t *testing.T) {
+	m := module.NewEmptyTree()
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	for _, tc := range []struct {
+		name   string
+		state  *State
+		output string
+		err    bool
+	}{
+		{
+			name: "add implicit provider",
+			state: &State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root"},
+						Resources: map[string]*ResourceState{
+							"aws_instance.a": &ResourceState{
+								Type: "aws_instance",
+								Primary: &InstanceState{
+									ID: "bar",
+								},
+								Provider: "provider.aws",
+							},
+						},
+					},
+				},
+			},
+			err:    false,
+			output: "<no state>",
+		},
+
+		// an aliased provider must be in the config to remove a resource
+		{
+			name: "add aliased provider",
+			state: &State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root"},
+						Resources: map[string]*ResourceState{
+							"aws_instance.a": &ResourceState{
+								Type: "aws_instance",
+								Primary: &InstanceState{
+									ID: "bar",
+								},
+								Provider: "provider.aws.bar",
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+
+		// a provider in a module implies some sort of config, so this isn't
+		// allowed even without an alias
+		{
+			name: "add unaliased module provider",
+			state: &State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root", "child"},
+						Resources: map[string]*ResourceState{
+							"aws_instance.a": &ResourceState{
+								Type: "aws_instance",
+								Primary: &InstanceState{
+									ID: "bar",
+								},
+								Provider: "module.child.provider.aws",
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+	} {
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := testContext2(t, &ContextOpts{
+				Module: m,
+				ProviderResolver: ResourceProviderResolverFixed(
+					map[string]ResourceProviderFactory{
+						"aws": testProviderFuncFixed(p),
+					},
+				),
+				State: tc.state,
+			})
+
+			_, err := ctx.Plan()
+			if tc.err {
+				if err == nil {
+					t.Fatal("expected error")
+				} else {
+					return
+				}
+			}
+			if !tc.err && err != nil {
+				t.Fatal(err)
+			}
+
+			state, err := ctx.Apply()
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+
+			checkStateString(t, state, "<no state>")
+
+		})
+	}
+
+}
