@@ -229,6 +229,41 @@ resource "aws_instance" "app" {
 }
 ```
 
+To reference a particular instance of a resource you can use `resource.foo.*.id[#]` where `#` is the index number of the instance.
+
+For example, to create an [AWS route table association](/docs/providers/aws/r/route_table_association.html) between one particular [AWS subnet](/docs/providers/aws/r/subnet.html) instance and an [AWS route table](/docs/providers/aws/r/route_table.html) you could reference the 2nd subnet in the list like this:
+
+```hcl
+resource "aws_vpc" "foo" {
+  cidr_block = "198.18.0.0/16"
+}
+
+resource "aws_egress_only_internet_gateway" "outbound" {
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route_table" "route_out" {
+  vpc_id = "${aws_vpc.foo.id}"
+
+  route {
+    cidr_block             = "0.0.0.0/0"
+    egress_only_gateway_id = "${aws_egress_only_internet_gateway.outbound.id}"
+  }
+}
+
+# The example is here:
+resource "aws_subnet" "databases" {
+  count      = 3
+  vpc_id     = "${aws_vpc.foo.id}"
+  cidr_block = "198.18.${count.index}.0/24"
+}
+
+resource "aws_route_table_association" "db_1" {
+  subnet_id      = "${aws_subnet.databases.*.id[1]}"
+  route_table_id = "${aws_route_table.route_out.id}"
+}
+```
+
 ## Multiple Provider Instances
 
 By default, a resource targets the provider based on its type. For example
