@@ -395,6 +395,9 @@ The supported built-in functions are:
    invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the
    [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
+  * `timeadd(time, duration)` - Returns a UTC timestamp string corresponding to adding a given `duration` to `time` in RFC 3339 format.      
+    For example, `timeadd("2017-11-22T00:00:00Z", "10m")` produces a value `"2017-11-22T00:10:00Z"`. 
+    
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
 
   * `transpose(map)` - Swaps the keys and list values in a map of lists of strings. For example, transpose(map("a", list("1", "2"), "b", list("2", "3")) produces a value equivalent to map("1", list("a"), "2", list("a", "b"), "3", list("b")).
