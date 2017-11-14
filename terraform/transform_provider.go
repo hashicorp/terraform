@@ -530,7 +530,8 @@ func (t *ProviderConfigTransformer) addProxyProvider(g *Graph, m *module.Tree, p
 	parentProvider := t.providers[fullParentName]
 
 	if parentProvider == nil {
-		panic(fmt.Sprintf("missing provider %s in module %s", parentProviderName, m.Name()))
+		log.Printf("[ERROR] missing provider %s in module %s", parentProviderName, m.Name())
+		return false
 	}
 
 	v := &graphNodeProxyProvider{
