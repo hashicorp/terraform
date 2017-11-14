@@ -215,7 +215,7 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 
 	// Check that all "host" blocks have valid hostnames.
 	for givenHost := range c.Hosts {
-		_, err := svchost.ForComparison(givenHost)
+		_, err := svchost.New(givenHost)
 		if err != nil {
 			diags = diags.Append(
 				fmt.Errorf("The host %q block has an invalid hostname: %s", givenHost, err),
@@ -225,7 +225,7 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 
 	// Check that all "credentials" blocks have valid hostnames.
 	for givenHost := range c.Credentials {
-		_, err := svchost.ForComparison(givenHost)
+		_, err := svchost.New(givenHost)
 		if err != nil {
 			diags = diags.Append(
 				fmt.Errorf("The credentials %q block has an invalid hostname: %s", givenHost, err),

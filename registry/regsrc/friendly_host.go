@@ -101,7 +101,7 @@ func (h *FriendlyHost) Valid() bool {
 // Display returns the host formatted for display to the user in CLI or web
 // output.
 func (h *FriendlyHost) Display() string {
-	hostname, err := svchost.ForComparison(h.Raw)
+	hostname, err := svchost.New(h.Raw)
 	if err != nil {
 		return InvalidHostString
 	}
@@ -110,7 +110,7 @@ func (h *FriendlyHost) Display() string {
 
 // Normalized returns the host formatted for internal reference or comparison.
 func (h *FriendlyHost) Normalized() string {
-	hostname, err := svchost.ForComparison(h.Raw)
+	hostname, err := svchost.New(h.Raw)
 	if err != nil {
 		return InvalidHostString
 	}

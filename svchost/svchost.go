@@ -77,14 +77,14 @@ func ForDisplay(given string) string {
 // requirement that user-supplied forms must not _already_ contain
 // Punycode segments.
 func IsValid(given string) bool {
-	_, err := ForComparison(given)
+	_, err := New(given)
 	return err == nil
 }
 
-// ForComparison takes a user-specified hostname and returns a normalized
-// form of it suitable for storage and comparison. The result is not suitable
-// for display to end-users because it uses Punycode to represent non-ASCII
-// characters, and this form is unreadable for non-ASCII-speaking humans.
+// New takes a user-specified hostname and returns a normalized Hostname
+// suitable for storage and comparison. The result is not suitable for display
+// to end-users because it uses Punycode to represent non-ASCII characters, and
+// this form is unreadable for non-ASCII-speaking humans.
 //
 // The result is typed as Hostname -- a specialized name for string -- so that
 // other APIs can make it clear within the type system whether they expect a
@@ -92,7 +92,7 @@ func IsValid(given string) bool {
 // comparison.
 //
 // The returned Hostname is not valid if the returned error is non-nil.
-func ForComparison(given string) (Hostname, error) {
+func New(given string) (Hostname, error) {
 	var portPortion string
 	if colonPos := strings.Index(given, ":"); colonPos != -1 {
 		given, portPortion = given[:colonPos], given[colonPos:]

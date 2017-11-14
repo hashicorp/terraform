@@ -40,7 +40,7 @@ func initCommands(config *Config) {
 	services := disco.NewDisco()
 	services.SetCredentialsSource(credsSrc)
 	for userHost, hostConfig := range config.Hosts {
-		host, err := svchost.ForComparison(userHost)
+		host, err := svchost.New(userHost)
 		if err != nil {
 			// We expect the config was already validated by the time we get
 			// here, so we'll just ignore invalid hostnames.
@@ -362,7 +362,7 @@ func credentialsSource(config *Config) auth.CredentialsSource {
 	if len(config.Credentials) > 0 {
 		staticTable := map[svchost.Hostname]map[string]interface{}{}
 		for userHost, creds := range config.Credentials {
-			host, err := svchost.ForComparison(userHost)
+			host, err := svchost.New(userHost)
 			if err != nil {
 				// We expect the config was already validated by the time we get
 				// here, so we'll just ignore invalid hostnames.
