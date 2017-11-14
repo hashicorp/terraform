@@ -390,7 +390,7 @@ func (c *Config) Validate() error {
 
 	// Check that providers aren't declared multiple times and that their
 	// version constraints, where present, are syntactically valid.
-	providerSet := make(map[string]struct{})
+	providerSet := make(map[string]bool)
 	for _, p := range c.ProviderConfigs {
 		name := p.FullName()
 		if _, ok := providerSet[name]; ok {
@@ -410,7 +410,7 @@ func (c *Config) Validate() error {
 			}
 		}
 
-		providerSet[name] = struct{}{}
+		providerSet[name] = true
 	}
 
 	// Check that all references to modules are valid
@@ -500,6 +500,15 @@ func (c *Config) Validate() error {
 				"%s: can't initialize configuration: %s",
 				m.Id(), err))
 		}
+
+		// check that all named providers actually exist
+		for _, p := range m.Providers {
+			if !providerSet[p] {
+				errs = append(errs, fmt.Errorf(
+					"provider %q named in module %q does not exist", p, m.Name))
+			}
+		}
+
 	}
 	dupped = nil
 
