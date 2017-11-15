@@ -54,5 +54,5 @@ Terraform since version 0.11 will resolve any provided
 using them is highly recommended to avoid pulling in breaking changes.
 
 Terraform from version 10.6 through to 0.11 had partial support for the registry 
-protocol, however will not honour version constraints and always download the
+protocol, however will not honor version constraints and always download the
 latest version.
