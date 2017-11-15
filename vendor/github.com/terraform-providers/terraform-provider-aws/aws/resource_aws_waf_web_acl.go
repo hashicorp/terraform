@@ -64,6 +64,19 @@ func resourceAwsWafWebAcl() *schema.Resource {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  waf.WafRuleTypeRegular,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(string)
+								if value != waf.WafRuleTypeRegular && value != waf.WafRuleTypeRateBased {
+									errors = append(errors, fmt.Errorf(
+										"%q must be one of %s | %s", k, waf.WafRuleTypeRegular, waf.WafRuleTypeRateBased))
+								}
+								return
+							},
+						},
 						"rule_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -180,6 +193,7 @@ func updateWebAclResource(d *schema.ResourceData, meta interface{}, ChangeAction
 				ActivatedRule: &waf.ActivatedRule{
 					Priority: aws.Int64(int64(aclRule["priority"].(int))),
 					RuleId:   aws.String(aclRule["rule_id"].(string)),
+					Type:     aws.String(aclRule["type"].(string)),
 					Action:   &waf.WafAction{Type: aws.String(action["type"].(string))},
 				},
 			}

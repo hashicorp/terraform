@@ -79,7 +79,6 @@ func dataSourceAwsAvailabilityZoneRead(d *schema.ResourceData, meta interface{})
 	nameSuffix := (*az.ZoneName)[len(*az.RegionName):]
 
 	d.SetId(*az.ZoneName)
-	d.Set("id", az.ZoneName)
 	d.Set("name", az.ZoneName)
 	d.Set("name_suffix", nameSuffix)
 	d.Set("region", az.RegionName)

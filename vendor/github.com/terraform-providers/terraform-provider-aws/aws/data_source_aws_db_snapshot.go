@@ -196,6 +196,7 @@ func dbSnapshotDescriptionAttributes(d *schema.ResourceData, snapshot *rds.DBSna
 	d.Set("db_instance_identifier", snapshot.DBInstanceIdentifier)
 	d.Set("db_snapshot_identifier", snapshot.DBSnapshotIdentifier)
 	d.Set("snapshot_type", snapshot.SnapshotType)
+	d.Set("storage_type", snapshot.StorageType)
 	d.Set("allocated_storage", snapshot.AllocatedStorage)
 	d.Set("availability_zone", snapshot.AvailabilityZone)
 	d.Set("db_snapshot_arn", snapshot.DBSnapshotArn)
@@ -211,7 +212,9 @@ func dbSnapshotDescriptionAttributes(d *schema.ResourceData, snapshot *rds.DBSna
 	d.Set("source_region", snapshot.SourceRegion)
 	d.Set("status", snapshot.Status)
 	d.Set("vpc_id", snapshot.VpcId)
-	d.Set("snapshot_create_time", snapshot.SnapshotCreateTime.Format(time.RFC3339))
+	if snapshot.SnapshotCreateTime != nil {
+		d.Set("snapshot_create_time", snapshot.SnapshotCreateTime.Format(time.RFC3339))
+	}
 
 	return nil
 }

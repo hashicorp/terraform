@@ -14,10 +14,6 @@ func dataSourceAwsCanonicalUserId() *schema.Resource {
 		Read: dataSourceAwsCanonicalUserIdRead,
 
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"display_name": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -41,7 +37,6 @@ func dataSourceAwsCanonicalUserIdRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.SetId(aws.StringValue(resp.Owner.ID))
-	d.Set("id", resp.Owner.ID)
 	d.Set("display_name", resp.Owner.DisplayName)
 
 	return nil

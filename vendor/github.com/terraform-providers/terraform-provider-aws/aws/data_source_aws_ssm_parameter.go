@@ -34,11 +34,13 @@ func dataSourceAwsSsmParameter() *schema.Resource {
 func dataAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
-	log.Printf("[DEBUG] Reading SSM Parameter: %s", d.Id())
+	name := d.Get("name").(string)
+
+	log.Printf("[DEBUG] Reading SSM Parameter: %q", name)
 
 	paramInput := &ssm.GetParametersInput{
 		Names: []*string{
-			aws.String(d.Get("name").(string)),
+			aws.String(name),
 		},
 		WithDecryption: aws.Bool(true),
 	}
@@ -50,7 +52,7 @@ func dataAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if len(resp.InvalidParameters) > 0 {
-		return fmt.Errorf("[ERROR] SSM Parameter %s is invalid", d.Get("name").(string))
+		return fmt.Errorf("[ERROR] SSM Parameter %s is invalid", name)
 	}
 
 	param := resp.Parameters[0]

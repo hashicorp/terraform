@@ -13,6 +13,7 @@ import (
 	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -108,7 +109,7 @@ func parseAccountInfoFromArn(arn string) (string, string, error) {
 // environment in the case that they're not explicitly specified
 // in the Terraform configuration.
 func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
-	// build a chain provider, lazy-evaulated by aws-sdk
+	// build a chain provider, lazy-evaluated by aws-sdk
 	providers := []awsCredentials.Provider{
 		&awsCredentials.StaticProvider{Value: awsCredentials.Value{
 			AccessKeyID:     c.AccessKey,
@@ -148,6 +149,12 @@ func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
 		HTTPClient: client,
 	}
 	usedEndpoint := setOptionalEndpoint(cfg)
+
+	// Add the default AWS provider for ECS Task Roles if the relevant env variable is set
+	if uri := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"); len(uri) > 0 {
+		providers = append(providers, defaults.RemoteCredProvider(*cfg, defaults.Handlers()))
+		log.Print("[INFO] ECS container credentials detected, RemoteCredProvider added to auth chain")
+	}
 
 	if !c.SkipMetadataApiCheck {
 		// Real AWS should reply to a simple metadata request.

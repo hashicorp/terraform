@@ -517,12 +517,24 @@
 			"versionExact": "v1.10.36"
 		},
 		{
+			"checksumSHA1": "1/p8oChMJW38gBTOA8AUCWkHuM8=",
+			"path": "github.com/aws/aws-sdk-go/service/athena",
+			"revision": "beafda230a3568820b4de838683c0efd3c1b9af2",
+			"revisionTime": "2017-11-15T00:18:46Z"
+		},
+		{
 			"checksumSHA1": "Tl/cvRil/SnTPh7HymTSgOp38/U=",
 			"path": "github.com/aws/aws-sdk-go/service/autoscaling",
 			"revision": "b79a722cb7aba0edd9bd2256361ae2e15e98f8ad",
 			"revisionTime": "2017-08-31T21:31:26Z",
 			"version": "v1.10.36",
 			"versionExact": "v1.10.36"
+		},
+		{
+			"checksumSHA1": "kR7Urxv5JUC6cx3bBQ3lX1/0cEM=",
+			"path": "github.com/aws/aws-sdk-go/service/batch",
+			"revision": "beafda230a3568820b4de838683c0efd3c1b9af2",
+			"revisionTime": "2017-11-15T00:18:46Z"
 		},
 		{
 			"checksumSHA1": "Z6mv349IWcg2A8ib0BuOiCJ6X8Q=",
@@ -635,6 +647,12 @@
 			"revisionTime": "2017-08-31T21:31:26Z",
 			"version": "v1.10.36",
 			"versionExact": "v1.10.36"
+		},
+		{
+			"checksumSHA1": "2139YRKSqXN9N49CFTopzwftCDw=",
+			"path": "github.com/aws/aws-sdk-go/service/directconnect",
+			"revision": "beafda230a3568820b4de838683c0efd3c1b9af2",
+			"revisionTime": "2017-11-15T00:18:46Z"
 		},
 		{
 			"checksumSHA1": "1O8BtYGfkXglIqgl/uxunrq3Djs=",
@@ -851,6 +869,12 @@
 			"revisionTime": "2017-08-31T21:31:26Z",
 			"version": "v1.10.36",
 			"versionExact": "v1.10.36"
+		},
+		{
+			"checksumSHA1": "Tz5NbDa/SGUINmuFD8KQLh1HDOI=",
+			"path": "github.com/aws/aws-sdk-go/service/servicecatalog",
+			"revision": "beafda230a3568820b4de838683c0efd3c1b9af2",
+			"revisionTime": "2017-11-15T00:18:46Z"
 		},
 		{
 			"checksumSHA1": "rIBHXHWyTmY/vsqECa2PB0xT2HU=",
@@ -2046,10 +2070,10 @@
 			"revisionTime": "2016-09-27T10:08:44Z"
 		},
 		{
-			"checksumSHA1": "88oZlcrq2BeX4nvVWad2+Lf4WBs=",
+			"checksumSHA1": "BZ3/fWpZINYRkVG4KpoHgJGLqPM=",
 			"path": "github.com/terraform-providers/terraform-provider-aws/aws",
-			"revision": "669207b8fee698ccc3fc47a7b99f812078b7ef87",
-			"revisionTime": "2017-09-01T13:33:06Z"
+			"revision": "248233f15947082e83b89a885d8c90ecc32f4da5",
+			"revisionTime": "2017-11-15T10:28:34Z"
 		},
 		{
 			"checksumSHA1": "7WDq0VsOJmABPUCEvfuerEp7mBg=",
