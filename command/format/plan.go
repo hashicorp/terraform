@@ -326,13 +326,27 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 			default:
 				dispU = fmt.Sprintf("%q", u)
 			}
-			buf.WriteString(fmt.Sprintf(
-				"      %s:%s %s => %s%s\n",
+
+			var color string
+			switch {
+			case dispU == "\"\"" && dispV != "\"\"":
+				color = "[green]"
+			case dispU != "\"\"" && dispV == "\"\"":
+				color = "[red]"
+			case dispU != "\"\"" && dispV != "\"\"" && dispU != dispV:
+				color = "[yellow]"
+			default:
+				color = "[reset]"
+			}
+
+			buf.WriteString(colorizer.Color(fmt.Sprintf(
+				"      %s%s:%s %s => %s%s\n",
+				color,
 				attr.Path,
 				strings.Repeat(" ", keyLen-len(attr.Path)),
 				dispU, dispV,
 				updateMsg,
-			))
+			)))
 		} else {
 			buf.WriteString(fmt.Sprintf(
 				"      %s:%s %s%s\n",
