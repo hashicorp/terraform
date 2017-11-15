@@ -135,15 +135,15 @@ func New(given string) (Hostname, error) {
 	return Hostname(result + portPortion), nil
 }
 
-// ForDisplay returns a version of the receiver that is appropriate for display
+// String returns a version of the receiver that is appropriate for display
 // in the UI. This includes converting any punycode labels to their
 // corresponding Unicode characters.
 //
-// A round-trip through ForComparison and this ForDisplay method does not
+// A round-trip through New and this String method does not
 // guarantee the same result as calling this package's top-level ForDisplay
 // function, since a round-trip through the Hostname type implies stricter
 // handling than we do when doing basic display-only processing.
-func (h Hostname) ForDisplay() string {
+func (h Hostname) String() string {
 	given := string(h)
 	var portPortion string
 	if colonPos := strings.Index(given, ":"); colonPos != -1 {
@@ -161,7 +161,7 @@ func (h Hostname) ForDisplay() string {
 	return result + portPortion
 }
 
-func (h Hostname) String() string {
+func (h Hostname) Raw() string {
 	return string(h)
 }
 

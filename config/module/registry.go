@@ -20,7 +20,6 @@ import (
 )
 
 const (
-	defaultRegistry   = "registry.terraform.io"
 	registryServiceID = "registry.v1"
 	xTerraformGet     = "X-Terraform-Get"
 	xTerraformVersion = "X-Terraform-Version"
@@ -81,7 +80,7 @@ func (s *Storage) addRequestCreds(host svchost.Hostname, req *http.Request) {
 func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleVersions, error) {
 	service := s.discoverRegURL(module)
 	if service == nil {
-		return nil, fmt.Errorf("host %s does not provide Terraform modules", module.Host().ForDisplay())
+		return nil, fmt.Errorf("host %s does not provide Terraform modules", module.Host().String())
 	}
 
 	p, err := url.Parse(path.Join(module.Module(), "versions"))
@@ -136,7 +135,7 @@ func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleV
 func (s *Storage) lookupModuleLocation(module *regsrc.Module, version string) (string, error) {
 	service := s.discoverRegURL(module)
 	if service == nil {
-		return "", fmt.Errorf("host %s does not provide Terraform modules", module.Host().ForDisplay())
+		return "", fmt.Errorf("host %s does not provide Terraform modules", module.Host().String())
 	}
 
 	var p *url.URL

@@ -91,7 +91,7 @@ func ParseModuleSource(source string) (*Module, error) {
 		return nil, ErrInvalidModuleSource
 	}
 
-	if disallowed[host.ForDisplay()] {
+	if disallowed[host.String()] {
 		return nil, ErrInvalidModuleSource
 	}
 
@@ -117,12 +117,12 @@ func ParseModuleSource(source string) (*Module, error) {
 // Display returns the source formatted for display to the user in CLI or web
 // output. This always includes a hostname.
 func (m *Module) Display() string {
-	return m.formatWithPrefix(m.normalizedHostPrefix(m.Host().ForDisplay()), false)
+	return m.formatWithPrefix(m.normalizedHostPrefix(m.Host().String()), false)
 }
 
 // Normalized returns the source formatted for internal reference or comparison.
 func (m *Module) Normalized() string {
-	return m.formatWithPrefix(m.normalizedHostPrefix(m.Host().String()), false)
+	return m.formatWithPrefix(m.normalizedHostPrefix(m.Host().Raw()), false)
 }
 
 // String returns the source for display, only including the hostname if it was
@@ -132,7 +132,7 @@ func (m *Module) String() string {
 	// input it.
 	hostPrefix := ""
 	if m.RawHost != "" {
-		hostPrefix = m.RawHost.ForDisplay() + "/"
+		hostPrefix = m.RawHost.String() + "/"
 	}
 	return m.formatWithPrefix(hostPrefix, true)
 }

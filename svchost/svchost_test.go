@@ -204,7 +204,7 @@ func TestHostnameForDisplay(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Input, func(t *testing.T) {
-			got := Hostname(test.Input).ForDisplay()
+			got := Hostname(test.Input).String()
 			if got != test.Want {
 				t.Errorf("wrong result\ninput: %s\ngot:   %s\nwant:  %s", test.Input, got, test.Want)
 			}
