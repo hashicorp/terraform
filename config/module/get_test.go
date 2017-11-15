@@ -96,6 +96,7 @@ func mockRegHandler() http.Handler {
 		if strings.Contains(matches[0], "private/") {
 			if !strings.Contains(r.Header.Get("Authorization"), testCredentials) {
 				http.Error(w, "", http.StatusForbidden)
+				return
 			}
 		}
 
@@ -132,6 +133,7 @@ func mockRegHandler() http.Handler {
 		if strings.Contains(matches[1], "private/") {
 			if !strings.Contains(r.Header.Get("Authorization"), testCredentials) {
 				http.Error(w, "", http.StatusForbidden)
+				return
 			}
 		}
 

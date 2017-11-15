@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/hashicorp/terraform/svchost"
 )
 
 var (
@@ -50,7 +52,7 @@ type Module struct {
 	// include a host prefix at all which is significant for recovering actual
 	// input not just normalized form. Most callers should access it with Host()
 	// which will return public registry host instance if it's nil.
-	RawHost      *FriendlyHost
+	RawHost      svchost.Hostname
 	RawNamespace string
 	RawName      string
 	RawProvider  string
@@ -59,17 +61,18 @@ type Module struct {
 
 // NewModule construct a new module source from separate parts. Pass empty
 // string if host or submodule are not needed.
-func NewModule(host, namespace, name, provider, submodule string) *Module {
+func NewModule(host, namespace, name, provider, submodule string) (*Module, error) {
 	m := &Module{
 		RawNamespace: namespace,
 		RawName:      name,
 		RawProvider:  provider,
 		RawSubmodule: submodule,
 	}
+	var err error
 	if host != "" {
-		m.RawHost = NewFriendlyHost(host)
+		m.RawHost, err = svchost.New(host)
 	}
-	return m
+	return m, err
 }
 
 // ParseModuleSource attempts to parse source as a Terraform registry module
@@ -83,11 +86,13 @@ func NewModule(host, namespace, name, provider, submodule string) *Module {
 // string equality operator.
 func ParseModuleSource(source string) (*Module, error) {
 	// See if there is a friendly host prefix.
-	host, rest := ParseFriendlyHost(source)
-	if host != nil {
-		if !host.Valid() || disallowed[host.Display()] {
-			return nil, ErrInvalidModuleSource
-		}
+	host, rest, err := ParseFriendlyHost(source)
+	if err != nil {
+		return nil, ErrInvalidModuleSource
+	}
+
+	if disallowed[host.ForDisplay()] {
+		return nil, ErrInvalidModuleSource
 	}
 
 	matches := moduleSourceRe.FindStringSubmatch(rest)
@@ -110,24 +115,24 @@ func ParseModuleSource(source string) (*Module, error) {
 }
 
 // Display returns the source formatted for display to the user in CLI or web
-// output.
+// output. This always includes a hostname.
 func (m *Module) Display() string {
-	return m.formatWithPrefix(m.normalizedHostPrefix(m.Host().Display()), false)
+	return m.formatWithPrefix(m.normalizedHostPrefix(m.Host().ForDisplay()), false)
 }
 
 // Normalized returns the source formatted for internal reference or comparison.
 func (m *Module) Normalized() string {
-	return m.formatWithPrefix(m.normalizedHostPrefix(m.Host().Normalized()), false)
+	return m.formatWithPrefix(m.normalizedHostPrefix(m.Host().String()), false)
 }
 
-// String returns the source formatted as the user originally typed it assuming
-// it was parsed from user input.
+// String returns the source for display, only including the hostname if it was
+// specified.
 func (m *Module) String() string {
 	// Don't normalize public registry hostname - leave it exactly like the user
 	// input it.
 	hostPrefix := ""
-	if m.RawHost != nil {
-		hostPrefix = m.RawHost.String() + "/"
+	if m.RawHost != "" {
+		hostPrefix = m.RawHost.ForDisplay() + "/"
 	}
 	return m.formatWithPrefix(hostPrefix, true)
 }
@@ -147,15 +152,15 @@ func (m *Module) Equal(other *Module) bool {
 // Host returns the FriendlyHost object describing which registry this module is
 // in. If the original source string had not host component this will return the
 // PublicRegistryHost.
-func (m *Module) Host() *FriendlyHost {
-	if m.RawHost == nil {
+func (m *Module) Host() svchost.Hostname {
+	if m.RawHost == "" {
 		return PublicRegistryHost
 	}
 	return m.RawHost
 }
 
 func (m *Module) normalizedHostPrefix(host string) string {
-	if m.Host().Equal(PublicRegistryHost) {
+	if m.Host() == PublicRegistryHost {
 		return ""
 	}
 	return host + "/"

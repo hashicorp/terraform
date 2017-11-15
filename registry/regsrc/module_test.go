@@ -8,7 +8,6 @@ func TestModule(t *testing.T) {
 	tests := []struct {
 		name        string
 		source      string
-		wantString  string
 		wantDisplay string
 		wantNorm    string
 		wantErr     bool
@@ -16,7 +15,6 @@ func TestModule(t *testing.T) {
 		{
 			name:        "public registry",
 			source:      "hashicorp/consul/aws",
-			wantString:  "hashicorp/consul/aws",
 			wantDisplay: "hashicorp/consul/aws",
 			wantNorm:    "hashicorp/consul/aws",
 			wantErr:     false,
@@ -24,7 +22,6 @@ func TestModule(t *testing.T) {
 		{
 			name:        "public registry, submodule",
 			source:      "hashicorp/consul/aws//foo",
-			wantString:  "hashicorp/consul/aws//foo",
 			wantDisplay: "hashicorp/consul/aws//foo",
 			wantNorm:    "hashicorp/consul/aws//foo",
 			wantErr:     false,
@@ -32,7 +29,6 @@ func TestModule(t *testing.T) {
 		{
 			name:        "public registry, explicit host",
 			source:      "registry.terraform.io/hashicorp/consul/aws",
-			wantString:  "registry.terraform.io/hashicorp/consul/aws",
 			wantDisplay: "hashicorp/consul/aws",
 			wantNorm:    "hashicorp/consul/aws",
 			wantErr:     false,
@@ -40,7 +36,6 @@ func TestModule(t *testing.T) {
 		{
 			name:        "public registry, mixed case",
 			source:      "HashiCorp/Consul/aws",
-			wantString:  "HashiCorp/Consul/aws",
 			wantDisplay: "hashicorp/consul/aws",
 			wantNorm:    "hashicorp/consul/aws",
 			wantErr:     false,
@@ -48,7 +43,6 @@ func TestModule(t *testing.T) {
 		{
 			name:        "private registry, custom port",
 			source:      "Example.com:1234/HashiCorp/Consul/aws",
-			wantString:  "Example.com:1234/HashiCorp/Consul/aws",
 			wantDisplay: "example.com:1234/hashicorp/consul/aws",
 			wantNorm:    "example.com:1234/hashicorp/consul/aws",
 			wantErr:     false,
@@ -56,15 +50,13 @@ func TestModule(t *testing.T) {
 		{
 			name:        "IDN registry",
 			source:      "Испытание.com/HashiCorp/Consul/aws",
-			wantString:  "Испытание.com/HashiCorp/Consul/aws",
 			wantDisplay: "испытание.com/hashicorp/consul/aws",
 			wantNorm:    "xn--80akhbyknj4f.com/hashicorp/consul/aws",
 			wantErr:     false,
 		},
 		{
-			name:       "IDN registry, submodule, custom port",
-			source:     "Испытание.com:1234/HashiCorp/Consul/aws//Foo",
-			wantString: "Испытание.com:1234/HashiCorp/Consul/aws//Foo",
+			name:   "IDN registry, submodule, custom port",
+			source: "Испытание.com:1234/HashiCorp/Consul/aws//Foo",
 			// Note we DO lowercase submodule names. This might causes issues on
 			// some filesystems (e.g. HFS+) that are case-sensitive where
 			// //modules/Foo and //modules/foo describe different paths, but
@@ -119,9 +111,6 @@ func TestModule(t *testing.T) {
 				return
 			}
 
-			if v := got.String(); v != tt.wantString {
-				t.Fatalf("String() = %v, want %v", v, tt.wantString)
-			}
 			if v := got.Display(); v != tt.wantDisplay {
 				t.Fatalf("Display() = %v, want %v", v, tt.wantDisplay)
 			}
