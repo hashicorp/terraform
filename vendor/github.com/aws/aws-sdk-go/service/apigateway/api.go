@@ -67,16 +67,25 @@ func (c *APIGateway) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) CreateApiKey(input *CreateApiKeyInput) (*ApiKey, error) {
 	req, out := c.CreateApiKeyRequest(input)
@@ -154,14 +163,21 @@ func (c *APIGateway) CreateAuthorizerRequest(input *CreateAuthorizerInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) CreateAuthorizer(input *CreateAuthorizerInput) (*Authorizer, error) {
 	req, out := c.CreateAuthorizerRequest(input)
@@ -237,14 +253,22 @@ func (c *APIGateway) CreateBasePathMappingRequest(input *CreateBasePathMappingIn
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) CreateBasePathMapping(input *CreateBasePathMappingInput) (*BasePathMapping, error) {
 	req, out := c.CreateBasePathMappingRequest(input)
@@ -321,18 +345,29 @@ func (c *APIGateway) CreateDeploymentRequest(input *CreateDeploymentInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   The requested service is not available. For details see the accompanying
+//   error message. Retry after the specified time period.
 //
 func (c *APIGateway) CreateDeployment(input *CreateDeploymentInput) (*Deployment, error) {
 	req, out := c.CreateDeploymentRequest(input)
@@ -406,16 +441,25 @@ func (c *APIGateway) CreateDocumentationPartRequest(input *CreateDocumentationPa
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) CreateDocumentationPart(input *CreateDocumentationPartInput) (*DocumentationPart, error) {
 	req, out := c.CreateDocumentationPartRequest(input)
@@ -489,16 +533,25 @@ func (c *APIGateway) CreateDocumentationVersionRequest(input *CreateDocumentatio
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) CreateDocumentationVersion(input *CreateDocumentationVersionInput) (*DocumentationVersion, error) {
 	req, out := c.CreateDocumentationVersionRequest(input)
@@ -574,12 +627,19 @@ func (c *APIGateway) CreateDomainNameRequest(input *CreateDomainNameInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) CreateDomainName(input *CreateDomainNameInput) (*DomainName, error) {
 	req, out := c.CreateDomainNameRequest(input)
@@ -655,16 +715,25 @@ func (c *APIGateway) CreateModelRequest(input *CreateModelInput) (req *request.R
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) CreateModel(input *CreateModelInput) (*Model, error) {
 	req, out := c.CreateModelRequest(input)
@@ -740,14 +809,21 @@ func (c *APIGateway) CreateRequestValidatorRequest(input *CreateRequestValidator
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) CreateRequestValidator(input *CreateRequestValidatorInput) (*UpdateRequestValidatorOutput, error) {
 	req, out := c.CreateRequestValidatorRequest(input)
@@ -823,16 +899,25 @@ func (c *APIGateway) CreateResourceRequest(input *CreateResourceInput) (req *req
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) CreateResource(input *CreateResourceInput) (*Resource, error) {
 	req, out := c.CreateResourceRequest(input)
@@ -908,12 +993,18 @@ func (c *APIGateway) CreateRestApiRequest(input *CreateRestApiInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) CreateRestApi(input *CreateRestApiInput) (*RestApi, error) {
 	req, out := c.CreateRestApiRequest(input)
@@ -990,16 +1081,25 @@ func (c *APIGateway) CreateStageRequest(input *CreateStageInput) (req *request.R
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) CreateStage(input *CreateStageInput) (*Stage, error) {
 	req, out := c.CreateStageRequest(input)
@@ -1076,16 +1176,25 @@ func (c *APIGateway) CreateUsagePlanRequest(input *CreateUsagePlanInput) (req *r
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 func (c *APIGateway) CreateUsagePlan(input *CreateUsagePlanInput) (*UsagePlan, error) {
 	req, out := c.CreateUsagePlanRequest(input)
@@ -1161,14 +1270,22 @@ func (c *APIGateway) CreateUsagePlanKeyRequest(input *CreateUsagePlanKeyInput) (
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) CreateUsagePlanKey(input *CreateUsagePlanKeyInput) (*UsagePlanKey, error) {
 	req, out := c.CreateUsagePlanKeyRequest(input)
@@ -1246,10 +1363,14 @@ func (c *APIGateway) DeleteApiKeyRequest(input *DeleteApiKeyInput) (req *request
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) DeleteApiKey(input *DeleteApiKeyInput) (*DeleteApiKeyOutput, error) {
 	req, out := c.DeleteApiKeyRequest(input)
@@ -1329,14 +1450,22 @@ func (c *APIGateway) DeleteAuthorizerRequest(input *DeleteAuthorizerInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) DeleteAuthorizer(input *DeleteAuthorizerInput) (*DeleteAuthorizerOutput, error) {
 	req, out := c.DeleteAuthorizerRequest(input)
@@ -1414,10 +1543,22 @@ func (c *APIGateway) DeleteBasePathMappingRequest(input *DeleteBasePathMappingIn
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
+//
+//   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
+//
+//   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) DeleteBasePathMapping(input *DeleteBasePathMappingInput) (*DeleteBasePathMappingOutput, error) {
 	req, out := c.DeleteBasePathMappingRequest(input)
@@ -1495,12 +1636,18 @@ func (c *APIGateway) DeleteClientCertificateRequest(input *DeleteClientCertifica
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 func (c *APIGateway) DeleteClientCertificate(input *DeleteClientCertificateInput) (*DeleteClientCertificateOutput, error) {
 	req, out := c.DeleteClientCertificateRequest(input)
@@ -1579,12 +1726,18 @@ func (c *APIGateway) DeleteDeploymentRequest(input *DeleteDeploymentInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) DeleteDeployment(input *DeleteDeploymentInput) (*DeleteDeploymentOutput, error) {
 	req, out := c.DeleteDeploymentRequest(input)
@@ -1660,14 +1813,22 @@ func (c *APIGateway) DeleteDocumentationPartRequest(input *DeleteDocumentationPa
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 func (c *APIGateway) DeleteDocumentationPart(input *DeleteDocumentationPartInput) (*DeleteDocumentationPartOutput, error) {
 	req, out := c.DeleteDocumentationPartRequest(input)
@@ -1743,14 +1904,22 @@ func (c *APIGateway) DeleteDocumentationVersionRequest(input *DeleteDocumentatio
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) DeleteDocumentationVersion(input *DeleteDocumentationVersionInput) (*DeleteDocumentationVersionOutput, error) {
 	req, out := c.DeleteDocumentationVersionRequest(input)
@@ -1828,10 +1997,14 @@ func (c *APIGateway) DeleteDomainNameRequest(input *DeleteDomainNameInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) DeleteDomainName(input *DeleteDomainNameInput) (*DeleteDomainNameOutput, error) {
 	req, out := c.DeleteDomainNameRequest(input)
@@ -1910,14 +2083,22 @@ func (c *APIGateway) DeleteGatewayResponseRequest(input *DeleteGatewayResponseIn
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) DeleteGatewayResponse(input *DeleteGatewayResponseInput) (*DeleteGatewayResponseOutput, error) {
 	req, out := c.DeleteGatewayResponseRequest(input)
@@ -1995,12 +2176,18 @@ func (c *APIGateway) DeleteIntegrationRequest(input *DeleteIntegrationInput) (re
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) DeleteIntegration(input *DeleteIntegrationInput) (*DeleteIntegrationOutput, error) {
 	req, out := c.DeleteIntegrationRequest(input)
@@ -2078,14 +2265,22 @@ func (c *APIGateway) DeleteIntegrationResponseRequest(input *DeleteIntegrationRe
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) DeleteIntegrationResponse(input *DeleteIntegrationResponseInput) (*DeleteIntegrationResponseOutput, error) {
 	req, out := c.DeleteIntegrationResponseRequest(input)
@@ -2163,12 +2358,18 @@ func (c *APIGateway) DeleteMethodRequest(input *DeleteMethodInput) (req *request
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) DeleteMethod(input *DeleteMethodInput) (*DeleteMethodOutput, error) {
 	req, out := c.DeleteMethodRequest(input)
@@ -2246,14 +2447,22 @@ func (c *APIGateway) DeleteMethodResponseRequest(input *DeleteMethodResponseInpu
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) DeleteMethodResponse(input *DeleteMethodResponseInput) (*DeleteMethodResponseOutput, error) {
 	req, out := c.DeleteMethodResponseRequest(input)
@@ -2331,14 +2540,22 @@ func (c *APIGateway) DeleteModelRequest(input *DeleteModelInput) (req *request.R
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) DeleteModel(input *DeleteModelInput) (*DeleteModelOutput, error) {
 	req, out := c.DeleteModelRequest(input)
@@ -2416,14 +2633,22 @@ func (c *APIGateway) DeleteRequestValidatorRequest(input *DeleteRequestValidator
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) DeleteRequestValidator(input *DeleteRequestValidatorInput) (*DeleteRequestValidatorOutput, error) {
 	req, out := c.DeleteRequestValidatorRequest(input)
@@ -2501,14 +2726,22 @@ func (c *APIGateway) DeleteResourceRequest(input *DeleteResourceInput) (req *req
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) DeleteResource(input *DeleteResourceInput) (*DeleteResourceOutput, error) {
 	req, out := c.DeleteResourceRequest(input)
@@ -2586,12 +2819,18 @@ func (c *APIGateway) DeleteRestApiRequest(input *DeleteRestApiInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 func (c *APIGateway) DeleteRestApi(input *DeleteRestApiInput) (*DeleteRestApiOutput, error) {
 	req, out := c.DeleteRestApiRequest(input)
@@ -2669,12 +2908,18 @@ func (c *APIGateway) DeleteStageRequest(input *DeleteStageInput) (req *request.R
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 func (c *APIGateway) DeleteStage(input *DeleteStageInput) (*DeleteStageOutput, error) {
 	req, out := c.DeleteStageRequest(input)
@@ -2752,12 +2997,18 @@ func (c *APIGateway) DeleteUsagePlanRequest(input *DeleteUsagePlanInput) (req *r
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 func (c *APIGateway) DeleteUsagePlan(input *DeleteUsagePlanInput) (*DeleteUsagePlanOutput, error) {
 	req, out := c.DeleteUsagePlanRequest(input)
@@ -2836,14 +3087,22 @@ func (c *APIGateway) DeleteUsagePlanKeyRequest(input *DeleteUsagePlanKeyInput) (
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) DeleteUsagePlanKey(input *DeleteUsagePlanKeyInput) (*DeleteUsagePlanKeyOutput, error) {
 	req, out := c.DeleteUsagePlanKeyRequest(input)
@@ -2921,12 +3180,18 @@ func (c *APIGateway) FlushStageAuthorizersCacheRequest(input *FlushStageAuthoriz
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) FlushStageAuthorizersCache(input *FlushStageAuthorizersCacheInput) (*FlushStageAuthorizersCacheOutput, error) {
 	req, out := c.FlushStageAuthorizersCacheRequest(input)
@@ -3004,12 +3269,18 @@ func (c *APIGateway) FlushStageCacheRequest(input *FlushStageCacheInput) (req *r
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) FlushStageCache(input *FlushStageCacheInput) (*FlushStageCacheOutput, error) {
 	req, out := c.FlushStageCacheRequest(input)
@@ -3085,10 +3356,14 @@ func (c *APIGateway) GenerateClientCertificateRequest(input *GenerateClientCerti
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 func (c *APIGateway) GenerateClientCertificate(input *GenerateClientCertificateInput) (*ClientCertificate, error) {
 	req, out := c.GenerateClientCertificateRequest(input)
@@ -3164,10 +3439,14 @@ func (c *APIGateway) GetAccountRequest(input *GetAccountInput) (req *request.Req
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetAccount(input *GetAccountInput) (*Account, error) {
 	req, out := c.GetAccountRequest(input)
@@ -3243,10 +3522,14 @@ func (c *APIGateway) GetApiKeyRequest(input *GetApiKeyInput) (req *request.Reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetApiKey(input *GetApiKeyInput) (*ApiKey, error) {
 	req, out := c.GetApiKeyRequest(input)
@@ -3328,10 +3611,15 @@ func (c *APIGateway) GetApiKeysRequest(input *GetApiKeysInput) (req *request.Req
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetApiKeys(input *GetApiKeysInput) (*GetApiKeysOutput, error) {
 	req, out := c.GetApiKeysRequest(input)
@@ -3459,10 +3747,14 @@ func (c *APIGateway) GetAuthorizerRequest(input *GetAuthorizerInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetAuthorizer(input *GetAuthorizerInput) (*Authorizer, error) {
 	req, out := c.GetAuthorizerRequest(input)
@@ -3540,12 +3832,18 @@ func (c *APIGateway) GetAuthorizersRequest(input *GetAuthorizersInput) (req *req
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetAuthorizers(input *GetAuthorizersInput) (*GetAuthorizersOutput, error) {
 	req, out := c.GetAuthorizersRequest(input)
@@ -3621,10 +3919,14 @@ func (c *APIGateway) GetBasePathMappingRequest(input *GetBasePathMappingInput) (
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetBasePathMapping(input *GetBasePathMappingInput) (*BasePathMapping, error) {
 	req, out := c.GetBasePathMappingRequest(input)
@@ -3706,10 +4008,14 @@ func (c *APIGateway) GetBasePathMappingsRequest(input *GetBasePathMappingsInput)
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetBasePathMappings(input *GetBasePathMappingsInput) (*GetBasePathMappingsOutput, error) {
 	req, out := c.GetBasePathMappingsRequest(input)
@@ -3835,10 +4141,14 @@ func (c *APIGateway) GetClientCertificateRequest(input *GetClientCertificateInpu
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetClientCertificate(input *GetClientCertificateInput) (*ClientCertificate, error) {
 	req, out := c.GetClientCertificateRequest(input)
@@ -3920,10 +4230,15 @@ func (c *APIGateway) GetClientCertificatesRequest(input *GetClientCertificatesIn
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetClientCertificates(input *GetClientCertificatesInput) (*GetClientCertificatesOutput, error) {
 	req, out := c.GetClientCertificatesRequest(input)
@@ -4049,12 +4364,18 @@ func (c *APIGateway) GetDeploymentRequest(input *GetDeploymentInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   The requested service is not available. For details see the accompanying
+//   error message. Retry after the specified time period.
 //
 func (c *APIGateway) GetDeployment(input *GetDeploymentInput) (*Deployment, error) {
 	req, out := c.GetDeploymentRequest(input)
@@ -4136,12 +4457,19 @@ func (c *APIGateway) GetDeploymentsRequest(input *GetDeploymentsInput) (req *req
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   The requested service is not available. For details see the accompanying
+//   error message. Retry after the specified time period.
 //
 func (c *APIGateway) GetDeployments(input *GetDeploymentsInput) (*GetDeploymentsOutput, error) {
 	req, out := c.GetDeploymentsRequest(input)
@@ -4265,10 +4593,14 @@ func (c *APIGateway) GetDocumentationPartRequest(input *GetDocumentationPartInpu
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetDocumentationPart(input *GetDocumentationPartInput) (*DocumentationPart, error) {
 	req, out := c.GetDocumentationPartRequest(input)
@@ -4342,12 +4674,18 @@ func (c *APIGateway) GetDocumentationPartsRequest(input *GetDocumentationPartsIn
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetDocumentationParts(input *GetDocumentationPartsInput) (*GetDocumentationPartsOutput, error) {
 	req, out := c.GetDocumentationPartsRequest(input)
@@ -4421,10 +4759,14 @@ func (c *APIGateway) GetDocumentationVersionRequest(input *GetDocumentationVersi
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetDocumentationVersion(input *GetDocumentationVersionInput) (*DocumentationVersion, error) {
 	req, out := c.GetDocumentationVersionRequest(input)
@@ -4498,12 +4840,18 @@ func (c *APIGateway) GetDocumentationVersionsRequest(input *GetDocumentationVers
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetDocumentationVersions(input *GetDocumentationVersionsInput) (*GetDocumentationVersionsOutput, error) {
 	req, out := c.GetDocumentationVersionsRequest(input)
@@ -4580,12 +4928,18 @@ func (c *APIGateway) GetDomainNameRequest(input *GetDomainNameInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   The requested service is not available. For details see the accompanying
+//   error message. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetDomainName(input *GetDomainNameInput) (*DomainName, error) {
 	req, out := c.GetDomainNameRequest(input)
@@ -4667,10 +5021,15 @@ func (c *APIGateway) GetDomainNamesRequest(input *GetDomainNamesInput) (req *req
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetDomainNames(input *GetDomainNamesInput) (*GetDomainNamesOutput, error) {
 	req, out := c.GetDomainNamesRequest(input)
@@ -4796,14 +5155,22 @@ func (c *APIGateway) GetExportRequest(input *GetExportInput) (req *request.Reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetExport(input *GetExportInput) (*GetExportOutput, error) {
 	req, out := c.GetExportRequest(input)
@@ -4879,10 +5246,14 @@ func (c *APIGateway) GetGatewayResponseRequest(input *GetGatewayResponseInput) (
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetGatewayResponse(input *GetGatewayResponseInput) (*UpdateGatewayResponseOutput, error) {
 	req, out := c.GetGatewayResponseRequest(input)
@@ -4961,12 +5332,18 @@ func (c *APIGateway) GetGatewayResponsesRequest(input *GetGatewayResponsesInput)
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetGatewayResponses(input *GetGatewayResponsesInput) (*GetGatewayResponsesOutput, error) {
 	req, out := c.GetGatewayResponsesRequest(input)
@@ -5042,10 +5419,14 @@ func (c *APIGateway) GetIntegrationRequest(input *GetIntegrationInput) (req *req
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetIntegration(input *GetIntegrationInput) (*Integration, error) {
 	req, out := c.GetIntegrationRequest(input)
@@ -5121,10 +5502,14 @@ func (c *APIGateway) GetIntegrationResponseRequest(input *GetIntegrationResponse
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetIntegrationResponse(input *GetIntegrationResponseInput) (*IntegrationResponse, error) {
 	req, out := c.GetIntegrationResponseRequest(input)
@@ -5200,10 +5585,14 @@ func (c *APIGateway) GetMethodRequest(input *GetMethodInput) (req *request.Reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetMethod(input *GetMethodInput) (*Method, error) {
 	req, out := c.GetMethodRequest(input)
@@ -5279,10 +5668,14 @@ func (c *APIGateway) GetMethodResponseRequest(input *GetMethodResponseInput) (re
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetMethodResponse(input *GetMethodResponseInput) (*MethodResponse, error) {
 	req, out := c.GetMethodResponseRequest(input)
@@ -5358,10 +5751,14 @@ func (c *APIGateway) GetModelRequest(input *GetModelInput) (req *request.Request
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetModel(input *GetModelInput) (*Model, error) {
 	req, out := c.GetModelRequest(input)
@@ -5438,12 +5835,18 @@ func (c *APIGateway) GetModelTemplateRequest(input *GetModelTemplateInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetModelTemplate(input *GetModelTemplateInput) (*GetModelTemplateOutput, error) {
 	req, out := c.GetModelTemplateRequest(input)
@@ -5525,12 +5928,18 @@ func (c *APIGateway) GetModelsRequest(input *GetModelsInput) (req *request.Reque
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetModels(input *GetModelsInput) (*GetModelsOutput, error) {
 	req, out := c.GetModelsRequest(input)
@@ -5656,10 +6065,14 @@ func (c *APIGateway) GetRequestValidatorRequest(input *GetRequestValidatorInput)
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetRequestValidator(input *GetRequestValidatorInput) (*UpdateRequestValidatorOutput, error) {
 	req, out := c.GetRequestValidatorRequest(input)
@@ -5735,12 +6148,18 @@ func (c *APIGateway) GetRequestValidatorsRequest(input *GetRequestValidatorsInpu
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetRequestValidators(input *GetRequestValidatorsInput) (*GetRequestValidatorsOutput, error) {
 	req, out := c.GetRequestValidatorsRequest(input)
@@ -5816,10 +6235,14 @@ func (c *APIGateway) GetResourceRequest(input *GetResourceInput) (req *request.R
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetResource(input *GetResourceInput) (*Resource, error) {
 	req, out := c.GetResourceRequest(input)
@@ -5901,12 +6324,18 @@ func (c *APIGateway) GetResourcesRequest(input *GetResourcesInput) (req *request
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetResources(input *GetResourcesInput) (*GetResourcesOutput, error) {
 	req, out := c.GetResourcesRequest(input)
@@ -6032,10 +6461,14 @@ func (c *APIGateway) GetRestApiRequest(input *GetRestApiInput) (req *request.Req
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetRestApi(input *GetRestApiInput) (*RestApi, error) {
 	req, out := c.GetRestApiRequest(input)
@@ -6117,10 +6550,15 @@ func (c *APIGateway) GetRestApisRequest(input *GetRestApisInput) (req *request.R
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetRestApis(input *GetRestApisInput) (*GetRestApisOutput, error) {
 	req, out := c.GetRestApisRequest(input)
@@ -6246,14 +6684,22 @@ func (c *APIGateway) GetSdkRequest(input *GetSdkInput) (req *request.Request, ou
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetSdk(input *GetSdkInput) (*GetSdkOutput, error) {
 	req, out := c.GetSdkRequest(input)
@@ -6327,10 +6773,14 @@ func (c *APIGateway) GetSdkTypeRequest(input *GetSdkTypeInput) (req *request.Req
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetSdkType(input *GetSdkTypeInput) (*SdkType, error) {
 	req, out := c.GetSdkTypeRequest(input)
@@ -6404,8 +6854,11 @@ func (c *APIGateway) GetSdkTypesRequest(input *GetSdkTypesInput) (req *request.R
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetSdkTypes(input *GetSdkTypesInput) (*GetSdkTypesOutput, error) {
 	req, out := c.GetSdkTypesRequest(input)
@@ -6481,10 +6934,14 @@ func (c *APIGateway) GetStageRequest(input *GetStageInput) (req *request.Request
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetStage(input *GetStageInput) (*Stage, error) {
 	req, out := c.GetStageRequest(input)
@@ -6560,10 +7017,14 @@ func (c *APIGateway) GetStagesRequest(input *GetStagesInput) (req *request.Reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetStages(input *GetStagesInput) (*GetStagesOutput, error) {
 	req, out := c.GetStagesRequest(input)
@@ -6645,12 +7106,18 @@ func (c *APIGateway) GetUsageRequest(input *GetUsageInput) (req *request.Request
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetUsage(input *GetUsageInput) (*Usage, error) {
 	req, out := c.GetUsageRequest(input)
@@ -6776,12 +7243,18 @@ func (c *APIGateway) GetUsagePlanRequest(input *GetUsagePlanInput) (req *request
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetUsagePlan(input *GetUsagePlanInput) (*UsagePlan, error) {
 	req, out := c.GetUsagePlanRequest(input)
@@ -6857,12 +7330,18 @@ func (c *APIGateway) GetUsagePlanKeyRequest(input *GetUsagePlanKeyInput) (req *r
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetUsagePlanKey(input *GetUsagePlanKeyInput) (*UsagePlanKey, error) {
 	req, out := c.GetUsagePlanKeyRequest(input)
@@ -6945,12 +7424,18 @@ func (c *APIGateway) GetUsagePlanKeysRequest(input *GetUsagePlanKeysInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) GetUsagePlanKeys(input *GetUsagePlanKeysInput) (*GetUsagePlanKeysOutput, error) {
 	req, out := c.GetUsagePlanKeysRequest(input)
@@ -7082,14 +7567,22 @@ func (c *APIGateway) GetUsagePlansRequest(input *GetUsagePlansInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 func (c *APIGateway) GetUsagePlans(input *GetUsagePlansInput) (*GetUsagePlansOutput, error) {
 	req, out := c.GetUsagePlansRequest(input)
@@ -7215,16 +7708,25 @@ func (c *APIGateway) ImportApiKeysRequest(input *ImportApiKeysInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) ImportApiKeys(input *ImportApiKeysInput) (*ImportApiKeysOutput, error) {
 	req, out := c.ImportApiKeysRequest(input)
@@ -7298,14 +7800,21 @@ func (c *APIGateway) ImportDocumentationPartsRequest(input *ImportDocumentationP
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) ImportDocumentationParts(input *ImportDocumentationPartsInput) (*ImportDocumentationPartsOutput, error) {
 	req, out := c.ImportDocumentationPartsRequest(input)
@@ -7382,14 +7891,22 @@ func (c *APIGateway) ImportRestApiRequest(input *ImportRestApiInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) ImportRestApi(input *ImportRestApiInput) (*RestApi, error) {
 	req, out := c.ImportRestApiRequest(input)
@@ -7466,14 +7983,21 @@ func (c *APIGateway) PutGatewayResponseRequest(input *PutGatewayResponseInput) (
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) PutGatewayResponse(input *PutGatewayResponseInput) (*UpdateGatewayResponseOutput, error) {
 	req, out := c.PutGatewayResponseRequest(input)
@@ -7549,14 +8073,22 @@ func (c *APIGateway) PutIntegrationRequest(input *PutIntegrationInput) (req *req
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) PutIntegration(input *PutIntegrationInput) (*Integration, error) {
 	req, out := c.PutIntegrationRequest(input)
@@ -7632,16 +8164,25 @@ func (c *APIGateway) PutIntegrationResponseRequest(input *PutIntegrationResponse
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) PutIntegrationResponse(input *PutIntegrationResponseInput) (*IntegrationResponse, error) {
 	req, out := c.PutIntegrationResponseRequest(input)
@@ -7717,16 +8258,25 @@ func (c *APIGateway) PutMethodRequest(input *PutMethodInput) (req *request.Reque
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) PutMethod(input *PutMethodInput) (*Method, error) {
 	req, out := c.PutMethodRequest(input)
@@ -7802,16 +8352,25 @@ func (c *APIGateway) PutMethodResponseRequest(input *PutMethodResponseInput) (re
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) PutMethodResponse(input *PutMethodResponseInput) (*MethodResponse, error) {
 	req, out := c.PutMethodResponseRequest(input)
@@ -7890,16 +8449,25 @@ func (c *APIGateway) PutRestApiRequest(input *PutRestApiInput) (req *request.Req
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) PutRestApi(input *PutRestApiInput) (*RestApi, error) {
 	req, out := c.PutRestApiRequest(input)
@@ -7978,12 +8546,18 @@ func (c *APIGateway) TestInvokeAuthorizerRequest(input *TestInvokeAuthorizerInpu
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) TestInvokeAuthorizer(input *TestInvokeAuthorizerInput) (*TestInvokeAuthorizerOutput, error) {
 	req, out := c.TestInvokeAuthorizerRequest(input)
@@ -8060,12 +8634,18 @@ func (c *APIGateway) TestInvokeMethodRequest(input *TestInvokeMethodInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) TestInvokeMethod(input *TestInvokeMethodInput) (*TestInvokeMethodOutput, error) {
 	req, out := c.TestInvokeMethodRequest(input)
@@ -8141,12 +8721,18 @@ func (c *APIGateway) UpdateAccountRequest(input *UpdateAccountInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateAccount(input *UpdateAccountInput) (*Account, error) {
 	req, out := c.UpdateAccountRequest(input)
@@ -8222,14 +8808,22 @@ func (c *APIGateway) UpdateApiKeyRequest(input *UpdateApiKeyInput) (req *request
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) UpdateApiKey(input *UpdateApiKeyInput) (*ApiKey, error) {
 	req, out := c.UpdateApiKeyRequest(input)
@@ -8307,12 +8901,18 @@ func (c *APIGateway) UpdateAuthorizerRequest(input *UpdateAuthorizerInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateAuthorizer(input *UpdateAuthorizerInput) (*Authorizer, error) {
 	req, out := c.UpdateAuthorizerRequest(input)
@@ -8388,14 +8988,22 @@ func (c *APIGateway) UpdateBasePathMappingRequest(input *UpdateBasePathMappingIn
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateBasePathMapping(input *UpdateBasePathMappingInput) (*BasePathMapping, error) {
 	req, out := c.UpdateBasePathMappingRequest(input)
@@ -8471,12 +9079,18 @@ func (c *APIGateway) UpdateClientCertificateRequest(input *UpdateClientCertifica
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 func (c *APIGateway) UpdateClientCertificate(input *UpdateClientCertificateInput) (*ClientCertificate, error) {
 	req, out := c.UpdateClientCertificateRequest(input)
@@ -8552,14 +9166,22 @@ func (c *APIGateway) UpdateDeploymentRequest(input *UpdateDeploymentInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
+//   The requested service is not available. For details see the accompanying
+//   error message. Retry after the specified time period.
 //
 func (c *APIGateway) UpdateDeployment(input *UpdateDeploymentInput) (*Deployment, error) {
 	req, out := c.UpdateDeploymentRequest(input)
@@ -8633,16 +9255,25 @@ func (c *APIGateway) UpdateDocumentationPartRequest(input *UpdateDocumentationPa
 //
 // Returned Error Codes:
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateDocumentationPart(input *UpdateDocumentationPartInput) (*DocumentationPart, error) {
 	req, out := c.UpdateDocumentationPartRequest(input)
@@ -8716,14 +9347,22 @@ func (c *APIGateway) UpdateDocumentationVersionRequest(input *UpdateDocumentatio
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateDocumentationVersion(input *UpdateDocumentationVersionInput) (*DocumentationVersion, error) {
 	req, out := c.UpdateDocumentationVersionRequest(input)
@@ -8799,14 +9438,22 @@ func (c *APIGateway) UpdateDomainNameRequest(input *UpdateDomainNameInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateDomainName(input *UpdateDomainNameInput) (*DomainName, error) {
 	req, out := c.UpdateDomainNameRequest(input)
@@ -8882,12 +9529,18 @@ func (c *APIGateway) UpdateGatewayResponseRequest(input *UpdateGatewayResponseIn
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateGatewayResponse(input *UpdateGatewayResponseInput) (*UpdateGatewayResponseOutput, error) {
 	req, out := c.UpdateGatewayResponseRequest(input)
@@ -8963,14 +9616,22 @@ func (c *APIGateway) UpdateIntegrationRequest(input *UpdateIntegrationInput) (re
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) UpdateIntegration(input *UpdateIntegrationInput) (*Integration, error) {
 	req, out := c.UpdateIntegrationRequest(input)
@@ -9046,14 +9707,22 @@ func (c *APIGateway) UpdateIntegrationResponseRequest(input *UpdateIntegrationRe
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateIntegrationResponse(input *UpdateIntegrationResponseInput) (*IntegrationResponse, error) {
 	req, out := c.UpdateIntegrationResponseRequest(input)
@@ -9129,14 +9798,22 @@ func (c *APIGateway) UpdateMethodRequest(input *UpdateMethodInput) (req *request
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateMethod(input *UpdateMethodInput) (*Method, error) {
 	req, out := c.UpdateMethodRequest(input)
@@ -9212,16 +9889,25 @@ func (c *APIGateway) UpdateMethodResponseRequest(input *UpdateMethodResponseInpu
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request exceeded the rate limit. Retry after the specified time period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateMethodResponse(input *UpdateMethodResponseInput) (*MethodResponse, error) {
 	req, out := c.UpdateMethodResponseRequest(input)
@@ -9297,14 +9983,22 @@ func (c *APIGateway) UpdateModelRequest(input *UpdateModelInput) (req *request.R
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateModel(input *UpdateModelInput) (*Model, error) {
 	req, out := c.UpdateModelRequest(input)
@@ -9380,12 +10074,18 @@ func (c *APIGateway) UpdateRequestValidatorRequest(input *UpdateRequestValidator
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateRequestValidator(input *UpdateRequestValidatorInput) (*UpdateRequestValidatorOutput, error) {
 	req, out := c.UpdateRequestValidatorRequest(input)
@@ -9461,14 +10161,22 @@ func (c *APIGateway) UpdateResourceRequest(input *UpdateResourceInput) (req *req
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateResource(input *UpdateResourceInput) (*Resource, error) {
 	req, out := c.UpdateResourceRequest(input)
@@ -9544,14 +10252,22 @@ func (c *APIGateway) UpdateRestApiRequest(input *UpdateRestApiInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateRestApi(input *UpdateRestApiInput) (*RestApi, error) {
 	req, out := c.UpdateRestApiRequest(input)
@@ -9627,14 +10343,22 @@ func (c *APIGateway) UpdateStageRequest(input *UpdateStageInput) (req *request.R
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 func (c *APIGateway) UpdateStage(input *UpdateStageInput) (*Stage, error) {
 	req, out := c.UpdateStageRequest(input)
@@ -9711,12 +10435,18 @@ func (c *APIGateway) UpdateUsageRequest(input *UpdateUsageInput) (req *request.R
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 func (c *APIGateway) UpdateUsage(input *UpdateUsageInput) (*Usage, error) {
 	req, out := c.UpdateUsageRequest(input)
@@ -9792,14 +10522,22 @@ func (c *APIGateway) UpdateUsagePlanRequest(input *UpdateUsagePlanInput) (req *r
 //
 // Returned Error Codes:
 //   * ErrCodeUnauthorizedException "UnauthorizedException"
+//   The request is denied because the caller has insufficient permissions.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   The request has reached its throttling limit. Retry after the specified time
+//   period.
 //
 //   * ErrCodeBadRequestException "BadRequestException"
+//   The submitted request is not valid, for example, the input is incomplete
+//   or incorrect. See the accompanying error message for details.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
+//   The requested resource is not found. Make sure that the request URI is correct.
 //
 //   * ErrCodeConflictException "ConflictException"
+//   The request configuration has conflicts. For details, see the accompanying
+//   error message.
 //
 func (c *APIGateway) UpdateUsagePlan(input *UpdateUsagePlanInput) (*UsagePlan, error) {
 	req, out := c.UpdateUsagePlanRequest(input)
@@ -10051,23 +10789,24 @@ func (s *ApiStage) SetStage(v string) *ApiStage {
 type Authorizer struct {
 	_ struct{} `type:"structure"`
 
-	// Optional customer-defined field, used in Swagger imports/exports. Has no
+	// Optional customer-defined field, used in Swagger imports and exports without
 	// functional impact.
 	AuthType *string `locationName:"authType" type:"string"`
 
-	// Specifies the credentials required for the authorizer, if any. Two options
-	// are available. To specify an IAM role for Amazon API Gateway to assume, use
-	// the role's Amazon Resource Name (ARN). To use resource-based permissions
-	// on the Lambda function, specify null.
+	// Specifies the required credentials as an IAM role for Amazon API Gateway
+	// to invoke the authorizer. To specify an IAM role for Amazon API Gateway to
+	// assume, use the role's Amazon Resource Name (ARN). To use resource-based
+	// permissions on the Lambda function, specify null.
 	AuthorizerCredentials *string `locationName:"authorizerCredentials" type:"string"`
 
-	// The TTL in seconds of cached authorizer results. If greater than 0, API Gateway
-	// will cache authorizer responses. If this field is not set, the default value
-	// is 300. The maximum value is 3600, or 1 hour.
+	// The TTL in seconds of cached authorizer results. If it equals 0, authorization
+	// caching is disabled. If it is greater than 0, API Gateway will cache authorizer
+	// responses. If this field is not set, the default value is 300. The maximum
+	// value is 3600, or 1 hour.
 	AuthorizerResultTtlInSeconds *int64 `locationName:"authorizerResultTtlInSeconds" type:"integer"`
 
-	// [Required] Specifies the authorizer's Uniform Resource Identifier (URI).
-	// For TOKEN authorizers, this must be a well-formed Lambda function URI, for
+	// Specifies the authorizer's Uniform Resource Identifier (URI). For TOKEN or
+	// REQUEST authorizers, this must be a well-formed Lambda function URI, for
 	// example, arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:{account_id}:function:{lambda_function_name}/invocations.
 	// In general, the URI has this form arn:aws:apigateway:{region}:lambda:path/{service_api},
 	// where {region} is the same as the region hosting the Lambda function, path
@@ -10079,30 +10818,47 @@ type Authorizer struct {
 	// The identifier for the authorizer resource.
 	Id *string `locationName:"id" type:"string"`
 
-	// [Required] The source of the identity in an incoming request. For a TOKEN
-	// authorizer, this value is a mapping expression with the same syntax as integration
-	// parameter mappings. The only valid source for tokens is 'header', so the
-	// expression should match 'method.request.header.[headerName]'. The value of
-	// the header '[headerName]' will be interpreted as the incoming token. For
-	// COGNITO_USER_POOLS authorizers, this property is used.
+	// The identity source for which authorization is requested. For a TOKEN authorizer,
+	// this is required and specifies the request header mapping expression for
+	// the custom header holding the authorization token submitted by the client.
+	// For example, if the token header name is Auth, the header mapping expression
+	// is method.request.header.Auth.
+	// For the REQUEST authorizer, this is required when authorization caching is
+	// enabled. The value is a comma-separated string of one or more mapping expressions
+	// of the specified request parameters. For example, if an Auth header, a Name
+	// query string parameter are defined as identity sources, this value is method.request.header.Auth,
+	// method.request.querystring.Name. These parameters will be used to derive
+	// the authorization caching key and to perform runtime validation of the REQUEST
+	// authorizer by verifying all of the identity-related request parameters are
+	// present, not null and non-empty. Only when this is true does the authorizer
+	// invoke the authorizer Lambda function, otherwise, it returns a 401 Unauthorized
+	// response without calling the Lambda function. The valid value is a string
+	// of comma-separated mapping expressions of the specified request parameters.
+	// When the authorization caching is not enabled, this property is optional.
+	//
+	// For a COGNITO_USER_POOLS authorizer, this property is not used.
 	IdentitySource *string `locationName:"identitySource" type:"string"`
 
-	// A validation expression for the incoming identity. For TOKEN authorizers,
-	// this value should be a regular expression. The incoming token from the client
-	// is matched against this expression, and will proceed if the token matches.
-	// If the token doesn't match, the client receives a 401 Unauthorized response.
+	// A validation expression for the incoming identity token. For TOKEN authorizers,
+	// this value is a regular expression. Amazon API Gateway will match the incoming
+	// token from the client against the specified regular expression. It will invoke
+	// the authorizer's Lambda function there is a match. Otherwise, it will return
+	// a 401 Unauthorized response without calling the Lambda function. The validation
+	// expression does not apply to the REQUEST authorizer.
 	IdentityValidationExpression *string `locationName:"identityValidationExpression" type:"string"`
 
 	// [Required] The name of the authorizer.
 	Name *string `locationName:"name" type:"string"`
 
-	// A list of the provider ARNs of the authorizer. For an TOKEN authorizer, this
-	// is not defined. For authorizers of the COGNITO_USER_POOLS type, each element
-	// corresponds to a user pool ARN of this format: arn:aws:cognito-idp:{region}:{account_id}:userpool/{user_pool_id}.
+	// A list of the Amazon Cognito user pool ARNs for the COGNITO_USER_POOLS authorizer.
+	// Each element is of this format: arn:aws:cognito-idp:{region}:{account_id}:userpool/{user_pool_id}.
+	// For a TOKEN or REQUEST authorizer, this is not defined.
 	ProviderARNs []*string `locationName:"providerARNs" type:"list"`
 
-	// [Required] The type of the authorizer. Currently, the valid type is TOKEN
-	// for a Lambda function or COGNITO_USER_POOLS for an Amazon Cognito user pool.
+	// [Required] The authorizer type. Valid values are TOKEN for a Lambda function
+	// using a single authorization token submitted in a custom header, REQUEST
+	// for a Lambda function using incoming request parameters, and COGNITO_USER_POOLS
+	// for using an Amazon Cognito user pool.
 	Type *string `locationName:"type" type:"string" enum:"AuthorizerType"`
 }
 
@@ -10227,8 +10983,9 @@ func (s *BasePathMapping) SetStage(v string) *BasePathMapping {
 // Represents a client certificate used to configure client-side SSL authentication
 // while sending requests to the integration endpoint.
 //
-// Client certificates are used authenticate an API by the back-end server.
-// To authenticate an API client (or user), use a custom Authorizer.
+// Client certificates are used to authenticate an API by the backend server.
+// To authenticate an API client (or user), use IAM roles and policies, a custom
+// Authorizer or an Amazon Cognito user pool.
 // Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
 type ClientCertificate struct {
 	_ struct{} `type:"structure"`
@@ -10374,25 +11131,59 @@ func (s *CreateApiKeyInput) SetValue(v string) *CreateApiKeyInput {
 type CreateAuthorizerInput struct {
 	_ struct{} `type:"structure"`
 
-	// Optional customer-defined field, used in Swagger imports/exports. Has no
+	// Optional customer-defined field, used in Swagger imports and exports without
 	// functional impact.
 	AuthType *string `locationName:"authType" type:"string"`
 
-	// Specifies the credentials required for the authorizer, if any.
+	// Specifies the required credentials as an IAM role for Amazon API Gateway
+	// to invoke the authorizer. To specify an IAM role for Amazon API Gateway to
+	// assume, use the role's Amazon Resource Name (ARN). To use resource-based
+	// permissions on the Lambda function, specify null.
 	AuthorizerCredentials *string `locationName:"authorizerCredentials" type:"string"`
 
-	// The TTL of cached authorizer results.
+	// The TTL in seconds of cached authorizer results. If it equals 0, authorization
+	// caching is disabled. If it is greater than 0, API Gateway will cache authorizer
+	// responses. If this field is not set, the default value is 300. The maximum
+	// value is 3600, or 1 hour.
 	AuthorizerResultTtlInSeconds *int64 `locationName:"authorizerResultTtlInSeconds" type:"integer"`
 
-	// [Required] Specifies the authorizer's Uniform Resource Identifier (URI).
+	// Specifies the authorizer's Uniform Resource Identifier (URI). For TOKEN or
+	// REQUEST authorizers, this must be a well-formed Lambda function URI, for
+	// example, arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:{account_id}:function:{lambda_function_name}/invocations.
+	// In general, the URI has this form arn:aws:apigateway:{region}:lambda:path/{service_api},
+	// where {region} is the same as the region hosting the Lambda function, path
+	// indicates that the remaining substring in the URI should be treated as the
+	// path to the resource, including the initial /. For Lambda functions, this
+	// is usually of the form /2015-03-31/functions/[FunctionARN]/invocations.
 	AuthorizerUri *string `locationName:"authorizerUri" type:"string"`
 
-	// [Required] The source of the identity in an incoming request.
+	// The identity source for which authorization is requested. For a TOKEN authorizer,
+	// this is required and specifies the request header mapping expression for
+	// the custom header holding the authorization token submitted by the client.
+	// For example, if the token header name is Auth, the header mapping expression
+	// is method.request.header.Auth.
+	// For the REQUEST authorizer, this is required when authorization caching is
+	// enabled. The value is a comma-separated string of one or more mapping expressions
+	// of the specified request parameters. For example, if an Auth header, a Name
+	// query string parameter are defined as identity sources, this value is method.request.header.Auth,
+	// method.request.querystring.Name. These parameters will be used to derive
+	// the authorization caching key and to perform runtime validation of the REQUEST
+	// authorizer by verifying all of the identity-related request parameters are
+	// present, not null and non-empty. Only when this is true does the authorizer
+	// invoke the authorizer Lambda function, otherwise, it returns a 401 Unauthorized
+	// response without calling the Lambda function. The valid value is a string
+	// of comma-separated mapping expressions of the specified request parameters.
+	// When the authorization caching is not enabled, this property is optional.
 	//
-	// IdentitySource is a required field
-	IdentitySource *string `locationName:"identitySource" type:"string" required:"true"`
+	// For a COGNITO_USER_POOLS authorizer, this property is not used.
+	IdentitySource *string `locationName:"identitySource" type:"string"`
 
-	// A validation expression for the incoming identity.
+	// A validation expression for the incoming identity token. For TOKEN authorizers,
+	// this value is a regular expression. Amazon API Gateway will match the incoming
+	// token from the client against the specified regular expression. It will invoke
+	// the authorizer's Lambda function there is a match. Otherwise, it will return
+	// a 401 Unauthorized response without calling the Lambda function. The validation
+	// expression does not apply to the REQUEST authorizer.
 	IdentityValidationExpression *string `locationName:"identityValidationExpression" type:"string"`
 
 	// [Required] The name of the authorizer.
@@ -10400,7 +11191,9 @@ type CreateAuthorizerInput struct {
 	// Name is a required field
 	Name *string `locationName:"name" type:"string" required:"true"`
 
-	// A list of the Cognito Your User Pool authorizer's provider ARNs.
+	// A list of the Amazon Cognito user pool ARNs for the COGNITO_USER_POOLS authorizer.
+	// Each element is of this format: arn:aws:cognito-idp:{region}:{account_id}:userpool/{user_pool_id}.
+	// For a TOKEN or REQUEST authorizer, this is not defined.
 	ProviderARNs []*string `locationName:"providerARNs" type:"list"`
 
 	// The string identifier of the associated RestApi.
@@ -10408,7 +11201,10 @@ type CreateAuthorizerInput struct {
 	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
-	// [Required] The type of the authorizer.
+	// [Required] The authorizer type. Valid values are TOKEN for a Lambda function
+	// using a single authorization token submitted in a custom header, REQUEST
+	// for a Lambda function using incoming request parameters, and COGNITO_USER_POOLS
+	// for using an Amazon Cognito user pool.
 	//
 	// Type is a required field
 	Type *string `locationName:"type" type:"string" required:"true" enum:"AuthorizerType"`
@@ -10427,9 +11223,6 @@ func (s CreateAuthorizerInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateAuthorizerInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateAuthorizerInput"}
-	if s.IdentitySource == nil {
-		invalidParams.Add(request.NewErrParamRequired("IdentitySource"))
-	}
 	if s.Name == nil {
 		invalidParams.Add(request.NewErrParamRequired("Name"))
 	}
@@ -10828,32 +11621,49 @@ func (s *CreateDocumentationVersionInput) SetStageName(v string) *CreateDocument
 type CreateDomainNameInput struct {
 	_ struct{} `type:"structure"`
 
-	// The reference to an AWS-managed certificate. AWS Certificate Manager is the
-	// only supported source.
+	// The reference to an AWS-managed certificate that will be used by edge-optimized
+	// endpoint for this domain name. AWS Certificate Manager is the only supported
+	// source.
 	CertificateArn *string `locationName:"certificateArn" type:"string"`
 
-	// [Deprecated] The body of the server certificate provided by your certificate
-	// authority.
+	// [Deprecated] The body of the server certificate that will be used by edge-optimized
+	// endpoint for this domain name provided by your certificate authority.
 	CertificateBody *string `locationName:"certificateBody" type:"string"`
 
 	// [Deprecated] The intermediate certificates and optionally the root certificate,
-	// one after the other without any blank lines. If you include the root certificate,
-	// your certificate chain must start with intermediate certificates and end
-	// with the root certificate. Use the intermediate certificates that were provided
-	// by your certificate authority. Do not include any intermediaries that are
-	// not in the chain of trust path.
+	// one after the other without any blank lines, used by an edge-optimized endpoint
+	// for this domain name. If you include the root certificate, your certificate
+	// chain must start with intermediate certificates and end with the root certificate.
+	// Use the intermediate certificates that were provided by your certificate
+	// authority. Do not include any intermediaries that are not in the chain of
+	// trust path.
 	CertificateChain *string `locationName:"certificateChain" type:"string"`
 
-	// The user-friendly name of the certificate.
+	// The user-friendly name of the certificate that will be used by edge-optimized
+	// endpoint for this domain name.
 	CertificateName *string `locationName:"certificateName" type:"string"`
 
-	// [Deprecated] Your certificate's private key.
+	// [Deprecated] Your edge-optimized endpoint's domain name certificate's private
+	// key.
 	CertificatePrivateKey *string `locationName:"certificatePrivateKey" type:"string"`
 
 	// (Required) The name of the DomainName resource.
 	//
 	// DomainName is a required field
 	DomainName *string `locationName:"domainName" type:"string" required:"true"`
+
+	// The endpoint configuration of this DomainName showing the endpoint types
+	// of the domain name.
+	EndpointConfiguration *EndpointConfiguration `locationName:"endpointConfiguration" type:"structure"`
+
+	// The reference to an AWS-managed certificate that will be used by regional
+	// endpoint for this domain name. AWS Certificate Manager is the only supported
+	// source.
+	RegionalCertificateArn *string `locationName:"regionalCertificateArn" type:"string"`
+
+	// The user-friendly name of the certificate that will be used by regional endpoint
+	// for this domain name.
+	RegionalCertificateName *string `locationName:"regionalCertificateName" type:"string"`
 }
 
 // String returns the string representation
@@ -10915,6 +11725,24 @@ func (s *CreateDomainNameInput) SetDomainName(v string) *CreateDomainNameInput {
 	return s
 }
 
+// SetEndpointConfiguration sets the EndpointConfiguration field's value.
+func (s *CreateDomainNameInput) SetEndpointConfiguration(v *EndpointConfiguration) *CreateDomainNameInput {
+	s.EndpointConfiguration = v
+	return s
+}
+
+// SetRegionalCertificateArn sets the RegionalCertificateArn field's value.
+func (s *CreateDomainNameInput) SetRegionalCertificateArn(v string) *CreateDomainNameInput {
+	s.RegionalCertificateArn = &v
+	return s
+}
+
+// SetRegionalCertificateName sets the RegionalCertificateName field's value.
+func (s *CreateDomainNameInput) SetRegionalCertificateName(v string) *CreateDomainNameInput {
+	s.RegionalCertificateName = &v
+	return s
+}
+
 // Request to add a new Model to an existing RestApi resource.
 type CreateModelInput struct {
 	_ struct{} `type:"structure"`
@@ -10927,7 +11755,7 @@ type CreateModelInput struct {
 	// The description of the model.
 	Description *string `locationName:"description" type:"string"`
 
-	// The name of the model.
+	// The name of the model. Must be alphanumeric.
 	//
 	// Name is a required field
 	Name *string `locationName:"name" type:"string" required:"true"`
@@ -11150,6 +11978,10 @@ type CreateRestApiInput struct {
 	// The description of the RestApi.
 	Description *string `locationName:"description" type:"string"`
 
+	// The endpoint configuration of this RestApi showing the endpoint types of
+	// the API.
+	EndpointConfiguration *EndpointConfiguration `locationName:"endpointConfiguration" type:"structure"`
+
 	// The name of the RestApi.
 	//
 	// Name is a required field
@@ -11197,6 +12029,12 @@ func (s *CreateRestApiInput) SetCloneFrom(v string) *CreateRestApiInput {
 // SetDescription sets the Description field's value.
 func (s *CreateRestApiInput) SetDescription(v string) *CreateRestApiInput {
 	s.Description = &v
+	return s
+}
+
+// SetEndpointConfiguration sets the EndpointConfiguration field's value.
+func (s *CreateRestApiInput) SetEndpointConfiguration(v *EndpointConfiguration) *CreateRestApiInput {
+	s.EndpointConfiguration = v
 	return s
 }
 
@@ -13017,8 +13855,8 @@ type DocumentationPartLocation struct {
 	// a valid and required field for API entity types of API, AUTHORIZER, MODEL,
 	// RESOURCE, METHOD, PATH_PARAMETER, QUERY_PARAMETER, REQUEST_HEADER, REQUEST_BODY,
 	// RESPONSE, RESPONSE_HEADER, and RESPONSE_BODY. Content inheritance does not
-	// apply to any entity of the API, AUTHROZER, METHOD, MODEL, REQUEST_BODY, or
-	// RESOURCE type.
+	// apply to any entity of the API, AUTHORIZER, METHOD, MODEL, REQUEST_BODY,
+	// or RESOURCE type.
 	//
 	// Type is a required field
 	Type *string `locationName:"type" type:"string" required:"true" enum:"DocumentationPartType"`
@@ -13126,29 +13964,61 @@ func (s *DocumentationVersion) SetVersion(v string) *DocumentationVersion {
 	return s
 }
 
-// Represents a domain name that is contained in a simpler, more intuitive URL
-// that can be called.
+// Represents a custom domain name as a user-friendly host name of an API (RestApi).
 //
-// Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
+// When you deploy an API, Amazon API Gateway creates a default host name for
+// the API. This default API host name is of the {restapi-id}.execute-api.{region}.amazonaws.com
+// format. With the default host name, you can access the API's root resource
+// with the URL of https://{restapi-id}.execute-api.{region}.amazonaws.com/{stage}/.
+// When you set up a custom domain name of apis.example.com for this API, you
+// can then access the same resource using the URL of the https://apis.examples.com/myApi,
+// where myApi is the base path mapping (BasePathMapping) of your API under
+// the custom domain name.
+//
+// Set a Custom Host Name for an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type DomainName struct {
 	_ struct{} `type:"structure"`
 
-	// The reference to an AWS-managed certificate. AWS Certificate Manager is the
-	// only supported source.
+	// The reference to an AWS-managed certificate that will be used by edge-optimized
+	// endpoint for this domain name. AWS Certificate Manager is the only supported
+	// source.
 	CertificateArn *string `locationName:"certificateArn" type:"string"`
 
-	// The name of the certificate.
+	// The name of the certificate that will be used by edge-optimized endpoint
+	// for this domain name.
 	CertificateName *string `locationName:"certificateName" type:"string"`
 
-	// The timestamp when the certificate was uploaded.
+	// The timestamp when the certificate that was used by edge-optimized endpoint
+	// for this domain name was uploaded.
 	CertificateUploadDate *time.Time `locationName:"certificateUploadDate" type:"timestamp" timestampFormat:"unix"`
 
-	// The domain name of the Amazon CloudFront distribution. For more information,
-	// see the Amazon CloudFront documentation (http://aws.amazon.com/documentation/cloudfront/).
+	// The domain name of the Amazon CloudFront distribution associated with this
+	// custom domain name for an edge-optimized endpoint. You set up this association
+	// when adding a DNS record pointing the custom domain name to this distribution
+	// name. For more information about CloudFront distributions, see the Amazon
+	// CloudFront documentation (http://aws.amazon.com/documentation/cloudfront/).
 	DistributionDomainName *string `locationName:"distributionDomainName" type:"string"`
 
 	// The name of the DomainName resource.
 	DomainName *string `locationName:"domainName" type:"string"`
+
+	// The endpoint configuration of this DomainName showing the endpoint types
+	// of the domain name.
+	EndpointConfiguration *EndpointConfiguration `locationName:"endpointConfiguration" type:"structure"`
+
+	// The reference to an AWS-managed certificate that will be used for validating
+	// the regional domain name. AWS Certificate Manager is the only supported source.
+	RegionalCertificateArn *string `locationName:"regionalCertificateArn" type:"string"`
+
+	// The name of the certificate that will be used for validating the regional
+	// domain name.
+	RegionalCertificateName *string `locationName:"regionalCertificateName" type:"string"`
+
+	// The domain name associated with the regional endpoint for this custom domain
+	// name. You set up this association by adding a DNS record that points the
+	// custom domain name to this regional domain name. The regional domain name
+	// is returned by Amazon API Gateway when you create a regional endpoint.
+	RegionalDomainName *string `locationName:"regionalDomainName" type:"string"`
 }
 
 // String returns the string representation
@@ -13188,6 +14058,58 @@ func (s *DomainName) SetDistributionDomainName(v string) *DomainName {
 // SetDomainName sets the DomainName field's value.
 func (s *DomainName) SetDomainName(v string) *DomainName {
 	s.DomainName = &v
+	return s
+}
+
+// SetEndpointConfiguration sets the EndpointConfiguration field's value.
+func (s *DomainName) SetEndpointConfiguration(v *EndpointConfiguration) *DomainName {
+	s.EndpointConfiguration = v
+	return s
+}
+
+// SetRegionalCertificateArn sets the RegionalCertificateArn field's value.
+func (s *DomainName) SetRegionalCertificateArn(v string) *DomainName {
+	s.RegionalCertificateArn = &v
+	return s
+}
+
+// SetRegionalCertificateName sets the RegionalCertificateName field's value.
+func (s *DomainName) SetRegionalCertificateName(v string) *DomainName {
+	s.RegionalCertificateName = &v
+	return s
+}
+
+// SetRegionalDomainName sets the RegionalDomainName field's value.
+func (s *DomainName) SetRegionalDomainName(v string) *DomainName {
+	s.RegionalDomainName = &v
+	return s
+}
+
+// The endpoint configuration to indicate the types of endpoints an API (RestApi)
+// or its custom domain name (DomainName) has.
+type EndpointConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// A list of endpoint types of an API (RestApi) or its custom domain name (DomainName).
+	// For an edge-optimized API and its custom domain name, the endpoint type is
+	// "EDGE". For a regional API and its custom domain name, the endpoint type
+	// is REGIONAL.
+	Types []*string `locationName:"types" type:"list"`
+}
+
+// String returns the string representation
+func (s EndpointConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EndpointConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetTypes sets the Types field's value.
+func (s *EndpointConfiguration) SetTypes(v []*string) *EndpointConfiguration {
+	s.Types = v
 	return s
 }
 
@@ -15942,10 +16864,11 @@ func (s *GetRestApisOutput) SetPosition(v string) *GetRestApisOutput {
 type GetSdkInput struct {
 	_ struct{} `type:"structure"`
 
-	// A key-value map of query string parameters that specify properties of the
-	// SDK, depending on the requested sdkType. For sdkType of objectivec, a parameter
-	// named classPrefix is required. For sdkType of android, parameters named groupId,
-	// artifactId, artifactVersion, and invokerPackage are required.
+	// A string-to-string key-value map of query parameters sdkType-dependent properties
+	// of the SDK. For sdkType of objectivec or swift, a parameter named classPrefix
+	// is required. For sdkType of android, parameters named groupId, artifactId,
+	// artifactVersion, and invokerPackage are required. For sdkType of java, parameters
+	// named serviceName and javaPackageName are required.
 	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
 
 	// The string identifier of the associated RestApi.
@@ -15953,8 +16876,8 @@ type GetSdkInput struct {
 	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
-	// The language for the generated SDK. Currently javascript, android, and objectivec
-	// (for iOS) are supported.
+	// The language for the generated SDK. Currently java, javascript, android,
+	// objectivec and swift (for iOS) are supported.
 	//
 	// SdkType is a required field
 	SdkType *string `location:"uri" locationName:"sdk_type" type:"string" required:"true"`
@@ -17744,7 +18667,7 @@ type Model struct {
 	// The identifier for the model resource.
 	Id *string `locationName:"id" type:"string"`
 
-	// The name of the model.
+	// The name of the model. Must be an alphanumeric string.
 	Name *string `locationName:"name" type:"string"`
 
 	// The schema for the model. For application/json models, this should be JSON-schema
@@ -18833,6 +19756,10 @@ type RestApi struct {
 	// The API's description.
 	Description *string `locationName:"description" type:"string"`
 
+	// The endpoint configuration of this RestApi showing the endpoint types of
+	// the API.
+	EndpointConfiguration *EndpointConfiguration `locationName:"endpointConfiguration" type:"structure"`
+
 	// The API's identifier. This identifier is unique across all of your APIs in
 	// Amazon API Gateway.
 	Id *string `locationName:"id" type:"string"`
@@ -18873,6 +19800,12 @@ func (s *RestApi) SetCreatedDate(v time.Time) *RestApi {
 // SetDescription sets the Description field's value.
 func (s *RestApi) SetDescription(v string) *RestApi {
 	s.Description = &v
+	return s
+}
+
+// SetEndpointConfiguration sets the EndpointConfiguration field's value.
+func (s *RestApi) SetEndpointConfiguration(v *EndpointConfiguration) *RestApi {
+	s.EndpointConfiguration = v
 	return s
 }
 
@@ -21292,11 +22225,16 @@ const (
 	ApiKeysFormatCsv = "csv"
 )
 
-// The authorizer type. the current value is TOKEN for a Lambda function or
-// COGNITO_USER_POOLS for an Amazon Cognito Your User Pool.
+// [Required] The authorizer type. Valid values are TOKEN for a Lambda function
+// using a single authorization token submitted in a custom header, REQUEST
+// for a Lambda function using incoming request parameters, and COGNITO_USER_POOLS
+// for using an Amazon Cognito user pool.
 const (
 	// AuthorizerTypeToken is a AuthorizerType enum value
 	AuthorizerTypeToken = "TOKEN"
+
+	// AuthorizerTypeRequest is a AuthorizerType enum value
+	AuthorizerTypeRequest = "REQUEST"
 
 	// AuthorizerTypeCognitoUserPools is a AuthorizerType enum value
 	AuthorizerTypeCognitoUserPools = "COGNITO_USER_POOLS"
@@ -21391,6 +22329,17 @@ const (
 
 	// DocumentationPartTypeResponseBody is a DocumentationPartType enum value
 	DocumentationPartTypeResponseBody = "RESPONSE_BODY"
+)
+
+// The endpoint type. The valid value is EDGE for edge-optimized API setup,
+// most suitable for mobile applications, REGIONAL for regional API endpoint
+// setup, most suitable for calling from AWS Region
+const (
+	// EndpointTypeRegional is a EndpointType enum value
+	EndpointTypeRegional = "REGIONAL"
+
+	// EndpointTypeEdge is a EndpointType enum value
+	EndpointTypeEdge = "EDGE"
 )
 
 const (

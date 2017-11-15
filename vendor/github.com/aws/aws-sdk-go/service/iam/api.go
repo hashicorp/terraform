@@ -384,6 +384,10 @@ func (c *IAM) AttachGroupPolicyRequest(input *AttachGroupPolicyInput) (req *requ
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
+//   * ErrCodePolicyNotAttachableException "PolicyNotAttachable"
+//   The request failed because AWS service role policies can only be attached
+//   to the service-linked role for that service.
+//
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
@@ -495,6 +499,10 @@ func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *reques
 //   the name of the service that depends on this service-linked role. You must
 //   request the change through that service.
 //
+//   * ErrCodePolicyNotAttachableException "PolicyNotAttachable"
+//   The request failed because AWS service role policies can only be attached
+//   to the service-linked role for that service.
+//
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
@@ -595,6 +603,10 @@ func (c *IAM) AttachUserPolicyRequest(input *AttachUserPolicyInput) (req *reques
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
+//
+//   * ErrCodePolicyNotAttachableException "PolicyNotAttachable"
+//   The request failed because AWS service role policies can only be attached
+//   to the service-linked role for that service.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -3752,6 +3764,113 @@ func (c *IAM) DeleteServerCertificateWithContext(ctx aws.Context, input *DeleteS
 	return out, req.Send()
 }
 
+const opDeleteServiceLinkedRole = "DeleteServiceLinkedRole"
+
+// DeleteServiceLinkedRoleRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteServiceLinkedRole operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteServiceLinkedRole for more information on using the DeleteServiceLinkedRole
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteServiceLinkedRoleRequest method.
+//    req, resp := client.DeleteServiceLinkedRoleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceLinkedRole
+func (c *IAM) DeleteServiceLinkedRoleRequest(input *DeleteServiceLinkedRoleInput) (req *request.Request, output *DeleteServiceLinkedRoleOutput) {
+	op := &request.Operation{
+		Name:       opDeleteServiceLinkedRole,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteServiceLinkedRoleInput{}
+	}
+
+	output = &DeleteServiceLinkedRoleOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteServiceLinkedRole API operation for AWS Identity and Access Management.
+//
+// Submits a service-linked role deletion request and returns a DeletionTaskId,
+// which you can use to check the status of the deletion. Before you call this
+// operation, confirm that the role has no active sessions and that any resources
+// used by the role in the linked service are deleted. If you call this operation
+// more than once for the same service-linked role and an earlier deletion task
+// is not complete, then the DeletionTaskId of the earlier request is returned.
+//
+// If you submit a deletion request for a service-linked role whose linked service
+// is still accessing a resource, then the deletion task fails. If it fails,
+// the GetServiceLinkedRoleDeletionStatus API operation returns the reason for
+// the failure, including the resources that must be deleted. To delete the
+// service-linked role, you must first remove those resources from the linked
+// service and then submit the deletion request again. Resources are specific
+// to the service that is linked to the role. For more information about removing
+// resources from a service, see the AWS documentation (http://docs.aws.amazon.com/)
+// for your service.
+//
+// For more information about service-linked roles, see Roles Terms and Concepts:
+// AWS Service-Linked Role (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_terms-and-concepts.html#iam-term-service-linked-role)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteServiceLinkedRole for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ErrCodeLimitExceededException "LimitExceeded"
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceLinkedRole
+func (c *IAM) DeleteServiceLinkedRole(input *DeleteServiceLinkedRoleInput) (*DeleteServiceLinkedRoleOutput, error) {
+	req, out := c.DeleteServiceLinkedRoleRequest(input)
+	return out, req.Send()
+}
+
+// DeleteServiceLinkedRoleWithContext is the same as DeleteServiceLinkedRole with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteServiceLinkedRole for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) DeleteServiceLinkedRoleWithContext(ctx aws.Context, input *DeleteServiceLinkedRoleInput, opts ...request.Option) (*DeleteServiceLinkedRoleOutput, error) {
+	req, out := c.DeleteServiceLinkedRoleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteServiceSpecificCredential = "DeleteServiceSpecificCredential"
 
 // DeleteServiceSpecificCredentialRequest generates a "aws/request.Request" representing the
@@ -6564,6 +6683,98 @@ func (c *IAM) GetServerCertificate(input *GetServerCertificateInput) (*GetServer
 // for more information on using Contexts.
 func (c *IAM) GetServerCertificateWithContext(ctx aws.Context, input *GetServerCertificateInput, opts ...request.Option) (*GetServerCertificateOutput, error) {
 	req, out := c.GetServerCertificateRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetServiceLinkedRoleDeletionStatus = "GetServiceLinkedRoleDeletionStatus"
+
+// GetServiceLinkedRoleDeletionStatusRequest generates a "aws/request.Request" representing the
+// client's request for the GetServiceLinkedRoleDeletionStatus operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetServiceLinkedRoleDeletionStatus for more information on using the GetServiceLinkedRoleDeletionStatus
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetServiceLinkedRoleDeletionStatusRequest method.
+//    req, resp := client.GetServiceLinkedRoleDeletionStatusRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServiceLinkedRoleDeletionStatus
+func (c *IAM) GetServiceLinkedRoleDeletionStatusRequest(input *GetServiceLinkedRoleDeletionStatusInput) (req *request.Request, output *GetServiceLinkedRoleDeletionStatusOutput) {
+	op := &request.Operation{
+		Name:       opGetServiceLinkedRoleDeletionStatus,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetServiceLinkedRoleDeletionStatusInput{}
+	}
+
+	output = &GetServiceLinkedRoleDeletionStatusOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetServiceLinkedRoleDeletionStatus API operation for AWS Identity and Access Management.
+//
+// Retrieves the status of your service-linked role deletion. After you use
+// the DeleteServiceLinkedRole API operation to submit a service-linked role
+// for deletion, you can use the DeletionTaskId parameter in GetServiceLinkedRoleDeletionStatus
+// to check the status of the deletion. If the deletion fails, this operation
+// returns the reason that it failed.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetServiceLinkedRoleDeletionStatus for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServiceLinkedRoleDeletionStatus
+func (c *IAM) GetServiceLinkedRoleDeletionStatus(input *GetServiceLinkedRoleDeletionStatusInput) (*GetServiceLinkedRoleDeletionStatusOutput, error) {
+	req, out := c.GetServiceLinkedRoleDeletionStatusRequest(input)
+	return out, req.Send()
+}
+
+// GetServiceLinkedRoleDeletionStatusWithContext is the same as GetServiceLinkedRoleDeletionStatus with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetServiceLinkedRoleDeletionStatus for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) GetServiceLinkedRoleDeletionStatusWithContext(ctx aws.Context, input *GetServiceLinkedRoleDeletionStatusInput, opts ...request.Option) (*GetServiceLinkedRoleDeletionStatusOutput, error) {
+	req, out := c.GetServiceLinkedRoleDeletionStatusRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -11227,7 +11438,7 @@ func (c *IAM) SimulateCustomPolicyRequest(input *SimulateCustomPolicyInput) (req
 //
 //   * ErrCodePolicyEvaluationException "PolicyEvaluation"
 //   The request failed because a provided policy could not be successfully evaluated.
-//   An additional detail message indicates the source of the failure.
+//   An additional detailed message indicates the source of the failure.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulateCustomPolicy
 func (c *IAM) SimulateCustomPolicy(input *SimulateCustomPolicyInput) (*SimulatePolicyResponse, error) {
@@ -11397,7 +11608,7 @@ func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput
 //
 //   * ErrCodePolicyEvaluationException "PolicyEvaluation"
 //   The request failed because a provided policy could not be successfully evaluated.
-//   An additional detail message indicates the source of the failure.
+//   An additional detailed message indicates the source of the failure.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/SimulatePrincipalPolicy
 func (c *IAM) SimulatePrincipalPolicy(input *SimulatePrincipalPolicyInput) (*SimulatePolicyResponse, error) {
@@ -14612,7 +14823,7 @@ type CreatePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-+
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -15751,7 +15962,7 @@ type DeleteGroupPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-+
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -16212,7 +16423,7 @@ type DeleteRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-+
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -16487,6 +16698,75 @@ func (s DeleteServerCertificateOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceLinkedRoleRequest
+type DeleteServiceLinkedRoleInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the service-linked role to be deleted.
+	//
+	// RoleName is a required field
+	RoleName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteServiceLinkedRoleInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteServiceLinkedRoleInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteServiceLinkedRoleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteServiceLinkedRoleInput"}
+	if s.RoleName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleName"))
+	}
+	if s.RoleName != nil && len(*s.RoleName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRoleName sets the RoleName field's value.
+func (s *DeleteServiceLinkedRoleInput) SetRoleName(v string) *DeleteServiceLinkedRoleInput {
+	s.RoleName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceLinkedRoleResponse
+type DeleteServiceLinkedRoleOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The deletion task identifier that you can use to check the status of the
+	// deletion. This identifier is returned in the format task/aws-service-role/<service-principal-name>/<role-name>/<task-uuid>.
+	//
+	// DeletionTaskId is a required field
+	DeletionTaskId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteServiceLinkedRoleOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteServiceLinkedRoleOutput) GoString() string {
+	return s.String()
+}
+
+// SetDeletionTaskId sets the DeletionTaskId field's value.
+func (s *DeleteServiceLinkedRoleOutput) SetDeletionTaskId(v string) *DeleteServiceLinkedRoleOutput {
+	s.DeletionTaskId = &v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeleteServiceSpecificCredentialRequest
 type DeleteServiceSpecificCredentialInput struct {
 	_ struct{} `type:"structure"`
@@ -16713,7 +16993,7 @@ type DeleteUserPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-+
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -16848,6 +17128,48 @@ func (s DeleteVirtualMFADeviceOutput) String() string {
 // GoString returns the string representation
 func (s DeleteVirtualMFADeviceOutput) GoString() string {
 	return s.String()
+}
+
+// The reason that the service-linked role deletion failed.
+//
+// This data type is used as a response element in the GetServiceLinkedRoleDeletionStatus
+// operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DeletionTaskFailureReasonType
+type DeletionTaskFailureReasonType struct {
+	_ struct{} `type:"structure"`
+
+	// A short description of the reason that the service-linked role deletion failed.
+	Reason *string `type:"string"`
+
+	// A list of objects that contains details about the service-linked role deletion
+	// failure. If the service-linked role has active sessions or if any resources
+	// that were used by the role have not been deleted from the linked service,
+	// the role can't be deleted. This parameter includes a list of the resources
+	// that are associated with the role and the region in which the resources are
+	// being used.
+	RoleUsageList []*RoleUsageType `type:"list"`
+}
+
+// String returns the string representation
+func (s DeletionTaskFailureReasonType) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeletionTaskFailureReasonType) GoString() string {
+	return s.String()
+}
+
+// SetReason sets the Reason field's value.
+func (s *DeletionTaskFailureReasonType) SetReason(v string) *DeletionTaskFailureReasonType {
+	s.Reason = &v
+	return s
+}
+
+// SetRoleUsageList sets the RoleUsageList field's value.
+func (s *DeletionTaskFailureReasonType) SetRoleUsageList(v []*RoleUsageType) *DeletionTaskFailureReasonType {
+	s.RoleUsageList = v
+	return s
 }
 
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/DetachGroupPolicyRequest
@@ -18073,7 +18395,7 @@ type GetGroupPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-+
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -18666,7 +18988,7 @@ type GetRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-+
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -19045,6 +19367,84 @@ func (s *GetServerCertificateOutput) SetServerCertificate(v *ServerCertificate) 
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServiceLinkedRoleDeletionStatusRequest
+type GetServiceLinkedRoleDeletionStatusInput struct {
+	_ struct{} `type:"structure"`
+
+	// The deletion task identifier. This identifier is returned by the DeleteServiceLinkedRole
+	// operation in the format task/aws-service-role/<service-principal-name>/<role-name>/<task-uuid>.
+	//
+	// DeletionTaskId is a required field
+	DeletionTaskId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetServiceLinkedRoleDeletionStatusInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetServiceLinkedRoleDeletionStatusInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetServiceLinkedRoleDeletionStatusInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetServiceLinkedRoleDeletionStatusInput"}
+	if s.DeletionTaskId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeletionTaskId"))
+	}
+	if s.DeletionTaskId != nil && len(*s.DeletionTaskId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeletionTaskId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDeletionTaskId sets the DeletionTaskId field's value.
+func (s *GetServiceLinkedRoleDeletionStatusInput) SetDeletionTaskId(v string) *GetServiceLinkedRoleDeletionStatusInput {
+	s.DeletionTaskId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetServiceLinkedRoleDeletionStatusResponse
+type GetServiceLinkedRoleDeletionStatusOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object that contains details about the reason the deletion failed.
+	Reason *DeletionTaskFailureReasonType `type:"structure"`
+
+	// The status of the deletion.
+	//
+	// Status is a required field
+	Status *string `type:"string" required:"true" enum:"DeletionTaskStatusType"`
+}
+
+// String returns the string representation
+func (s GetServiceLinkedRoleDeletionStatusOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetServiceLinkedRoleDeletionStatusOutput) GoString() string {
+	return s.String()
+}
+
+// SetReason sets the Reason field's value.
+func (s *GetServiceLinkedRoleDeletionStatusOutput) SetReason(v *DeletionTaskFailureReasonType) *GetServiceLinkedRoleDeletionStatusOutput {
+	s.Reason = v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *GetServiceLinkedRoleDeletionStatusOutput) SetStatus(v string) *GetServiceLinkedRoleDeletionStatusOutput {
+	s.Status = &v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetUserRequest
 type GetUserInput struct {
 	_ struct{} `type:"structure"`
@@ -19122,7 +19522,7 @@ type GetUserPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-+
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -20464,6 +20864,10 @@ type ListGroupPoliciesOutput struct {
 	Marker *string `min:"1" type:"string"`
 
 	// A list of policy names.
+	//
+	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters consisting of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-+
 	//
 	// PolicyNames is a required field
 	PolicyNames []*string `type:"list" required:"true"`
@@ -23482,7 +23886,7 @@ type PutGroupPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-+
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -23579,7 +23983,7 @@ type PutRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-+
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -23685,7 +24089,7 @@ type PutUserPolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-+
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -24517,6 +24921,43 @@ func (s *RoleDetail) SetRoleName(v string) *RoleDetail {
 // SetRolePolicyList sets the RolePolicyList field's value.
 func (s *RoleDetail) SetRolePolicyList(v []*PolicyDetail) *RoleDetail {
 	s.RolePolicyList = v
+	return s
+}
+
+// An object that contains details about how a service-linked role is used.
+//
+// This data type is used as a response element in the GetServiceLinkedRoleDeletionStatus
+// operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/RoleUsageType
+type RoleUsageType struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the region where the service-linked role is being used.
+	Region *string `min:"1" type:"string"`
+
+	// The name of the resource that is using the service-linked role.
+	Resources []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s RoleUsageType) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RoleUsageType) GoString() string {
+	return s.String()
+}
+
+// SetRegion sets the Region field's value.
+func (s *RoleUsageType) SetRegion(v string) *RoleUsageType {
+	s.Region = &v
+	return s
+}
+
+// SetResources sets the Resources field's value.
+func (s *RoleUsageType) SetResources(v []*string) *RoleUsageType {
+	s.Resources = v
 	return s
 }
 
@@ -27472,15 +27913,18 @@ type User struct {
 	// a list of AWS websites that capture a user's last sign-in time, see the Credential
 	// Reports (http://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
 	// topic in the Using IAM guide. If a password is used more than once in a five-minute
-	// span, only the first use is returned in this field. This field is null (not
-	// present) when:
+	// span, only the first use is returned in this field. If the field is null
+	// (no value) then it indicates that they never signed in with a password. This
+	// can be because:
 	//
-	//    * The user does not have a password
+	//    * The user never had a password.
 	//
-	//    * The password exists but has never been used (at least not since IAM
-	//    started tracking this information on October 20th, 2014
+	//    * A password exists but has not been used since IAM started tracking this
+	//    information on October 20th, 2014.
 	//
-	//    * there is no sign-in data associated with the user
+	// A null does not mean that the user never had a password. Also, if the user
+	// does not currently have a password, but had one in the past, then this field
+	// contains the date and time the most recent password was used.
 	//
 	// This value is returned only in the GetUser and ListUsers actions.
 	PasswordLastUsed *time.Time `type:"timestamp" timestampFormat:"iso8601"`
@@ -27759,6 +28203,20 @@ const (
 
 	// ContextKeyTypeEnumDateList is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumDateList = "dateList"
+)
+
+const (
+	// DeletionTaskStatusTypeSucceeded is a DeletionTaskStatusType enum value
+	DeletionTaskStatusTypeSucceeded = "SUCCEEDED"
+
+	// DeletionTaskStatusTypeInProgress is a DeletionTaskStatusType enum value
+	DeletionTaskStatusTypeInProgress = "IN_PROGRESS"
+
+	// DeletionTaskStatusTypeFailed is a DeletionTaskStatusType enum value
+	DeletionTaskStatusTypeFailed = "FAILED"
+
+	// DeletionTaskStatusTypeNotStarted is a DeletionTaskStatusType enum value
+	DeletionTaskStatusTypeNotStarted = "NOT_STARTED"
 )
 
 const (

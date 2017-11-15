@@ -4,7 +4,7 @@
 // requests to Application Auto Scaling.
 //
 // With Application Auto Scaling, you can automatically scale your AWS resources.
-// The experience similar to that of Auto Scaling (https://aws.amazon.com/autoscaling/).
+// The experience is similar to that of Auto Scaling (https://aws.amazon.com/autoscaling/).
 // You can use Application Auto Scaling to accomplish the following tasks:
 //
 //    * Define scaling policies to automatically scale your AWS resources
@@ -32,8 +32,8 @@
 //    in the Amazon AppStream 2.0 Developer Guide.
 //
 //    * Provisioned read and write capacity for Amazon DynamoDB tables and global
-//    secondary indexes. For more information, see Auto Scaling for DynamoDB
-//    (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TargetTracking.html)
+//    secondary indexes. For more information, see Managing Throughput Capacity
+//    Automatically with DynamoDB Auto Scaling (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/AutoScaling.html)
 //    in the Amazon DynamoDB Developer Guide.
 //
 // For a list of supported regions, see AWS Regions and Endpoints: Application
@@ -47,7 +47,7 @@
 //
 // Using the Client
 //
-// To Application Auto Scaling with the SDK use the New function to create
+// To contact Application Auto Scaling with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

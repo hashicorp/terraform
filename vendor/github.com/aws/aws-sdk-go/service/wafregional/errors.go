@@ -71,7 +71,7 @@ const (
 	//    BLOCK, or COUNT.
 	//
 	//    * You tried to update a ByteMatchSet with a FieldToMatchType other than
-	//    HEADER, QUERY_STRING, or URI.
+	//    HEADER, METHOD, QUERY_STRING, URI, or BODY.
 	//
 	//    * You tried to update a ByteMatchSet with a Field of HEADER but no value
 	//    for Data.
@@ -79,6 +79,12 @@ const (
 	//    * Your request references an ARN that is malformed, or corresponds to
 	//    a resource with which a web ACL cannot be associated.
 	ErrCodeWAFInvalidParameterException = "WAFInvalidParameterException"
+
+	// ErrCodeWAFInvalidRegexPatternException for service response error code
+	// "WAFInvalidRegexPatternException".
+	//
+	// The regular expression (regex) you specified in RegexPatternString is invalid.
+	ErrCodeWAFInvalidRegexPatternException = "WAFInvalidRegexPatternException"
 
 	// ErrCodeWAFLimitsExceededException for service response error code
 	// "WAFLimitsExceededException".

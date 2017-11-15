@@ -2874,6 +2874,10 @@ func (c *DatabaseMigrationService) DescribeTableStatisticsRequest(input *Describ
 // Returns table statistics on the database migration task, including table
 // name, rows inserted, rows updated, and rows deleted.
 //
+// Note that the "last updated" column the DMS console only indicates the time
+// that AWS DMS last updated the table statistics record for a table. It does
+// not indicate the time of the last update to the table.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -7043,6 +7047,14 @@ func (s *DescribeSchemasOutput) SetSchemas(v []*string) *DescribeSchemasOutput {
 type DescribeTableStatisticsInput struct {
 	_ struct{} `type:"structure"`
 
+	// Filters applied to the describe table statistics action.
+	//
+	// Valid filter names: schema-name | table-name | table-state
+	//
+	// A combination of filters creates an AND condition where each record matches
+	// all specified filters.
+	Filters []*Filter `locationNameList:"Filter" type:"list"`
+
 	// An optional pagination token provided by a previous request. If this parameter
 	// is specified, the response includes only records beyond the marker, up to
 	// the value specified by MaxRecords.
@@ -7054,7 +7066,7 @@ type DescribeTableStatisticsInput struct {
 	//
 	// Default: 100
 	//
-	// Constraints: Minimum 20, maximum 100.
+	// Constraints: Minimum 20, maximum 500.
 	MaxRecords *int64 `type:"integer"`
 
 	// The Amazon Resource Name (ARN) of the replication task.
@@ -7079,11 +7091,27 @@ func (s *DescribeTableStatisticsInput) Validate() error {
 	if s.ReplicationTaskArn == nil {
 		invalidParams.Add(request.NewErrParamRequired("ReplicationTaskArn"))
 	}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeTableStatisticsInput) SetFilters(v []*Filter) *DescribeTableStatisticsInput {
+	s.Filters = v
+	return s
 }
 
 // SetMarker sets the Marker field's value.
@@ -7826,7 +7854,8 @@ type ModifyEndpointInput struct {
 	// MONGODB, SYBASE, and SQLSERVER.
 	EngineName *string `type:"string"`
 
-	// Additional attributes associated with the connection.
+	// Additional attributes associated with the connection. To reset this parameter,
+	// pass the empty string ("") as an argument.
 	ExtraConnectionAttributes *string `type:"string"`
 
 	// Settings in JSON format for the source MongoDB endpoint. For more information
@@ -9921,7 +9950,11 @@ type TableStatistics struct {
 	// The name of the table.
 	TableName *string `type:"string"`
 
-	// The state of the table.
+	// The state of the tables described.
+	//
+	// Valid states: Table does not exist | Before load | Full load | Table completed
+	// | Table cancelled | Table error | Table all | Table updates | Table is being
+	// reloaded
 	TableState *string `type:"string"`
 
 	// The number of update actions performed on a table.

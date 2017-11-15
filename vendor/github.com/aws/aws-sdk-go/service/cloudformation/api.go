@@ -3559,6 +3559,88 @@ func (c *CloudFormation) UpdateStackSetWithContext(ctx aws.Context, input *Updat
 	return out, req.Send()
 }
 
+const opUpdateTerminationProtection = "UpdateTerminationProtection"
+
+// UpdateTerminationProtectionRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateTerminationProtection operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateTerminationProtection for more information on using the UpdateTerminationProtection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateTerminationProtectionRequest method.
+//    req, resp := client.UpdateTerminationProtectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/UpdateTerminationProtection
+func (c *CloudFormation) UpdateTerminationProtectionRequest(input *UpdateTerminationProtectionInput) (req *request.Request, output *UpdateTerminationProtectionOutput) {
+	op := &request.Operation{
+		Name:       opUpdateTerminationProtection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateTerminationProtectionInput{}
+	}
+
+	output = &UpdateTerminationProtectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateTerminationProtection API operation for AWS CloudFormation.
+//
+// Updates termination protection for the specified stack. If a user attempts
+// to delete a stack with termination protection enabled, the operation fails
+// and the stack remains unchanged. For more information, see Protecting a Stack
+// From Being Deleted (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-protect-stacks.html)
+// in the AWS CloudFormation User Guide.
+//
+// For nested stacks (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html),
+// termination protection is set on the root stack and cannot be changed directly
+// on the nested stack.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudFormation's
+// API operation UpdateTerminationProtection for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/UpdateTerminationProtection
+func (c *CloudFormation) UpdateTerminationProtection(input *UpdateTerminationProtectionInput) (*UpdateTerminationProtectionOutput, error) {
+	req, out := c.UpdateTerminationProtectionRequest(input)
+	return out, req.Send()
+}
+
+// UpdateTerminationProtectionWithContext is the same as UpdateTerminationProtection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateTerminationProtection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFormation) UpdateTerminationProtectionWithContext(ctx aws.Context, input *UpdateTerminationProtectionInput, opts ...request.Option) (*UpdateTerminationProtectionOutput, error) {
+	req, out := c.UpdateTerminationProtectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opValidateTemplate = "ValidateTemplate"
 
 // ValidateTemplateRequest generates a "aws/request.Request" representing the
@@ -4473,6 +4555,18 @@ type CreateStackInput struct {
 	// Default: false
 	DisableRollback *bool `type:"boolean"`
 
+	// Whether to enable termination protection on the specified stack. If a user
+	// attempts to delete a stack with termination protection enabled, the operation
+	// fails and the stack remains unchanged. For more information, see Protecting
+	// a Stack From Being Deleted (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-protect-stacks.html)
+	// in the AWS CloudFormation User Guide. Termination protection is disabled
+	// on stacks by default.
+	//
+	// For nested stacks (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html),
+	// termination protection is set on the root stack and cannot be changed directly
+	// on the nested stack.
+	EnableTerminationProtection *bool `type:"boolean"`
+
 	// The Simple Notification Service (SNS) topic ARNs to publish stack related
 	// events. You can find your SNS topic ARNs using the SNS console or your Command
 	// Line Interface (CLI).
@@ -4648,6 +4742,12 @@ func (s *CreateStackInput) SetClientRequestToken(v string) *CreateStackInput {
 // SetDisableRollback sets the DisableRollback field's value.
 func (s *CreateStackInput) SetDisableRollback(v bool) *CreateStackInput {
 	s.DisableRollback = &v
+	return s
+}
+
+// SetEnableTerminationProtection sets the EnableTerminationProtection field's value.
+func (s *CreateStackInput) SetEnableTerminationProtection(v bool) *CreateStackInput {
+	s.EnableTerminationProtection = &v
 	return s
 }
 
@@ -8723,6 +8823,9 @@ type Stack struct {
 	// CreationTime is a required field
 	CreationTime *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
+	// The time the stack was deleted.
+	DeletionTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
 	// A user-defined description associated with the stack.
 	Description *string `min:"1" type:"string"`
 
@@ -8732,6 +8835,15 @@ type Stack struct {
 	//
 	//    * false: enable rollback
 	DisableRollback *bool `type:"boolean"`
+
+	// Whether termination protection is enabled for the stack.
+	//
+	// For nested stacks (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html),
+	// termination protection is set on the root stack and cannot be changed directly
+	// on the nested stack. For more information, see Protecting a Stack From Being
+	// Deleted (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-protect-stacks.html)
+	// in the AWS CloudFormation User Guide.
+	EnableTerminationProtection *bool `type:"boolean"`
 
 	// The time the stack was last updated. This field will only be returned if
 	// the stack has been updated at least once.
@@ -8746,6 +8858,14 @@ type Stack struct {
 	// A list of Parameter structures.
 	Parameters []*Parameter `type:"list"`
 
+	// For nested stacks--stacks created as resources for another stack--the stack
+	// ID of the direct parent of this stack. For the first level of nested stacks,
+	// the root stack is also the parent stack.
+	//
+	// For more information, see Working with Nested Stacks (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html)
+	// in the AWS CloudFormation User Guide.
+	ParentId *string `type:"string"`
+
 	// The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM)
 	// role that is associated with the stack. During a stack operation, AWS CloudFormation
 	// uses this role's credentials to make calls on your behalf.
@@ -8754,6 +8874,13 @@ type Stack struct {
 	// The rollback triggers for AWS CloudFormation to monitor during stack creation
 	// and updating operations, and for the specified monitoring period afterwards.
 	RollbackConfiguration *RollbackConfiguration `type:"structure"`
+
+	// For nested stacks--stacks created as resources for another stack--the stack
+	// ID of the the top-level stack to which the nested stack ultimately belongs.
+	//
+	// For more information, see Working with Nested Stacks (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html)
+	// in the AWS CloudFormation User Guide.
+	RootId *string `type:"string"`
 
 	// Unique identifier of the stack.
 	StackId *string `type:"string"`
@@ -8806,6 +8933,12 @@ func (s *Stack) SetCreationTime(v time.Time) *Stack {
 	return s
 }
 
+// SetDeletionTime sets the DeletionTime field's value.
+func (s *Stack) SetDeletionTime(v time.Time) *Stack {
+	s.DeletionTime = &v
+	return s
+}
+
 // SetDescription sets the Description field's value.
 func (s *Stack) SetDescription(v string) *Stack {
 	s.Description = &v
@@ -8815,6 +8948,12 @@ func (s *Stack) SetDescription(v string) *Stack {
 // SetDisableRollback sets the DisableRollback field's value.
 func (s *Stack) SetDisableRollback(v bool) *Stack {
 	s.DisableRollback = &v
+	return s
+}
+
+// SetEnableTerminationProtection sets the EnableTerminationProtection field's value.
+func (s *Stack) SetEnableTerminationProtection(v bool) *Stack {
+	s.EnableTerminationProtection = &v
 	return s
 }
 
@@ -8842,6 +8981,12 @@ func (s *Stack) SetParameters(v []*Parameter) *Stack {
 	return s
 }
 
+// SetParentId sets the ParentId field's value.
+func (s *Stack) SetParentId(v string) *Stack {
+	s.ParentId = &v
+	return s
+}
+
 // SetRoleARN sets the RoleARN field's value.
 func (s *Stack) SetRoleARN(v string) *Stack {
 	s.RoleARN = &v
@@ -8851,6 +8996,12 @@ func (s *Stack) SetRoleARN(v string) *Stack {
 // SetRollbackConfiguration sets the RollbackConfiguration field's value.
 func (s *Stack) SetRollbackConfiguration(v *RollbackConfiguration) *Stack {
 	s.RollbackConfiguration = v
+	return s
+}
+
+// SetRootId sets the RootId field's value.
+func (s *Stack) SetRootId(v string) *Stack {
+	s.RootId = &v
 	return s
 }
 
@@ -9768,6 +9919,10 @@ type StackSetOperationPreferences struct {
 	// time. This is dependent on the value of FailureToleranceCount—MaxConcurrentCount
 	// is at most one more than the FailureToleranceCount .
 	//
+	// Note that this setting lets you specify the maximum for operations. For large
+	// deployments, under certain circumstances the actual number of accounts acted
+	// upon concurrently may be lower due to service throttling.
+	//
 	// Conditional: You must specify either MaxConcurrentCount or MaxConcurrentPercentage,
 	// but not both.
 	MaxConcurrentCount *int64 `min:"1" type:"integer"`
@@ -9779,6 +9934,10 @@ type StackSetOperationPreferences struct {
 	// AWS CloudFormation rounds down to the next whole number. This is true except
 	// in cases where rounding down would result is zero. In this case, CloudFormation
 	// sets the number as one instead.
+	//
+	// Note that this setting lets you specify the maximum for operations. For large
+	// deployments, under certain circumstances the actual number of accounts acted
+	// upon concurrently may be lower due to service throttling.
 	//
 	// Conditional: You must specify either MaxConcurrentCount or MaxConcurrentPercentage,
 	// but not both.
@@ -10086,6 +10245,21 @@ type StackSummary struct {
 	// the stack has been updated at least once.
 	LastUpdatedTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
+	// For nested stacks--stacks created as resources for another stack--the stack
+	// ID of the direct parent of this stack. For the first level of nested stacks,
+	// the root stack is also the parent stack.
+	//
+	// For more information, see Working with Nested Stacks (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html)
+	// in the AWS CloudFormation User Guide.
+	ParentId *string `type:"string"`
+
+	// For nested stacks--stacks created as resources for another stack--the stack
+	// ID of the the top-level stack to which the nested stack ultimately belongs.
+	//
+	// For more information, see Working with Nested Stacks (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-nested-stacks.html)
+	// in the AWS CloudFormation User Guide.
+	RootId *string `type:"string"`
+
 	// Unique stack identifier.
 	StackId *string `type:"string"`
 
@@ -10131,6 +10305,18 @@ func (s *StackSummary) SetDeletionTime(v time.Time) *StackSummary {
 // SetLastUpdatedTime sets the LastUpdatedTime field's value.
 func (s *StackSummary) SetLastUpdatedTime(v time.Time) *StackSummary {
 	s.LastUpdatedTime = &v
+	return s
+}
+
+// SetParentId sets the ParentId field's value.
+func (s *StackSummary) SetParentId(v string) *StackSummary {
+	s.ParentId = &v
+	return s
+}
+
+// SetRootId sets the RootId field's value.
+func (s *StackSummary) SetRootId(v string) *StackSummary {
+	s.RootId = &v
 	return s
 }
 
@@ -10952,6 +11138,87 @@ func (s UpdateStackSetOutput) GoString() string {
 // SetOperationId sets the OperationId field's value.
 func (s *UpdateStackSetOutput) SetOperationId(v string) *UpdateStackSetOutput {
 	s.OperationId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/UpdateTerminationProtectionInput
+type UpdateTerminationProtectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Whether to enable termination protection on the specified stack.
+	//
+	// EnableTerminationProtection is a required field
+	EnableTerminationProtection *bool `type:"boolean" required:"true"`
+
+	// The name or unique ID of the stack for which you want to set termination
+	// protection.
+	//
+	// StackName is a required field
+	StackName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateTerminationProtectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateTerminationProtectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTerminationProtectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTerminationProtectionInput"}
+	if s.EnableTerminationProtection == nil {
+		invalidParams.Add(request.NewErrParamRequired("EnableTerminationProtection"))
+	}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+	if s.StackName != nil && len(*s.StackName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEnableTerminationProtection sets the EnableTerminationProtection field's value.
+func (s *UpdateTerminationProtectionInput) SetEnableTerminationProtection(v bool) *UpdateTerminationProtectionInput {
+	s.EnableTerminationProtection = &v
+	return s
+}
+
+// SetStackName sets the StackName field's value.
+func (s *UpdateTerminationProtectionInput) SetStackName(v string) *UpdateTerminationProtectionInput {
+	s.StackName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/UpdateTerminationProtectionOutput
+type UpdateTerminationProtectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique ID of the stack.
+	StackId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s UpdateTerminationProtectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateTerminationProtectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetStackId sets the StackId field's value.
+func (s *UpdateTerminationProtectionOutput) SetStackId(v string) *UpdateTerminationProtectionOutput {
+	s.StackId = &v
 	return s
 }
 
