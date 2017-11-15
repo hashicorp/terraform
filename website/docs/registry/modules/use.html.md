@@ -39,6 +39,7 @@ have required inputs you must set before being able to use the module.
 ```hcl
 module "consul" {
   source = "hashicorp/consul/aws"
+  version = "0.1.0"
 }
 ```
 
@@ -48,7 +49,10 @@ Each module in the registry is versioned. These versions syntactically must
 follow [semantic versioning](http://semver.org/). In addition to pure syntax,
 we encourge all modules to follow the full guidelines of semantic versioning.
 
-Terraform currently only downloads the latest version of each module. The
-next release of Terraform (0.11) will bring full support for constraining
-module versions. The registry has the required semantic versions since launch
-to prepare for this transition shortly after.
+Terraform since version 0.11 will resolve any provided 
+[module version constraints](/docs/modules/usage.html#module-versions) and 
+using them is highly recommended to avoid pulling in breaking changes.
+
+Terraform from version 10.6 through to 0.11 had partial support for the registry 
+protocol, however will not honour version constraints and always download the
+latest version.
