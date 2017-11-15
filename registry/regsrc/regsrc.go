@@ -2,7 +2,9 @@
 // resources within a Terraform registry.
 package regsrc
 
+import "github.com/hashicorp/terraform/svchost"
+
 var (
 	// PublicRegistryHost is a FriendlyHost that represents the public registry.
-	PublicRegistryHost = NewFriendlyHost("registry.terraform.io")
+	PublicRegistryHost, _ = svchost.New("registry.terraform.io")
 )

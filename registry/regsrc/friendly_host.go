@@ -54,16 +54,6 @@ var (
 	hostRe = regexp.MustCompile("^" + hostSubRe + "$")
 )
 
-// FriendlyHost describes a registry instance identified in source strings by a
-// simple bare hostname like registry.terraform.io.
-type FriendlyHost struct {
-	Raw string
-}
-
-func NewFriendlyHost(host string) *FriendlyHost {
-	return &FriendlyHost{Raw: host}
-}
-
 // ParseFriendlyHost attempts to parse a valid "friendly host" prefix from the
 // given string. If no valid prefix is found, host will be nil and rest will
 // contain the full source string. The host prefix must terminate at the end of
@@ -74,11 +64,15 @@ func NewFriendlyHost(host string) *FriendlyHost {
 // invalid if the string came from a user directly. This must be checked
 // explicitly for user-input strings by calling Valid() on the
 // returned host.
-func ParseFriendlyHost(source string) (host *FriendlyHost, rest string) {
+func ParseFriendlyHost(source string) (host svchost.Hostname, rest string, err error) {
 	parts := strings.SplitN(source, "/", 2)
 
 	if hostRe.MatchString(parts[0]) {
-		host = &FriendlyHost{Raw: parts[0]}
+		host, err = svchost.New(parts[0])
+		if err != nil {
+			return
+		}
+
 		if len(parts) == 2 {
 			rest = parts[1]
 		}
@@ -88,55 +82,4 @@ func ParseFriendlyHost(source string) (host *FriendlyHost, rest string) {
 	// No match, return whole string as rest along with nil host
 	rest = source
 	return
-}
-
-// Valid returns whether the host prefix is considered valid in any case.
-// Example of invalid prefixes might include ones that don't conform to the host
-// name specifications. Not that IDN prefixes containing punycode are not valid
-// input which we expect to always be in user-input or normalised display form.
-func (h *FriendlyHost) Valid() bool {
-	return svchost.IsValid(h.Raw)
-}
-
-// Display returns the host formatted for display to the user in CLI or web
-// output.
-func (h *FriendlyHost) Display() string {
-	hostname, err := svchost.ForComparison(h.Raw)
-	if err != nil {
-		return InvalidHostString
-	}
-	return hostname.ForDisplay()
-}
-
-// Normalized returns the host formatted for internal reference or comparison.
-func (h *FriendlyHost) Normalized() string {
-	hostname, err := svchost.ForComparison(h.Raw)
-	if err != nil {
-		return InvalidHostString
-	}
-	return hostname.String()
-}
-
-// String returns the host formatted as the user originally typed it assuming it
-// was parsed from user input.
-func (h *FriendlyHost) String() string {
-	return h.Raw
-}
-
-// Equal compares the FriendlyHost against another instance taking normalization
-// into account.
-func (h *FriendlyHost) Equal(other *FriendlyHost) bool {
-	if other == nil {
-		return false
-	}
-	return h.Normalized() == other.Normalized()
-}
-
-func containsPuny(host string) bool {
-	for _, lbl := range strings.Split(host, ".") {
-		if strings.HasPrefix(strings.ToLower(lbl), "xn--") {
-			return true
-		}
-	}
-	return false
 }

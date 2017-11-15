@@ -20,7 +20,6 @@ import (
 )
 
 const (
-	defaultRegistry   = "registry.terraform.io"
 	registryServiceID = "registry.v1"
 	xTerraformGet     = "X-Terraform-Get"
 	xTerraformVersion = "X-Terraform-Version"
@@ -45,7 +44,7 @@ func (e errModuleNotFound) Error() string {
 }
 
 func (s *Storage) discoverRegURL(module *regsrc.Module) *url.URL {
-	regURL := s.Services.DiscoverServiceURL(svchost.Hostname(module.RawHost.Normalized()), serviceID)
+	regURL := s.Services.DiscoverServiceURL(module.Host(), serviceID)
 	if regURL == nil {
 		return nil
 	}
@@ -62,6 +61,10 @@ func (s *Storage) addRequestCreds(host svchost.Hostname, req *http.Request) {
 		return
 	}
 
+	if host == "" {
+		panic("")
+	}
+
 	creds, err := s.Creds.ForHost(host)
 	if err != nil {
 		log.Printf("[WARNING] Failed to get credentials for %s: %s (ignoring)", host, err)
@@ -75,13 +78,9 @@ func (s *Storage) addRequestCreds(host svchost.Hostname, req *http.Request) {
 
 // Lookup module versions in the registry.
 func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleVersions, error) {
-	if module.RawHost == nil {
-		module.RawHost = regsrc.NewFriendlyHost(defaultRegistry)
-	}
-
 	service := s.discoverRegURL(module)
 	if service == nil {
-		return nil, fmt.Errorf("host %s does not provide Terraform modules", module.RawHost.Display())
+		return nil, fmt.Errorf("host %s does not provide Terraform modules", module.Host().String())
 	}
 
 	p, err := url.Parse(path.Join(module.Module(), "versions"))
@@ -98,7 +97,7 @@ func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleV
 		return nil, err
 	}
 
-	s.addRequestCreds(svchost.Hostname(module.RawHost.Normalized()), req)
+	s.addRequestCreds(module.Host(), req)
 	req.Header.Set(xTerraformVersion, tfVersion)
 
 	resp, err := httpClient.Do(req)
@@ -134,13 +133,9 @@ func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleV
 
 // lookup the location of a specific module version in the registry
 func (s *Storage) lookupModuleLocation(module *regsrc.Module, version string) (string, error) {
-	if module.RawHost == nil {
-		module.RawHost = regsrc.NewFriendlyHost(defaultRegistry)
-	}
-
 	service := s.discoverRegURL(module)
 	if service == nil {
-		return "", fmt.Errorf("host %s does not provide Terraform modules", module.RawHost.Display())
+		return "", fmt.Errorf("host %s does not provide Terraform modules", module.Host().String())
 	}
 
 	var p *url.URL
@@ -162,7 +157,7 @@ func (s *Storage) lookupModuleLocation(module *regsrc.Module, version string) (s
 		return "", err
 	}
 
-	s.addRequestCreds(svchost.Hostname(module.RawHost.Normalized()), req)
+	s.addRequestCreds(module.Host(), req)
 	req.Header.Set(xTerraformVersion, tfVersion)
 
 	resp, err := httpClient.Do(req)

@@ -80,7 +80,7 @@ func TestRegistryAuth(t *testing.T) {
 	}
 
 	storage.Creds = auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
-		svchost.Hostname(defaultRegistry): {"token": testCredentials},
+		regsrc.PublicRegistryHost: {"token": testCredentials},
 	})
 
 	_, err = storage.lookupModuleVersions(mod)
@@ -126,7 +126,7 @@ func TestAccLookupModuleVersions(t *testing.T) {
 	// test with and without a hostname
 	for _, src := range []string{
 		"terraform-aws-modules/vpc/aws",
-		defaultRegistry + "/terraform-aws-modules/vpc/aws",
+		regsrc.PublicRegistryHost.String() + "/terraform-aws-modules/vpc/aws",
 	} {
 		modsrc, err := regsrc.ParseModuleSource(src)
 		if err != nil {

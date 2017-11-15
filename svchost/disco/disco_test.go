@@ -40,7 +40,7 @@ func TestDiscover(t *testing.T) {
 		defer close()
 
 		givenHost := "localhost" + portStr
-		host, err := svchost.ForComparison(givenHost)
+		host, err := svchost.New(givenHost)
 		if err != nil {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
@@ -75,7 +75,7 @@ func TestDiscover(t *testing.T) {
 		defer close()
 
 		givenHost := "localhost" + portStr
-		host, err := svchost.ForComparison(givenHost)
+		host, err := svchost.New(givenHost)
 		if err != nil {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
@@ -102,7 +102,7 @@ func TestDiscover(t *testing.T) {
 		defer close()
 
 		givenHost := "localhost" + portStr
-		host, err := svchost.ForComparison(givenHost)
+		host, err := svchost.New(givenHost)
 		if err != nil {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
@@ -128,7 +128,7 @@ func TestDiscover(t *testing.T) {
 		d.ForceHostServices(svchost.Hostname("example.com"), forced)
 
 		givenHost := "example.com"
-		host, err := svchost.ForComparison(givenHost)
+		host, err := svchost.New(givenHost)
 		if err != nil {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
@@ -162,7 +162,7 @@ func TestDiscover(t *testing.T) {
 		defer close()
 
 		givenHost := "localhost" + portStr
-		host, err := svchost.ForComparison(givenHost)
+		host, err := svchost.New(givenHost)
 		if err != nil {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
@@ -185,7 +185,7 @@ func TestDiscover(t *testing.T) {
 		defer close()
 
 		givenHost := "localhost" + portStr
-		host, err := svchost.ForComparison(givenHost)
+		host, err := svchost.New(givenHost)
 		if err != nil {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
@@ -212,7 +212,7 @@ func TestDiscover(t *testing.T) {
 		defer close()
 
 		givenHost := "localhost" + portStr
-		host, err := svchost.ForComparison(givenHost)
+		host, err := svchost.New(givenHost)
 		if err != nil {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
@@ -231,7 +231,7 @@ func TestDiscover(t *testing.T) {
 		defer close()
 
 		givenHost := "localhost" + portStr
-		host, err := svchost.ForComparison(givenHost)
+		host, err := svchost.New(givenHost)
 		if err != nil {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}
@@ -262,7 +262,7 @@ func TestDiscover(t *testing.T) {
 		defer close2()
 
 		givenHost := "localhost" + portStr2
-		host, err := svchost.ForComparison(givenHost)
+		host, err := svchost.New(givenHost)
 		if err != nil {
 			t.Fatalf("test server hostname is invalid: %s", err)
 		}

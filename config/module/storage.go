@@ -343,7 +343,7 @@ func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, e
 			return rec, err
 		}
 
-		s.output(fmt.Sprintf("  Found version %s of %s on %s", rec.Version, mod.Module(), mod.RawHost.Display()))
+		s.output(fmt.Sprintf("  Found version %s of %s on %s", rec.Version, mod.Module(), mod.Host().String()))
 
 	}
 	return rec, nil

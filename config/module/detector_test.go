@@ -99,8 +99,8 @@ func TestParseRegistrySource(t *testing.T) {
 			id := fmt.Sprintf("%s/%s/%s", mod.RawNamespace, mod.RawName, mod.RawProvider)
 
 			if tc.host != "" {
-				if mod.RawHost.Normalized() != tc.host {
-					t.Fatalf("expected host %q, got %q", tc.host, mod.RawHost)
+				if mod.Host().String() != tc.host {
+					t.Fatalf("expected host %q, got %q", tc.host, mod.Host())
 				}
 			}
 
