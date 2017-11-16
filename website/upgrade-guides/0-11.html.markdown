@@ -282,3 +282,32 @@ Terraform 0.11 will require adjusting the configuration to avoid the error.
 
 **Action:** If any existing output value expressions contain errors, change these
 expressions to fix the error.
+
+### Referencing Attributes from Resources with `count = 0`
+
+A common pattern for conditional resources is to conditionally set count
+to either `0` or `1` depending on the result of a boolean expression:
+
+```hcl
+resource "aws_instance" "example" {
+  count = "${var.create_instance ? 1 : 0}"
+
+  # ...
+}
+```
+
+When using this pattern, it's required to use a special idiom to access
+attributes of this resource to account for the case where no resource is
+created at all:
+
+```hcl
+output "instance_id" {
+  value = "${element(concat(aws_instance.example.*.id, list("")), 0)}"
+}
+```
+
+Accessing `aws_instance.example.id` directly is an error when `count = 0`.
+This is true for all situations where interpolation expressions are allowed,
+but previously _appeared_ to work for outputs due to the suppression of the
+error. Existing outputs that access non-existent resources must be updated to
+use the idiom above after upgrading to 0.11.0.
