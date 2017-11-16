@@ -172,7 +172,7 @@ all of the module's resources can be successfully refreshed and destroyed.
 A common configuration is where two child modules have different configurations
 for the same provider, like this:
 
-```
+```hcl
 # root.tf
 
 module "network-use1" {
@@ -186,7 +186,7 @@ module "network-usw2" {
 }
 ```
 
-```
+```hcl
 # network/network.tf
 
 variable "region" {
@@ -212,7 +212,7 @@ This can be addressed by moving the `provider` blocks into the root module
 as _additional configurations_, and then passing them down to the child
 modules as _default configurations_ via the explicit `providers` map:
 
-```
+```hcl
 # root.tf
 
 provider "aws" {
@@ -242,7 +242,7 @@ module "network-usw2" {
 }
 ```
 
-```
+```hcl
 # network/network.tf
 
 # Empty provider block signals that we expect a default (unaliased) "aws"
