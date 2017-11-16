@@ -1,28 +1,15 @@
 ## 0.11.0 (Unreleased)
 
-
-## 0.11.0-rc1 (November 9, 2017)
-
-BUG FIXES:
-
-* core: state now includes a reference to the provider configuration most recently used to create or update a resource, so that the same configuration can be used to destroy that resource if its configuration (including the explicit pointer to a provider configuration) is removed ([#16586](https://github.com/hashicorp/terraform/issues/16586))
-* backend/gcs: will now automatically add a slash to the given prefix if not present, since without it the workspace enumeration does not function correctly ([#16585](https://github.com/hashicorp/terraform/issues/16585))
-
-## 0.11.0-beta1 (November 3, 2017)
+The following list combines the changes from 0.11.0-beta1 and 0.11.0-rc1 to give the full set of changes since 0.10.8. For details on each of the individual pre-releases, please see [the 0.11.0-rc1 CHANGELOG](https://github.com/hashicorp/terraform/blob/v0.11.0-rc1/CHANGELOG.md).
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
-The following items give an overview of the incompatibilities and other noteworthy changes in this release. For more details on some of these changes, along with information on how to upgrade existing configurations where needed, see [the v0.11 upgrade guide](./website/upgrade-guides/0-11.html.markdown).
+The following items give an overview of the incompatibilities and other noteworthy changes in this release. For more details on some of these changes, along with information on how to upgrade existing configurations where needed, see [the v0.11 upgrade guide](https://www.terraform.io/upgrade-guides/0-11.html).
 
-* Output interpolation errors are now fatal. Module configs with unused outputs
-  which contained errors will no longer be valid.
-* Module configuration blocks have 2 new reserved attribute names, "providers"
-  and "version". Modules using these as input variables will need to be
-  updated.
-* The module provider inheritance system has been updated. Providers declared
-  with configuration will no longer be merged, and named provider
-  configurations can be explicitly passed between modules. See [the upgrade guide](./website/upgrade-guides/0-11.html.markdown#interactions-between-providers-and-modules) for more details.
-* The command `terraform apply` with no explicit plan argument is now interactive by default. Specifically, it will show the generated plan and wait for confirmation before applying it. The behavior is unchanged when a plan file argument is provided, and the previous behavior can be obtained _without_ a plan file by using the `-auto-approve` option.
+* Output interpolation errors are now fatal. Module configs with unused outputs which contained errors will no longer be valid.
+* Module configuration blocks have 2 new reserved attribute names, "providers" and "version". Modules using these as input variables will need to be updated.
+* The module provider inheritance rules have changed. Inherited provider configurations will no longer be merged with local configurations, and additional (aliased) provider configurations must be explicitly passed between modules when shared. See [the upgrade guide](https://www.terraform.io/upgrade-guides/0-11.html) for more details.
+* The command `terraform apply` with no explicit plan argument is now interactive by default. Specifically, it will show the generated plan and wait for confirmation before applying it, similar to the existing behavior of `terraform destroy`. The behavior is unchanged when a plan file argument is provided, and the previous behavior can be obtained _without_ a plan file by using the `-auto-approve` option.
 * The `terraform` provider (that is, the provider that contains the `terraform_remote_state` data source) has been re-incorporated as a built-in provider in the Terraform Core executable. In 0.10 it was split into a separate plugin along with all of the other providers, but this provider uses several internal Terraform Core APIs and so in practice it's been confusing to version that separately from Terraform Core. As a consequence, this provider no longer supports version constraints, and so `version` attributes for this provider in configuration must be removed.
 * When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. Previously this file could potentially be used to recover a previous state to help recover after a mistake, but it also caused a potentially-sensitive state file to be generated in an unexpected location that may be inadvertently copied or checked in to version control. With this local backup now removed, we recommend instead relying on versioning or backup mechanisms provided by the backend, such as Amazon S3 versioning or Terraform Enterprise's built-in state history mechanism. (Terraform will still create the local file `errored.tfstate` in the unlikely event that there is an error when writing to the remote backend.)
 
@@ -43,8 +30,10 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * config: Provider config in submodules will no longer be overridden by parent providers with the same name. ([#16379](https://github.com/hashicorp/terraform/issues/16379))
-* core: Module outputs can now produce errors, preventing them from silently propagating through the config. ([#16204](https://github.com/hashicorp/terraform/issues/16204))
 * cli: When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. ([#16464](https://github.com/hashicorp/terraform/issues/16464))
+* core: state now includes a reference to the provider configuration most recently used to create or update a resource, so that the same configuration can be used to destroy that resource if its configuration (including the explicit pointer to a provider configuration) is removed ([#16586](https://github.com/hashicorp/terraform/issues/16586))
+* core: Module outputs can now produce errors, preventing them from silently propagating through the config. ([#16204](https://github.com/hashicorp/terraform/issues/16204))
+* backend/gcs: will now automatically add a slash to the given prefix if not present, since without it the workspace enumeration does not function correctly ([#16585](https://github.com/hashicorp/terraform/issues/16585))
 
 PROVIDER FRAMEWORK CHANGES (not user-facing):
 
