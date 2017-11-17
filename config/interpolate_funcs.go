@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/md5"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -108,7 +107,6 @@ func Funcs() map[string]ast.Function {
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"rsadecrypt":   interpolationFuncRsaDecrypt(),
-		"rsaencrypt":   interpolationFuncRsaEncrypt(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
 		"sha512":       interpolationFuncSha512(),
@@ -1676,7 +1674,7 @@ func interpolationFuncRsaDecrypt() ast.Function {
 
 			b, err := base64.StdEncoding.DecodeString(s)
 			if err != nil {
-				b = []byte(s)
+				return "", fmt.Errorf("Failed to decode input %q: cipher text must be base64-encoded", key)
 			}
 
 			block, _ := pem.Decode([]byte(key))
@@ -1695,37 +1693,6 @@ func interpolationFuncRsaDecrypt() ast.Function {
 			}
 
 			out, err := rsa.DecryptPKCS1v15(nil, x509Key, b)
-			if err != nil {
-				return "", err
-			}
-
-			return string(out), nil
-		},
-	}
-}
-
-// interpolationFuncReplace implements the "rsaencrypt" function that does
-// RSA encryption.
-func interpolationFuncRsaEncrypt() ast.Function {
-	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
-		ReturnType: ast.TypeString,
-		Callback: func(args []interface{}) (interface{}, error) {
-			s := args[0].(string)
-			key := args[1].(string)
-
-			block, _ := pem.Decode([]byte(key))
-			if block == nil {
-				return "", fmt.Errorf("Failed to read key %q: no key found", key)
-			}
-
-			x509Key, err := x509.ParsePKIXPublicKey(block.Bytes)
-			if err != nil {
-				return "", err
-			}
-
-			random := rand.Reader
-			out, err := rsa.EncryptPKCS1v15(random, x509Key.(*rsa.PublicKey), []byte(s))
 			if err != nil {
 				return "", err
 			}

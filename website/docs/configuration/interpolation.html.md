@@ -355,13 +355,9 @@ The supported built-in functions are:
       `n` is the index or name of the subcapture. If using a regular expression,
       the syntax conforms to the [re2 regular expression syntax](https://github.com/google/re2/wiki/Syntax).
 
-  * `rsadecrypt(string, key)` - Decrypts `string` using RSA PKCS #1 v1.5.
-    The `string` may be base64-encoded or the raw cipher text. `key` must be an
+  * `rsadecrypt(string, key)` - Decrypts `string` using RSA. The padding scheme
+    PKCS #1 v1.5 is used. The `string` must be base64-encoded. `key` must be an
     RSA private key in PEM format. You may use `file()` to load it from a file.
-
-  * `rsaencrypt(string, key)` - Encrypts `string` using RSA PKCS #1 v1.5.
-    `key` must be an RSA public key in PEM format. You may use `file()` to load
-    it from a file.
 
   * `sha1(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-1 hash of the given string.

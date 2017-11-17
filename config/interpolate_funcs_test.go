@@ -2854,17 +2854,17 @@ H7CurtMwALQ/n/6LUKFmjRZjqbKX9SO2QSaC3grd6sY9Tu+bZjLe
 			},
 		},
 		Cases: []testFunctionCase{
-			// Raw cipher decrypts correctly
-			{
-				`${rsadecrypt(base64decode(var.cipher_base64), var.private_key)}`,
-				"message",
-				false,
-			},
 			// Base-64 encoded cipher decrypts correctly
 			{
 				`${rsadecrypt(var.cipher_base64, var.private_key)}`,
 				"message",
 				false,
+			},
+			// Raw cipher
+			{
+				`${rsadecrypt(base64decode(var.cipher_base64), var.private_key)}`,
+				nil,
+				true,
 			},
 			// Wrong key
 			{
@@ -2890,6 +2890,12 @@ H7CurtMwALQ/n/6LUKFmjRZjqbKX9SO2QSaC3grd6sY9Tu+bZjLe
 				nil,
 				true,
 			},
+			// Bad base64-encoded cipher
+			{
+				`${rsadecrypt(base64encode("bad cipher"), var.private_key)}`,
+				nil,
+				true,
+			},
 			// Empty cipher
 			{
 				`${rsadecrypt("", var.private_key)}`,
@@ -2911,121 +2917,6 @@ H7CurtMwALQ/n/6LUKFmjRZjqbKX9SO2QSaC3grd6sY9Tu+bZjLe
 			// No arguments
 			{
 				`${rsadecrypt()}`,
-				nil,
-				true,
-			},
-		},
-	})
-}
-
-func TestInterpolateFuncRsaEncrypt(t *testing.T) {
-	testFunction(t, testFunctionConfig{
-		Vars: map[string]ast.Variable{
-			"var.public_key": ast.Variable{
-				Type: ast.TypeString,
-				Value: `
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgUElV5mwqkloIrM8ZNZ7
-2gSCcnSJt7+/Usa5G+D15YQUAdf9c1zEekTfHgDP+04nw/uFNFaE5v1RbHaPxhZY
-Vg5ZErNCa/hzn+x10xzcepeS3KPVXcxae4MR0BEegvqZqJzN9loXsNL/c3H/B+2G
-le3hTxjlWFb3F5qLgR+4Mf4ruhER1v6eHQa/nchi03MBpT4UeJ7MrL92hTJYLdpS
-yCqmr8yjxkKJDVC2uRrr+sTSxfh7r6v24u/vp/QTmBIAlNPgadVAZw17iNNb7vjV
-7Gwl/5gHXonCUKURaV++dBNLrHIZpqcAM8wHRph8mD1EfL9hsz77pHewxolBATV+
-7QIDAQAB
------END PUBLIC KEY-----
-`,
-			},
-			"var.private_key": ast.Variable{
-				Type: ast.TypeString,
-				Value: `
------BEGIN RSA PRIVATE KEY-----
-MIIEowIBAAKCAQEAgUElV5mwqkloIrM8ZNZ72gSCcnSJt7+/Usa5G+D15YQUAdf9
-c1zEekTfHgDP+04nw/uFNFaE5v1RbHaPxhZYVg5ZErNCa/hzn+x10xzcepeS3KPV
-Xcxae4MR0BEegvqZqJzN9loXsNL/c3H/B+2Gle3hTxjlWFb3F5qLgR+4Mf4ruhER
-1v6eHQa/nchi03MBpT4UeJ7MrL92hTJYLdpSyCqmr8yjxkKJDVC2uRrr+sTSxfh7
-r6v24u/vp/QTmBIAlNPgadVAZw17iNNb7vjV7Gwl/5gHXonCUKURaV++dBNLrHIZ
-pqcAM8wHRph8mD1EfL9hsz77pHewxolBATV+7QIDAQABAoIBAC1rK+kFW3vrAYm3
-+8/fQnQQw5nec4o6+crng6JVQXLeH32qXShNf8kLLG/Jj0vaYcTPPDZw9JCKkTMQ
-0mKj9XR/5DLbBMsV6eNXXuvJJ3x4iKW5eD9WkLD4FKlNarBRyO7j8sfPTqXW7uat
-NxWdFH7YsSRvNh/9pyQHLWA5OituidMrYbc3EUx8B1GPNyJ9W8Q8znNYLfwYOjU4
-Wv1SLE6qGQQH9Q0WzA2WUf8jklCYyMYTIywAjGb8kbAJlKhmj2t2Igjmqtwt1PYc
-pGlqbtQBDUiWXt5S4YX/1maIQ/49yeNUajjpbJiH3DbhJbHwFTzP3pZ9P9GHOzlG
-kYR+wSECgYEAw/Xida8kSv8n86V3qSY/I+fYQ5V+jDtXIE+JhRnS8xzbOzz3v0WS
-Oo5H+o4nJx5eL3Ghb3Gcm0Jn46dHrxinHbm+3RjXv/X6tlbxIYjRSQfHOTSMCTvd
-qcliF5vC6RCLXuc7R+IWR1Ky6eDEZGtrvt3DyeYABsp9fRUFR/6NluUCgYEAqNsw
-1aSl7WJa27F0DoJdlU9LWerpXcazlJcIdOz/S9QDmSK3RDQTdqfTxRmrxiYI9LEs
-mkOkvzlnnOBMpnZ3ZOU5qIRfprecRIi37KDAOHWGnlC0EWGgl46YLb7/jXiWf0AG
-Y+DfJJNd9i6TbIDWu8254/erAS6bKMhW/3q7f2kCgYAZ7Id/BiKJAWRpqTRBXlvw
-BhXoKvjI2HjYP21z/EyZ+PFPzur/lNaZhIUlMnUfibbwE9pFggQzzf8scM7c7Sf+
-mLoVSdoQ/Rujz7CqvQzi2nKSsM7t0curUIb3lJWee5/UeEaxZcmIufoNUrzohAWH
-BJOIPDM4ssUTLRq7wYM9uQKBgHCBau5OP8gE6mjKuXsZXWUoahpFLKwwwmJUp2vQ
-pOFPJ/6WZOlqkTVT6QPAcPUbTohKrF80hsZqZyDdSfT3peFx4ZLocBrS56m6NmHR
-UYHMvJ8rQm76T1fryHVidz85g3zRmfBeWg8yqT5oFg4LYgfLsPm1gRjOhs8LfPvI
-OLlRAoGBAIZ5Uv4Z3s8O7WKXXUe/lq6j7vfiVkR1NW/Z/WLKXZpnmvJ7FgxN4e56
-RXT7GwNQHIY8eDjDnsHxzrxd+raOxOZeKcMHj3XyjCX3NHfTscnsBPAGYpY/Wxzh
-T8UYnFu6RzkixElTf2rseEav7rkdKkI3LAeIZy7B0HulKKsmqVQ7
------END RSA PRIVATE KEY-----
-`,
-			},
-		},
-		Cases: []testFunctionCase{
-			// Valid value decrypts correctly
-			{
-				`${rsadecrypt(rsaencrypt("message", var.public_key), var.private_key)}`,
-				"message",
-				false,
-			},
-			// Subsequent encryption of the same value is different
-			{
-				`${rsaencrypt("message", var.public_key) != rsaencrypt("message", var.public_key)}`,
-				"true",
-				false,
-			},
-			// Bad key
-			{
-				`${rsaencrypt("message", "bad key")}`,
-				nil,
-				true,
-			},
-			// Empty key
-			{
-				`${rsaencrypt("message", "")}`,
-				nil,
-				true,
-			},
-			// Empty message
-			{
-				`${rsadecrypt(rsaencrypt("", var.public_key), var.private_key)}`,
-				"",
-				false,
-			},
-			// Max-length message
-			{
-				`${rsadecrypt(rsaencrypt("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz12345678901", var.public_key), var.private_key)}`,
-				"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz12345678901",
-				false,
-			},
-			// Too-long message
-			{
-				`${rsaencrypt("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz123456789012", var.public_key)}`,
-				nil,
-				true,
-			},
-			// Too many arguments
-			{
-				`${rsaencrypt("", "", "")}`,
-				nil,
-				true,
-			},
-			// One argument
-			{
-				`${rsaencrypt("")}`,
-				nil,
-				true,
-			},
-			// No arguments
-			{
-				`${rsaencrypt()}`,
 				nil,
 				true,
 			},
