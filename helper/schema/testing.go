@@ -10,6 +10,13 @@ import (
 // TestResourceDataRaw creates a ResourceData from a raw configuration map.
 func TestResourceDataRaw(
 	t *testing.T, schema map[string]*Schema, raw map[string]interface{}) *ResourceData {
+	return TestResourceDataStateRaw(t, schema, nil, raw)
+}
+
+// TestResourceDataStateRaw creates a ResourceData from an instance state map
+// and a raw configuration map.
+func TestResourceDataStateRaw(t *testing.T, schema map[string]*Schema,
+	state map[string]string, raw map[string]interface{}) *ResourceData {
 	t.Helper()
 
 	c, err := config.NewRawConfig(raw)
@@ -23,7 +30,13 @@ func TestResourceDataRaw(
 		t.Fatalf("err: %s", err)
 	}
 
-	result, err := sm.Data(nil, diff)
+	var instanceState *terraform.InstanceState = nil
+	if state != nil {
+		instanceState = &terraform.InstanceState{
+			Attributes: state,
+		}
+	}
+	result, err := sm.Data(instanceState, diff)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
