@@ -61,7 +61,7 @@ The above example would use the
 from the public registry.
 
 You can learn more about the registry at the
-[Terraform Registry documentation section](/docs/registry/index.html).
+[Terraform Registry documentation](/docs/registry/modules/use.html#using-modules).
 
 ## GitHub
 

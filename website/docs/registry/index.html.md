@@ -15,17 +15,7 @@ Terraform is written, and find pre-made modules for infrastructure components
 you require.
 
 The Terraform Registry is integrated directly into Terraform to make
-consuming modules easy. The following example shows how easy it is to
-build a fully functional [Consul](https://www.consul.io) cluster using the
-[Consul module for AWS](https://registry.terraform.io/modules/hashicorp/consul/aws).
-
-```hcl
-module "consul" {
-	source = "hashicorp/consul/aws"
-}
-```
-
-~> **Note:** Module registry integration was added in Terraform v0.10.6, and full versioning support in v0.11.0.
+consuming modules easy. See [the usage information](/docs/registry/modules/use.html#using-modules).
 
 You can also publish your own modules on the Terraform Registry. You may
 use the [public registry](https://registry.terraform.io) for public modules.
