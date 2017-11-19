@@ -22,6 +22,7 @@ type testersBuilder struct {
 func (b *testersBuilder) luaTesterDecls(L *lua.LState) map[lua.LString]lua.LValue {
 	return map[lua.LString]lua.LValue{
 		"describe": L.NewFunction(b.luaDescribeFunc),
+		"it":       L.NewFunction(b.luaItFunc),
 	}
 }
 
@@ -75,6 +76,44 @@ func (b *testersBuilder) luaDescribeFunc(L *lua.LState) int {
 		Described: described,
 		BodyFn:    bodyFn,
 		Context:   b.Context,
+	}
+	if rng := callingRange(L, 1); rng != nil {
+		desc.DefRange = tfdiags.SourceRangeFromHCL(*rng)
+	}
+
+	b.Testers = append(b.Testers, desc)
+
+	return 0
+}
+
+func (b *testersBuilder) luaItFunc(L *lua.LState) int {
+	if L.GetTop() != 2 {
+		b.Diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid \"it\" call",
+			Detail:   "An \"it\" call must have two arguments: the human-readable description of what \"it\" does, and a verification function.",
+			Subject:  callingRange(L, 1),
+		})
+		return 0
+	}
+
+	doesStr := L.CheckString(1)
+	bodyFn := L.OptFunction(2, nil)
+
+	if bodyFn == nil {
+		b.Diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid \"describe\" call",
+			Detail:   "A \"it\" call must have a verification function as its second argument.",
+			Subject:  callingRange(L, 1),
+		})
+		return 0
+	}
+
+	desc := &it{
+		Does:    doesStr,
+		BodyFn:  bodyFn,
+		Context: b.Context,
 	}
 	if rng := callingRange(L, 1); rng != nil {
 		desc.DefRange = tfdiags.SourceRangeFromHCL(*rng)

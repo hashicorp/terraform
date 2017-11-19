@@ -51,10 +51,12 @@ func (ctx *Context) WithName(name string) *Context {
 // WithNameSuffix returns a new context that has the given string appended to
 // the name of the receiving context.
 func (ctx *Context) WithNameSuffix(suffix string) *Context {
-	return ctx.WithName(ctx.nameWithSuffix(suffix))
+	return ctx.WithName(ctx.NameWithSuffix(suffix))
 }
 
-func (ctx *Context) nameWithSuffix(suffix string) string {
+// NameWithSuffix returns the name of the receiving context with the given
+// suffix string appended.
+func (ctx *Context) NameWithSuffix(suffix string) string {
 	if ctx.name == "" {
 		return suffix
 	}
@@ -77,7 +79,7 @@ func (ctx *Context) Resource() cty.Value {
 // associated.
 func (ctx *Context) WithResource(addr *terraform.ResourceAddress, obj cty.Value) *Context {
 	retVal := *ctx
-	retVal.name = ctx.nameWithSuffix(addr.String())
+	retVal.name = ctx.NameWithSuffix(addr.String())
 	retVal.resource = obj
 	return &retVal
 }

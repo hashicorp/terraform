@@ -144,3 +144,27 @@ func (t *describe) test(subject *Subject, cs CheckStream) {
 		}
 	}
 }
+
+// it represents a single "it" call in a test specification.
+//
+// it implements Tester.
+type it struct {
+	Does    string
+	BodyFn  *lua.LFunction
+	Context *Context
+
+	DefRange tfdiags.SourceRange
+}
+
+// Tester implementation
+func (t *it) test(subject *Subject, cs CheckStream) {
+	var diags tfdiags.Diagnostics
+	defer cs.Close()
+
+	// TODO: implement
+	cs.Write(CheckItem{
+		Result:  Skipped,
+		Caption: t.Context.NameWithSuffix(t.Does),
+		Diags:   diags,
+	})
+}
