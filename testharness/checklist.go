@@ -105,13 +105,15 @@ func (s CheckStream) Substream() (CheckStream, Waiter) {
 		for {
 			select {
 			case item, ok := <-proxyItemCh:
-				s.Write(item)
-				if !ok {
+				if ok {
+					s.Write(item)
+				} else {
 					proxyItemCh = nil
 				}
 			case msg, ok := <-proxyLogCh:
-				s.Log(msg)
-				if !ok {
+				if ok {
+					s.Log(msg)
+				} else {
 					proxyLogCh = nil
 				}
 			}

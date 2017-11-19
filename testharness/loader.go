@@ -140,7 +140,7 @@ func loadSpec(r io.Reader, filename string, L *lua.LState) (*Spec, tfdiags.Diagn
 		Diags: builderDiags,
 	}
 	testersB := testersBuilder{
-		Context: RootContext,
+		Context: rootContext(L),
 		Diags:   builderDiags,
 	}
 	topEnv.RawSet(lua.LString("scenario"), L.NewFunction(scenariosB.luaScenarioFunc))

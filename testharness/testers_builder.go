@@ -67,6 +67,7 @@ func (b *testersBuilder) luaDescribeFunc(L *lua.LState) int {
 	desc := &describe{
 		Described: described,
 		BodyFn:    bodyFn,
+		Context:   b.Context,
 	}
 	if rng := callingRange(L, 1); rng != nil {
 		desc.DefRange = tfdiags.SourceRangeFromHCL(*rng)

@@ -3,6 +3,7 @@ package testharness
 import (
 	"fmt"
 
+	lua "github.com/yuin/gopher-lua"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -12,6 +13,7 @@ import (
 // A Context is immutable, but derived contexts can be created using the
 // methods of this type.
 type Context struct {
+	lstate   *lua.LState
 	name     string
 	resource cty.Value
 	output   cty.Value
@@ -19,12 +21,11 @@ type Context struct {
 	each     map[string]cty.Value
 }
 
-var RootContext *Context
-
-func init() {
-	RootContext = &Context{
-		name: "",
-		each: map[string]cty.Value{},
+func rootContext(lstate *lua.LState) *Context {
+	return &Context{
+		lstate: lstate,
+		name:   "",
+		each:   map[string]cty.Value{},
 	}
 }
 

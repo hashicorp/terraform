@@ -24,3 +24,8 @@ func (s *Spec) Scenarios() map[string]*Scenario {
 func (s *Spec) Scenario(name string) *Scenario {
 	return s.scenarios[name]
 }
+
+// Tester implementation
+func (s *Spec) test(subject *Subject, cs CheckStream) {
+	s.testers.test(subject, cs)
+}

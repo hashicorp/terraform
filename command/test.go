@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -162,13 +163,74 @@ func (c *TestCommand) Run(args []string) int {
 
 			endTime := time.Now()
 
-			fmt.Printf("\n%d resources created in %s\n\n", hook.ApplyCount(), endTime.Sub(startTime))
+			fmt.Printf("\nTotal created: %d in %s\n\n", hook.ApplyCount(), endTime.Sub(startTime))
 		}
 
 		if created {
 			fmt.Print("## Verify\n\n")
 
-			fmt.Println("")
+			subject := testharness.NewSubject(mod, stateMgr.State(), scenario.Variables)
+
+			itemCh := make(chan testharness.CheckItem)
+			logCh := make(chan string)
+			cs := testharness.NewCheckStream(itemCh, logCh)
+			testharness.TestStream(subject, spec, cs)
+
+			logOpen := false
+			var successes, failures, errors, skips int
+			for {
+				select {
+				case item, ok := <-itemCh:
+					if ok {
+						if logOpen {
+							// End the open log block before we produce more items
+							fmt.Fprint(os.Stderr, "```\n\n")
+							os.Stderr.Sync()
+							logOpen = false
+						}
+
+						check := "[x]"
+						if item.Result != testharness.Success {
+							check = "[ ]"
+						}
+						exclam := ""
+						switch item.Result {
+						case testharness.Success:
+							successes++
+						case testharness.Failure:
+							failures++
+						case testharness.Error:
+							errors++
+							exclam = "**(ERROR)** "
+						case testharness.Skipped:
+							skips++
+							exclam = "(SKIPPED) "
+						}
+						fmt.Printf("* %s %s%s\n", check, exclam, item.Caption)
+					} else {
+						itemCh = nil
+					}
+				case msg, ok := <-logCh:
+					if ok {
+						if !logOpen {
+							os.Stdout.Sync()
+							// Open a log block before we print our message
+							fmt.Fprint(os.Stderr, "\n```\n")
+							logOpen = true
+						}
+						fmt.Fprintln(os.Stderr, msg)
+					} else {
+						logCh = nil
+					}
+				}
+
+				if itemCh == nil && logCh == nil {
+					break
+				}
+			}
+
+			total := successes + failures + skips + errors
+			fmt.Printf("\nTotal assertions: %d (%d passed, %d failed, %d skipped, %d errored)\n\n", total, successes, failures, skips, errors)
 		}
 
 		{
@@ -213,7 +275,7 @@ func (c *TestCommand) Run(args []string) int {
 
 			endTime := time.Now()
 
-			fmt.Printf("\n%d resources destroyed in %s\n\n", hook.ApplyCount(), endTime.Sub(startTime))
+			fmt.Printf("\nTotal destroyed: %d in %s\n\n", hook.ApplyCount(), endTime.Sub(startTime))
 		}
 	}
 
@@ -266,7 +328,7 @@ func (h *testCommandHook) PostRefresh(info *terraform.InstanceInfo, s *terraform
 	startTime := h.startTimes["r"+info.ResourceAddress().String()]
 	endTime := time.Now()
 	delta := endTime.Sub(startTime)
-	fmt.Printf("* [x] Read %s (%s)\n", info.ResourceAddress(), delta)
+	fmt.Printf("* [x] %s is read (%s)\n", info.ResourceAddress(), delta)
 	return terraform.HookActionContinue, nil
 }
 
@@ -283,15 +345,15 @@ func (h *testCommandHook) PostApply(info *terraform.InstanceInfo, s *terraform.I
 
 	check := "[x]"
 	if err != nil {
-		check = "[ ]"
+		check = "[ ] **(ERROR)**"
 	}
 
-	verb := "Create"
+	verb := "created"
 	if s == nil || s.ID == "" {
-		verb = "Destroy"
+		verb = "destroyed"
 	}
 
-	fmt.Printf("* %s %s %s (%s)\n", check, verb, info.ResourceAddress(), delta)
+	fmt.Printf("* %s %s is %s (%s)\n", check, info.ResourceAddress(), verb, delta)
 
 	return terraform.HookActionContinue, nil
 }

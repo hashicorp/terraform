@@ -14,3 +14,11 @@ type Subject struct {
 	state     *terraform.State
 	variables map[string]cty.Value
 }
+
+func NewSubject(config *module.Tree, state *terraform.State, variables map[string]cty.Value) *Subject {
+	return &Subject{
+		config:    config,
+		state:     state,
+		variables: variables,
+	}
+}
