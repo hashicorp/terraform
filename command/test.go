@@ -278,6 +278,8 @@ func (c *TestCommand) Synopsis() string {
 func (c *TestCommand) showProgress(itemCh <-chan testharness.CheckItem, logCh <-chan string) {
 	startTime := time.Now()
 
+	var diags tfdiags.Diagnostics
+
 	logOpen := false
 	var successes, failures, errors, skips int
 	for {
@@ -315,6 +317,7 @@ func (c *TestCommand) showProgress(itemCh <-chan testharness.CheckItem, logCh <-
 				}
 
 				fmt.Printf("* %s %s%s%s\n", check, exclam, item.Caption, durStr)
+				diags = diags.Append(item.Diags)
 			} else {
 				itemCh = nil
 			}
@@ -335,6 +338,12 @@ func (c *TestCommand) showProgress(itemCh <-chan testharness.CheckItem, logCh <-
 		if itemCh == nil && logCh == nil {
 			break
 		}
+	}
+
+	if len(diags) > 0 {
+		c.Ui.Output("\n```")
+		c.showDiagnostics(diags)
+		c.Ui.Output("```\n")
 	}
 
 	total := successes + failures + skips + errors
