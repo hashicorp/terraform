@@ -16,6 +16,13 @@ type testersBuilder struct {
 	Context *Context
 	Testers Testers
 	Diags   *Diagnostics
+	Skip    bool
+}
+
+func (b *testersBuilder) luaTesterDecls(L *lua.LState) map[lua.LString]lua.LValue {
+	return map[lua.LString]lua.LValue{
+		"describe": L.NewFunction(b.luaDescribeFunc),
+	}
 }
 
 func (b *testersBuilder) luaDescribeFunc(L *lua.LState) int {
@@ -76,6 +83,12 @@ func (b *testersBuilder) luaDescribeFunc(L *lua.LState) int {
 	b.Testers = append(b.Testers, desc)
 
 	return 0
+}
+
+func (b *testersBuilder) luaContextSetters(L *lua.LState) map[lua.LString]lua.LValue {
+	return map[lua.LString]lua.LValue{
+		"resource": b.luaResourceObj(L),
+	}
 }
 
 func (b *testersBuilder) luaResourceObj(L *lua.LState) lua.LValue {

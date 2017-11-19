@@ -84,12 +84,63 @@ func (t *describe) test(subject *Subject, cs CheckStream) {
 	}
 
 	for _, childContext := range childContexts {
-		// TODO: run our BodyFn to collect our child testers
-		// TODO: run child testers, each in a sub-stream of cs
-		// TODO: wait for sub-stream to close before returning
-		cs.Write(CheckItem{
-			Result:  Skipped,
-			Caption: childContext.Name(),
-		})
+		L := childContext.lstate
+		var diags tfdiags.Diagnostics
+
+		var fn *lua.LFunction
+		{
+			// Copy our function so we can modify its environment
+			// without affecting global state.
+			fnV := *t.BodyFn
+			fn = &fnV
+		}
+
+		topEnv := L.NewTable()
+		L.SetFEnv(fn, topEnv)
+
+		builderDiags := &Diagnostics{}
+		testersB := testersBuilder{
+			Context: childContext,
+			Diags:   builderDiags,
+		}
+		for k, v := range testersB.luaTesterDecls(L) {
+			topEnv.RawSet(k, v)
+		}
+		for k, v := range testersB.luaContextSetters(L) {
+			topEnv.RawSet(k, v)
+		}
+
+		L.Push(fn)
+		err := L.PCall(0, 0, nil)
+		if err != nil {
+			diags = diags.Append(err)
+		}
+		diags = diags.Append(builderDiags.Diags)
+
+		if diags.HasErrors() {
+			cs.Write(CheckItem{
+				Result:  Error,
+				Caption: childContext.Name(),
+				Diags:   diags,
+			})
+			continue
+		}
+
+		if testersB.Skip {
+			// testersB.Skip is set if there's a call to require() in
+			// the body and the given condition didn't hold.
+			cs.Write(CheckItem{
+				Result:  Skipped,
+				Caption: childContext.Name(),
+				Diags:   diags,
+			})
+			continue
+		}
+
+		for _, tester := range testersB.Testers {
+			subCs, close := cs.Substream()
+			tester.test(subject, subCs)
+			close.Wait()
+		}
 	}
 }

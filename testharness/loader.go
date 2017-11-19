@@ -144,8 +144,14 @@ func loadSpec(r io.Reader, filename string, L *lua.LState) (*Spec, tfdiags.Diagn
 		Diags:   builderDiags,
 	}
 	topEnv.RawSet(lua.LString("scenario"), L.NewFunction(scenariosB.luaScenarioFunc))
+
+	// We don't use testersB.luaTesterDecls here because only "describe" in
+	// particular is valid at the top-level; other tester declaration functions
+	// are supported _within_ describe calls.
 	topEnv.RawSet(lua.LString("describe"), L.NewFunction(testersB.luaDescribeFunc))
-	topEnv.RawSet(lua.LString("resource"), testersB.luaResourceObj(L))
+	for k, v := range testersB.luaContextSetters(L) {
+		topEnv.RawSet(k, v)
+	}
 
 	L.Push(fn)
 	err = L.PCall(0, 0, nil)
