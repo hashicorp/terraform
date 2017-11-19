@@ -16,13 +16,15 @@ type testersBuilder struct {
 	Context *Context
 	Testers Testers
 	Diags   *Diagnostics
-	Skip    bool
+
+	Requirements []*expect
 }
 
 func (b *testersBuilder) luaTesterDecls(L *lua.LState) map[lua.LString]lua.LValue {
 	return map[lua.LString]lua.LValue{
 		"describe": L.NewFunction(b.luaDescribeFunc),
 		"it":       L.NewFunction(b.luaItFunc),
+		"require":  L.NewFunction(b.luaRequireFunc),
 	}
 }
 
@@ -122,6 +124,38 @@ func (b *testersBuilder) luaItFunc(L *lua.LState) int {
 	b.Testers = append(b.Testers, desc)
 
 	return 0
+}
+
+func (b *testersBuilder) luaRequireFunc(L *lua.LState) int {
+	defRangeHCL := callingRange(L, 1)
+	var defRange tfdiags.SourceRange
+	if defRangeHCL != nil {
+		defRange = tfdiags.SourceRangeFromHCL(*defRangeHCL)
+	}
+
+	if L.GetTop() != 1 {
+		b.Diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid \"require\" call",
+			Detail:   "A \"require\" call must have one argument: the given value to make an assertion about.",
+			Subject:  defRangeHCL,
+		})
+
+		// We'll still return a requirement object just so the subsequent
+		// method call doesn't _also_ fail here. It'll never actually
+		// be evaluated (since it's not in the requirements list) so doesn't
+		// really matter what value we set it to.
+		stubRequirement := newExpect(b.Context.lstate, lua.LNil, defRange)
+		L.Push(stubRequirement.LuaObject())
+		return 1
+	}
+
+	given := L.CheckAny(1)
+
+	requirement := newExpect(b.Context.lstate, given, defRange)
+	b.Requirements = append(b.Requirements, requirement)
+	L.Push(requirement.LuaObject())
+	return 1
 }
 
 func (b *testersBuilder) luaContextSetters(L *lua.LState) map[lua.LString]lua.LValue {

@@ -1,6 +1,7 @@
 package testharness
 
 import (
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/tfdiags"
 	lua "github.com/yuin/gopher-lua"
 )
@@ -83,6 +84,7 @@ func (t *describe) test(subject *Subject, cs CheckStream) {
 		return
 	}
 
+Contexts:
 	for _, childContext := range childContexts {
 		L := childContext.lstate
 		var diags tfdiags.Diagnostics
@@ -126,15 +128,38 @@ func (t *describe) test(subject *Subject, cs CheckStream) {
 			continue
 		}
 
-		if testersB.Skip {
-			// testersB.Skip is set if there's a call to require() in
-			// the body and the given condition didn't hold.
-			cs.Write(CheckItem{
-				Result:  Skipped,
-				Caption: childContext.Name(),
-				Diags:   diags,
-			})
-			continue
+		for _, requirement := range testersB.Requirements {
+			switch requirement.Result() {
+			case Skipped:
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Requirement created without assertion",
+					Detail:   "An assertion method must be called on the result of each \"require\" call.",
+					Subject:  requirement.defRange.ToHCL().Ptr(),
+				})
+				cs.Write(CheckItem{
+					Result:  Error,
+					Caption: childContext.Name(),
+					Diags:   diags,
+				})
+				continue Contexts
+			case Error:
+				diags = diags.Append(requirement.diags)
+				cs.Write(CheckItem{
+					Result:  Error,
+					Caption: childContext.Name(),
+					Diags:   diags,
+				})
+				continue Contexts
+			case Failure:
+				// TODO: Do something with the detail message from the requirement, if any.
+				cs.Write(CheckItem{
+					Result:  Skipped,
+					Caption: childContext.Name(),
+					Diags:   diags,
+				})
+				continue Contexts
+			}
 		}
 
 		for _, tester := range testersB.Testers {
