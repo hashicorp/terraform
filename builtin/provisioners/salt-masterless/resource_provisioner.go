@@ -141,13 +141,16 @@ func applyFn(ctx context.Context) error {
 		if err = comm.Start(cmd); err != nil {
 			return fmt.Errorf("Unable to download Salt: %s", err)
 		}
+		cmd.Wait()
 		cmd = &remote.Cmd{
 			Command: fmt.Sprintf("%s /tmp/install_salt.sh %s", p.sudo("sh"), p.BootstrapArgs),
 		}
+
 		o.Output(fmt.Sprintf("Installing Salt with command %s", cmd.Command))
 		if err = comm.Start(cmd); err != nil {
 			return fmt.Errorf("Unable to install Salt: %s", err)
 		}
+		cmd.Wait()
 	}
 
 	o.Output(fmt.Sprintf("Creating remote temporary directory: %s", p.TempConfigDir))
@@ -221,6 +224,7 @@ func applyFn(ctx context.Context) error {
 
 		return fmt.Errorf("Error executing salt-call: %s", err)
 	}
+	cmd.Wait()
 
 	return nil
 }
