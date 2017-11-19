@@ -2,6 +2,7 @@ package testharness
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -14,6 +15,7 @@ type CheckItem struct {
 	Result  CheckResult
 	Caption string
 	Diags   tfdiags.Diagnostics
+	Time    time.Duration
 }
 
 type CheckResult rune

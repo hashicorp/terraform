@@ -103,28 +103,38 @@ func (c *TestCommand) Run(args []string) int {
 		}
 
 		stateMgr := state.InmemState{}
-		hook := &testCommandHook{}
-		hooks := []terraform.Hook{hook}
 
 		created := true
 		{
 			fmt.Print("## Create\n\n")
 
-			startTime := time.Now()
+			itemCh := make(chan testharness.CheckItem)
+			logCh := make(chan string)
+			cs := testharness.NewCheckStream(itemCh, logCh)
 
-			hook.Reset()
 			ctxOpts := &terraform.ContextOpts{
 				Module:           mod,
 				State:            stateMgr.State(),
 				Variables:        variables,
 				ProviderResolver: c.providerResolver(),
-				Hooks:            hooks,
+				Hooks: []terraform.Hook{
+					newTestCommandHook(cs),
+				},
 			}
 			ctx, err := terraform.NewContext(ctxOpts)
 			if err != nil {
 				c.showDiagnostics(err)
 				continue
 			}
+
+			// Our progress-printing code runs in the background and
+			// turns the results of our Terraform operations into synthetic
+			// test assertions.
+			progressDone := make(chan struct{})
+			go func() {
+				c.showProgress(itemCh, logCh)
+				close(progressDone)
+			}()
 
 			warns, errs := ctx.Validate()
 			for _, warn := range warns {
@@ -161,9 +171,9 @@ func (c *TestCommand) Run(args []string) int {
 
 			stateMgr.WriteState(ctx.State())
 
-			endTime := time.Now()
-
-			fmt.Printf("\nTotal created: %d in %s\n\n", hook.ApplyCount(), endTime.Sub(startTime))
+			// This causes our progress printer to exit
+			cs.Close()
+			<-progressDone
 		}
 
 		if created {
@@ -176,82 +186,40 @@ func (c *TestCommand) Run(args []string) int {
 			cs := testharness.NewCheckStream(itemCh, logCh)
 			testharness.TestStream(subject, spec, cs)
 
-			logOpen := false
-			var successes, failures, errors, skips int
-			for {
-				select {
-				case item, ok := <-itemCh:
-					if ok {
-						if logOpen {
-							// End the open log block before we produce more items
-							fmt.Fprint(os.Stderr, "```\n\n")
-							os.Stderr.Sync()
-							logOpen = false
-						}
-
-						check := "[x]"
-						if item.Result != testharness.Success {
-							check = "[ ]"
-						}
-						exclam := ""
-						switch item.Result {
-						case testharness.Success:
-							successes++
-						case testharness.Failure:
-							failures++
-						case testharness.Error:
-							errors++
-							exclam = "**(ERROR)** "
-						case testharness.Skipped:
-							skips++
-							exclam = "(SKIPPED) "
-						}
-						fmt.Printf("* %s %s%s\n", check, exclam, item.Caption)
-					} else {
-						itemCh = nil
-					}
-				case msg, ok := <-logCh:
-					if ok {
-						if !logOpen {
-							os.Stdout.Sync()
-							// Open a log block before we print our message
-							fmt.Fprint(os.Stderr, "\n```\n")
-							logOpen = true
-						}
-						fmt.Fprintln(os.Stderr, msg)
-					} else {
-						logCh = nil
-					}
-				}
-
-				if itemCh == nil && logCh == nil {
-					break
-				}
-			}
-
-			total := successes + failures + skips + errors
-			fmt.Printf("\nTotal assertions: %d (%d passed, %d failed, %d skipped, %d errored)\n\n", total, successes, failures, skips, errors)
+			c.showProgress(itemCh, logCh) // blocks until the tests are all complete
 		}
 
 		{
 			fmt.Print("## Destroy\n\n")
 
-			startTime := time.Now()
+			itemCh := make(chan testharness.CheckItem)
+			logCh := make(chan string)
+			cs := testharness.NewCheckStream(itemCh, logCh)
 
-			hook.Reset()
 			ctxOpts := &terraform.ContextOpts{
 				Destroy:          true,
 				Module:           mod,
 				State:            stateMgr.State(),
 				Variables:        variables,
 				ProviderResolver: c.providerResolver(),
-				Hooks:            hooks,
+				Hooks: []terraform.Hook{
+					newTestCommandHook(cs),
+				},
 			}
 			ctx, err := terraform.NewContext(ctxOpts)
 			if err != nil {
 				c.showDiagnostics(err)
 				continue
 			}
+
+			// Our progress-printing code runs in the background and
+			// turns the results of our Terraform operations into synthetic
+			// test assertions.
+			progressDone := make(chan struct{})
+			go func() {
+				c.showProgress(itemCh, logCh)
+				close(progressDone)
+			}()
 
 			_, err = ctx.Plan()
 			if err != nil {
@@ -273,9 +241,9 @@ func (c *TestCommand) Run(args []string) int {
 
 			stateMgr.WriteState(ctx.State())
 
-			endTime := time.Now()
-
-			fmt.Printf("\nTotal destroyed: %d in %s\n\n", hook.ApplyCount(), endTime.Sub(startTime))
+			// This causes our progress printer to exit
+			cs.Close()
+			<-progressDone
 		}
 	}
 
@@ -303,16 +271,99 @@ func (c *TestCommand) Synopsis() string {
 	return "Run test specifications in test scenarios"
 }
 
+// showProgress monitors the two given channels and prints the CheckItems
+// and log messages that appear, creating Markdown-like formatting.
+//
+// This function blocks until both channels are closed.
+func (c *TestCommand) showProgress(itemCh <-chan testharness.CheckItem, logCh <-chan string) {
+	startTime := time.Now()
+
+	logOpen := false
+	var successes, failures, errors, skips int
+	for {
+		select {
+		case item, ok := <-itemCh:
+			if ok {
+				if logOpen {
+					// End the open log block before we produce more items
+					fmt.Fprint(os.Stderr, "```\n\n")
+					os.Stderr.Sync()
+					logOpen = false
+				}
+
+				check := "[x]"
+				if item.Result != testharness.Success {
+					check = "[ ]"
+				}
+				exclam := ""
+				switch item.Result {
+				case testharness.Success:
+					successes++
+				case testharness.Failure:
+					failures++
+				case testharness.Error:
+					errors++
+					exclam = "**(ERROR)** "
+				case testharness.Skipped:
+					skips++
+					exclam = "(SKIPPED) "
+				}
+
+				durStr := ""
+				if item.Time != 0 {
+					durStr = fmt.Sprintf(" (in %s)", item.Time)
+				}
+
+				fmt.Printf("* %s %s%s%s\n", check, exclam, item.Caption, durStr)
+			} else {
+				itemCh = nil
+			}
+		case msg, ok := <-logCh:
+			if ok {
+				if !logOpen {
+					os.Stdout.Sync()
+					// Open a log block before we print our message
+					fmt.Fprint(os.Stderr, "\n```\n")
+					logOpen = true
+				}
+				fmt.Fprintln(os.Stderr, msg)
+			} else {
+				logCh = nil
+			}
+		}
+
+		if itemCh == nil && logCh == nil {
+			break
+		}
+	}
+
+	total := successes + failures + skips + errors
+	endTime := time.Now()
+	fmt.Printf("\nTotal assertions: %d (%d passed, %d failed, %d skipped, %d errored) in %s\n\n", total, successes, failures, skips, errors, endTime.Sub(startTime))
+	os.Stderr.Sync()
+	os.Stdout.Sync()
+}
+
+// testCommandHook is a terraform.Hook that writes items to a
+// testharness.CheckStream, making a Terraform operation appear as a
+// synthetic set of test assertions.
+//
+// After instantiating a testCommandHook it must be initialized with Reset
+// before using it. Reset can be called again later to start fresh with
+// a new CheckStream.
 type testCommandHook struct {
 	startTimes map[string]time.Time
 	applyCount int
+	cs         testharness.CheckStream
 
 	terraform.NilHook
 }
 
-func (h *testCommandHook) Reset() {
-	h.startTimes = make(map[string]time.Time)
-	h.applyCount = 0
+func newTestCommandHook(cs testharness.CheckStream) *testCommandHook {
+	return &testCommandHook{
+		cs:         cs,
+		startTimes: make(map[string]time.Time),
+	}
 }
 
 func (h *testCommandHook) ApplyCount() int {
@@ -328,7 +379,13 @@ func (h *testCommandHook) PostRefresh(info *terraform.InstanceInfo, s *terraform
 	startTime := h.startTimes["r"+info.ResourceAddress().String()]
 	endTime := time.Now()
 	delta := endTime.Sub(startTime)
-	fmt.Printf("* [x] %s is read (%s)\n", info.ResourceAddress(), delta)
+
+	h.cs.Write(testharness.CheckItem{
+		Result:  testharness.Success,
+		Caption: fmt.Sprintf("%s is read", info.ResourceAddress()),
+		Time:    delta,
+	})
+
 	return terraform.HookActionContinue, nil
 }
 
@@ -343,9 +400,9 @@ func (h *testCommandHook) PostApply(info *terraform.InstanceInfo, s *terraform.I
 	delta := endTime.Sub(startTime)
 	h.applyCount++
 
-	check := "[x]"
+	result := testharness.Success
 	if err != nil {
-		check = "[ ] **(ERROR)**"
+		result = testharness.Error
 	}
 
 	verb := "created"
@@ -353,7 +410,11 @@ func (h *testCommandHook) PostApply(info *terraform.InstanceInfo, s *terraform.I
 		verb = "destroyed"
 	}
 
-	fmt.Printf("* %s %s is %s (%s)\n", check, info.ResourceAddress(), verb, delta)
+	h.cs.Write(testharness.CheckItem{
+		Result:  result,
+		Caption: fmt.Sprintf("%s is %s", info.ResourceAddress(), verb),
+		Time:    delta,
+	})
 
 	return terraform.HookActionContinue, nil
 }
