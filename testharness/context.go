@@ -3,6 +3,7 @@ package testharness
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/terraform"
 	lua "github.com/yuin/gopher-lua"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -50,12 +51,14 @@ func (ctx *Context) WithName(name string) *Context {
 // WithNameSuffix returns a new context that has the given string appended to
 // the name of the receiving context.
 func (ctx *Context) WithNameSuffix(suffix string) *Context {
+	return ctx.WithName(ctx.nameWithSuffix(suffix))
+}
+
+func (ctx *Context) nameWithSuffix(suffix string) string {
 	if ctx.name == "" {
-		return ctx.WithName(suffix)
+		return suffix
 	}
-	retVal := *ctx
-	retVal.name = fmt.Sprintf("%s %s", ctx.name, suffix)
-	return &retVal
+	return fmt.Sprintf("%s %s", ctx.name, suffix)
 }
 
 // HasResource returns true if there is a resource object associated with
@@ -72,8 +75,9 @@ func (ctx *Context) Resource() cty.Value {
 
 // WithResource returns a new context which has the given resource object
 // associated.
-func (ctx *Context) WithResource(obj cty.Value) *Context {
+func (ctx *Context) WithResource(addr *terraform.ResourceAddress, obj cty.Value) *Context {
 	retVal := *ctx
+	retVal.name = ctx.nameWithSuffix(addr.String())
 	retVal.resource = obj
 	return &retVal
 }
@@ -151,4 +155,10 @@ func (ctx *Context) EachObject() cty.Value {
 		return cty.EmptyObjectVal
 	}
 	return cty.ObjectVal(ctx.each)
+}
+
+func (ctx *Context) withNewLuaThread() *Context {
+	retVal := *ctx
+	retVal.lstate, _ = ctx.lstate.NewThread()
+	return &retVal
 }
