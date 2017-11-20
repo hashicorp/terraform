@@ -59,7 +59,7 @@ func TestFriendlyHost(t *testing.T) {
 			source:      "xn--s-fka0wmm0zea7g8b.xn--o-8ta85a3b1dwcda1k.io",
 			wantHost:    "xn--s-fka0wmm0zea7g8b.xn--o-8ta85a3b1dwcda1k.io",
 			wantDisplay: "ʎɹʇsıƃǝɹ.ɯɹoɟɐɹɹǝʇ.io",
-			wantNorm:    "xn--s-fka0wmm0zea7g8b.xn--o-8ta85a3b1dwcda1k.io",
+			wantNorm:    InvalidHostString,
 			wantValid:   false,
 		},
 		{
@@ -109,13 +109,9 @@ func TestFriendlyHost(t *testing.T) {
 				}
 
 				// Also verify that host compares equal with all the variants.
-				if !gotHost.Equal(&FriendlyHost{Raw: tt.wantDisplay}) {
-					t.Fatalf("Equal() should be true for %s and %s", tt.wantHost, tt.wantValid)
+				if gotHost.Valid() && !gotHost.Equal(&FriendlyHost{Raw: tt.wantDisplay}) {
+					t.Fatalf("Equal() should be true for %s and %s", tt.wantHost, tt.wantDisplay)
 				}
-				if !gotHost.Equal(&FriendlyHost{Raw: tt.wantNorm}) {
-					t.Fatalf("Equal() should be true for %s and %s", tt.wantHost, tt.wantNorm)
-				}
-
 			})
 		}
 	}
