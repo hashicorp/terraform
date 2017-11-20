@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"golang.org/x/net/idna"
+	"github.com/hashicorp/terraform/svchost"
 )
 
 var (
@@ -95,42 +95,22 @@ func ParseFriendlyHost(source string) (host *FriendlyHost, rest string) {
 // name specifications. Not that IDN prefixes containing punycode are not valid
 // input which we expect to always be in user-input or normalised display form.
 func (h *FriendlyHost) Valid() bool {
-	if h.Display() == InvalidHostString {
-		return false
-	}
-	if h.Normalized() == InvalidHostString {
-		return false
-	}
-	if containsPuny(h.Raw) {
-		return false
-	}
-	return true
+	return svchost.IsValid(h.Raw)
 }
 
 // Display returns the host formatted for display to the user in CLI or web
 // output.
 func (h *FriendlyHost) Display() string {
-	parts := strings.SplitN(h.Raw, ":", 2)
-	var err error
-	parts[0], err = idna.Display.ToUnicode(parts[0])
-	if err != nil {
-		return InvalidHostString
-	}
-	return strings.Join(parts, ":")
+	return svchost.ForDisplay(h.Raw)
 }
 
 // Normalized returns the host formatted for internal reference or comparison.
 func (h *FriendlyHost) Normalized() string {
-	// For now IDNA does all the normalisation we need including case-folding
-	// pure ASCII to lower. But breaks if a custom port is included while we
-	// want to allow that and normalize comparison including it,
-	parts := strings.SplitN(h.Raw, ":", 2)
-	var err error
-	parts[0], err = idna.Lookup.ToASCII(parts[0])
+	host, err := svchost.ForComparison(h.Raw)
 	if err != nil {
 		return InvalidHostString
 	}
-	return strings.Join(parts, ":")
+	return string(host)
 }
 
 // String returns the host formatted as the user originally typed it assuming it
@@ -140,19 +120,15 @@ func (h *FriendlyHost) String() string {
 }
 
 // Equal compares the FriendlyHost against another instance taking normalization
-// into account.
+// into account. Invalid hosts cannot be compared and will always return false.
 func (h *FriendlyHost) Equal(other *FriendlyHost) bool {
 	if other == nil {
 		return false
 	}
+
 	return h.Normalized() == other.Normalized()
 }
 
-func containsPuny(host string) bool {
-	for _, lbl := range strings.Split(host, ".") {
-		if strings.HasPrefix(strings.ToLower(lbl), "xn--") {
-			return true
-		}
-	}
-	return false
+func (h *FriendlyHost) SvcHost() (svchost.Hostname, error) {
+	return svchost.ForComparison(h.Raw)
 }
