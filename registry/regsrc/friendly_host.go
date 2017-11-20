@@ -128,7 +128,3 @@ func (h *FriendlyHost) Equal(other *FriendlyHost) bool {
 
 	return h.Normalized() == other.Normalized()
 }
-
-func (h *FriendlyHost) SvcHost() (svchost.Hostname, error) {
-	return svchost.ForComparison(h.Raw)
-}

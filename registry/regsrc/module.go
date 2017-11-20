@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/hashicorp/terraform/svchost"
 )
 
 var (
@@ -189,4 +191,15 @@ func (m *Module) formatWithPrefix(hostPrefix string, preserveCase bool) string {
 // suffix.
 func (m *Module) Module() string {
 	return fmt.Sprintf("%s/%s/%s", m.RawNamespace, m.RawName, m.RawProvider)
+}
+
+// SvcHost returns the svchost.Hostname for this module. Since FriendlyHost may
+// contain an invalid hostname, this also returns an error indicating if it
+// could be converted to a svchost.Hostname. If no host is specified, the
+// default PublicRegistryHost is returned.
+func (m *Module) SvcHost() (svchost.Hostname, error) {
+	if m.RawHost == nil {
+		return svchost.ForComparison(PublicRegistryHost.Raw)
+	}
+	return svchost.ForComparison(m.RawHost.Raw)
 }
