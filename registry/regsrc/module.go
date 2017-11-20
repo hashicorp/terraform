@@ -33,12 +33,13 @@ var (
 		fmt.Sprintf("^(%s)\\/(%s)\\/(%s)(?:\\/\\/(.*))?$",
 			nameSubRe, nameSubRe, providerSubRe))
 
-	// disallowed is a set of hostnames that have special usage in modules and
-	// can't be registry hosts
-	disallowed = map[string]bool{
-		"github.com":    true,
-		"bitbucket.org": true,
-	}
+	// NameRe is a regular expression defining the format allowed for namespace
+	// or name fields in module registry implementations.
+	NameRe = regexp.MustCompile("^" + nameSubRe + "$")
+
+	// ProviderRe is a regular expression defining the format allowed for
+	// provider fields in module registry implementations.
+	ProviderRe = regexp.MustCompile("^" + providerSubRe + "$")
 )
 
 // Module describes a Terraform Registry Module source.
@@ -84,10 +85,8 @@ func NewModule(host, namespace, name, provider, submodule string) *Module {
 func ParseModuleSource(source string) (*Module, error) {
 	// See if there is a friendly host prefix.
 	host, rest := ParseFriendlyHost(source)
-	if host != nil {
-		if !host.Valid() || disallowed[host.Display()] {
-			return nil, ErrInvalidModuleSource
-		}
+	if host != nil && !host.Valid() {
+		return nil, ErrInvalidModuleSource
 	}
 
 	matches := moduleSourceRe.FindStringSubmatch(rest)
@@ -130,12 +129,6 @@ func (m *Module) String() string {
 		hostPrefix = m.RawHost.String() + "/"
 	}
 	return m.formatWithPrefix(hostPrefix, true)
-}
-
-// Module returns just the registry ID of the module, without a hostname or
-// suffix.
-func (m *Module) Module() string {
-	return fmt.Sprintf("%s/%s/%s", m.RawNamespace, m.RawName, m.RawProvider)
 }
 
 // Equal compares the module source against another instance taking
