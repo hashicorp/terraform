@@ -184,3 +184,9 @@ func (m *Module) formatWithPrefix(hostPrefix string, preserveCase bool) string {
 	}
 	return str
 }
+
+// Module returns just the registry ID of the module, without a hostname or
+// suffix.
+func (m *Module) Module() string {
+	return fmt.Sprintf("%s/%s/%s", m.RawNamespace, m.RawName, m.RawProvider)
+}
