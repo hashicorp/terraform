@@ -40,6 +40,13 @@ var (
 	// ProviderRe is a regular expression defining the format allowed for
 	// provider fields in module registry implementations.
 	ProviderRe = regexp.MustCompile("^" + providerSubRe + "$")
+
+	// these hostnames are not allowed as registry sources, because they are
+	// already special case module sources in terraform.
+	disallowed = map[string]bool{
+		"github.com":    true,
+		"bitbucket.org": true,
+	}
 )
 
 // Module describes a Terraform Registry Module source.
@@ -60,7 +67,7 @@ type Module struct {
 
 // NewModule construct a new module source from separate parts. Pass empty
 // string if host or submodule are not needed.
-func NewModule(host, namespace, name, provider, submodule string) *Module {
+func NewModule(host, namespace, name, provider, submodule string) (*Module, error) {
 	m := &Module{
 		RawNamespace: namespace,
 		RawName:      name,
@@ -68,9 +75,16 @@ func NewModule(host, namespace, name, provider, submodule string) *Module {
 		RawSubmodule: submodule,
 	}
 	if host != "" {
-		m.RawHost = NewFriendlyHost(host)
+		h := NewFriendlyHost(host)
+		if h != nil {
+			fmt.Println("HOST:", h)
+			if !h.Valid() || disallowed[h.Display()] {
+				return nil, ErrInvalidModuleSource
+			}
+		}
+		m.RawHost = h
 	}
-	return m
+	return m, nil
 }
 
 // ParseModuleSource attempts to parse source as a Terraform registry module
@@ -85,8 +99,10 @@ func NewModule(host, namespace, name, provider, submodule string) *Module {
 func ParseModuleSource(source string) (*Module, error) {
 	// See if there is a friendly host prefix.
 	host, rest := ParseFriendlyHost(source)
-	if host != nil && !host.Valid() {
-		return nil, ErrInvalidModuleSource
+	if host != nil {
+		if !host.Valid() || disallowed[host.Display()] {
+			return nil, ErrInvalidModuleSource
+		}
 	}
 
 	matches := moduleSourceRe.FindStringSubmatch(rest)
