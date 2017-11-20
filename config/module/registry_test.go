@@ -2,6 +2,7 @@ package module
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	version "github.com/hashicorp/go-version"
@@ -93,6 +94,7 @@ func TestRegistryAuth(t *testing.T) {
 	}
 
 }
+
 func TestLookupModuleLocationRelative(t *testing.T) {
 	server := mockRegistry()
 	defer server.Close()
@@ -117,6 +119,7 @@ func TestLookupModuleLocationRelative(t *testing.T) {
 	}
 
 }
+
 func TestAccLookupModuleVersions(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip()
@@ -161,5 +164,31 @@ func TestAccLookupModuleVersions(t *testing.T) {
 				t.Fatalf("invalid version %q: %s", v.Version, err)
 			}
 		}
+	}
+}
+
+// the error should reference the config source exatly, not the discovered path.
+func TestLookupLookupModuleError(t *testing.T) {
+	server := mockRegistry()
+	defer server.Close()
+
+	regDisco := testDisco(server)
+	storage := testStorage(t, regDisco)
+
+	// this should not be found in teh registry
+	src := "bad/local/path"
+	mod, err := regsrc.ParseModuleSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = storage.lookupModuleLocation(mod, "0.2.0")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	// check for the exact quoted string to ensure we didn't prepend a hostname.
+	if !strings.Contains(err.Error(), `"bad/local/path"`) {
+		t.Fatal("error should not include the hostname. got:", err)
 	}
 }
