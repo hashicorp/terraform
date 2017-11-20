@@ -116,3 +116,26 @@ func TestFriendlyHost(t *testing.T) {
 		}
 	}
 }
+
+func TestInvalidHostEquals(t *testing.T) {
+	invalid := NewFriendlyHost("NOT_A_HOST_NAME")
+	valid := PublicRegistryHost
+
+	// invalid hosts are not comparable
+	if invalid.Equal(invalid) {
+		t.Fatal("invalid host names are not comparable")
+	}
+
+	if valid.Equal(invalid) {
+		t.Fatalf("%q is not equal to %q", valid, invalid)
+	}
+
+	puny := NewFriendlyHost("xn--s-fka0wmm0zea7g8b.xn--o-8ta85a3b1dwcda1k.io")
+	display := NewFriendlyHost("ʎɹʇsıƃǝɹ.ɯɹoɟɐɹɹǝʇ.io")
+
+	// The pre-normalized host is not a valid source, and therefore not
+	// comparable to the display version.
+	if display.Equal(puny) {
+		t.Fatalf("invalid host %q should not be comparable", puny)
+	}
+}

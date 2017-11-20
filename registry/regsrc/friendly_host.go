@@ -126,5 +126,15 @@ func (h *FriendlyHost) Equal(other *FriendlyHost) bool {
 		return false
 	}
 
-	return h.Normalized() == other.Normalized()
+	otherHost, err := svchost.ForComparison(other.Raw)
+	if err != nil {
+		return false
+	}
+
+	host, err := svchost.ForComparison(h.Raw)
+	if err != nil {
+		return false
+	}
+
+	return otherHost == host
 }
