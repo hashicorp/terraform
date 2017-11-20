@@ -688,6 +688,7 @@ func TestNameRegexp(t *testing.T) {
 		{"foo-bar", true},
 		{"foo_bar", true},
 		{"_hello", true},
+		{"-foo", true},
 		{"foo bar", false},
 		{"foo.bar", false},
 	}
