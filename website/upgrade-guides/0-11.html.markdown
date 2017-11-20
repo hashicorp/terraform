@@ -93,9 +93,12 @@ situations:
   the descendent and the descendent no longer inherits attributes from
   its ancestor. Instead, each configuration is entirely distinct.
 
-* Only unaliased provider configurations can be automatically inherited from
-  ancestor modules. Aliased providers must be passed explicitly using
+* If a `provider` block is present in a child module, it must either contain a
+  complete configuration for its associated provider or a configuration must be
+  passed from the parent module using
   [the new `providers` attribute](/docs/modules/usage.html#providers-within-modules).
+  In the latter case, an empty provider block is a placeholder that declares
+  that the child module requires a configuration to be passed from its parent.
 
 * When a module containing its own `provider` blocks is removed from its
   parent module, Terraform will no longer attempt to associate it with
@@ -143,8 +146,9 @@ With the above configuration, any `aws` provider resources in the module
 `module.example-use1` and the us-west-1 provider configuration for
 `module.example-usw1`.
 
-When only default (non-aliased) providers are in use, automatic inheritance
-to child modules is still supported.
+When a default (non-aliased) provider is used, and not explicitly
+declared in a child module, automatic inheritance of that provider is still
+supported.
 
 **Action**: In existing configurations where both a descendent module and
 one of its ancestor modules both configure the same provider, copy any
