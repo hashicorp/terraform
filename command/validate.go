@@ -100,10 +100,11 @@ func (c *ValidateCommand) validate(dir string, checkVars bool) int {
 		c.showDiagnostics(err)
 		return 1
 	}
-	err = cfg.Validate()
-	if err != nil {
-		c.showDiagnostics(err)
-		return 1
+	if diags := cfg.Validate(); len(diags) != 0 {
+		c.showDiagnostics(diags)
+		if diags.HasErrors() {
+			return 1
+		}
 	}
 
 	if checkVars {
@@ -122,7 +123,7 @@ func (c *ValidateCommand) validate(dir string, checkVars bool) int {
 			return 1
 		}
 
-		if !validateContext(tfCtx, c.Ui) {
+		if !c.validateContext(tfCtx) {
 			return 1
 		}
 	}

@@ -18,12 +18,9 @@ func TestContext2Validate_badCount(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -39,12 +36,9 @@ func TestContext2Validate_badVar(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -63,12 +57,9 @@ func TestContext2Validate_varMapOverrideOld(t *testing.T) {
 		},
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -78,12 +69,9 @@ func TestContext2Validate_varNoDefaultExplicitType(t *testing.T) {
 		Module: m,
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -112,14 +100,9 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		return fmt.Errorf("Configure should not be called for provider")
 	}
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		for _, err := range e {
-			t.Errorf("bad: %s", err)
-		}
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -138,12 +121,9 @@ func TestContext2Validate_countComputed(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -159,12 +139,9 @@ func TestContext2Validate_countNegative(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -180,12 +157,9 @@ func TestContext2Validate_countVariable(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -201,12 +175,9 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) != 1 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -224,12 +195,9 @@ func TestContext2Validate_cycle(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("expected no warns, got: %#v", w)
-	}
-	if len(e) != 1 {
-		t.Fatalf("expected 1 err, got: %s", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 */
@@ -246,12 +214,9 @@ func TestContext2Validate_moduleBadOutput(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -267,12 +232,9 @@ func TestContext2Validate_moduleGood(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -290,12 +252,9 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 
 	p.ValidateResourceReturnErrors = []error{fmt.Errorf("bad")}
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -311,13 +270,9 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 		),
 	})
 
-	w, e := ctx.Validate()
-
-	if len(w) > 0 {
-		t.Fatalf("expected no warnings, got: %s", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("expected no errors, got: %s", e)
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -360,12 +315,9 @@ func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
 		return nil, nil
 	}
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -388,12 +340,9 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 		return nil, c.CheckSet([]string{"foo"})
 	}
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -413,12 +362,9 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 		return nil, c.CheckSet([]string{"foo"})
 	}
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -455,12 +401,9 @@ func TestContext2Validate_orphans(t *testing.T) {
 		return nil, c.CheckSet([]string{"foo"})
 	}
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -478,15 +421,12 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 
 	p.ValidateReturnErrors = []error{fmt.Errorf("bad")}
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
+	diags := c.Validate()
+	if len(diags) != 1 {
+		t.Fatalf("wrong number of diagnostics %d; want %d", len(diags), 1)
 	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %s", e)
-	}
-	if !strings.Contains(fmt.Sprintf("%s", e), "bad") {
-		t.Fatalf("bad: %s", e)
+	if !strings.Contains(diags.Err().Error(), "bad") {
+		t.Fatalf("bad: %s", diags.Err().Error())
 	}
 }
 
@@ -504,12 +444,9 @@ func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
 
 	p.ValidateReturnErrors = []error{fmt.Errorf("bad")}
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -525,12 +462,9 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -552,12 +486,9 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 
 	pr.ValidateReturnErrors = []error{fmt.Errorf("bad")}
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -583,12 +514,9 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 		},
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -604,12 +532,9 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -627,12 +552,9 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 
 	p.ValidateResourceReturnErrors = []error{fmt.Errorf("bad")}
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -648,12 +570,9 @@ func TestContext2Validate_resourceConfig_good(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -669,12 +588,9 @@ func TestContext2Validate_resourceNameSymbol(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -690,12 +606,9 @@ func TestContext2Validate_selfRef(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -711,12 +624,9 @@ func TestContext2Validate_selfRefMulti(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -732,12 +642,9 @@ func TestContext2Validate_selfRefMultiAll(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -775,12 +682,9 @@ func TestContext2Validate_tainted(t *testing.T) {
 		return nil, c.CheckSet([]string{"foo"})
 	}
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -815,16 +719,9 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 		Destroy: true,
 	})
 
-	w, e := ctx.Validate()
-	if len(w) > 0 {
-		warnStr := ""
-		for _, v := range w {
-			warnStr = warnStr + " " + v
-		}
-		t.Fatalf("bad: %s", warnStr)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -875,12 +772,9 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 		UIInput: input,
 	})
 
-	w, e := ctx.Validate()
-	if w != nil {
-		t.Log("warnings:", w)
-	}
-	if e != nil {
-		t.Fatal("err:", e)
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -904,12 +798,9 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 		UIInput: input,
 	})
 
-	w, e := ctx.Validate()
-	if w != nil {
-		t.Log("warnings:", w)
-	}
-	if e != nil {
-		t.Fatal("err:", e)
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -932,12 +823,9 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 		UIInput: input,
 	})
 
-	w, e := ctx.Validate()
-	if w != nil {
-		t.Log("warnings:", w)
-	}
-	if e != nil {
-		t.Fatal("err:", e)
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 

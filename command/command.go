@@ -7,7 +7,6 @@ import (
 	"runtime"
 
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 // Set to true when we're testing
@@ -82,39 +81,18 @@ func ModulePath(args []string) (string, error) {
 	return args[0], nil
 }
 
-func validateContext(ctx *terraform.Context, ui cli.Ui) bool {
+func (m *Meta) validateContext(ctx *terraform.Context) bool {
 	log.Println("[INFO] Validating the context...")
-	ws, es := ctx.Validate()
-	log.Printf("[INFO] Validation result: %d warnings, %d errors", len(ws), len(es))
+	diags := ctx.Validate()
+	log.Printf("[INFO] Validation result: %d diagnostics", len(diags))
 
-	if len(ws) > 0 || len(es) > 0 {
-		ui.Output(
+	if len(diags) > 0 {
+		m.Ui.Output(
 			"There are warnings and/or errors related to your configuration. Please\n" +
 				"fix these before continuing.\n")
 
-		if len(ws) > 0 {
-			ui.Warn("Warnings:\n")
-			for _, w := range ws {
-				ui.Warn(fmt.Sprintf("  * %s", w))
-			}
-
-			if len(es) > 0 {
-				ui.Output("")
-			}
-		}
-
-		if len(es) > 0 {
-			ui.Error("Errors:\n")
-			for _, e := range es {
-				ui.Error(fmt.Sprintf("  * %s", e))
-			}
-			return false
-		} else {
-			ui.Warn(fmt.Sprintf("\n"+
-				"No errors found. Continuing with %d warning(s).\n", len(ws)))
-			return true
-		}
+		m.showDiagnostics(diags)
 	}
 
-	return true
+	return !diags.HasErrors()
 }

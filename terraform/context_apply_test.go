@@ -7966,12 +7966,9 @@ func TestContext2Apply_vars(t *testing.T) {
 		},
 	})
 
-	w, e := ctx.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
+	diags := ctx.Validate()
+	if len(diags) != 0 {
+		t.Fatalf("bad: %#v", diags)
 	}
 
 	if _, err := ctx.Plan(); err != nil {
@@ -8009,12 +8006,9 @@ func TestContext2Apply_varsEnv(t *testing.T) {
 		),
 	})
 
-	w, e := ctx.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
+	diags := ctx.Validate()
+	if len(diags) != 0 {
+		t.Fatalf("bad: %#v", diags)
 	}
 
 	if _, err := ctx.Plan(); err != nil {

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	getter "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 )
@@ -383,32 +385,35 @@ func (t *Tree) String() string {
 // as verifying things such as parameters/outputs between the various modules.
 //
 // Load must be called prior to calling Validate or an error will be returned.
-func (t *Tree) Validate() error {
-	if !t.Loaded() {
-		return fmt.Errorf("tree must be loaded before calling Validate")
-	}
+func (t *Tree) Validate() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 
-	// If something goes wrong, here is our error template
-	newErr := &treeError{Name: []string{t.Name()}}
+	if !t.Loaded() {
+		diags = diags.Append(fmt.Errorf(
+			"tree must be loaded before calling Validate",
+		))
+		return diags
+	}
 
 	// Terraform core does not handle root module children named "root".
 	// We plan to fix this in the future but this bug was brought up in
 	// the middle of a release and we don't want to introduce wide-sweeping
 	// changes at that time.
 	if len(t.path) == 1 && t.name == "root" {
-		return fmt.Errorf("root module cannot contain module named 'root'")
+		diags = diags.Append(fmt.Errorf(
+			"root module cannot contain module named 'root'",
+		))
+		return diags
 	}
 
 	// Validate our configuration first.
-	if err := t.config.Validate(); err != nil {
-		newErr.Add(err)
-	}
+	diags = diags.Append(t.config.Validate())
 
 	// If we're the root, we do extra validation. This validation usually
 	// requires the entire tree (since children don't have parent pointers).
 	if len(t.path) == 0 {
 		if err := t.validateProviderAlias(); err != nil {
-			newErr.Add(err)
+			diags = diags.Append(err)
 		}
 	}
 
@@ -417,20 +422,11 @@ func (t *Tree) Validate() error {
 
 	// Validate all our children
 	for _, c := range children {
-		err := c.Validate()
-		if err == nil {
+		childDiags := c.Validate()
+		diags = diags.Append(childDiags)
+		if diags.HasErrors() {
 			continue
 		}
-
-		verr, ok := err.(*treeError)
-		if !ok {
-			// Unknown error, just return...
-			return err
-		}
-
-		// Append ourselves to the error and then return
-		verr.Name = append(verr.Name, t.Name())
-		newErr.AddChild(verr)
 	}
 
 	// Go over all the modules and verify that any parameters are valid
@@ -456,9 +452,10 @@ func (t *Tree) Validate() error {
 		// Compare to the keys in our raw config for the module
 		for k, _ := range m.RawConfig.Raw {
 			if _, ok := varMap[k]; !ok {
-				newErr.Add(fmt.Errorf(
-					"module %s: %s is not a valid parameter",
-					m.Name, k))
+				diags = diags.Append(fmt.Errorf(
+					"module %q: %q is not a valid argument",
+					m.Name, k,
+				))
 			}
 
 			// Remove the required
@@ -467,9 +464,10 @@ func (t *Tree) Validate() error {
 
 		// If we have any required left over, they aren't set.
 		for k, _ := range requiredMap {
-			newErr.Add(fmt.Errorf(
-				"module %s: required variable %q not set",
-				m.Name, k))
+			diags = diags.Append(fmt.Errorf(
+				"module %q: missing required argument %q",
+				m.Name, k,
+			))
 		}
 	}
 
@@ -484,9 +482,10 @@ func (t *Tree) Validate() error {
 
 			tree, ok := children[mv.Name]
 			if !ok {
-				newErr.Add(fmt.Errorf(
-					"%s: undefined module referenced %s",
-					source, mv.Name))
+				diags = diags.Append(fmt.Errorf(
+					"%s: reference to undefined module %q",
+					source, mv.Name,
+				))
 				continue
 			}
 
@@ -498,14 +497,15 @@ func (t *Tree) Validate() error {
 				}
 			}
 			if !found {
-				newErr.Add(fmt.Errorf(
-					"%s: %s is not a valid output for module %s",
-					source, mv.Field, mv.Name))
+				diags = diags.Append(fmt.Errorf(
+					"%s: %q is not a valid output for module %q",
+					source, mv.Field, mv.Name,
+				))
 			}
 		}
 	}
 
-	return newErr.ErrOrNil()
+	return diags
 }
 
 // versionedPathKey returns a path string with every levels full name, version
