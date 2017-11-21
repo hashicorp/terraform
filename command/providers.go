@@ -53,10 +53,11 @@ func (c *ProvidersCommand) Run(args []string) int {
 	}
 
 	// Validate the config (to ensure the version constraints are valid)
-	err = root.Validate()
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
+	if diags := root.Validate(); len(diags) != 0 {
+		c.showDiagnostics(diags)
+		if diags.HasErrors() {
+			return 1
+		}
 	}
 
 	// Load the backend

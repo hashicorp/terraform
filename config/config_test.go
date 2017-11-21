@@ -223,20 +223,21 @@ func TestConfigValidate_table(t *testing.T) {
 			"invalid provider name in module block",
 			"validate-missing-provider",
 			true,
-			"does not exist",
+			"cannot pass non-existent provider",
 		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
 			c := testConfig(t, tc.Fixture)
-			err := c.Validate()
-			if (err != nil) != tc.Err {
-				t.Fatalf("err: %s", err)
+			diags := c.Validate()
+			if diags.HasErrors() != tc.Err {
+				t.Fatalf("err: %s", diags.Err().Error())
 			}
-			if err != nil {
-				if tc.ErrString != "" && !strings.Contains(err.Error(), tc.ErrString) {
-					t.Fatalf("expected err to contain: %s\n\ngot: %s", tc.ErrString, err)
+			if diags.HasErrors() {
+				gotErr := diags.Err().Error()
+				if tc.ErrString != "" && !strings.Contains(gotErr, tc.ErrString) {
+					t.Fatalf("expected err to contain: %s\n\ngot: %s", tc.ErrString, gotErr)
 				}
 
 				return
@@ -291,15 +292,16 @@ func TestConfigValidate_countInt_HCL2(t *testing.T) {
 func TestConfigValidate_countBadContext(t *testing.T) {
 	c := testConfig(t, "validate-count-bad-context")
 
-	err := c.Validate()
+	diags := c.Validate()
 
 	expected := []string{
-		"no_count_in_output: count variables are only valid within resources",
-		"no_count_in_module: count variables are only valid within resources",
+		"output \"no_count_in_output\": count variables are only valid within resources",
+		"module \"no_count_in_module\": count variables are only valid within resources",
 	}
 	for _, exp := range expected {
-		if !strings.Contains(err.Error(), exp) {
-			t.Fatalf("expected: %q,\nto contain: %q", err, exp)
+		errStr := diags.Err().Error()
+		if !strings.Contains(errStr, exp) {
+			t.Errorf("expected: %q,\nto contain: %q", errStr, exp)
 		}
 	}
 }

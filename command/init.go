@@ -280,7 +280,8 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		return err
 	}
 
-	if err := mod.Validate(); err != nil {
+	if diags := mod.Validate(); diags.HasErrors() {
+		err := diags.Err()
 		c.Ui.Error(fmt.Sprintf("Error getting plugins: %s", err))
 		return err
 	}

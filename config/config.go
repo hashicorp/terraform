@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/reflectwalk"
 )
 
@@ -278,30 +278,35 @@ func ResourceProviderFullName(resourceType, explicitProvider string) string {
 }
 
 // Validate does some basic semantic checking of the configuration.
-func (c *Config) Validate() error {
+func (c *Config) Validate() tfdiags.Diagnostics {
 	if c == nil {
 		return nil
 	}
 
-	var errs []error
+	var diags tfdiags.Diagnostics
 
 	for _, k := range c.unknownKeys {
-		errs = append(errs, fmt.Errorf(
-			"Unknown root level key: %s", k))
+		diags = diags.Append(
+			fmt.Errorf("Unknown root level key: %s", k),
+		)
 	}
 
 	// Validate the Terraform config
 	if tf := c.Terraform; tf != nil {
-		errs = append(errs, c.Terraform.Validate()...)
+		errs := c.Terraform.Validate()
+		for _, err := range errs {
+			diags = diags.Append(err)
+		}
 	}
 
 	vars := c.InterpolatedVariables()
 	varMap := make(map[string]*Variable)
 	for _, v := range c.Variables {
 		if _, ok := varMap[v.Name]; ok {
-			errs = append(errs, fmt.Errorf(
+			diags = diags.Append(fmt.Errorf(
 				"Variable '%s': duplicate found. Variable names must be unique.",
-				v.Name))
+				v.Name,
+			))
 		}
 
 		varMap[v.Name] = v
@@ -309,17 +314,19 @@ func (c *Config) Validate() error {
 
 	for k, _ := range varMap {
 		if !NameRegexp.MatchString(k) {
-			errs = append(errs, fmt.Errorf(
-				"variable %q: variable name must match regular expresion %s",
-				k, NameRegexp))
+			diags = diags.Append(fmt.Errorf(
+				"variable %q: variable name must match regular expression %s",
+				k, NameRegexp,
+			))
 		}
 	}
 
 	for _, v := range c.Variables {
 		if v.Type() == VariableTypeUnknown {
-			errs = append(errs, fmt.Errorf(
+			diags = diags.Append(fmt.Errorf(
 				"Variable '%s': must be a string or a map",
-				v.Name))
+				v.Name,
+			))
 			continue
 		}
 
@@ -340,9 +347,10 @@ func (c *Config) Validate() error {
 		if v.Default != nil {
 			if err := reflectwalk.Walk(v.Default, w); err == nil {
 				if interp {
-					errs = append(errs, fmt.Errorf(
-						"Variable '%s': cannot contain interpolations",
-						v.Name))
+					diags = diags.Append(fmt.Errorf(
+						"variable %q: default may not contain interpolations",
+						v.Name,
+					))
 				}
 			}
 		}
@@ -358,10 +366,11 @@ func (c *Config) Validate() error {
 			}
 
 			if _, ok := varMap[uv.Name]; !ok {
-				errs = append(errs, fmt.Errorf(
-					"%s: unknown variable referenced: '%s'. define it with 'variable' blocks",
+				diags = diags.Append(fmt.Errorf(
+					"%s: unknown variable referenced: '%s'; define it with a 'variable' block",
 					source,
-					uv.Name))
+					uv.Name,
+				))
 			}
 		}
 	}
@@ -372,17 +381,19 @@ func (c *Config) Validate() error {
 			switch v := rawV.(type) {
 			case *CountVariable:
 				if v.Type == CountValueInvalid {
-					errs = append(errs, fmt.Errorf(
+					diags = diags.Append(fmt.Errorf(
 						"%s: invalid count variable: %s",
 						source,
-						v.FullKey()))
+						v.FullKey(),
+					))
 				}
 			case *PathVariable:
 				if v.Type == PathValueInvalid {
-					errs = append(errs, fmt.Errorf(
+					diags = diags.Append(fmt.Errorf(
 						"%s: invalid path variable: %s",
 						source,
-						v.FullKey()))
+						v.FullKey(),
+					))
 				}
 			}
 		}
@@ -394,16 +405,17 @@ func (c *Config) Validate() error {
 	for _, p := range c.ProviderConfigs {
 		name := p.FullName()
 		if _, ok := providerSet[name]; ok {
-			errs = append(errs, fmt.Errorf(
-				"provider.%s: declared multiple times, you can only declare a provider once",
-				name))
+			diags = diags.Append(fmt.Errorf(
+				"provider.%s: multiple configurations present; only one configuration is allowed per provider",
+				name,
+			))
 			continue
 		}
 
 		if p.Version != "" {
 			_, err := discovery.ConstraintStr(p.Version).Parse()
 			if err != nil {
-				errs = append(errs, fmt.Errorf(
+				diags = diags.Append(fmt.Errorf(
 					"provider.%s: invalid version constraint %q: %s",
 					name, p.Version, err,
 				))
@@ -422,9 +434,10 @@ func (c *Config) Validate() error {
 			if _, ok := dupped[m.Id()]; !ok {
 				dupped[m.Id()] = struct{}{}
 
-				errs = append(errs, fmt.Errorf(
-					"%s: module repeated multiple times",
-					m.Id()))
+				diags = diags.Append(fmt.Errorf(
+					"module %q: module repeated multiple times",
+					m.Id(),
+				))
 			}
 
 			// Already seen this module, just skip it
@@ -438,21 +451,23 @@ func (c *Config) Validate() error {
 			"root": m.Source,
 		})
 		if err != nil {
-			errs = append(errs, fmt.Errorf(
-				"%s: module source error: %s",
-				m.Id(), err))
+			diags = diags.Append(fmt.Errorf(
+				"module %q: module source error: %s",
+				m.Id(), err,
+			))
 		} else if len(rc.Interpolations) > 0 {
-			errs = append(errs, fmt.Errorf(
-				"%s: module source cannot contain interpolations",
-				m.Id()))
+			diags = diags.Append(fmt.Errorf(
+				"module %q: module source cannot contain interpolations",
+				m.Id(),
+			))
 		}
 
 		// Check that the name matches our regexp
 		if !NameRegexp.Match([]byte(m.Name)) {
-			errs = append(errs, fmt.Errorf(
-				"%s: module name can only contain letters, numbers, "+
-					"dashes, and underscores",
-				m.Id()))
+			diags = diags.Append(fmt.Errorf(
+				"module %q: module name must be a letter or underscore followed by only letters, numbers, dashes, and underscores",
+				m.Id(),
+			))
 		}
 
 		// Check that the configuration can all be strings, lists or maps
@@ -476,36 +491,44 @@ func (c *Config) Validate() error {
 				continue
 			}
 
-			errs = append(errs, fmt.Errorf(
-				"%s: variable %s must be a string, list or map value",
-				m.Id(), k))
+			diags = diags.Append(fmt.Errorf(
+				"module %q: argument %s must have a string, list, or map value",
+				m.Id(), k,
+			))
 		}
 
 		// Check for invalid count variables
 		for _, v := range m.RawConfig.Variables {
 			switch v.(type) {
 			case *CountVariable:
-				errs = append(errs, fmt.Errorf(
-					"%s: count variables are only valid within resources", m.Name))
+				diags = diags.Append(fmt.Errorf(
+					"module %q: count variables are only valid within resources",
+					m.Name,
+				))
 			case *SelfVariable:
-				errs = append(errs, fmt.Errorf(
-					"%s: self variables are only valid within resources", m.Name))
+				diags = diags.Append(fmt.Errorf(
+					"module %q: self variables are only valid within resources",
+					m.Name,
+				))
 			}
 		}
 
 		// Update the raw configuration to only contain the string values
 		m.RawConfig, err = NewRawConfig(raw)
 		if err != nil {
-			errs = append(errs, fmt.Errorf(
+			diags = diags.Append(fmt.Errorf(
 				"%s: can't initialize configuration: %s",
-				m.Id(), err))
+				m.Id(), err,
+			))
 		}
 
 		// check that all named providers actually exist
 		for _, p := range m.Providers {
 			if !providerSet[p] {
-				errs = append(errs, fmt.Errorf(
-					"provider %q named in module %q does not exist", p, m.Name))
+				diags = diags.Append(fmt.Errorf(
+					"module %q: cannot pass non-existent provider %q",
+					m.Name, p,
+				))
 			}
 		}
 
@@ -522,10 +545,10 @@ func (c *Config) Validate() error {
 			}
 
 			if _, ok := modules[mv.Name]; !ok {
-				errs = append(errs, fmt.Errorf(
+				diags = diags.Append(fmt.Errorf(
 					"%s: unknown module referenced: %s",
-					source,
-					mv.Name))
+					source, mv.Name,
+				))
 			}
 		}
 	}
@@ -538,9 +561,10 @@ func (c *Config) Validate() error {
 			if _, ok := dupped[r.Id()]; !ok {
 				dupped[r.Id()] = struct{}{}
 
-				errs = append(errs, fmt.Errorf(
+				diags = diags.Append(fmt.Errorf(
 					"%s: resource repeated multiple times",
-					r.Id()))
+					r.Id(),
+				))
 			}
 		}
 
@@ -554,15 +578,15 @@ func (c *Config) Validate() error {
 		for _, v := range r.RawCount.Variables {
 			switch v.(type) {
 			case *CountVariable:
-				errs = append(errs, fmt.Errorf(
+				diags = diags.Append(fmt.Errorf(
 					"%s: resource count can't reference count variable: %s",
-					n,
-					v.FullKey()))
+					n, v.FullKey(),
+				))
 			case *SimpleVariable:
-				errs = append(errs, fmt.Errorf(
+				diags = diags.Append(fmt.Errorf(
 					"%s: resource count can't reference variable: %s",
-					n,
-					v.FullKey()))
+					n, v.FullKey(),
+				))
 
 			// Good
 			case *ModuleVariable:
@@ -572,21 +596,24 @@ func (c *Config) Validate() error {
 			case *LocalVariable:
 
 			default:
-				errs = append(errs, fmt.Errorf(
+				diags = diags.Append(fmt.Errorf(
 					"Internal error. Unknown type in count var in %s: %T",
-					n, v))
+					n, v,
+				))
 			}
 		}
 
 		if !r.RawCount.couldBeInteger() {
-			errs = append(errs, fmt.Errorf(
-				"%s: resource count must be an integer",
-				n))
+			diags = diags.Append(fmt.Errorf(
+				"%s: resource count must be an integer", n,
+			))
 		}
 		r.RawCount.init()
 
 		// Validate DependsOn
-		errs = append(errs, c.validateDependsOn(n, r.DependsOn, resources, modules)...)
+		for _, err := range c.validateDependsOn(n, r.DependsOn, resources, modules) {
+			diags = diags.Append(err)
+		}
 
 		// Verify provisioners
 		for _, p := range r.Provisioners {
@@ -600,9 +627,10 @@ func (c *Config) Validate() error {
 				}
 
 				if rv.Multi && rv.Index == -1 && rv.Type == r.Type && rv.Name == r.Name {
-					errs = append(errs, fmt.Errorf(
-						"%s: connection info cannot contain splat variable "+
-							"referencing itself", n))
+					diags = diags.Append(fmt.Errorf(
+						"%s: connection info cannot contain splat variable referencing itself",
+						n,
+					))
 					break
 				}
 			}
@@ -614,9 +642,10 @@ func (c *Config) Validate() error {
 				}
 
 				if rv.Multi && rv.Index == -1 && rv.Type == r.Type && rv.Name == r.Name {
-					errs = append(errs, fmt.Errorf(
-						"%s: connection info cannot contain splat variable "+
-							"referencing itself", n))
+					diags = diags.Append(fmt.Errorf(
+						"%s: connection info cannot contain splat variable referencing itself",
+						n,
+					))
 					break
 				}
 			}
@@ -624,21 +653,24 @@ func (c *Config) Validate() error {
 			// Check for invalid when/onFailure values, though this should be
 			// picked up by the loader we check here just in case.
 			if p.When == ProvisionerWhenInvalid {
-				errs = append(errs, fmt.Errorf(
-					"%s: provisioner 'when' value is invalid", n))
+				diags = diags.Append(fmt.Errorf(
+					"%s: provisioner 'when' value is invalid", n,
+				))
 			}
 			if p.OnFailure == ProvisionerOnFailureInvalid {
-				errs = append(errs, fmt.Errorf(
-					"%s: provisioner 'on_failure' value is invalid", n))
+				diags = diags.Append(fmt.Errorf(
+					"%s: provisioner 'on_failure' value is invalid", n,
+				))
 			}
 		}
 
 		// Verify ignore_changes contains valid entries
 		for _, v := range r.Lifecycle.IgnoreChanges {
 			if strings.Contains(v, "*") && v != "*" {
-				errs = append(errs, fmt.Errorf(
-					"%s: ignore_changes does not support using a partial string "+
-						"together with a wildcard: %s", n, v))
+				diags = diags.Append(fmt.Errorf(
+					"%s: ignore_changes does not support using a partial string together with a wildcard: %s",
+					n, v,
+				))
 			}
 		}
 
@@ -647,21 +679,24 @@ func (c *Config) Validate() error {
 			"root": r.Lifecycle.IgnoreChanges,
 		})
 		if err != nil {
-			errs = append(errs, fmt.Errorf(
+			diags = diags.Append(fmt.Errorf(
 				"%s: lifecycle ignore_changes error: %s",
-				n, err))
+				n, err,
+			))
 		} else if len(rc.Interpolations) > 0 {
-			errs = append(errs, fmt.Errorf(
+			diags = diags.Append(fmt.Errorf(
 				"%s: lifecycle ignore_changes cannot contain interpolations",
-				n))
+				n,
+			))
 		}
 
 		// If it is a data source then it can't have provisioners
 		if r.Mode == DataResourceMode {
 			if _, ok := r.RawConfig.Raw["provisioner"]; ok {
-				errs = append(errs, fmt.Errorf(
+				diags = diags.Append(fmt.Errorf(
 					"%s: data sources cannot have provisioners",
-					n))
+					n,
+				))
 			}
 		}
 	}
@@ -675,11 +710,12 @@ func (c *Config) Validate() error {
 
 			id := rv.ResourceId()
 			if _, ok := resources[id]; !ok {
-				errs = append(errs, fmt.Errorf(
+				diags = diags.Append(fmt.Errorf(
 					"%s: unknown resource '%s' referenced in variable %s",
 					source,
 					id,
-					rv.FullKey()))
+					rv.FullKey(),
+				))
 				continue
 			}
 		}
@@ -690,7 +726,7 @@ func (c *Config) Validate() error {
 		found := make(map[string]struct{})
 		for _, l := range c.Locals {
 			if _, ok := found[l.Name]; ok {
-				errs = append(errs, fmt.Errorf(
+				diags = diags.Append(fmt.Errorf(
 					"%s: duplicate local. local value names must be unique",
 					l.Name,
 				))
@@ -700,7 +736,7 @@ func (c *Config) Validate() error {
 
 			for _, v := range l.RawConfig.Variables {
 				if _, ok := v.(*CountVariable); ok {
-					errs = append(errs, fmt.Errorf(
+					diags = diags.Append(fmt.Errorf(
 						"local %s: count variables are only valid within resources", l.Name,
 					))
 				}
@@ -714,9 +750,10 @@ func (c *Config) Validate() error {
 		for _, o := range c.Outputs {
 			// Verify the output is new
 			if _, ok := found[o.Name]; ok {
-				errs = append(errs, fmt.Errorf(
-					"%s: duplicate output. output names must be unique.",
-					o.Name))
+				diags = diags.Append(fmt.Errorf(
+					"output %q: an output of this name was already defined",
+					o.Name,
+				))
 				continue
 			}
 			found[o.Name] = struct{}{}
@@ -736,9 +773,10 @@ func (c *Config) Validate() error {
 						continue
 					}
 
-					errs = append(errs, fmt.Errorf(
-						"%s: value for 'sensitive' must be boolean",
-						o.Name))
+					diags = diags.Append(fmt.Errorf(
+						"output %q: value for 'sensitive' must be boolean",
+						o.Name,
+					))
 					continue
 				}
 				if k == "description" {
@@ -747,29 +785,35 @@ func (c *Config) Validate() error {
 						continue
 					}
 
-					errs = append(errs, fmt.Errorf(
-						"%s: value for 'description' must be string",
-						o.Name))
+					diags = diags.Append(fmt.Errorf(
+						"output %q: value for 'description' must be string",
+						o.Name,
+					))
 					continue
 				}
 				invalidKeys = append(invalidKeys, k)
 			}
 			if len(invalidKeys) > 0 {
-				errs = append(errs, fmt.Errorf(
-					"%s: output has invalid keys: %s",
-					o.Name, strings.Join(invalidKeys, ", ")))
+				diags = diags.Append(fmt.Errorf(
+					"output %q: invalid keys: %s",
+					o.Name, strings.Join(invalidKeys, ", "),
+				))
 			}
 			if !valueKeyFound {
-				errs = append(errs, fmt.Errorf(
-					"%s: output is missing required 'value' key", o.Name))
+				diags = diags.Append(fmt.Errorf(
+					"output %q: missing required 'value' argument", o.Name,
+				))
 			}
 
 			for _, v := range o.RawConfig.Variables {
 				if _, ok := v.(*CountVariable); ok {
-					errs = append(errs, fmt.Errorf(
-						"%s: count variables are only valid within resources", o.Name))
+					diags = diags.Append(fmt.Errorf(
+						"output %q: count variables are only valid within resources",
+						o.Name,
+					))
 				}
 			}
+
 		}
 	}
 
@@ -783,17 +827,15 @@ func (c *Config) Validate() error {
 
 		for _, v := range rc.Variables {
 			if _, ok := v.(*SelfVariable); ok {
-				errs = append(errs, fmt.Errorf(
-					"%s: cannot contain self-reference %s", source, v.FullKey()))
+				diags = diags.Append(fmt.Errorf(
+					"%s: cannot contain self-reference %s",
+					source, v.FullKey(),
+				))
 			}
 		}
 	}
 
-	if len(errs) > 0 {
-		return &multierror.Error{Errors: errs}
-	}
-
-	return nil
+	return diags
 }
 
 // InterpolatedVariables is a helper that returns a mapping of all the interpolated
