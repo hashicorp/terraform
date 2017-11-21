@@ -3499,12 +3499,9 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		State: s,
 	})
 
-	w, e := ctx.Validate()
-	if len(w) > 0 {
-		t.Fatalf("warnings generated on validate: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("errors generated on validate: %#v", e)
+	diags := ctx.Validate()
+	if len(diags) != 0 {
+		t.Fatalf("bad: %#v", diags)
 	}
 
 	_, err := ctx.Refresh()
@@ -3582,12 +3579,9 @@ output "out" {
 	})
 
 	// if this ever fails to pass validate, add a resource to reference in the config
-	w, e := ctx.Validate()
-	if len(w) > 0 {
-		t.Fatalf("warnings generated on validate: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("errors generated on validate: %v", e)
+	diags := ctx.Validate()
+	if len(diags) != 0 {
+		t.Fatalf("bad: %#v", diags)
 	}
 
 	_, err := ctx.Refresh()
@@ -3630,12 +3624,9 @@ resource "aws_instance" "foo" {
 	})
 
 	// if this ever fails to pass validate, add a resource to reference in the config
-	w, e := ctx.Validate()
-	if len(w) > 0 {
-		t.Fatalf("warnings generated on validate: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("errors generated on validate: %v", e)
+	diags := ctx.Validate()
+	if len(diags) != 0 {
+		t.Fatalf("bad: %#v", diags)
 	}
 
 	_, err := ctx.Refresh()

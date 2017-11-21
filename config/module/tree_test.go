@@ -404,15 +404,15 @@ func TestTreeValidate_table(t *testing.T) {
 				t.Fatalf("err: %s", err)
 			}
 
-			err := tree.Validate()
-			if (err != nil) != (tc.Err != "") {
-				t.Fatalf("err: %s", err)
+			diags := tree.Validate()
+			if (diags.HasErrors()) != (tc.Err != "") {
+				t.Fatalf("err: %s", diags.Err())
 			}
-			if err == nil {
+			if len(diags) == 0 {
 				return
 			}
-			if !strings.Contains(err.Error(), tc.Err) {
-				t.Fatalf("err should contain %q: %s", tc.Err, err)
+			if !strings.Contains(diags.Err().Error(), tc.Err) {
+				t.Fatalf("err should contain %q: %s", tc.Err, diags.Err().Error())
 			}
 		})
 	}
@@ -519,13 +519,13 @@ func TestTreeValidate_requiredChildVar(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	err := tree.Validate()
-	if err == nil {
+	diags := tree.Validate()
+	if !diags.HasErrors() {
 		t.Fatal("should error")
 	}
 
 	// ensure both variables are mentioned in the output
-	errMsg := err.Error()
+	errMsg := diags.Err().Error()
 	for _, v := range []string{"feature", "memory"} {
 		if !strings.Contains(errMsg, v) {
 			t.Fatalf("no mention of missing variable %q", v)
