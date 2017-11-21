@@ -44,8 +44,8 @@ func (e errModuleNotFound) Error() string {
 	return `module "` + string(e) + `" not found`
 }
 
-func (s *Storage) discoverRegURL(module *regsrc.Module) *url.URL {
-	regURL := s.Services.DiscoverServiceURL(svchost.Hostname(module.RawHost.Normalized()), serviceID)
+func (s *Storage) discoverRegURL(host svchost.Hostname) *url.URL {
+	regURL := s.Services.DiscoverServiceURL(host, serviceID)
 	if regURL == nil {
 		return nil
 	}
@@ -75,13 +75,14 @@ func (s *Storage) addRequestCreds(host svchost.Hostname, req *http.Request) {
 
 // Lookup module versions in the registry.
 func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleVersions, error) {
-	if module.RawHost == nil {
-		module.RawHost = regsrc.NewFriendlyHost(defaultRegistry)
+	host, err := module.SvcHost()
+	if err != nil {
+		return nil, err
 	}
 
-	service := s.discoverRegURL(module)
+	service := s.discoverRegURL(host)
 	if service == nil {
-		return nil, fmt.Errorf("host %s does not provide Terraform modules", module.RawHost.Display())
+		return nil, fmt.Errorf("host %s does not provide Terraform modules", host)
 	}
 
 	p, err := url.Parse(path.Join(module.Module(), "versions"))
@@ -98,7 +99,7 @@ func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleV
 		return nil, err
 	}
 
-	s.addRequestCreds(svchost.Hostname(module.RawHost.Normalized()), req)
+	s.addRequestCreds(host, req)
 	req.Header.Set(xTerraformVersion, tfVersion)
 
 	resp, err := httpClient.Do(req)
@@ -134,17 +135,17 @@ func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleV
 
 // lookup the location of a specific module version in the registry
 func (s *Storage) lookupModuleLocation(module *regsrc.Module, version string) (string, error) {
-	if module.RawHost == nil {
-		module.RawHost = regsrc.NewFriendlyHost(defaultRegistry)
+	host, err := module.SvcHost()
+	if err != nil {
+		return "", err
 	}
 
-	service := s.discoverRegURL(module)
+	service := s.discoverRegURL(host)
 	if service == nil {
-		return "", fmt.Errorf("host %s does not provide Terraform modules", module.RawHost.Display())
+		return "", fmt.Errorf("host %s does not provide Terraform modules", host.ForDisplay())
 	}
 
 	var p *url.URL
-	var err error
 	if version == "" {
 		p, err = url.Parse(path.Join(module.Module(), "download"))
 	} else {
@@ -162,7 +163,7 @@ func (s *Storage) lookupModuleLocation(module *regsrc.Module, version string) (s
 		return "", err
 	}
 
-	s.addRequestCreds(svchost.Hostname(module.RawHost.Normalized()), req)
+	s.addRequestCreds(host, req)
 	req.Header.Set(xTerraformVersion, tfVersion)
 
 	resp, err := httpClient.Do(req)

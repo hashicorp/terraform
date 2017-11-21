@@ -101,20 +101,16 @@ func (h *FriendlyHost) Valid() bool {
 // Display returns the host formatted for display to the user in CLI or web
 // output.
 func (h *FriendlyHost) Display() string {
-	hostname, err := svchost.ForComparison(h.Raw)
-	if err != nil {
-		return InvalidHostString
-	}
-	return hostname.ForDisplay()
+	return svchost.ForDisplay(h.Raw)
 }
 
 // Normalized returns the host formatted for internal reference or comparison.
 func (h *FriendlyHost) Normalized() string {
-	hostname, err := svchost.ForComparison(h.Raw)
+	host, err := svchost.ForComparison(h.Raw)
 	if err != nil {
 		return InvalidHostString
 	}
-	return hostname.String()
+	return string(host)
 }
 
 // String returns the host formatted as the user originally typed it assuming it
@@ -124,19 +120,21 @@ func (h *FriendlyHost) String() string {
 }
 
 // Equal compares the FriendlyHost against another instance taking normalization
-// into account.
+// into account. Invalid hosts cannot be compared and will always return false.
 func (h *FriendlyHost) Equal(other *FriendlyHost) bool {
 	if other == nil {
 		return false
 	}
-	return h.Normalized() == other.Normalized()
-}
 
-func containsPuny(host string) bool {
-	for _, lbl := range strings.Split(host, ".") {
-		if strings.HasPrefix(strings.ToLower(lbl), "xn--") {
-			return true
-		}
+	otherHost, err := svchost.ForComparison(other.Raw)
+	if err != nil {
+		return false
 	}
-	return false
+
+	host, err := svchost.ForComparison(h.Raw)
+	if err != nil {
+		return false
+	}
+
+	return otherHost == host
 }
