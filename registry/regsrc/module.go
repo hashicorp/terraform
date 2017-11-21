@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/hashicorp/terraform/svchost"
 )
 
 var (
@@ -33,8 +35,16 @@ var (
 		fmt.Sprintf("^(%s)\\/(%s)\\/(%s)(?:\\/\\/(.*))?$",
 			nameSubRe, nameSubRe, providerSubRe))
 
-	// disallowed is a set of hostnames that have special usage in modules and
-	// can't be registry hosts
+	// NameRe is a regular expression defining the format allowed for namespace
+	// or name fields in module registry implementations.
+	NameRe = regexp.MustCompile("^" + nameSubRe + "$")
+
+	// ProviderRe is a regular expression defining the format allowed for
+	// provider fields in module registry implementations.
+	ProviderRe = regexp.MustCompile("^" + providerSubRe + "$")
+
+	// these hostnames are not allowed as registry sources, because they are
+	// already special case module sources in terraform.
 	disallowed = map[string]bool{
 		"github.com":    true,
 		"bitbucket.org": true,
@@ -59,7 +69,7 @@ type Module struct {
 
 // NewModule construct a new module source from separate parts. Pass empty
 // string if host or submodule are not needed.
-func NewModule(host, namespace, name, provider, submodule string) *Module {
+func NewModule(host, namespace, name, provider, submodule string) (*Module, error) {
 	m := &Module{
 		RawNamespace: namespace,
 		RawName:      name,
@@ -67,9 +77,16 @@ func NewModule(host, namespace, name, provider, submodule string) *Module {
 		RawSubmodule: submodule,
 	}
 	if host != "" {
-		m.RawHost = NewFriendlyHost(host)
+		h := NewFriendlyHost(host)
+		if h != nil {
+			fmt.Println("HOST:", h)
+			if !h.Valid() || disallowed[h.Display()] {
+				return nil, ErrInvalidModuleSource
+			}
+		}
+		m.RawHost = h
 	}
-	return m
+	return m, nil
 }
 
 // ParseModuleSource attempts to parse source as a Terraform registry module
@@ -132,12 +149,6 @@ func (m *Module) String() string {
 	return m.formatWithPrefix(hostPrefix, true)
 }
 
-// Module returns just the registry ID of the module, without a hostname or
-// suffix.
-func (m *Module) Module() string {
-	return fmt.Sprintf("%s/%s/%s", m.RawNamespace, m.RawName, m.RawProvider)
-}
-
 // Equal compares the module source against another instance taking
 // normalization into account.
 func (m *Module) Equal(other *Module) bool {
@@ -174,4 +185,21 @@ func (m *Module) formatWithPrefix(hostPrefix string, preserveCase bool) string {
 		return strings.ToLower(str)
 	}
 	return str
+}
+
+// Module returns just the registry ID of the module, without a hostname or
+// suffix.
+func (m *Module) Module() string {
+	return fmt.Sprintf("%s/%s/%s", m.RawNamespace, m.RawName, m.RawProvider)
+}
+
+// SvcHost returns the svchost.Hostname for this module. Since FriendlyHost may
+// contain an invalid hostname, this also returns an error indicating if it
+// could be converted to a svchost.Hostname. If no host is specified, the
+// default PublicRegistryHost is returned.
+func (m *Module) SvcHost() (svchost.Hostname, error) {
+	if m.RawHost == nil {
+		return svchost.ForComparison(PublicRegistryHost.Raw)
+	}
+	return svchost.ForComparison(m.RawHost.Raw)
 }
