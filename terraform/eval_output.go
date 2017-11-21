@@ -68,9 +68,9 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 
 	// handling the interpolation error
 	if err != nil {
-		if n.ContinueOnErr {
+		if n.ContinueOnErr || flagWarnOutputErrors {
 			log.Printf("[ERROR] Output interpolation %q failed: %s", n.Name, err)
-			// if we're continueing, make sure the output is included, and
+			// if we're continuing, make sure the output is included, and
 			// marked as unknown
 			mod.Outputs[n.Name] = &OutputState{
 				Type:  "string",
