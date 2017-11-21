@@ -59,7 +59,7 @@ There are **meta-parameters** available to all resources:
 - `provider` (string) - The name of a specific provider to use for this
   resource. The name is in the format of `TYPE.ALIAS`, for example, `aws.west`.
   Where `west` is set using the `alias` attribute in a provider. See [multiple
-  provider instances](#multi-provider-instances).
+  provider instances](#multiple-provider-instances).
 
 - `lifecycle` (configuration block) - Customizes the lifecycle behavior of the
   resource. The specific options are documented below.
