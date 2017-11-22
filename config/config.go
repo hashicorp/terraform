@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,6 +15,9 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/reflectwalk"
 )
+
+// TODO: Remove this in 0.12.
+var flagWarnOutputErrors = os.Getenv("TF_WARN_OUTPUT_ERRORS") != ""
 
 // NameRegexp is the regular expression that all names (modules, providers,
 // resources, etc.) must follow.
@@ -820,46 +824,47 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 			// now have their errors checked like all other contexts.
 			//
 			// TODO: Remove this in 0.12.
-			for _, v := range o.RawConfig.Variables {
-				rv, ok := v.(*ResourceVariable)
-				if !ok {
-					continue
-				}
-
-				// If the variable seems to be treating the referenced
-				// resource as a singleton (no count specified) then
-				// we'll check to make sure it is indeed a singleton.
-				// It's a warning if not.
-
-				if rv.Multi || rv.Index != 0 {
-					// This reference is treating the resource as a
-					// multi-resource, so the warning doesn't apply.
-					continue
-				}
-
-				for _, r := range c.Resources {
-					if r.Id() != rv.ResourceId() {
+			if flagWarnOutputErrors {
+				for _, v := range o.RawConfig.Variables {
+					rv, ok := v.(*ResourceVariable)
+					if !ok {
 						continue
 					}
 
-					// We test specifically for the raw string "1" here
-					// because we _do_ want to generate this warning if
-					// the user has provided an expression that happens
-					// to return 1 right now, to catch situations where
-					// a count might dynamically be set to something
-					// other than 1 and thus splat syntax is still needed
-					// to be safe.
-					if r.RawCount != nil && r.RawCount.Raw != nil && r.RawCount.Raw["count"] != "1" {
-						diags = diags.Append(tfdiags.SimpleWarning(fmt.Sprintf(
-							"output %q: must use splat syntax to access %s attribute %q, because it has \"count\" set; use %s.*.%s to obtain a list of the attributes across all instances",
-							o.Name,
-							r.Id(), rv.Field,
-							r.Id(), rv.Field,
-						)))
+					// If the variable seems to be treating the referenced
+					// resource as a singleton (no count specified) then
+					// we'll check to make sure it is indeed a singleton.
+					// It's a warning if not.
+
+					if rv.Multi || rv.Index != 0 {
+						// This reference is treating the resource as a
+						// multi-resource, so the warning doesn't apply.
+						continue
+					}
+
+					for _, r := range c.Resources {
+						if r.Id() != rv.ResourceId() {
+							continue
+						}
+
+						// We test specifically for the raw string "1" here
+						// because we _do_ want to generate this warning if
+						// the user has provided an expression that happens
+						// to return 1 right now, to catch situations where
+						// a count might dynamically be set to something
+						// other than 1 and thus splat syntax is still needed
+						// to be safe.
+						if r.RawCount != nil && r.RawCount.Raw != nil && r.RawCount.Raw["count"] != "1" {
+							diags = diags.Append(tfdiags.SimpleWarning(fmt.Sprintf(
+								"output %q: must use splat syntax to access %s attribute %q, because it has \"count\" set; use %s.*.%s to obtain a list of the attributes across all instances",
+								o.Name,
+								r.Id(), rv.Field,
+								r.Id(), rv.Field,
+							)))
+						}
 					}
 				}
 			}
-
 		}
 	}
 
