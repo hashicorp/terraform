@@ -859,7 +859,6 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 					}
 				}
 			}
-
 		}
 	}
 

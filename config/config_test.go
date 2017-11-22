@@ -862,3 +862,22 @@ func TestConfigModuleProviders(t *testing.T) {
 		t.Fatalf("exptected providers %#v, got providers %#v", expected, got)
 	}
 }
+
+func TestValidateOutputErrorWarnings(t *testing.T) {
+	// TODO: remove this in 0.12
+	c := testConfig(t, "output-warnings")
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatal("config should not have errors:", diags)
+	}
+	if len(diags) != 2 {
+		t.Fatalf("should have 2 warnings, got %d:\n%s", len(diags), diags)
+	}
+
+	// this fixture has no explicit count, and should have no warning
+	c = testConfig(t, "output-no-warnings")
+	if err := c.Validate(); err != nil {
+		t.Fatal("config should have no warnings or errors")
+	}
+}
