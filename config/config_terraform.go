@@ -13,11 +13,19 @@ import (
 type Terraform struct {
 	RequiredVersion string   `hcl:"required_version"` // Required Terraform version (constraint)
 	Backend         *Backend // See Backend struct docs
+
+	unknownKeys []string
 }
 
 // Validate performs the validation for just the Terraform configuration.
 func (t *Terraform) Validate() []error {
 	var errs []error
+
+	// Error on any unknown key configuration.
+	if len(t.unknownKeys) > 0 {
+		errs = append(errs, fmt.Errorf(
+			"terraform: unknown configurations: %s", strings.Join(t.unknownKeys, ", ")))
+	}
 
 	if raw := t.RequiredVersion; raw != "" {
 		// Check that the value has no interpolations

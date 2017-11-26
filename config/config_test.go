@@ -225,6 +225,12 @@ func TestConfigValidate_table(t *testing.T) {
 			true,
 			"does not exist",
 		},
+		{
+			"unknown configurations in terraform block",
+			"validate-terraform-block",
+			true,
+			"unknown configurations: version, configx",
+		},
 	}
 
 	for i, tc := range cases {

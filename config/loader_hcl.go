@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
+	"github.com/hashicorp/hcl/hcl/token"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -267,9 +268,21 @@ func loadTerraformHcl(list *ast.ObjectList) (*Terraform, error) {
 	// NOTE: We purposely don't validate unknown HCL keys here so that
 	// we can potentially read _future_ Terraform version config (to
 	// still be able to validate the required version).
-	//
-	// We should still keep track of unknown keys to validate later, but
-	// HCL doesn't currently support that.
+
+	// Extract all the unknown Identifiers from the object list.
+	var unknownKeys []string
+	for _, itm := range listVal.Items {
+		for _, key := range itm.Keys {
+			if key.Token.Type == token.IDENT {
+				switch key.Token.Text {
+				case "required_version":
+				case "backend":
+				default:
+					unknownKeys = append(unknownKeys, key.Token.Text)
+				}
+			}
+		}
+	}
 
 	var config Terraform
 	if err := hcl.DecodeObject(&config, item.Val); err != nil {
@@ -277,6 +290,9 @@ func loadTerraformHcl(list *ast.ObjectList) (*Terraform, error) {
 			"Error reading terraform config: %s",
 			err)
 	}
+
+	// Add the unknownKeys to the config.
+	config.unknownKeys = unknownKeys
 
 	// If we have provisioners, then parse those out
 	if os := listVal.Filter("backend"); len(os.Items) > 0 {
