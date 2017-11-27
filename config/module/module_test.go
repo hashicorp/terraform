@@ -1,16 +1,13 @@
 package module
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/disco"
 )
 
@@ -48,21 +45,4 @@ func testConfig(t *testing.T, n string) *config.Config {
 func testStorage(t *testing.T, d *disco.Disco) *Storage {
 	t.Helper()
 	return NewStorage(tempDir(t), d, nil)
-}
-
-// test discovery maps registry.terraform.io, localhost, localhost.localdomain,
-// and example.com to the test server.
-func testDisco(s *httptest.Server) *disco.Disco {
-	services := map[string]interface{}{
-		// Note that both with and without trailing slashes are supported behaviours
-		// TODO: add specific tests to enumerate both possibilities.
-		"modules.v1": fmt.Sprintf("%s/v1/modules", s.URL),
-	}
-	d := disco.NewDisco()
-
-	d.ForceHostServices(svchost.Hostname("registry.terraform.io"), services)
-	d.ForceHostServices(svchost.Hostname("localhost"), services)
-	d.ForceHostServices(svchost.Hostname("localhost.localdomain"), services)
-	d.ForceHostServices(svchost.Hostname("example.com"), services)
-	return d
 }
