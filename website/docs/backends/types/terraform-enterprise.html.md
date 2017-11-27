@@ -27,7 +27,6 @@ Enterprise**. While this transition is in progress, you may see references to
 terraform {
   backend "atlas" {
     name         = "bigbang/example"
-    ATLAS_TOKEN  = "foo"
   }
 }
 ```
@@ -42,7 +41,6 @@ data "terraform_remote_state" "foo" {
   backend = "atlas"
   config {
     name         = "bigbang/example"
-    ATLAS_TOKEN  = "X2iTFefU5aWOjg.atlasv1.YaDa"
   }
 }
 ```
@@ -52,5 +50,5 @@ data "terraform_remote_state" "foo" {
 The following configuration options / environment variables are supported:
 
  * `name` - (Required) Full name of the environment (`<username>/<name>`)
- * `ATLAS_TOKEN`/ `access_token`  - (Required) Terraform Enterprise API token
+ * `ATLAS_TOKEN`/ `access_token`  - (Required) Terraform Enterprise API token. It is recommended that `ATLAS_TOKEN` is set as an environment variable rather than using `access_token` in the configuration.
  * `address` - (Optional) Address to alternative Terraform Enterprise location (Terraform Enterprise endpoint)
