@@ -27,7 +27,7 @@ the [Consul module for AWS](https://registry.terraform.io/modules/hashicorp/cons
 from the [Terraform Registry](https://registry.terraform.io). Other source
 types are supported, as described in the following section.
 
-Just like a resource, the a module's configuration can be deleted to destroy the
+Just like a resource, a module's configuration can be deleted to destroy the
 resources belonging to the module.
 
 ## Source
