@@ -412,6 +412,8 @@ type ProviderConfigTransformer struct {
 	// each provider node is stored here so that the proxy nodes can look up
 	// their targets by name.
 	providers map[string]GraphNodeProvider
+	// record providers that can be overriden with a proxy
+	proxiable map[string]bool
 
 	// Module is the module to add resources from.
 	Module *module.Tree
@@ -429,10 +431,11 @@ func (t *ProviderConfigTransformer) Transform(g *Graph) error {
 	}
 
 	t.providers = make(map[string]GraphNodeProvider)
+	t.proxiable = make(map[string]bool)
 
 	// Start the transformation process
 	if err := t.transform(g, t.Module); err != nil {
-		return nil
+		return err
 	}
 
 	// finally attach the configs to the new nodes
@@ -471,17 +474,11 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, m *module.Tree) er
 		path = append([]string{RootModuleName}, path...)
 	}
 
-	// add all provider configs
+	// add all providers from the configuration
 	for _, p := range conf.ProviderConfigs {
 		name := p.Name
 		if p.Alias != "" {
 			name += "." + p.Alias
-		}
-
-		// if this is an empty config placeholder to accept a provier from a
-		// parent module, add a proxy and continue.
-		if t.addProxyProvider(g, m, p, name) {
-			continue
 		}
 
 		v := t.Concrete(&NodeAbstractProvider{
@@ -491,26 +488,29 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, m *module.Tree) er
 
 		// Add it to the graph
 		g.Add(v)
-		t.providers[ResolveProviderName(name, path)] = v.(GraphNodeProvider)
+		fullName := ResolveProviderName(name, path)
+		t.providers[fullName] = v.(GraphNodeProvider)
+		t.proxiable[fullName] = len(p.RawConfig.RawMap()) == 0
 	}
 
-	return nil
+	// Now replace the provider nodes with proxy nodes if a provider was being
+	// passed in, and create implicit proxies if there was no config. Any extra
+	// proxies will be removed in the prune step.
+	return t.addProxyProviders(g, m)
 }
 
-// add a ProxyProviderConfig if this was inherited from a parent module. Return
-// whether the proxy was added to the graph or not.
-func (t *ProviderConfigTransformer) addProxyProvider(g *Graph, m *module.Tree, pc *config.ProviderConfig, name string) bool {
+func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, m *module.Tree) error {
 	path := m.Path()
 
-	// This isn't a proxy if there's a config, or we're at the root
-	if len(pc.RawConfig.RawMap()) > 0 || len(path) == 0 {
-		return false
+	// can't add proxies at the root
+	if len(path) == 0 {
+		return nil
 	}
 
 	parentPath := path[:len(path)-1]
 	parent := t.Module.Child(parentPath)
 	if parent == nil {
-		return false
+		return nil
 	}
 
 	var parentCfg *config.Module
@@ -522,35 +522,48 @@ func (t *ProviderConfigTransformer) addProxyProvider(g *Graph, m *module.Tree, p
 	}
 
 	if parentCfg == nil {
-		panic("immaculately conceived module " + m.Name())
+		// this can't really happen during normal execution.
+		return fmt.Errorf("parent module config not found for %s", m.Name())
 	}
 
-	parentProviderName, ok := parentCfg.Providers[name]
-	if !ok {
-		// this provider isn't listed in a parent module block, so we just have
-		// an empty config
-		return false
+	// Go through all the providers the parent is passing in, and add proxies to
+	// the parent provider nodes.
+	for name, parentName := range parentCfg.Providers {
+		fullName := ResolveProviderName(name, path)
+		fullParentName := ResolveProviderName(parentName, parentPath)
+
+		parentProvider := t.providers[fullParentName]
+
+		if parentProvider == nil {
+			return fmt.Errorf("missing provider %s", fullParentName)
+		}
+
+		proxy := &graphNodeProxyProvider{
+			nameValue: name,
+			path:      path,
+			target:    parentProvider,
+		}
+
+		concreteProvider := t.providers[fullName]
+
+		// replace the concrete node with the provider passed in
+		if concreteProvider != nil && t.proxiable[fullName] {
+			g.Replace(concreteProvider, proxy)
+			t.providers[fullName] = proxy
+			continue
+		}
+
+		// aliased providers can't be implicitly passed in
+		if strings.Contains(name, ".") {
+			continue
+		}
+
+		// There was no concrete provider, so add this as an implicit provider.
+		// The extra proxy will be pruned later if it's unused.
+		g.Add(proxy)
+		t.providers[fullName] = proxy
 	}
-
-	// the parent module is passing in a provider
-	fullParentName := ResolveProviderName(parentProviderName, parentPath)
-	parentProvider := t.providers[fullParentName]
-
-	if parentProvider == nil {
-		log.Printf("[ERROR] missing provider %s in module %s", parentProviderName, m.Name())
-		return false
-	}
-
-	v := &graphNodeProxyProvider{
-		nameValue: name,
-		path:      path,
-		target:    parentProvider,
-	}
-
-	// Add it to the graph
-	g.Add(v)
-	t.providers[ResolveProviderName(name, path)] = v
-	return true
+	return nil
 }
 
 func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {

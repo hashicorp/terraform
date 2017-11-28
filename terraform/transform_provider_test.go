@@ -511,6 +511,69 @@ func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
 	}
 }
 
+// pass a specific provider into a module using it implicitly
+func TestProviderConfigTransformer_implicitModule(t *testing.T) {
+	mod := testModule(t, "transform-provider-implicit-module")
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := &AttachResourceConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := TransformProviders([]string{"aws"}, concrete, mod)
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`module.mod.aws_instance.bar
+  provider.aws.foo
+provider.aws.foo`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+// error out when a non-existent provider is named in a module providers map
+func TestProviderConfigTransformer_invalidProvider(t *testing.T) {
+	mod := testModule(t, "transform-provider-invalid")
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := &AttachResourceConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	tf := TransformProviders([]string{"aws"}, concrete, mod)
+	err := tf.Transform(&g)
+	if err == nil {
+		t.Fatal("expected missing provider error")
+	}
+	if !strings.Contains(err.Error(), "provider.aws.foo") {
+		t.Fatalf("error should reference missing provider, got: %s", err)
+	}
+}
+
 const testTransformProviderBasicStr = `
 aws_instance.web
   provider.aws
