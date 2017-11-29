@@ -646,9 +646,29 @@ func (c *CLI) processArgs() {
 		if c.subcommand == "" && arg != "" && arg[0] != '-' {
 			c.subcommand = arg
 			if c.commandNested {
+				// If the command has a space in it, then it is invalid.
+				// Set a blank command so that it fails.
+				if strings.ContainsRune(arg, ' ') {
+					c.subcommand = ""
+					return
+				}
+
+				// Determine the argument we look to to end subcommands.
+				// We look at all arguments until one has a space. This
+				// disallows commands like: ./cli foo "bar baz". An argument
+				// with a space is always an argument.
+				j := 0
+				for k, v := range c.Args[i:] {
+					if strings.ContainsRune(v, ' ') {
+						break
+					}
+
+					j = i + k + 1
+				}
+
 				// Nested CLI, the subcommand is actually the entire
 				// arg list up to a flag that is still a valid subcommand.
-				searchKey := strings.Join(c.Args[i:], " ")
+				searchKey := strings.Join(c.Args[i:j], " ")
 				k, _, ok := c.commandTree.LongestPrefix(searchKey)
 				if ok {
 					// k could be a prefix that doesn't contain the full
