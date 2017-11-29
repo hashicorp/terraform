@@ -1904,10 +1904,12 @@
 			"revisionTime": "2017-01-23T01:43:24Z"
 		},
 		{
-			"checksumSHA1": "UIqCj7qI0hhIMpAhS9YYqs2jD48=",
+			"checksumSHA1": "H3IQOMnazofqqNSyfY/GIx1T3mU=",
 			"path": "github.com/mitchellh/cli",
-			"revision": "65fcae5817c8600da98ada9d7edf26dd1a84837b",
-			"revisionTime": "2017-09-08T18:10:43Z"
+			"revision": "33edc47170b5df54d2588696d590c5e20ee583fe",
+			"revisionTime": "2017-11-29T19:36:17Z",
+			"version": "master",
+			"versionExact": "master"
 		},
 		{
 			"checksumSHA1": "ttEN1Aupb7xpPMkQLqb3tzLFdXs=",
