@@ -240,6 +240,9 @@ For example:
 plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"
 ```
 
+This directory must already exist before Terraform will cache plugins;
+Terraform will not create the directory itself.
+
 Please note that on Windows it is necessary to use forward slash separators
 (`/`) rather than the conventional backslash (`\`) since the configuration
 file parser considers a backslash to begin an escape sequence.
