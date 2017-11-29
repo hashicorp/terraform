@@ -5,6 +5,10 @@ IMPROVEMENTS:
 * config: Terraform will now detect and warn about outputs containing potentially-problematic references to resources with `count` set where the references does not use the "splat" syntax. This identifies situations where an output may [reference a resource with `count = 0`](https://www.terraform.io/upgrade-guides/0-11.html#referencing-attributes-from-resources-with-count-0) even if the `count` expression does not _currently_ evaluate to `0`, allowing the bug to be detected and fixed _before_ the value is later changed to `0` and would thus become an error. **This usage will become a fatal error in Terraform 0.12**. [GH-16735]
 * core: A new environment variable `TF_WARN_OUTPUT_ERRORS=1` is supported to opt out of the behavior introduced in 0.11.0 where errors in output expressions halt execution. This restores the previous behavior where such errors are ignored, allowing users to apply problematic configurations without fixing all of the errors. This opt-out will be removed in Terraform 0.12, so it is strongly recommended to use the new warning described in the previous item to detect and fix these problematic expressions. [GH-16782]
 
+BUG FIXES:
+
+* cli: fix crash when subcommands with sub-subcommands are accidentally provided as a single argument, such as `terraform "workspace list"` [GH-16789]
+
 ## 0.11.0 (November 16, 2017)
 
 The following list combines the changes from 0.11.0-beta1 and 0.11.0-rc1 to give the full set of changes since 0.10.8. For details on each of the individual pre-releases, please see [the 0.11.0-rc1 CHANGELOG](https://github.com/hashicorp/terraform/blob/v0.11.0-rc1/CHANGELOG.md).
