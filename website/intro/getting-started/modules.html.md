@@ -91,7 +91,7 @@ $ terraform init
 ```
 
 By default, this command does not check for new module versions that may be
-available, so it is safe to run multiple times. The `-update` option will
+available, so it is safe to run multiple times. The `-upgrade` option will
 additionally check for any newer versions of existing modules and providers
 that may be available.
 
