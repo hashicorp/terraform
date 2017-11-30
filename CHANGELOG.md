@@ -1,14 +1,14 @@
-## 0.11.1 (Unreleased)
+## 0.11.1 (November 30, 2017)
 
 IMPROVEMENTS:
 
-* modules: Modules can now receive a specific provider configuration in the `providers` map, even if it's only implicitly used [GH-16619]
-* config: Terraform will now detect and warn about outputs containing potentially-problematic references to resources with `count` set where the references does not use the "splat" syntax. This identifies situations where an output may [reference a resource with `count = 0`](https://www.terraform.io/upgrade-guides/0-11.html#referencing-attributes-from-resources-with-count-0) even if the `count` expression does not _currently_ evaluate to `0`, allowing the bug to be detected and fixed _before_ the value is later changed to `0` and would thus become an error. **This usage will become a fatal error in Terraform 0.12**. [GH-16735]
-* core: A new environment variable `TF_WARN_OUTPUT_ERRORS=1` is supported to opt out of the behavior introduced in 0.11.0 where errors in output expressions halt execution. This restores the previous behavior where such errors are ignored, allowing users to apply problematic configurations without fixing all of the errors. This opt-out will be removed in Terraform 0.12, so it is strongly recommended to use the new warning described in the previous item to detect and fix these problematic expressions. [GH-16782]
+* modules: Modules can now receive a specific provider configuration in the `providers` map, even if it's only implicitly used ([#16619](https://github.com/hashicorp/terraform/issues/16619))
+* config: Terraform will now detect and warn about outputs containing potentially-problematic references to resources with `count` set where the references does not use the "splat" syntax. This identifies situations where an output may [reference a resource with `count = 0`](https://www.terraform.io/upgrade-guides/0-11.html#referencing-attributes-from-resources-with-count-0) even if the `count` expression does not _currently_ evaluate to `0`, allowing the bug to be detected and fixed _before_ the value is later changed to `0` and would thus become an error. **This usage will become a fatal error in Terraform 0.12**. ([#16735](https://github.com/hashicorp/terraform/issues/16735))
+* core: A new environment variable `TF_WARN_OUTPUT_ERRORS=1` is supported to opt out of the behavior introduced in 0.11.0 where errors in output expressions halt execution. This restores the previous behavior where such errors are ignored, allowing users to apply problematic configurations without fixing all of the errors. This opt-out will be removed in Terraform 0.12, so it is strongly recommended to use the new warning described in the previous item to detect and fix these problematic expressions. ([#16782](https://github.com/hashicorp/terraform/issues/16782))
 
 BUG FIXES:
 
-* cli: fix crash when subcommands with sub-subcommands are accidentally provided as a single argument, such as `terraform "workspace list"` [GH-16789]
+* cli: fix crash when subcommands with sub-subcommands are accidentally provided as a single argument, such as `terraform "workspace list"` ([#16789](https://github.com/hashicorp/terraform/issues/16789))
 
 ## 0.11.0 (November 16, 2017)
 
