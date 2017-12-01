@@ -28,6 +28,10 @@ func init() {
 	if err := os.Setenv(TestEnvVar, "1"); err != nil {
 		panic(err)
 	}
+
+	if err := os.Setenv(ParaTestEnvVar, "1"); err != nil {
+		panic(err)
+	}
 }
 
 // wrap the mock provider to implement TestProvider
@@ -367,6 +371,21 @@ func TestTest_noEnv(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	defer os.Setenv(TestEnvVar, "1")
+
+	mt := new(mockT)
+	Test(mt, TestCase{})
+
+	if !mt.SkipCalled {
+		t.Fatal("skip not called")
+	}
+}
+
+func TestTest_noParaEnv(t *testing.T) {
+	// Unset the variable
+	if err := os.Setenv(ParaTestEnvVar, ""); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Setenv(ParaTestEnvVar, "1")
 
 	mt := new(mockT)
 	Test(mt, TestCase{})
