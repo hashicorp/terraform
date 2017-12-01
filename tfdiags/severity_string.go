@@ -2,7 +2,7 @@
 
 package tfdiags
 
-import "fmt"
+import "strconv"
 
 const (
 	_Severity_name_0 = "Error"
@@ -21,6 +21,6 @@ func (i Severity) String() string {
 	case i == 87:
 		return _Severity_name_1
 	default:
-		return fmt.Sprintf("Severity(%d)", i)
+		return "Severity(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
 }

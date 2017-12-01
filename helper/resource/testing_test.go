@@ -624,7 +624,7 @@ type mockT struct {
 	FatalArgs   []interface{}
 	SkipCalled  bool
 	SkipArgs    []interface{}
-	Paralleled bool
+	Paralleled  bool
 
 	f bool
 }
