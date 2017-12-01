@@ -17,9 +17,6 @@ import (
 // configuration and actually builds or changes infrastructure.
 type ConsoleCommand struct {
 	Meta
-
-	// When this channel is closed, the apply will be cancelled.
-	ShutdownCh <-chan struct{}
 }
 
 func (c *ConsoleCommand) Run(args []string) int {

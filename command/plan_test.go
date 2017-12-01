@@ -831,6 +831,56 @@ func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 	}
 }
 
+func TestPlan_shutdown(t *testing.T) {
+	cancelled := false
+	cancelDone := make(chan struct{})
+	testShutdownHook = func() {
+		cancelled = true
+		close(cancelDone)
+	}
+	defer func() {
+		testShutdownHook = nil
+	}()
+
+	shutdownCh := make(chan struct{})
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			ShutdownCh:       shutdownCh,
+		},
+	}
+
+	p.DiffFn = func(
+		*terraform.InstanceInfo,
+		*terraform.InstanceState,
+		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+
+		if !cancelled {
+			shutdownCh <- struct{}{}
+			<-cancelDone
+		}
+
+		return &terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"ami": &terraform.ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+
+	if code := c.Run([]string{testFixturePath("apply-shutdown")}); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !cancelled {
+		t.Fatal("command not cancelled")
+	}
+}
+
 const planVarFile = `
 foo = "bar"
 `
