@@ -650,6 +650,10 @@ func (t *mockT) Name() string {
 	return "MockedName"
 }
 
+func (t *mockT) Parallel() {
+	return
+}
+
 func (t *mockT) failed() bool {
 	return t.f
 }
