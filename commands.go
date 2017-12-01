@@ -63,6 +63,8 @@ func initCommands(config *Config) {
 		RunningInAutomation: inAutomation,
 		PluginCacheDir:      config.PluginCacheDir,
 		OverrideDataDir:     dataDir,
+
+		ShutdownCh: makeShutdownCh(),
 	}
 
 	// The command list is included in the terraform -help
@@ -80,23 +82,20 @@ func initCommands(config *Config) {
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
-				Meta:       meta,
-				ShutdownCh: makeShutdownCh(),
+				Meta: meta,
 			}, nil
 		},
 
 		"console": func() (cli.Command, error) {
 			return &command.ConsoleCommand{
-				Meta:       meta,
-				ShutdownCh: makeShutdownCh(),
+				Meta: meta,
 			}, nil
 		},
 
 		"destroy": func() (cli.Command, error) {
 			return &command.ApplyCommand{
-				Meta:       meta,
-				Destroy:    true,
-				ShutdownCh: makeShutdownCh(),
+				Meta:    meta,
+				Destroy: true,
 			}, nil
 		},
 
