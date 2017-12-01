@@ -104,17 +104,41 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.Type = backend.OperationTypePlan
 
 	// Perform the operation
-	op, err := b.Operation(context.Background(), opReq)
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	op, err := b.Operation(ctx, opReq)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
 		return 1
 	}
 
-	// Wait for the operation to complete
-	<-op.Done()
-	if err := op.Err; err != nil {
-		c.showDiagnostics(err)
-		return 1
+	select {
+	case <-c.ShutdownCh:
+		// Cancel our context so we can start gracefully exiting
+		ctxCancel()
+
+		// notify tests that the command context was canceled
+		if testShutdownHook != nil {
+			testShutdownHook()
+		}
+
+		// Notify the user
+		c.Ui.Output(outputInterrupt)
+
+		// Still get the result, since there is still one
+		select {
+		case <-c.ShutdownCh:
+			c.Ui.Error(
+				"Two interrupts received. Exiting immediately")
+			return 1
+		case <-op.Done():
+		}
+	case <-op.Done():
+		if err := op.Err; err != nil {
+			c.showDiagnostics(err)
+			return 1
+		}
 	}
 
 	/*
