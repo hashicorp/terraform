@@ -24,9 +24,6 @@ type ApplyCommand struct {
 	// If true, then this apply command will become the "destroy"
 	// command. It is just like apply but only processes a destroy.
 	Destroy bool
-
-	// When this channel is closed, the apply will be cancelled.
-	ShutdownCh <-chan struct{}
 }
 
 func (c *ApplyCommand) Run(args []string) int {
