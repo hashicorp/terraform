@@ -380,18 +380,18 @@ func TestTest_noEnv(t *testing.T) {
 	}
 }
 
-func TestTest_noParaEnv(t *testing.T) {
-	// Unset the variable
-	if err := os.Setenv(ParaTestEnvVar, ""); err != nil {
+func TestTest_withParaEnv(t *testing.T) {
+	// Set the variable
+	if err := os.Setenv(ParaTestEnvVar, "1"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	defer os.Setenv(ParaTestEnvVar, "1")
+	defer os.Setenv(ParaTestEnvVar, "")
 
 	mt := new(mockT)
 	Test(mt, TestCase{})
 
-	if !mt.SkipCalled {
-		t.Fatal("skip not called")
+	if !mt.Paralleled {
+		t.Fatal("parallel not called")
 	}
 }
 
@@ -624,6 +624,7 @@ type mockT struct {
 	FatalArgs   []interface{}
 	SkipCalled  bool
 	SkipArgs    []interface{}
+	Paralleled bool
 
 	f bool
 }
@@ -651,6 +652,7 @@ func (t *mockT) Name() string {
 }
 
 func (t *mockT) Parallel() {
+	t.Paralleled = true
 	return
 }
 
