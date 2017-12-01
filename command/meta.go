@@ -76,6 +76,9 @@ type Meta struct {
 	// is not suitable, e.g. because of a read-only filesystem.
 	OverrideDataDir string
 
+	// When this channel is closed, the command will be cancelled.
+	ShutdownCh <-chan struct{}
+
 	//----------------------------------------------------------
 	// Protected: commands can set these
 	//----------------------------------------------------------

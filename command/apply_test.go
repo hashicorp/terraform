@@ -837,9 +837,8 @@ func TestApply_shutdown(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			ShutdownCh:       shutdownCh,
 		},
-
-		ShutdownCh: shutdownCh,
 	}
 
 	p.DiffFn = func(
