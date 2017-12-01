@@ -824,14 +824,20 @@ func TestApply_refresh(t *testing.T) {
 }
 
 func TestApply_shutdown(t *testing.T) {
-	stopped := false
-	stopCh := make(chan struct{})
-	stopReplyCh := make(chan struct{})
+	cancelled := false
+	cancelDone := make(chan struct{})
+	testShutdownHook = func() {
+		cancelled = true
+		close(cancelDone)
+	}
+	defer func() {
+		testShutdownHook = nil
+	}()
 
 	statePath := testTempFile(t)
-
 	p := testProvider()
 	shutdownCh := make(chan struct{})
+
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -857,10 +863,10 @@ func TestApply_shutdown(t *testing.T) {
 		*terraform.InstanceInfo,
 		*terraform.InstanceState,
 		*terraform.InstanceDiff) (*terraform.InstanceState, error) {
-		if !stopped {
-			stopped = true
-			close(stopCh)
-			<-stopReplyCh
+
+		if !cancelled {
+			shutdownCh <- struct{}{}
+			<-cancelDone
 		}
 
 		return &terraform.InstanceState{
@@ -870,18 +876,6 @@ func TestApply_shutdown(t *testing.T) {
 			},
 		}, nil
 	}
-
-	go func() {
-		<-stopCh
-		shutdownCh <- struct{}{}
-
-		// This is really dirty, but we have no other way to assure that
-		// tf.Stop() has been called. This doesn't assure it either, but
-		// it makes it much more certain.
-		time.Sleep(50 * time.Millisecond)
-
-		close(stopReplyCh)
-	}()
 
 	args := []string{
 		"-state", statePath,
@@ -894,6 +888,10 @@ func TestApply_shutdown(t *testing.T) {
 
 	if _, err := os.Stat(statePath); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	if !cancelled {
+		t.Fatal("command not cancelled")
 	}
 
 	state := testStateRead(t, statePath)
