@@ -28,6 +28,10 @@ func init() {
 	if err := os.Setenv(TestEnvVar, "1"); err != nil {
 		panic(err)
 	}
+
+	if err := os.Setenv(ParaTestEnvVar, "1"); err != nil {
+		panic(err)
+	}
 }
 
 // wrap the mock provider to implement TestProvider
@@ -376,6 +380,21 @@ func TestTest_noEnv(t *testing.T) {
 	}
 }
 
+func TestTest_withParaEnv(t *testing.T) {
+	// Set the variable
+	if err := os.Setenv(ParaTestEnvVar, "1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Setenv(ParaTestEnvVar, "")
+
+	mt := new(mockT)
+	Test(mt, TestCase{})
+
+	if !mt.Paralleled {
+		t.Fatal("parallel not called")
+	}
+}
+
 func TestTest_preCheck(t *testing.T) {
 	called := false
 
@@ -605,6 +624,7 @@ type mockT struct {
 	FatalArgs   []interface{}
 	SkipCalled  bool
 	SkipArgs    []interface{}
+	Paralleled  bool
 
 	f bool
 }
@@ -629,6 +649,11 @@ func (t *mockT) Skip(args ...interface{}) {
 
 func (t *mockT) Name() string {
 	return "MockedName"
+}
+
+func (t *mockT) Parallel() {
+	t.Paralleled = true
+	return
 }
 
 func (t *mockT) failed() bool {

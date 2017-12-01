@@ -172,6 +172,9 @@ func runSweeperWithRegion(region string, s *Sweeper) error {
 
 const TestEnvVar = "TF_ACC"
 
+// ParaTestEnvVar is used to enable parallelism in testing.
+const ParaTestEnvVar = "TF_PARA"
+
 // TestProvider can be implemented by any ResourceProvider to provide custom
 // reset functionality at the start of an acceptance test.
 // The helper/schema Provider implements this interface.
@@ -415,6 +418,14 @@ func LogOutput(t TestT) (logOutput io.Writer, err error) {
 // long, we require the verbose flag so users are able to see progress
 // output.
 func Test(t TestT, c TestCase) {
+	// If "TF_PARA" is set to some non-empty value, all the parallel test cases
+	// will be run parallel.
+	// example usage:
+	//	TF_PARA=1 go test [TEST] [TESTARGS] -parallel=n
+	if os.Getenv(ParaTestEnvVar) != "" {
+		t.Parallel()
+	}
+
 	// We only run acceptance tests if an env var is set because they're
 	// slow and generally require some outside configuration. You can opt out
 	// of this with OverrideEnvVar on individual TestCases.
@@ -1002,6 +1013,7 @@ type TestT interface {
 	Fatal(args ...interface{})
 	Skip(args ...interface{})
 	Name() string
+	Parallel()
 }
 
 // This is set to true by unit tests to alter some behavior
