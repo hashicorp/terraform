@@ -101,14 +101,34 @@ func (b *Local) opPlan(
 		}
 	}
 
-	// Perform the plan
-	log.Printf("[INFO] backend/local: plan calling Plan")
-	plan, err := tfCtx.Plan()
-	if err != nil {
-		runningOp.Err = errwrap.Wrapf("Error running plan: {{err}}", err)
-		return
+	// Perform the plan in a goroutine so we can be interrupted
+	var plan *terraform.Plan
+	var planErr error
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		log.Printf("[INFO] backend/local: plan calling Plan")
+		plan, planErr = tfCtx.Plan()
+	}()
+
+	select {
+	case <-ctx.Done():
+		if b.CLI != nil {
+			b.CLI.Output("stopping plan operation...")
+		}
+
+		// Stop execution
+		go tfCtx.Stop()
+
+		// Wait for completion still
+		<-doneCh
+	case <-doneCh:
 	}
 
+	if planErr != nil {
+		runningOp.Err = errwrap.Wrapf("Error running plan: {{err}}", planErr)
+		return
+	}
 	// Record state
 	runningOp.PlanEmpty = plan.Diff.Empty()
 
