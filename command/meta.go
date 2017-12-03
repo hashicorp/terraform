@@ -641,7 +641,3 @@ func isAutoVarFile(path string) bool {
 	return strings.HasSuffix(path, ".auto.tfvars") ||
 		strings.HasSuffix(path, ".auto.tfvars.json")
 }
-
-// testShutdownHook is used by tests to verify that a command context has been
-// canceled
-var testShutdownHook func()

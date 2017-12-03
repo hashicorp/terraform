@@ -833,14 +833,7 @@ func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 
 func TestPlan_shutdown(t *testing.T) {
 	cancelled := false
-	cancelDone := make(chan struct{})
-	testShutdownHook = func() {
-		cancelled = true
-		close(cancelDone)
-	}
-	defer func() {
-		testShutdownHook = nil
-	}()
+	stopped := make(chan struct{})
 
 	shutdownCh := make(chan struct{})
 	p := testProvider()
@@ -853,6 +846,12 @@ func TestPlan_shutdown(t *testing.T) {
 		},
 	}
 
+	p.StopFn = func() error {
+		close(stopped)
+		cancelled = true
+		return nil
+	}
+
 	p.DiffFn = func(
 		*terraform.InstanceInfo,
 		*terraform.InstanceState,
@@ -860,7 +859,7 @@ func TestPlan_shutdown(t *testing.T) {
 
 		if !cancelled {
 			shutdownCh <- struct{}{}
-			<-cancelDone
+			<-stopped
 		}
 
 		return &terraform.InstanceDiff{

@@ -118,11 +118,6 @@ func (c *PlanCommand) Run(args []string) int {
 		// Cancel our context so we can start gracefully exiting
 		ctxCancel()
 
-		// notify tests that the command context was canceled
-		if testShutdownHook != nil {
-			testShutdownHook()
-		}
-
 		// Notify the user
 		c.Ui.Output(outputInterrupt)
 
