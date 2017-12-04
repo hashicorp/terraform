@@ -172,9 +172,6 @@ func runSweeperWithRegion(region string, s *Sweeper) error {
 
 const TestEnvVar = "TF_ACC"
 
-// ParaTestEnvVar is used to enable parallelism in testing.
-const ParaTestEnvVar = "TF_PARA"
-
 // TestProvider can be implemented by any ResourceProvider to provide custom
 // reset functionality at the start of an acceptance test.
 // The helper/schema Provider implements this interface.
@@ -201,6 +198,12 @@ type ImportStateIdFunc func(*terraform.State) (string, error)
 // When the destroy plan is executed, the config from the last TestStep
 // is used to plan it.
 type TestCase struct {
+	// IsParallel allows a test to run in parallel in Go tesing framework.
+	// Make sure the test case is independent without any shared resource.
+	// For subtests, if IsParallel is enabled while defining it, all the subtests
+	// within the same group will be run in paralllel.
+	IsParallel bool
+
 	// IsUnitTest allows a test to run regardless of the TF_ACC
 	// environment variable. This should be used with care - only for
 	// fast tests on local resources (e.g. remote state with a local
@@ -418,11 +421,7 @@ func LogOutput(t TestT) (logOutput io.Writer, err error) {
 // long, we require the verbose flag so users are able to see progress
 // output.
 func Test(t TestT, c TestCase) {
-	// If "TF_PARA" is set to some non-empty value, all the parallel test cases
-	// will be run parallel.
-	// example usage:
-	//	TF_PARA=1 go test [TEST] [TESTARGS] -parallel=n
-	if os.Getenv(ParaTestEnvVar) != "" {
+	if c.IsParallel {
 		t.Parallel()
 	}
 

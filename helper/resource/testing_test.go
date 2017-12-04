@@ -28,10 +28,6 @@ func init() {
 	if err := os.Setenv(TestEnvVar, "1"); err != nil {
 		panic(err)
 	}
-
-	if err := os.Setenv(ParaTestEnvVar, "1"); err != nil {
-		panic(err)
-	}
 }
 
 // wrap the mock provider to implement TestProvider
@@ -380,15 +376,9 @@ func TestTest_noEnv(t *testing.T) {
 	}
 }
 
-func TestTest_withParaEnv(t *testing.T) {
-	// Set the variable
-	if err := os.Setenv(ParaTestEnvVar, "1"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Setenv(ParaTestEnvVar, "")
-
+func TestTest_withParallelCase(t *testing.T) {
 	mt := new(mockT)
-	Test(mt, TestCase{})
+	Test(mt, TestCase{IsParallel: true})
 
 	if !mt.Paralleled {
 		t.Fatal("parallel not called")
