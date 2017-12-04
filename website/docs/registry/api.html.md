@@ -36,9 +36,57 @@ For example, if discovery produces the URL `https://modules.example.com/v1/`
 then this API would use full endpoint URLs like
 `https://modules.example.com/v1/{namespace}/{name}/{provider}/versions`.
 
-The example request URLs shown in this document are for the public
-[Terraform Registry](https://registry.terraform.io), and use its API base
-URL of `https://registry.terraform.io/v1/modules/` .
+## Base URL
+
+The example request URLs shown in this document are for the public [Terraform
+Registry](https://registry.terraform.io), and use its API `<base_url>` of
+`https://registry.terraform.io/v1/modules/`. Note that although the base URL in
+the [discovery document](#service-discovery) _may include_ a trailing slash, we
+include a slash after the placeholder in the `Path`s below for clarity.
+
+## List Modules
+
+These endpoints list modules according to some criteria.
+
+| Method | Path                                  | Produces                   |
+| ------ | ------------------------------------- | -------------------------- |
+| `GET`  | `<base_url>` (no trailing slash)      | `application/json`         |
+| `GET`  | `<base_url>/:namespace`               | `application/json`         |
+
+### Parameters
+
+- `namespace` `(string: <optional>)` - Restricts listing to modules published by
+  this user or organization. This is optionally specified as part of the URL
+  path.
+
+### Query Parameters
+
+- `offset`, `limit` `(int: <optional>)` - See [Pagination](#Pagination) for details.
+- `provider` `(string: <optional>)` - Limits modules to a specific provider.
+- `verified` `(bool: <optional>)` - If `true`, limits results to only verified
+  modules. Any other value including none returns all modules _including_
+  verified ones.
+
+## Search Modules
+
+Theis endpoint allows searching modules.
+
+| Method | Path                                  | Produces                   |
+| ------ | ------------------------------------- | -------------------------- |
+| `GET`  | `<base_url>/search`                   | `application/json`         |
+
+### Query Parameters
+
+- `q` `(string: <required>)` - The search string. Search syntax understood
+  depends on registry implementation. The public registry supports basic keyword
+  or phrase searches.
+- `offset`, `limit` `(int: <optional>)` - See [Pagination](#Pagination) for details.
+- `provider` `(string: <optional>)` - Limits results to a specific provider.
+- `namespace` `(string: <optional>)` - Limits results to a specific namespace.
+- `verified` `(bool: <optional>)` - If `true`, limits results to only verified
+  modules. Any other value including none returns all modules _including_
+  verified ones.
+
 
 ## List Available Versions for a Specific Module
 
@@ -47,7 +95,7 @@ available versions for a given fully-qualified module.
 
 | Method | Path                                  | Produces                   |
 | ------ | ------------------------------------- | -------------------------- |
-| `GET`  | `:namespace/:name/:provider/versions` | `application/json`         |
+| `GET`  | `<base_url>/:namespace/:name/:provider/versions` | `application/json`         |
 
 ### Parameters
 
@@ -155,7 +203,7 @@ the full URL of the download endpoint.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `:namespace/:name/:provider/:version/download` | `application/json`         |
+| `GET`  | `<base_url>/:namespace/:name/:provider/:version/download` | `application/json`         |
 
 ### Parameters
 
@@ -192,7 +240,7 @@ This endpoint returns the latest version of each provider for a module.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `:namespace/:name`           | `application/json`         |
+| `GET`  | `<base_url>/:namespace/:name`           | `application/json`         |
 
 ### Parameters
 
@@ -258,7 +306,7 @@ This endpoint returns the latest version of a module for a single provider.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `:namespace/:name/:provider` | `application/json`         |
+| `GET`  | `<base_url>/:namespace/:name/:provider` | `application/json`         |
 
 ### Parameters
 
@@ -380,7 +428,7 @@ This endpoint returns the specified version of a module for a single provider.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `:namespace/:name/:provider/:version` | `application/json`         |
+| `GET`  | `<base_url>/:namespace/:name/:provider/:version` | `application/json`         |
 
 ### Parameters
 
@@ -509,7 +557,7 @@ download endpoint (above) for the latest version.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
-| `GET`  | `:namespace/:name/:provider/download` | `application/json`         |
+| `GET`  | `<base_url>/:namespace/:name/:provider/download` | `application/json`         |
 
 ### Parameters
 
