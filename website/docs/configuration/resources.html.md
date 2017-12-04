@@ -229,6 +229,38 @@ resource "aws_instance" "app" {
 }
 ```
 
+To reference a particular instance of a resource you can use `resource.foo.*.id[#]` where `#` is the index number of the instance.
+
+For example, to create a list of all [AWS subnet](/docs/providers/aws/r/subnet.html) ids vs referencing a specific subnet in the list you can use this syntax:
+
+```hcl
+resource "aws_vpc" "foo" {
+  cidr_block = "198.18.0.0/16"
+}
+
+resource "aws_subnet" "bar" {
+  count      = 2
+  vpc_id     = "${aws_vpc.foo.id}"
+  cidr_block = "${cidrsubnet(aws_vpc.foo.cidr_block, 8, count.index)}"
+}
+
+output "vpc_id" {
+  value = "${aws_vpc.foo.id}"
+}
+
+output "all_subnet_ids" {
+  value = "${aws_subnet.bar.*.id}"
+}
+
+output "subnet_id_0" {
+  value = "${aws_subnet.bar.*.id[0]}"
+}
+
+output "subnet_id_1" {
+  value = "${aws_subnet.bar.*.id[1]}"
+}
+```
+
 ## Multiple Provider Instances
 
 By default, a resource targets the provider based on its type. For example
