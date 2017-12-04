@@ -54,7 +54,7 @@ func testStorage(t *testing.T, d *disco.Disco) *Storage {
 // and example.com to the test server.
 func testDisco(s *httptest.Server) *disco.Disco {
 	services := map[string]interface{}{
-		"modules.v1": fmt.Sprintf("%s/v1/modules/", s.URL),
+		"modules.v1": fmt.Sprintf("%s/v1/modules", s.URL),
 	}
 	d := disco.NewDisco()
 
