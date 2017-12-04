@@ -241,7 +241,7 @@ resource "aws_vpc" "foo" {
 resource "aws_subnet" "bar" {
   count      = 2
   vpc_id     = "${aws_vpc.foo.id}"
-  cidr_block = "${cidrsubnet(aws_vpc.foo.id, 8, count.index)}"
+  cidr_block = "${cidrsubnet(aws_vpc.foo.cidr_block, 8, count.index)}"
 }
 
 output "vpc_id" {
