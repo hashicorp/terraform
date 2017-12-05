@@ -825,14 +825,7 @@ func TestApply_refresh(t *testing.T) {
 
 func TestApply_shutdown(t *testing.T) {
 	cancelled := false
-	cancelDone := make(chan struct{})
-	testShutdownHook = func() {
-		cancelled = true
-		close(cancelDone)
-	}
-	defer func() {
-		testShutdownHook = nil
-	}()
+	stopped := make(chan struct{})
 
 	statePath := testTempFile(t)
 	p := testProvider()
@@ -845,6 +838,12 @@ func TestApply_shutdown(t *testing.T) {
 			Ui:               ui,
 			ShutdownCh:       shutdownCh,
 		},
+	}
+
+	p.StopFn = func() error {
+		close(stopped)
+		cancelled = true
+		return nil
 	}
 
 	p.DiffFn = func(
@@ -864,11 +863,11 @@ func TestApply_shutdown(t *testing.T) {
 		*terraform.InstanceState,
 		*terraform.InstanceDiff) (*terraform.InstanceState, error) {
 
+		// only cancel once
 		if !cancelled {
 			shutdownCh <- struct{}{}
-			<-cancelDone
+			<-stopped
 		}
-
 		return &terraform.InstanceState{
 			ID: "foo",
 			Attributes: map[string]string{
@@ -897,10 +896,6 @@ func TestApply_shutdown(t *testing.T) {
 	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
-	}
-
-	if len(state.RootModule().Resources) != 1 {
-		t.Fatalf("bad: %d", len(state.RootModule().Resources))
 	}
 }
 

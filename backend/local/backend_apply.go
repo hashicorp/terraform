@@ -151,14 +151,6 @@ func (b *Local) opApply(
 		_, applyErr = tfCtx.Apply()
 		// we always want the state, even if apply failed
 		applyState = tfCtx.State()
-
-		/*
-			// Record any shadow errors for later
-			if err := ctx.ShadowError(); err != nil {
-				shadowErr = multierror.Append(shadowErr, multierror.Prefix(
-					err, "apply operation:"))
-			}
-		*/
 	}()
 
 	// Wait for the apply to finish or for us to be interrupted so

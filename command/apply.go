@@ -171,6 +171,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	// Perform the operation
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	defer ctxCancel()
+
 	op, err := b.Operation(ctx, opReq)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
@@ -182,11 +183,6 @@ func (c *ApplyCommand) Run(args []string) int {
 	case <-c.ShutdownCh:
 		// Cancel our context so we can start gracefully exiting
 		ctxCancel()
-
-		// notify tests that the command context was canceled
-		if testShutdownHook != nil {
-			testShutdownHook()
-		}
 
 		// Notify the user
 		c.Ui.Output(outputInterrupt)
