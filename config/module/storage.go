@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/svchost/auth"
 	"github.com/hashicorp/terraform/svchost/disco"
@@ -73,20 +74,17 @@ type Storage struct {
 	Ui cli.Ui
 	// Mode is the GetMode that will be used for various operations.
 	Mode GetMode
+
+	registry *registry.Client
 }
 
 func NewStorage(dir string, services *disco.Disco, creds auth.CredentialsSource) *Storage {
-	s := &Storage{
-		StorageDir: dir,
-		Services:   services,
-		Creds:      creds,
-	}
+	regClient := registry.NewClient(services, creds, nil)
 
-	// make sure this isn't nil
-	if s.Services == nil {
-		s.Services = disco.NewDisco()
+	return &Storage{
+		StorageDir: dir,
+		registry:   regClient,
 	}
-	return s
 }
 
 // loadManifest returns the moduleManifest file from the parent directory.
@@ -318,7 +316,7 @@ func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, e
 	// we need to lookup available versions
 	// Only on Get if it's not found, on unconditionally on Update
 	if (s.Mode == GetModeGet && !found) || (s.Mode == GetModeUpdate) {
-		resp, err := s.lookupModuleVersions(mod)
+		resp, err := s.registry.Versions(mod)
 		if err != nil {
 			return rec, err
 		}
@@ -338,7 +336,7 @@ func (s Storage) findRegistryModule(mSource, constraint string) (moduleRecord, e
 
 		rec.Version = match.Version
 
-		rec.url, err = s.lookupModuleLocation(mod, rec.Version)
+		rec.url, err = s.registry.Location(mod, rec.Version)
 		if err != nil {
 			return rec, err
 		}

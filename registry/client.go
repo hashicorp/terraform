@@ -1,4 +1,4 @@
-package module
+package registry
 
 import (
 	"encoding/json"
@@ -12,75 +12,75 @@ import (
 	"time"
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
-
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
 	"github.com/hashicorp/terraform/svchost"
+	"github.com/hashicorp/terraform/svchost/auth"
+	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/version"
 )
 
 const (
-	defaultRegistry   = "registry.terraform.io"
-	registryServiceID = "registry.v1"
 	xTerraformGet     = "X-Terraform-Get"
 	xTerraformVersion = "X-Terraform-Version"
 	requestTimeout    = 10 * time.Second
 	serviceID         = "modules.v1"
 )
 
-var (
-	httpClient *http.Client
-	tfVersion  = version.String()
-)
+var tfVersion = version.String()
 
-func init() {
-	httpClient = cleanhttp.DefaultPooledClient()
-	httpClient.Timeout = requestTimeout
+// Client provides methods to query Terraform Registries.
+type Client struct {
+	// this is the client to be used for all requests.
+	client *http.Client
+
+	// services is a required *disco.Disco, which may have services and
+	// credentials pre-loaded.
+	services *disco.Disco
+
+	// Creds optionally provides credentials for communicating with service
+	// providers.
+	creds auth.CredentialsSource
 }
 
-type errModuleNotFound string
-
-func (e errModuleNotFound) Error() string {
-	return `module "` + string(e) + `" not found`
-}
-
-func (s *Storage) discoverRegURL(host svchost.Hostname) *url.URL {
-	regURL := s.Services.DiscoverServiceURL(host, serviceID)
-	if regURL == nil {
-		return nil
+func NewClient(services *disco.Disco, creds auth.CredentialsSource, client *http.Client) *Client {
+	if services == nil {
+		services = disco.NewDisco()
 	}
 
-	if !strings.HasSuffix(regURL.Path, "/") {
-		regURL.Path += "/"
+	services.SetCredentialsSource(creds)
+
+	if client == nil {
+		client = cleanhttp.DefaultPooledClient()
+		client.Timeout = requestTimeout
 	}
 
-	return regURL
-}
+	services.Transport = client.Transport.(*http.Transport)
 
-func (s *Storage) addRequestCreds(host svchost.Hostname, req *http.Request) {
-	if s.Creds == nil {
-		return
-	}
-
-	creds, err := s.Creds.ForHost(host)
-	if err != nil {
-		log.Printf("[WARNING] Failed to get credentials for %s: %s (ignoring)", host, err)
-		return
-	}
-
-	if creds != nil {
-		creds.PrepareRequest(req)
+	return &Client{
+		client:   client,
+		services: services,
+		creds:    creds,
 	}
 }
 
-// Lookup module versions in the registry.
-func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleVersions, error) {
+// Discover qeuries the host, and returns the url for the registry.
+func (c *Client) Discover(host svchost.Hostname) *url.URL {
+	service := c.services.DiscoverServiceURL(host, serviceID)
+	if !strings.HasSuffix(service.Path, "/") {
+		service.Path += "/"
+	}
+	return service
+}
+
+// Versions queries the registry for a module, and returns the available versions.
+func (c *Client) Versions(module *regsrc.Module) (*response.ModuleVersions, error) {
 	host, err := module.SvcHost()
 	if err != nil {
 		return nil, err
 	}
 
-	service := s.discoverRegURL(host)
+	service := c.Discover(host)
 	if service == nil {
 		return nil, fmt.Errorf("host %s does not provide Terraform modules", host)
 	}
@@ -99,10 +99,10 @@ func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleV
 		return nil, err
 	}
 
-	s.addRequestCreds(host, req)
+	c.addRequestCreds(host, req)
 	req.Header.Set(xTerraformVersion, tfVersion)
 
-	resp, err := httpClient.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleV
 	case http.StatusOK:
 		// OK
 	case http.StatusNotFound:
-		return nil, errModuleNotFound(module.String())
+		return nil, fmt.Errorf("module %q not found", module.String())
 	default:
 		return nil, fmt.Errorf("error looking up module versions: %s", resp.Status)
 	}
@@ -133,14 +133,31 @@ func (s *Storage) lookupModuleVersions(module *regsrc.Module) (*response.ModuleV
 	return &versions, nil
 }
 
-// lookup the location of a specific module version in the registry
-func (s *Storage) lookupModuleLocation(module *regsrc.Module, version string) (string, error) {
+func (c *Client) addRequestCreds(host svchost.Hostname, req *http.Request) {
+	if c.creds == nil {
+		return
+	}
+
+	creds, err := c.creds.ForHost(host)
+	if err != nil {
+		log.Printf("[WARNING] Failed to get credentials for %s: %s (ignoring)", host, err)
+		return
+	}
+
+	if creds != nil {
+		creds.PrepareRequest(req)
+	}
+}
+
+// Location find the download location for a specific version module.
+// This returns a string, because the final location may contain special go-getter syntax.
+func (c *Client) Location(module *regsrc.Module, version string) (string, error) {
 	host, err := module.SvcHost()
 	if err != nil {
 		return "", err
 	}
 
-	service := s.discoverRegURL(host)
+	service := c.Discover(host)
 	if service == nil {
 		return "", fmt.Errorf("host %s does not provide Terraform modules", host.ForDisplay())
 	}
@@ -163,10 +180,10 @@ func (s *Storage) lookupModuleLocation(module *regsrc.Module, version string) (s
 		return "", err
 	}
 
-	s.addRequestCreds(host, req)
+	c.addRequestCreds(host, req)
 	req.Header.Set(xTerraformVersion, tfVersion)
 
-	resp, err := httpClient.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return "", err
 	}

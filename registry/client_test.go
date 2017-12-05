@@ -1,4 +1,4 @@
-package module
+package registry
 
 import (
 	"os"
@@ -7,16 +7,15 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/registry/regsrc"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/auth"
+	"github.com/hashicorp/terraform/registry/test"
 	"github.com/hashicorp/terraform/svchost/disco"
 )
 
 func TestLookupModuleVersions(t *testing.T) {
-	server := mockRegistry()
+	server := test.Registry()
 	defer server.Close()
 
-	regDisco := testDisco(server)
+	client := NewClient(test.Disco(server), nil, nil)
 
 	// test with and without a hostname
 	for _, src := range []string{
@@ -28,8 +27,7 @@ func TestLookupModuleVersions(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		s := &Storage{Services: regDisco}
-		resp, err := s.lookupModuleVersions(modsrc)
+		resp, err := client.Versions(modsrc)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -58,11 +56,10 @@ func TestLookupModuleVersions(t *testing.T) {
 }
 
 func TestRegistryAuth(t *testing.T) {
-	server := mockRegistry()
+	server := test.Registry()
 	defer server.Close()
 
-	regDisco := testDisco(server)
-	storage := testStorage(t, regDisco)
+	client := NewClient(test.Disco(server), nil, nil)
 
 	src := "private/name/provider"
 	mod, err := regsrc.ParseModuleSource(src)
@@ -71,36 +68,32 @@ func TestRegistryAuth(t *testing.T) {
 	}
 
 	// both should fail without auth
-	_, err = storage.lookupModuleVersions(mod)
+	_, err = client.Versions(mod)
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	_, err = storage.lookupModuleLocation(mod, "1.0.0")
+	_, err = client.Location(mod, "1.0.0")
 	if err == nil {
 		t.Fatal("expected error")
 	}
 
-	storage.Creds = auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
-		svchost.Hostname(defaultRegistry): {"token": testCredentials},
-	})
+	client = NewClient(test.Disco(server), test.Credentials, nil)
 
-	_, err = storage.lookupModuleVersions(mod)
+	_, err = client.Versions(mod)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = storage.lookupModuleLocation(mod, "1.0.0")
+	_, err = client.Location(mod, "1.0.0")
 	if err != nil {
 		t.Fatal(err)
 	}
-
 }
 
 func TestLookupModuleLocationRelative(t *testing.T) {
-	server := mockRegistry()
+	server := test.Registry()
 	defer server.Close()
 
-	regDisco := testDisco(server)
-	storage := testStorage(t, regDisco)
+	client := NewClient(test.Disco(server), nil, nil)
 
 	src := "relative/foo/bar"
 	mod, err := regsrc.ParseModuleSource(src)
@@ -108,7 +101,7 @@ func TestLookupModuleLocationRelative(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := storage.lookupModuleLocation(mod, "0.2.0")
+	got, err := client.Location(mod, "0.2.0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +110,6 @@ func TestLookupModuleLocationRelative(t *testing.T) {
 	if got != want {
 		t.Errorf("wrong location %s; want %s", got, want)
 	}
-
 }
 
 func TestAccLookupModuleVersions(t *testing.T) {
@@ -129,17 +121,15 @@ func TestAccLookupModuleVersions(t *testing.T) {
 	// test with and without a hostname
 	for _, src := range []string{
 		"terraform-aws-modules/vpc/aws",
-		defaultRegistry + "/terraform-aws-modules/vpc/aws",
+		regsrc.PublicRegistryHost.String() + "/terraform-aws-modules/vpc/aws",
 	} {
 		modsrc, err := regsrc.ParseModuleSource(src)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		s := &Storage{
-			Services: regDisco,
-		}
-		resp, err := s.lookupModuleVersions(modsrc)
+		s := NewClient(regDisco, nil, nil)
+		resp, err := s.Versions(modsrc)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -169,11 +159,10 @@ func TestAccLookupModuleVersions(t *testing.T) {
 
 // the error should reference the config source exatly, not the discovered path.
 func TestLookupLookupModuleError(t *testing.T) {
-	server := mockRegistry()
+	server := test.Registry()
 	defer server.Close()
 
-	regDisco := testDisco(server)
-	storage := testStorage(t, regDisco)
+	client := NewClient(test.Disco(server), nil, nil)
 
 	// this should not be found in teh registry
 	src := "bad/local/path"
@@ -182,7 +171,7 @@ func TestLookupLookupModuleError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = storage.lookupModuleLocation(mod, "0.2.0")
+	_, err = client.Location(mod, "0.2.0")
 	if err == nil {
 		t.Fatal("expected error")
 	}
