@@ -54,6 +54,8 @@ func testStorage(t *testing.T, d *disco.Disco) *Storage {
 // and example.com to the test server.
 func testDisco(s *httptest.Server) *disco.Disco {
 	services := map[string]interface{}{
+		// Note that both with and without trailing slashes are supported behaviours
+		// TODO: add specific tests to enumerate both possibilities.
 		"modules.v1": fmt.Sprintf("%s/v1/modules", s.URL),
 	}
 	d := disco.NewDisco()
