@@ -67,6 +67,53 @@ These endpoints list modules according to some criteria.
   modules. Any other value including none returns all modules _including_
   verified ones.
 
+### Sample Request
+
+```text
+$ curl 'https://registry.terraform.io/v1/modules&limit=2&verified=true'
+```
+
+### Sample Response
+
+```json
+{
+  "meta": {
+    "limit": 2,
+    "current_offset": 0,
+    "next_offset": 2,
+    "next_url": "/v1/modules?limit=2&offset=2&verified=true"
+  },
+  "modules": [
+    {
+      "id": "GoogleCloudPlatform/lb-http/google/1.0.4",
+      "owner": "",
+      "namespace": "GoogleCloudPlatform",
+      "name": "lb-http",
+      "version": "1.0.4",
+      "provider": "google",
+      "description": "Modular Global HTTP Load Balancer for GCE using forwarding rules.",
+      "source": "https://github.com/GoogleCloudPlatform/terraform-google-lb-http",
+      "published_at": "2017-10-17T01:22:17.792066Z",
+      "downloads": 213,
+      "verified": true
+    },
+    {
+      "id": "terraform-aws-modules/vpc/aws/1.5.1",
+      "owner": "",
+      "namespace": "terraform-aws-modules",
+      "name": "vpc",
+      "version": "1.5.1",
+      "provider": "aws",
+      "description": "Terraform module which creates VPC resources on AWS",
+      "source": "https://github.com/terraform-aws-modules/terraform-aws-vpc",
+      "published_at": "2017-11-23T10:48:09.400166Z",
+      "downloads": 29714,
+      "verified": true
+    }
+  ]
+}
+```
+
 ## Search Modules
 
 Theis endpoint allows searching modules.
@@ -87,6 +134,52 @@ Theis endpoint allows searching modules.
   modules. Any other value including none returns all modules _including_
   verified ones.
 
+### Sample Request
+
+```text
+$ curl 'https://registry.terraform.io/v1/modules/search?q=network&limit=2'
+```
+
+### Sample Response
+
+```json
+{
+  "meta": {
+    "limit": 2,
+    "current_offset": 0,
+    "next_offset": 2,
+    "next_url": "/v1/modules/search?limit=2&offset=2&q=network"
+  },
+  "modules": [
+    {
+      "id": "zoitech/network/aws/0.0.3",
+      "owner": "",
+      "namespace": "zoitech",
+      "name": "network",
+      "version": "0.0.3",
+      "provider": "aws",
+      "description": "This module is intended to be used for configuring an AWS network.",
+      "source": "https://github.com/zoitech/terraform-aws-network",
+      "published_at": "2017-11-23T15:12:06.620059Z",
+      "downloads": 39,
+      "verified": false
+    },
+    {
+      "id": "Azure/network/azurerm/1.1.1",
+      "owner": "",
+      "namespace": "Azure",
+      "name": "network",
+      "version": "1.1.1",
+      "provider": "azurerm",
+      "description": "Terraform Azure RM Module for Network",
+      "source": "https://github.com/Azure/terraform-azurerm-network",
+      "published_at": "2017-11-22T17:15:34.325436Z",
+      "downloads": 1033,
+      "verified": true
+    }
+  ]
+}
+```
 
 ## List Available Versions for a Specific Module
 
