@@ -196,13 +196,14 @@ func (p *MockResourceProvider) Diff(
 	info *InstanceInfo,
 	state *InstanceState,
 	desired *ResourceConfig) (*InstanceDiff, error) {
-	p.Lock()
-	defer p.Unlock()
 
+	p.Lock()
 	p.DiffCalled = true
 	p.DiffInfo = info
 	p.DiffState = state
 	p.DiffDesired = desired
+	p.Unlock()
+
 	if p.DiffFn != nil {
 		return p.DiffFn(info, state, desired)
 	}
