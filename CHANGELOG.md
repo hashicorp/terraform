@@ -1,5 +1,9 @@
 ## 0.11.2 (Unreleased)
 
+IMPROVEMENTS:
+
+* provider/terraform: in `terraform_remote_state`, the argument `environment` is now deprecated in favor of `workspace`. The `environment` argument will be removed in a later Terraform release. [GH-16558]
+
 BUG FIXES:
 
 * provisioner/salt-masterless: now waits for all of the remote operations to complete before returning [GH-16704]
