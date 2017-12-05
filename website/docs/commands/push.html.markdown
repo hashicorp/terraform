@@ -25,6 +25,11 @@ future update of Terraform Enterprise will allow parallel Terraform runs and aut
 perform infrastructure locking so only one run is modifying the same
 infrastructure at a time.
 
+~> When using this command, it is important to match your local Terraform version with
+   the version selected for the target workspace in Terraform Enterprise, since
+   otherwise the uploaded configuration archive may not be compatible with the remote
+   Terraform process.
+
 ## Usage
 
 Usage: `terraform push [options] [path]`
@@ -89,6 +94,13 @@ cannot know what is and isn't being used for provisioning, so it uploads
 all the files to be safe. To exclude certain files, specify the `-exclude`
 flag when pushing, or specify the `exclude` parameter in the
 [Terraform Enterprise configuration section](/docs/configuration/terraform-enterprise.html).
+
+Terraform also includes in the package all of the modules that were installed
+during the most recent `terraform init` or `terraform get` command. Since the
+details of how modules are cached in the filesystem vary between Terraform versions,
+it is important to use the same version of Terraform both locally (when running
+`terraform init` and then `terraform push`) and in your remote Terraform Enterprise
+workspace.
 
 ## Terraform Variables
 
