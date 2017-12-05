@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/md5"
+	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -103,6 +106,7 @@ func Funcs() map[string]ast.Function {
 		"pow":          interpolationFuncPow(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
+		"rsadecrypt":   interpolationFuncRsaDecrypt(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
 		"sha512":       interpolationFuncSha512(),
@@ -1678,6 +1682,46 @@ func interpolationFuncAbs() ast.Function {
 		ReturnType: ast.TypeFloat,
 		Callback: func(args []interface{}) (interface{}, error) {
 			return math.Abs(args[0].(float64)), nil
+		},
+	}
+}
+
+// interpolationFuncRsaDecrypt implements the "rsadecrypt" function that does
+// RSA decryption.
+func interpolationFuncRsaDecrypt() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			key := args[1].(string)
+
+			b, err := base64.StdEncoding.DecodeString(s)
+			if err != nil {
+				return "", fmt.Errorf("Failed to decode input %q: cipher text must be base64-encoded", key)
+			}
+
+			block, _ := pem.Decode([]byte(key))
+			if block == nil {
+				return "", fmt.Errorf("Failed to read key %q: no key found", key)
+			}
+			if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
+				return "", fmt.Errorf(
+					"Failed to read key %q: password protected keys are\n"+
+						"not supported. Please decrypt the key prior to use.", key)
+			}
+
+			x509Key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+			if err != nil {
+				return "", err
+			}
+
+			out, err := rsa.DecryptPKCS1v15(nil, x509Key, b)
+			if err != nil {
+				return "", err
+			}
+
+			return string(out), nil
 		},
 	}
 }

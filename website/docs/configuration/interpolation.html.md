@@ -355,6 +355,10 @@ The supported built-in functions are:
       `n` is the index or name of the subcapture. If using a regular expression,
       the syntax conforms to the [re2 regular expression syntax](https://github.com/google/re2/wiki/Syntax).
 
+  * `rsadecrypt(string, key)` - Decrypts `string` using RSA. The padding scheme
+    PKCS #1 v1.5 is used. The `string` must be base64-encoded. `key` must be an
+    RSA private key in PEM format. You may use `file()` to load it from a file.
+
   * `sha1(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-1 hash of the given string.
     Example: `"${sha1("${aws_vpc.default.tags.customer}-s3-bucket")}"`
