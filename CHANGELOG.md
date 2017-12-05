@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 
+* config: new `timeadd` interpolation function allows calculating a new timestamp relative to an existing known timestamp. [GH-16644]
 * provider/terraform: in `terraform_remote_state`, the argument `environment` is now deprecated in favor of `workspace`. The `environment` argument will be removed in a later Terraform release. [GH-16558]
 
 BUG FIXES:
