@@ -2007,10 +2007,12 @@
 			"revisionTime": "2017-05-05T04:36:39Z"
 		},
 		{
-			"checksumSHA1": "6OEUkwOM0qgI6YxR+BDEn6YMvpU=",
+			"checksumSHA1": "Nt4Ol6ZM2n0XD5zatxjwEYBpQnw=",
 			"path": "github.com/posener/complete",
-			"revision": "f4461a52b6329c11190f11fe3384ec8aa964e21c",
-			"revisionTime": "2017-07-30T19:30:24Z"
+			"revision": "dc2bc5a81accba8782bebea28628224643a8286a",
+			"revisionTime": "2017-11-04T09:57:02Z",
+			"version": "=v1.1",
+			"versionExact": "v1.1"
 		},
 		{
 			"checksumSHA1": "NB7uVS0/BJDmNu68vPAlbrq4TME=",

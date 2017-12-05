@@ -28,33 +28,11 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 
 	predictor := meta.completePredictWorkspaceName()
 
-	t.Run("no prefix", func(t *testing.T) {
-		got := predictor.Predict(complete.Args{
-			Last: "",
-		})
-		want := []string{"default"}
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
-		}
+	got := predictor.Predict(complete.Args{
+		Last: "",
 	})
-
-	t.Run("prefix that matches", func(t *testing.T) {
-		got := predictor.Predict(complete.Args{
-			Last: "def",
-		})
-		want := []string{"default"}
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
-		}
-	})
-
-	t.Run("prefix that doesn't match", func(t *testing.T) {
-		got := predictor.Predict(complete.Args{
-			Last: "x",
-		})
-		want := []string{}
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
-		}
-	})
+	want := []string{"default"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
 }
