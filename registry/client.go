@@ -66,7 +66,11 @@ func NewClient(services *disco.Disco, creds auth.CredentialsSource, client *http
 
 // Discover qeuries the host, and returns the url for the registry.
 func (c *Client) Discover(host svchost.Hostname) *url.URL {
-	return c.services.DiscoverServiceURL(host, serviceID)
+	service := c.services.DiscoverServiceURL(host, serviceID)
+	if !strings.HasSuffix(service.Path, "/") {
+		service.Path += "/"
+	}
+	return service
 }
 
 // Versions queries the registry for a module, and returns the available versions.
@@ -79,9 +83,6 @@ func (c *Client) Versions(module *regsrc.Module) (*response.ModuleVersions, erro
 	service := c.Discover(host)
 	if service == nil {
 		return nil, fmt.Errorf("host %s does not provide Terraform modules", host)
-	}
-	if !strings.HasSuffix(service.Path, "/") {
-		service.Path += "/"
 	}
 
 	p, err := url.Parse(path.Join(module.Module(), "versions"))
