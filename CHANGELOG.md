@@ -1,5 +1,8 @@
 ## 0.11.2 (Unreleased)
 
+BUG FIXES:
+
+* provisioner/salt-masterless: now waits for all of the remote operations to complete before returning [GH-16704]
 
 ## 0.11.1 (November 30, 2017)
 
