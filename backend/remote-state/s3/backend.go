@@ -136,6 +136,13 @@ func New() backend.Backend {
 				Default:     false,
 			},
 
+			"skip_region_validation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Skip static validation of region name.",
+				Default:     false,
+			},
+
 			"skip_requesting_account_id": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -243,6 +250,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		Token:                   data.Get("token").(string),
 		SkipCredsValidation:     data.Get("skip_credentials_validation").(bool),
 		SkipGetEC2Platforms:     data.Get("skip_get_ec2_platforms").(bool),
+		SkipRegionValidation:    data.Get("skip_region_validation").(bool),
 		SkipRequestingAccountId: data.Get("skip_requesting_account_id").(bool),
 		SkipMetadataApiCheck:    data.Get("skip_metadata_api_check").(bool),
 	}
