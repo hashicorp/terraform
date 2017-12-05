@@ -2426,6 +2426,38 @@ func TestInterpolateFuncTimestamp(t *testing.T) {
 	}
 }
 
+func TestInterpolateFuncTimeAdd(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${timeadd("2017-11-22T00:00:00Z", "1s")}`,
+				"2017-11-22T00:00:01Z",
+				false,
+			},
+			{
+				`${timeadd("2017-11-22T00:00:00Z", "10m1s")}`,
+				"2017-11-22T00:10:01Z",
+				false,
+			},
+			{ // also support subtraction
+				`${timeadd("2017-11-22T00:00:00Z", "-1h")}`,
+				"2017-11-21T23:00:00Z",
+				false,
+			},
+			{ // Invalid format timestamp
+				`${timeadd("2017-11-22", "-1h")}`,
+				nil,
+				true,
+			},
+			{ // Invalid format duration (day is not supported by ParseDuration)
+				`${timeadd("2017-11-22T00:00:00Z", "1d")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable

@@ -112,6 +112,7 @@ func Funcs() map[string]ast.Function {
 		"split":        interpolationFuncSplit(),
 		"substr":       interpolationFuncSubstr(),
 		"timestamp":    interpolationFuncTimestamp(),
+		"timeadd":      interpolationFuncTimeAdd(),
 		"title":        interpolationFuncTitle(),
 		"transpose":    interpolationFuncTranspose(),
 		"trimspace":    interpolationFuncTrimSpace(),
@@ -1500,6 +1501,29 @@ func interpolationFuncTimestamp() ast.Function {
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 			return time.Now().UTC().Format(time.RFC3339), nil
+		},
+	}
+}
+
+func interpolationFuncTimeAdd() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeString, // input timestamp string in RFC3339 format
+			ast.TypeString, // duration to add to input timestamp that should be parsable by time.ParseDuration
+		},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+
+			ts, err := time.Parse(time.RFC3339, args[0].(string))
+			if err != nil {
+				return nil, err
+			}
+			duration, err := time.ParseDuration(args[1].(string))
+			if err != nil {
+				return nil, err
+			}
+
+			return ts.Add(duration).Format(time.RFC3339), nil
 		},
 	}
 }
