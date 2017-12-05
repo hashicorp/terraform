@@ -1,4 +1,4 @@
-package module
+package test
 
 import (
 	"encoding/json"
@@ -6,17 +6,35 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
-	"testing"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
+	"github.com/hashicorp/terraform/svchost"
+	"github.com/hashicorp/terraform/svchost/auth"
+	"github.com/hashicorp/terraform/svchost/disco"
 )
+
+// Disco return a *disco.Disco mapping registry.terraform.io, localhost,
+// localhost.localdomain, and example.com to the test server.
+func Disco(s *httptest.Server) *disco.Disco {
+	services := map[string]interface{}{
+		// Note that both with and without trailing slashes are supported behaviours
+		// TODO: add specific tests to enumerate both possibilities.
+		"modules.v1": fmt.Sprintf("%s/v1/modules", s.URL),
+	}
+	d := disco.NewDisco()
+
+	d.ForceHostServices(svchost.Hostname("registry.terraform.io"), services)
+	d.ForceHostServices(svchost.Hostname("localhost"), services)
+	d.ForceHostServices(svchost.Hostname("localhost.localdomain"), services)
+	d.ForceHostServices(svchost.Hostname("example.com"), services)
+	return d
+}
 
 // Map of module names and location of test modules.
 // Only one version for now, as we only lookup latest from the registry.
@@ -26,7 +44,14 @@ type testMod struct {
 }
 
 const (
-	testCredentials = "test-auth-token"
+	testCred = "test-auth-token"
+)
+
+var (
+	regHost     = svchost.Hostname(regsrc.PublicRegistryHost.Normalized())
+	Credentials = auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
+		regHost: {"token": testCred},
+	})
 )
 
 // All the locationes from the mockRegistry start with a file:// scheme. If
@@ -94,8 +119,9 @@ func mockRegHandler() http.Handler {
 
 		// check for auth
 		if strings.Contains(matches[0], "private/") {
-			if !strings.Contains(r.Header.Get("Authorization"), testCredentials) {
+			if !strings.Contains(r.Header.Get("Authorization"), testCred) {
 				http.Error(w, "", http.StatusForbidden)
+				return
 			}
 		}
 
@@ -130,7 +156,7 @@ func mockRegHandler() http.Handler {
 
 		// check for auth
 		if strings.Contains(matches[1], "private/") {
-			if !strings.Contains(r.Header.Get("Authorization"), testCredentials) {
+			if !strings.Contains(r.Header.Get("Authorization"), testCred) {
 				http.Error(w, "", http.StatusForbidden)
 			}
 		}
@@ -191,145 +217,7 @@ func mockRegHandler() http.Handler {
 	return mux
 }
 
-// Just enough like a registry to exercise our code.
-// Returns the location of the latest version
-func mockRegistry() *httptest.Server {
-	server := httptest.NewServer(mockRegHandler())
-	return server
-}
-
-// GitHub archives always contain the module source in a single subdirectory,
-// so the registry will return a path with with a `//*` suffix. We need to make
-// sure this doesn't intefere with our internal handling of `//` subdir.
-func TestRegistryGitHubArchive(t *testing.T) {
-	server := mockRegistry()
-	defer server.Close()
-
-	disco := testDisco(server)
-	storage := testStorage(t, disco)
-
-	tree := NewTree("", testConfig(t, "registry-tar-subdir"))
-
-	storage.Mode = GetModeGet
-	if err := tree.Load(storage); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !tree.Loaded() {
-		t.Fatal("should be loaded")
-	}
-
-	storage.Mode = GetModeNone
-	if err := tree.Load(storage); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// stop the registry server, and make sure that we don't need to call out again
-	server.Close()
-	tree = NewTree("", testConfig(t, "registry-tar-subdir"))
-
-	storage.Mode = GetModeGet
-	if err := tree.Load(storage); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !tree.Loaded() {
-		t.Fatal("should be loaded")
-	}
-
-	actual := strings.TrimSpace(tree.String())
-	expected := strings.TrimSpace(treeLoadSubdirStr)
-	if actual != expected {
-		t.Fatalf("got: \n\n%s\nexpected: \n\n%s", actual, expected)
-	}
-}
-
-// Test that the //subdir notation can be used with registry modules
-func TestRegisryModuleSubdir(t *testing.T) {
-	server := mockRegistry()
-	defer server.Close()
-
-	disco := testDisco(server)
-	storage := testStorage(t, disco)
-	tree := NewTree("", testConfig(t, "registry-subdir"))
-
-	storage.Mode = GetModeGet
-	if err := tree.Load(storage); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !tree.Loaded() {
-		t.Fatal("should be loaded")
-	}
-
-	storage.Mode = GetModeNone
-	if err := tree.Load(storage); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(tree.String())
-	expected := strings.TrimSpace(treeLoadRegistrySubdirStr)
-	if actual != expected {
-		t.Fatalf("got: \n\n%s\nexpected: \n\n%s", actual, expected)
-	}
-}
-
-func TestAccRegistryDiscover(t *testing.T) {
-	if os.Getenv("TF_ACC") == "" {
-		t.Skip("skipping ACC test")
-	}
-
-	// simply check that we get a valid github URL for this from the registry
-	module, err := regsrc.ParseModuleSource("hashicorp/consul/aws")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	s := NewStorage("/tmp", nil, nil)
-	loc, err := s.lookupModuleLocation(module, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	u, err := url.Parse(loc)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !strings.HasSuffix(u.Host, "github.com") {
-		t.Fatalf("expected host 'github.com', got: %q", u.Host)
-	}
-
-	if !strings.Contains(u.String(), "consul") {
-		t.Fatalf("url doesn't contain 'consul': %s", u.String())
-	}
-}
-
-func TestAccRegistryLoad(t *testing.T) {
-	if os.Getenv("TF_ACC") == "" {
-		t.Skip("skipping ACC test")
-	}
-
-	storage := testStorage(t, nil)
-	tree := NewTree("", testConfig(t, "registry-load"))
-
-	storage.Mode = GetModeGet
-	if err := tree.Load(storage); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !tree.Loaded() {
-		t.Fatal("should be loaded")
-	}
-
-	storage.Mode = GetModeNone
-	if err := tree.Load(storage); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// TODO expand this further by fetching some metadata from the registry
-	actual := strings.TrimSpace(tree.String())
-	if !strings.Contains(actual, "(path: vault)") {
-		t.Fatal("missing vault module, got:\n", actual)
-	}
+// NewRegistry return an httptest server that mocks out some registry functionality.
+func Registry() *httptest.Server {
+	return httptest.NewServer(mockRegHandler())
 }
