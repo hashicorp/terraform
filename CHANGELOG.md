@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
 * config: new `rsadecrypt` interpolation function allows decrypting a base64-encoded ciphertext using a given private key. This is particularly useful for decrypting the password for a Windows instance on AWS EC2, but is generic and may find other uses too. [GH-16647]
 * config: new `timeadd` interpolation function allows calculating a new timestamp relative to an existing known timestamp. [GH-16644]
+* backend/s3: it is now possible to disable the region check, for improved compatibility with third-party services that attempt to mimic the S3 API. [GH-16757]
 * provider/terraform: in `terraform_remote_state`, the argument `environment` is now deprecated in favor of `workspace`. The `environment` argument will be removed in a later Terraform release. [GH-16558]
 
 BUG FIXES:
