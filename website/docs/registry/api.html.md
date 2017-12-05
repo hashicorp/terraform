@@ -50,7 +50,7 @@ These endpoints list modules according to some criteria.
 
 | Method | Path                                  | Produces                   |
 | ------ | ------------------------------------- | -------------------------- |
-| `GET`  | `<base_url>` (no trailing slash)      | `application/json`         |
+| `GET`  | `<base_url>`                          | `application/json`         |
 | `GET`  | `<base_url>/:namespace`               | `application/json`         |
 
 ### Parameters
