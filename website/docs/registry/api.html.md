@@ -116,7 +116,7 @@ $ curl 'https://registry.terraform.io/v1/modules&limit=2&verified=true'
 
 ## Search Modules
 
-Theis endpoint allows searching modules.
+This endpoint allows searching modules.
 
 | Method | Path                                  | Produces                   |
 | ------ | ------------------------------------- | -------------------------- |
