@@ -97,8 +97,6 @@ func (b *gcsBackend) State(name string) (state.State, error) {
 		return nil, err
 	}
 
-	fmt.Println("XXXXXXXXYYYYYY", st.State())
-
 	// If we have no state, we have to create an empty state
 	if v := st.State(); v == nil {
 
