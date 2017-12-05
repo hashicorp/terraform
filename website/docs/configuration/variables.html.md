@@ -339,3 +339,6 @@ has the last definition loaded.
 
 Definition files passed using the `-var-file` flag will always be evaluated after
 those in the working directory.
+
+Values passed within definition files or with `-var` will take precedence over
+`TF_VAR_` environment variables, as environment variables are considered defaults.
