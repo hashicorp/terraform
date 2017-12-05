@@ -6,7 +6,7 @@ description: |-
   The terraform workspace select command is used to choose a workspace.
 ---
 
-# Command: env select
+# Command: workspace select
 
 The `terraform workspace select` command is used to choose a different
 workspace to use for further operations.
