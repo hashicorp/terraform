@@ -9,6 +9,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* backend/gcs: fixed the locking methodology to avoid "double-locking" issues when used with the `terraform_remote_state` data source [GH-16852]
 * provisioner/salt-masterless: now waits for all of the remote operations to complete before returning [GH-16704]
 
 ## 0.11.1 (November 30, 2017)
