@@ -849,7 +849,7 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 					// a count might dynamically be set to something
 					// other than 1 and thus splat syntax is still needed
 					// to be safe.
-					if r.RawCount != nil && r.RawCount.Raw != nil && r.RawCount.Raw["count"] != "1" {
+					if r.RawCount != nil && r.RawCount.Raw != nil && r.RawCount.Raw["count"] != "1" && rv.Field != "count" {
 						diags = diags.Append(tfdiags.SimpleWarning(fmt.Sprintf(
 							"output %q: must use splat syntax to access %s attribute %q, because it has \"count\" set; use %s.*.%s to obtain a list of the attributes across all instances",
 							o.Name,
