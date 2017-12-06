@@ -91,50 +91,53 @@ func (b *gcsBackend) State(name string) (state.State, error) {
 	}
 
 	st := &remote.State{Client: c}
-	lockInfo := state.NewLockInfo()
-	lockInfo.Operation = "init"
-	lockID, err := st.Lock(lockInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	// Local helper function so we can call it multiple places
-	unlock := func(baseErr error) error {
-		if err := st.Unlock(lockID); err != nil {
-			const unlockErrMsg = `%v
-Additionally, unlocking the state file on Google Cloud Storage failed:
-
-  Error message: %q
-  Lock ID (gen): %v
-  Lock file URL: %v
-
-You may have to force-unlock this state in order to use it again.
-The GCloud backend acquires a lock during initialization to ensure
-the initial state file is created.`
-			return fmt.Errorf(unlockErrMsg, baseErr, err.Error(), lockID, c.lockFileURL())
-		}
-
-		return baseErr
-	}
 
 	// Grab the value
 	if err := st.RefreshState(); err != nil {
-		return nil, unlock(err)
+		return nil, err
 	}
 
 	// If we have no state, we have to create an empty state
 	if v := st.State(); v == nil {
+
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "init"
+		lockID, err := st.Lock(lockInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		// Local helper function so we can call it multiple places
+		unlock := func(baseErr error) error {
+			if err := st.Unlock(lockID); err != nil {
+				const unlockErrMsg = `%v
+				Additionally, unlocking the state file on Google Cloud Storage failed:
+
+				Error message: %q
+				Lock ID (gen): %v
+				Lock file URL: %v
+
+				You may have to force-unlock this state in order to use it again.
+				The GCloud backend acquires a lock during initialization to ensure
+				the initial state file is created.`
+				return fmt.Errorf(unlockErrMsg, baseErr, err.Error(), lockID, c.lockFileURL())
+			}
+
+			return baseErr
+		}
+
 		if err := st.WriteState(terraform.NewState()); err != nil {
 			return nil, unlock(err)
 		}
 		if err := st.PersistState(); err != nil {
 			return nil, unlock(err)
 		}
-	}
 
-	// Unlock, the state should now be initialized
-	if err := unlock(nil); err != nil {
-		return nil, err
+		// Unlock, the state should now be initialized
+		if err := unlock(nil); err != nil {
+			return nil, err
+		}
+
 	}
 
 	return st, nil
