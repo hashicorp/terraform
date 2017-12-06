@@ -56,6 +56,7 @@ public registry, but with an added hostname prefix.
 ```hcl
 module "vpc" {
   source = "atlas.hashicorp.com/example_corp/vpc/aws"
+  version = "0.9.3"
 }
 ```
 

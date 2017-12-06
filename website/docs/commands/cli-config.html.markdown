@@ -60,8 +60,10 @@ The following settings can be set in the CLI configuration file:
   [plugin caching](/docs/configuration/providers.html#provider-plugin-cache)
   and specifies, as a string, the location of the plugin cache directory.
 
-- `credentials` — provides credentials for use with a [private module registry.](/docs/registry/private.html)
-    This setting is a repeatable block, where the block label is a hostname and
+- `credentials` — provides credentials for use with Terraform Enterprise's
+    [private module registry.](/docs/enterprise-beta/registry/index.html)
+    This setting is a repeatable block, where the block label is a hostname
+    (either `atlas.hashicorp.com` or the hostname of your private install) and
     the block body contains a `token` attribute. Whenever Terraform requests
     module data from that hostname, it will authenticate with that token.
 
