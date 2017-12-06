@@ -47,12 +47,16 @@ Updates for file paths are automatic: when "downloading" the module using the [g
 The [Terraform Registry](https://registry.terraform.io) is an index of modules
 written by the Terraform community.
 The Terraform Registry is the easiest
-way to get started with Terraform and to find modules to start with.
-The registry is integrated directly into Terraform:
+way to get started with Terraform and to find modules.
+
+The registry is integrated directly into Terraform. You can reference any
+registry module with a source string of `<NAMESPACE>/<NAME>/<PROVIDER>`. Each
+module's information page on the registry includes its source string.
 
 ```hcl
 module "consul" {
   source = "hashicorp/consul/aws"
+  version = "0.1.0"
 }
 ```
 
@@ -60,8 +64,32 @@ The above example would use the
 [Consul module for AWS](https://registry.terraform.io/modules/hashicorp/consul/aws)
 from the public registry.
 
+Registry modules support versioning. You can provide a specific version, or use
+flexible [version constraints](/docs/modules/usage.html#module-versions).
+
 You can learn more about the registry at the
 [Terraform Registry documentation section](/docs/registry/index.html).
+
+## Private Registries
+
+[Terraform Enterprise](https://www.hashicorp.com/products/terraform) provides a
+[private module registry](/docs/enterprise-beta/registry/index.html), to help
+you share code within your organization. Other services can also provide
+private registries by implementing [Terraform's registry API](/docs/registry/api.html).
+
+Source strings for private registry modules are similar to public modules, but
+also include a hostname. They should follow the format
+`<HOSTNAME>/<NAMESPACE>/<NAME>/<PROVIDER>`.
+
+```hcl
+module "vpc" {
+  source = "atlas.hashicorp.com/example_corp/vpc/aws"
+  version = "0.9.3"
+}
+```
+
+Modules from private registries support versioning, just like modules from the
+public Terraform Registry.
 
 ## GitHub
 

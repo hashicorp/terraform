@@ -29,28 +29,30 @@ Meeting the requirements for publishing a module is extremely easy. The
 list may appear long only to ensure we're detailed, but adhering to the
 requirements should happen naturally.
 
-* **GitHub.** The module must be on GitHub and must be a public repo.
+- **GitHub.** The module must be on GitHub and must be a public repo.
 This is only a requirement for the [public registry](https://registry.terraform.io).
 If you're using a private registry, you may ignore this requirement.
 
-* **Repository name.** The repository name must be `terraform-PROVIDER-NAME`
-where PROVIDER is the primary provider to associate with the module and
-NAME is a unique name for the module. The name may contain hyphens. Example:
-`terraform-aws-consul` or `terraform-google-vault`.
+- **Named `terraform-<PROVIDER>-<NAME>`.** Module repositories must use this
+three-part name format, where `<NAME>` reflects the type of infrastructure the
+module manages and `<PROVIDER>` is the main provider where it creates that
+infrastructure. The `<NAME>` segment can contain additional hyphens. Examples:
+`terraform-google-vault` or `terraform-aws-ec2-instance`.
 
-* **Repository description.** The GitHub repository description is used
+- **Repository description.** The GitHub repository description is used
 to populate the short description of the module. This should be a simple
 one sentence description of the module.
 
-* **Standard Module Structure.** The module must adhere to the
+- **Standard module structure.** The module must adhere to the
 [standard module structure](/docs/modules/create.html#standard-module-structure).
 This allows the registry to inspect your module and generate documentation,
 track resource usage, and more.
 
-* **Tags for Releases.** Releases are detected by creating and pushing
-tags. The tag name must be a semantic version that can optionally be prefixed
-with a `v`. Examples are `v1.0.4` and `0.9.2`. To publish a module initially,
-at least one release tag must be present.
+- **`x.y.z` tags for releases.** The registry uses tags to identify module
+versions. Release tag names must be a [semantic version](http://semver.org),
+which can optionally be prefixed with a `v`. For example, `v1.0.4` and `0.9.2`.
+To publish a module initially, at least one release tag must be present. Tags
+that don't look like version numbers are ignored.
 
 ## Publishing a Public Module
 
