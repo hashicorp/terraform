@@ -128,22 +128,5 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 
 	b.storageClient = client
 
-	return b.ensureBucketExists()
-}
-
-func (b *gcsBackend) ensureBucketExists() error {
-	_, err := b.storageClient.Bucket(b.bucketName).Attrs(b.storageContext)
-	if err != storage.ErrBucketNotExist {
-		return err
-	}
-
-	if b.projectID == "" {
-		return fmt.Errorf("bucket %q does not exist; specify the \"project\" option or create the bucket manually using `gsutil mb gs://%s`", b.bucketName, b.bucketName)
-	}
-
-	attrs := &storage.BucketAttrs{
-		Location: b.region,
-	}
-
-	return b.storageClient.Bucket(b.bucketName).Create(b.storageContext, b.projectID, attrs)
+	return nil
 }
