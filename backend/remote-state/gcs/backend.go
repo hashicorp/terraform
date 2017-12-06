@@ -3,14 +3,17 @@ package gcs
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
 )
 
@@ -111,16 +114,39 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 		b.region = r
 	}
 
-	opts := []option.ClientOption{
-		option.WithScopes(storage.ScopeReadWrite),
-		option.WithUserAgent(terraform.UserAgentString()),
-	}
-	if credentialsFile := data.Get("credentials").(string); credentialsFile != "" {
-		opts = append(opts, option.WithCredentialsFile(credentialsFile))
-	} else if credentialsFile := os.Getenv("GOOGLE_CREDENTIALS"); credentialsFile != "" {
-		opts = append(opts, option.WithCredentialsFile(credentialsFile))
+	var opts []option.ClientOption
+
+	creds := data.Get("credentials").(string)
+	if creds == "" {
+		creds = os.Getenv("GOOGLE_CREDENTIALS")
 	}
 
+	if creds != "" {
+		var account accountFile
+
+		// to mirror how the provider works, we accept the file path or the contents
+		contents, _, err := pathorcontents.Read(creds)
+		if err != nil {
+			return fmt.Errorf("Error loading credentials: %s", err)
+		}
+
+		if err := json.Unmarshal([]byte(contents), &account); err != nil {
+			return fmt.Errorf("Error parsing credentials '%s': %s", contents, err)
+		}
+
+		conf := jwt.Config{
+			Email:      account.ClientEmail,
+			PrivateKey: []byte(account.PrivateKey),
+			Scopes:     []string{storage.ScopeReadWrite},
+			TokenURL:   "https://accounts.google.com/o/oauth2/token",
+		}
+
+		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))
+	} else {
+		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
+	}
+
+	opts = append(opts, option.WithUserAgent(terraform.UserAgentString()))
 	client, err := storage.NewClient(b.storageContext, opts...)
 	if err != nil {
 		return fmt.Errorf("storage.NewClient() failed: %v", err)
@@ -129,4 +155,12 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 	b.storageClient = client
 
 	return nil
+}
+
+// accountFile represents the structure of the account file JSON file.
+type accountFile struct {
+	PrivateKeyId string `json:"private_key_id"`
+	PrivateKey   string `json:"private_key"`
+	ClientEmail  string `json:"client_email"`
+	ClientId     string `json:"client_id"`
 }
