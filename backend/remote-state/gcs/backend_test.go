@@ -144,13 +144,6 @@ func setupBackend(t *testing.T, bucket, prefix string) backend.Backend {
 		"prefix":  prefix,
 	}
 
-	if creds := os.Getenv("GOOGLE_CREDENTIALS"); creds != "" {
-		config["credentials"] = creds
-		t.Logf("using credentials from %q", creds)
-	} else {
-		t.Log("using default credentials; set GOOGLE_CREDENTIALS for custom credentials")
-	}
-
 	b := backend.TestBackendConfig(t, New(), config)
 	be := b.(*gcsBackend)
 
