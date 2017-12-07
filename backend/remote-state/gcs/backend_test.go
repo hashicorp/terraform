@@ -2,10 +2,13 @@ package gcs
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state/remote"
 )
@@ -48,7 +51,8 @@ func TestStateFile(t *testing.T) {
 func TestRemoteClient(t *testing.T) {
 	t.Parallel()
 
-	be := setupBackend(t, noPrefix)
+	bucket := bucketName(t)
+	be := setupBackend(t, bucket, noPrefix)
 	defer teardownBackend(t, be, noPrefix)
 
 	ss, err := be.State(backend.DefaultStateName)
@@ -67,7 +71,8 @@ func TestRemoteClient(t *testing.T) {
 func TestRemoteLocks(t *testing.T) {
 	t.Parallel()
 
-	be := setupBackend(t, noPrefix)
+	bucket := bucketName(t)
+	be := setupBackend(t, bucket, noPrefix)
 	defer teardownBackend(t, be, noPrefix)
 
 	remoteClient := func() (remote.Client, error) {
@@ -99,10 +104,12 @@ func TestRemoteLocks(t *testing.T) {
 func TestBackend(t *testing.T) {
 	t.Parallel()
 
-	be0 := setupBackend(t, noPrefix)
+	bucket := bucketName(t)
+
+	be0 := setupBackend(t, bucket, noPrefix)
 	defer teardownBackend(t, be0, noPrefix)
 
-	be1 := setupBackend(t, noPrefix)
+	be1 := setupBackend(t, bucket, noPrefix)
 
 	backend.TestBackend(t, be0, be1)
 }
@@ -110,17 +117,18 @@ func TestBackendWithPrefix(t *testing.T) {
 	t.Parallel()
 
 	prefix := "test/prefix"
+	bucket := bucketName(t)
 
-	be0 := setupBackend(t, prefix)
+	be0 := setupBackend(t, bucket, prefix)
 	defer teardownBackend(t, be0, prefix)
 
-	be1 := setupBackend(t, prefix+"/")
+	be1 := setupBackend(t, bucket, prefix+"/")
 
 	backend.TestBackend(t, be0, be1)
 }
 
 // setupBackend returns a new GCS backend.
-func setupBackend(t *testing.T, prefix string) backend.Backend {
+func setupBackend(t *testing.T, bucket, prefix string) backend.Backend {
 	t.Helper()
 
 	projectID := os.Getenv("GOOGLE_PROJECT")
@@ -132,92 +140,67 @@ func setupBackend(t *testing.T, prefix string) backend.Backend {
 
 	config := map[string]interface{}{
 		"project": projectID,
-		"bucket":  toBucketName(projectID + "-" + t.Name()),
+		"bucket":  bucket,
 		"prefix":  prefix,
 	}
 
-	if creds := os.Getenv("GOOGLE_CREDENTIALS"); creds != "" {
-		config["credentials"] = creds
-		t.Logf("using credentials from %q", creds)
-	} else {
-		t.Log("using default credentials; set GOOGLE_CREDENTIALS for custom credentials")
+	b := backend.TestBackendConfig(t, New(), config)
+	be := b.(*gcsBackend)
+
+	// create the bucket if it doesn't exist
+	bkt := be.storageClient.Bucket(bucket)
+	_, err := bkt.Attrs(be.storageContext)
+	if err != nil {
+		if err != storage.ErrBucketNotExist {
+			t.Fatal(err)
+		}
+
+		attrs := &storage.BucketAttrs{
+			Location: be.region,
+		}
+		err := bkt.Create(be.storageContext, be.projectID, attrs)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	return backend.TestBackendConfig(t, New(), config)
+	return b
 }
 
 // teardownBackend deletes all states from be except the default state.
 func teardownBackend(t *testing.T, be backend.Backend, prefix string) {
 	t.Helper()
-
-	// Delete all states. The bucket must be empty before it can be deleted.
-	states, err := be.States()
-	if err != nil {
-		t.Fatalf("be.States() = %v; manual clean-up may be required", err)
-	}
-	for _, st := range states {
-		if st == backend.DefaultStateName {
-			continue
-		}
-		if err := be.DeleteState(st); err != nil {
-			t.Fatalf("be.DeleteState(%q) = %v; manual clean-up may be required", st, err)
-		}
-	}
-
 	gcsBE, ok := be.(*gcsBackend)
 	if !ok {
 		t.Fatalf("be is a %T, want a *gcsBackend", be)
 	}
 	ctx := gcsBE.storageContext
 
-	// Delete the default state, which DeleteState() will refuse to do.
-	// It's okay if this fails, not all tests create a default state.
-	ds := "default.tfstate"
-	if prefix != "" {
-		ds = fmt.Sprintf("%s/%s", prefix, ds)
-	}
-	if err := gcsBE.storageClient.Bucket(gcsBE.bucketName).Object(ds).Delete(ctx); err != nil {
-		t.Logf("deleting \"%s\": %v; manual clean-up may be required", ds, err)
+	bucket := gcsBE.storageClient.Bucket(gcsBE.bucketName)
+	objs := bucket.Objects(ctx, nil)
+
+	for o, err := objs.Next(); err == nil; o, err = objs.Next() {
+		if err := bucket.Object(o.Name).Delete(ctx); err != nil {
+			log.Printf("Error trying to delete object: %s %s\n\n", o.Name, err)
+		} else {
+			log.Printf("Object deleted: %s", o.Name)
+		}
 	}
 
 	// Delete the bucket itself.
-	if err := gcsBE.storageClient.Bucket(gcsBE.bucketName).Delete(ctx); err != nil {
-		t.Fatalf("deleting bucket failed: %v; manual cleanup may be required, though later test runs will happily reuse an existing bucket", err)
+	if err := bucket.Delete(ctx); err != nil {
+		t.Errorf("deleting bucket %q failed, manual cleanup may be required: %v", gcsBE.bucketName, err)
 	}
 }
 
-// toBucketName returns a copy of in that is suitable for use as a bucket name.
-// All upper case characters are converted to lower case, other invalid
-// characters are replaced by '_'.
-func toBucketName(in string) string {
-	// Bucket names must contain only lowercase letters, numbers, dashes
-	// (-), and underscores (_).
-	isValid := func(r rune) bool {
-		switch {
-		case r >= 'a' && r <= 'z':
-			return true
-		case r >= '0' && r <= '9':
-			return true
-		case r == '-' || r == '_':
-			return true
-		default:
-			return false
-
-		}
-	}
-
-	out := make([]rune, 0, len(in))
-	for _, r := range strings.ToLower(in) {
-		if !isValid(r) {
-			r = '_'
-		}
-		out = append(out, r)
-	}
+// bucketName returns a valid bucket name for this test.
+func bucketName(t *testing.T) string {
+	name := fmt.Sprintf("tf-%x-%s", time.Now().UnixNano(), t.Name())
 
 	// Bucket names must contain 3 to 63 characters.
-	if len(out) > 63 {
-		out = out[:63]
+	if len(name) > 63 {
+		name = name[:63]
 	}
 
-	return string(out)
+	return strings.ToLower(name)
 }
