@@ -40,6 +40,14 @@ is shown. See the section below dedicated to this option.
 See [backends](/docs/backends/index.html) for more detail on the `backend`
 configuration.
 
+Unlike other aspects of Terraform configuration there is no error checking
+for invalid attribute or child block names in this block so that older
+versions of Terraform can still access the `required_version` attribute and
+produce a version mismatch error, but unsupported attributes should still
+not be used to prevent collisions with any new keys added in future versions.
+A future version of Terraform may also _begin_ doing such validation,
+turning any unsupported names into errors.
+
 **No value within the `terraform` block can use interpolations.** The
 `terraform` block is loaded very early in the execution of Terraform
 and interpolations are not yet available.
