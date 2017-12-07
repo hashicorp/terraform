@@ -15,6 +15,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * config: Referencing a count attribute in an output no longer generates a warning [GH-16866]
+* cli: Terraform will no longer crash when `terraform plan`, `terraform apply`, and some other commands encounter an invalid provider version constraint in configuration, generating a proper error message instead. [GH-16867]
 * backend/gcs: The usage of the GOOGLE_CREDENTIALS environment variable now matches that of the google provider [GH-16865]
 * backend/gcs: fixed the locking methodology to avoid "double-locking" issues when used with the `terraform_remote_state` data source [GH-16852]
 * provisioner/salt-masterless: now waits for all of the remote operations to complete before returning [GH-16704]
