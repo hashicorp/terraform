@@ -89,9 +89,9 @@ func (c *PushCommand) Run(args []string) int {
 	}
 
 	// Load the module
-	mod, err := c.Module(configPath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+	mod, diags := c.Module(configPath)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if mod == nil {
@@ -347,6 +347,12 @@ func (c *PushCommand) Run(args []string) int {
 	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
 		"[reset][bold][green]Configuration %q uploaded! (v%d)",
 		name, vsn)))
+
+	c.showDiagnostics(diags)
+	if diags.HasErrors() {
+		return 1
+	}
+
 	return 0
 }
 

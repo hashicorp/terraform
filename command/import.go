@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
@@ -71,13 +73,16 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// Load the module
 	var mod *module.Tree
 	if configPath != "" {
-		var err error
-		mod, err = c.Module(configPath)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+		var modDiags tfdiags.Diagnostics
+		mod, modDiags = c.Module(configPath)
+		diags = diags.Append(modDiags)
+		if modDiags.HasErrors() {
+			c.showDiagnostics(diags)
 			return 1
 		}
 	}
@@ -166,7 +171,8 @@ func (c *ImportCommand) Run(args []string) int {
 		},
 	})
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error importing: %s", err))
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -185,6 +191,11 @@ func (c *ImportCommand) Run(args []string) int {
 
 	if c.Meta.allowMissingConfig && rc == nil {
 		c.Ui.Output(c.Colorize().Color("[reset][yellow]\n" + importCommandAllowMissingResourceMsg))
+	}
+
+	c.showDiagnostics(diags)
+	if diags.HasErrors() {
+		return 1
 	}
 
 	return 0

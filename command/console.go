@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/repl"
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/mitchellh/cli"
 )
@@ -38,10 +39,12 @@ func (c *ConsoleCommand) Run(args []string) int {
 		return 1
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// Load the module
-	mod, err := c.Module(configPath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+	mod, diags := c.Module(configPath)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
