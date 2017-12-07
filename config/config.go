@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	hcl2 "github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -415,10 +416,17 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 		if p.Version != "" {
 			_, err := discovery.ConstraintStr(p.Version).Parse()
 			if err != nil {
-				diags = diags.Append(fmt.Errorf(
-					"provider.%s: invalid version constraint %q: %s",
-					name, p.Version, err,
-				))
+				diags = diags.Append(&hcl2.Diagnostic{
+					Severity: hcl2.DiagError,
+					Summary:  "Invalid provider version constraint",
+					Detail: fmt.Sprintf(
+						"The value %q given for provider.%s is not a valid version constraint.",
+						p.Version, name,
+					),
+					// TODO: include a "Subject" source reference in here,
+					// once the config loader is able to retain source
+					// location information.
+				})
 			}
 		}
 

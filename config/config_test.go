@@ -217,7 +217,7 @@ func TestConfigValidate_table(t *testing.T) {
 			"provider with invalid version constraint",
 			"provider-version-invalid",
 			true,
-			"invalid version constraint",
+			"not a valid version constraint",
 		},
 		{
 			"invalid provider name in module block",
