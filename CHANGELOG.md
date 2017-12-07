@@ -1,5 +1,9 @@
 ## 0.11.2 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* backend/gcs: The gcs remote state backend was erroneously creating the state bucket if it didn't exist. This is not the intended behavior of backends, as Terraform cannot track or manage that resource. [GH-16865]
+ 
 IMPROVEMENTS:
 
 * config: new `rsadecrypt` interpolation function allows decrypting a base64-encoded ciphertext using a given private key. This is particularly useful for decrypting the password for a Windows instance on AWS EC2, but is generic and may find other uses too. [GH-16647]
@@ -9,6 +13,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* config: Referencing a count attribute in an output no longer generates a warning [GH-16866]
+* backend/gcs: The usage of the GOOGLE_CREDENTIALS environment variable now matches that of the google provider [GH-16865]
 * backend/gcs: fixed the locking methodology to avoid "double-locking" issues when used with the `terraform_remote_state` data source [GH-16852]
 * provisioner/salt-masterless: now waits for all of the remote operations to complete before returning [GH-16704]
 
