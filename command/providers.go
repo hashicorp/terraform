@@ -39,9 +39,9 @@ func (c *ProvidersCommand) Run(args []string) int {
 	}
 
 	// Load the config
-	root, err := c.Module(configPath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+	root, diags := c.Module(configPath)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if root == nil {
@@ -50,14 +50,6 @@ func (c *ProvidersCommand) Run(args []string) int {
 				"This command requires configuration to run.",
 			configPath))
 		return 1
-	}
-
-	// Validate the config (to ensure the version constraints are valid)
-	if diags := root.Validate(); len(diags) != 0 {
-		c.showDiagnostics(diags)
-		if diags.HasErrors() {
-			return 1
-		}
 	}
 
 	// Load the backend
@@ -90,6 +82,11 @@ func (c *ProvidersCommand) Run(args []string) int {
 	providersCommandPopulateTreeNode(printRoot, depTree)
 
 	c.Ui.Output(printRoot.String())
+
+	c.showDiagnostics(diags)
+	if diags.HasErrors() {
+		return 1
+	}
 
 	return 0
 }

@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -95,22 +97,27 @@ Options:
 }
 
 func (c *ValidateCommand) validate(dir string, checkVars bool) int {
+	var diags tfdiags.Diagnostics
+
 	cfg, err := config.LoadDir(dir)
 	if err != nil {
+		diags = diags.Append(err)
 		c.showDiagnostics(err)
 		return 1
 	}
-	if diags := cfg.Validate(); len(diags) != 0 {
+
+	diags = diags.Append(cfg.Validate())
+
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
-		if diags.HasErrors() {
-			return 1
-		}
+		return 1
 	}
 
 	if checkVars {
-		mod, err := c.Module(dir)
-		if err != nil {
-			c.showDiagnostics(err)
+		mod, modDiags := c.Module(dir)
+		diags = diags.Append(modDiags)
+		if modDiags.HasErrors() {
+			c.showDiagnostics(diags)
 			return 1
 		}
 
@@ -119,13 +126,17 @@ func (c *ValidateCommand) validate(dir string, checkVars bool) int {
 
 		tfCtx, err := terraform.NewContext(opts)
 		if err != nil {
-			c.showDiagnostics(err)
+			diags = diags.Append(err)
+			c.showDiagnostics(diags)
 			return 1
 		}
 
-		if !c.validateContext(tfCtx) {
-			return 1
-		}
+		diags = diags.Append(tfCtx.Validate())
+	}
+
+	c.showDiagnostics(diags)
+	if diags.HasErrors() {
+		return 1
 	}
 
 	return 0
