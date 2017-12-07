@@ -274,20 +274,15 @@ func (c *InitCommand) Run(args []string) int {
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
 func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade bool) error {
-	mod, err := c.Module(path)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting plugins: %s", err))
-		return err
-	}
-
-	if diags := mod.Validate(); diags.HasErrors() {
-		err := diags.Err()
-		c.Ui.Error(fmt.Sprintf("Error getting plugins: %s", err))
-		return err
+	mod, diags := c.Module(path)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return diags.Err()
 	}
 
 	if err := terraform.CheckRequiredVersion(mod); err != nil {
-		c.Ui.Error(err.Error())
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
 		return err
 	}
 
@@ -397,7 +392,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 			digests[name] = nil
 		}
 	}
-	err = c.providerPluginsLock().Write(digests)
+	err := c.providerPluginsLock().Write(digests)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("failed to save provider manifest: %s", err))
 		return err
