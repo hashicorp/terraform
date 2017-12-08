@@ -6,12 +6,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/hcl2/hcl"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ImportCommand is a cli.Command implementation that imports resources
@@ -78,6 +79,19 @@ func (c *ImportCommand) Run(args []string) int {
 	// Load the module
 	var mod *module.Tree
 	if configPath != "" {
+		if empty, _ := config.IsEmptyDir(configPath); empty {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "No Terraform configuration files",
+				Detail: fmt.Sprintf(
+					"The directory %s does not contain any Terraform configuration files (.tf or .tf.json). To specify a different configuration directory, use the -config=\"...\" command line option.",
+					configPath,
+				),
+			})
+			c.showDiagnostics(diags)
+			return 1
+		}
+
 		var modDiags tfdiags.Diagnostics
 		mod, modDiags = c.Module(configPath)
 		diags = diags.Append(modDiags)
@@ -94,11 +108,15 @@ func (c *ImportCommand) Run(args []string) int {
 	targetMod := mod.Child(addr.Path)
 	if targetMod == nil {
 		modulePath := addr.WholeModuleAddress().String()
-		if modulePath == "" {
-			c.Ui.Error(importCommandMissingConfigMsg)
-		} else {
-			c.Ui.Error(fmt.Sprintf(importCommandMissingModuleFmt, modulePath))
-		}
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Import to non-existent module",
+			Detail: fmt.Sprintf(
+				"%s is not defined in the configuration. Please add configuration for this module before importing into it.",
+				modulePath,
+			),
+		})
+		c.showDiagnostics(diags)
 		return 1
 	}
 	rcs := targetMod.Config().Resources
@@ -114,6 +132,14 @@ func (c *ImportCommand) Run(args []string) int {
 		if modulePath == "" {
 			modulePath = "the root module"
 		}
+
+		c.showDiagnostics(diags)
+
+		// This is not a diagnostic because currently our diagnostics printer
+		// doesn't support having a code example in the detail, and there's
+		// a code example in this message.
+		// TODO: Improve the diagnostics printer so we can use it for this
+		// message.
 		c.Ui.Error(fmt.Sprintf(
 			importCommandMissingResourceFmt,
 			addr, modulePath, addr.Type, addr.Name,
@@ -296,18 +322,7 @@ const importCommandResourceModeMsg = `Error: resource address must refer to a ma
 Data resources cannot be imported.
 `
 
-const importCommandMissingConfigMsg = `Error: no configuration files in this directory.
-
-"terraform import" can only be run in a Terraform configuration directory.
-Create one or more .tf files in this directory to import here.
-`
-
-const importCommandMissingModuleFmt = `Error: %s does not exist in the configuration.
-
-Please add the configuration for the module before importing resources into it.
-`
-
-const importCommandMissingResourceFmt = `Error: resource address %q does not exist in the configuration.
+const importCommandMissingResourceFmt = `[reset][bold][red]Error:[reset][bold] resource address %q does not exist in the configuration.[reset]
 
 Before importing this resource, please create its configuration in %s. For example:
 
