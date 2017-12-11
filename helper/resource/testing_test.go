@@ -520,6 +520,99 @@ func TestTest_resetError(t *testing.T) {
 	}
 }
 
+func TestTest_expectError(t *testing.T) {
+	cases := []struct {
+		name     string
+		planErr  bool
+		applyErr bool
+		badErr   bool
+	}{
+		{
+			name:     "successful apply",
+			planErr:  false,
+			applyErr: false,
+		},
+		{
+			name:     "bad plan",
+			planErr:  true,
+			applyErr: false,
+		},
+		{
+			name:     "bad apply",
+			planErr:  false,
+			applyErr: true,
+		},
+		{
+			name:     "bad plan, bad err",
+			planErr:  true,
+			applyErr: false,
+			badErr:   true,
+		},
+		{
+			name:     "bad apply, bad err",
+			planErr:  false,
+			applyErr: true,
+			badErr:   true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mp := testProvider()
+			expectedText := "test provider error"
+			var errText string
+			if tc.badErr {
+				errText = "wrong provider error"
+			} else {
+				errText = expectedText
+			}
+			noErrText := "no error received, but expected a match to"
+			if tc.planErr {
+				mp.DiffReturnError = errors.New(errText)
+			}
+			if tc.applyErr {
+				mp.ApplyReturnError = errors.New(errText)
+			}
+			mt := new(mockT)
+			Test(mt, TestCase{
+				Providers: map[string]terraform.ResourceProvider{
+					"test": mp,
+				},
+				Steps: []TestStep{
+					TestStep{
+						Config:             testConfigStr,
+						ExpectError:        regexp.MustCompile(expectedText),
+						Check:              func(*terraform.State) error { return nil },
+						ExpectNonEmptyPlan: true,
+					},
+				},
+			},
+			)
+			if mt.FatalCalled {
+				t.Fatalf("fatal: %+v", mt.FatalArgs)
+			}
+			switch {
+			case len(mt.ErrorArgs) < 1 && !tc.planErr && !tc.applyErr:
+				t.Fatalf("expected error, got none")
+			case !tc.planErr && !tc.applyErr:
+				for _, e := range mt.ErrorArgs {
+					if regexp.MustCompile(noErrText).MatchString(fmt.Sprintf("%v", e)) {
+						return
+					}
+				}
+				t.Fatalf("expected error to match %s, got %+v", noErrText, mt.ErrorArgs)
+			case tc.badErr:
+				for _, e := range mt.ErrorArgs {
+					if regexp.MustCompile(expectedText).MatchString(fmt.Sprintf("%v", e)) {
+						return
+					}
+				}
+				t.Fatalf("expected error to match %s, got %+v", expectedText, mt.ErrorArgs)
+			}
+		})
+	}
+}
+
 func TestComposeAggregateTestCheckFunc(t *testing.T) {
 	check1 := func(s *terraform.State) error {
 		return errors.New("Error 1")
