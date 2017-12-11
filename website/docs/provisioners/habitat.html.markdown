@@ -60,6 +60,7 @@ There are 2 configuration levels, `supervisor` and `service`.  Configuration pla
 * `events (string)` - (Optional) Name of the service group running a Habitat EventSrv to forward Supervisor and service event data to. (Defaults to none)
 * `override_name (string)` - (Optional) The name of the Supervisor (Defaults to `default`)
 * `organization (string)` - (Optional) The organization that the Supervisor and it's subsequent services are part of. (Defaults to `default`)
+* `builder_auth_token (string)` - (Optional) The builder authorization token when using a private origin. (Defaults to none)
 
 ### Service Arguments
 * `name (string)` - (Required) The Habitat package identifier of the service to run. (ie `core/haproxy` or `core/redis/3.2.4/20171002182640`)
