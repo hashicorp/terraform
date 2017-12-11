@@ -488,6 +488,15 @@ func Test(t TestT, c TestCase) {
 			}
 		}
 
+		// If we expected an error, but did not get one, fail
+		if err == nil && step.ExpectError != nil {
+			errored = true
+			t.Error(fmt.Sprintf(
+				"Step %d, no error received, but expected a match to:\n\n%s\n\n",
+				i, step.ExpectError))
+			break
+		}
+
 		// If there was an error, exit
 		if err != nil {
 			// Perhaps we expected an error? Check if it matches
