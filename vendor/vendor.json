@@ -1521,10 +1521,10 @@
 			"revision": "36289988d83ca270bc07c234c36f364b0dd9c9a7"
 		},
 		{
-			"checksumSHA1": "EcZfls6vcqjasWV/nBlu+C+EFmc=",
+			"checksumSHA1": "9w1ZtxhdB/J0qqNPJQNNI/ZTwwE=",
 			"path": "github.com/hashicorp/go-version",
-			"revision": "e96d3840402619007766590ecea8dd7af1292276",
-			"revisionTime": "2016-10-31T18:26:05Z"
+			"revision": "4fe82ae3040f80a03d04d2cccb5606a626b8e1ee",
+			"revisionTime": "2017-11-29T15:08:20Z"
 		},
 		{
 			"checksumSHA1": "o3XZZdOnSnwQSpYw215QV75ZDeI=",
