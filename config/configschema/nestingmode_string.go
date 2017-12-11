@@ -2,7 +2,7 @@
 
 package configschema
 
-import "fmt"
+import "strconv"
 
 const _NestingMode_name = "nestingModeInvalidNestingSingleNestingListNestingSetNestingMap"
 
@@ -10,7 +10,7 @@ var _NestingMode_index = [...]uint8{0, 18, 31, 42, 52, 62}
 
 func (i NestingMode) String() string {
 	if i < 0 || i >= NestingMode(len(_NestingMode_index)-1) {
-		return fmt.Sprintf("NestingMode(%d)", i)
+		return "NestingMode(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
 	return _NestingMode_name[_NestingMode_index[i]:_NestingMode_index[i+1]]
 }
