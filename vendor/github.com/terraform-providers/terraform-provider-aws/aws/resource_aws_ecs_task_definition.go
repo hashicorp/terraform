@@ -2,8 +2,6 @@ package aws
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"strings"
@@ -19,6 +17,9 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 		Create: resourceAwsEcsTaskDefinitionCreate,
 		Read:   resourceAwsEcsTaskDefinitionRead,
 		Delete: resourceAwsEcsTaskDefinitionDelete,
+
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsEcsTaskDefinitionMigrateState,
 
 		Schema: map[string]*schema.Schema{
 			"arn": {
@@ -42,8 +43,12 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 				StateFunc: func(v interface{}) string {
-					hash := sha1.Sum([]byte(v.(string)))
-					return hex.EncodeToString(hash[:])
+					json, _ := normalizeJsonString(v)
+					return json
+				},
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					equal, _ := ecsContainerDefinitionsAreEquivalent(old, new)
+					return equal
 				},
 				ValidateFunc: validateAwsEcsTaskDefinitionContainerDefinitions,
 			},
@@ -214,7 +219,16 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("arn", taskDefinition.TaskDefinitionArn)
 	d.Set("family", taskDefinition.Family)
 	d.Set("revision", taskDefinition.Revision)
-	d.Set("container_definitions", taskDefinition.ContainerDefinitions)
+
+	defs, err := flattenEcsContainerDefinitions(taskDefinition.ContainerDefinitions)
+	if err != nil {
+		return err
+	}
+	err = d.Set("container_definitions", defs)
+	if err != nil {
+		return err
+	}
+
 	d.Set("task_role_arn", taskDefinition.TaskRoleArn)
 	d.Set("network_mode", taskDefinition.NetworkMode)
 	d.Set("volumes", flattenEcsVolumes(taskDefinition.Volumes))

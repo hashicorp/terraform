@@ -20,10 +20,6 @@ func resourceAwsOpsworksPermission() *schema.Resource {
 		Read:   resourceAwsOpsworksPermissionRead,
 
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"allow_ssh": {
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -104,7 +100,6 @@ func resourceAwsOpsworksPermissionRead(d *schema.ResourceData, meta interface{})
 		if d.Get("user_arn").(string)+d.Get("stack_id").(string) == id {
 			found = true
 			d.SetId(id)
-			d.Set("id", id)
 			d.Set("allow_ssh", permission.AllowSsh)
 			d.Set("allow_sudo", permission.AllowSudo)
 			d.Set("user_arn", permission.IamUserArn)

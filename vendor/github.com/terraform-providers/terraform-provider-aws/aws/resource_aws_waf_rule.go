@@ -40,7 +40,7 @@ func resourceAwsWafRule() *schema.Resource {
 						},
 						"data_id": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 								value := v.(string)
 								if len(value) > 128 {

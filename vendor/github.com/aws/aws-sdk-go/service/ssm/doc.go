@@ -17,6 +17,10 @@
 // To get started, verify prerequisites and configure managed instances. For
 // more information, see Systems Manager Prerequisites (http://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up.html).
 //
+// For information about other API actions you can perform on Amazon EC2 instances,
+// see the Amazon EC2 API Reference (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/).
+// For information about how to use a Query API, see Making API Requests (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/making-api-requests.html).
+//
 // See https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06 for more information on this service.
 //
 // See ssm package documentation for more information.
@@ -24,7 +28,7 @@
 //
 // Using the Client
 //
-// To Amazon Simple Systems Manager (SSM) with the SDK use the New function to create
+// To contact Amazon Simple Systems Manager (SSM) with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

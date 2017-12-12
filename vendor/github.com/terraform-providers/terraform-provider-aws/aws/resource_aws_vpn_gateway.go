@@ -181,14 +181,11 @@ func resourceAwsVpnGatewayAttach(d *schema.ResourceData, meta interface{}) error
 		VpcId:        aws.String(d.Get("vpc_id").(string)),
 	}
 
-	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err := conn.AttachVpnGateway(req)
 		if err != nil {
-			if ec2err, ok := err.(awserr.Error); ok {
-				if "InvalidVpnGatewayID.NotFound" == ec2err.Code() {
-					return resource.RetryableError(
-						fmt.Errorf("Gateway not found, retry for eventual consistancy"))
-				}
+			if isAWSErr(err, "InvalidVpnGatewayID.NotFound", "") {
+				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}

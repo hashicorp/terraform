@@ -19,7 +19,7 @@ func resourceAwsDbSnapshot() *schema.Resource {
 		Delete: resourceAwsDbSnapshotDelete,
 
 		Timeouts: &schema.ResourceTimeout{
-			Read: schema.DefaultTimeout(10 * time.Minute),
+			Read: schema.DefaultTimeout(20 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{

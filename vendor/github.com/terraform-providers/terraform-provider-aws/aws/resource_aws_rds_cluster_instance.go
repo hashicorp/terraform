@@ -84,6 +84,21 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Required: true,
 			},
 
+			"engine": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Default:      "aurora",
+				ValidateFunc: validateRdsEngine,
+			},
+
+			"engine_version": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
+
 			"db_parameter_group_name": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -176,7 +191,7 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 	createOpts := &rds.CreateDBInstanceInput{
 		DBInstanceClass:         aws.String(d.Get("instance_class").(string)),
 		DBClusterIdentifier:     aws.String(d.Get("cluster_identifier").(string)),
-		Engine:                  aws.String("aurora"),
+		Engine:                  aws.String(d.Get("engine").(string)),
 		PubliclyAccessible:      aws.Bool(d.Get("publicly_accessible").(bool)),
 		PromotionTier:           aws.Int64(int64(d.Get("promotion_tier").(int))),
 		AutoMinorVersionUpgrade: aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
@@ -199,6 +214,10 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 
 	if attr, ok := d.GetOk("db_subnet_group_name"); ok {
 		createOpts.DBSubnetGroupName = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("engine_version"); ok {
+		createOpts.EngineVersion = aws.String(attr.(string))
 	}
 
 	if attr, ok := d.GetOk("monitoring_role_arn"); ok {
@@ -227,7 +246,10 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 
 	// reuse db_instance refresh func
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "backing-up", "modifying"},
+		Pending: []string{"creating", "backing-up", "modifying",
+			"configuring-enhanced-monitoring", "maintenance",
+			"rebooting", "renaming", "resetting-master-credentials",
+			"starting", "upgrading"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
@@ -292,6 +314,8 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 
 	d.Set("publicly_accessible", db.PubliclyAccessible)
 	d.Set("cluster_identifier", db.DBClusterIdentifier)
+	d.Set("engine", db.Engine)
+	d.Set("engine_version", db.EngineVersion)
 	d.Set("instance_class", db.DBInstanceClass)
 	d.Set("identifier", db.DBInstanceIdentifier)
 	d.Set("dbi_resource_id", db.DbiResourceId)
@@ -393,7 +417,10 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 
 		// reuse db_instance refresh func
 		stateConf := &resource.StateChangeConf{
-			Pending:    []string{"creating", "backing-up", "modifying"},
+			Pending: []string{"creating", "backing-up", "modifying",
+				"configuring-enhanced-monitoring", "maintenance",
+				"rebooting", "renaming", "resetting-master-credentials",
+				"starting", "upgrading"},
 			Target:     []string{"available"},
 			Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 			Timeout:    d.Timeout(schema.TimeoutUpdate),

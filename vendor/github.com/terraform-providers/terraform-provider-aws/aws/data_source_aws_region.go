@@ -75,7 +75,6 @@ func dataSourceAwsRegionRead(d *schema.ResourceData, meta interface{}) error {
 	region := resp.Regions[0]
 
 	d.SetId(*region.RegionName)
-	d.Set("id", region.RegionName)
 	d.Set("name", region.RegionName)
 	d.Set("endpoint", region.Endpoint)
 	d.Set("current", *region.RegionName == currentRegion)

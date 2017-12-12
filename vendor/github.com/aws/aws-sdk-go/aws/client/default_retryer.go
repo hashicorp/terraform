@@ -2,6 +2,7 @@ package client
 
 import (
 	"math/rand"
+	"strconv"
 	"sync"
 	"time"
 
@@ -38,6 +39,10 @@ func (d DefaultRetryer) RetryRules(r *request.Request) time.Duration {
 	minTime := 30
 	throttle := d.shouldThrottle(r)
 	if throttle {
+		if delay, ok := getRetryDelay(r); ok {
+			return delay
+		}
+
 		minTime = 500
 	}
 
@@ -68,12 +73,49 @@ func (d DefaultRetryer) ShouldRetry(r *request.Request) bool {
 
 // ShouldThrottle returns true if the request should be throttled.
 func (d DefaultRetryer) shouldThrottle(r *request.Request) bool {
-	if r.HTTPResponse.StatusCode == 502 ||
-		r.HTTPResponse.StatusCode == 503 ||
-		r.HTTPResponse.StatusCode == 504 {
-		return true
+	switch r.HTTPResponse.StatusCode {
+	case 429:
+	case 502:
+	case 503:
+	case 504:
+	default:
+		return r.IsErrorThrottle()
 	}
-	return r.IsErrorThrottle()
+
+	return true
+}
+
+// This will look in the Retry-After header, RFC 7231, for how long
+// it will wait before attempting another request
+func getRetryDelay(r *request.Request) (time.Duration, bool) {
+	if !canUseRetryAfterHeader(r) {
+		return 0, false
+	}
+
+	delayStr := r.HTTPResponse.Header.Get("Retry-After")
+	if len(delayStr) == 0 {
+		return 0, false
+	}
+
+	delay, err := strconv.Atoi(delayStr)
+	if err != nil {
+		return 0, false
+	}
+
+	return time.Duration(delay) * time.Second, true
+}
+
+// Will look at the status code to see if the retry header pertains to
+// the status code.
+func canUseRetryAfterHeader(r *request.Request) bool {
+	switch r.HTTPResponse.StatusCode {
+	case 429:
+	case 503:
+	default:
+		return false
+	}
+
+	return true
 }
 
 // lockedSource is a thread-safe implementation of rand.Source

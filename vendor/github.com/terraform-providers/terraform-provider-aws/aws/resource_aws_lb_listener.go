@@ -15,12 +15,12 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAwsAlbListener() *schema.Resource {
+func resourceAwsLbListener() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsAlbListenerCreate,
-		Read:   resourceAwsAlbListenerRead,
-		Update: resourceAwsAlbListenerUpdate,
-		Delete: resourceAwsAlbListenerDelete,
+		Create: resourceAwsLbListenerCreate,
+		Read:   resourceAwsLbListenerRead,
+		Update: resourceAwsLbListenerUpdate,
+		Delete: resourceAwsLbListenerDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -40,7 +40,7 @@ func resourceAwsAlbListener() *schema.Resource {
 			"port": {
 				Type:         schema.TypeInt,
 				Required:     true,
-				ValidateFunc: validateAwsAlbListenerPort,
+				ValidateFunc: validateAwsLbListenerPort,
 			},
 
 			"protocol": {
@@ -50,7 +50,7 @@ func resourceAwsAlbListener() *schema.Resource {
 				StateFunc: func(v interface{}) string {
 					return strings.ToUpper(v.(string))
 				},
-				ValidateFunc: validateAwsAlbListenerProtocol,
+				ValidateFunc: validateAwsLbListenerProtocol,
 			},
 
 			"ssl_policy": {
@@ -76,7 +76,7 @@ func resourceAwsAlbListener() *schema.Resource {
 						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateAwsAlbListenerActionType,
+							ValidateFunc: validateAwsLbListenerActionType,
 						},
 					},
 				},
@@ -85,13 +85,13 @@ func resourceAwsAlbListener() *schema.Resource {
 	}
 }
 
-func resourceAwsAlbListenerCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbListenerCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
-	albArn := d.Get("load_balancer_arn").(string)
+	lbArn := d.Get("load_balancer_arn").(string)
 
 	params := &elbv2.CreateListenerInput{
-		LoadBalancerArn: aws.String(albArn),
+		LoadBalancerArn: aws.String(lbArn),
 		Port:            aws.Int64(int64(d.Get("port").(int))),
 		Protocol:        aws.String(d.Get("protocol").(string)),
 	}
@@ -124,11 +124,11 @@ func resourceAwsAlbListenerCreate(d *schema.ResourceData, meta interface{}) erro
 
 	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 		var err error
-		log.Printf("[DEBUG] Creating ALB listener for ARN: %s", d.Get("load_balancer_arn").(string))
+		log.Printf("[DEBUG] Creating LB listener for ARN: %s", d.Get("load_balancer_arn").(string))
 		resp, err = elbconn.CreateListener(params)
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == "CertificateNotFound" {
-				log.Printf("[WARN] Got an error while trying to create ALB listener for ARN: %s: %s", albArn, err)
+				log.Printf("[WARN] Got an error while trying to create LB listener for ARN: %s: %s", lbArn, err)
 				return resource.RetryableError(err)
 			}
 		}
@@ -140,19 +140,19 @@ func resourceAwsAlbListenerCreate(d *schema.ResourceData, meta interface{}) erro
 	})
 
 	if err != nil {
-		return errwrap.Wrapf("Error creating ALB Listener: {{err}}", err)
+		return errwrap.Wrapf("Error creating LB Listener: {{err}}", err)
 	}
 
 	if len(resp.Listeners) == 0 {
-		return errors.New("Error creating ALB Listener: no listeners returned in response")
+		return errors.New("Error creating LB Listener: no listeners returned in response")
 	}
 
 	d.SetId(*resp.Listeners[0].ListenerArn)
 
-	return resourceAwsAlbListenerRead(d, meta)
+	return resourceAwsLbListenerRead(d, meta)
 }
 
-func resourceAwsAlbListenerRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbListenerRead(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	resp, err := elbconn.DescribeListeners(&elbv2.DescribeListenersInput{
@@ -198,7 +198,7 @@ func resourceAwsAlbListenerRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceAwsAlbListenerUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbListenerUpdate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	params := &elbv2.ModifyListenerInput{
@@ -233,13 +233,13 @@ func resourceAwsAlbListenerUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	_, err := elbconn.ModifyListener(params)
 	if err != nil {
-		return errwrap.Wrapf("Error modifying ALB Listener: {{err}}", err)
+		return errwrap.Wrapf("Error modifying LB Listener: {{err}}", err)
 	}
 
-	return resourceAwsAlbListenerRead(d, meta)
+	return resourceAwsLbListenerRead(d, meta)
 }
 
-func resourceAwsAlbListenerDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbListenerDelete(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	_, err := elbconn.DeleteListener(&elbv2.DeleteListenerInput{
@@ -252,7 +252,7 @@ func resourceAwsAlbListenerDelete(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func validateAwsAlbListenerPort(v interface{}, k string) (ws []string, errors []error) {
+func validateAwsLbListenerPort(v interface{}, k string) (ws []string, errors []error) {
 	port := v.(int)
 	if port < 1 || port > 65536 {
 		errors = append(errors, fmt.Errorf("%q must be a valid port number (1-65536)", k))
@@ -260,17 +260,17 @@ func validateAwsAlbListenerPort(v interface{}, k string) (ws []string, errors []
 	return
 }
 
-func validateAwsAlbListenerProtocol(v interface{}, k string) (ws []string, errors []error) {
+func validateAwsLbListenerProtocol(v interface{}, k string) (ws []string, errors []error) {
 	value := strings.ToLower(v.(string))
-	if value == "http" || value == "https" {
+	if value == "http" || value == "https" || value == "tcp" {
 		return
 	}
 
-	errors = append(errors, fmt.Errorf("%q must be either %q or %q", k, "HTTP", "HTTPS"))
+	errors = append(errors, fmt.Errorf("%q must be either %q, %q or %q", k, "HTTP", "HTTPS", "TCP"))
 	return
 }
 
-func validateAwsAlbListenerActionType(v interface{}, k string) (ws []string, errors []error) {
+func validateAwsLbListenerActionType(v interface{}, k string) (ws []string, errors []error) {
 	value := strings.ToLower(v.(string))
 	if value != "forward" {
 		errors = append(errors, fmt.Errorf("%q must have the value %q", k, "forward"))

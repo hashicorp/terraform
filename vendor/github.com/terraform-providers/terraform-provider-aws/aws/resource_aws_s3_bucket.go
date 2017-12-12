@@ -652,19 +652,22 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			} else {
 				var host string
 				var path string
+				var query string
 				parsedHostName, err := url.Parse(*v.HostName)
 				if err == nil {
 					host = parsedHostName.Host
 					path = parsedHostName.Path
+					query = parsedHostName.RawQuery
 				} else {
 					host = *v.HostName
 					path = ""
 				}
 
 				w["redirect_all_requests_to"] = (&url.URL{
-					Host:   host,
-					Path:   path,
-					Scheme: *v.Protocol,
+					Host:     host,
+					Path:     path,
+					Scheme:   *v.Protocol,
+					RawQuery: query,
 				}).String()
 			}
 		}
@@ -1226,6 +1229,10 @@ func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, websit
 			redirectHostBuf.WriteString(redirect.Host)
 			if redirect.Path != "" {
 				redirectHostBuf.WriteString(redirect.Path)
+			}
+			if redirect.RawQuery != "" {
+				redirectHostBuf.WriteString("?")
+				redirectHostBuf.WriteString(redirect.RawQuery)
 			}
 			websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirectHostBuf.String()), Protocol: aws.String(redirect.Scheme)}
 		} else {

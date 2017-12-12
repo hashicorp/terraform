@@ -201,7 +201,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		Pending:    pending,
 		Target:     []string{"available"},
 		Refresh:    cacheReplicationGroupStateRefreshFunc(conn, d.Id(), "available", pending),
-		Timeout:    40 * time.Minute,
+		Timeout:    50 * time.Minute,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second,
 	}

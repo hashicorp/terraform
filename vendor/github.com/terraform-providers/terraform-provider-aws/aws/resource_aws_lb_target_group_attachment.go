@@ -12,11 +12,11 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAwsAlbTargetGroupAttachment() *schema.Resource {
+func resourceAwsLbTargetGroupAttachment() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsAlbAttachmentCreate,
-		Read:   resourceAwsAlbAttachmentRead,
-		Delete: resourceAwsAlbAttachmentDelete,
+		Create: resourceAwsLbAttachmentCreate,
+		Read:   resourceAwsLbAttachmentRead,
+		Delete: resourceAwsLbAttachmentDelete,
 
 		Schema: map[string]*schema.Schema{
 			"target_group_arn": {
@@ -36,11 +36,17 @@ func resourceAwsAlbTargetGroupAttachment() *schema.Resource {
 				ForceNew: true,
 				Optional: true,
 			},
+
+			"availability_zone": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+			},
 		},
 	}
 }
 
-func resourceAwsAlbAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	target := &elbv2.TargetDescription{
@@ -49,6 +55,10 @@ func resourceAwsAlbAttachmentCreate(d *schema.ResourceData, meta interface{}) er
 
 	if v, ok := d.GetOk("port"); ok {
 		target.Port = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("availability_zone"); ok {
+		target.AvailabilityZone = aws.String(v.(string))
 	}
 
 	params := &elbv2.RegisterTargetsInput{
@@ -69,7 +79,7 @@ func resourceAwsAlbAttachmentCreate(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsAlbAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	target := &elbv2.TargetDescription{
@@ -78,6 +88,10 @@ func resourceAwsAlbAttachmentDelete(d *schema.ResourceData, meta interface{}) er
 
 	if v, ok := d.GetOk("port"); ok {
 		target.Port = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("availability_zone"); ok {
+		target.AvailabilityZone = aws.String(v.(string))
 	}
 
 	params := &elbv2.DeregisterTargetsInput{
@@ -95,9 +109,9 @@ func resourceAwsAlbAttachmentDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-// resourceAwsAlbAttachmentRead requires all of the fields in order to describe the correct
+// resourceAwsLbAttachmentRead requires all of the fields in order to describe the correct
 // target, so there is no work to do beyond ensuring that the target and group still exist.
-func resourceAwsAlbAttachmentRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	target := &elbv2.TargetDescription{
@@ -106,6 +120,10 @@ func resourceAwsAlbAttachmentRead(d *schema.ResourceData, meta interface{}) erro
 
 	if v, ok := d.GetOk("port"); ok {
 		target.Port = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("availability_zone"); ok {
+		target.AvailabilityZone = aws.String(v.(string))
 	}
 
 	resp, err := elbconn.DescribeTargetHealth(&elbv2.DescribeTargetHealthInput{
