@@ -703,7 +703,11 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	table := result.Table
+	return flattenAwsDynamoDbTableResource(d, meta, result.Table)
+}
+
+func flattenAwsDynamoDbTableResource(d *schema.ResourceData, meta interface{}, table *dynamodb.TableDescription) error {
+	dynamodbconn := meta.(*AWSClient).dynamodbconn
 
 	d.Set("write_capacity", table.ProvisionedThroughput.WriteCapacityUnits)
 	d.Set("read_capacity", table.ProvisionedThroughput.ReadCapacityUnits)
@@ -753,7 +757,7 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 		lsiList = append(lsiList, lsi)
 	}
 
-	err = d.Set("local_secondary_index", lsiList)
+	err := d.Set("local_secondary_index", lsiList)
 	if err != nil {
 		return err
 	}

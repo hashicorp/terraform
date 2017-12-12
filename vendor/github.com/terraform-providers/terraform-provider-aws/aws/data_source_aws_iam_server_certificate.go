@@ -58,11 +58,6 @@ func dataSourceAwsIAMServerCertificate() *schema.Resource {
 				Computed: true,
 			},
 
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"path": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -130,7 +125,6 @@ func dataSourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interfac
 	d.SetId(*metadata.ServerCertificateId)
 	d.Set("arn", *metadata.Arn)
 	d.Set("path", *metadata.Path)
-	d.Set("id", *metadata.ServerCertificateId)
 	d.Set("name", *metadata.ServerCertificateName)
 	if metadata.Expiration != nil {
 		d.Set("expiration_date", metadata.Expiration.Format("2006-01-02T15:04:05"))

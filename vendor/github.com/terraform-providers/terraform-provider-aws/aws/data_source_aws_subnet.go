@@ -83,7 +83,7 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 
 	req := &ec2.DescribeSubnetsInput{}
 
-	if id := d.Get("id"); id != "" {
+	if id, ok := d.GetOk("id"); ok {
 		req.SubnetIds = []*string{aws.String(id.(string))}
 	}
 
@@ -139,7 +139,6 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	subnet := resp.Subnets[0]
 
 	d.SetId(*subnet.SubnetId)
-	d.Set("id", subnet.SubnetId)
 	d.Set("vpc_id", subnet.VpcId)
 	d.Set("availability_zone", subnet.AvailabilityZone)
 	d.Set("cidr_block", subnet.CidrBlock)

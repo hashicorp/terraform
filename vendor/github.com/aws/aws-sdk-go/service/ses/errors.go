@@ -79,6 +79,13 @@ const (
 	// more information about what caused the error.
 	ErrCodeInvalidPolicyException = "InvalidPolicy"
 
+	// ErrCodeInvalidRenderingParameterException for service response error code
+	// "InvalidRenderingParameter".
+	//
+	// Indicates that one or more of the replacement values you provided is invalid.
+	// This error may occur when the TemplateData object contains invalid JSON.
+	ErrCodeInvalidRenderingParameterException = "InvalidRenderingParameter"
+
 	// ErrCodeInvalidS3ConfigurationException for service response error code
 	// "InvalidS3Configuration".
 	//
@@ -103,6 +110,24 @@ const (
 	// about giving permissions, see the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/receiving-email-permissions.html).
 	ErrCodeInvalidSnsTopicException = "InvalidSnsTopic"
 
+	// ErrCodeInvalidTemplateException for service response error code
+	// "InvalidTemplate".
+	//
+	// Indicates that a template could not be created because it contained invalid
+	// JSON.
+	ErrCodeInvalidTemplateException = "InvalidTemplate"
+
+	// ErrCodeInvalidTrackingOptionsException for service response error code
+	// "InvalidTrackingOptions".
+	//
+	// Indicates that the custom domain to be used for open and click tracking redirects
+	// is invalid. This error appears most often in the following situations:
+	//
+	//    * When the tracking domain you specified is not verified in Amazon SES.
+	//
+	//    * When the tracking domain you specified is not a valid domain or subdomain.
+	ErrCodeInvalidTrackingOptionsException = "InvalidTrackingOptions"
+
 	// ErrCodeLimitExceededException for service response error code
 	// "LimitExceeded".
 	//
@@ -126,6 +151,14 @@ const (
 	// the error stack for more information about what caused the error.
 	ErrCodeMessageRejected = "MessageRejected"
 
+	// ErrCodeMissingRenderingAttributeException for service response error code
+	// "MissingRenderingAttribute".
+	//
+	// Indicates that one or more of the replacement values for the specified template
+	// was not specified. Ensure that the TemplateData object contains references
+	// to all of the replacement tags in the specified template.
+	ErrCodeMissingRenderingAttributeException = "MissingRenderingAttribute"
+
 	// ErrCodeRuleDoesNotExistException for service response error code
 	// "RuleDoesNotExist".
 	//
@@ -137,4 +170,24 @@ const (
 	//
 	// Indicates that the provided receipt rule set does not exist.
 	ErrCodeRuleSetDoesNotExistException = "RuleSetDoesNotExist"
+
+	// ErrCodeTemplateDoesNotExistException for service response error code
+	// "TemplateDoesNotExist".
+	//
+	// Indicates that the Template object you specified does not exist in your Amazon
+	// SES account.
+	ErrCodeTemplateDoesNotExistException = "TemplateDoesNotExist"
+
+	// ErrCodeTrackingOptionsAlreadyExistsException for service response error code
+	// "TrackingOptionsAlreadyExistsException".
+	//
+	// Indicates that the configuration set you specified already contains a TrackingOptions
+	// object.
+	ErrCodeTrackingOptionsAlreadyExistsException = "TrackingOptionsAlreadyExistsException"
+
+	// ErrCodeTrackingOptionsDoesNotExistException for service response error code
+	// "TrackingOptionsDoesNotExistException".
+	//
+	// Indicates that the TrackingOptions object you specified does not exist.
+	ErrCodeTrackingOptionsDoesNotExistException = "TrackingOptionsDoesNotExistException"
 )

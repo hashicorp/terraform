@@ -92,7 +92,7 @@ func resourceAwsApiGatewayUsagePlan() *schema.Resource {
 						},
 
 						"rate_limit": {
-							Type:     schema.TypeInt,
+							Type:     schema.TypeFloat,
 							Default:  0,
 							Optional: true,
 						},
@@ -188,7 +188,7 @@ func resourceAwsApiGatewayUsagePlanCreate(d *schema.ResourceData, meta interface
 		}
 
 		if sv, ok := q["rate_limit"].(float64); ok {
-			ts.RateLimit = aws.Float64(float64(sv))
+			ts.RateLimit = aws.Float64(sv)
 		}
 
 		params.Throttle = ts
@@ -355,7 +355,7 @@ func resourceAwsApiGatewayUsagePlanUpdate(d *schema.ResourceData, meta interface
 				operations = append(operations, &apigateway.PatchOperation{
 					Op:    aws.String("replace"),
 					Path:  aws.String("/throttle/rateLimit"),
-					Value: aws.String(strconv.Itoa(d["rate_limit"].(int))),
+					Value: aws.String(strconv.FormatFloat(d["rate_limit"].(float64), 'f', -1, 64)),
 				})
 				operations = append(operations, &apigateway.PatchOperation{
 					Op:    aws.String("replace"),
@@ -369,7 +369,7 @@ func resourceAwsApiGatewayUsagePlanUpdate(d *schema.ResourceData, meta interface
 				operations = append(operations, &apigateway.PatchOperation{
 					Op:    aws.String("add"),
 					Path:  aws.String("/throttle/rateLimit"),
-					Value: aws.String(strconv.Itoa(d["rate_limit"].(int))),
+					Value: aws.String(strconv.FormatFloat(d["rate_limit"].(float64), 'f', -1, 64)),
 				})
 				operations = append(operations, &apigateway.PatchOperation{
 					Op:    aws.String("add"),

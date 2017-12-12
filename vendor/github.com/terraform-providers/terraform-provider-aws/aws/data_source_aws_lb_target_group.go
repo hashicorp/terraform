@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func dataSourceAwsAlbTargetGroup() *schema.Resource {
+func dataSourceAwsLbTargetGroup() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceAwsAlbTargetGroupRead,
+		Read: dataSourceAwsLbTargetGroupRead,
 		Schema: map[string]*schema.Schema{
 			"arn": {
 				Type:     schema.TypeString,
@@ -125,7 +125,7 @@ func dataSourceAwsAlbTargetGroup() *schema.Resource {
 	}
 }
 
-func dataSourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceAwsLbTargetGroupRead(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 	tgArn := d.Get("arn").(string)
 	tgName := d.Get("name").(string)
@@ -140,7 +140,7 @@ func dataSourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) e
 
 	describeResp, err := elbconn.DescribeTargetGroups(describeTgOpts)
 	if err != nil {
-		return errwrap.Wrapf("Error retrieving ALB Target Group: {{err}}", err)
+		return errwrap.Wrapf("Error retrieving LB Target Group: {{err}}", err)
 	}
 	if len(describeResp.TargetGroups) != 1 {
 		return fmt.Errorf("Search returned %d results, please revise so only one is returned", len(describeResp.TargetGroups))
@@ -149,5 +149,5 @@ func dataSourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) e
 	targetGroup := describeResp.TargetGroups[0]
 
 	d.SetId(*targetGroup.TargetGroupArn)
-	return flattenAwsAlbTargetGroupResource(d, meta, targetGroup)
+	return flattenAwsLbTargetGroupResource(d, meta, targetGroup)
 }

@@ -96,7 +96,9 @@ func resourceAwsAppautoscalingTargetCreate(d *schema.ResourceData, meta interfac
 func resourceAwsAppautoscalingTargetRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).appautoscalingconn
 
-	t, err := getAwsAppautoscalingTarget(d, conn)
+	namespace := d.Get("service_namespace").(string)
+	dimension := d.Get("scalable_dimension").(string)
+	t, err := getAwsAppautoscalingTarget(d.Id(), namespace, dimension, conn)
 	if err != nil {
 		return err
 	}
@@ -119,7 +121,10 @@ func resourceAwsAppautoscalingTargetRead(d *schema.ResourceData, meta interface{
 func resourceAwsAppautoscalingTargetDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).appautoscalingconn
 
-	t, err := getAwsAppautoscalingTarget(d, conn)
+	namespace := d.Get("service_namespace").(string)
+	dimension := d.Get("scalable_dimension").(string)
+
+	t, err := getAwsAppautoscalingTarget(d.Id(), namespace, dimension, conn)
 	if err != nil {
 		return err
 	}
@@ -153,7 +158,7 @@ func resourceAwsAppautoscalingTargetDelete(d *schema.ResourceData, meta interfac
 	}
 
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
-		if t, _ = getAwsAppautoscalingTarget(d, conn); t != nil {
+		if t, _ = getAwsAppautoscalingTarget(d.Id(), namespace, dimension, conn); t != nil {
 			return resource.RetryableError(
 				fmt.Errorf("Application AutoScaling Target still exists"))
 		}
@@ -161,14 +166,12 @@ func resourceAwsAppautoscalingTargetDelete(d *schema.ResourceData, meta interfac
 	})
 }
 
-func getAwsAppautoscalingTarget(
-	d *schema.ResourceData,
+func getAwsAppautoscalingTarget(resourceId, namespace, dimension string,
 	conn *applicationautoscaling.ApplicationAutoScaling) (*applicationautoscaling.ScalableTarget, error) {
 
-	tgtName := d.Id()
 	describeOpts := applicationautoscaling.DescribeScalableTargetsInput{
-		ResourceIds:      []*string{aws.String(tgtName)},
-		ServiceNamespace: aws.String(d.Get("service_namespace").(string)),
+		ResourceIds:      []*string{aws.String(resourceId)},
+		ServiceNamespace: aws.String(namespace),
 	}
 
 	log.Printf("[DEBUG] Application AutoScaling Target describe configuration: %#v", describeOpts)
@@ -181,7 +184,7 @@ func getAwsAppautoscalingTarget(
 	}
 
 	for idx, tgt := range describeTargets.ScalableTargets {
-		if *tgt.ResourceId == tgtName {
+		if *tgt.ResourceId == resourceId && *tgt.ScalableDimension == dimension {
 			return describeTargets.ScalableTargets[idx], nil
 		}
 	}

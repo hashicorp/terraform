@@ -830,6 +830,8 @@ func (c *CloudWatchEvents) PutPermissionRequest(input *PutPermissionInput) (req 
 // To enable multiple AWS accounts to put events to your default event bus,
 // run PutPermission once for each of these accounts.
 //
+// The permission policy on the default event bus cannot exceed 10KB in size.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -846,6 +848,9 @@ func (c *CloudWatchEvents) PutPermissionRequest(input *PutPermissionInput) (req 
 //
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   There is concurrent modification on a rule or target.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutPermission
 func (c *CloudWatchEvents) PutPermission(input *PutPermissionInput) (*PutPermissionOutput, error) {
@@ -1036,9 +1041,15 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 //
 //    * AWS Step Functions state machines
 //
+//    * Pipelines in Amazon Code Pipeline
+//
+//    * Amazon Inspector assessment templates
+//
 //    * Amazon SNS topics
 //
 //    * Amazon SQS queues
+//
+//    * The default event bus of another AWS account
 //
 // Note that creating rules with built-in targets is supported only in the AWS
 // Management Console.
@@ -1058,10 +1069,16 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 // in the Amazon CloudWatch Events User Guide.
 //
 // If another AWS account is in the same region and has granted you permission
-// (using PutPermission), you can set that account's event bus as a target of
-// the rules in your account. To send the matched events to the other account,
-// specify that account's event bus as the Arn when you run PutTargets. For
-// more information about enabling cross-account events, see PutPermission.
+// (using PutPermission), you can send events to that account by setting that
+// account's event bus as a target of the rules in your account. To send the
+// matched events to the other account, specify that account's event bus as
+// the Arn when you run PutTargets. If your account sends events to another
+// account, your account is charged for each sent event. Each event sent to
+// antoher account is charged as a custom event. The account receiving the event
+// is not charged. For more information on pricing, see Amazon CloudWatch Pricing
+// (https://aws.amazon.com/cloudwatch/pricing/).
+//
+// For more information about enabling cross-account events, see PutPermission.
 //
 // Input, InputPath and InputTransformer are mutually exclusive and optional
 // parameters of a target. When a rule is triggered due to a matched event:
@@ -1200,6 +1217,9 @@ func (c *CloudWatchEvents) RemovePermissionRequest(input *RemovePermissionInput)
 //
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   There is concurrent modification on a rule or target.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemovePermission
 func (c *CloudWatchEvents) RemovePermission(input *RemovePermissionInput) (*RemovePermissionOutput, error) {

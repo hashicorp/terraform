@@ -16,19 +16,19 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-var AttributeMap = map[string]string{
-	"delay_seconds":                     "DelaySeconds",
-	"max_message_size":                  "MaximumMessageSize",
-	"message_retention_seconds":         "MessageRetentionPeriod",
-	"receive_wait_time_seconds":         "ReceiveMessageWaitTimeSeconds",
-	"visibility_timeout_seconds":        "VisibilityTimeout",
-	"policy":                            "Policy",
-	"redrive_policy":                    "RedrivePolicy",
-	"arn":                               "QueueArn",
-	"fifo_queue":                        "FifoQueue",
-	"content_based_deduplication":       "ContentBasedDeduplication",
-	"kms_master_key_id":                 "KmsMasterKeyId",
-	"kms_data_key_reuse_period_seconds": "KmsDataKeyReusePeriodSeconds",
+var sqsQueueAttributeMap = map[string]string{
+	"delay_seconds":                     sqs.QueueAttributeNameDelaySeconds,
+	"max_message_size":                  sqs.QueueAttributeNameMaximumMessageSize,
+	"message_retention_seconds":         sqs.QueueAttributeNameMessageRetentionPeriod,
+	"receive_wait_time_seconds":         sqs.QueueAttributeNameReceiveMessageWaitTimeSeconds,
+	"visibility_timeout_seconds":        sqs.QueueAttributeNameVisibilityTimeout,
+	"policy":                            sqs.QueueAttributeNamePolicy,
+	"redrive_policy":                    sqs.QueueAttributeNameRedrivePolicy,
+	"arn":                               sqs.QueueAttributeNameQueueArn,
+	"fifo_queue":                        sqs.QueueAttributeNameFifoQueue,
+	"content_based_deduplication":       sqs.QueueAttributeNameContentBasedDeduplication,
+	"kms_master_key_id":                 sqs.QueueAttributeNameKmsMasterKeyId,
+	"kms_data_key_reuse_period_seconds": sqs.QueueAttributeNameKmsDataKeyReusePeriodSeconds,
 }
 
 // A number of these are marked as computed because if you don't
@@ -122,6 +122,7 @@ func resourceAwsSqsQueue() *schema.Resource {
 				Computed: true,
 				Optional: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -166,7 +167,7 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 	resource := *resourceAwsSqsQueue()
 
 	for k, s := range resource.Schema {
-		if attrKey, ok := AttributeMap[k]; ok {
+		if attrKey, ok := sqsQueueAttributeMap[k]; ok {
 			if value, ok := d.GetOk(k); ok {
 				switch s.Type {
 				case schema.TypeInt:
@@ -190,19 +191,24 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating SQS queue: %s", err)
 	}
 
-	d.SetId(*output.QueueUrl)
+	d.SetId(aws.StringValue(output.QueueUrl))
 
 	return resourceAwsSqsQueueUpdate(d, meta)
 }
 
 func resourceAwsSqsQueueUpdate(d *schema.ResourceData, meta interface{}) error {
 	sqsconn := meta.(*AWSClient).sqsconn
+
+	if err := setTagsSQS(sqsconn, d); err != nil {
+		return err
+	}
+
 	attributes := make(map[string]*string)
 
 	resource := *resourceAwsSqsQueue()
 
 	for k, s := range resource.Schema {
-		if attrKey, ok := AttributeMap[k]; ok {
+		if attrKey, ok := sqsQueueAttributeMap[k]; ok {
 			if d.HasChange(k) {
 				log.Printf("[DEBUG] Updating %s", attrKey)
 				_, n := d.GetChange(k)
@@ -261,7 +267,7 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 		attrmap := attributeOutput.Attributes
 		resource := *resourceAwsSqsQueue()
 		// iKey = internal struct key, oKey = AWS Attribute Map key
-		for iKey, oKey := range AttributeMap {
+		for iKey, oKey := range sqsQueueAttributeMap {
 			if attrmap[oKey] != nil {
 				switch resource.Schema[iKey].Type {
 				case schema.TypeInt:
@@ -292,6 +298,14 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("fifo_queue", d.Get("fifo_queue").(bool))
 	d.Set("content_based_deduplication", d.Get("content_based_deduplication").(bool))
 
+	listTagsOutput, err := sqsconn.ListQueueTags(&sqs.ListQueueTagsInput{
+		QueueUrl: aws.String(d.Id()),
+	})
+	if err != nil {
+		return err
+	}
+	d.Set("tags", tagsToMapGeneric(listTagsOutput.Tags))
+
 	return nil
 }
 
@@ -321,4 +335,40 @@ func extractNameFromSqsQueueUrl(queue string) (string, error) {
 
 	return segments[2], nil
 
+}
+
+func setTagsSQS(conn *sqs.SQS, d *schema.ResourceData) error {
+	if d.HasChange("tags") {
+		oraw, nraw := d.GetChange("tags")
+		create, remove := diffTagsGeneric(oraw.(map[string]interface{}), nraw.(map[string]interface{}))
+
+		if len(remove) > 0 {
+			log.Printf("[DEBUG] Removing tags: %#v", remove)
+			keys := make([]*string, 0, len(remove))
+			for k, _ := range remove {
+				keys = append(keys, aws.String(k))
+			}
+
+			_, err := conn.UntagQueue(&sqs.UntagQueueInput{
+				QueueUrl: aws.String(d.Id()),
+				TagKeys:  keys,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if len(create) > 0 {
+			log.Printf("[DEBUG] Creating tags: %#v", create)
+
+			_, err := conn.TagQueue(&sqs.TagQueueInput{
+				QueueUrl: aws.String(d.Id()),
+				Tags:     create,
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

@@ -254,10 +254,8 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 		err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 			_, err := ec2conn.AssociateAddress(assocOpts)
 			if err != nil {
-				if awsErr, ok := err.(awserr.Error); ok {
-					if awsErr.Code() == "InvalidAllocationID.NotFound" {
-						return resource.RetryableError(awsErr)
-					}
+				if isAWSErr(err, "InvalidAllocationID.NotFound", "") {
+					return resource.RetryableError(err)
 				}
 				return resource.NonRetryableError(err)
 			}
@@ -340,8 +338,14 @@ func disassociateEip(d *schema.ResourceData, meta interface{}) error {
 	var err error
 	switch resourceAwsEipDomain(d) {
 	case "vpc":
+		associationID := d.Get("association_id").(string)
+		if associationID == "" {
+			// If assiciationID is empty, it means there's no association.
+			// Hence this disassociation can be skipped.
+			return nil
+		}
 		_, err = ec2conn.DisassociateAddress(&ec2.DisassociateAddressInput{
-			AssociationId: aws.String(d.Get("association_id").(string)),
+			AssociationId: aws.String(associationID),
 		})
 	case "standard":
 		_, err = ec2conn.DisassociateAddress(&ec2.DisassociateAddressInput{

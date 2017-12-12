@@ -112,6 +112,101 @@ func (c *ApplicationAutoScaling) DeleteScalingPolicyWithContext(ctx aws.Context,
 	return out, req.Send()
 }
 
+const opDeleteScheduledAction = "DeleteScheduledAction"
+
+// DeleteScheduledActionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteScheduledAction operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteScheduledAction for more information on using the DeleteScheduledAction
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteScheduledActionRequest method.
+//    req, resp := client.DeleteScheduledActionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScheduledAction
+func (c *ApplicationAutoScaling) DeleteScheduledActionRequest(input *DeleteScheduledActionInput) (req *request.Request, output *DeleteScheduledActionOutput) {
+	op := &request.Operation{
+		Name:       opDeleteScheduledAction,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteScheduledActionInput{}
+	}
+
+	output = &DeleteScheduledActionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteScheduledAction API operation for Application Auto Scaling.
+//
+// Deletes the specified Application Auto Scaling scheduled action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Application Auto Scaling's
+// API operation DeleteScheduledAction for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   An exception was thrown for a validation issue. Review the available parameters
+//   for the API request.
+//
+//   * ErrCodeObjectNotFoundException "ObjectNotFoundException"
+//   The specified object could not be found. For any Put or Register API operation,
+//   which depends on the existence of a scalable target, this exception is thrown
+//   if the scalable target with the specified service namespace, resource ID,
+//   and scalable dimension does not exist. For any Delete or Deregister API operation,
+//   this exception is thrown if the resource that is to be deleted or deregistered
+//   cannot be found.
+//
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
+//   Concurrent updates caused an exception, for example, if you request an update
+//   to an Application Auto Scaling resource that already has a pending update.
+//
+//   * ErrCodeInternalServiceException "InternalServiceException"
+//   The service encountered an internal error.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScheduledAction
+func (c *ApplicationAutoScaling) DeleteScheduledAction(input *DeleteScheduledActionInput) (*DeleteScheduledActionOutput, error) {
+	req, out := c.DeleteScheduledActionRequest(input)
+	return out, req.Send()
+}
+
+// DeleteScheduledActionWithContext is the same as DeleteScheduledAction with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteScheduledAction for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ApplicationAutoScaling) DeleteScheduledActionWithContext(ctx aws.Context, input *DeleteScheduledActionInput, opts ...request.Option) (*DeleteScheduledActionOutput, error) {
+	req, out := c.DeleteScheduledActionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeregisterScalableTarget = "DeregisterScalableTarget"
 
 // DeregisterScalableTargetRequest generates a "aws/request.Request" representing the
@@ -569,8 +664,7 @@ func (c *ApplicationAutoScaling) DescribeScalingPoliciesRequest(input *DescribeS
 
 // DescribeScalingPolicies API operation for Application Auto Scaling.
 //
-// Provides descriptive information about the scaling policies in the specified
-// namespace.
+// Describes the scaling policies for the specified service namespace.
 //
 // You can filter the results using the ResourceId, ScalableDimension, and PolicyNames
 // parameters.
@@ -678,6 +772,102 @@ func (c *ApplicationAutoScaling) DescribeScalingPoliciesPagesWithContext(ctx aws
 		cont = fn(p.Page().(*DescribeScalingPoliciesOutput), !p.HasNextPage())
 	}
 	return p.Err()
+}
+
+const opDescribeScheduledActions = "DescribeScheduledActions"
+
+// DescribeScheduledActionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeScheduledActions operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeScheduledActions for more information on using the DescribeScheduledActions
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeScheduledActionsRequest method.
+//    req, resp := client.DescribeScheduledActionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScheduledActions
+func (c *ApplicationAutoScaling) DescribeScheduledActionsRequest(input *DescribeScheduledActionsInput) (req *request.Request, output *DescribeScheduledActionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeScheduledActions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeScheduledActionsInput{}
+	}
+
+	output = &DescribeScheduledActionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeScheduledActions API operation for Application Auto Scaling.
+//
+// Describes the scheduled actions for the specified service namespace.
+//
+// You can filter the results using the ResourceId, ScalableDimension, and ScheduledActionNames
+// parameters.
+//
+// To create a scheduled action or update an existing one, see PutScheduledAction.
+// If you are no longer using a scheduled action, you can delete it using DeleteScheduledAction.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Application Auto Scaling's
+// API operation DescribeScheduledActions for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   An exception was thrown for a validation issue. Review the available parameters
+//   for the API request.
+//
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The next token supplied was invalid.
+//
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
+//   Concurrent updates caused an exception, for example, if you request an update
+//   to an Application Auto Scaling resource that already has a pending update.
+//
+//   * ErrCodeInternalServiceException "InternalServiceException"
+//   The service encountered an internal error.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScheduledActions
+func (c *ApplicationAutoScaling) DescribeScheduledActions(input *DescribeScheduledActionsInput) (*DescribeScheduledActionsOutput, error) {
+	req, out := c.DescribeScheduledActionsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeScheduledActionsWithContext is the same as DescribeScheduledActions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeScheduledActions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ApplicationAutoScaling) DescribeScheduledActionsWithContext(ctx aws.Context, input *DescribeScheduledActionsInput, opts ...request.Option) (*DescribeScheduledActionsOutput, error) {
+	req, out := c.DescribeScheduledActionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opPutScalingPolicy = "PutScalingPolicy"
@@ -795,6 +985,120 @@ func (c *ApplicationAutoScaling) PutScalingPolicy(input *PutScalingPolicyInput) 
 // for more information on using Contexts.
 func (c *ApplicationAutoScaling) PutScalingPolicyWithContext(ctx aws.Context, input *PutScalingPolicyInput, opts ...request.Option) (*PutScalingPolicyOutput, error) {
 	req, out := c.PutScalingPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opPutScheduledAction = "PutScheduledAction"
+
+// PutScheduledActionRequest generates a "aws/request.Request" representing the
+// client's request for the PutScheduledAction operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutScheduledAction for more information on using the PutScheduledAction
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutScheduledActionRequest method.
+//    req, resp := client.PutScheduledActionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScheduledAction
+func (c *ApplicationAutoScaling) PutScheduledActionRequest(input *PutScheduledActionInput) (req *request.Request, output *PutScheduledActionOutput) {
+	op := &request.Operation{
+		Name:       opPutScheduledAction,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutScheduledActionInput{}
+	}
+
+	output = &PutScheduledActionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutScheduledAction API operation for Application Auto Scaling.
+//
+// Creates or updates a scheduled action for an Application Auto Scaling scalable
+// target.
+//
+// Each scalable target is identified by a service namespace, resource ID, and
+// scalable dimension. A scheduled action applies to the scalable target identified
+// by those three attributes. You cannot create a scheduled action without first
+// registering a scalable target using RegisterScalableTarget.
+//
+// To update an action, specify its name and the parameters that you want to
+// change. If you don't specify start and end times, the old values are deleted.
+// Any other parameters that you don't specify are not changed by this update
+// request.
+//
+// You can view the scheduled actions using DescribeScheduledActions. If you
+// are no longer using a scheduled action, you can delete it using DeleteScheduledAction.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Application Auto Scaling's
+// API operation PutScheduledAction for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeValidationException "ValidationException"
+//   An exception was thrown for a validation issue. Review the available parameters
+//   for the API request.
+//
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   Your account exceeded a limit. This exception is thrown when a per-account
+//   resource limit is exceeded. For more information, see Application Auto Scaling
+//   Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_as-app).
+//
+//   * ErrCodeObjectNotFoundException "ObjectNotFoundException"
+//   The specified object could not be found. For any Put or Register API operation,
+//   which depends on the existence of a scalable target, this exception is thrown
+//   if the scalable target with the specified service namespace, resource ID,
+//   and scalable dimension does not exist. For any Delete or Deregister API operation,
+//   this exception is thrown if the resource that is to be deleted or deregistered
+//   cannot be found.
+//
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
+//   Concurrent updates caused an exception, for example, if you request an update
+//   to an Application Auto Scaling resource that already has a pending update.
+//
+//   * ErrCodeInternalServiceException "InternalServiceException"
+//   The service encountered an internal error.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScheduledAction
+func (c *ApplicationAutoScaling) PutScheduledAction(input *PutScheduledActionInput) (*PutScheduledActionOutput, error) {
+	req, out := c.PutScheduledActionRequest(input)
+	return out, req.Send()
+}
+
+// PutScheduledActionWithContext is the same as PutScheduledAction with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutScheduledAction for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ApplicationAutoScaling) PutScheduledActionWithContext(ctx aws.Context, input *PutScheduledActionInput, opts ...request.Option) (*PutScheduledActionOutput, error) {
+	req, out := c.PutScheduledActionRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1178,6 +1482,148 @@ func (s DeleteScalingPolicyOutput) String() string {
 
 // GoString returns the string representation
 func (s DeleteScalingPolicyOutput) GoString() string {
+	return s.String()
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScheduledActionRequest
+type DeleteScheduledActionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the resource associated with the scheduled action. This
+	// string consists of the resource type and unique identifier.
+	//
+	//    * ECS service - The resource type is service and the unique identifier
+	//    is the cluster name and service name. Example: service/default/sample-webapp.
+	//
+	//    * Spot fleet request - The resource type is spot-fleet-request and the
+	//    unique identifier is the Spot fleet request ID. Example: spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE.
+	//
+	//    * EMR cluster - The resource type is instancegroup and the unique identifier
+	//    is the cluster ID and instance group ID. Example: instancegroup/j-2EEZNYKUA1NTV/ig-1791Y4E1L8YI0.
+	//
+	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
+	//    is the fleet name. Example: fleet/sample-fleet.
+	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
+	//
+	// ResourceId is a required field
+	ResourceId *string `min:"1" type:"string" required:"true"`
+
+	// The scalable dimension. This string consists of the service namespace, resource
+	// type, and scaling property.
+	//
+	//    * ecs:service:DesiredCount - The desired task count of an ECS service.
+	//
+	//    * ec2:spot-fleet-request:TargetCapacity - The target capacity of a Spot
+	//    fleet request.
+	//
+	//    * elasticmapreduce:instancegroup:InstanceCount - The instance count of
+	//    an EMR Instance Group.
+	//
+	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
+	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
+	ScalableDimension *string `type:"string" enum:"ScalableDimension"`
+
+	// The name of the scheduled action.
+	//
+	// ScheduledActionName is a required field
+	ScheduledActionName *string `min:"1" type:"string" required:"true"`
+
+	// The namespace of the AWS service. For more information, see AWS Service Namespaces
+	// (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
+	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
+	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
+}
+
+// String returns the string representation
+func (s DeleteScheduledActionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteScheduledActionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteScheduledActionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteScheduledActionInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
+	if s.ScheduledActionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ScheduledActionName"))
+	}
+	if s.ScheduledActionName != nil && len(*s.ScheduledActionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ScheduledActionName", 1))
+	}
+	if s.ServiceNamespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServiceNamespace"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *DeleteScheduledActionInput) SetResourceId(v string) *DeleteScheduledActionInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetScalableDimension sets the ScalableDimension field's value.
+func (s *DeleteScheduledActionInput) SetScalableDimension(v string) *DeleteScheduledActionInput {
+	s.ScalableDimension = &v
+	return s
+}
+
+// SetScheduledActionName sets the ScheduledActionName field's value.
+func (s *DeleteScheduledActionInput) SetScheduledActionName(v string) *DeleteScheduledActionInput {
+	s.ScheduledActionName = &v
+	return s
+}
+
+// SetServiceNamespace sets the ServiceNamespace field's value.
+func (s *DeleteScheduledActionInput) SetServiceNamespace(v string) *DeleteScheduledActionInput {
+	s.ServiceNamespace = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScheduledActionResponse
+type DeleteScheduledActionOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteScheduledActionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteScheduledActionOutput) GoString() string {
 	return s.String()
 }
 
@@ -1786,7 +2232,7 @@ type DescribeScalingPoliciesOutput struct {
 	// there are no more results to return.
 	NextToken *string `type:"string"`
 
-	// A list of scaling policy objects.
+	// Information about the scaling policies.
 	ScalingPolicies []*ScalingPolicy `type:"list"`
 }
 
@@ -1809,6 +2255,180 @@ func (s *DescribeScalingPoliciesOutput) SetNextToken(v string) *DescribeScalingP
 // SetScalingPolicies sets the ScalingPolicies field's value.
 func (s *DescribeScalingPoliciesOutput) SetScalingPolicies(v []*ScalingPolicy) *DescribeScalingPoliciesOutput {
 	s.ScalingPolicies = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScheduledActionsRequest
+type DescribeScheduledActionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of scalable target results. This value can be between
+	// 1 and 50. The default value is 50.
+	//
+	// If this parameter is used, the operation returns up to MaxResults results
+	// at a time, along with a NextToken value. To get the next set of results,
+	// include the NextToken value in a subsequent call. If this parameter is not
+	// used, the operation returns up to 50 results and a NextToken value, if applicable.
+	MaxResults *int64 `type:"integer"`
+
+	// The token for the next set of results.
+	NextToken *string `type:"string"`
+
+	// The identifier of the resource associated with the scheduled action. This
+	// string consists of the resource type and unique identifier. If you specify
+	// a scalable dimension, you must also specify a resource ID.
+	//
+	//    * ECS service - The resource type is service and the unique identifier
+	//    is the cluster name and service name. Example: service/default/sample-webapp.
+	//
+	//    * Spot fleet request - The resource type is spot-fleet-request and the
+	//    unique identifier is the Spot fleet request ID. Example: spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE.
+	//
+	//    * EMR cluster - The resource type is instancegroup and the unique identifier
+	//    is the cluster ID and instance group ID. Example: instancegroup/j-2EEZNYKUA1NTV/ig-1791Y4E1L8YI0.
+	//
+	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
+	//    is the fleet name. Example: fleet/sample-fleet.
+	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
+	ResourceId *string `min:"1" type:"string"`
+
+	// The scalable dimension. This string consists of the service namespace, resource
+	// type, and scaling property. If you specify a scalable dimension, you must
+	// also specify a resource ID.
+	//
+	//    * ecs:service:DesiredCount - The desired task count of an ECS service.
+	//
+	//    * ec2:spot-fleet-request:TargetCapacity - The target capacity of a Spot
+	//    fleet request.
+	//
+	//    * elasticmapreduce:instancegroup:InstanceCount - The instance count of
+	//    an EMR Instance Group.
+	//
+	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
+	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
+	ScalableDimension *string `type:"string" enum:"ScalableDimension"`
+
+	// The names of the scheduled actions to describe.
+	ScheduledActionNames []*string `type:"list"`
+
+	// The namespace of the AWS service. For more information, see AWS Service Namespaces
+	// (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
+	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
+	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
+}
+
+// String returns the string representation
+func (s DescribeScheduledActionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeScheduledActionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeScheduledActionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeScheduledActionsInput"}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
+	if s.ServiceNamespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServiceNamespace"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeScheduledActionsInput) SetMaxResults(v int64) *DescribeScheduledActionsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeScheduledActionsInput) SetNextToken(v string) *DescribeScheduledActionsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *DescribeScheduledActionsInput) SetResourceId(v string) *DescribeScheduledActionsInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetScalableDimension sets the ScalableDimension field's value.
+func (s *DescribeScheduledActionsInput) SetScalableDimension(v string) *DescribeScheduledActionsInput {
+	s.ScalableDimension = &v
+	return s
+}
+
+// SetScheduledActionNames sets the ScheduledActionNames field's value.
+func (s *DescribeScheduledActionsInput) SetScheduledActionNames(v []*string) *DescribeScheduledActionsInput {
+	s.ScheduledActionNames = v
+	return s
+}
+
+// SetServiceNamespace sets the ServiceNamespace field's value.
+func (s *DescribeScheduledActionsInput) SetServiceNamespace(v string) *DescribeScheduledActionsInput {
+	s.ServiceNamespace = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScheduledActionsResponse
+type DescribeScheduledActionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The token required to get the next set of results. This value is null if
+	// there are no more results to return.
+	NextToken *string `type:"string"`
+
+	// Information about the scheduled actions.
+	ScheduledActions []*ScheduledAction `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeScheduledActionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeScheduledActionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeScheduledActionsOutput) SetNextToken(v string) *DescribeScheduledActionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetScheduledActions sets the ScheduledActions field's value.
+func (s *DescribeScheduledActionsOutput) SetScheduledActions(v []*ScheduledAction) *DescribeScheduledActionsOutput {
+	s.ScheduledActions = v
 	return s
 }
 
@@ -2132,6 +2752,204 @@ func (s *PutScalingPolicyOutput) SetPolicyARN(v string) *PutScalingPolicyOutput 
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScheduledActionRequest
+type PutScheduledActionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time for the scheduled action to end.
+	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The identifier of the resource associated with the scheduled action. This
+	// string consists of the resource type and unique identifier.
+	//
+	//    * ECS service - The resource type is service and the unique identifier
+	//    is the cluster name and service name. Example: service/default/sample-webapp.
+	//
+	//    * Spot fleet request - The resource type is spot-fleet-request and the
+	//    unique identifier is the Spot fleet request ID. Example: spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE.
+	//
+	//    * EMR cluster - The resource type is instancegroup and the unique identifier
+	//    is the cluster ID and instance group ID. Example: instancegroup/j-2EEZNYKUA1NTV/ig-1791Y4E1L8YI0.
+	//
+	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
+	//    is the fleet name. Example: fleet/sample-fleet.
+	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
+	//
+	// ResourceId is a required field
+	ResourceId *string `min:"1" type:"string" required:"true"`
+
+	// The scalable dimension. This string consists of the service namespace, resource
+	// type, and scaling property.
+	//
+	//    * ecs:service:DesiredCount - The desired task count of an ECS service.
+	//
+	//    * ec2:spot-fleet-request:TargetCapacity - The target capacity of a Spot
+	//    fleet request.
+	//
+	//    * elasticmapreduce:instancegroup:InstanceCount - The instance count of
+	//    an EMR Instance Group.
+	//
+	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
+	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
+	ScalableDimension *string `type:"string" enum:"ScalableDimension"`
+
+	// The new minimum and maximum capacity. You can set both values or just one.
+	// During the scheduled time, if the current capacity is below the minimum capacity,
+	// Application Auto Scaling scales out to the minimum capacity. If the current
+	// capacity is above the maximum capacity, Application Auto Scaling scales in
+	// to the maximum capacity.
+	ScalableTargetAction *ScalableTargetAction `type:"structure"`
+
+	// The schedule for this action. The following formats are supported:
+	//
+	//    * At expressions - at(yyyy-mm-ddThh:mm:ss)
+	//
+	//    * Rate expressions - rate(valueunit)
+	//
+	//    * Cron expressions - cron(fields)
+	//
+	// At expressions are useful for one-time schedules. Specify the time, in UTC.
+	//
+	// For rate expressions, value is a positive integer and unit is minute | minutes
+	// | hour | hours | day | days.
+	//
+	// For more information about cron expressions, see Cron (https://en.wikipedia.org/wiki/Cron).
+	Schedule *string `min:"1" type:"string"`
+
+	// The name of the scheduled action.
+	//
+	// ScheduledActionName is a required field
+	ScheduledActionName *string `min:"1" type:"string" required:"true"`
+
+	// The namespace of the AWS service. For more information, see AWS Service Namespaces
+	// (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
+	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
+	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
+
+	// The date and time for the scheduled action to start.
+	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+}
+
+// String returns the string representation
+func (s PutScheduledActionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutScheduledActionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutScheduledActionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutScheduledActionInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
+	if s.Schedule != nil && len(*s.Schedule) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Schedule", 1))
+	}
+	if s.ScheduledActionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ScheduledActionName"))
+	}
+	if s.ScheduledActionName != nil && len(*s.ScheduledActionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ScheduledActionName", 1))
+	}
+	if s.ServiceNamespace == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServiceNamespace"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *PutScheduledActionInput) SetEndTime(v time.Time) *PutScheduledActionInput {
+	s.EndTime = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *PutScheduledActionInput) SetResourceId(v string) *PutScheduledActionInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetScalableDimension sets the ScalableDimension field's value.
+func (s *PutScheduledActionInput) SetScalableDimension(v string) *PutScheduledActionInput {
+	s.ScalableDimension = &v
+	return s
+}
+
+// SetScalableTargetAction sets the ScalableTargetAction field's value.
+func (s *PutScheduledActionInput) SetScalableTargetAction(v *ScalableTargetAction) *PutScheduledActionInput {
+	s.ScalableTargetAction = v
+	return s
+}
+
+// SetSchedule sets the Schedule field's value.
+func (s *PutScheduledActionInput) SetSchedule(v string) *PutScheduledActionInput {
+	s.Schedule = &v
+	return s
+}
+
+// SetScheduledActionName sets the ScheduledActionName field's value.
+func (s *PutScheduledActionInput) SetScheduledActionName(v string) *PutScheduledActionInput {
+	s.ScheduledActionName = &v
+	return s
+}
+
+// SetServiceNamespace sets the ServiceNamespace field's value.
+func (s *PutScheduledActionInput) SetServiceNamespace(v string) *PutScheduledActionInput {
+	s.ServiceNamespace = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *PutScheduledActionInput) SetStartTime(v time.Time) *PutScheduledActionInput {
+	s.StartTime = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScheduledActionResponse
+type PutScheduledActionOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutScheduledActionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutScheduledActionOutput) GoString() string {
+	return s.String()
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/RegisterScalableTargetRequest
 type RegisterScalableTargetInput struct {
 	_ struct{} `type:"structure"`
@@ -2434,6 +3252,40 @@ func (s *ScalableTarget) SetScalableDimension(v string) *ScalableTarget {
 // SetServiceNamespace sets the ServiceNamespace field's value.
 func (s *ScalableTarget) SetServiceNamespace(v string) *ScalableTarget {
 	s.ServiceNamespace = &v
+	return s
+}
+
+// Represents the minimum and maximum capacity for a scheduled action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/ScalableTargetAction
+type ScalableTargetAction struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum capacity.
+	MaxCapacity *int64 `type:"integer"`
+
+	// The minimum capacity.
+	MinCapacity *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s ScalableTargetAction) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ScalableTargetAction) GoString() string {
+	return s.String()
+}
+
+// SetMaxCapacity sets the MaxCapacity field's value.
+func (s *ScalableTargetAction) SetMaxCapacity(v int64) *ScalableTargetAction {
+	s.MaxCapacity = &v
+	return s
+}
+
+// SetMinCapacity sets the MinCapacity field's value.
+func (s *ScalableTargetAction) SetMinCapacity(v int64) *ScalableTargetAction {
+	s.MinCapacity = &v
 	return s
 }
 
@@ -2778,6 +3630,186 @@ func (s *ScalingPolicy) SetTargetTrackingScalingPolicyConfiguration(v *TargetTra
 	return s
 }
 
+// Represents a scheduled action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/ScheduledAction
+type ScheduledAction struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time that the scheduled action was created.
+	//
+	// CreationTime is a required field
+	CreationTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+
+	// The date and time that the action is scheduled to end.
+	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The identifier of the resource associated with the scaling policy. This string
+	// consists of the resource type and unique identifier.
+	//
+	//    * ECS service - The resource type is service and the unique identifier
+	//    is the cluster name and service name. Example: service/default/sample-webapp.
+	//
+	//    * Spot fleet request - The resource type is spot-fleet-request and the
+	//    unique identifier is the Spot fleet request ID. Example: spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE.
+	//
+	//    * EMR cluster - The resource type is instancegroup and the unique identifier
+	//    is the cluster ID and instance group ID. Example: instancegroup/j-2EEZNYKUA1NTV/ig-1791Y4E1L8YI0.
+	//
+	//    * AppStream 2.0 fleet - The resource type is fleet and the unique identifier
+	//    is the fleet name. Example: fleet/sample-fleet.
+	//
+	//    * DynamoDB table - The resource type is table and the unique identifier
+	//    is the resource ID. Example: table/my-table.
+	//
+	//    * DynamoDB global secondary index - The resource type is index and the
+	//    unique identifier is the resource ID. Example: table/my-table/index/my-table-index.
+	//
+	// ResourceId is a required field
+	ResourceId *string `min:"1" type:"string" required:"true"`
+
+	// The scalable dimension. This string consists of the service namespace, resource
+	// type, and scaling property.
+	//
+	//    * ecs:service:DesiredCount - The desired task count of an ECS service.
+	//
+	//    * ec2:spot-fleet-request:TargetCapacity - The target capacity of a Spot
+	//    fleet request.
+	//
+	//    * elasticmapreduce:instancegroup:InstanceCount - The instance count of
+	//    an EMR Instance Group.
+	//
+	//    * appstream:fleet:DesiredCapacity - The desired capacity of an AppStream
+	//    2.0 fleet.
+	//
+	//    * dynamodb:table:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:table:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB table.
+	//
+	//    * dynamodb:index:ReadCapacityUnits - The provisioned read capacity for
+	//    a DynamoDB global secondary index.
+	//
+	//    * dynamodb:index:WriteCapacityUnits - The provisioned write capacity for
+	//    a DynamoDB global secondary index.
+	ScalableDimension *string `type:"string" enum:"ScalableDimension"`
+
+	// The new minimum and maximum capacity. You can set both values or just one.
+	// During the scheduled time, if the current capacity is below the minimum capacity,
+	// Application Auto Scaling scales out to the minimum capacity. If the current
+	// capacity is above the maximum capacity, Application Auto Scaling scales in
+	// to the maximum capacity.
+	ScalableTargetAction *ScalableTargetAction `type:"structure"`
+
+	// The schedule for this action. The following formats are supported:
+	//
+	//    * At expressions - at(yyyy-mm-ddThh:mm:ss)
+	//
+	//    * Rate expressions - rate(valueunit)
+	//
+	//    * Cron expressions - cron(fields)
+	//
+	// At expressions are useful for one-time schedules. Specify the time, in UTC.
+	//
+	// For rate expressions, value is a positive integer and unit is minute | minutes
+	// | hour | hours | day | days.
+	//
+	// For more information about cron expressions, see Cron (https://en.wikipedia.org/wiki/Cron).
+	//
+	// Schedule is a required field
+	Schedule *string `min:"1" type:"string" required:"true"`
+
+	// The Amazon Resource Name (ARN) of the scheduled action.
+	//
+	// ScheduledActionARN is a required field
+	ScheduledActionARN *string `min:"1" type:"string" required:"true"`
+
+	// The name of the scheduled action.
+	//
+	// ScheduledActionName is a required field
+	ScheduledActionName *string `min:"1" type:"string" required:"true"`
+
+	// The namespace of the AWS service. For more information, see AWS Service Namespaces
+	// (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
+	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
+	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
+
+	// The date and time that the action is scheduled to begin.
+	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+}
+
+// String returns the string representation
+func (s ScheduledAction) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ScheduledAction) GoString() string {
+	return s.String()
+}
+
+// SetCreationTime sets the CreationTime field's value.
+func (s *ScheduledAction) SetCreationTime(v time.Time) *ScheduledAction {
+	s.CreationTime = &v
+	return s
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *ScheduledAction) SetEndTime(v time.Time) *ScheduledAction {
+	s.EndTime = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *ScheduledAction) SetResourceId(v string) *ScheduledAction {
+	s.ResourceId = &v
+	return s
+}
+
+// SetScalableDimension sets the ScalableDimension field's value.
+func (s *ScheduledAction) SetScalableDimension(v string) *ScheduledAction {
+	s.ScalableDimension = &v
+	return s
+}
+
+// SetScalableTargetAction sets the ScalableTargetAction field's value.
+func (s *ScheduledAction) SetScalableTargetAction(v *ScalableTargetAction) *ScheduledAction {
+	s.ScalableTargetAction = v
+	return s
+}
+
+// SetSchedule sets the Schedule field's value.
+func (s *ScheduledAction) SetSchedule(v string) *ScheduledAction {
+	s.Schedule = &v
+	return s
+}
+
+// SetScheduledActionARN sets the ScheduledActionARN field's value.
+func (s *ScheduledAction) SetScheduledActionARN(v string) *ScheduledAction {
+	s.ScheduledActionARN = &v
+	return s
+}
+
+// SetScheduledActionName sets the ScheduledActionName field's value.
+func (s *ScheduledAction) SetScheduledActionName(v string) *ScheduledAction {
+	s.ScheduledActionName = &v
+	return s
+}
+
+// SetServiceNamespace sets the ServiceNamespace field's value.
+func (s *ScheduledAction) SetServiceNamespace(v string) *ScheduledAction {
+	s.ServiceNamespace = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *ScheduledAction) SetStartTime(v time.Time) *ScheduledAction {
+	s.StartTime = &v
+	return s
+}
+
 // Represents a step adjustment for a StepScalingPolicyConfiguration. Describes
 // an adjustment based on the difference between the value of the aggregated
 // CloudWatch metric and the breach threshold that you've defined for the alarm.
@@ -2990,6 +4022,11 @@ type TargetTrackingScalingPolicyConfiguration struct {
 	// Reserved for future use.
 	CustomizedMetricSpecification *CustomizedMetricSpecification `type:"structure"`
 
+	// Indicates whether scale in by the target tracking policy is disabled. If
+	// the value is true, scale in is disabled and the target tracking policy won't
+	// remove capacity from the scalable resource. Otherwise, scale in is enabled
+	// and the target tracking policy can remove capacity from the scalable resource.
+	// The default value is false.
 	DisableScaleIn *bool `type:"boolean"`
 
 	// A predefined metric.

@@ -2,9 +2,9 @@ package aws
 
 import "github.com/hashicorp/terraform/helper/schema"
 
-func dataSourceAwsAlbListener() *schema.Resource {
+func dataSourceAwsLbListener() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceAwsAlbListenerRead,
+		Read: dataSourceAwsLbListenerRead,
 
 		Schema: map[string]*schema.Schema{
 			"arn": {
@@ -56,7 +56,7 @@ func dataSourceAwsAlbListener() *schema.Resource {
 	}
 }
 
-func dataSourceAwsAlbListenerRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceAwsLbListenerRead(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(d.Get("arn").(string))
-	return resourceAwsAlbListenerRead(d, meta)
+	return resourceAwsLbListenerRead(d, meta)
 }

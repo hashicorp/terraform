@@ -7,20 +7,23 @@ import (
 	"strconv"
 	"time"
 
+	"bytes"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAwsAlb() *schema.Resource {
+func resourceAwsLb() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsAlbCreate,
-		Read:   resourceAwsAlbRead,
-		Update: resourceAwsAlbUpdate,
-		Delete: resourceAwsAlbDelete,
+		Create: resourceAwsLbCreate,
+		Read:   resoureAwsLbRead,
+		Update: resourceAwsLbUpdate,
+		Delete: resourceAwsLbDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -65,6 +68,13 @@ func resourceAwsAlb() *schema.Resource {
 				Computed: true,
 			},
 
+			"load_balancer_type": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "application",
+			},
+
 			"security_groups": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -76,13 +86,42 @@ func resourceAwsAlb() *schema.Resource {
 			"subnets": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Set:      schema.HashString,
+			},
+
+			"subnet_mapping": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"subnet_id": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"allocation_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["subnet_id"].(string)))
+					if m["allocation_id"] != "" {
+						buf.WriteString(fmt.Sprintf("%s-", m["allocation_id"].(string)))
+					}
+					return hashcode.String(buf.String())
+				},
 			},
 
 			"access_logs": {
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -93,11 +132,12 @@ func resourceAwsAlb() *schema.Resource {
 						"prefix": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 						"enabled": {
 							Type:     schema.TypeBool,
 							Optional: true,
-							Default:  true,
+							Computed: true,
 						},
 					},
 				},
@@ -141,7 +181,7 @@ func resourceAwsAlb() *schema.Resource {
 	}
 }
 
-func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	var name string
@@ -156,6 +196,7 @@ func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
 
 	elbOpts := &elbv2.CreateLoadBalancerInput{
 		Name: aws.String(name),
+		Type: aws.String(d.Get("load_balancer_type").(string)),
 		Tags: tagsFromMapELBv2(d.Get("tags").(map[string]interface{})),
 	}
 
@@ -169,6 +210,22 @@ func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if v, ok := d.GetOk("subnets"); ok {
 		elbOpts.Subnets = expandStringList(v.(*schema.Set).List())
+	}
+
+	if v, ok := d.GetOk("subnet_mapping"); ok {
+		rawMappings := v.(*schema.Set).List()
+		elbOpts.SubnetMappings = make([]*elbv2.SubnetMapping, len(rawMappings))
+		for i, mapping := range rawMappings {
+			subnetMap := mapping.(map[string]interface{})
+
+			elbOpts.SubnetMappings[i] = &elbv2.SubnetMapping{
+				SubnetId: aws.String(subnetMap["subnet_id"].(string)),
+			}
+
+			if subnetMap["allocation_id"].(string) != "" {
+				elbOpts.SubnetMappings[i].AllocationId = aws.String(subnetMap["allocation_id"].(string))
+			}
+		}
 	}
 
 	if v, ok := d.GetOk("ip_address_type"); ok {
@@ -219,18 +276,18 @@ func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return resourceAwsAlbUpdate(d, meta)
+	return resourceAwsLbUpdate(d, meta)
 }
 
-func resourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
+func resoureAwsLbRead(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
-	albArn := d.Id()
+	lbArn := d.Id()
 
-	describeAlbOpts := &elbv2.DescribeLoadBalancersInput{
-		LoadBalancerArns: []*string{aws.String(albArn)},
+	describeLbOpts := &elbv2.DescribeLoadBalancersInput{
+		LoadBalancerArns: []*string{aws.String(lbArn)},
 	}
 
-	describeResp, err := elbconn.DescribeLoadBalancers(describeAlbOpts)
+	describeResp, err := elbconn.DescribeLoadBalancers(describeLbOpts)
 	if err != nil {
 		if isLoadBalancerNotFound(err) {
 			// The ALB is gone now, so just remove it from the state
@@ -245,10 +302,10 @@ func resourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Unable to find ALB: %#v", describeResp.LoadBalancers)
 	}
 
-	return flattenAwsAlbResource(d, meta, describeResp.LoadBalancers[0])
+	return flattenAwsLbResource(d, meta, describeResp.LoadBalancers[0])
 }
 
-func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbUpdate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	if !d.IsNewResource() {
@@ -295,7 +352,8 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 		})
 	}
 
-	if d.HasChange("idle_timeout") {
+	// It's important to know that Idle timeout is not supported for Network Loadbalancers
+	if d.Get("load_balancer_type").(string) != "network" && d.HasChange("idle_timeout") {
 		attributes = append(attributes, &elbv2.LoadBalancerAttribute{
 			Key:   aws.String("idle_timeout.timeout_seconds"),
 			Value: aws.String(fmt.Sprintf("%d", d.Get("idle_timeout").(int))),
@@ -386,11 +444,11 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return resourceAwsAlbRead(d, meta)
+	return resoureAwsLbRead(d, meta)
 }
 
-func resourceAwsAlbDelete(d *schema.ResourceData, meta interface{}) error {
-	albconn := meta.(*AWSClient).elbv2conn
+func resourceAwsLbDelete(d *schema.ResourceData, meta interface{}) error {
+	lbconn := meta.(*AWSClient).elbv2conn
 
 	log.Printf("[INFO] Deleting ALB: %s", d.Id())
 
@@ -398,13 +456,20 @@ func resourceAwsAlbDelete(d *schema.ResourceData, meta interface{}) error {
 	deleteElbOpts := elbv2.DeleteLoadBalancerInput{
 		LoadBalancerArn: aws.String(d.Id()),
 	}
-	if _, err := albconn.DeleteLoadBalancer(&deleteElbOpts); err != nil {
+	if _, err := lbconn.DeleteLoadBalancer(&deleteElbOpts); err != nil {
 		return fmt.Errorf("Error deleting ALB: %s", err)
 	}
 
-	err := cleanupALBNetworkInterfaces(meta.(*AWSClient).ec2conn, d.Id())
+	conn := meta.(*AWSClient).ec2conn
+
+	err := cleanupLBNetworkInterfaces(conn, d.Id())
 	if err != nil {
 		log.Printf("[WARN] Failed to cleanup ENIs for ALB %q: %#v", d.Id(), err)
+	}
+
+	err = waitForNLBNetworkInterfacesToDetach(conn, d.Id())
+	if err != nil {
+		log.Printf("[WARN] Failed to wait for ENIs to disappear for NLB %q: %#v", d.Id(), err)
 	}
 
 	return nil
@@ -414,15 +479,11 @@ func resourceAwsAlbDelete(d *schema.ResourceData, meta interface{}) error {
 // but the cleanup is asynchronous and may take time
 // which then blocks IGW, SG or VPC on deletion
 // So we make the cleanup "synchronous" here
-func cleanupALBNetworkInterfaces(conn *ec2.EC2, albArn string) error {
-	re := regexp.MustCompile("([^/]+/[^/]+/[^/]+)$")
-	matches := re.FindStringSubmatch(albArn)
-	if len(matches) != 2 {
-		return fmt.Errorf("Unexpected ARN format: %q", albArn)
+func cleanupLBNetworkInterfaces(conn *ec2.EC2, lbArn string) error {
+	name, err := getLbNameFromArn(lbArn)
+	if err != nil {
+		return err
 	}
-
-	// e.g. app/example-alb/b26e625cdde161e6
-	name := matches[1]
 
 	out, err := conn.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
 		Filters: []*ec2.Filter{
@@ -440,7 +501,7 @@ func cleanupALBNetworkInterfaces(conn *ec2.EC2, albArn string) error {
 		return err
 	}
 
-	log.Printf("[DEBUG] Found %d ENIs to cleanup for ALB %q",
+	log.Printf("[DEBUG] Found %d ENIs to cleanup for LB %q",
 		len(out.NetworkInterfaces), name)
 
 	if len(out.NetworkInterfaces) == 0 {
@@ -461,6 +522,59 @@ func cleanupALBNetworkInterfaces(conn *ec2.EC2, albArn string) error {
 	return nil
 }
 
+func waitForNLBNetworkInterfacesToDetach(conn *ec2.EC2, lbArn string) error {
+	name, err := getLbNameFromArn(lbArn)
+	if err != nil {
+		return err
+	}
+
+	// We cannot cleanup these ENIs ourselves as that would result in
+	// OperationNotPermitted: You are not allowed to manage 'ela-attach' attachments.
+	// yet presence of these ENIs may prevent us from deleting EIPs associated w/ the NLB
+
+	return resource.Retry(1*time.Minute, func() *resource.RetryError {
+		out, err := conn.DescribeNetworkInterfaces(&ec2.DescribeNetworkInterfacesInput{
+			Filters: []*ec2.Filter{
+				{
+					Name:   aws.String("attachment.instance-owner-id"),
+					Values: []*string{aws.String("amazon-aws")},
+				},
+				{
+					Name:   aws.String("attachment.attachment-id"),
+					Values: []*string{aws.String("ela-attach-*")},
+				},
+				{
+					Name:   aws.String("description"),
+					Values: []*string{aws.String("ELB " + name)},
+				},
+			},
+		})
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		niCount := len(out.NetworkInterfaces)
+		if niCount > 0 {
+			log.Printf("[DEBUG] Found %d ENIs to cleanup for NLB %q", niCount, lbArn)
+			return resource.RetryableError(fmt.Errorf("Waiting for %d ENIs of %q to clean up", niCount, lbArn))
+		}
+		log.Printf("[DEBUG] ENIs gone for NLB %q", lbArn)
+
+		return nil
+	})
+}
+
+func getLbNameFromArn(arn string) (string, error) {
+	re := regexp.MustCompile("([^/]+/[^/]+/[^/]+)$")
+	matches := re.FindStringSubmatch(arn)
+	if len(matches) != 2 {
+		return "", fmt.Errorf("Unexpected ARN format: %q", arn)
+	}
+
+	// e.g. app/example-alb/b26e625cdde161e6
+	return matches[1], nil
+}
+
 // flattenSubnetsFromAvailabilityZones creates a slice of strings containing the subnet IDs
 // for the ALB based on the AvailabilityZones structure returned by the API.
 func flattenSubnetsFromAvailabilityZones(availabilityZones []*elbv2.AvailabilityZone) []string {
@@ -471,7 +585,7 @@ func flattenSubnetsFromAvailabilityZones(availabilityZones []*elbv2.Availability
 	return result
 }
 
-func albSuffixFromARN(arn *string) string {
+func lbSuffixFromARN(arn *string) string {
 	if arn == nil {
 		return ""
 	}
@@ -485,23 +599,41 @@ func albSuffixFromARN(arn *string) string {
 	return ""
 }
 
-// flattenAwsAlbResource takes a *elbv2.LoadBalancer and populates all respective resource fields.
-func flattenAwsAlbResource(d *schema.ResourceData, meta interface{}, alb *elbv2.LoadBalancer) error {
+// flattenAwsLbResource takes a *elbv2.LoadBalancer and populates all respective resource fields.
+func flattenAwsLbResource(d *schema.ResourceData, meta interface{}, lb *elbv2.LoadBalancer) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
-	d.Set("arn", alb.LoadBalancerArn)
-	d.Set("arn_suffix", albSuffixFromARN(alb.LoadBalancerArn))
-	d.Set("name", alb.LoadBalancerName)
-	d.Set("internal", (alb.Scheme != nil && *alb.Scheme == "internal"))
-	d.Set("security_groups", flattenStringList(alb.SecurityGroups))
-	d.Set("subnets", flattenSubnetsFromAvailabilityZones(alb.AvailabilityZones))
-	d.Set("vpc_id", alb.VpcId)
-	d.Set("zone_id", alb.CanonicalHostedZoneId)
-	d.Set("dns_name", alb.DNSName)
-	d.Set("ip_address_type", alb.IpAddressType)
+	d.Set("arn", lb.LoadBalancerArn)
+	d.Set("arn_suffix", lbSuffixFromARN(lb.LoadBalancerArn))
+	d.Set("name", lb.LoadBalancerName)
+	d.Set("internal", (lb.Scheme != nil && *lb.Scheme == "internal"))
+	d.Set("security_groups", flattenStringList(lb.SecurityGroups))
+	d.Set("subnets", flattenSubnetsFromAvailabilityZones(lb.AvailabilityZones))
+	d.Set("vpc_id", lb.VpcId)
+	d.Set("zone_id", lb.CanonicalHostedZoneId)
+	d.Set("dns_name", lb.DNSName)
+	d.Set("ip_address_type", lb.IpAddressType)
+	d.Set("load_balancer_type", lb.Type)
+
+	subnetMappings := make([]interface{}, 0)
+	for _, az := range lb.AvailabilityZones {
+		subnetMappingRaw := make([]map[string]interface{}, len(az.LoadBalancerAddresses))
+		for _, subnet := range az.LoadBalancerAddresses {
+			subnetMap := make(map[string]interface{}, 0)
+			subnetMap["subnet_id"] = *az.SubnetId
+
+			if subnet.AllocationId != nil {
+				subnetMap["allocation_id"] = *subnet.AllocationId
+			}
+
+			subnetMappingRaw = append(subnetMappingRaw, subnetMap)
+		}
+		subnetMappings = append(subnetMappings, subnetMappingRaw)
+	}
+	d.Set("subnet_mapping", subnetMappings)
 
 	respTags, err := elbconn.DescribeTags(&elbv2.DescribeTagsInput{
-		ResourceArns: []*string{alb.LoadBalancerArn},
+		ResourceArns: []*string{lb.LoadBalancerArn},
 	})
 	if err != nil {
 		return errwrap.Wrapf("Error retrieving ALB Tags: {{err}}", err)
@@ -511,7 +643,10 @@ func flattenAwsAlbResource(d *schema.ResourceData, meta interface{}, alb *elbv2.
 	if len(respTags.TagDescriptions) > 0 {
 		et = respTags.TagDescriptions[0].Tags
 	}
-	d.Set("tags", tagsToMapELBv2(et))
+
+	if err := d.Set("tags", tagsToMapELBv2(et)); err != nil {
+		log.Printf("[WARN] Error setting tags for AWS LB (%s): %s", d.Id(), err)
+	}
 
 	attributesResp, err := elbconn.DescribeLoadBalancerAttributes(&elbv2.DescribeLoadBalancerAttributesInput{
 		LoadBalancerArn: aws.String(d.Id()),

@@ -15,7 +15,7 @@ func dataSourceAwsInstance() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"filter":        dataSourceFiltersSchema(),
-			"tags":          dataSourceTagsSchema(),
+			"tags":          tagsSchemaComputed(),
 			"instance_tags": tagsSchemaComputed(),
 			"instance_id": {
 				Type:     schema.TypeString,
@@ -313,7 +313,7 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 		d.Set("monitoring", monitoringState == "enabled" || monitoringState == "pending")
 	}
 
-	d.Set("tags", dataSourceTags(instance.Tags))
+	d.Set("tags", tagsToMap(instance.Tags))
 
 	// Security Groups
 	if err := readSecurityGroups(d, instance, conn); err != nil {

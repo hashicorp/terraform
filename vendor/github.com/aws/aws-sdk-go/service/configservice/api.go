@@ -2889,8 +2889,9 @@ func (s *ComplianceSummaryByResourceType) SetResourceType(v string) *ComplianceS
 	return s
 }
 
-// A list that contains the status of the delivery of either the snapshot or
-// the configuration history to the specified Amazon S3 bucket.
+// Provides status of the delivery of the snapshot or the configuration history
+// to the specified Amazon S3 bucket. Also provides the status of notifications
+// about the Amazon S3 delivery to the specified Amazon SNS topic.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ConfigExportDeliveryInfo
 type ConfigExportDeliveryInfo struct {
 	_ struct{} `type:"structure"`
@@ -6245,8 +6246,8 @@ type Scope struct {
 	// a resource ID for ComplianceResourceId.
 	ComplianceResourceTypes []*string `type:"list"`
 
-	// The tag key that is applied to only those AWS resources that you want you
-	// want to trigger an evaluation for the rule.
+	// The tag key that is applied to only those AWS resources that you want to
+	// trigger an evaluation for the rule.
 	TagKey *string `min:"1" type:"string"`
 
 	// The tag value applied to only those AWS resources that you want to trigger
@@ -6848,4 +6849,22 @@ const (
 
 	// ResourceTypeAwsCloudFormationStack is a ResourceType enum value
 	ResourceTypeAwsCloudFormationStack = "AWS::CloudFormation::Stack"
+
+	// ResourceTypeAwsDynamoDbTable is a ResourceType enum value
+	ResourceTypeAwsDynamoDbTable = "AWS::DynamoDB::Table"
+
+	// ResourceTypeAwsAutoScalingAutoScalingGroup is a ResourceType enum value
+	ResourceTypeAwsAutoScalingAutoScalingGroup = "AWS::AutoScaling::AutoScalingGroup"
+
+	// ResourceTypeAwsAutoScalingLaunchConfiguration is a ResourceType enum value
+	ResourceTypeAwsAutoScalingLaunchConfiguration = "AWS::AutoScaling::LaunchConfiguration"
+
+	// ResourceTypeAwsAutoScalingScalingPolicy is a ResourceType enum value
+	ResourceTypeAwsAutoScalingScalingPolicy = "AWS::AutoScaling::ScalingPolicy"
+
+	// ResourceTypeAwsAutoScalingScheduledAction is a ResourceType enum value
+	ResourceTypeAwsAutoScalingScheduledAction = "AWS::AutoScaling::ScheduledAction"
+
+	// ResourceTypeAwsCodeBuildProject is a ResourceType enum value
+	ResourceTypeAwsCodeBuildProject = "AWS::CodeBuild::Project"
 )

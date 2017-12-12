@@ -2518,6 +2518,96 @@ func (c *ElasticBeanstalk) ListPlatformVersionsWithContext(ctx aws.Context, inpu
 	return out, req.Send()
 }
 
+const opListTagsForResource = "ListTagsForResource"
+
+// ListTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForResource operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListTagsForResourceRequest method.
+//    req, resp := client.ListTagsForResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListTagsForResource
+func (c *ElasticBeanstalk) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
+	op := &request.Operation{
+		Name:       opListTagsForResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListTagsForResourceInput{}
+	}
+
+	output = &ListTagsForResourceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListTagsForResource API operation for AWS Elastic Beanstalk.
+//
+// Returns the tags applied to an AWS Elastic Beanstalk resource. The response
+// contains a list of tag key-value pairs.
+//
+// Currently, Elastic Beanstalk only supports tagging Elastic Beanstalk environments.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elastic Beanstalk's
+// API operation ListTagsForResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
+//   The specified account does not have sufficient privileges for one of more
+//   AWS services.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   A resource doesn't exist for the specified Amazon Resource Name (ARN).
+//
+//   * ErrCodeResourceTypeNotSupportedException "ResourceTypeNotSupportedException"
+//   The type of the specified Amazon Resource Name (ARN) isn't supported for
+//   this operation.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListTagsForResource
+func (c *ElasticBeanstalk) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	return out, req.Send()
+}
+
+// ListTagsForResourceWithContext is the same as ListTagsForResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTagsForResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElasticBeanstalk) ListTagsForResourceWithContext(ctx aws.Context, input *ListTagsForResourceInput, opts ...request.Option) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opRebuildEnvironment = "RebuildEnvironment"
 
 // RebuildEnvironmentRequest generates a "aws/request.Request" representing the
@@ -3415,6 +3505,109 @@ func (c *ElasticBeanstalk) UpdateEnvironment(input *UpdateEnvironmentInput) (*En
 // for more information on using Contexts.
 func (c *ElasticBeanstalk) UpdateEnvironmentWithContext(ctx aws.Context, input *UpdateEnvironmentInput, opts ...request.Option) (*EnvironmentDescription, error) {
 	req, out := c.UpdateEnvironmentRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateTagsForResource = "UpdateTagsForResource"
+
+// UpdateTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateTagsForResource operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateTagsForResource for more information on using the UpdateTagsForResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateTagsForResourceRequest method.
+//    req, resp := client.UpdateTagsForResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateTagsForResource
+func (c *ElasticBeanstalk) UpdateTagsForResourceRequest(input *UpdateTagsForResourceInput) (req *request.Request, output *UpdateTagsForResourceOutput) {
+	op := &request.Operation{
+		Name:       opUpdateTagsForResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateTagsForResourceInput{}
+	}
+
+	output = &UpdateTagsForResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UpdateTagsForResource API operation for AWS Elastic Beanstalk.
+//
+// Update the list of tags applied to an AWS Elastic Beanstalk resource. Two
+// lists can be passed: TagsToAdd for tags to add or update, and TagsToRemove.
+//
+// Currently, Elastic Beanstalk only supports tagging of Elastic Beanstalk environments.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elastic Beanstalk's
+// API operation UpdateTagsForResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
+//   The specified account does not have sufficient privileges for one of more
+//   AWS services.
+//
+//   * ErrCodeOperationInProgressException "OperationInProgressFailure"
+//   Unable to perform the specified operation because another operation that
+//   effects an element in this activity is already in progress.
+//
+//   * ErrCodeTooManyTagsException "TooManyTagsException"
+//   The number of tags in the resource would exceed the number of tags that each
+//   resource can have.
+//
+//   To calculate this, the operation considers both the number of tags the resource
+//   already has and the tags this operation would add if it succeeded.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   A resource doesn't exist for the specified Amazon Resource Name (ARN).
+//
+//   * ErrCodeResourceTypeNotSupportedException "ResourceTypeNotSupportedException"
+//   The type of the specified Amazon Resource Name (ARN) isn't supported for
+//   this operation.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateTagsForResource
+func (c *ElasticBeanstalk) UpdateTagsForResource(input *UpdateTagsForResourceInput) (*UpdateTagsForResourceOutput, error) {
+	req, out := c.UpdateTagsForResourceRequest(input)
+	return out, req.Send()
+}
+
+// UpdateTagsForResourceWithContext is the same as UpdateTagsForResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateTagsForResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElasticBeanstalk) UpdateTagsForResourceWithContext(ctx aws.Context, input *UpdateTagsForResourceInput, opts ...request.Option) (*UpdateTagsForResourceOutput, error) {
+	req, out := c.UpdateTagsForResourceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -8290,6 +8483,80 @@ func (s *ListPlatformVersionsOutput) SetPlatformSummaryList(v []*PlatformSummary
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListTagsForResourceMessage
+type ListTagsForResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the resouce for which a tag list is requested.
+	//
+	// Must be the ARN of an Elastic Beanstalk environment.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *ListTagsForResourceInput) SetResourceArn(v string) *ListTagsForResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ResourceTagsDescriptionMessage
+type ListTagsForResourceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the resouce for which a tag list was requested.
+	ResourceArn *string `type:"string"`
+
+	// A list of tag key-value pairs.
+	ResourceTags []*Tag `type:"list"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *ListTagsForResourceOutput) SetResourceArn(v string) *ListTagsForResourceOutput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetResourceTags sets the ResourceTags field's value.
+func (s *ListTagsForResourceOutput) SetResourceTags(v []*Tag) *ListTagsForResourceOutput {
+	s.ResourceTags = v
+	return s
+}
+
 // Describes the properties of a Listener for the LoadBalancer.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/Listener
 type Listener struct {
@@ -10708,6 +10975,94 @@ func (s *UpdateEnvironmentInput) SetTier(v *EnvironmentTier) *UpdateEnvironmentI
 func (s *UpdateEnvironmentInput) SetVersionLabel(v string) *UpdateEnvironmentInput {
 	s.VersionLabel = &v
 	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateTagsForResourceMessage
+type UpdateTagsForResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the resouce to be updated.
+	//
+	// Must be the ARN of an Elastic Beanstalk environment.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `type:"string" required:"true"`
+
+	// A list of tags to add or update.
+	//
+	// If a key of an existing tag is added, the tag's value is updated.
+	TagsToAdd []*Tag `type:"list"`
+
+	// A list of tag keys to remove.
+	//
+	// If a tag key doesn't exist, it is silently ignored.
+	TagsToRemove []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s UpdateTagsForResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateTagsForResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTagsForResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.TagsToAdd != nil {
+		for i, v := range s.TagsToAdd {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "TagsToAdd", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *UpdateTagsForResourceInput) SetResourceArn(v string) *UpdateTagsForResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTagsToAdd sets the TagsToAdd field's value.
+func (s *UpdateTagsForResourceInput) SetTagsToAdd(v []*Tag) *UpdateTagsForResourceInput {
+	s.TagsToAdd = v
+	return s
+}
+
+// SetTagsToRemove sets the TagsToRemove field's value.
+func (s *UpdateTagsForResourceInput) SetTagsToRemove(v []*string) *UpdateTagsForResourceInput {
+	s.TagsToRemove = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateTagsForResourceOutput
+type UpdateTagsForResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateTagsForResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateTagsForResourceOutput) GoString() string {
+	return s.String()
 }
 
 // A list of validation messages for a specified configuration template.

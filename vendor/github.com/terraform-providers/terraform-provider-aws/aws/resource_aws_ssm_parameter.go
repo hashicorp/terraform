@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -16,6 +15,9 @@ func resourceAwsSsmParameter() *schema.Resource {
 		Read:   resourceAwsSsmParameterRead,
 		Update: resourceAwsSsmParameterPut,
 		Delete: resourceAwsSsmParameterDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -55,7 +57,7 @@ func resourceAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error
 
 	paramInput := &ssm.GetParametersInput{
 		Names: []*string{
-			aws.String(d.Get("name").(string)),
+			aws.String(d.Id()),
 		},
 		WithDecryption: aws.Bool(true),
 	}
@@ -66,8 +68,10 @@ func resourceAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error
 		return errwrap.Wrapf("[ERROR] Error describing SSM parameter: {{err}}", err)
 	}
 
-	if len(resp.InvalidParameters) > 0 {
-		return fmt.Errorf("[ERROR] SSM Parameter %s is invalid", d.Id())
+	if len(resp.Parameters) == 0 {
+		log.Printf("[WARN] SSM Param %q not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
 	}
 
 	param := resp.Parameters[0]

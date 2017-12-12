@@ -19,7 +19,6 @@ func dataSourceAwsEip() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-
 			"public_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -34,7 +33,7 @@ func dataSourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	req := &ec2.DescribeAddressesInput{}
 
-	if id := d.Get("id"); id != "" {
+	if id, ok := d.GetOk("id"); ok {
 		req.AllocationIds = []*string{aws.String(id.(string))}
 	}
 
@@ -57,7 +56,6 @@ func dataSourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	eip := resp.Addresses[0]
 
 	d.SetId(*eip.AllocationId)
-	d.Set("id", eip.AllocationId)
 	d.Set("public_ip", eip.PublicIp)
 
 	return nil
