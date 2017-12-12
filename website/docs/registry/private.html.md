@@ -45,10 +45,8 @@ newer.
 
 ## Coming Soon
 
-Terraform Enterprise is currently in beta and does not allow open signups.
-
 Terraform Enterprise will be publicly available for self service signup
-by the end of 2017. In the mean time, if you're interested in private
+soon. In the mean time, if you're interested in private
 registries and being part of the beta, please contact us at
 [hello@hashicorp.com](mailto:hello@hashicorp.com).
 
