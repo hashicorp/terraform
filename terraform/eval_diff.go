@@ -258,9 +258,11 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 		for _, v := range containers {
 			if v.keepDiff() {
 				// At least one key has changes, so list all the sibling keys
-				// to keep in the diff.
+				// to keep in the diff if any values have changed
 				for k := range v {
-					keep[k] = true
+					if v[k].Modified() {
+						keep[k] = true
+					}
 				}
 			}
 		}
