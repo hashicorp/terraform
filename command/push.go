@@ -123,7 +123,7 @@ func (c *PushCommand) Run(args []string) int {
 				"for you, remote state must be used and configured. Remote \n" +
 				"state via any backend is accepted, not just Atlas. To configure\n" +
 				"a backend, please see the documentation at the URL below:\n\n" +
-				"https://www.terraform.io/docs/state/remote.html")
+				"https://www.terraform.io/docs/backends/config.html")
 		return 1
 	}
 
