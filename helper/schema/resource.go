@@ -306,6 +306,7 @@ func (r *Resource) ReadDataApply(
 // Refresh refreshes the state of the resource.
 func (r *Resource) Refresh(
 	s *terraform.InstanceState,
+	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.InstanceState, error) {
 	// If the ID is already somehow blank, it doesn't exist
 	if s.ID == "" {
@@ -347,6 +348,7 @@ func (r *Resource) Refresh(
 	}
 
 	data, err := schemaMap(r.Schema).Data(s, nil)
+	data.config = c
 	data.timeouts = &rt
 	if err != nil {
 		return s, err

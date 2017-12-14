@@ -118,7 +118,10 @@ type ResourceProvider interface {
 
 	// Refresh refreshes a resource and updates all of its attributes
 	// with the latest information.
-	Refresh(*InstanceInfo, *InstanceState) (*InstanceState, error)
+	Refresh(
+		*InstanceInfo,
+		*InstanceState,
+		*ResourceConfig) (*InstanceState, error)
 
 	/*********************************************************************
 	* Functions related to importing

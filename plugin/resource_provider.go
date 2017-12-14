@@ -213,11 +213,13 @@ func (p *ResourceProvider) ValidateDataSource(
 
 func (p *ResourceProvider) Refresh(
 	info *terraform.InstanceInfo,
-	s *terraform.InstanceState) (*terraform.InstanceState, error) {
+	s *terraform.InstanceState,
+	c *terraform.ResourceConfig) (*terraform.InstanceState, error) {
 	var resp ResourceProviderRefreshResponse
 	args := &ResourceProviderRefreshArgs{
-		Info:  info,
-		State: s,
+		Info:   info,
+		State:  s,
+		Config: c,
 	}
 
 	err := p.Client.Call("Plugin.Refresh", args, &resp)
@@ -376,8 +378,9 @@ type ResourceProviderDiffResponse struct {
 }
 
 type ResourceProviderRefreshArgs struct {
-	Info  *terraform.InstanceInfo
-	State *terraform.InstanceState
+	Info   *terraform.InstanceInfo
+	State  *terraform.InstanceState
+	Config *terraform.ResourceConfig
 }
 
 type ResourceProviderRefreshResponse struct {
@@ -546,7 +549,7 @@ func (s *ResourceProviderServer) Diff(
 func (s *ResourceProviderServer) Refresh(
 	args *ResourceProviderRefreshArgs,
 	result *ResourceProviderRefreshResponse) error {
-	newState, err := s.Provider.Refresh(args.Info, args.State)
+	newState, err := s.Provider.Refresh(args.Info, args.State, args.Config)
 	*result = ResourceProviderRefreshResponse{
 		State: newState,
 		Error: plugin.NewBasicError(err),

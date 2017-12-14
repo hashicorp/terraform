@@ -76,6 +76,7 @@ func (n *graphNodeDeposedResource) SetProvider(p string) {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeDeposedResource) EvalTree() EvalNode {
+	var config *ResourceConfig
 	var provider ResourceProvider
 	var state *InstanceState
 
@@ -101,6 +102,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				},
 				&EvalRefresh{
 					Info:     info,
+					Config:   config,
 					Provider: &provider,
 					State:    &state,
 					Output:   &state,

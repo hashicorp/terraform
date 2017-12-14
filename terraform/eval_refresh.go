@@ -8,9 +8,10 @@ import (
 // EvalRefresh is an EvalNode implementation that does a refresh for
 // a resource.
 type EvalRefresh struct {
+	Info     *InstanceInfo
+	Config   *ResourceConfig
 	Provider *ResourceProvider
 	State    **InstanceState
-	Info     *InstanceInfo
 	Output   **InstanceState
 }
 
@@ -34,7 +35,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Refresh!
-	state, err = provider.Refresh(n.Info, state)
+	state, err = provider.Refresh(n.Info, state, n.Config)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %s", n.Info.Id, err.Error())
 	}

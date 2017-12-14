@@ -34,7 +34,8 @@ func TestLocalProvider(t *testing.T, b *Local, name string) *terraform.MockResou
 	p.DiffReturn = &terraform.InstanceDiff{}
 	p.RefreshFn = func(
 		info *terraform.InstanceInfo,
-		s *terraform.InstanceState) (*terraform.InstanceState, error) {
+		s *terraform.InstanceState,
+		c *terraform.ResourceConfig) (*terraform.InstanceState, error) {
 		return s, nil
 	}
 	p.ResourcesReturn = []terraform.ResourceType{
