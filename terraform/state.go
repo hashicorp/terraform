@@ -2174,6 +2174,19 @@ func (s moduleStateSort) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
+// StateCompatible returns an error if the state is not compatible with the
+// current version of terraform.
+func CheckStateVersion(state *State) error {
+	if state == nil {
+		return nil
+	}
+
+	if state.FromFutureTerraform() {
+		return fmt.Errorf(stateInvalidTerraformVersionErr, state.TFVersion)
+	}
+	return nil
+}
+
 const stateValidateErrMultiModule = `
 Multiple modules with the same path: %s
 
@@ -2181,4 +2194,12 @@ This means that there are multiple entries in the "modules" field
 in your state file that point to the same module. This will cause Terraform
 to behave in unexpected and error prone ways and is invalid. Please back up
 and modify your state file manually to resolve this.
+`
+
+const stateInvalidTerraformVersionErr = `
+Terraform doesn't allow running any operations against a state
+that was written by a future Terraform version. The state is
+reporting it is written by Terraform '%s'
+
+Please run at least that version of Terraform to continue.
 `
