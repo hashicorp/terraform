@@ -184,6 +184,8 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	config := terraform.NewResourceConfig(rc.RawConfig)
+
 	// Perform the import. Note that as you can see it is possible for this
 	// API to import more than one resource at once. For now, we only allow
 	// one while we stabilize this feature.
@@ -192,6 +194,7 @@ func (c *ImportCommand) Run(args []string) int {
 			&terraform.ImportTarget{
 				Addr:     args[0],
 				ID:       args[1],
+				Config:   config,
 				Provider: c.Meta.provider,
 			},
 		},

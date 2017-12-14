@@ -45,7 +45,7 @@ type MockResourceProvider struct {
 	RefreshCalled                  bool
 	RefreshInfo                    *InstanceInfo
 	RefreshState                   *InstanceState
-	RefreshFn                      func(*InstanceInfo, *InstanceState) (*InstanceState, error)
+	RefreshFn                      func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceState, error)
 	RefreshReturn                  *InstanceState
 	RefreshReturnError             error
 	ResourcesCalled                bool
@@ -213,7 +213,8 @@ func (p *MockResourceProvider) Diff(
 
 func (p *MockResourceProvider) Refresh(
 	info *InstanceInfo,
-	s *InstanceState) (*InstanceState, error) {
+	s *InstanceState,
+	c *ResourceConfig) (*InstanceState, error) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -222,7 +223,7 @@ func (p *MockResourceProvider) Refresh(
 	p.RefreshState = s
 
 	if p.RefreshFn != nil {
-		return p.RefreshFn(info, s)
+		return p.RefreshFn(info, s, c)
 	}
 
 	return p.RefreshReturn.DeepCopy(), p.RefreshReturnError

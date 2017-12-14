@@ -23,6 +23,7 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 		nodes = append(nodes, &graphNodeImportState{
 			Addr:         addr,
 			ID:           target.ID,
+			Config:       target.Config,
 			ProviderName: target.Provider,
 		})
 	}
@@ -38,6 +39,7 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 type graphNodeImportState struct {
 	Addr             *ResourceAddress // Addr is the resource address to import to
 	ID               string           // ID is the ID to import as
+	Config           *ResourceConfig  // Resource config of the node
 	ProviderName     string           // Provider string
 	ResolvedProvider string           // provider node address
 
@@ -155,8 +157,9 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	for i, state := range n.states {
 		g.Add(&graphNodeImportStateSub{
 			Target:           addrs[i],
-			Path_:            n.Path(),
+			Config:           n.Config,
 			State:            state,
+			Path_:            n.Path(),
 			ProviderName:     n.ProviderName,
 			ResolvedProvider: n.ResolvedProvider,
 		})
@@ -177,6 +180,7 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 // and adding a resource to the state once it is imported.
 type graphNodeImportStateSub struct {
 	Target           *ResourceAddress
+	Config           *ResourceConfig
 	State            *InstanceState
 	Path_            []string
 	ProviderName     string
@@ -218,8 +222,9 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 		Index: n.Target.Index,
 	}
 
-	// The eval sequence
 	var provider ResourceProvider
+
+	// The eval sequence
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalGetProvider{
@@ -227,9 +232,10 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 				Output: &provider,
 			},
 			&EvalRefresh{
+				Info:     info,
+				Config:   n.Config,
 				Provider: &provider,
 				State:    &state,
-				Info:     info,
 				Output:   &state,
 			},
 			&EvalImportStateVerify{

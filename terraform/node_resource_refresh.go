@@ -147,6 +147,8 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 		return &EvalReturnError{Error: &err}
 	}
 
+	config := NewResourceConfig(n.Config.RawConfig)
+
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalGetProvider{
@@ -159,6 +161,7 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 			},
 			&EvalRefresh{
 				Info:     info,
+				Config:   config,
 				Provider: &provider,
 				State:    &state,
 				Output:   &state,

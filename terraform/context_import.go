@@ -24,6 +24,9 @@ type ImportTarget struct {
 	// ID is the ID of the resource to import. This is resource-specific.
 	ID string
 
+	// Config is the resource config of the resource to import.
+	Config *ResourceConfig
+
 	// Provider string
 	Provider string
 }
