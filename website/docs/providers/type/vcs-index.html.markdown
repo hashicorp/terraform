@@ -8,7 +8,7 @@ description: |-
 
 # Version Control Providers
 
-Description of some vcs providers
+Description of some VCS providers
 
 [Bitbucket](/docs/providers/bitbucket/index.html)
 

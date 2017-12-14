@@ -20,3 +20,19 @@ OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. Terraform Enterprise,
 DNSimple, CloudFlare).
 
 Use the navigation to the left to read about the available providers.
+
+
+<table class="table">
+  <tr>
+    <td><a href="/docs/providers/alicloud/index.html">Alicloud</a></td>
+    <td><a href="/docs/providers/archive/index.html">Archive</a></td>
+    <td><a href="/docs/providers/aws/index.html">AWS</a></td>
+  </tr>
+    <td><a href="/docs/providers/bitbucket/index.html">Bitbucket</a></td>
+    <td><a href="/docs/providers/clc/index.html">CenturyLinkCloud</a></td>
+    <td><a href="/docs/providers/chef/index.html">Chef</a></td>
+  <tr>
+    <td><a href="/docs/providers/circonus/index.html">Circonus</a></td>
+    <td><a href="/docs/providers/cloudflare/index.html">Cloudflare</a></td>
+    <td><a href="/docs/providers/cloudscale/index.html">CloudScale.ch</a></td>
+  </tr>

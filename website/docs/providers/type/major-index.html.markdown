@@ -11,9 +11,14 @@ description: |-
 Hyper Scale Clouds
 
 
-#### [AliCloud](/docs/providers/alicloud/index.html)
-#### [AWS](/docs/providers/aws/index.html)
-#### [Google Cloud](/docs/providers/google/index.html)
-#### [Microsoft Azure](/docs/providers/azurerm/index.html)
-#### [Oracle Public Cloud](/docs/providers/opc/index.html)
-#### [VMware vShpere](/docs/providers/vshpere/index.html)
+[AliCloud](/docs/providers/alicloud/index.html)
+
+[AWS](/docs/providers/aws/index.html)
+
+[Google Cloud](/docs/providers/google/index.html)
+
+[Microsoft Azure](/docs/providers/azurerm/index.html)
+
+[Oracle Public Cloud](/docs/providers/opc/index.html)
+
+[VMware vShpere](/docs/providers/vshpere/index.html)
