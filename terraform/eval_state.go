@@ -214,37 +214,6 @@ func writeInstanceToState(
 	return nil, nil
 }
 
-// EvalClearPrimaryState is an EvalNode implementation that clears the primary
-// instance from a resource state.
-type EvalClearPrimaryState struct {
-	Name string
-}
-
-func (n *EvalClearPrimaryState) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
-
-	// Get a read lock so we can access this instance
-	lock.RLock()
-	defer lock.RUnlock()
-
-	// Look for the module state. If we don't have one, then it doesn't matter.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		return nil, nil
-	}
-
-	// Look for the resource state. If we don't have one, then it is okay.
-	rs := mod.Resources[n.Name]
-	if rs == nil {
-		return nil, nil
-	}
-
-	// Clear primary from the resource state
-	rs.Primary = nil
-
-	return nil, nil
-}
-
 // EvalDeposeState is an EvalNode implementation that takes the primary
 // out of a state and makes it Deposed. This is done at the beginning of
 // create-before-destroy calls so that the create can create while preserving

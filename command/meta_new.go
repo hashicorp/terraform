@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NOTE: Temporary file until this branch is cleaned up.
@@ -34,7 +35,14 @@ func (m *Meta) Input() bool {
 //
 // It expects the modules to already be downloaded. This will never
 // download any modules.
-func (m *Meta) Module(path string) (*module.Tree, error) {
+//
+// The configuration is validated before returning, so the returned diagnostics
+// may contain warnings and/or errors. If the diagnostics contains only
+// warnings, the caller may treat the returned module.Tree as valid after
+// presenting the warnings to the user.
+func (m *Meta) Module(path string) (*module.Tree, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	mod, err := module.NewTreeModule("", path)
 	if err != nil {
 		// Check for the error where we have no config files
@@ -42,15 +50,19 @@ func (m *Meta) Module(path string) (*module.Tree, error) {
 			return nil, nil
 		}
 
-		return nil, err
+		diags = diags.Append(err)
+		return nil, diags
 	}
 
 	err = mod.Load(m.moduleStorage(m.DataDir(), module.GetModeNone))
 	if err != nil {
-		return nil, errwrap.Wrapf("Error loading modules: {{err}}", err)
+		diags = diags.Append(errwrap.Wrapf("Error loading modules: {{err}}", err))
+		return nil, diags
 	}
 
-	return mod, nil
+	diags = diags.Append(mod.Validate())
+
+	return mod, diags
 }
 
 // Config loads the root config for the path specified. Path may be a directory

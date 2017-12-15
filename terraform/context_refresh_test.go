@@ -1042,12 +1042,9 @@ func TestContext2Validate(t *testing.T) {
 		),
 	})
 
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %s", e)
+	diags := c.Validate()
+	if len(diags) != 0 {
+		t.Fatalf("bad: %#v", diags)
 	}
 }
 
@@ -1108,5 +1105,55 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 	}
 	if h.PostDiffCalled {
 		t.Fatal("PostDiff should not have been called")
+	}
+}
+
+func TestContext2Refresh_updateProviderInState(t *testing.T) {
+	m := testModule(t, "update-resource-provider")
+	p := testProvider("aws")
+
+	p.DiffFn = testDiffFn
+	p.ApplyFn = testApplyFn
+
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Provider: "provider.aws.baz",
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		State: s,
+	})
+
+	expected := strings.TrimSpace(`
+aws_instance.bar:
+  ID = foo
+  provider = provider.aws.foo`)
+
+	state, err := ctx.Refresh()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual := state.String()
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
 }

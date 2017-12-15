@@ -695,6 +695,207 @@ func (c *Route53) CreateHostedZoneWithContext(ctx aws.Context, input *CreateHost
 	return out, req.Send()
 }
 
+const opCreateQueryLoggingConfig = "CreateQueryLoggingConfig"
+
+// CreateQueryLoggingConfigRequest generates a "aws/request.Request" representing the
+// client's request for the CreateQueryLoggingConfig operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateQueryLoggingConfig for more information on using the CreateQueryLoggingConfig
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateQueryLoggingConfigRequest method.
+//    req, resp := client.CreateQueryLoggingConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/CreateQueryLoggingConfig
+func (c *Route53) CreateQueryLoggingConfigRequest(input *CreateQueryLoggingConfigInput) (req *request.Request, output *CreateQueryLoggingConfigOutput) {
+	op := &request.Operation{
+		Name:       opCreateQueryLoggingConfig,
+		HTTPMethod: "POST",
+		HTTPPath:   "/2013-04-01/queryloggingconfig",
+	}
+
+	if input == nil {
+		input = &CreateQueryLoggingConfigInput{}
+	}
+
+	output = &CreateQueryLoggingConfigOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateQueryLoggingConfig API operation for Amazon Route 53.
+//
+// Creates a configuration for DNS query logging. After you create a query logging
+// configuration, Amazon Route 53 begins to publish log data to an Amazon CloudWatch
+// Logs log group.
+//
+// DNS query logs contain information about the queries that Amazon Route 53
+// receives for a specified public hosted zone, such as the following:
+//
+//    * Amazon Route 53 edge location that responded to the DNS query
+//
+//    * Domain or subdomain that was requested
+//
+//    * DNS record type, such as A or AAAA
+//
+//    * DNS response code, such as NoError or ServFail
+//
+// Log Group and Resource PolicyBefore you create a query logging configuration,
+// perform the following operations.
+//
+// If you create a query logging configuration using the Amazon Route 53 console,
+// Amazon Route 53 performs these operations automatically.
+//
+// Create a CloudWatch Logs log group, and make note of the ARN, which you specify
+// when you create a query logging configuration. Note the following:
+//
+// You must create the log group in the us-east-1 region.
+//
+// You must use the same AWS account to create the log group and the hosted
+// zone that you want to configure query logging for.
+//
+// When you create log groups for query logging, we recommend that you use a
+// consistent prefix, for example:
+//
+// /aws/route53/hosted zone name
+//
+// In the next step, you'll create a resource policy, which controls access
+// to one or more log groups and the associated AWS resources, such as Amazon
+// Route 53 hosted zones. There's a limit on the number of resource policies
+// that you can create, so we recommend that you use a consistent prefix so
+// you can use the same resource policy for all the log groups that you create
+// for query logging.
+//
+// Create a CloudWatch Logs resource policy, and give it the permissions that
+// Amazon Route 53 needs to create log streams and to send query logs to log
+// streams. For the value of Resource, specify the ARN for the log group that
+// you created in the previous step. To use the same resource policy for all
+// the CloudWatch Logs log groups that you created for query logging configurations,
+// replace the hosted zone name with *, for example:
+//
+// arn:aws:logs:us-east-1:123412341234:log-group:/aws/route53/*
+//
+// You can't use the CloudWatch console to create or edit a resource policy.
+// You must use the CloudWatch API, one of the AWS SDKs, or the AWS CLI.
+//
+// Log Streams and Edge LocationsWhen Amazon Route 53 finishes creating the
+// configuration for DNS query logging, it does the following:
+//
+// Creates a log stream for an edge location the first time that the edge location
+// responds to DNS queries for the specified hosted zone. That log stream is
+// used to log all queries that Amazon Route 53 responds to for that edge location.
+//
+// Begins to send query logs to the applicable log stream.
+//
+// The name of each log stream is in the following format:
+//
+// hosted zone ID/edge location code
+//
+// The edge location code is a three-letter code and an arbitrarily assigned
+// number, for example, DFW3. The three-letter code typically corresponds with
+// the International Air Transport Association airport code for an airport near
+// the edge location. (These abbreviations might change in the future.) For
+// a list of edge locations, see "The Amazon Route 53 Global Network" on the
+// Amazon Route 53 Product Details (http://aws.amazon.com/route53/details/)
+// page.
+//
+// Queries That Are LoggedQuery logs contain only the queries that DNS resolvers
+// forward to Amazon Route 53. If a DNS resolver has already cached the response
+// to a query (such as the IP address for a load balancer for example.com),
+// the resolver will continue to return the cached response. It doesn't forward
+// another query to Amazon Route 53 until the TTL for the corresponding resource
+// record set expires. Depending on how many DNS queries are submitted for a
+// resource record set, and depending on the TTL for that resource record set,
+// query logs might contain information about only one query out of every several
+// thousand queries that are submitted to DNS. For more information about how
+// DNS works, see Routing Internet Traffic to Your Website or Web Application
+// (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/welcome-dns-service.html)
+// in the Amazon Route 53 Developer Guide.
+//
+// Log File FormatFor a list of the values in each query log and the format
+// of each value, see Logging DNS Queries (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/query-logs.html)
+// in the Amazon Route 53 Developer Guide.
+//
+// PricingFor information about charges for query logs, see Amazon CloudWatch
+// Pricing (http://aws.amazon.com/cloudwatch/pricing/).
+//
+// How to Stop LoggingIf you want Amazon Route 53 to stop sending query logs
+// to CloudWatch Logs, delete the query logging configuration. For more information,
+// see DeleteQueryLoggingConfig.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Route 53's
+// API operation CreateQueryLoggingConfig for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeConcurrentModification "ConcurrentModification"
+//   Another user submitted a request to create, update, or delete the object
+//   at the same time that you did. Retry the request.
+//
+//   * ErrCodeNoSuchHostedZone "NoSuchHostedZone"
+//   No hosted zone exists with the ID that you specified.
+//
+//   * ErrCodeNoSuchCloudWatchLogsLogGroup "NoSuchCloudWatchLogsLogGroup"
+//   There is no CloudWatch Logs log group with the specified ARN.
+//
+//   * ErrCodeInvalidInput "InvalidInput"
+//   The input is not valid.
+//
+//   * ErrCodeQueryLoggingConfigAlreadyExists "QueryLoggingConfigAlreadyExists"
+//   You can create only one query logging configuration for a hosted zone, and
+//   a query logging configuration already exists for this hosted zone.
+//
+//   * ErrCodeInsufficientCloudWatchLogsResourcePolicy "InsufficientCloudWatchLogsResourcePolicy"
+//   Amazon Route 53 doesn't have the permissions required to create log streams
+//   and send query logs to log streams. Possible causes include the following:
+//
+//      * There is no resource policy that specifies the log group ARN in the
+//      value for Resource.
+//
+//      * The resource policy that includes the log group ARN in the value for
+//      Resource doesn't have the necessary permissions.
+//
+//      * The resource policy hasn't finished propagating yet.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/CreateQueryLoggingConfig
+func (c *Route53) CreateQueryLoggingConfig(input *CreateQueryLoggingConfigInput) (*CreateQueryLoggingConfigOutput, error) {
+	req, out := c.CreateQueryLoggingConfigRequest(input)
+	return out, req.Send()
+}
+
+// CreateQueryLoggingConfigWithContext is the same as CreateQueryLoggingConfig with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateQueryLoggingConfig for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Route53) CreateQueryLoggingConfigWithContext(ctx aws.Context, input *CreateQueryLoggingConfigInput, opts ...request.Option) (*CreateQueryLoggingConfigOutput, error) {
+	req, out := c.CreateQueryLoggingConfigRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCreateReusableDelegationSet = "CreateReusableDelegationSet"
 
 // CreateReusableDelegationSetRequest generates a "aws/request.Request" representing the
@@ -971,7 +1172,7 @@ func (c *Route53) CreateTrafficPolicyInstanceRequest(input *CreateTrafficPolicyI
 //   No traffic policy exists with the specified ID.
 //
 //   * ErrCodeTrafficPolicyInstanceAlreadyExists "TrafficPolicyInstanceAlreadyExists"
-//   Traffic policy instance with given Id already exists.
+//   There is already a traffic policy instance with the specified ID.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/CreateTrafficPolicyInstance
 func (c *Route53) CreateTrafficPolicyInstance(input *CreateTrafficPolicyInstanceInput) (*CreateTrafficPolicyInstanceOutput, error) {
@@ -1063,8 +1264,8 @@ func (c *Route53) CreateTrafficPolicyVersionRequest(input *CreateTrafficPolicyVe
 //   The input is not valid.
 //
 //   * ErrCodeConcurrentModification "ConcurrentModification"
-//   Another user submitted a request to update the object at the same time that
-//   you did. Retry the request.
+//   Another user submitted a request to create, update, or delete the object
+//   at the same time that you did. Retry the request.
 //
 //   * ErrCodeInvalidTrafficPolicyDocument "InvalidTrafficPolicyDocument"
 //   The format of the traffic policy document that you specified in the Document
@@ -1156,8 +1357,8 @@ func (c *Route53) CreateVPCAssociationAuthorizationRequest(input *CreateVPCAssoc
 //
 // Returned Error Codes:
 //   * ErrCodeConcurrentModification "ConcurrentModification"
-//   Another user submitted a request to update the object at the same time that
-//   you did. Retry the request.
+//   Another user submitted a request to create, update, or delete the object
+//   at the same time that you did. Retry the request.
 //
 //   * ErrCodeTooManyVPCAssociationAuthorizations "TooManyVPCAssociationAuthorizations"
 //   You've created the maximum number of authorizations that can be created for
@@ -1416,6 +1617,96 @@ func (c *Route53) DeleteHostedZoneWithContext(ctx aws.Context, input *DeleteHost
 	return out, req.Send()
 }
 
+const opDeleteQueryLoggingConfig = "DeleteQueryLoggingConfig"
+
+// DeleteQueryLoggingConfigRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteQueryLoggingConfig operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteQueryLoggingConfig for more information on using the DeleteQueryLoggingConfig
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteQueryLoggingConfigRequest method.
+//    req, resp := client.DeleteQueryLoggingConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/DeleteQueryLoggingConfig
+func (c *Route53) DeleteQueryLoggingConfigRequest(input *DeleteQueryLoggingConfigInput) (req *request.Request, output *DeleteQueryLoggingConfigOutput) {
+	op := &request.Operation{
+		Name:       opDeleteQueryLoggingConfig,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/2013-04-01/queryloggingconfig/{Id}",
+	}
+
+	if input == nil {
+		input = &DeleteQueryLoggingConfigInput{}
+	}
+
+	output = &DeleteQueryLoggingConfigOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteQueryLoggingConfig API operation for Amazon Route 53.
+//
+// Deletes a configuration for DNS query logging. If you delete a configuration,
+// Amazon Route 53 stops sending query logs to CloudWatch Logs. Amazon Route
+// 53 doesn't delete any logs that are already in CloudWatch Logs.
+//
+// For more information about DNS query logs, see CreateQueryLoggingConfig.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Route 53's
+// API operation DeleteQueryLoggingConfig for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeConcurrentModification "ConcurrentModification"
+//   Another user submitted a request to create, update, or delete the object
+//   at the same time that you did. Retry the request.
+//
+//   * ErrCodeNoSuchQueryLoggingConfig "NoSuchQueryLoggingConfig"
+//   There is no DNS query logging configuration with the specified ID.
+//
+//   * ErrCodeInvalidInput "InvalidInput"
+//   The input is not valid.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/DeleteQueryLoggingConfig
+func (c *Route53) DeleteQueryLoggingConfig(input *DeleteQueryLoggingConfigInput) (*DeleteQueryLoggingConfigOutput, error) {
+	req, out := c.DeleteQueryLoggingConfigRequest(input)
+	return out, req.Send()
+}
+
+// DeleteQueryLoggingConfigWithContext is the same as DeleteQueryLoggingConfig with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteQueryLoggingConfig for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Route53) DeleteQueryLoggingConfigWithContext(ctx aws.Context, input *DeleteQueryLoggingConfigInput, opts ...request.Option) (*DeleteQueryLoggingConfigOutput, error) {
+	req, out := c.DeleteQueryLoggingConfigRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteReusableDelegationSet = "DeleteReusableDelegationSet"
 
 // DeleteReusableDelegationSetRequest generates a "aws/request.Request" representing the
@@ -1577,8 +1868,8 @@ func (c *Route53) DeleteTrafficPolicyRequest(input *DeleteTrafficPolicyInput) (r
 //   traffic policy.
 //
 //   * ErrCodeConcurrentModification "ConcurrentModification"
-//   Another user submitted a request to update the object at the same time that
-//   you did. Retry the request.
+//   Another user submitted a request to create, update, or delete the object
+//   at the same time that you did. Retry the request.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/DeleteTrafficPolicy
 func (c *Route53) DeleteTrafficPolicy(input *DeleteTrafficPolicyInput) (*DeleteTrafficPolicyOutput, error) {
@@ -1759,8 +2050,8 @@ func (c *Route53) DeleteVPCAssociationAuthorizationRequest(input *DeleteVPCAssoc
 //
 // Returned Error Codes:
 //   * ErrCodeConcurrentModification "ConcurrentModification"
-//   Another user submitted a request to update the object at the same time that
-//   you did. Retry the request.
+//   Another user submitted a request to create, update, or delete the object
+//   at the same time that you did. Retry the request.
 //
 //   * ErrCodeVPCAssociationAuthorizationNotFound "VPCAssociationAuthorizationNotFound"
 //   The VPC that you specified is not authorized to be associated with the hosted
@@ -2655,6 +2946,91 @@ func (c *Route53) GetHostedZoneCountWithContext(ctx aws.Context, input *GetHoste
 	return out, req.Send()
 }
 
+const opGetQueryLoggingConfig = "GetQueryLoggingConfig"
+
+// GetQueryLoggingConfigRequest generates a "aws/request.Request" representing the
+// client's request for the GetQueryLoggingConfig operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetQueryLoggingConfig for more information on using the GetQueryLoggingConfig
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetQueryLoggingConfigRequest method.
+//    req, resp := client.GetQueryLoggingConfigRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/GetQueryLoggingConfig
+func (c *Route53) GetQueryLoggingConfigRequest(input *GetQueryLoggingConfigInput) (req *request.Request, output *GetQueryLoggingConfigOutput) {
+	op := &request.Operation{
+		Name:       opGetQueryLoggingConfig,
+		HTTPMethod: "GET",
+		HTTPPath:   "/2013-04-01/queryloggingconfig/{Id}",
+	}
+
+	if input == nil {
+		input = &GetQueryLoggingConfigInput{}
+	}
+
+	output = &GetQueryLoggingConfigOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetQueryLoggingConfig API operation for Amazon Route 53.
+//
+// Gets information about a specified configuration for DNS query logging.
+//
+// For more information about DNS query logs, see CreateQueryLoggingConfig and
+// Logging DNS Queries (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/query-logs.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Route 53's
+// API operation GetQueryLoggingConfig for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchQueryLoggingConfig "NoSuchQueryLoggingConfig"
+//   There is no DNS query logging configuration with the specified ID.
+//
+//   * ErrCodeInvalidInput "InvalidInput"
+//   The input is not valid.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/GetQueryLoggingConfig
+func (c *Route53) GetQueryLoggingConfig(input *GetQueryLoggingConfigInput) (*GetQueryLoggingConfigOutput, error) {
+	req, out := c.GetQueryLoggingConfigRequest(input)
+	return out, req.Send()
+}
+
+// GetQueryLoggingConfigWithContext is the same as GetQueryLoggingConfig with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetQueryLoggingConfig for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Route53) GetQueryLoggingConfigWithContext(ctx aws.Context, input *GetQueryLoggingConfigInput, opts ...request.Option) (*GetQueryLoggingConfigOutput, error) {
+	req, out := c.GetQueryLoggingConfigRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetReusableDelegationSet = "GetReusableDelegationSet"
 
 // GetReusableDelegationSetRequest generates a "aws/request.Request" representing the
@@ -3485,6 +3861,99 @@ func (c *Route53) ListHostedZonesByName(input *ListHostedZonesByNameInput) (*Lis
 // for more information on using Contexts.
 func (c *Route53) ListHostedZonesByNameWithContext(ctx aws.Context, input *ListHostedZonesByNameInput, opts ...request.Option) (*ListHostedZonesByNameOutput, error) {
 	req, out := c.ListHostedZonesByNameRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListQueryLoggingConfigs = "ListQueryLoggingConfigs"
+
+// ListQueryLoggingConfigsRequest generates a "aws/request.Request" representing the
+// client's request for the ListQueryLoggingConfigs operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListQueryLoggingConfigs for more information on using the ListQueryLoggingConfigs
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListQueryLoggingConfigsRequest method.
+//    req, resp := client.ListQueryLoggingConfigsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/ListQueryLoggingConfigs
+func (c *Route53) ListQueryLoggingConfigsRequest(input *ListQueryLoggingConfigsInput) (req *request.Request, output *ListQueryLoggingConfigsOutput) {
+	op := &request.Operation{
+		Name:       opListQueryLoggingConfigs,
+		HTTPMethod: "GET",
+		HTTPPath:   "/2013-04-01/queryloggingconfig",
+	}
+
+	if input == nil {
+		input = &ListQueryLoggingConfigsInput{}
+	}
+
+	output = &ListQueryLoggingConfigsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListQueryLoggingConfigs API operation for Amazon Route 53.
+//
+// Lists the configurations for DNS query logging that are associated with the
+// current AWS account or the configuration that is associated with a specified
+// hosted zone.
+//
+// For more information about DNS query logs, see CreateQueryLoggingConfig.
+// Additional information, including the format of DNS query logs, appears in
+// Logging DNS Queries (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/query-logs.html)
+// in the Amazon Route 53 Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Route 53's
+// API operation ListQueryLoggingConfigs for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidInput "InvalidInput"
+//   The input is not valid.
+//
+//   * ErrCodeInvalidPaginationToken "InvalidPaginationToken"
+//   The value that you specified to get the second or subsequent page of results
+//   is invalid.
+//
+//   * ErrCodeNoSuchHostedZone "NoSuchHostedZone"
+//   No hosted zone exists with the ID that you specified.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/ListQueryLoggingConfigs
+func (c *Route53) ListQueryLoggingConfigs(input *ListQueryLoggingConfigsInput) (*ListQueryLoggingConfigsOutput, error) {
+	req, out := c.ListQueryLoggingConfigsRequest(input)
+	return out, req.Send()
+}
+
+// ListQueryLoggingConfigsWithContext is the same as ListQueryLoggingConfigs with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListQueryLoggingConfigs for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Route53) ListQueryLoggingConfigsWithContext(ctx aws.Context, input *ListQueryLoggingConfigsInput, opts ...request.Option) (*ListQueryLoggingConfigsOutput, error) {
+	req, out := c.ListQueryLoggingConfigsRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -4459,6 +4928,8 @@ func (c *Route53) ListVPCAssociationAuthorizationsRequest(input *ListVPCAssociat
 //   The input is not valid.
 //
 //   * ErrCodeInvalidPaginationToken "InvalidPaginationToken"
+//   The value that you specified to get the second or subsequent page of results
+//   is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/ListVPCAssociationAuthorizations
 func (c *Route53) ListVPCAssociationAuthorizations(input *ListVPCAssociationAuthorizationsInput) (*ListVPCAssociationAuthorizationsOutput, error) {
@@ -4800,8 +5271,8 @@ func (c *Route53) UpdateTrafficPolicyCommentRequest(input *UpdateTrafficPolicyCo
 //   No traffic policy exists with the specified ID.
 //
 //   * ErrCodeConcurrentModification "ConcurrentModification"
-//   Another user submitted a request to update the object at the same time that
-//   you did. Retry the request.
+//   Another user submitted a request to create, update, or delete the object
+//   at the same time that you did. Retry the request.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/UpdateTrafficPolicyComment
 func (c *Route53) UpdateTrafficPolicyComment(input *UpdateTrafficPolicyCommentInput) (*UpdateTrafficPolicyCommentOutput, error) {
@@ -5069,12 +5540,16 @@ type AliasTarget struct {
 	// Elastic Load Balancing API: Use DescribeLoadBalancers to get the value of
 	// DNSName. For more information, see the applicable guide:
 	//
-	// Classic Load Balancer: DescribeLoadBalancers (http://docs.aws.amazon.com/elasticloadbalancing/2012-06-01/APIReference/API_DescribeLoadBalancers.html)
+	// Classic Load Balancers: DescribeLoadBalancers (http://docs.aws.amazon.com/elasticloadbalancing/2012-06-01/APIReference/API_DescribeLoadBalancers.html)
 	//
-	// Application Load Balancer: DescribeLoadBalancers (http://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_DescribeLoadBalancers.html)
+	// Application and Network Load Balancers: DescribeLoadBalancers (http://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_DescribeLoadBalancers.html)
 	//
-	// AWS CLI: Use describe-load-balancers (http://docs.aws.amazon.com/cli/latest/reference/elb/describe-load-balancers.html)
-	// to get the value of DNSName.
+	// AWS CLI: Use describe-load-balancers to get the value of DNSName. For more
+	// information, see the applicable guide:
+	//
+	// Classic Load Balancers: describe-load-balancers (http://docs.aws.amazon.com/cli/latest/reference/elb/describe-load-balancers.html)
+	//
+	// Application and Network Load Balancers: describe-load-balancers (http://docs.aws.amazon.com/cli/latest/reference/elbv2/describe-load-balancers.html)
 	//
 	// Amazon S3 bucket that is configured as a static websiteSpecify the domain
 	// name of the Amazon S3 website endpoint in which you created the bucket, for
@@ -5163,23 +5638,28 @@ type AliasTarget struct {
 	//
 	// Elastic Load Balancing (http://docs.aws.amazon.com/general/latest/gr/rande.html#elb_region)
 	// table in the "AWS Regions and Endpoints" chapter of the Amazon Web Services
-	// General Reference: Use the value in the "Amazon Route 53 Hosted Zone ID"
-	// column that corresponds with the region that you created your load balancer
-	// in.
+	// General Reference: Use the value that corresponds with the region that you
+	// created your load balancer in. Note that there are separate columns for Application
+	// and Classic Load Balancers and for Network Load Balancers.
 	//
-	// AWS Management Console: Go to the Amazon EC2 page, click Load Balancers in
-	// the navigation pane, select the load balancer, and get the value of the Hosted
-	// zone field on the Description tab.
+	// AWS Management Console: Go to the Amazon EC2 page, choose Load Balancers
+	// in the navigation pane, select the load balancer, and get the value of the
+	// Hosted zone field on the Description tab.
 	//
 	// Elastic Load Balancing API: Use DescribeLoadBalancers to get the value of
 	// CanonicalHostedZoneNameId. For more information, see the applicable guide:
 	//
-	// Classic Load Balancer: DescribeLoadBalancers (http://docs.aws.amazon.com/elasticloadbalancing/2012-06-01/APIReference/API_DescribeLoadBalancers.html)
+	// Classic Load Balancers: DescribeLoadBalancers (http://docs.aws.amazon.com/elasticloadbalancing/2012-06-01/APIReference/API_DescribeLoadBalancers.html)
 	//
-	// Application Load Balancer: DescribeLoadBalancers (http://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_DescribeLoadBalancers.html)
+	// Application and Network Load Balancers: DescribeLoadBalancers (http://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_DescribeLoadBalancers.html)
 	//
-	// AWS CLI: Use describe-load-balancers (http://docs.aws.amazon.com/cli/latest/reference/elb/describe-load-balancers.html)
-	// to get the value of CanonicalHostedZoneNameID.
+	// AWS CLI: Use describe-load-balancers to get the value of CanonicalHostedZoneNameID
+	// (for Classic Load Balancers) or CanonicalHostedZoneNameID (for Application
+	// and Network Load Balancers). For more information, see the applicable guide:
+	//
+	// Classic Load Balancers: describe-load-balancers (http://docs.aws.amazon.com/cli/latest/reference/elb/describe-load-balancers.html)
+	//
+	// Application and Network Load Balancers: describe-load-balancers (http://docs.aws.amazon.com/cli/latest/reference/elbv2/describe-load-balancers.html)
 	//
 	// An Amazon S3 bucket configured as a static websiteSpecify the hosted zone
 	// ID for the region that you created the bucket in. For more information about
@@ -6197,6 +6677,107 @@ func (s *CreateHostedZoneOutput) SetVPC(v *VPC) *CreateHostedZoneOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/CreateQueryLoggingConfigRequest
+type CreateQueryLoggingConfigInput struct {
+	_ struct{} `locationName:"CreateQueryLoggingConfigRequest" type:"structure" xmlURI:"https://route53.amazonaws.com/doc/2013-04-01/"`
+
+	// The Amazon Resource Name (ARN) for the log group that you want to Amazon
+	// Route 53 to send query logs to. This is the format of the ARN:
+	//
+	// arn:aws:logs:region:account-id:log-group:log_group_name
+	//
+	// To get the ARN for a log group, you can use the CloudWatch console, the DescribeLogGroups
+	// (http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeLogGroups.html)
+	// API action, the describe-log-groups (http://docs.aws.amazon.com/cli/latest/reference/logs/describe-log-groups.html)
+	// command, or the applicable command in one of the AWS SDKs.
+	//
+	// CloudWatchLogsLogGroupArn is a required field
+	CloudWatchLogsLogGroupArn *string `type:"string" required:"true"`
+
+	// The ID of the hosted zone that you want to log queries for. You can log queries
+	// only for public hosted zones.
+	//
+	// HostedZoneId is a required field
+	HostedZoneId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateQueryLoggingConfigInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateQueryLoggingConfigInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateQueryLoggingConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateQueryLoggingConfigInput"}
+	if s.CloudWatchLogsLogGroupArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("CloudWatchLogsLogGroupArn"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCloudWatchLogsLogGroupArn sets the CloudWatchLogsLogGroupArn field's value.
+func (s *CreateQueryLoggingConfigInput) SetCloudWatchLogsLogGroupArn(v string) *CreateQueryLoggingConfigInput {
+	s.CloudWatchLogsLogGroupArn = &v
+	return s
+}
+
+// SetHostedZoneId sets the HostedZoneId field's value.
+func (s *CreateQueryLoggingConfigInput) SetHostedZoneId(v string) *CreateQueryLoggingConfigInput {
+	s.HostedZoneId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/CreateQueryLoggingConfigResponse
+type CreateQueryLoggingConfigOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique URL representing the new query logging configuration.
+	//
+	// Location is a required field
+	Location *string `location:"header" locationName:"Location" type:"string" required:"true"`
+
+	// A complex type that contains the ID for a query logging configuration, the
+	// ID of the hosted zone that you want to log queries for, and the ARN for the
+	// log group that you want Amazon Route 53 to send query logs to.
+	//
+	// QueryLoggingConfig is a required field
+	QueryLoggingConfig *QueryLoggingConfig `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateQueryLoggingConfigOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateQueryLoggingConfigOutput) GoString() string {
+	return s.String()
+}
+
+// SetLocation sets the Location field's value.
+func (s *CreateQueryLoggingConfigOutput) SetLocation(v string) *CreateQueryLoggingConfigOutput {
+	s.Location = &v
+	return s
+}
+
+// SetQueryLoggingConfig sets the QueryLoggingConfig field's value.
+func (s *CreateQueryLoggingConfigOutput) SetQueryLoggingConfig(v *QueryLoggingConfig) *CreateQueryLoggingConfigOutput {
+	s.QueryLoggingConfig = v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/CreateReusableDelegationSetRequest
 type CreateReusableDelegationSetInput struct {
 	_ struct{} `locationName:"CreateReusableDelegationSetRequest" type:"structure" xmlURI:"https://route53.amazonaws.com/doc/2013-04-01/"`
@@ -6924,6 +7505,63 @@ func (s DeleteHostedZoneOutput) GoString() string {
 func (s *DeleteHostedZoneOutput) SetChangeInfo(v *ChangeInfo) *DeleteHostedZoneOutput {
 	s.ChangeInfo = v
 	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/DeleteQueryLoggingConfigRequest
+type DeleteQueryLoggingConfigInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the configuration that you want to delete.
+	//
+	// Id is a required field
+	Id *string `location:"uri" locationName:"Id" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteQueryLoggingConfigInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteQueryLoggingConfigInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteQueryLoggingConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteQueryLoggingConfigInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetId sets the Id field's value.
+func (s *DeleteQueryLoggingConfigInput) SetId(v string) *DeleteQueryLoggingConfigInput {
+	s.Id = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/DeleteQueryLoggingConfigResponse
+type DeleteQueryLoggingConfigOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteQueryLoggingConfigOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteQueryLoggingConfigOutput) GoString() string {
+	return s.String()
 }
 
 // A request to delete a reusable delegation set.
@@ -8094,6 +8732,76 @@ func (s *GetHostedZoneOutput) SetVPCs(v []*VPC) *GetHostedZoneOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/GetQueryLoggingConfigRequest
+type GetQueryLoggingConfigInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the configuration for DNS query logging that you want to get information
+	// about.
+	//
+	// Id is a required field
+	Id *string `location:"uri" locationName:"Id" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetQueryLoggingConfigInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetQueryLoggingConfigInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetQueryLoggingConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetQueryLoggingConfigInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetId sets the Id field's value.
+func (s *GetQueryLoggingConfigInput) SetId(v string) *GetQueryLoggingConfigInput {
+	s.Id = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/GetQueryLoggingConfigResponse
+type GetQueryLoggingConfigOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A complex type that contains information about the query logging configuration
+	// that you specified in a GetQueryLoggingConfig request.
+	//
+	// QueryLoggingConfig is a required field
+	QueryLoggingConfig *QueryLoggingConfig `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s GetQueryLoggingConfigOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetQueryLoggingConfigOutput) GoString() string {
+	return s.String()
+}
+
+// SetQueryLoggingConfig sets the QueryLoggingConfig field's value.
+func (s *GetQueryLoggingConfigOutput) SetQueryLoggingConfig(v *QueryLoggingConfig) *GetQueryLoggingConfigOutput {
+	s.QueryLoggingConfig = v
+	return s
+}
+
 // A request to get information about a specified reusable delegation set.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/GetReusableDelegationSetRequest
 type GetReusableDelegationSetInput struct {
@@ -8402,6 +9110,11 @@ type HealthCheck struct {
 	//
 	// Id is a required field
 	Id *string `type:"string" required:"true"`
+
+	// If the health check was created by another service, the service that created
+	// the health check. When a health check is created by another service, you
+	// can't edit or delete it using Amazon Route 53.
+	LinkedService *LinkedService `type:"structure"`
 }
 
 // String returns the string representation
@@ -8441,6 +9154,12 @@ func (s *HealthCheck) SetHealthCheckVersion(v int64) *HealthCheck {
 // SetId sets the Id field's value.
 func (s *HealthCheck) SetId(v string) *HealthCheck {
 	s.Id = &v
+	return s
+}
+
+// SetLinkedService sets the LinkedService field's value.
+func (s *HealthCheck) SetLinkedService(v *LinkedService) *HealthCheck {
+	s.LinkedService = v
 	return s
 }
 
@@ -8924,6 +9643,11 @@ type HostedZone struct {
 	// Id is a required field
 	Id *string `type:"string" required:"true"`
 
+	// If the hosted zone was created by another service, the service that created
+	// the hosted zone. When a hosted zone is created by another service, you can't
+	// edit or delete it using Amazon Route 53.
+	LinkedService *LinkedService `type:"structure"`
+
 	// The name of the domain. For public hosted zones, this is the name that you
 	// have registered with your DNS registrar.
 	//
@@ -8962,6 +9686,12 @@ func (s *HostedZone) SetConfig(v *HostedZoneConfig) *HostedZone {
 // SetId sets the Id field's value.
 func (s *HostedZone) SetId(v string) *HostedZone {
 	s.Id = &v
+	return s
+}
+
+// SetLinkedService sets the LinkedService field's value.
+func (s *HostedZone) SetLinkedService(v *LinkedService) *HostedZone {
+	s.LinkedService = v
 	return s
 }
 
@@ -9010,6 +9740,48 @@ func (s *HostedZoneConfig) SetComment(v string) *HostedZoneConfig {
 // SetPrivateZone sets the PrivateZone field's value.
 func (s *HostedZoneConfig) SetPrivateZone(v bool) *HostedZoneConfig {
 	s.PrivateZone = &v
+	return s
+}
+
+// If a health check or hosted zone was created by another service, LinkedService
+// is a complex type that describes the service that created the resource. When
+// a resource is created by another service, you can't edit or delete it using
+// Amazon Route 53.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/LinkedService
+type LinkedService struct {
+	_ struct{} `type:"structure"`
+
+	// If the health check or hosted zone was created by another service, an optional
+	// description that can be provided by the other service. When a resource is
+	// created by another service, you can't edit or delete it using Amazon Route
+	// 53.
+	Description *string `type:"string"`
+
+	// If the health check or hosted zone was created by another service, the service
+	// that created the resource. When a resource is created by another service,
+	// you can't edit or delete it using Amazon Route 53.
+	ServicePrincipal *string `type:"string"`
+}
+
+// String returns the string representation
+func (s LinkedService) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LinkedService) GoString() string {
+	return s.String()
+}
+
+// SetDescription sets the Description field's value.
+func (s *LinkedService) SetDescription(v string) *LinkedService {
+	s.Description = &v
+	return s
+}
+
+// SetServicePrincipal sets the ServicePrincipal field's value.
+func (s *LinkedService) SetServicePrincipal(v string) *LinkedService {
+	s.ServicePrincipal = &v
 	return s
 }
 
@@ -9616,6 +10388,107 @@ func (s *ListHostedZonesOutput) SetMaxItems(v string) *ListHostedZonesOutput {
 // SetNextMarker sets the NextMarker field's value.
 func (s *ListHostedZonesOutput) SetNextMarker(v string) *ListHostedZonesOutput {
 	s.NextMarker = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/ListQueryLoggingConfigsRequest
+type ListQueryLoggingConfigsInput struct {
+	_ struct{} `type:"structure"`
+
+	// (Optional) If you want to list the query logging configuration that is associated
+	// with a hosted zone, specify the ID in HostedZoneId.
+	//
+	// If you don't specify a hosted zone ID, ListQueryLoggingConfigs returns all
+	// of the configurations that are associated with the current AWS account.
+	HostedZoneId *string `location:"querystring" locationName:"hostedzoneid" type:"string"`
+
+	// (Optional) The maximum number of query logging configurations that you want
+	// Amazon Route 53 to return in response to the current request. If the current
+	// AWS account has more than MaxResults configurations, use the value of ListQueryLoggingConfigsResponse$NextToken
+	// in the response to get the next page of results.
+	//
+	// If you don't specify a value for MaxResults, Amazon Route 53 returns up to
+	// 100 configurations.
+	MaxResults *string `location:"querystring" locationName:"maxresults" type:"string"`
+
+	// (Optional) If the current AWS account has more than MaxResults query logging
+	// configurations, use NextToken to get the second and subsequent pages of results.
+	//
+	// For the first ListQueryLoggingConfigs request, omit this value.
+	//
+	// For the second and subsequent requests, get the value of NextToken from the
+	// previous response and specify that value for NextToken in the request.
+	NextToken *string `location:"querystring" locationName:"nexttoken" type:"string"`
+}
+
+// String returns the string representation
+func (s ListQueryLoggingConfigsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListQueryLoggingConfigsInput) GoString() string {
+	return s.String()
+}
+
+// SetHostedZoneId sets the HostedZoneId field's value.
+func (s *ListQueryLoggingConfigsInput) SetHostedZoneId(v string) *ListQueryLoggingConfigsInput {
+	s.HostedZoneId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListQueryLoggingConfigsInput) SetMaxResults(v string) *ListQueryLoggingConfigsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListQueryLoggingConfigsInput) SetNextToken(v string) *ListQueryLoggingConfigsInput {
+	s.NextToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/ListQueryLoggingConfigsResponse
+type ListQueryLoggingConfigsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// If a response includes the last of the query logging configurations that
+	// are associated with the current AWS account, NextToken doesn't appear in
+	// the response.
+	//
+	// If a response doesn't include the last of the configurations, you can get
+	// more configurations by submitting another ListQueryLoggingConfigs request.
+	// Get the value of NextToken that Amazon Route 53 returned in the previous
+	// response and include it in NextToken in the next request.
+	NextToken *string `type:"string"`
+
+	// An array that contains one QueryLoggingConfig element for each configuration
+	// for DNS query logging that is associated with the current AWS account.
+	//
+	// QueryLoggingConfigs is a required field
+	QueryLoggingConfigs []*QueryLoggingConfig `locationNameList:"QueryLoggingConfig" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s ListQueryLoggingConfigsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListQueryLoggingConfigsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListQueryLoggingConfigsOutput) SetNextToken(v string) *ListQueryLoggingConfigsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetQueryLoggingConfigs sets the QueryLoggingConfigs field's value.
+func (s *ListQueryLoggingConfigsOutput) SetQueryLoggingConfigs(v []*QueryLoggingConfig) *ListQueryLoggingConfigsOutput {
+	s.QueryLoggingConfigs = v
 	return s
 }
 
@@ -11059,6 +11932,57 @@ func (s *ListVPCAssociationAuthorizationsOutput) SetVPCs(v []*VPC) *ListVPCAssoc
 	return s
 }
 
+// A complex type that contains information about a configuration for DNS query
+// logging.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53-2013-04-01/QueryLoggingConfig
+type QueryLoggingConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the CloudWatch Logs log group that Amazon
+	// Route 53 is publishing logs to.
+	//
+	// CloudWatchLogsLogGroupArn is a required field
+	CloudWatchLogsLogGroupArn *string `type:"string" required:"true"`
+
+	// The ID of the hosted zone that CloudWatch Logs is logging queries for.
+	//
+	// HostedZoneId is a required field
+	HostedZoneId *string `type:"string" required:"true"`
+
+	// The ID for a configuration for DNS query logging.
+	//
+	// Id is a required field
+	Id *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s QueryLoggingConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s QueryLoggingConfig) GoString() string {
+	return s.String()
+}
+
+// SetCloudWatchLogsLogGroupArn sets the CloudWatchLogsLogGroupArn field's value.
+func (s *QueryLoggingConfig) SetCloudWatchLogsLogGroupArn(v string) *QueryLoggingConfig {
+	s.CloudWatchLogsLogGroupArn = &v
+	return s
+}
+
+// SetHostedZoneId sets the HostedZoneId field's value.
+func (s *QueryLoggingConfig) SetHostedZoneId(v string) *QueryLoggingConfig {
+	s.HostedZoneId = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *QueryLoggingConfig) SetId(v string) *QueryLoggingConfig {
+	s.Id = &v
+	return s
+}
+
 // Information specific to the resource record.
 //
 // If you're creating an alias resource record set, omit ResourceRecord.
@@ -12491,6 +13415,23 @@ type UpdateHealthCheckInput struct {
 	// want Amazon Route 53 health checkers to check the specified endpoint from.
 	Regions []*string `locationNameList:"Region" min:"3" type:"list"`
 
+	// A complex type that contains one ResettableElementName element for each element
+	// that you want to reset to the default value. Valid values for ResettableElementName
+	// include the following:
+	//
+	//    * ChildHealthChecks: Amazon Route 53 resets HealthCheckConfig$ChildHealthChecks
+	//    to null.
+	//
+	//    * FullyQualifiedDomainName: Amazon Route 53 resets HealthCheckConfig$FullyQualifiedDomainName
+	//    to null.
+	//
+	//    * Regions: Amazon Route 53 resets the HealthCheckConfig$Regions list to
+	//    the default set of regions.
+	//
+	//    * ResourcePath: Amazon Route 53 resets HealthCheckConfig$ResourcePath
+	//    to null.
+	ResetElements []*string `locationNameList:"ResettableElementName" type:"list"`
+
 	// The path that you want Amazon Route 53 to request when performing health
 	// checks. The path can be any value for which your endpoint will return an
 	// HTTP status code of 2xx or 3xx when the endpoint is healthy, for example
@@ -12622,6 +13563,12 @@ func (s *UpdateHealthCheckInput) SetPort(v int64) *UpdateHealthCheckInput {
 // SetRegions sets the Regions field's value.
 func (s *UpdateHealthCheckInput) SetRegions(v []*string) *UpdateHealthCheckInput {
 	s.Regions = v
+	return s
+}
+
+// SetResetElements sets the ResetElements field's value.
+func (s *UpdateHealthCheckInput) SetResetElements(v []*string) *UpdateHealthCheckInput {
+	s.ResetElements = v
 	return s
 }
 
@@ -13190,6 +14137,20 @@ const (
 
 	// RRTypeCaa is a RRType enum value
 	RRTypeCaa = "CAA"
+)
+
+const (
+	// ResettableElementNameFullyQualifiedDomainName is a ResettableElementName enum value
+	ResettableElementNameFullyQualifiedDomainName = "FullyQualifiedDomainName"
+
+	// ResettableElementNameRegions is a ResettableElementName enum value
+	ResettableElementNameRegions = "Regions"
+
+	// ResettableElementNameResourcePath is a ResettableElementName enum value
+	ResettableElementNameResourcePath = "ResourcePath"
+
+	// ResettableElementNameChildHealthChecks is a ResettableElementName enum value
+	ResettableElementNameChildHealthChecks = "ChildHealthChecks"
 )
 
 const (

@@ -54,7 +54,12 @@ func (c *SFN) CreateActivityRequest(input *CreateActivityInput) (req *request.Re
 
 // CreateActivity API operation for AWS Step Functions.
 //
-// Creates an activity.
+// Creates an activity. An Activity is a task which you write, in any language
+// and hosted on any machine which has access to AWS Step Functions. Activities
+// must poll Step Functions using the GetActivityTask and respond using SendTask*
+// API calls. This function lets Step Functions know the existence of your activity
+// and returns an identifier for use in a state machine and when polling from
+// the activity.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -137,7 +142,10 @@ func (c *SFN) CreateStateMachineRequest(input *CreateStateMachineInput) (req *re
 
 // CreateStateMachine API operation for AWS Step Functions.
 //
-// Creates a state machine.
+// Creates a state machine. A state machine consists of a collection of states
+// that can do work (Task states), determine which states to transition to next
+// (Choice states), stop an execution with an error (Fail states), and so on.
+// State machines are specified using a JSON-based, structured language.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -313,7 +321,10 @@ func (c *SFN) DeleteStateMachineRequest(input *DeleteStateMachineInput) (req *re
 // DeleteStateMachine API operation for AWS Step Functions.
 //
 // Deletes a state machine. This is an asynchronous operation-- it sets the
-// state machine's status to "DELETING" and begins the delete process.
+// state machine's status to "DELETING" and begins the delete process. Each
+// state machine execution will be deleted the next time it makes a state transition.
+// After all executions have completed or been deleted, the state machine itself
+// will be deleted.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -638,13 +649,13 @@ func (c *SFN) GetActivityTaskRequest(input *GetActivityTaskInput) (req *request.
 
 // GetActivityTask API operation for AWS Step Functions.
 //
-// Used by workers to retrieve a task (with the specified activity ARN) scheduled
-// for execution by a running state machine. This initiates a long poll, where
-// the service holds the HTTP connection open and responds as soon as a task
-// becomes available (i.e. an execution of a task of this type is needed.) The
-// maximum time the service holds on to the request before responding is 60
-// seconds. If no task is available within 60 seconds, the poll will return
-// an empty result, that is, the taskToken returned is an empty string.
+// Used by workers to retrieve a task (with the specified activity ARN) which
+// has been scheduled for execution by a running state machine. This initiates
+// a long poll, where the service holds the HTTP connection open and responds
+// as soon as a task becomes available (i.e. an execution of a task of this
+// type is needed.) The maximum time the service holds on to the request before
+// responding is 60 seconds. If no task is available within 60 seconds, the
+// poll will return a taskToken with a null string.
 //
 // Workers should set their client side socket timeout to at least 65 seconds
 // (5 seconds higher than the maximum time the service may hold the poll request).
@@ -1575,7 +1586,9 @@ func (c *SFN) StartExecutionRequest(input *StartExecutionInput) (req *request.Re
 //   must end or be stopped before a new execution can be started.
 //
 //   * ErrCodeExecutionAlreadyExists "ExecutionAlreadyExists"
-//   An execution with the same name already exists.
+//   The execution has the same name as another execution (but a different input).
+//
+//   Executions with the same name and input are considered idempotent.
 //
 //   * ErrCodeInvalidArn "InvalidArn"
 //   The provided Amazon Resource Name (ARN) is invalid.
@@ -1696,6 +1709,7 @@ func (c *SFN) StopExecutionWithContext(ctx aws.Context, input *StopExecutionInpu
 	return out, req.Send()
 }
 
+// Contains details about an activity which failed during an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ActivityFailedEventDetails
 type ActivityFailedEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -1729,6 +1743,7 @@ func (s *ActivityFailedEventDetails) SetError(v string) *ActivityFailedEventDeta
 	return s
 }
 
+// Contains details about an activity.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ActivityListItem
 type ActivityListItem struct {
 	_ struct{} `type:"structure"`
@@ -1744,6 +1759,18 @@ type ActivityListItem struct {
 	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix" required:"true"`
 
 	// The name of the activity.
+	//
+	// A name must not contain:
+	//
+	//    * whitespace
+	//
+	//    * brackets < > { } [ ]
+	//
+	//    * wildcard characters ? *
+	//
+	//    * special characters " # % \ ^ | ~ ` $ & , ; : /
+	//
+	//    * control characters (U+0000-001F, U+007F-009F)
 	//
 	// Name is a required field
 	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
@@ -1777,6 +1804,8 @@ func (s *ActivityListItem) SetName(v string) *ActivityListItem {
 	return s
 }
 
+// Contains details about an activity schedule failure which occurred during
+// an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ActivityScheduleFailedEventDetails
 type ActivityScheduleFailedEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -1810,6 +1839,7 @@ func (s *ActivityScheduleFailedEventDetails) SetError(v string) *ActivitySchedul
 	return s
 }
 
+// Contains details about an activity scheduled during an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ActivityScheduledEventDetails
 type ActivityScheduledEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -1863,6 +1893,7 @@ func (s *ActivityScheduledEventDetails) SetTimeoutInSeconds(v int64) *ActivitySc
 	return s
 }
 
+// Contains details about the start of an activity during an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ActivityStartedEventDetails
 type ActivityStartedEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -1888,6 +1919,8 @@ func (s *ActivityStartedEventDetails) SetWorkerName(v string) *ActivityStartedEv
 	return s
 }
 
+// Contains details about an activity which successfully terminated during an
+// execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ActivitySucceededEventDetails
 type ActivitySucceededEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -1912,6 +1945,7 @@ func (s *ActivitySucceededEventDetails) SetOutput(v string) *ActivitySucceededEv
 	return s
 }
 
+// Contains details about an activity timeout which occurred during an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ActivityTimedOutEventDetails
 type ActivityTimedOutEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -1950,7 +1984,21 @@ type CreateActivityInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the activity to create. This name must be unique for your AWS
-	// account and region.
+	// account and region for 90 days. For more information, see  Limits Related
+	// to State Machine Executions (http://docs.aws.amazon.com/step-functions/latest/dg/limits.html#service-limits-state-machine-executions)
+	// in the AWS Step Functions Developer Guide.
+	//
+	// A name must not contain:
+	//
+	//    * whitespace
+	//
+	//    * brackets < > { } [ ]
+	//
+	//    * wildcard characters ? *
+	//
+	//    * special characters " # % \ ^ | ~ ` $ & , ; : /
+	//
+	//    * control characters (U+0000-001F, U+007F-009F)
 	//
 	// Name is a required field
 	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
@@ -2035,7 +2083,21 @@ type CreateStateMachineInput struct {
 	Definition *string `locationName:"definition" min:"1" type:"string" required:"true"`
 
 	// The name of the state machine. This name must be unique for your AWS account
-	// and region.
+	// and region for 90 days. For more information, see  Limits Related to State
+	// Machine Executions (http://docs.aws.amazon.com/step-functions/latest/dg/limits.html#service-limits-state-machine-executions)
+	// in the AWS Step Functions Developer Guide.
+	//
+	// A name must not contain:
+	//
+	//    * whitespace
+	//
+	//    * brackets < > { } [ ]
+	//
+	//    * wildcard characters ? *
+	//
+	//    * special characters " # % \ ^ | ~ ` $ & , ; : /
+	//
+	//    * control characters (U+0000-001F, U+007F-009F)
 	//
 	// Name is a required field
 	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
@@ -2311,6 +2373,18 @@ type DescribeActivityOutput struct {
 
 	// The name of the activity.
 	//
+	// A name must not contain:
+	//
+	//    * whitespace
+	//
+	//    * brackets < > { } [ ]
+	//
+	//    * wildcard characters ? *
+	//
+	//    * special characters " # % \ ^ | ~ ` $ & , ; : /
+	//
+	//    * control characters (U+0000-001F, U+007F-009F)
+	//
 	// Name is a required field
 	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
 }
@@ -2394,12 +2468,24 @@ type DescribeExecutionOutput struct {
 	// ExecutionArn is a required field
 	ExecutionArn *string `locationName:"executionArn" min:"1" type:"string" required:"true"`
 
-	// The JSON input data of the execution.
+	// The string that contains the JSON input data of the execution.
 	//
 	// Input is a required field
 	Input *string `locationName:"input" type:"string" required:"true"`
 
 	// The name of the execution.
+	//
+	// A name must not contain:
+	//
+	//    * whitespace
+	//
+	//    * brackets < > { } [ ]
+	//
+	//    * wildcard characters ? *
+	//
+	//    * special characters " # % \ ^ | ~ ` $ & , ; : /
+	//
+	//    * control characters (U+0000-001F, U+007F-009F)
 	Name *string `locationName:"name" min:"1" type:"string"`
 
 	// The JSON output data of the execution.
@@ -2540,11 +2626,24 @@ type DescribeStateMachineOutput struct {
 
 	// The name of the state machine.
 	//
+	// A name must not contain:
+	//
+	//    * whitespace
+	//
+	//    * brackets < > { } [ ]
+	//
+	//    * wildcard characters ? *
+	//
+	//    * special characters " # % \ ^ | ~ ` $ & , ; : /
+	//
+	//    * control characters (U+0000-001F, U+007F-009F)
+	//
 	// Name is a required field
 	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
 
-	// The Amazon Resource Name (ARN) of the IAM role used for executing this state
-	// machine.
+	// The Amazon Resource Name (ARN) of the IAM role used when creating this state
+	// machine. (The IAM role maintains security by granting Step Functions access
+	// to AWS resources.)
 	//
 	// RoleArn is a required field
 	RoleArn *string `locationName:"roleArn" min:"1" type:"string" required:"true"`
@@ -2604,6 +2703,7 @@ func (s *DescribeStateMachineOutput) SetStatus(v string) *DescribeStateMachineOu
 	return s
 }
 
+// Contains details about an abort of an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ExecutionAbortedEventDetails
 type ExecutionAbortedEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -2637,6 +2737,7 @@ func (s *ExecutionAbortedEventDetails) SetError(v string) *ExecutionAbortedEvent
 	return s
 }
 
+// Contains details about an execution failure event.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ExecutionFailedEventDetails
 type ExecutionFailedEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -2670,6 +2771,7 @@ func (s *ExecutionFailedEventDetails) SetError(v string) *ExecutionFailedEventDe
 	return s
 }
 
+// Contains details about an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ExecutionListItem
 type ExecutionListItem struct {
 	_ struct{} `type:"structure"`
@@ -2680,6 +2782,18 @@ type ExecutionListItem struct {
 	ExecutionArn *string `locationName:"executionArn" min:"1" type:"string" required:"true"`
 
 	// The name of the execution.
+	//
+	// A name must not contain:
+	//
+	//    * whitespace
+	//
+	//    * brackets < > { } [ ]
+	//
+	//    * wildcard characters ? *
+	//
+	//    * special characters " # % \ ^ | ~ ` $ & , ; : /
+	//
+	//    * control characters (U+0000-001F, U+007F-009F)
 	//
 	// Name is a required field
 	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
@@ -2749,6 +2863,7 @@ func (s *ExecutionListItem) SetStopDate(v time.Time) *ExecutionListItem {
 	return s
 }
 
+// Contains details about the start of the execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ExecutionStartedEventDetails
 type ExecutionStartedEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -2783,6 +2898,7 @@ func (s *ExecutionStartedEventDetails) SetRoleArn(v string) *ExecutionStartedEve
 	return s
 }
 
+// Contains details about the successful termination of the execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ExecutionSucceededEventDetails
 type ExecutionSucceededEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -2807,6 +2923,7 @@ func (s *ExecutionSucceededEventDetails) SetOutput(v string) *ExecutionSucceeded
 	return s
 }
 
+// Contains details about the execution timeout which occurred during the execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/ExecutionTimedOutEventDetails
 type ExecutionTimedOutEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -2844,12 +2961,13 @@ func (s *ExecutionTimedOutEventDetails) SetError(v string) *ExecutionTimedOutEve
 type GetActivityTaskInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the activity to retrieve tasks from.
+	// The Amazon Resource Name (ARN) of the activity to retrieve tasks from (assigned
+	// when you create the task using CreateActivity.)
 	//
 	// ActivityArn is a required field
 	ActivityArn *string `locationName:"activityArn" min:"1" type:"string" required:"true"`
 
-	// An arbitrary name may be provided in order to identify the worker that the
+	// You can provide an arbitrary name in order to identify the worker that the
 	// task is assigned to. This name will be used when it is logged in the execution
 	// history.
 	WorkerName *string `locationName:"workerName" min:"1" type:"string"`
@@ -2900,7 +3018,7 @@ func (s *GetActivityTaskInput) SetWorkerName(v string) *GetActivityTaskInput {
 type GetActivityTaskOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The JSON input data for the task.
+	// The string that contains the JSON input data for the task.
 	Input *string `locationName:"input" type:"string"`
 
 	// A token that identifies the scheduled task. This token must be copied and
@@ -2942,7 +3060,7 @@ type GetExecutionHistoryInput struct {
 
 	// The maximum number of results that will be returned per call. nextToken can
 	// be used to obtain further pages of results. The default is 100 and the maximum
-	// allowed page size is 1000.
+	// allowed page size is 100. A value of 0 means to use the default.
 	//
 	// This is an upper limit only; the actual number of results returned per call
 	// may be fewer than the specified maximum.
@@ -3053,30 +3171,44 @@ func (s *GetExecutionHistoryOutput) SetNextToken(v string) *GetExecutionHistoryO
 	return s
 }
 
+// Contains details about the events of an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/HistoryEvent
 type HistoryEvent struct {
 	_ struct{} `type:"structure"`
 
+	// Contains details about an activity which failed during an execution.
 	ActivityFailedEventDetails *ActivityFailedEventDetails `locationName:"activityFailedEventDetails" type:"structure"`
 
+	// Contains details about an activity schedule event which failed during an
+	// execution.
 	ActivityScheduleFailedEventDetails *ActivityScheduleFailedEventDetails `locationName:"activityScheduleFailedEventDetails" type:"structure"`
 
+	// Contains details about an activity scheduled during an execution.
 	ActivityScheduledEventDetails *ActivityScheduledEventDetails `locationName:"activityScheduledEventDetails" type:"structure"`
 
+	// Contains details about the start of an activity during an execution.
 	ActivityStartedEventDetails *ActivityStartedEventDetails `locationName:"activityStartedEventDetails" type:"structure"`
 
+	// Contains details about an activity which successfully terminated during an
+	// execution.
 	ActivitySucceededEventDetails *ActivitySucceededEventDetails `locationName:"activitySucceededEventDetails" type:"structure"`
 
+	// Contains details about an activity timeout which occurred during an execution.
 	ActivityTimedOutEventDetails *ActivityTimedOutEventDetails `locationName:"activityTimedOutEventDetails" type:"structure"`
 
+	// Contains details about an abort of an execution.
 	ExecutionAbortedEventDetails *ExecutionAbortedEventDetails `locationName:"executionAbortedEventDetails" type:"structure"`
 
+	// Contains details about an execution failure event.
 	ExecutionFailedEventDetails *ExecutionFailedEventDetails `locationName:"executionFailedEventDetails" type:"structure"`
 
+	// Contains details about the start of the execution.
 	ExecutionStartedEventDetails *ExecutionStartedEventDetails `locationName:"executionStartedEventDetails" type:"structure"`
 
+	// Contains details about the successful termination of the execution.
 	ExecutionSucceededEventDetails *ExecutionSucceededEventDetails `locationName:"executionSucceededEventDetails" type:"structure"`
 
+	// Contains details about the execution timeout which occurred during the execution.
 	ExecutionTimedOutEventDetails *ExecutionTimedOutEventDetails `locationName:"executionTimedOutEventDetails" type:"structure"`
 
 	// The id of the event. Events are numbered sequentially, starting at one.
@@ -3084,26 +3216,38 @@ type HistoryEvent struct {
 	// Id is a required field
 	Id *int64 `locationName:"id" type:"long" required:"true"`
 
+	// Contains details about a lambda function which failed during an execution.
 	LambdaFunctionFailedEventDetails *LambdaFunctionFailedEventDetails `locationName:"lambdaFunctionFailedEventDetails" type:"structure"`
 
+	// Contains details about a failed lambda function schedule event which occurred
+	// during an execution.
 	LambdaFunctionScheduleFailedEventDetails *LambdaFunctionScheduleFailedEventDetails `locationName:"lambdaFunctionScheduleFailedEventDetails" type:"structure"`
 
+	// Contains details about a lambda function scheduled during an execution.
 	LambdaFunctionScheduledEventDetails *LambdaFunctionScheduledEventDetails `locationName:"lambdaFunctionScheduledEventDetails" type:"structure"`
 
+	// Contains details about a lambda function which failed to start during an
+	// execution.
 	LambdaFunctionStartFailedEventDetails *LambdaFunctionStartFailedEventDetails `locationName:"lambdaFunctionStartFailedEventDetails" type:"structure"`
 
+	// Contains details about a lambda function which terminated successfully during
+	// an execution.
 	LambdaFunctionSucceededEventDetails *LambdaFunctionSucceededEventDetails `locationName:"lambdaFunctionSucceededEventDetails" type:"structure"`
 
+	// Contains details about a lambda function timeout which occurred during an
+	// execution.
 	LambdaFunctionTimedOutEventDetails *LambdaFunctionTimedOutEventDetails `locationName:"lambdaFunctionTimedOutEventDetails" type:"structure"`
 
 	// The id of the previous event.
 	PreviousEventId *int64 `locationName:"previousEventId" type:"long"`
 
+	// Contains details about a state entered during an execution.
 	StateEnteredEventDetails *StateEnteredEventDetails `locationName:"stateEnteredEventDetails" type:"structure"`
 
+	// Contains details about an exit from a state during an execution.
 	StateExitedEventDetails *StateExitedEventDetails `locationName:"stateExitedEventDetails" type:"structure"`
 
-	// The date the event occured.
+	// The date the event occurred.
 	//
 	// Timestamp is a required field
 	Timestamp *time.Time `locationName:"timestamp" type:"timestamp" timestampFormat:"unix" required:"true"`
@@ -3262,6 +3406,7 @@ func (s *HistoryEvent) SetType(v string) *HistoryEvent {
 	return s
 }
 
+// Contains details about a lambda function which failed during an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/LambdaFunctionFailedEventDetails
 type LambdaFunctionFailedEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -3295,6 +3440,8 @@ func (s *LambdaFunctionFailedEventDetails) SetError(v string) *LambdaFunctionFai
 	return s
 }
 
+// Contains details about a failed lambda function schedule event which occurred
+// during an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/LambdaFunctionScheduleFailedEventDetails
 type LambdaFunctionScheduleFailedEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -3328,6 +3475,7 @@ func (s *LambdaFunctionScheduleFailedEventDetails) SetError(v string) *LambdaFun
 	return s
 }
 
+// Contains details about a lambda function scheduled during an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/LambdaFunctionScheduledEventDetails
 type LambdaFunctionScheduledEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -3372,6 +3520,8 @@ func (s *LambdaFunctionScheduledEventDetails) SetTimeoutInSeconds(v int64) *Lamb
 	return s
 }
 
+// Contains details about a lambda function which failed to start during an
+// execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/LambdaFunctionStartFailedEventDetails
 type LambdaFunctionStartFailedEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -3405,6 +3555,8 @@ func (s *LambdaFunctionStartFailedEventDetails) SetError(v string) *LambdaFuncti
 	return s
 }
 
+// Contains details about a lambda function which successfully terminated during
+// an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/LambdaFunctionSucceededEventDetails
 type LambdaFunctionSucceededEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -3429,6 +3581,8 @@ func (s *LambdaFunctionSucceededEventDetails) SetOutput(v string) *LambdaFunctio
 	return s
 }
 
+// Contains details about a lambda function timeout which occurred during an
+// execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/LambdaFunctionTimedOutEventDetails
 type LambdaFunctionTimedOutEventDetails struct {
 	_ struct{} `type:"structure"`
@@ -3468,7 +3622,7 @@ type ListActivitiesInput struct {
 
 	// The maximum number of results that will be returned per call. nextToken can
 	// be used to obtain further pages of results. The default is 100 and the maximum
-	// allowed page size is 1000.
+	// allowed page size is 100. A value of 0 means to use the default.
 	//
 	// This is an upper limit only; the actual number of results returned per call
 	// may be fewer than the specified maximum.
@@ -3564,7 +3718,7 @@ type ListExecutionsInput struct {
 
 	// The maximum number of results that will be returned per call. nextToken can
 	// be used to obtain further pages of results. The default is 100 and the maximum
-	// allowed page size is 1000.
+	// allowed page size is 100. A value of 0 means to use the default.
 	//
 	// This is an upper limit only; the actual number of results returned per call
 	// may be fewer than the specified maximum.
@@ -3688,7 +3842,7 @@ type ListStateMachinesInput struct {
 
 	// The maximum number of results that will be returned per call. nextToken can
 	// be used to obtain further pages of results. The default is 100 and the maximum
-	// allowed page size is 1000.
+	// allowed page size is 100. A value of 0 means to use the default.
 	//
 	// This is an upper limit only; the actual number of results returned per call
 	// may be fewer than the specified maximum.
@@ -3986,11 +4140,30 @@ func (s SendTaskSuccessOutput) GoString() string {
 type StartExecutionInput struct {
 	_ struct{} `type:"structure"`
 
-	// The JSON input data for the execution.
+	// The string that contains the JSON input data for the execution, for example:
+	//
+	// "input": "{\"first_name\" : \"test\"}"
+	//
+	// If you don't include any JSON input data, you still must include the two
+	// braces, for example: "input": "{}"
 	Input *string `locationName:"input" type:"string"`
 
 	// The name of the execution. This name must be unique for your AWS account
-	// and region.
+	// and region for 90 days. For more information, see  Limits Related to State
+	// Machine Executions (http://docs.aws.amazon.com/step-functions/latest/dg/limits.html#service-limits-state-machine-executions)
+	// in the AWS Step Functions Developer Guide.
+	//
+	// A name must not contain:
+	//
+	//    * whitespace
+	//
+	//    * brackets < > { } [ ]
+	//
+	//    * wildcard characters ? *
+	//
+	//    * special characters " # % \ ^ | ~ ` $ & , ; : /
+	//
+	//    * control characters (U+0000-001F, U+007F-009F)
 	Name *string `locationName:"name" min:"1" type:"string"`
 
 	// The Amazon Resource Name (ARN) of the state machine to execute.
@@ -4083,11 +4256,12 @@ func (s *StartExecutionOutput) SetStartDate(v time.Time) *StartExecutionOutput {
 	return s
 }
 
+// Contains details about a state entered during an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/StateEnteredEventDetails
 type StateEnteredEventDetails struct {
 	_ struct{} `type:"structure"`
 
-	// The JSON input data to the state.
+	// The string that contains the JSON input data for the state.
 	Input *string `locationName:"input" type:"string"`
 
 	// The name of the state.
@@ -4118,11 +4292,24 @@ func (s *StateEnteredEventDetails) SetName(v string) *StateEnteredEventDetails {
 	return s
 }
 
+// Contains details about an exit from a state during an execution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/StateExitedEventDetails
 type StateExitedEventDetails struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the state.
+	//
+	// A name must not contain:
+	//
+	//    * whitespace
+	//
+	//    * brackets < > { } [ ]
+	//
+	//    * wildcard characters ? *
+	//
+	//    * special characters " # % \ ^ | ~ ` $ & , ; : /
+	//
+	//    * control characters (U+0000-001F, U+007F-009F)
 	//
 	// Name is a required field
 	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
@@ -4153,6 +4340,7 @@ func (s *StateExitedEventDetails) SetOutput(v string) *StateExitedEventDetails {
 	return s
 }
 
+// Contains details about the state machine.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/states-2016-11-23/StateMachineListItem
 type StateMachineListItem struct {
 	_ struct{} `type:"structure"`
@@ -4163,6 +4351,18 @@ type StateMachineListItem struct {
 	CreationDate *time.Time `locationName:"creationDate" type:"timestamp" timestampFormat:"unix" required:"true"`
 
 	// The name of the state machine.
+	//
+	// A name must not contain:
+	//
+	//    * whitespace
+	//
+	//    * brackets < > { } [ ]
+	//
+	//    * wildcard characters ? *
+	//
+	//    * special characters " # % \ ^ | ~ ` $ & , ; : /
+	//
+	//    * control characters (U+0000-001F, U+007F-009F)
 	//
 	// Name is a required field
 	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
@@ -4374,6 +4574,9 @@ const (
 	// HistoryEventTypeSucceedStateExited is a HistoryEventType enum value
 	HistoryEventTypeSucceedStateExited = "SucceedStateExited"
 
+	// HistoryEventTypeTaskStateAborted is a HistoryEventType enum value
+	HistoryEventTypeTaskStateAborted = "TaskStateAborted"
+
 	// HistoryEventTypeTaskStateEntered is a HistoryEventType enum value
 	HistoryEventTypeTaskStateEntered = "TaskStateEntered"
 
@@ -4386,11 +4589,26 @@ const (
 	// HistoryEventTypePassStateExited is a HistoryEventType enum value
 	HistoryEventTypePassStateExited = "PassStateExited"
 
+	// HistoryEventTypeParallelStateAborted is a HistoryEventType enum value
+	HistoryEventTypeParallelStateAborted = "ParallelStateAborted"
+
 	// HistoryEventTypeParallelStateEntered is a HistoryEventType enum value
 	HistoryEventTypeParallelStateEntered = "ParallelStateEntered"
 
 	// HistoryEventTypeParallelStateExited is a HistoryEventType enum value
 	HistoryEventTypeParallelStateExited = "ParallelStateExited"
+
+	// HistoryEventTypeParallelStateFailed is a HistoryEventType enum value
+	HistoryEventTypeParallelStateFailed = "ParallelStateFailed"
+
+	// HistoryEventTypeParallelStateStarted is a HistoryEventType enum value
+	HistoryEventTypeParallelStateStarted = "ParallelStateStarted"
+
+	// HistoryEventTypeParallelStateSucceeded is a HistoryEventType enum value
+	HistoryEventTypeParallelStateSucceeded = "ParallelStateSucceeded"
+
+	// HistoryEventTypeWaitStateAborted is a HistoryEventType enum value
+	HistoryEventTypeWaitStateAborted = "WaitStateAborted"
 
 	// HistoryEventTypeWaitStateEntered is a HistoryEventType enum value
 	HistoryEventTypeWaitStateEntered = "WaitStateEntered"

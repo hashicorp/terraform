@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
@@ -56,12 +58,16 @@ func (c *GraphCommand) Run(args []string) int {
 		configPath = ""
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// Load the module
 	var mod *module.Tree
 	if plan == nil {
-		mod, err = c.Module(configPath)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+		var modDiags tfdiags.Diagnostics
+		mod, modDiags = c.Module(configPath)
+		diags = diags.Append(modDiags)
+		if modDiags.HasErrors() {
+			c.showDiagnostics(diags)
 			return 1
 		}
 	}
@@ -140,6 +146,14 @@ func (c *GraphCommand) Run(args []string) int {
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error converting graph: %s", err))
+		return 1
+	}
+
+	if diags.HasErrors() {
+		// For this command we only show diagnostics if there are errors,
+		// because printing out naked warnings could upset a naive program
+		// consuming our dot output.
+		c.showDiagnostics(diags)
 		return 1
 	}
 

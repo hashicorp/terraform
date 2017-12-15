@@ -7,7 +7,7 @@
 // compiles your source code, runs unit tests, and produces artifacts that are
 // ready to deploy. AWS CodeBuild eliminates the need to provision, manage,
 // and scale your own build servers. It provides prepackaged build environments
-// for the most popular programming languages and build tools, such as Apach
+// for the most popular programming languages and build tools, such as Apache
 // Maven, Gradle, and more. You can also fully customize build environments
 // in AWS CodeBuild to use your own build tools. AWS CodeBuild scales automatically
 // to meet peak build requests, and you pay only for the build time you consume.
@@ -28,7 +28,17 @@
 //
 //    * CreateProject: Creates a build project.
 //
+//    * CreateWebhook: For an existing AWS CodeBuild build project that has
+//    its source code stored in a GitHub repository, enables AWS CodeBuild to
+//    begin automatically rebuilding the source code every time a code change
+//    is pushed to the repository.
+//
 //    * DeleteProject: Deletes a build project.
+//
+//    * DeleteWebhook: For an existing AWS CodeBuild build project that has
+//    its source code stored in a GitHub repository, stops AWS CodeBuild from
+//    automatically rebuilding the source code every time a code change is pushed
+//    to the repository.
 //
 //    * ListProjects: Gets a list of build project names, with each build project
 //    name representing a single build project.
@@ -57,7 +67,7 @@
 //
 // Using the Client
 //
-// To AWS CodeBuild with the SDK use the New function to create
+// To contact AWS CodeBuild with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

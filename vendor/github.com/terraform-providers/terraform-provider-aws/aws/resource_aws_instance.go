@@ -297,10 +297,11 @@ func resourceAwsInstance() *schema.Resource {
 						},
 
 						"iops": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
-							ForceNew: true,
+							Type:             schema.TypeInt,
+							Optional:         true,
+							Computed:         true,
+							ForceNew:         true,
+							DiffSuppressFunc: iopsDiffSuppressFunc,
 						},
 
 						"snapshot_id": {
@@ -387,10 +388,11 @@ func resourceAwsInstance() *schema.Resource {
 						},
 
 						"iops": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
-							ForceNew: true,
+							Type:             schema.TypeInt,
+							Optional:         true,
+							Computed:         true,
+							ForceNew:         true,
+							DiffSuppressFunc: iopsDiffSuppressFunc,
 						},
 
 						"volume_size": {
@@ -411,6 +413,14 @@ func resourceAwsInstance() *schema.Resource {
 			},
 		},
 	}
+}
+
+func iopsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	// Suppress diff if volume_type is not io1
+	i := strings.LastIndexByte(k, '.')
+	vt := k[:i+1] + "volume_type"
+	v := d.Get(vt).(string)
+	return strings.ToLower(v) != ec2.VolumeTypeIo1
 }
 
 func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
@@ -1326,7 +1336,7 @@ func readBlockDeviceMappingsFromConfig(
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
 				ebs.VolumeType = aws.String(v)
-				if "io1" == strings.ToLower(v) {
+				if ec2.VolumeTypeIo1 == strings.ToLower(v) {
 					// Condition: This parameter is required for requests to create io1
 					// volumes; it is not used in requests to create gp2, st1, sc1, or
 					// standard volumes.
@@ -1466,6 +1476,9 @@ func readSecurityGroups(d *schema.ResourceData, instance *ec2.Instance, conn *ec
 	})
 	if err != nil {
 		log.Printf("[WARN] Unable to describe VPC %q: %s", *instance.VpcId, err)
+	} else if len(out.Vpcs) == 0 {
+		// This may happen in Eucalyptus Cloud
+		log.Printf("[WARN] Unable to retrieve VPCs")
 	} else {
 		isInDefaultVpc := *out.Vpcs[0].IsDefault
 		useID = !isInDefaultVpc

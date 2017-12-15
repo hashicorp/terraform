@@ -111,6 +111,25 @@ func TestValidationStringInSlice(t *testing.T) {
 	})
 }
 
+func TestValidationStringMatch(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "foobar",
+			f:   StringMatch(regexp.MustCompile(".*foo.*"), ""),
+		},
+		{
+			val:         "bar",
+			f:           StringMatch(regexp.MustCompile(".*foo.*"), ""),
+			expectedErr: regexp.MustCompile("expected value of [\\w]+ to match regular expression " + regexp.QuoteMeta(`".*foo.*"`)),
+		},
+		{
+			val:         "bar",
+			f:           StringMatch(regexp.MustCompile(".*foo.*"), "value must contain foo"),
+			expectedErr: regexp.MustCompile("invalid value for [\\w]+ \\(value must contain foo\\)"),
+		},
+	})
+}
+
 func TestValidationRegexp(t *testing.T) {
 	runTestCases(t, []testCase{
 		{

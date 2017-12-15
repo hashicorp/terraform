@@ -17,7 +17,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/batch"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
@@ -32,6 +34,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/devicefarm"
+	"github.com/aws/aws-sdk-go/service/directconnect"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -59,6 +62,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/servicecatalog"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/simpledb"
@@ -143,6 +147,7 @@ type AWSClient struct {
 	appautoscalingconn    *applicationautoscaling.ApplicationAutoScaling
 	autoscalingconn       *autoscaling.AutoScaling
 	s3conn                *s3.S3
+	scconn                *servicecatalog.ServiceCatalog
 	sesConn               *ses.SES
 	simpledbconn          *simpledb.SimpleDB
 	sqsconn               *sqs.SQS
@@ -176,6 +181,9 @@ type AWSClient struct {
 	wafconn               *waf.WAF
 	wafregionalconn       *wafregional.WAFRegional
 	iotconn               *iot.IoT
+	batchconn             *batch.Batch
+	athenaconn            *athena.Athena
+	dxconn                *directconnect.DirectConnect
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -224,44 +232,63 @@ func (c *Config) Client() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// define the AWS Session options
+	// Credentials or Profile will be set in the Options below
+	// MaxRetries may be set once we validate credentials
+	var opt = session.Options{
+		Config: aws.Config{
+			Region:           aws.String(c.Region),
+			MaxRetries:       aws.Int(0),
+			HTTPClient:       cleanhttp.DefaultClient(),
+			S3ForcePathStyle: aws.Bool(c.S3ForcePathStyle),
+		},
+	}
+
 	// Call Get to check for credential provider. If nothing found, we'll get an
 	// error, and we can present it nicely to the user
 	cp, err := creds.Get()
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
+			// If a profile wasn't specified then error out
+			if c.Profile == "" {
+				return nil, errors.New(`No valid credential sources found for AWS Provider.
+  Please see https://terraform.io/docs/providers/aws/index.html for more information on
+  providing credentials for the AWS Provider`)
+			}
+			// add the profile and enable share config file usage
+			log.Printf("[INFO] AWS Auth using Profile: %q", c.Profile)
+			opt.Profile = c.Profile
+			opt.SharedConfigState = session.SharedConfigEnable
+		} else {
+			return nil, fmt.Errorf("Error loading credentials for AWS Provider: %s", err)
+		}
+	} else {
+		// add the validated credentials to the session options
+		log.Printf("[INFO] AWS Auth provider used: %q", cp.ProviderName)
+		opt.Config.Credentials = creds
+	}
+
+	if logging.IsDebugOrHigher() {
+		opt.Config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody | aws.LogDebugWithRequestRetries | aws.LogDebugWithRequestErrors)
+		opt.Config.Logger = awsLogger{}
+	}
+
+	if c.Insecure {
+		transport := opt.Config.HTTPClient.Transport.(*http.Transport)
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
+	// create base session with no retries. MaxRetries will be set later
+	sess, err := session.NewSessionWithOptions(opt)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
 			return nil, errors.New(`No valid credential sources found for AWS Provider.
   Please see https://terraform.io/docs/providers/aws/index.html for more information on
   providing credentials for the AWS Provider`)
 		}
-
-		return nil, fmt.Errorf("Error loading credentials for AWS Provider: %s", err)
-	}
-
-	log.Printf("[INFO] AWS Auth provider used: %q", cp.ProviderName)
-
-	awsConfig := &aws.Config{
-		Credentials:      creds,
-		Region:           aws.String(c.Region),
-		MaxRetries:       aws.Int(c.MaxRetries),
-		HTTPClient:       cleanhttp.DefaultClient(),
-		S3ForcePathStyle: aws.Bool(c.S3ForcePathStyle),
-	}
-
-	if logging.IsDebugOrHigher() {
-		awsConfig.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody | aws.LogDebugWithRequestRetries | aws.LogDebugWithRequestErrors)
-		awsConfig.Logger = awsLogger{}
-	}
-
-	if c.Insecure {
-		transport := awsConfig.HTTPClient.Transport.(*http.Transport)
-		transport.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-	}
-
-	// Set up base session
-	sess, err := session.NewSession(awsConfig)
-	if err != nil {
 		return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
 	}
 
@@ -269,6 +296,11 @@ func (c *Config) Client() (interface{}, error) {
 
 	if extraDebug := os.Getenv("TERRAFORM_AWS_AUTHFAILURE_DEBUG"); extraDebug != "" {
 		sess.Handlers.UnmarshalError.PushFrontNamed(debugAuthFailure)
+	}
+
+	// if the desired number of retries is non-zero, update the session
+	if c.MaxRetries > 0 {
+		sess = sess.Copy(&aws.Config{MaxRetries: aws.Int(c.MaxRetries)})
 	}
 
 	// This restriction should only be used for Route53 sessions.
@@ -377,6 +409,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.redshiftconn = redshift.New(sess)
 	client.simpledbconn = simpledb.New(sess)
 	client.s3conn = s3.New(awsS3Sess)
+	client.scconn = servicecatalog.New(sess)
 	client.sesConn = ses.New(sess)
 	client.sfnconn = sfn.New(sess)
 	client.snsconn = sns.New(awsSnsSess)
@@ -384,6 +417,9 @@ func (c *Config) Client() (interface{}, error) {
 	client.ssmconn = ssm.New(sess)
 	client.wafconn = waf.New(sess)
 	client.wafregionalconn = wafregional.New(sess)
+	client.batchconn = batch.New(sess)
+	client.athenaconn = athena.New(sess)
+	client.dxconn = directconnect.New(sess)
 
 	// Workaround for https://github.com/aws/aws-sdk-go/issues/1376
 	client.kinesisconn.Handlers.Retry.PushBack(func(r *request.Request) {

@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func (b *Local) opRefresh(
@@ -78,11 +80,34 @@ func (b *Local) opRefresh(
 		}
 	}
 
-	// Perform operation and write the resulting state to the running op
-	newState, err := tfCtx.Refresh()
+	// Perform the refresh in a goroutine so we can be interrupted
+	var newState *terraform.State
+	var refreshErr error
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		newState, err = tfCtx.Refresh()
+		log.Printf("[INFO] backend/local: plan calling Plan")
+	}()
+
+	select {
+	case <-ctx.Done():
+		if b.CLI != nil {
+			b.CLI.Output("stopping refresh operation...")
+		}
+
+		// Stop execution
+		go tfCtx.Stop()
+
+		// Wait for completion still
+		<-doneCh
+	case <-doneCh:
+	}
+
+	// write the resulting state to the running op
 	runningOp.State = newState
-	if err != nil {
-		runningOp.Err = errwrap.Wrapf("Error refreshing state: {{err}}", err)
+	if refreshErr != nil {
+		runningOp.Err = errwrap.Wrapf("Error refreshing state: {{err}}", refreshErr)
 		return
 	}
 

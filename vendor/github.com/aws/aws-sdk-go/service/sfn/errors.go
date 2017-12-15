@@ -27,7 +27,9 @@ const (
 	// ErrCodeExecutionAlreadyExists for service response error code
 	// "ExecutionAlreadyExists".
 	//
-	// An execution with the same name already exists.
+	// The execution has the same name as another execution (but a different input).
+	//
+	// Executions with the same name and input are considered idempotent.
 	ErrCodeExecutionAlreadyExists = "ExecutionAlreadyExists"
 
 	// ErrCodeExecutionDoesNotExist for service response error code

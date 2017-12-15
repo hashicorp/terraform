@@ -34,7 +34,6 @@ func resourceAwsApiGatewayRestApi() *schema.Resource {
 			"binary_media_types": {
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
@@ -164,6 +163,33 @@ func resourceAwsApiGatewayRestApiUpdateOperations(d *schema.ResourceData) []*api
 			Path:  aws.String("/description"),
 			Value: aws.String(d.Get("description").(string)),
 		})
+	}
+
+	if d.HasChange("binary_media_types") {
+		o, n := d.GetChange("binary_media_types")
+		prefix := "binaryMediaTypes"
+
+		old := o.([]interface{})
+		new := n.([]interface{})
+
+		// Remove every binary media types. Simpler to remove and add new ones,
+		// since there are no replacings.
+		for _, v := range old {
+			operations = append(operations, &apigateway.PatchOperation{
+				Op:   aws.String("remove"),
+				Path: aws.String(fmt.Sprintf("/%s/%s", prefix, escapeJsonPointer(v.(string)))),
+			})
+		}
+
+		// Handle additions
+		if len(new) > 0 {
+			for _, v := range new {
+				operations = append(operations, &apigateway.PatchOperation{
+					Op:   aws.String("add"),
+					Path: aws.String(fmt.Sprintf("/%s/%s", prefix, escapeJsonPointer(v.(string)))),
+				})
+			}
+		}
 	}
 
 	return operations

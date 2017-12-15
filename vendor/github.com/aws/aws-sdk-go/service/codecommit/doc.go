@@ -34,6 +34,9 @@
 //
 //    * CreateBranch, which creates a new branch in a specified repository
 //
+//    * DeleteBranch, which deletes the specified branch in a repository unless
+//    it is the default branch
+//
 //    * GetBranch, which returns information about a specified branch
 //
 //    * ListBranches, which lists all branches for a specified repository
@@ -73,7 +76,7 @@
 //
 // Using the Client
 //
-// To AWS CodeCommit with the SDK use the New function to create
+// To contact AWS CodeCommit with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

@@ -29,27 +29,31 @@ func resourceAwsSsmActivation() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			"expired": &schema.Schema{
+			"expired": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"expiration_date": &schema.Schema{
+			"expiration_date": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"iam_role": &schema.Schema{
+			"iam_role": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"registration_limit": &schema.Schema{
+			"registration_limit": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
-			"registration_count": &schema.Schema{
+			"registration_count": {
 				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"activation_code": {
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
@@ -107,6 +111,7 @@ func resourceAwsSsmActivationCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("[ERROR] ActivationId was nil")
 	}
 	d.SetId(*resp.ActivationId)
+	d.Set("activation_code", resp.ActivationCode)
 
 	return resourceAwsSsmActivationRead(d, meta)
 }

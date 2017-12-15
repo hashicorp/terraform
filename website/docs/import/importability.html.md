@@ -215,6 +215,14 @@ To make a resource importable, please see the
 * google_sql_user
 * google_storage_bucket
 
+### Heroku
+
+* heroku_app
+* heroku_addon
+* heroku_space
+* heroku_pipeline
+* heroku_pipeline_coupling
+
 ### OpenStack
 
 * openstack_blockstorage_volume_v1

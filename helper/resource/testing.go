@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/terraform/config/module"
@@ -487,6 +488,15 @@ func Test(t TestT, c TestCase) {
 			}
 		}
 
+		// If we expected an error, but did not get one, fail
+		if err == nil && step.ExpectError != nil {
+			errored = true
+			t.Error(fmt.Sprintf(
+				"Step %d, no error received, but expected a match to:\n\n%s\n\n",
+				i, step.ExpectError))
+			break
+		}
+
 		// If there was an error, exit
 		if err != nil {
 			// Perhaps we expected an error? Check if it matches
@@ -662,18 +672,12 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	if err != nil {
 		return err
 	}
-	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
-		if len(es) > 0 {
-			estrs := make([]string, len(es))
-			for i, e := range es {
-				estrs[i] = e.Error()
-			}
-			return fmt.Errorf(
-				"Configuration is invalid.\n\nWarnings: %#v\n\nErrors: %#v",
-				ws, estrs)
+	if diags := ctx.Validate(); len(diags) > 0 {
+		if diags.HasErrors() {
+			return errwrap.Wrapf("config is invalid: {{err}}", diags.Err())
 		}
 
-		log.Printf("[WARN] Config warnings: %#v", ws)
+		log.Printf("[WARN] Config warnings:\n%s", diags.Err().Error())
 	}
 
 	// Refresh!

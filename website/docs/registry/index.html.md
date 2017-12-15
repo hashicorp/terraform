@@ -25,7 +25,7 @@ module "consul" {
 }
 ```
 
-~> **Note:** Module registry integration was added in Terraform v0.10.6
+~> **Note:** Module registry integration was added in Terraform v0.10.6, and full versioning support in v0.11.0.
 
 You can also publish your own modules on the Terraform Registry. You may
 use the [public registry](https://registry.terraform.io) for public modules.

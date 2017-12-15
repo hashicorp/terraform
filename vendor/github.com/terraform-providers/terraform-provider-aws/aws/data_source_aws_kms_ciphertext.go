@@ -10,9 +10,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func dataSourceAwsKmsCiphetext() *schema.Resource {
+func dataSourceAwsKmsCiphertext() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceAwsKmsCiphetextRead,
+		Read: dataSourceAwsKmsCiphertextRead,
 
 		Schema: map[string]*schema.Schema{
 			"plaintext": {
@@ -39,7 +39,7 @@ func dataSourceAwsKmsCiphetext() *schema.Resource {
 	}
 }
 
-func dataSourceAwsKmsCiphetextRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceAwsKmsCiphertextRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kmsconn
 
 	d.SetId(time.Now().UTC().String())

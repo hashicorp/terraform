@@ -3499,12 +3499,9 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		State: s,
 	})
 
-	w, e := ctx.Validate()
-	if len(w) > 0 {
-		t.Fatalf("warnings generated on validate: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("errors generated on validate: %#v", e)
+	diags := ctx.Validate()
+	if len(diags) != 0 {
+		t.Fatalf("bad: %#v", diags)
 	}
 
 	_, err := ctx.Refresh()
@@ -3527,28 +3524,34 @@ STATE:
 
 aws_instance.bar.0:
   ID = bar0
+  provider = provider.aws
 
   Dependencies:
     aws_instance.foo.*
 aws_instance.bar.1:
   ID = bar1
+  provider = provider.aws
 
   Dependencies:
     aws_instance.foo.*
 aws_instance.baz.0:
   ID = baz0
+  provider = provider.aws
 
   Dependencies:
     aws_instance.bar.*
 aws_instance.baz.1:
   ID = baz1
+  provider = provider.aws
 
   Dependencies:
     aws_instance.bar.*
 aws_instance.foo.0:
   ID = foo0
+  provider = provider.aws
 aws_instance.foo.1:
   ID = foo1
+  provider = provider.aws
 `)
 	if actual != expected {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
@@ -3576,12 +3579,9 @@ output "out" {
 	})
 
 	// if this ever fails to pass validate, add a resource to reference in the config
-	w, e := ctx.Validate()
-	if len(w) > 0 {
-		t.Fatalf("warnings generated on validate: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("errors generated on validate: %v", e)
+	diags := ctx.Validate()
+	if len(diags) != 0 {
+		t.Fatalf("bad: %#v", diags)
 	}
 
 	_, err := ctx.Refresh()
@@ -3624,12 +3624,9 @@ resource "aws_instance" "foo" {
 	})
 
 	// if this ever fails to pass validate, add a resource to reference in the config
-	w, e := ctx.Validate()
-	if len(w) > 0 {
-		t.Fatalf("warnings generated on validate: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("errors generated on validate: %v", e)
+	diags := ctx.Validate()
+	if len(diags) != 0 {
+		t.Fatalf("bad: %#v", diags)
 	}
 
 	_, err := ctx.Refresh()

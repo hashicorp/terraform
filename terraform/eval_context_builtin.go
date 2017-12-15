@@ -262,13 +262,8 @@ func (ctx *BuiltinEvalContext) InterpolateProvider(
 	var cfg *config.RawConfig
 
 	if pc != nil && pc.RawConfig != nil {
-		path := pc.Path
-		if len(path) == 0 {
-			path = ctx.Path()
-		}
-
 		scope := &InterpolationScope{
-			Path:     path,
+			Path:     ctx.Path(),
 			Resource: r,
 		}
 

@@ -1,42 +1,82 @@
-## 0.11.0-beta1 (Unreleased)
+## 0.11.2 (Unreleased)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
-The following items give an overview of the incompatibilities and other noteworthy changes in this release. For more details on some of these changes, along with information on how to upgrade existing configurations where needed, see [the v0.11 upgrade guide](./website/upgrade-guides/0-11.html.markdown).
+* backend/gcs: The gcs remote state backend was erroneously creating the state bucket if it didn't exist. This is not the intended behavior of backends, as Terraform cannot track or manage that resource. The target bucket must now be created separately, before using it with Terraform. [GH-16865]
 
-* Output interpolation errors are now fatal. Module configs with unused outputs
-  which contained errors will no longer be valid.
-* Module configuration blocks have 2 new reserved attribute names, "providers"
-  and "version". Modules using these as input variables will need to be
-  updated.
-* The module provider inheritance system has been updated. Providers declared
-  with configuration will no longer be merged, and named provider
-  configurations can be explicitly passed between modules. See [the upgrade guide](./website/upgrade-guides/0-11.html.markdown#interactions-between-providers-and-modules) for more details.
-* The command `terraform apply` with no explicit plan argument is now interactive by default. Specifically, it will show the generated plan and wait for confirmation before applying it. The behavior is unchanged when a plan file argument is provided, and the previous behavior can be obtained _without_ a plan file by using the `-auto-approve` option.
+NEW FEATURES:
+
+* **[Habitat](https://www.habitat.sh/) Provisioner** allowing automatic installation of the Habitat agent [GH-16280]
+ 
+IMPROVEMENTS:
+
+* config: new `rsadecrypt` interpolation function allows decrypting a base64-encoded ciphertext using a given private key. This is particularly useful for decrypting the password for a Windows instance on AWS EC2, but is generic and may find other uses too. [GH-16647]
+* config: new `timeadd` interpolation function allows calculating a new timestamp relative to an existing known timestamp. [GH-16644]
+* cli: Module and provider installation (and some other Terraform features) now implement [RFC6555](https://tools.ietf.org/html/rfc6555) when making outgoing HTTP requests, which should improve installation reliability for dual-stack (both IPv4 and IPv6) hosts running on networks that have non-performant or broken IPv6 Internet connectivity by trying both IPv4 and IPv6 connections. [GH-16805]
+* backend/s3: it is now possible to disable the region check, for improved compatibility with third-party services that attempt to mimic the S3 API. [GH-16757]
+* backend/s3: it is now possible to use named credentials from the `~/.aws/credentials` file, similarly to the AWS plugin [GH-16661]
+* provider/terraform: in `terraform_remote_state`, the argument `environment` is now deprecated in favor of `workspace`. The `environment` argument will be removed in a later Terraform release. [GH-16558]
+
+BUG FIXES:
+
+* config: Referencing a count attribute in an output no longer generates a warning [GH-16866]
+* cli: Terraform will no longer crash when `terraform plan`, `terraform apply`, and some other commands encounter an invalid provider version constraint in configuration, generating a proper error message instead. [GH-16867]
+* backend/gcs: The usage of the GOOGLE_CREDENTIALS environment variable now matches that of the google provider [GH-16865]
+* backend/gcs: fixed the locking methodology to avoid "double-locking" issues when used with the `terraform_remote_state` data source [GH-16852]
+* provisioner/salt-masterless: now waits for all of the remote operations to complete before returning [GH-16704]
+
+## 0.11.1 (November 30, 2017)
+
+IMPROVEMENTS:
+
+* modules: Modules can now receive a specific provider configuration in the `providers` map, even if it's only implicitly used ([#16619](https://github.com/hashicorp/terraform/issues/16619))
+* config: Terraform will now detect and warn about outputs containing potentially-problematic references to resources with `count` set where the references does not use the "splat" syntax. This identifies situations where an output may [reference a resource with `count = 0`](https://www.terraform.io/upgrade-guides/0-11.html#referencing-attributes-from-resources-with-count-0) even if the `count` expression does not _currently_ evaluate to `0`, allowing the bug to be detected and fixed _before_ the value is later changed to `0` and would thus become an error. **This usage will become a fatal error in Terraform 0.12**. ([#16735](https://github.com/hashicorp/terraform/issues/16735))
+* core: A new environment variable `TF_WARN_OUTPUT_ERRORS=1` is supported to opt out of the behavior introduced in 0.11.0 where errors in output expressions halt execution. This restores the previous behavior where such errors are ignored, allowing users to apply problematic configurations without fixing all of the errors. This opt-out will be removed in Terraform 0.12, so it is strongly recommended to use the new warning described in the previous item to detect and fix these problematic expressions. ([#16782](https://github.com/hashicorp/terraform/issues/16782))
+
+BUG FIXES:
+
+* cli: fix crash when subcommands with sub-subcommands are accidentally provided as a single argument, such as `terraform "workspace list"` ([#16789](https://github.com/hashicorp/terraform/issues/16789))
+
+## 0.11.0 (November 16, 2017)
+
+The following list combines the changes from 0.11.0-beta1 and 0.11.0-rc1 to give the full set of changes since 0.10.8. For details on each of the individual pre-releases, please see [the 0.11.0-rc1 CHANGELOG](https://github.com/hashicorp/terraform/blob/v0.11.0-rc1/CHANGELOG.md).
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+The following items give an overview of the incompatibilities and other noteworthy changes in this release. For more details on some of these changes, along with information on how to upgrade existing configurations where needed, see [the v0.11 upgrade guide](https://www.terraform.io/upgrade-guides/0-11.html).
+
+* Output interpolation errors are now fatal. Module configs with unused outputs which contained errors will no longer be valid.
+* Module configuration blocks have 2 new reserved attribute names, "providers" and "version". Modules using these as input variables will need to be updated.
+* The module provider inheritance rules have changed. Inherited provider configurations will no longer be merged with local configurations, and additional (aliased) provider configurations must be explicitly passed between modules when shared. See [the upgrade guide](https://www.terraform.io/upgrade-guides/0-11.html) for more details.
+* The command `terraform apply` with no explicit plan argument is now interactive by default. Specifically, it will show the generated plan and wait for confirmation before applying it, similar to the existing behavior of `terraform destroy`. The behavior is unchanged when a plan file argument is provided, and the previous behavior can be obtained _without_ a plan file by using the `-auto-approve` option.
+* The `terraform` provider (that is, the provider that contains the `terraform_remote_state` data source) has been re-incorporated as a built-in provider in the Terraform Core executable. In 0.10 it was split into a separate plugin along with all of the other providers, but this provider uses several internal Terraform Core APIs and so in practice it's been confusing to version that separately from Terraform Core. As a consequence, this provider no longer supports version constraints, and so `version` attributes for this provider in configuration must be removed.
 * When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. Previously this file could potentially be used to recover a previous state to help recover after a mistake, but it also caused a potentially-sensitive state file to be generated in an unexpected location that may be inadvertently copied or checked in to version control. With this local backup now removed, we recommend instead relying on versioning or backup mechanisms provided by the backend, such as Amazon S3 versioning or Terraform Enterprise's built-in state history mechanism. (Terraform will still create the local file `errored.tfstate` in the unlikely event that there is an error when writing to the remote backend.)
 
 NEW FEATURES:
 
-* modules: Module configuration blocks now have a "version" attribute, to set a version constraint for modules sourced from a registry. [GH-16466]
-* modules: Module configuration blocks now have a "providers" attribute, to map a provider configuration from the current module into a submodule [GH-16379]
+* modules: Module configuration blocks now have a "version" attribute, to set a version constraint for modules sourced from a registry. ([#16466](https://github.com/hashicorp/terraform/issues/16466))
+* modules: Module configuration blocks now have a "providers" attribute, to map a provider configuration from the current module into a submodule ([#16379](https://github.com/hashicorp/terraform/issues/16379))
 * backend/gcs: The gcs remote state backend now supports workspaces and locking.
-* backend/manta: The Manta backend now supports workspaces and locking [GH-16296]
+* backend/manta: The Manta backend now supports workspaces and locking ([#16296](https://github.com/hashicorp/terraform/issues/16296))
 
 IMPROVEMENTS:
 
-* cli: The `terraform apply` command now waits for interactive approval of the generated plan before applying it, unless an explicit plan file is provided. [GH-16502]
-* cli: The `terraform version` command now prints out the version numbers of initialized plugins as well as the version of Terraform core, so that they can be more easily shared when opening GitHub Issues, etc. [GH-16439]
-* cli: A new `TF_DATA_DIR` environment variable can be used to override the location where Terraform stores the files normally placed in the `.terraform` directory. [GH-16207]
+* cli: The `terraform apply` command now waits for interactive approval of the generated plan before applying it, unless an explicit plan file is provided. ([#16502](https://github.com/hashicorp/terraform/issues/16502))
+* cli: The `terraform version` command now prints out the version numbers of initialized plugins as well as the version of Terraform core, so that they can be more easily shared when opening GitHub Issues, etc. ([#16439](https://github.com/hashicorp/terraform/issues/16439))
+* cli: A new `TF_DATA_DIR` environment variable can be used to override the location where Terraform stores the files normally placed in the `.terraform` directory. ([#16207](https://github.com/hashicorp/terraform/issues/16207))
+* provider/terraform: now built in to Terraform Core so that it will always have the same backend functionality as the Terraform release it corresponds to. ([#16543](https://github.com/hashicorp/terraform/issues/16543))
 
 BUG FIXES:
 
-* config: Provider config in submodules will no longer be overridden by parent providers with the same name. [GH-16379]
-* core: Module outputs can now produce errors, preventing them from silently propagating through the config. [GH-16204]
-* cli: When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. [GH-16464]
+* config: Provider config in submodules will no longer be overridden by parent providers with the same name. ([#16379](https://github.com/hashicorp/terraform/issues/16379))
+* cli: When remote state is enabled, Terraform will no longer generate a local `terraform.tfstate.backup` file before updating remote state. ([#16464](https://github.com/hashicorp/terraform/issues/16464))
+* core: state now includes a reference to the provider configuration most recently used to create or update a resource, so that the same configuration can be used to destroy that resource if its configuration (including the explicit pointer to a provider configuration) is removed ([#16586](https://github.com/hashicorp/terraform/issues/16586))
+* core: Module outputs can now produce errors, preventing them from silently propagating through the config. ([#16204](https://github.com/hashicorp/terraform/issues/16204))
+* backend/gcs: will now automatically add a slash to the given prefix if not present, since without it the workspace enumeration does not function correctly ([#16585](https://github.com/hashicorp/terraform/issues/16585))
 
 PROVIDER FRAMEWORK CHANGES (not user-facing):
 
-* helper/schema: Loosen validation for 'id' field [GH-16456]
+* helper/schema: Loosen validation for 'id' field ([#16456](https://github.com/hashicorp/terraform/issues/16456))
 
 ## 0.10.8 (October 25, 2017)
 

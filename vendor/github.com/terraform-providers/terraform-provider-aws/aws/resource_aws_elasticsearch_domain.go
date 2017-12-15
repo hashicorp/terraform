@@ -9,10 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strings"
 )
 
 func resourceAwsElasticSearchDomain() *schema.Resource {
@@ -137,6 +137,38 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 					},
 				},
 			},
+			"vpc_options": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"availability_zones": {
+							Type:     schema.TypeSet,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+						"security_group_ids": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+						"subnet_ids": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+						"vpc_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"elasticsearch_version": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -155,8 +187,49 @@ func resourceAwsElasticSearchDomainImport(
 	return []*schema.ResourceData{d}, nil
 }
 
+// This would be created automatically if the domain is created via Console
+// see http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-vpc.html#es-enabling-slr
+func createAwsElasticsearchIAMServiceRoleIfMissing(meta interface{}) error {
+	serviceRoleName := "AWSServiceRoleForAmazonElasticsearchService"
+	serviceName := "es.amazonaws.com"
+
+	conn := meta.(*AWSClient).iamconn
+
+	getRequest := &iam.GetRoleInput{
+		RoleName: aws.String(serviceRoleName),
+	}
+	_, err := conn.GetRole(getRequest)
+	if err != nil {
+		if isAWSErr(err, iam.ErrCodeNoSuchEntityException, "Role not found") {
+			createRequest := &iam.CreateServiceLinkedRoleInput{
+				AWSServiceName: aws.String(serviceName),
+			}
+			_, err := conn.CreateServiceLinkedRole(createRequest)
+			if err != nil {
+				if isAWSErr(err, iam.ErrCodeInvalidInputException, "has been taken in this account") {
+					return nil
+				}
+				return fmt.Errorf("Error creating IAM Service-Linked Role %s: %s", serviceRoleName, err)
+			}
+			return nil
+		}
+		return fmt.Errorf("Error reading IAM Role %s: %s", serviceRoleName, err)
+	}
+	return nil
+}
+
 func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).esconn
+
+	// The API doesn't check for duplicate names
+	// so w/out this check Create would act as upsert
+	// and might cause duplicate domain to appear in state
+	resp, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
+		DomainName: aws.String(d.Get("domain_name").(string)),
+	})
+	if err == nil {
+		return fmt.Errorf("ElasticSearch domain %q already exists", *resp.DomainStatus.DomainName)
+	}
 
 	input := elasticsearch.CreateElasticsearchDomainInput{
 		DomainName:           aws.String(d.Get("domain_name").(string)),
@@ -220,20 +293,37 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 		}
 	}
 
+	if v, ok := d.GetOk("vpc_options"); ok {
+		err = createAwsElasticsearchIAMServiceRoleIfMissing(meta)
+		if err != nil {
+			return err
+		}
+
+		options := v.([]interface{})
+		if options[0] == nil {
+			return fmt.Errorf("At least one field is expected inside vpc_options")
+		}
+
+		s := options[0].(map[string]interface{})
+		input.VPCOptions = expandESVPCOptions(s)
+	}
+
 	log.Printf("[DEBUG] Creating ElasticSearch domain: %s", input)
 
 	// IAM Roles can take some time to propagate if set in AccessPolicies and created in the same terraform
 	var out *elasticsearch.CreateElasticsearchDomainOutput
-	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+	err = resource.Retry(30*time.Second, func() *resource.RetryError {
 		var err error
 		out, err = conn.CreateElasticsearchDomain(&input)
 		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				if awsErr.Code() == "InvalidTypeException" && strings.Contains(awsErr.Message(), "Error setting policy") {
-					log.Printf("[DEBUG] Retrying creation of ElasticSearch domain %s", *input.DomainName)
-					return resource.RetryableError(err)
-				}
+			if isAWSErr(err, "InvalidTypeException", "Error setting policy") {
+				log.Printf("[DEBUG] Retrying creation of ElasticSearch domain %s", *input.DomainName)
+				return resource.RetryableError(err)
 			}
+			if isAWSErr(err, "ValidationException", "enable a service-linked role to give Amazon ES permissions") {
+				return resource.RetryableError(err)
+			}
+
 			return resource.NonRetryableError(err)
 		}
 		return nil
@@ -259,21 +349,7 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 	d.SetPartial("tags")
 
 	log.Printf("[DEBUG] Waiting for ElasticSearch domain %q to be created", d.Id())
-	err = resource.Retry(60*time.Minute, func() *resource.RetryError {
-		out, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
-			DomainName: aws.String(d.Get("domain_name").(string)),
-		})
-		if err != nil {
-			return resource.NonRetryableError(err)
-		}
-
-		if !*out.DomainStatus.Processing && out.DomainStatus.Endpoint != nil {
-			return nil
-		}
-
-		return resource.RetryableError(
-			fmt.Errorf("%q: Timeout while waiting for the domain to be created", d.Id()))
-	})
+	err = waitForElasticSearchDomainCreation(conn, d.Get("domain_name").(string), d.Id())
 	if err != nil {
 		return err
 	}
@@ -282,6 +358,24 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 	log.Printf("[DEBUG] ElasticSearch domain %q created", d.Id())
 
 	return resourceAwsElasticSearchDomainRead(d, meta)
+}
+
+func waitForElasticSearchDomainCreation(conn *elasticsearch.ElasticsearchService, domainName, arn string) error {
+	return resource.Retry(60*time.Minute, func() *resource.RetryError {
+		out, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
+			DomainName: aws.String(domainName),
+		})
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		if !*out.DomainStatus.Processing && (out.DomainStatus.Endpoint != nil || out.DomainStatus.Endpoints != nil) {
+			return nil
+		}
+
+		return resource.RetryableError(
+			fmt.Errorf("%q: Timeout while waiting for the domain to be created", arn))
+	})
 }
 
 func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}) error {
@@ -318,9 +412,6 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	d.Set("domain_id", ds.DomainId)
 	d.Set("domain_name", ds.DomainName)
 	d.Set("elasticsearch_version", ds.ElasticsearchVersion)
-	if ds.Endpoint != nil {
-		d.Set("endpoint", *ds.Endpoint)
-	}
 
 	err = d.Set("ebs_options", flattenESEBSOptions(ds.EBSOptions))
 	if err != nil {
@@ -334,6 +425,27 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 		d.Set("snapshot_options", map[string]interface{}{
 			"automated_snapshot_start_hour": *ds.SnapshotOptions.AutomatedSnapshotStartHour,
 		})
+	}
+	if ds.VPCOptions != nil {
+		err = d.Set("vpc_options", flattenESVPCDerivedInfo(ds.VPCOptions))
+		if err != nil {
+			return err
+		}
+		endpoints := pointersMapToStringList(ds.Endpoints)
+		err = d.Set("endpoint", endpoints["vpc"])
+		if err != nil {
+			return err
+		}
+		if ds.Endpoint != nil {
+			return fmt.Errorf("%q: Elasticsearch domain in VPC expected to have null Endpoint value", d.Id())
+		}
+	} else {
+		if ds.Endpoint != nil {
+			d.Set("endpoint", *ds.Endpoint)
+		}
+		if ds.Endpoints != nil {
+			return fmt.Errorf("%q: Elasticsearch domain not in VPC expected to have null Endpoints value", d.Id())
+		}
 	}
 
 	d.Set("arn", ds.ARN)
@@ -415,6 +527,12 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 
 			input.SnapshotOptions = &snapshotOptions
 		}
+	}
+
+	if d.HasChange("vpc_options") {
+		options := d.Get("vpc_options").([]interface{})
+		s := options[0].(map[string]interface{})
+		input.VPCOptions = expandESVPCOptions(s)
 	}
 
 	_, err := conn.UpdateElasticsearchDomainConfig(&input)

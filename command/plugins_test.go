@@ -9,7 +9,90 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/terraform"
 )
+
+func TestMultiVersionProviderResolver(t *testing.T) {
+	available := make(discovery.PluginMetaSet)
+	available.Add(discovery.PluginMeta{
+		Name:    "plugin",
+		Version: "1.0.0",
+		Path:    "test-fixtures/empty-file",
+	})
+
+	resolver := &multiVersionProviderResolver{
+		Internal: map[string]terraform.ResourceProviderFactory{
+			"internal": func() (terraform.ResourceProvider, error) {
+				return &terraform.MockResourceProvider{
+					ResourcesReturn: []terraform.ResourceType{
+						{
+							Name: "internal_foo",
+						},
+					},
+				}, nil
+			},
+		},
+		Available: available,
+	}
+
+	t.Run("plugin matches", func(t *testing.T) {
+		reqd := discovery.PluginRequirements{
+			"plugin": &discovery.PluginConstraints{
+				Versions: discovery.ConstraintStr("1.0.0").MustParse(),
+			},
+		}
+		got, err := resolver.ResolveProviders(reqd)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if ct := len(got); ct != 1 {
+			t.Errorf("wrong number of results %d; want 1", ct)
+		}
+		if _, exists := got["plugin"]; !exists {
+			t.Errorf("provider \"plugin\" not in result")
+		}
+	})
+	t.Run("plugin doesn't match", func(t *testing.T) {
+		reqd := discovery.PluginRequirements{
+			"plugin": &discovery.PluginConstraints{
+				Versions: discovery.ConstraintStr("2.0.0").MustParse(),
+			},
+		}
+		_, err := resolver.ResolveProviders(reqd)
+		if err == nil {
+			t.Errorf("resolved successfully, but want error")
+		}
+	})
+	t.Run("internal matches", func(t *testing.T) {
+		reqd := discovery.PluginRequirements{
+			"internal": &discovery.PluginConstraints{
+				Versions: discovery.AllVersions,
+			},
+		}
+		got, err := resolver.ResolveProviders(reqd)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if ct := len(got); ct != 1 {
+			t.Errorf("wrong number of results %d; want 1", ct)
+		}
+		if _, exists := got["internal"]; !exists {
+			t.Errorf("provider \"internal\" not in result")
+		}
+	})
+	t.Run("internal with version constraint", func(t *testing.T) {
+		// Version constraints are not permitted for internal providers
+		reqd := discovery.PluginRequirements{
+			"internal": &discovery.PluginConstraints{
+				Versions: discovery.ConstraintStr("2.0.0").MustParse(),
+			},
+		}
+		_, err := resolver.ResolveProviders(reqd)
+		if err == nil {
+			t.Errorf("resolved successfully, but want error")
+		}
+	})
+}
 
 func TestPluginPath(t *testing.T) {
 	td, err := ioutil.TempDir("", "tf")
@@ -33,6 +116,26 @@ func TestPluginPath(t *testing.T) {
 
 	if !reflect.DeepEqual(pluginPath, restoredPath) {
 		t.Fatalf("expected plugin path %#v, got %#v", pluginPath, restoredPath)
+	}
+}
+
+func TestInternalProviders(t *testing.T) {
+	m := Meta{}
+	internal := m.internalProviders()
+	tfProvider, err := internal["terraform"]()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dataSources := tfProvider.DataSources()
+	found := false
+	for _, ds := range dataSources {
+		if ds.Name == "terraform_remote_state" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("didn't find terraform_remote_state in internal \"terraform\" provider")
 	}
 }
 

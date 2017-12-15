@@ -141,7 +141,6 @@ func wrappedMain() int {
 			// We continue to run anyway, since Terraform has reasonable defaults.
 		}
 	}
-	log.Printf("[DEBUG] CLI config is %#v", config)
 
 	// In tests, Commands may already be set to provide mock commands
 	if Commands == nil {

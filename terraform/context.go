@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/config"
@@ -671,29 +673,27 @@ func (c *Context) Stop() {
 }
 
 // Validate validates the configuration and returns any warnings or errors.
-func (c *Context) Validate() ([]string, []error) {
+func (c *Context) Validate() tfdiags.Diagnostics {
 	defer c.acquireRun("validate")()
 
-	var errs error
+	var diags tfdiags.Diagnostics
 
 	// Validate the configuration itself
-	if err := c.module.Validate(); err != nil {
-		errs = multierror.Append(errs, err)
-	}
+	diags = diags.Append(c.module.Validate())
 
 	// This only needs to be done for the root module, since inter-module
 	// variables are validated in the module tree.
 	if config := c.module.Config(); config != nil {
 		// Validate the user variables
-		if err := smcUserVariables(config, c.variables); len(err) > 0 {
-			errs = multierror.Append(errs, err...)
+		for _, err := range smcUserVariables(config, c.variables) {
+			diags = diags.Append(err)
 		}
 	}
 
 	// If we have errors at this point, the graphing has no chance,
 	// so just bail early.
-	if errs != nil {
-		return nil, []error{errs}
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Build the graph so we can walk it and run Validate on nodes.
@@ -702,24 +702,29 @@ func (c *Context) Validate() ([]string, []error) {
 	// graph again later after Planning.
 	graph, err := c.Graph(GraphTypeValidate, nil)
 	if err != nil {
-		return nil, []error{err}
+		diags = diags.Append(err)
+		return diags
 	}
 
 	// Walk
 	walker, err := c.walk(graph, walkValidate)
 	if err != nil {
-		return nil, multierror.Append(errs, err).Errors
+		diags = diags.Append(err)
 	}
 
-	// Return the result
-	rerrs := multierror.Append(errs, walker.ValidationErrors...)
-
 	sort.Strings(walker.ValidationWarnings)
-	sort.Slice(rerrs.Errors, func(i, j int) bool {
-		return rerrs.Errors[i].Error() < rerrs.Errors[j].Error()
+	sort.Slice(walker.ValidationErrors, func(i, j int) bool {
+		return walker.ValidationErrors[i].Error() < walker.ValidationErrors[j].Error()
 	})
 
-	return walker.ValidationWarnings, rerrs.Errors
+	for _, warn := range walker.ValidationWarnings {
+		diags = diags.Append(tfdiags.SimpleWarning(warn))
+	}
+	for _, err := range walker.ValidationErrors {
+		diags = diags.Append(err)
+	}
+
+	return diags
 }
 
 // Module returns the module tree associated with this context.

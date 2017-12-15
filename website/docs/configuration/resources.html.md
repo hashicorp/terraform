@@ -59,7 +59,7 @@ There are **meta-parameters** available to all resources:
 - `provider` (string) - The name of a specific provider to use for this
   resource. The name is in the format of `TYPE.ALIAS`, for example, `aws.west`.
   Where `west` is set using the `alias` attribute in a provider. See [multiple
-  provider instances](#multi-provider-instances).
+  provider instances](#multiple-provider-instances).
 
 - `lifecycle` (configuration block) - Customizes the lifecycle behavior of the
   resource. The specific options are documented below.
@@ -226,6 +226,38 @@ resource "aws_instance" "app" {
   count = "3"
   private_ip = "${lookup(var.instance_ips, count.index)}"
   # ...
+}
+```
+
+To reference a particular instance of a resource you can use `resource.foo.*.id[#]` where `#` is the index number of the instance.
+
+For example, to create a list of all [AWS subnet](/docs/providers/aws/r/subnet.html) ids vs referencing a specific subnet in the list you can use this syntax:
+
+```hcl
+resource "aws_vpc" "foo" {
+  cidr_block = "198.18.0.0/16"
+}
+
+resource "aws_subnet" "bar" {
+  count      = 2
+  vpc_id     = "${aws_vpc.foo.id}"
+  cidr_block = "${cidrsubnet(aws_vpc.foo.cidr_block, 8, count.index)}"
+}
+
+output "vpc_id" {
+  value = "${aws_vpc.foo.id}"
+}
+
+output "all_subnet_ids" {
+  value = "${aws_subnet.bar.*.id}"
+}
+
+output "subnet_id_0" {
+  value = "${aws_subnet.bar.*.id[0]}"
+}
+
+output "subnet_id_1" {
+  value = "${aws_subnet.bar.*.id[1]}"
 }
 ```
 

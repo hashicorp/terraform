@@ -508,49 +508,6 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 	}
 	d.SetPartial("tags")
 
-	if d.HasChange("filename") || d.HasChange("source_code_hash") || d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
-		codeReq := &lambda.UpdateFunctionCodeInput{
-			FunctionName: aws.String(d.Id()),
-			Publish:      aws.Bool(d.Get("publish").(bool)),
-		}
-
-		if v, ok := d.GetOk("filename"); ok {
-			// Grab an exclusive lock so that we're only reading one function into
-			// memory at a time.
-			// See https://github.com/hashicorp/terraform/issues/9364
-			awsMutexKV.Lock(awsMutexLambdaKey)
-			defer awsMutexKV.Unlock(awsMutexLambdaKey)
-			file, err := loadFileContent(v.(string))
-			if err != nil {
-				return fmt.Errorf("Unable to load %q: %s", v.(string), err)
-			}
-			codeReq.ZipFile = file
-		} else {
-			s3Bucket, _ := d.GetOk("s3_bucket")
-			s3Key, _ := d.GetOk("s3_key")
-			s3ObjectVersion, versionOk := d.GetOk("s3_object_version")
-
-			codeReq.S3Bucket = aws.String(s3Bucket.(string))
-			codeReq.S3Key = aws.String(s3Key.(string))
-			if versionOk {
-				codeReq.S3ObjectVersion = aws.String(s3ObjectVersion.(string))
-			}
-		}
-
-		log.Printf("[DEBUG] Send Update Lambda Function Code request: %#v", codeReq)
-
-		_, err := conn.UpdateFunctionCode(codeReq)
-		if err != nil {
-			return fmt.Errorf("Error modifying Lambda Function Code %s: %s", d.Id(), err)
-		}
-
-		d.SetPartial("filename")
-		d.SetPartial("source_code_hash")
-		d.SetPartial("s3_bucket")
-		d.SetPartial("s3_key")
-		d.SetPartial("s3_object_version")
-	}
-
 	configReq := &lambda.UpdateFunctionConfigurationInput{
 		FunctionName: aws.String(d.Id()),
 	}
@@ -666,6 +623,50 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("role")
 		d.SetPartial("timeout")
 	}
+
+	if d.HasChange("filename") || d.HasChange("source_code_hash") || d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
+		codeReq := &lambda.UpdateFunctionCodeInput{
+			FunctionName: aws.String(d.Id()),
+			Publish:      aws.Bool(d.Get("publish").(bool)),
+		}
+
+		if v, ok := d.GetOk("filename"); ok {
+			// Grab an exclusive lock so that we're only reading one function into
+			// memory at a time.
+			// See https://github.com/hashicorp/terraform/issues/9364
+			awsMutexKV.Lock(awsMutexLambdaKey)
+			defer awsMutexKV.Unlock(awsMutexLambdaKey)
+			file, err := loadFileContent(v.(string))
+			if err != nil {
+				return fmt.Errorf("Unable to load %q: %s", v.(string), err)
+			}
+			codeReq.ZipFile = file
+		} else {
+			s3Bucket, _ := d.GetOk("s3_bucket")
+			s3Key, _ := d.GetOk("s3_key")
+			s3ObjectVersion, versionOk := d.GetOk("s3_object_version")
+
+			codeReq.S3Bucket = aws.String(s3Bucket.(string))
+			codeReq.S3Key = aws.String(s3Key.(string))
+			if versionOk {
+				codeReq.S3ObjectVersion = aws.String(s3ObjectVersion.(string))
+			}
+		}
+
+		log.Printf("[DEBUG] Send Update Lambda Function Code request: %#v", codeReq)
+
+		_, err := conn.UpdateFunctionCode(codeReq)
+		if err != nil {
+			return fmt.Errorf("Error modifying Lambda Function Code %s: %s", d.Id(), err)
+		}
+
+		d.SetPartial("filename")
+		d.SetPartial("source_code_hash")
+		d.SetPartial("s3_bucket")
+		d.SetPartial("s3_key")
+		d.SetPartial("s3_object_version")
+	}
+
 	d.Partial(false)
 
 	return resourceAwsLambdaFunctionRead(d, meta)

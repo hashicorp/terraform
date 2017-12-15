@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -113,47 +111,20 @@ func resourceAwsSnsTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 						AttributeName:  aws.String(attrKey),
 						AttributeValue: aws.String(n.(string)),
 					}
-
+					conn := meta.(*AWSClient).snsconn
 					// Retry the update in the event of an eventually consistent style of
 					// error, where say an IAM resource is successfully created but not
 					// actually available. See https://github.com/hashicorp/terraform/issues/3660
-					log.Printf("[DEBUG] Updating SNS Topic (%s) attributes request: %s", d.Id(), req)
-					stateConf := &resource.StateChangeConf{
-						Pending:    []string{"retrying"},
-						Target:     []string{"success"},
-						Refresh:    resourceAwsSNSUpdateRefreshFunc(meta, req),
-						Timeout:    1 * time.Minute,
-						MinTimeout: 3 * time.Second,
-					}
-					_, err := stateConf.WaitForState()
-					if err != nil {
-						return err
-					}
+					_, err := retryOnAwsCode("InvalidParameter", func() (interface{}, error) {
+						return conn.SetTopicAttributes(&req)
+					})
+					return err
 				}
 			}
 		}
 	}
 
 	return resourceAwsSnsTopicRead(d, meta)
-}
-
-func resourceAwsSNSUpdateRefreshFunc(
-	meta interface{}, params sns.SetTopicAttributesInput) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		snsconn := meta.(*AWSClient).snsconn
-		if _, err := snsconn.SetTopicAttributes(&params); err != nil {
-			log.Printf("[WARN] Erroring updating topic attributes: %s", err)
-			if awsErr, ok := err.(awserr.Error); ok {
-				// if the error contains the PrincipalNotFound message, we can retry
-				if strings.Contains(awsErr.Message(), "PrincipalNotFound") {
-					log.Printf("[DEBUG] Retrying AWS SNS Topic Update: %s", params)
-					return nil, "retrying", nil
-				}
-			}
-			return nil, "failed", err
-		}
-		return 42, "success", nil
-	}
 }
 
 func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {

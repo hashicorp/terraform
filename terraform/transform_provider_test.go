@@ -445,6 +445,135 @@ func TestPruneProviderTransformer(t *testing.T) {
 	}
 }
 
+// the child module resource is attached to the configured parent provider
+func TestProviderConfigTransformer_parentProviders(t *testing.T) {
+	mod := testModule(t, "transform-provider-inherit")
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := &AttachResourceConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := TransformProviders([]string{"aws"}, concrete, mod)
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformModuleProviderConfigStr)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+// the child module resource is attached to the configured grand-parent provider
+func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
+	mod := testModule(t, "transform-provider-grandchild-inherit")
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := &AttachResourceConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := TransformProviders([]string{"aws"}, concrete, mod)
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformModuleProviderGrandparentStr)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+// pass a specific provider into a module using it implicitly
+func TestProviderConfigTransformer_implicitModule(t *testing.T) {
+	mod := testModule(t, "transform-provider-implicit-module")
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := &AttachResourceConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := TransformProviders([]string{"aws"}, concrete, mod)
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`module.mod.aws_instance.bar
+  provider.aws.foo
+provider.aws.foo`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+// error out when a non-existent provider is named in a module providers map
+func TestProviderConfigTransformer_invalidProvider(t *testing.T) {
+	mod := testModule(t, "transform-provider-invalid")
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := &AttachResourceConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	tf := TransformProviders([]string{"aws"}, concrete, mod)
+	err := tf.Transform(&g)
+	if err == nil {
+		t.Fatal("expected missing provider error")
+	}
+	if !strings.Contains(err.Error(), "provider.aws.foo") {
+		t.Fatalf("error should reference missing provider, got: %s", err)
+	}
+}
+
 const testTransformProviderBasicStr = `
 aws_instance.web
   provider.aws
@@ -481,9 +610,7 @@ module.sub.module.subsub.bar_instance.two
 module.sub.module.subsub.foo_instance.one
   module.sub.provider.foo
 module.sub.provider.foo
-  provider.foo (disabled)
 provider.bar
-provider.foo (disabled)
 `
 
 const testTransformMissingProviderModuleChildStr = `
@@ -544,4 +671,16 @@ provider.aws (close)
   module.child
   provider.aws
 var.foo
+`
+
+const testTransformModuleProviderConfigStr = `
+module.child.aws_instance.thing
+  provider.aws.foo
+provider.aws.foo
+`
+
+const testTransformModuleProviderGrandparentStr = `
+module.child.module.grandchild.aws_instance.baz
+  provider.aws.foo
+provider.aws.foo
 `

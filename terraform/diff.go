@@ -396,6 +396,11 @@ type ResourceAttrDiff struct {
 	Type        DiffAttrType
 }
 
+// Modified returns the inequality of Old and New for this attr
+func (d *ResourceAttrDiff) Modified() bool {
+	return d.Old != d.New
+}
+
 // Empty returns true if the diff for this attr is neutral
 func (d *ResourceAttrDiff) Empty() bool {
 	return d.Old == d.New && !d.NewComputed && !d.NewRemoved
@@ -748,7 +753,7 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 		delete(checkOld, k)
 		delete(checkNew, k)
 
-		diffNew, ok := d2.GetAttribute(k)
+		_, ok := d2.GetAttribute(k)
 		if !ok {
 			// If there's no new attribute, and the old diff expected the attribute
 			// to be removed, that's just fine.
@@ -837,31 +842,14 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 			}
 		}
 
-		// If our attributes are not computed, then there is no reason why we can't
-		// check to make sure the diff values are the same. Do that now.
-		//
-		// There are several conditions that we need to pass here as they are
-		// allowed cases even if values don't match, so let's check those first.
-		switch {
-		case diffOld.NewComputed:
-			// NewComputed values pass
-		case strings.Contains(k, "~"):
-			// Computed keys for sets and lists
-		case strings.HasSuffix(k, "#"):
-			// Counts for sets need to be skipped as well as we have determined that
-			// we may not know the full value due to interpolation
-		case strings.HasSuffix(k, "%") && diffOld.New == "0" && diffOld.Old != "0":
-			// Lists can be skipped if they are being removed (going from n > 0 to 0)
-		case d.DestroyTainted && d2.GetDestroyTainted() && diffOld.New == diffNew.New:
-			// Same for DestoryTainted
-		case d.requiresNew() && d2.RequiresNew() && diffOld.New == diffNew.New:
-			// Same for RequiresNew
-		default:
-			// Anything that gets here should be able to be checked for deep equality.
-			if !reflect.DeepEqual(diffOld, diffNew) {
-				return false, fmt.Sprintf("value mismatch: %s", k)
-			}
-		}
+		// We don't compare the values because we can't currently actually
+		// guarantee to generate the same value two two diffs created from
+		// the same state+config: we have some pesky interpolation functions
+		// that do not behave as pure functions (uuid, timestamp) and so they
+		// can be different each time a diff is produced.
+		// FIXME: Re-organize our config handling so that we don't re-evaluate
+		// expressions when we produce a second comparison diff during
+		// apply (for EvalCompareDiff).
 	}
 
 	// Check for leftover attributes

@@ -178,19 +178,19 @@ func (n *NodeAbstractResource) SetProvider(p string) {
 }
 
 // GraphNodeProviderConsumer
-func (n *NodeAbstractResource) ProvidedBy() []string {
+func (n *NodeAbstractResource) ProvidedBy() string {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
-		return []string{resourceProvider(n.Config.Type, n.Config.Provider)}
+		return resourceProvider(n.Config.Type, n.Config.Provider)
 	}
 
 	// If we have state, then we will use the provider from there
 	if n.ResourceState != nil && n.ResourceState.Provider != "" {
-		return []string{n.ResourceState.Provider}
+		return n.ResourceState.Provider
 	}
 
 	// Use our type
-	return []string{resourceProvider(n.Addr.Type, "")}
+	return resourceProvider(n.Addr.Type, "")
 }
 
 // GraphNodeProvisionerConsumer

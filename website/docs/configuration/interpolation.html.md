@@ -235,6 +235,11 @@ The supported built-in functions are:
       * `element(aws_subnet.foo.*.id, count.index)`
       * `element(var.list_of_strings, 2)`
 
+  * `chunklist(list, size)` - Returns the `list` items chunked by `size`.
+      Examples:
+      * `chunklist(aws_subnet.foo.*.id, 1)`: will outputs `[["id1"], ["id2"], ["id3"]]`
+      * `chunklist(var.list_of_strings, 2)`: will outputs `[["id1", "id2"], ["id3", "id4"], ["id5"]]`
+
   * `file(path)` - Reads the contents of a file into the string. Variables
       in this file are _not_ interpolated. The contents of the file are
       read as-is. The `path` is interpreted relative to the working directory.
@@ -355,6 +360,10 @@ The supported built-in functions are:
       `n` is the index or name of the subcapture. If using a regular expression,
       the syntax conforms to the [re2 regular expression syntax](https://github.com/google/re2/wiki/Syntax).
 
+  * `rsadecrypt(string, key)` - Decrypts `string` using RSA. The padding scheme
+    PKCS #1 v1.5 is used. The `string` must be base64-encoded. `key` must be an
+    RSA private key in PEM format. You may use `file()` to load it from a file.
+
   * `sha1(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-1 hash of the given string.
     Example: `"${sha1("${aws_vpc.default.tags.customer}-s3-bucket")}"`
@@ -395,6 +404,9 @@ The supported built-in functions are:
    invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the
    [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
+  * `timeadd(time, duration)` - Returns a UTC timestamp string corresponding to adding a given `duration` to `time` in RFC 3339 format.      
+    For example, `timeadd("2017-11-22T00:00:00Z", "10m")` produces a value `"2017-11-22T00:10:00Z"`. 
+    
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
 
   * `transpose(map)` - Swaps the keys and list values in a map of lists of strings. For example, transpose(map("a", list("1", "2"), "b", list("2", "3")) produces a value equivalent to map("1", list("a"), "2", list("a", "b"), "3", list("b")).

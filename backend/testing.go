@@ -281,6 +281,14 @@ func testBackendStateLock(t *testing.T, b1, b2 Backend) {
 		t.Fatal("unable to get initial lock:", err)
 	}
 
+	// Make sure we can still get the state.State from another instance even
+	// when locked.  This should only happen when a state is loaded via the
+	// backend, and as a remote state.
+	_, err = b2.State(DefaultStateName)
+	if err != nil {
+		t.Fatalf("failed to read locked state from another backend instance: %s", err)
+	}
+
 	// If the lock ID is blank, assume locking is disabled
 	if lockIDA == "" {
 		t.Logf("TestBackend: %T: empty string returned for lock, assuming disabled", b1)
