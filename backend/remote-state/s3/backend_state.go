@@ -39,15 +39,25 @@ func (b *Backend) States() ([]string, error) {
 
 // extract the env name from the S3 key
 func (b *Backend) keyEnv(key string) string {
-	// we have 3 parts, the prefix, the env name, and the key name
-	parts := strings.SplitN(key, "/", 3)
-	if len(parts) < 3 {
+	if b.workspaceKeyPrefix == "" {
+		parts := strings.Split(key, "/")
+		return parts[0]
+	}
+	parts := strings.SplitAfter(key, b.workspaceKeyPrefix)
+
+	if len(parts) < 2 {
 		// no env here
 		return ""
 	}
 
 	// shouldn't happen since we listed by prefix
 	if parts[0] != b.workspaceKeyPrefix {
+		return ""
+	}
+
+	parts = strings.Split(parts[1], "/")
+
+	if len(parts) < 3 {
 		return ""
 	}
 
