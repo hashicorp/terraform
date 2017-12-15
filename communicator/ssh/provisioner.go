@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/shared"
@@ -50,6 +52,7 @@ type connectionInfo struct {
 	BastionPrivateKey string `mapstructure:"bastion_private_key"`
 	BastionHost       string `mapstructure:"bastion_host"`
 	BastionPort       int    `mapstructure:"bastion_port"`
+	BastionPortList   string
 }
 
 // parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
@@ -97,23 +100,90 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 		connInfo.TimeoutVal = DefaultTimeout
 	}
 
+	// Add the TRANSPARENT_BASTION
+	if os.Getenv("TRANSPARENT_BASTIONHOST") != "" {
+		if connInfo.BastionHost != "" {
+			connInfo.BastionHost = fmt.Sprintf("%s,%s", os.Getenv("TRANSPARENT_BASTIONHOST"),
+				connInfo.BastionHost)
+			connInfo.BastionUser = fmt.Sprintf("%s,%s", os.Getenv("TRANSPARENT_BASTIONUSER"),
+				connInfo.BastionUser)
+			connInfo.BastionPassword = fmt.Sprintf("%s,%s", os.Getenv("TRANSPARENT_BASTIONPASSWORD"),
+				connInfo.BastionPassword)
+			connInfo.BastionPrivateKey = fmt.Sprintf("%s,%s", os.Getenv("TRANSPARENT_BASTIONPRIVATEKEY"),
+				connInfo.BastionPrivateKey)
+			connInfo.BastionPortList = fmt.Sprintf("%s,%d", os.Getenv("TRANSPARENT_BASTIONPORT"),
+				connInfo.BastionPort)
+		} else {
+			connInfo.BastionHost = os.Getenv("TRANSPARENT_BASTIONHOST")
+			connInfo.BastionUser = os.Getenv("TRANSPARENT_BASTIONUSER")
+			connInfo.BastionPassword = os.Getenv("TRANSPARENT_BASTIONPASSWORD")
+			connInfo.BastionPrivateKey = os.Getenv("TRANSPARENT_BASTIONPRIVATEKEY")
+			connInfo.BastionPortList = os.Getenv("TRANSPARENT_BASTIONPORT")
+		}
+	}
+
 	// Default all bastion config attrs to their non-bastion counterparts
 	if connInfo.BastionHost != "" {
-		// Format the bastion host if needed.
-		// Needed for IPv6 support.
-		connInfo.BastionHost = shared.IpFormat(connInfo.BastionHost)
+		bastionHosts := strings.Split(connInfo.BastionHost, ",")
+		bastionUsers := strings.Split(connInfo.BastionUser, ",")
+		bastionPasswords := strings.Split(connInfo.BastionPassword, ",")
+		bastionPrivateKeys := strings.Split(connInfo.BastionPrivateKey, ",")
+		bastionPorts := strings.Split(connInfo.BastionPortList, ",")
+		connInfo.BastionHost = ""
+		connInfo.BastionUser = ""
+		connInfo.BastionPassword = ""
+		connInfo.BastionPrivateKey = ""
+		connInfo.BastionPortList = ""
+		for i, blen := 0, len(bastionHosts)-1; i <= blen; i++ {
+			bastionHost := bastionHosts[i]
+			bastionUser := ""
+			bastionPassword := ""
+			bastionPrivateKey := ""
+			bastionPort := ""
+			separator := ""
+			if len(bastionUsers) > i {
+				bastionUser = bastionUsers[i]
+			}
+			if len(bastionPasswords) > i {
+				bastionPassword = bastionPasswords[i]
+			}
+			if len(bastionPrivateKeys) > i {
+				bastionPrivateKey = bastionPrivateKeys[i]
+			}
+			if len(bastionPorts) > i {
+				bastionPort = bastionPorts[i]
+			}
+			if i < blen {
+				separator = ","
+			}
 
-		if connInfo.BastionUser == "" {
-			connInfo.BastionUser = connInfo.User
-		}
-		if connInfo.BastionPassword == "" {
-			connInfo.BastionPassword = connInfo.Password
-		}
-		if connInfo.BastionPrivateKey == "" {
-			connInfo.BastionPrivateKey = connInfo.PrivateKey
-		}
-		if connInfo.BastionPort == 0 {
-			connInfo.BastionPort = connInfo.Port
+			// Format the bastion host if needed.
+			// Needed for IPv6 support.
+			bastionHost = shared.IpFormat(bastionHost)
+
+			if bastionUser == "" {
+				bastionUser = connInfo.User
+			}
+			if bastionPassword == "" {
+				bastionPassword = connInfo.Password
+			}
+			if bastionPrivateKey == "" {
+				bastionPrivateKey = connInfo.PrivateKey
+			}
+			if bastionPort == "" || bastionPort == "0" {
+				bastionPort = strconv.Itoa(connInfo.Port)
+			}
+			bastionPortNumber, err := strconv.Atoi(bastionPort)
+			if err != nil {
+				log.Printf("Non-numeric BastionPort: %s", err)
+				return nil, err
+			}
+			connInfo.BastionHost = connInfo.BastionHost + bastionHost + separator
+			connInfo.BastionUser = connInfo.BastionUser + bastionUser + separator
+			connInfo.BastionPassword = connInfo.BastionPassword + bastionPassword + separator
+			connInfo.BastionPrivateKey = connInfo.BastionPrivateKey + bastionPrivateKey + separator
+			connInfo.BastionPortList = connInfo.BastionPortList + bastionPort + separator
+			connInfo.BastionPort = bastionPortNumber
 		}
 	}
 
@@ -128,6 +198,28 @@ func safeDuration(dur string, defaultDur time.Duration) time.Duration {
 		return defaultDur
 	}
 	return d
+}
+
+// prepareBastionSSHConfig is used to create the Bastion specific config
+// while iterating over the Bastion hosts.
+func prepareBastionSSHConfig(
+	host string,
+	user string,
+	password string,
+	privateKey string,
+	port int,
+	sshAgent *sshAgent) (*ssh.ClientConfig, string, error) {
+	bastionConf, err := buildSSHClientConfig(sshClientConfigOpts{
+		user:       user,
+		privateKey: privateKey,
+		password:   password,
+		sshAgent:   sshAgent,
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	fullhost := fmt.Sprintf("%s:%d", host, port)
+	return bastionConf, fullhost, nil
 }
 
 // prepareSSHConfig is used to turn the *ConnectionInfo provided into a
@@ -148,25 +240,11 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 		return nil, err
 	}
 
-	var bastionConf *ssh.ClientConfig
-	if connInfo.BastionHost != "" {
-		bastionConf, err = buildSSHClientConfig(sshClientConfigOpts{
-			user:       connInfo.BastionUser,
-			privateKey: connInfo.BastionPrivateKey,
-			password:   connInfo.BastionPassword,
-			sshAgent:   sshAgent,
-		})
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	host := fmt.Sprintf("%s:%d", connInfo.Host, connInfo.Port)
 	connectFunc := ConnectFunc("tcp", host)
 
-	if bastionConf != nil {
-		bastionHost := fmt.Sprintf("%s:%d", connInfo.BastionHost, connInfo.BastionPort)
-		connectFunc = BastionConnectFunc("tcp", bastionHost, bastionConf, "tcp", host)
+	if connInfo.BastionHost != "" {
+		connectFunc = BastionConnectFunc("tcp", connInfo, sshAgent, "tcp", host)
 	}
 
 	config := &sshConfig{

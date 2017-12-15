@@ -53,7 +53,7 @@ type sshConfig struct {
 	// connection returns a new connection. The current connection
 	// in use will be closed as part of the Close method, or in the
 	// case an error occurs.
-	connection func() (net.Conn, error)
+	connection func(o terraform.UIOutput) (net.Conn, error)
 
 	// noPty, if true, will not request a pty from the remote end.
 	noPty bool
@@ -123,25 +123,10 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 			c.connInfo.PrivateKey != "",
 			c.connInfo.Agent,
 		))
-
-		if c.connInfo.BastionHost != "" {
-			o.Output(fmt.Sprintf(
-				"Using configured bastion host...\n"+
-					"  Host: %s\n"+
-					"  User: %s\n"+
-					"  Password: %t\n"+
-					"  Private key: %t\n"+
-					"  SSH Agent: %t",
-				c.connInfo.BastionHost, c.connInfo.BastionUser,
-				c.connInfo.BastionPassword != "",
-				c.connInfo.BastionPrivateKey != "",
-				c.connInfo.Agent,
-			))
-		}
 	}
 
 	log.Printf("connecting to TCP connection for SSH")
-	c.conn, err = c.config.connection()
+	c.conn, err = c.config.connection(o)
 	if err != nil {
 		// Explicitly set this to the REAL nil. Connection() can return
 		// a nil implementation of net.Conn which will make the
@@ -650,8 +635,8 @@ func scpUploadDir(root string, fs []os.FileInfo, w io.Writer, r *bufio.Reader) e
 // ConnectFunc is a convenience method for returning a function
 // that just uses net.Dial to communicate with the remote end that
 // is suitable for use with the SSH communicator configuration.
-func ConnectFunc(network, addr string) func() (net.Conn, error) {
-	return func() (net.Conn, error) {
+func ConnectFunc(network, addr string) func(o terraform.UIOutput) (net.Conn, error) {
+	return func(o terraform.UIOutput) (net.Conn, error) {
 		c, err := net.DialTimeout(network, addr, 15*time.Second)
 		if err != nil {
 			return nil, err
@@ -669,38 +654,108 @@ func ConnectFunc(network, addr string) func() (net.Conn, error) {
 // that connects to a host over a bastion connection.
 func BastionConnectFunc(
 	bProto string,
-	bAddr string,
-	bConf *ssh.ClientConfig,
+	// bAddr string,
+	// bConf *ssh.ClientConfig,
+	connInfo *connectionInfo,
+	sshAgent *sshAgent,
 	proto string,
-	addr string) func() (net.Conn, error) {
-	return func() (net.Conn, error) {
-		log.Printf("[DEBUG] Connecting to bastion: %s", bAddr)
-		bastion, err := ssh.Dial(bProto, bAddr, bConf)
-		if err != nil {
-			return nil, fmt.Errorf("Error connecting to bastion: %s", err)
+	addr string) func(o terraform.UIOutput) (net.Conn, error) {
+	return func(o terraform.UIOutput) (net.Conn, error) {
+		bastionHosts := strings.Split(connInfo.BastionHost, ",")
+		bastionUsers := strings.Split(connInfo.BastionUser, ",")
+		bastionPasswords := strings.Split(connInfo.BastionPassword, ",")
+		bastionPrivateKeys := strings.Split(connInfo.BastionPrivateKey, ",")
+		bastionPorts := strings.Split(connInfo.BastionPortList, ",")
+		var bastionErr error
+		var bastion *ssh.Client
+		var lastbAddr string
+		bConn := bastionConn{
+			Bastion: []*ssh.Client{},
 		}
 
-		log.Printf("[DEBUG] Connecting via bastion (%s) to host: %s", bAddr, addr)
+		for i, len := 0, len(bastionHosts); i < len; i++ {
+			bastionPort, err := strconv.Atoi(bastionPorts[i])
+			if err != nil {
+				bConn.Close()
+				log.Printf("bastionPort error: %s", err)
+				return nil, err
+			}
+			bConf, bAddr, err := prepareBastionSSHConfig(bastionHosts[i],
+				bastionUsers[i],
+				bastionPasswords[i],
+				bastionPrivateKeys[i],
+				bastionPort,
+				sshAgent)
+			if err != nil {
+				return nil, err
+			}
+			lastbAddr = bAddr
+			if o != nil {
+				o.Output(fmt.Sprintf(
+					"Using configured bastion host...\n"+
+						"  Host: %s\n"+
+						"  User: %s\n"+
+						"  Password: %t\n"+
+						"  Private key: %t\n"+
+						"  SSH Agent: %t",
+					bastionHosts[i], bastionUsers[i],
+					bastionPasswords[i] != "",
+					bastionPrivateKeys[i] != "",
+					sshAgent,
+				))
+			}
+			log.Printf("[DEBUG] Connecting to bastion: %s", bAddr)
+			if bastion != nil {
+				conn, err := bastion.Dial(bProto, bAddr)
+				if err != nil {
+					bConn.Close()
+					log.Printf("bastion Dial error: %s", err)
+					return nil, err
+				}
+				host := fmt.Sprintf("%s:%s", bastionHosts[i], bastionPorts[i])
+				sshConn, sshChan, req, err := ssh.NewClientConn(conn, host, bConf)
+				if err != nil {
+					log.Printf("handshake error: %s", err)
+					bConn.Close()
+					return nil, err
+				}
+				bastion = ssh.NewClient(sshConn, sshChan, req)
+			} else {
+				bastion, bastionErr = ssh.Dial(bProto, bAddr, bConf)
+				if bastionErr != nil {
+					bConn.Close()
+					return nil, fmt.Errorf("Error connecting to bastion: %s", bastionErr)
+				}
+			}
+			bConn.Bastion = append(bConn.Bastion, bastion)
+		}
+
+		log.Printf("[DEBUG] Connecting via bastion (%s) to host: %s", lastbAddr, addr)
 		conn, err := bastion.Dial(proto, addr)
 		if err != nil {
-			bastion.Close()
+			bConn.Close()
+			log.Printf("target Dial error: %s", err)
 			return nil, err
 		}
 
 		// Wrap it up so we close both things properly
-		return &bastionConn{
-			Conn:    conn,
-			Bastion: bastion,
-		}, nil
+		bConn.Conn = conn
+		return &bConn, nil
 	}
 }
 
 type bastionConn struct {
 	net.Conn
-	Bastion *ssh.Client
+	Bastion []*ssh.Client
 }
 
 func (c *bastionConn) Close() error {
-	c.Conn.Close()
-	return c.Bastion.Close()
+	var err error
+	if c.Conn != nil { // can be nil if one of the bastions fails
+		c.Conn.Close()
+	}
+	for i := len(c.Bastion) - 1; i >= 0; i-- { // closing in reverse order
+		err = c.Bastion[i].Close()
+	}
+	return err
 }
