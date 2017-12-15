@@ -8,7 +8,12 @@ description: |-
 
 # Infrastructure Software Providers
 
-Description of some Infrastructure software providers
+This is a group of software providers offering specialized infrastructure
+management capabilities such as configuration management. Terraform integrates
+with these tools using the specific providers to enable these specialized tools
+to execute tasks during the provisioning of infrastructure.  These providers
+are primarily supported by the vendor in close collaboration with HashiCorp,
+and are tested by HashiCorp.
 
 [Chef](/docs/providers/chef/index.html)
 

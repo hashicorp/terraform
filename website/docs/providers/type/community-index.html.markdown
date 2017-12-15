@@ -8,4 +8,6 @@ description: |-
 
 # Community Providers
 
-Description of some community providers
+The providers listed below have been built by the community of Terraform users 
+and vendors. These providers are not tested nor officially maintained by
+HashiCorp, and are listed here in order to help users find them easily.

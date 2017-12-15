@@ -19,7 +19,8 @@ resources. Providers generally are an IaaS (e.g. AWS, GCP, Microsoft Azure,
 OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. Terraform Enterprise,
 DNSimple, CloudFlare).
 
-Use the navigation to the left to read about the available providers.
+Use the navigation to the left to find available providers by type or scroll
+down to see all providers.
 
 
 <table class="table">

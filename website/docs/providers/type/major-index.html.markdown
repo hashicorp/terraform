@@ -8,7 +8,13 @@ description: |-
 
 # Major Cloud Providers
 
-Hyper Scale Clouds
+This group includes hyper-scale cloud providers that offer a range of services
+including IaaS, SaaS, and PaaS.  A large percentage of Terraform users provision 
+their infrastructure on these major cloud providers. HashiCorp closely partners
+with these cloud providers to offer best-in-class integration to provision and
+manage the majority of the services offered. These providers are primarily
+supported by the cloud vendor in close collaboration with HashiCorp, and are
+tested by HashiCorp.
 
 
 [AliCloud](/docs/providers/alicloud/index.html)

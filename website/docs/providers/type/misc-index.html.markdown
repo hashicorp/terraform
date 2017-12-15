@@ -6,9 +6,11 @@ description: |-
   Category for database vendors.
 ---
 
-# Misc Providers
+# Miscellaneous Providers
 
-Description of some misc providers
+This is a group of miscellaneous providers offer specific capabilities that can
+be useful when working with Terraform.  These providers are primarily supported
+by the vendors and the Terraform community, and are tested by HashiCorp.
 
 [Archive](/docs/providers/archive/index.html)
 
