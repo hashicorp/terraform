@@ -25,28 +25,31 @@ func (b *Backend) States() ([]string, error) {
 		return nil, err
 	}
 
-	envs := []string{backend.DefaultStateName}
+	wss := []string{backend.DefaultStateName}
 	for _, obj := range resp.Contents {
-		env := b.keyEnv(*obj.Key)
-		if env != "" {
-			envs = append(envs, env)
+		ws := getWorkspaceForKey(*obj.Key, b)
+		if ws != "" {
+			wss = append(wss, ws)
 		}
 	}
 
-	sort.Strings(envs[1:])
-	return envs, nil
+	sort.Strings(wss[1:])
+	return wss, nil
 }
 
-// extract the env name from the S3 key
-func (b *Backend) keyEnv(key string) string {
+func getWorkspaceForKey(key string, b *Backend) string {
 	if b.workspaceKeyPrefix == "" {
 		parts := strings.Split(key, "/")
-		return parts[0]
+		if len(parts) > 1 && parts[1] == key {
+			return parts[0]
+		} else {
+			return ""
+		}
 	}
+
 	parts := strings.SplitAfter(key, b.workspaceKeyPrefix)
 
 	if len(parts) < 2 {
-		// no env here
 		return ""
 	}
 

@@ -249,6 +249,62 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 }
 
+func TestKeyEnv(t *testing.T) {
+	testACC(t)
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName0 := "tfstate"
+	keyName1 := "ws1/tfstate"
+	keyName2 := "ws1/env1/tfstate"
+
+	b0 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"bucket":               bucketName,
+		"key":                  keyName0,
+		"encrypt":              true,
+		"workspace_key_prefix": "",
+	}).(*Backend)
+
+	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"bucket":               bucketName,
+		"key":                  keyName1,
+		"encrypt":              true,
+		"workspace_key_prefix": "root/userA",
+	}).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"bucket":               bucketName,
+		"key":                  keyName2,
+		"encrypt":              true,
+		"workspace_key_prefix": "root/userA",
+	}).(*Backend)
+
+	if err := testGetWorkspaceForKey(b0, "tfstate", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := testGetWorkspaceForKey(b0, "ws1/tfstate", "ws1"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := testGetWorkspaceForKey(b1, "root/userA/ws1/tfstate", "ws1"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := testGetWorkspaceForKey(b1, "root/userA/ws2/tfstate", "ws2"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := testGetWorkspaceForKey(b2, "root/userA/ws2/env1/tfstate", "ws2"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
+	if getWorkspaceForKey(key, b) != expected {
+		return fmt.Errorf("incorrect workspace for key[%q]: %q", expected, key)
+	}
+	return nil
+}
+
 func checkStateList(b backend.Backend, expected []string) error {
 	states, err := b.States()
 	if err != nil {
