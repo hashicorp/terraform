@@ -845,12 +845,29 @@ func TestCheckResourceAttrSet(name, key string) TestCheckFunc {
 			return err
 		}
 
-		if val, ok := is.Attributes[key]; ok && val != "" {
-			return nil
+		return testCheckResourceAttrSet(is, name, key)
+	}
+}
+
+// TestCheckModuleResourceAttrSet - as per TestCheckResourceAttrSet but with
+// support for non-root modules
+func TestCheckModuleResourceAttrSet(mp []string, name string, key string) TestCheckFunc {
+	return func(s *terraform.State) error {
+		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		if err != nil {
+			return err
 		}
 
+		return testCheckResourceAttrSet(is, name, key)
+	}
+}
+
+func testCheckResourceAttrSet(is *terraform.InstanceState, name string, key string) error {
+	if val, ok := is.Attributes[key]; !ok || val == "" {
 		return fmt.Errorf("%s: Attribute '%s' expected to be set", name, key)
 	}
+
+	return nil
 }
 
 // TestCheckResourceAttr is a TestCheckFunc which validates
@@ -862,21 +879,37 @@ func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 			return err
 		}
 
-		if v, ok := is.Attributes[key]; !ok || v != value {
-			if !ok {
-				return fmt.Errorf("%s: Attribute '%s' not found", name, key)
-			}
+		return testCheckResourceAttr(is, name, key, value)
+	}
+}
 
-			return fmt.Errorf(
-				"%s: Attribute '%s' expected %#v, got %#v",
-				name,
-				key,
-				value,
-				v)
+// TestCheckModuleResourceAttr - as per TestCheckResourceAttr but with
+// support for non-root modules
+func TestCheckModuleResourceAttr(mp []string, name string, key string, value string) TestCheckFunc {
+	return func(s *terraform.State) error {
+		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		if err != nil {
+			return err
 		}
 
-		return nil
+		return testCheckResourceAttr(is, name, key, value)
 	}
+}
+
+func testCheckResourceAttr(is *terraform.InstanceState, name string, key string, value string) error {
+	if v, ok := is.Attributes[key]; !ok || v != value {
+		if !ok {
+			return fmt.Errorf("%s: Attribute '%s' not found", name, key)
+		}
+
+		return fmt.Errorf(
+			"%s: Attribute '%s' expected %#v, got %#v",
+			name,
+			key,
+			value,
+			v)
+	}
+	return nil
 }
 
 // TestCheckNoResourceAttr is a TestCheckFunc which ensures that
@@ -888,12 +921,29 @@ func TestCheckNoResourceAttr(name, key string) TestCheckFunc {
 			return err
 		}
 
-		if _, ok := is.Attributes[key]; ok {
-			return fmt.Errorf("%s: Attribute '%s' found when not expected", name, key)
+		return testCheckNoResourceAttr(is, name, key)
+	}
+}
+
+// TestCheckModuleNoResourceAttr - as per TestCheckNoResourceAttr but with
+// support for non-root modules
+func TestCheckModuleNoResourceAttr(mp []string, name string, key string) TestCheckFunc {
+	return func(s *terraform.State) error {
+		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		if err != nil {
+			return err
 		}
 
-		return nil
+		return testCheckNoResourceAttr(is, name, key)
 	}
+}
+
+func testCheckNoResourceAttr(is *terraform.InstanceState, name string, key string) error {
+	if _, ok := is.Attributes[key]; ok {
+		return fmt.Errorf("%s: Attribute '%s' found when not expected", name, key)
+	}
+
+	return nil
 }
 
 // TestMatchResourceAttr is a TestCheckFunc which checks that the value
@@ -905,17 +955,34 @@ func TestMatchResourceAttr(name, key string, r *regexp.Regexp) TestCheckFunc {
 			return err
 		}
 
-		if !r.MatchString(is.Attributes[key]) {
-			return fmt.Errorf(
-				"%s: Attribute '%s' didn't match %q, got %#v",
-				name,
-				key,
-				r.String(),
-				is.Attributes[key])
+		return testMatchResourceAttr(is, name, key, r)
+	}
+}
+
+// TestModuleMatchResourceAttr - as per TestMatchResourceAttr but with
+// support for non-root modules
+func TestModuleMatchResourceAttr(mp []string, name string, key string, r *regexp.Regexp) TestCheckFunc {
+	return func(s *terraform.State) error {
+		is, err := modulePathPrimaryInstanceState(s, mp, name)
+		if err != nil {
+			return err
 		}
 
-		return nil
+		return testMatchResourceAttr(is, name, key, r)
 	}
+}
+
+func testMatchResourceAttr(is *terraform.InstanceState, name string, key string, r *regexp.Regexp) error {
+	if !r.MatchString(is.Attributes[key]) {
+		return fmt.Errorf(
+			"%s: Attribute '%s' didn't match %q, got %#v",
+			name,
+			key,
+			r.String(),
+			is.Attributes[key])
+	}
+
+	return nil
 }
 
 // TestCheckResourceAttrPtr is like TestCheckResourceAttr except the
@@ -927,6 +994,14 @@ func TestCheckResourceAttrPtr(name string, key string, value *string) TestCheckF
 	}
 }
 
+// TestCheckModuleResourceAttrPtr - as per TestCheckResourceAttrPtr but with
+// support for non-root modules
+func TestCheckModuleResourceAttrPtr(mp []string, name string, key string, value *string) TestCheckFunc {
+	return func(s *terraform.State) error {
+		return TestCheckModuleResourceAttr(mp, name, key, *value)(s)
+	}
+}
+
 // TestCheckResourceAttrPair is a TestCheckFunc which validates that the values
 // in state for a pair of name/key combinations are equal.
 func TestCheckResourceAttrPair(nameFirst, keyFirst, nameSecond, keySecond string) TestCheckFunc {
@@ -935,31 +1010,55 @@ func TestCheckResourceAttrPair(nameFirst, keyFirst, nameSecond, keySecond string
 		if err != nil {
 			return err
 		}
-		vFirst, ok := isFirst.Attributes[keyFirst]
-		if !ok {
-			return fmt.Errorf("%s: Attribute '%s' not found", nameFirst, keyFirst)
-		}
 
 		isSecond, err := primaryInstanceState(s, nameSecond)
 		if err != nil {
 			return err
 		}
-		vSecond, ok := isSecond.Attributes[keySecond]
-		if !ok {
-			return fmt.Errorf("%s: Attribute '%s' not found", nameSecond, keySecond)
-		}
 
-		if vFirst != vSecond {
-			return fmt.Errorf(
-				"%s: Attribute '%s' expected %#v, got %#v",
-				nameFirst,
-				keyFirst,
-				vSecond,
-				vFirst)
-		}
-
-		return nil
+		return testCheckResourceAttrPair(isFirst, nameFirst, keyFirst, isSecond, nameSecond, keySecond)
 	}
+}
+
+// TestCheckModuleResourceAttrPair - as per TestCheckResourceAttrPair but with
+// support for non-root modules
+func TestCheckModuleResourceAttrPair(mpFirst []string, nameFirst string, keyFirst string, mpSecond []string, nameSecond string, keySecond string) TestCheckFunc {
+	return func(s *terraform.State) error {
+		isFirst, err := modulePathPrimaryInstanceState(s, mpFirst, nameFirst)
+		if err != nil {
+			return err
+		}
+
+		isSecond, err := modulePathPrimaryInstanceState(s, mpSecond, nameSecond)
+		if err != nil {
+			return err
+		}
+
+		return testCheckResourceAttrPair(isFirst, nameFirst, keyFirst, isSecond, nameSecond, keySecond)
+	}
+}
+
+func testCheckResourceAttrPair(isFirst *terraform.InstanceState, nameFirst string, keyFirst string, isSecond *terraform.InstanceState, nameSecond string, keySecond string) error {
+	vFirst, ok := isFirst.Attributes[keyFirst]
+	if !ok {
+		return fmt.Errorf("%s: Attribute '%s' not found", nameFirst, keyFirst)
+	}
+
+	vSecond, ok := isSecond.Attributes[keySecond]
+	if !ok {
+		return fmt.Errorf("%s: Attribute '%s' not found", nameSecond, keySecond)
+	}
+
+	if vFirst != vSecond {
+		return fmt.Errorf(
+			"%s: Attribute '%s' expected %#v, got %#v",
+			nameFirst,
+			keyFirst,
+			vSecond,
+			vFirst)
+	}
+
+	return nil
 }
 
 // TestCheckOutput checks an output in the Terraform configuration
@@ -1016,18 +1115,32 @@ type TestT interface {
 // This is set to true by unit tests to alter some behavior
 var testTesting = false
 
-// primaryInstanceState returns the primary instance state for the given resource name.
-func primaryInstanceState(s *terraform.State, name string) (*terraform.InstanceState, error) {
-	ms := s.RootModule()
+// modulePrimaryInstanceState returns the instance state for the given resource
+// name in a ModuleState
+func modulePrimaryInstanceState(s *terraform.State, ms *terraform.ModuleState, name string) (*terraform.InstanceState, error) {
 	rs, ok := ms.Resources[name]
 	if !ok {
-		return nil, fmt.Errorf("Not found: %s", name)
+		return nil, fmt.Errorf("Not found: %s in %s", name, ms.Path)
 	}
 
 	is := rs.Primary
 	if is == nil {
-		return nil, fmt.Errorf("No primary instance: %s", name)
+		return nil, fmt.Errorf("No primary instance: %s in %s", name, ms.Path)
 	}
 
 	return is, nil
+}
+
+// modulePathPrimaryInstanceState returns the primary instance state for the
+// given resource name in a given module path.
+func modulePathPrimaryInstanceState(s *terraform.State, mp []string, name string) (*terraform.InstanceState, error) {
+	ms := s.ModuleByPath(mp)
+	return modulePrimaryInstanceState(s, ms, name)
+}
+
+// primaryInstanceState returns the primary instance state for the given
+// resource name in the root module.
+func primaryInstanceState(s *terraform.State, name string) (*terraform.InstanceState, error) {
+	ms := s.RootModule()
+	return modulePrimaryInstanceState(s, ms, name)
 }
