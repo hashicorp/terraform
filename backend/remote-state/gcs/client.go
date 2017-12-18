@@ -22,6 +22,7 @@ type remoteClient struct {
 	bucketName     string
 	stateFilePath  string
 	lockFilePath   string
+	encryptionKey  []byte
 }
 
 func (c *remoteClient) Get() (payload *remote.Payload, err error) {
@@ -152,7 +153,11 @@ func (c *remoteClient) lockInfo() (*state.LockInfo, error) {
 }
 
 func (c *remoteClient) stateFile() *storage.ObjectHandle {
-	return c.storageClient.Bucket(c.bucketName).Object(c.stateFilePath)
+	h := c.storageClient.Bucket(c.bucketName).Object(c.stateFilePath)
+	if len(c.encryptionKey) > 0 {
+		return h.Key(c.encryptionKey)
+	}
+	return h
 }
 
 func (c *remoteClient) stateFileURL() string {
