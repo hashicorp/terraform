@@ -108,9 +108,12 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 		}
 		if connInfo.BastionPassword == "" {
 			connInfo.BastionPassword = connInfo.Password
-		}
-		if connInfo.BastionPrivateKey == "" {
-			connInfo.BastionPrivateKey = connInfo.PrivateKey
+
+			// Only default the privateKey for the bastion connection if the password is unset
+			// This is to support the case where the bastion uses user/pass auth and the target host is key based
+			if connInfo.BastionPrivateKey == "" {
+				connInfo.BastionPrivateKey = connInfo.PrivateKey
+			}
 		}
 		if connInfo.BastionPort == 0 {
 			connInfo.BastionPort = connInfo.Port
