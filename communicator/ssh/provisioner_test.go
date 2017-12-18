@@ -66,6 +66,49 @@ func TestProvisioner_connInfo(t *testing.T) {
 	}
 }
 
+func TestProvisioner_bastionOverrides(t *testing.T) {
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":        "ssh",
+				"user":        "root",
+				"password":    "supersecret",
+				"private_key": "someprivatekeycontents",
+				"host":        "127.0.0.1",
+				"port":        "22",
+				"timeout":     "30s",
+
+				"bastion_host":     "127.0.1.1",
+				"bastion_password": "differentpassword",
+			},
+		},
+	}
+
+	conf, err := parseConnectionInfo(r)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if conf.BastionHost != "127.0.1.1" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.BastionPort != 22 {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.BastionUser != "root" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.BastionPassword != "differentpassword" {
+		t.Fatalf("bad: %v", conf)
+	}
+	// We don't default the bastion_private_key if the bastion_password is set
+	// because this breaks the case where you are connecting to the bastion using
+	// a username and password, and then to the target host using a key
+	if conf.BastionPrivateKey != "" {
+		t.Fatalf("bad: %v", conf)
+	}
+}
+
 func TestProvisioner_connInfoIpv6(t *testing.T) {
 	r := &terraform.InstanceState{
 		Ephemeral: terraform.EphemeralState{
