@@ -252,29 +252,26 @@ func TestBackendExtraPaths(t *testing.T) {
 func TestKeyEnv(t *testing.T) {
 	testACC(t)
 	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-	keyName0 := "tfstate"
-	keyName1 := "ws1/tfstate"
-	keyName2 := "ws1/env1/tfstate"
+	keyName := "tfstate"
 
 	b0 := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"bucket":               bucketName,
-		"key":                  keyName0,
+		"key":                  keyName,
 		"encrypt":              true,
 		"workspace_key_prefix": "",
 	}).(*Backend)
 
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"bucket":               bucketName,
-		"key":                  keyName1,
+		"key":                  keyName,
 		"encrypt":              true,
-		"workspace_key_prefix": "root/userA",
+		"workspace_key_prefix": "project/env:",
 	}).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":               bucketName,
-		"key":                  keyName2,
-		"encrypt":              true,
-		"workspace_key_prefix": "root/userA",
+		"bucket":  bucketName,
+		"key":     keyName,
+		"encrypt": true,
 	}).(*Backend)
 
 	if err := testGetWorkspaceForKey(b0, "tfstate", ""); err != nil {
@@ -285,17 +282,21 @@ func TestKeyEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := testGetWorkspaceForKey(b1, "root/userA/ws1/tfstate", "ws1"); err != nil {
+	if err := testGetWorkspaceForKey(b1, "project/env:/ws1/tfstate", "ws1"); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := testGetWorkspaceForKey(b1, "root/userA/ws2/tfstate", "ws2"); err != nil {
+	if err := testGetWorkspaceForKey(b1, "project/env:/ws2/tfstate", "ws2"); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := testGetWorkspaceForKey(b2, "root/userA/ws2/env1/tfstate", "ws2"); err != nil {
+	if err := testGetWorkspaceForKey(b2, "env:/ws3/tfstate", "ws3"); err != nil {
 		t.Fatal(err)
 	}
+
+	backend.TestBackend(t, b0, nil)
+	backend.TestBackend(t, b1, nil)
+	backend.TestBackend(t, b2, nil)
 }
 
 func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
