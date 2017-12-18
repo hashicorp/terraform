@@ -476,7 +476,8 @@ func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
 	if !m.Input() {
 		return false, errors.New("input is disabled")
 	}
-	for {
+
+	for i := 0; i < 2; i++ {
 		v, err := m.UIInput().Input(opts)
 		if err != nil {
 			return false, fmt.Errorf(
@@ -490,6 +491,7 @@ func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
 			return true, nil
 		}
 	}
+	return false, nil
 }
 
 // showDiagnostics displays error and warning messages in the UI.

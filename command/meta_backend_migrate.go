@@ -346,22 +346,7 @@ func (m *Meta) backendMigrateEmptyConfirm(one, two state.State, opts *backendMig
 			opts.OneType, opts.TwoType),
 	}
 
-	// Confirm with the user that the copy should occur
-	for {
-		v, err := m.UIInput().Input(inputOpts)
-		if err != nil {
-			return false, fmt.Errorf(
-				"Error asking for state copy action: %s", err)
-		}
-
-		switch strings.ToLower(v) {
-		case "no":
-			return false, nil
-
-		case "yes":
-			return true, nil
-		}
-	}
+	return m.confirm(inputOpts)
 }
 
 func (m *Meta) backendMigrateNonEmptyConfirm(
@@ -410,21 +395,7 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	}
 
 	// Confirm with the user that the copy should occur
-	for {
-		v, err := m.UIInput().Input(inputOpts)
-		if err != nil {
-			return false, fmt.Errorf(
-				"Error asking for state copy action: %s", err)
-		}
-
-		switch strings.ToLower(v) {
-		case "no":
-			return false, nil
-
-		case "yes":
-			return true, nil
-		}
-	}
+	return m.confirm(inputOpts)
 }
 
 type backendMigrateOpts struct {
