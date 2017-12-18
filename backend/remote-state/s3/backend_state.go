@@ -58,7 +58,7 @@ func getWorkspaceForKey(key string, b *Backend) string {
 		return ""
 	}
 
-	parts = strings.Split(parts[1], "/")
+	parts = strings.SplitN(parts[1], "/", 3)
 
 	if len(parts) < 3 {
 		return ""
