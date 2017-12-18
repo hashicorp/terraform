@@ -21,6 +21,7 @@ Multiple workspaces are currently supported by the following backends:
 
  * [AzureRM](/docs/backends/types/azurerm.html)
  * [Consul](/docs/backends/types/consul.html)
+ * [GCS](/docs/backends/types/gcs.html)
  * [S3](/docs/backends/types/s3.html)
  * [Manta](/docs/backends/types/manta.html)
 
