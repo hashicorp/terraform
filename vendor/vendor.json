@@ -2053,10 +2053,10 @@
 			"revisionTime": "2017-07-30T19:30:24Z"
 		},
 		{
-			"checksumSHA1": "kuS9vs+TMQzTGzXteL6EZ5HuKrU=",
+			"checksumSHA1": "7d+I/1S5kAKCL2mlyu1ntha8Bis=",
 			"path": "github.com/posener/complete/cmd/install",
-			"revision": "f4461a52b6329c11190f11fe3384ec8aa964e21c",
-			"revisionTime": "2017-07-30T19:30:24Z"
+			"revision": "6bee943216c8cea4cc983c8596346d8945279a1f",
+			"revisionTime": "2017-12-19T11:11:28Z"
 		},
 		{
 			"checksumSHA1": "DMo94FwJAm9ZCYCiYdJU2+bh4no=",
