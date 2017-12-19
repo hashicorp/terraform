@@ -15,9 +15,15 @@ import (
 )
 
 func (b *Backend) States() ([]string, error) {
+	prefix := b.workspaceKeyPrefix + "/"
+
+	// List bucket root if there is no workspaceKeyPrefix
+	if b.workspaceKeyPrefix == "" {
+		prefix = ""
+	}
 	params := &s3.ListObjectsInput{
 		Bucket: &b.bucketName,
-		Prefix: aws.String(b.workspaceKeyPrefix + "/"),
+		Prefix: aws.String(prefix),
 	}
 
 	resp, err := b.s3Client.ListObjects(params)
@@ -27,7 +33,7 @@ func (b *Backend) States() ([]string, error) {
 
 	wss := []string{backend.DefaultStateName}
 	for _, obj := range resp.Contents {
-		ws := getWorkspaceForKey(*obj.Key, b)
+		ws := b.keyEnv(*obj.Key)
 		if ws != "" {
 			wss = append(wss, ws)
 		}
@@ -37,7 +43,7 @@ func (b *Backend) States() ([]string, error) {
 	return wss, nil
 }
 
-func getWorkspaceForKey(key string, b *Backend) string {
+func (b *Backend) keyEnv(key string) string {
 	if b.workspaceKeyPrefix == "" {
 		parts := strings.SplitN(key, "/", 2)
 		if len(parts) > 1 && parts[1] == b.keyName {
@@ -190,7 +196,12 @@ func (b *Backend) path(name string) string {
 		return b.keyName
 	}
 
-	return strings.Join([]string{b.workspaceKeyPrefix, name, b.keyName}, "/")
+	if b.workspaceKeyPrefix != "" {
+		return strings.Join([]string{b.workspaceKeyPrefix, name, b.keyName}, "/")
+	} else {
+		// Trim the leading / for no workspace prefix
+		return strings.Join([]string{b.workspaceKeyPrefix, name, b.keyName}, "/")[1:]
+	}
 }
 
 const errStateUnlock = `
