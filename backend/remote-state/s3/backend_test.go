@@ -251,57 +251,68 @@ func TestBackendExtraPaths(t *testing.T) {
 
 func TestKeyEnv(t *testing.T) {
 	testACC(t)
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-	keyName := "tfstate"
+	keyName := "some/paths/tfstate"
 
+	bucket0Name := fmt.Sprintf("terraform-remote-s3-test-%x-0", time.Now().Unix())
 	b0 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":               bucketName,
+		"bucket":               bucket0Name,
 		"key":                  keyName,
 		"encrypt":              true,
 		"workspace_key_prefix": "",
 	}).(*Backend)
 
+	createS3Bucket(t, b0.s3Client, bucket0Name)
+	defer deleteS3Bucket(t, b0.s3Client, bucket0Name)
+
+	bucket1Name := fmt.Sprintf("terraform-remote-s3-test-%x-1", time.Now().Unix())
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":               bucketName,
+		"bucket":               bucket1Name,
 		"key":                  keyName,
 		"encrypt":              true,
 		"workspace_key_prefix": "project/env:",
 	}).(*Backend)
 
+	createS3Bucket(t, b1.s3Client, bucket1Name)
+	defer deleteS3Bucket(t, b1.s3Client, bucket1Name)
+
+	bucket2Name := fmt.Sprintf("terraform-remote-s3-test-%x-2", time.Now().Unix())
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":  bucketName,
+		"bucket":  bucket2Name,
 		"key":     keyName,
 		"encrypt": true,
 	}).(*Backend)
 
-	if err := testGetWorkspaceForKey(b0, "tfstate", ""); err != nil {
+	createS3Bucket(t, b2.s3Client, bucket2Name)
+	defer deleteS3Bucket(t, b2.s3Client, bucket2Name)
+
+	if err := testGetWorkspaceForKey(b0, "some/paths/tfstate", ""); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := testGetWorkspaceForKey(b0, "ws1/tfstate", "ws1"); err != nil {
+	if err := testGetWorkspaceForKey(b0, "ws1/some/paths/tfstate", "ws1"); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := testGetWorkspaceForKey(b1, "project/env:/ws1/tfstate", "ws1"); err != nil {
+	if err := testGetWorkspaceForKey(b1, "project/env:/ws1/some/paths/tfstate", "ws1"); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := testGetWorkspaceForKey(b1, "project/env:/ws2/tfstate", "ws2"); err != nil {
+	if err := testGetWorkspaceForKey(b1, "project/env:/ws2/some/paths/tfstate", "ws2"); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := testGetWorkspaceForKey(b2, "env:/ws3/tfstate", "ws3"); err != nil {
+	if err := testGetWorkspaceForKey(b2, "env:/ws3/some/paths/tfstate", "ws3"); err != nil {
 		t.Fatal(err)
 	}
 
-	backend.TestBackend(t, b0, nil)
+	//backend.TestBackend(t, b0, nil)
 	backend.TestBackend(t, b1, nil)
 	backend.TestBackend(t, b2, nil)
 }
 
 func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
-	if getWorkspaceForKey(key, b) != expected {
-		return fmt.Errorf("incorrect workspace for key[%q]: %q", expected, key)
+	if actual := getWorkspaceForKey(key, b); actual != expected {
+		return fmt.Errorf("incorrect workspace for key[%q]. Expected[%q]: Actual[%q]", key, expected, actual)
 	}
 	return nil
 }
