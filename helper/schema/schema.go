@@ -337,6 +337,12 @@ func (s *Schema) finalizeDiff(
 		return d
 	}
 
+	if s.Computed && d.NewComputed && d.Old != "" && d.New == "" {
+		// old case where we pretended that a NewComputed value of "" on a
+		// Computed field was unset
+		return nil
+	}
+
 	if s.Computed && !d.NewComputed {
 		if d.Old != "" && d.New == "" {
 			// This is a computed value with an old value set already,
