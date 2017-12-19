@@ -141,6 +141,13 @@ Terraform ships with built-in functions. Functions are called with the
 syntax `name(arg, arg2, ...)`. For example, to read a file:
 `${file("path.txt")}`.
 
+~> **NOTE**: Proper escaping is required for JSON field values containing quotes
+(`"`) such as `environment` values. If directly setting the JSON, they should be
+escaped as `\"` in the JSON,  e.g. `"value": "I \"love\" escaped quotes"`. If
+using a Terraform variable value, they should be escaped as `\\\"` in the
+variable, e.g. `value = "I \\\"love\\\" escaped quotes"` in the variable and
+`"value": "${var.myvariable}"` in the JSON.
+
 ### Supported built-in functions
 
 The supported built-in functions are:
