@@ -19,7 +19,7 @@ type installer interface {
 func Install(cmd string) error {
 	is := installers()
 	if len(is) == 0 {
-		return errors.New("Did not found any shells to install")
+		return errors.New("Did not find any shells to install")
 	}
 	bin, err := getBinaryPath()
 	if err != nil {
@@ -41,7 +41,7 @@ func Install(cmd string) error {
 func Uninstall(cmd string) error {
 	is := installers()
 	if len(is) == 0 {
-		return errors.New("Did not found any shells to uninstall")
+		return errors.New("Did not find any shells to uninstall")
 	}
 	bin, err := getBinaryPath()
 	if err != nil {
@@ -59,7 +59,7 @@ func Uninstall(cmd string) error {
 }
 
 func installers() (i []installer) {
-	for _, rc := range [...]string{".bashrc", ".bash_profile"} {
+	for _, rc := range [...]string{".bashrc", ".bash_profile", ".bash_login", ".profile"} {
 		if f := rcFile(rc); f != "" {
 			i = append(i, bash{f})
 			break
