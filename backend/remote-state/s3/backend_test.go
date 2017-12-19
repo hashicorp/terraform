@@ -305,13 +305,13 @@ func TestKeyEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//backend.TestBackend(t, b0, nil)
+	backend.TestBackend(t, b0, nil)
 	backend.TestBackend(t, b1, nil)
 	backend.TestBackend(t, b2, nil)
 }
 
 func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
-	if actual := getWorkspaceForKey(key, b); actual != expected {
+	if actual := b.keyEnv(key); actual != expected {
 		return fmt.Errorf("incorrect workspace for key[%q]. Expected[%q]: Actual[%q]", key, expected, actual)
 	}
 	return nil
