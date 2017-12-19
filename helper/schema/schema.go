@@ -296,8 +296,7 @@ func (s *Schema) ZeroValue() interface{} {
 	}
 }
 
-func (s *Schema) finalizeDiff(
-	d *terraform.ResourceAttrDiff) *terraform.ResourceAttrDiff {
+func (s *Schema) finalizeDiff(d *terraform.ResourceAttrDiff, customized bool) *terraform.ResourceAttrDiff {
 	if d == nil {
 		return d
 	}
@@ -337,20 +336,16 @@ func (s *Schema) finalizeDiff(
 		return d
 	}
 
-	if s.Computed && d.NewComputed && d.Old != "" && d.New == "" {
-		// old case where we pretended that a NewComputed value of "" on a
-		// Computed field was unset
-		return nil
-	}
-
-	if s.Computed && !d.NewComputed {
-		if d.Old != "" && d.New == "" {
-			// This is a computed value with an old value set already,
-			// just let it go.
-			return nil
+	if s.Computed {
+		if !customized {
+			if d.Old != "" && d.New == "" {
+				// This is a computed value with an old value set already,
+				// just let it go.
+				return nil
+			}
 		}
 
-		if d.New == "" {
+		if d.New == "" && !d.NewComputed {
 			// Computed attribute without a new value set
 			d.NewComputed = true
 		}
@@ -750,7 +745,7 @@ func isValidFieldName(name string) bool {
 // This helps facilitate diff logic for both ResourceData and ResoureDiff with
 // minimal divergence in code.
 type resourceDiffer interface {
-	diffChange(string) (interface{}, interface{}, bool, bool)
+	diffChange(string) (interface{}, interface{}, bool, bool, bool)
 	Get(string) interface{}
 	GetChange(string) (interface{}, interface{})
 	GetOk(string) (interface{}, bool)
@@ -803,7 +798,7 @@ func (m schemaMap) diffList(
 	diff *terraform.InstanceDiff,
 	d resourceDiffer,
 	all bool) error {
-	o, n, _, computedList := d.diffChange(k)
+	o, n, _, computedList, customized := d.diffChange(k)
 	if computedList {
 		n = nil
 	}
@@ -870,10 +865,13 @@ func (m schemaMap) diffList(
 			oldStr = ""
 		}
 
-		diff.Attributes[k+".#"] = countSchema.finalizeDiff(&terraform.ResourceAttrDiff{
-			Old: oldStr,
-			New: newStr,
-		})
+		diff.Attributes[k+".#"] = countSchema.finalizeDiff(
+			&terraform.ResourceAttrDiff{
+				Old: oldStr,
+				New: newStr,
+			},
+			customized,
+		)
 	}
 
 	// Figure out the maximum
@@ -926,7 +924,7 @@ func (m schemaMap) diffMap(
 
 	// First get all the values from the state
 	var stateMap, configMap map[string]string
-	o, n, _, nComputed := d.diffChange(k)
+	o, n, _, nComputed, customized := d.diffChange(k)
 	if err := mapstructure.WeakDecode(o, &stateMap); err != nil {
 		return fmt.Errorf("%s: %s", k, err)
 	}
@@ -978,6 +976,7 @@ func (m schemaMap) diffMap(
 				Old: oldStr,
 				New: newStr,
 			},
+			customized,
 		)
 	}
 
@@ -995,16 +994,22 @@ func (m schemaMap) diffMap(
 			continue
 		}
 
-		diff.Attributes[prefix+k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
-			Old: old,
-			New: v,
-		})
+		diff.Attributes[prefix+k] = schema.finalizeDiff(
+			&terraform.ResourceAttrDiff{
+				Old: old,
+				New: v,
+			},
+			customized,
+		)
 	}
 	for k, v := range stateMap {
-		diff.Attributes[prefix+k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
-			Old:        v,
-			NewRemoved: true,
-		})
+		diff.Attributes[prefix+k] = schema.finalizeDiff(
+			&terraform.ResourceAttrDiff{
+				Old:        v,
+				NewRemoved: true,
+			},
+			customized,
+		)
 	}
 
 	return nil
@@ -1017,7 +1022,7 @@ func (m schemaMap) diffSet(
 	d resourceDiffer,
 	all bool) error {
 
-	o, n, _, computedSet := d.diffChange(k)
+	o, n, _, computedSet, customized := d.diffChange(k)
 	if computedSet {
 		n = nil
 	}
@@ -1076,20 +1081,26 @@ func (m schemaMap) diffSet(
 			countStr = ""
 		}
 
-		diff.Attributes[k+".#"] = countSchema.finalizeDiff(&terraform.ResourceAttrDiff{
-			Old:         countStr,
-			NewComputed: true,
-		})
+		diff.Attributes[k+".#"] = countSchema.finalizeDiff(
+			&terraform.ResourceAttrDiff{
+				Old:         countStr,
+				NewComputed: true,
+			},
+			customized,
+		)
 		return nil
 	}
 
 	// If the counts are not the same, then record that diff
 	changed := oldLen != newLen
 	if changed || all {
-		diff.Attributes[k+".#"] = countSchema.finalizeDiff(&terraform.ResourceAttrDiff{
-			Old: oldStr,
-			New: newStr,
-		})
+		diff.Attributes[k+".#"] = countSchema.finalizeDiff(
+			&terraform.ResourceAttrDiff{
+				Old: oldStr,
+				New: newStr,
+			},
+			customized,
+		)
 	}
 
 	// Build the list of codes that will make up our set. This is the
@@ -1139,7 +1150,7 @@ func (m schemaMap) diffString(
 	all bool) error {
 	var originalN interface{}
 	var os, ns string
-	o, n, _, computed := d.diffChange(k)
+	o, n, _, computed, customized := d.diffChange(k)
 	if schema.StateFunc != nil && n != nil {
 		originalN = n
 		n = schema.StateFunc(n)
@@ -1176,13 +1187,16 @@ func (m schemaMap) diffString(
 		return nil
 	}
 
-	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
-		Old:         os,
-		New:         ns,
-		NewExtra:    originalN,
-		NewRemoved:  removed,
-		NewComputed: computed,
-	})
+	diff.Attributes[k] = schema.finalizeDiff(
+		&terraform.ResourceAttrDiff{
+			Old:         os,
+			New:         ns,
+			NewExtra:    originalN,
+			NewRemoved:  removed,
+			NewComputed: computed,
+		},
+		customized,
+	)
 
 	return nil
 }
