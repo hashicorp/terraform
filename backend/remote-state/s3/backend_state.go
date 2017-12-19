@@ -39,8 +39,8 @@ func (b *Backend) States() ([]string, error) {
 
 func getWorkspaceForKey(key string, b *Backend) string {
 	if b.workspaceKeyPrefix == "" {
-		parts := strings.Split(key, "/")
-		if len(parts) > 1 && parts[1] == key {
+		parts := strings.SplitN(key, "/", 2)
+		if len(parts) > 1 && parts[1] == b.keyName {
 			return parts[0]
 		} else {
 			return ""
