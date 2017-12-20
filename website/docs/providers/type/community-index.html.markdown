@@ -17,6 +17,16 @@ please fill how this [community providers form](https://docs.google.com/forms/d/
 
 ---
 
+
+
+[Apigee](https://github.com/zambien/terraform-provider-apigee)
+
+[Active Directory](https://github.com/GSLabDev/terraform-provider-ad)
+
 [Google Calendar](https://github.com/sethvargo/terraform-provider-googlecalendar)
 
-[terraform-provider-oneview](https://github.com/HewlettPackard/terraform-provider-oneview)
+[HP OneView](https://github.com/HewlettPackard/terraform-provider-oneview)
+
+[Microsoft SCVMM](https://github.com/GSLabDev/terraform-provider-scvmm)
+
+[Open Day Light](https://github.com/GSLabDev/terraform-provider-odl)

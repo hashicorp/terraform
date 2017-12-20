@@ -9,11 +9,12 @@ description: |-
 # Monitoring & System Management Providers
 
 This is a group of monitoring & system management providers that offer the
-capability to configure and manage services such as loggers, metric tools, and
-monitoring services. Terraform integrates with these services using the specific
-provider to enable these specialized configuration abilities. These providers
-are primarily supported by the vendor in close collaboration with HashiCorp,
-and are tested by HashiCorp.  
+capability to configure and manage services such as loggers, metric tools,
+and monitoring services. Terraform integrates with these services using the
+specific provider to enable these specialized monitoring capabilities. These
+providers are primarily supported by the vendor in close collaboration with
+HashiCorp, and are tested by HashiCorp.
+
 
 
 [Circonus](/docs/providers/circonus/index.html)

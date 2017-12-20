@@ -10,9 +10,10 @@ description: |-
 
 This is a group of database providers offer specific capabilities to provision
 and configure your database resources. Terraform integrates with with these
-database services using the specific provider to manages database resources.
-These providers are primarily supported by the vendor in close collaboration
-with HashiCorp, and are tested by HashiCorp.
+database services using the specific provider to provision and manages database
+resources. These providers are primarily supported by the vendor in close
+collaboration with HashiCorp, and are tested by HashiCorp.
+
 
 [InfluxDB](/docs/providers/influxdb/index.html)
 

@@ -9,11 +9,10 @@ description: |-
 # Network Providers
 
 This is a group of network providers that offer specific network capabilities
-such and DNS, routing, and firewall configuration.  Terraform integrates with
-these services using the specific providers to enable these specialized services
-to execute tasks during the provisioning of infrastructure.  These providers are
-primarily supported by the vendor in close collaboration with HashiCorp, and are
-tested by HashiCorp.
+such and DNS, routing, and firewall configuration.  The providers generally
+offer a cloud-based service and Terraform integrates with these services using
+the specific providers.  These providers are primarily supported by the vendor
+in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [Cloudflare](/docs/providers/cloudflare/index.html)
 
