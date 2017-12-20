@@ -337,6 +337,11 @@ func (s *Schema) finalizeDiff(d *terraform.ResourceAttrDiff, customized bool) *t
 	}
 
 	if s.Computed {
+		// FIXME: This is where the customized bool from getChange finally
+		//        comes into play.  It allows the previously incorrect behavior
+		//        of an empty string being used as "unset" when the value is
+		//        computed. This should be removed once we can properly
+		//        represent an unset/nil value from the configuration.
 		if !customized {
 			if d.Old != "" && d.New == "" {
 				// This is a computed value with an old value set already,
