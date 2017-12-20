@@ -29,4 +29,4 @@ tested by HashiCorp.
 
 [Oracle Public Cloud](/docs/providers/opc/index.html)
 
-[VMware vShpere](/docs/providers/vshpere/index.html)
+[VMware vSphere](/docs/providers/vsphere/index.html)

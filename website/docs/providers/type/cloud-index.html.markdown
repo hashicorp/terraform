@@ -21,11 +21,11 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [CenteryLinkCloud](/docs/providers/clc/index.html)
 
-[CloudScale.ch](/docs/provders/cloudscale/index.html)
+[CloudScale.ch](/docs/providers/cloudscale/index.html)
 
 [CloudStack](/docs/providers/cloudstack/index.html)
 
-[DigitalOcean](/docs/provider/do/index.html)
+[DigitalOcean](/docs/providers/do/index.html)
 
 [Fastly](/docs/providers/fastly/index.html)
 
