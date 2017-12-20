@@ -337,10 +337,8 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 
 func (m *Meta) backendMigrateEmptyConfirm(one, two state.State, opts *backendMigrateOpts) (bool, error) {
 	inputOpts := &terraform.InputOpts{
-		Id: "backend-migrate-copy-to-empty",
-		Query: fmt.Sprintf(
-			"Do you want to copy state from %q to %q?",
-			opts.OneType, opts.TwoType),
+		Id:    "backend-migrate-copy-to-empty",
+		Query: "Do you want to copy existing state to the new backend?",
 		Description: fmt.Sprintf(
 			strings.TrimSpace(inputBackendMigrateEmpty),
 			opts.OneType, opts.TwoType),
@@ -385,10 +383,8 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 
 	// Ask for confirmation
 	inputOpts := &terraform.InputOpts{
-		Id: "backend-migrate-to-backend",
-		Query: fmt.Sprintf(
-			"Do you want to copy state from %q to %q?",
-			opts.OneType, opts.TwoType),
+		Id:    "backend-migrate-to-backend",
+		Query: "Do you want to copy existing state to the new backend?",
 		Description: fmt.Sprintf(
 			strings.TrimSpace(inputBackendMigrateNonEmpty),
 			opts.OneType, opts.TwoType, onePath, twoPath),
@@ -410,7 +406,8 @@ type backendMigrateOpts struct {
 }
 
 const errMigrateLoadStates = `
-Error inspecting state in %q: %s
+Error inspecting states in the %q backend:
+    %s
 
 Prior to changing backends, Terraform inspects the source and destination
 states to determine what kind of migration steps need to be taken, if any.
@@ -419,9 +416,10 @@ destination remain unmodified. Please resolve the above error and try again.
 `
 
 const errMigrateSingleLoadDefault = `
-Error loading state from %q: %s
+Error loading state:
+    %[2]s
 
-Terraform failed to load the default state from %[1]q.
+Terraform failed to load the default state from the %[1]q backend.
 State migration cannot occur unless the state can be loaded. Backend
 modification and state migration has been aborted. The state in both the
 source and the destination remain unmodified. Please resolve the
@@ -429,9 +427,9 @@ above error and try again.
 `
 
 const errMigrateMulti = `
-Error migrating the workspace %q from %q to %q:
-
-%s
+Error migrating the workspace %q from the previous %q backend to the newly
+configured %q backend:
+    %s
 
 Terraform copies workspaces in alphabetical order. Any workspaces
 alphabetically earlier than this one have been copied. Any workspaces
@@ -443,41 +441,45 @@ This will attempt to copy (with permission) all workspaces again.
 `
 
 const errBackendStateCopy = `
-Error copying state from %q to %q: %s
+Error copying state from the previous %q backend to the newly configured %q backend:
+    %s
 
-The state in %[1]q remains intact and unmodified. Please resolve the
-error above and try again.
+The state in the previous backend remains intact and unmodified. Please resolve
+the error above and try again.
 `
 
 const inputBackendMigrateEmpty = `
-Pre-existing state was found in %q while migrating to %q. No existing
-state was found in %[2]q. Do you want to copy the state from %[1]q to
-%[2]q? Enter "yes" to copy and "no" to start with an empty state.
+Pre-existing state was found while migrating the previous %q backend to the
+newly configured %q backend. No existing state was found in the newly
+configured %[2]q backend. Do you want to copy this state to the new %[2]q
+backend? Enter "yes" to copy and "no" to start with an empty state.
 `
 
 const inputBackendMigrateNonEmpty = `
-Pre-existing state was found in %q while migrating to %q. An existing
-non-empty state exists in %[2]q. The two states have been saved to temporary
-files that will be removed after responding to this query.
+Pre-existing state was found while migrating the previous %q backend to the
+newly configured %q backend. An existing non-empty state already exists in
+the new backend. The two states have been saved to temporary files that will be
+removed after responding to this query.
 
-One (%[1]q): %[3]s
-Two (%[2]q): %[4]s
+Previous (type %[1]q): %[3]s
+New      (type %[2]q): %[4]s
 
-Do you want to copy the state from %[1]q to %[2]q? Enter "yes" to copy
-and "no" to start with the existing state in %[2]q.
+Do you want to overwrite the state in the new backend with the previous state?
+Enter "yes" to copy and "no" to start with the existing state in the newly
+configured %[2]q backend.
 `
 
 const inputBackendMigrateMultiToSingle = `
-The existing backend %[1]q supports workspaces and you currently are
-using more than one. The target backend %[2]q doesn't support workspaces.
-If you continue, Terraform will offer to copy your current workspace
-%[3]q to the default workspace in the target. Your existing workspaces
-in the source backend won't be modified. If you want to switch workspaces,
-back them up, or cancel altogether, answer "no" and Terraform will abort.
+The existing %[1]q backend supports workspaces and you currently are
+using more than one. The newly configured %[2]q backend doesn't support
+workspaces. If you continue, Terraform will copy your current workspace %[3]q
+to the default workspace in the target backend. Your existing workspaces in the
+source backend won't be modified. If you want to switch workspaces, back them
+up, or cancel altogether, answer "no" and Terraform will abort.
 `
 
 const inputBackendMigrateMultiToMulti = `
-Both the existing backend %[1]q and the target backend %[2]q support
+Both the existing %[1]q backend and the newly configured %[2]q backend support
 workspaces. When migrating between backends, Terraform will copy all
 workspaces (with the same names). THIS WILL OVERWRITE any conflicting
 states in the destination.
