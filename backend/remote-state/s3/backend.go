@@ -232,7 +232,7 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.ddbTable = data.Get("dynamodb_table").(string)
 	if b.ddbTable == "" {
-		// try the depracted field
+		// try the deprecated field
 		b.ddbTable = data.Get("lock_table").(string)
 	}
 
