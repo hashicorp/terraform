@@ -1023,7 +1023,10 @@ func (m *Meta) backend_C_r_S_changed(
 			"Error initializing new backend: %s", err)
 	}
 
-	m.Ui.Output(strings.TrimSpace(fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)))
+	// no need to confuse the user if the backend types are the same
+	if s.Backend.Type != c.Type {
+		m.Ui.Output(strings.TrimSpace(fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)))
+	}
 
 	// Grab the existing backend
 	oldB, err := m.backend_C_r_S_unchanged(c, sMgr)
@@ -1552,7 +1555,7 @@ Current Serial: %[2]d
 `
 
 const outputBackendMigrateChange = `
-Terraform detected a backend configuration change from %q to %q.
+Terraform detected that the backend type changed from %q to %q.
 `
 
 const outputBackendMigrateLegacy = `
@@ -1576,9 +1579,7 @@ const outputBackendReconfigure = `
 [reset][bold]Backend configuration changed![reset]
 
 Terraform has detected that the configuration specified for the backend
-has changed. Terraform will now reconfigure for this backend. If you didn't
-intend to reconfigure your backend please undo any changes to the "backend"
-section in your Terraform configuration.
+has changed. Terraform will now check for existing state in the backends.
 `
 
 const outputBackendSavedWithLegacy = `
