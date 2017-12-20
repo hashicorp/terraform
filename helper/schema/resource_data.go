@@ -445,7 +445,7 @@ func (d *ResourceData) init() {
 }
 
 func (d *ResourceData) diffChange(
-	k string) (interface{}, interface{}, bool, bool) {
+	k string) (interface{}, interface{}, bool, bool, bool) {
 	// Get the change between the state and the config.
 	o, n := d.getChange(k, getSourceState, getSourceConfig|getSourceExact)
 	if !o.Exists {
@@ -456,7 +456,7 @@ func (d *ResourceData) diffChange(
 	}
 
 	// Return the old, new, and whether there is a change
-	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value), n.Computed
+	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value), n.Computed, false
 }
 
 func (d *ResourceData) getChange(
