@@ -14,6 +14,8 @@ repositories. Terraform integrates with these services to create and manage
 resources provided by the VCS. These providers are primarily supported by the
 vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
+---
+
 
 [Bitbucket](/docs/providers/bitbucket/index.html)
 

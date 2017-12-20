@@ -12,6 +12,9 @@ This is a group of miscellaneous providers offer specific capabilities that can
 be useful when working with Terraform.  These providers are primarily supported
 by the vendors and the Terraform community, and are tested by HashiCorp.
 
+---
+
+
 [Archive](/docs/providers/archive/index.html)
 
 [Cobbler](/docs/providers/cobbler/index.html)

@@ -15,6 +15,9 @@ to execute tasks during the provisioning of infrastructure.  These providers
 are primarily supported by the vendor in close collaboration with HashiCorp,
 and are tested by HashiCorp.
 
+---
+
+
 [Chef](/docs/providers/chef/index.html)
 
 [Consul](/docs/providers/consul/index.html)

@@ -14,6 +14,9 @@ offer a cloud-based service and Terraform integrates with these services using
 the specific providers.  These providers are primarily supported by the vendor
 in close collaboration with HashiCorp, and are tested by HashiCorp.
 
+---
+
+
 [Cloudflare](/docs/providers/cloudflare/index.html)
 
 [DNS](/docs/providers/dns/index.html)

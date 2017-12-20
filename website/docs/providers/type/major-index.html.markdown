@@ -16,6 +16,8 @@ manage the majority of the services offered. These providers are primarily
 supported by the cloud vendor in close collaboration with HashiCorp, and are
 tested by HashiCorp.
 
+---
+
 
 [AliCloud](/docs/providers/alicloud/index.html)
 

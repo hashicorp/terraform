@@ -18,10 +18,9 @@ please fill how this [community providers form](https://docs.google.com/forms/d/
 ---
 
 
+[Active Directory](https://github.com/GSLabDev/terraform-provider-ad)
 
 [Apigee](https://github.com/zambien/terraform-provider-apigee)
-
-[Active Directory](https://github.com/GSLabDev/terraform-provider-ad)
 
 [Google Calendar](https://github.com/sethvargo/terraform-provider-googlecalendar)
 

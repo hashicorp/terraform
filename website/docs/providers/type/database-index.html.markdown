@@ -14,6 +14,8 @@ database services using the specific provider to provision and manages database
 resources. These providers are primarily supported by the vendor in close
 collaboration with HashiCorp, and are tested by HashiCorp.
 
+---
+
 
 [InfluxDB](/docs/providers/influxdb/index.html)
 

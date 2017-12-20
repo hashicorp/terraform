@@ -14,7 +14,7 @@ scale clouds or ones with more specialized offerings. The Terraform provider
 and associated resources for these clouds are primarily supported by the cloud
 vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
-
+---
 
 
 [Arukas](/docs/providers/arukas/index.html)
