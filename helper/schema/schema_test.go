@@ -3113,6 +3113,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 		// A lot of resources currently depended on using the empty string as a
 		// nil/unset value.
+		// FIXME: We want this to eventually produce a diff, since there
+		// technically is a new value in the config.
 		{
 			Name: "optional, computed, empty string",
 			Schema: map[string]*Schema{
