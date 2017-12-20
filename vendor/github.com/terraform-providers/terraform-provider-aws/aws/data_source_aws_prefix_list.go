@@ -23,11 +23,6 @@ func dataSourceAwsPrefixList() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-			// Computed values.
-			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"cidr_blocks": &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
@@ -63,7 +58,6 @@ func dataSourceAwsPrefixListRead(d *schema.ResourceData, meta interface{}) error
 	pl := resp.PrefixLists[0]
 
 	d.SetId(*pl.PrefixListId)
-	d.Set("id", pl.PrefixListId)
 	d.Set("name", pl.PrefixListName)
 
 	cidrs := make([]string, len(pl.Cidrs))

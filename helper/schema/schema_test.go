@@ -3110,6 +3110,38 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: true,
 		},
+
+		// A lot of resources currently depended on using the empty string as a
+		// nil/unset value.
+		// FIXME: We want this to eventually produce a diff, since there
+		// technically is a new value in the config.
+		{
+			Name: "optional, computed, empty string",
+			Schema: map[string]*Schema{
+				"attr": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"attr": "bar",
+				},
+			},
+
+			// this does necessarily depend on an interpolated value, but this
+			// is often how it comes about in a configuration, otherwise the
+			// value would be unset.
+			Config: map[string]interface{}{
+				"attr": "${var.foo}",
+			},
+
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": interfaceToVariableSwallowError(""),
+			},
+		},
 	}
 
 	for i, tc := range cases {

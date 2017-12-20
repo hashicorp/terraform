@@ -64,6 +64,11 @@ func resourceAwsEfsFileSystem() *schema.Resource {
 				ValidateFunc: validateArn,
 			},
 
+			"dns_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -230,6 +235,12 @@ func resourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("encrypted", fs.Encrypted)
 	d.Set("kms_key_id", fs.KmsKeyId)
 
+	region := meta.(*AWSClient).region
+	err = d.Set("dns_name", resourceAwsEfsDnsName(*fs.FileSystemId, region))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -304,4 +315,8 @@ func hasEmptyFileSystems(fs *efs.DescribeFileSystemsOutput) bool {
 		return false
 	}
 	return true
+}
+
+func resourceAwsEfsDnsName(fileSystemId, region string) string {
+	return fmt.Sprintf("%s.efs.%s.amazonaws.com", fileSystemId, region)
 }

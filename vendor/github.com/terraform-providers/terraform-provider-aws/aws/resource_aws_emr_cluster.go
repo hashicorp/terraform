@@ -240,6 +240,11 @@ func resourceAwsEMRCluster() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
+			"ebs_root_volume_size": {
+				Type:     schema.TypeInt,
+				ForceNew: true,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -349,6 +354,10 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 		params.SecurityConfiguration = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("ebs_root_volume_size"); ok {
+		params.EbsRootVolumeSize = aws.Int64(int64(v.(int)))
+	}
+
 	if instanceProfile != "" {
 		params.JobFlowRole = aws.String(instanceProfile)
 	}
@@ -452,6 +461,7 @@ func resourceAwsEMRClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("master_public_dns", cluster.MasterPublicDnsName)
 	d.Set("visible_to_all_users", cluster.VisibleToAllUsers)
 	d.Set("tags", tagsToMapEMR(cluster.Tags))
+	d.Set("ebs_root_volume_size", cluster.EbsRootVolumeSize)
 
 	if err := d.Set("applications", flattenApplications(cluster.Applications)); err != nil {
 		log.Printf("[ERR] Error setting EMR Applications for cluster (%s): %s", d.Id(), err)
@@ -996,9 +1006,9 @@ func resourceAwsEMRClusterStateRefreshFunc(d *schema.ResourceData, meta interfac
 		}
 
 		status := emrc.Status
-		if *status.State == "TERMINATING" {
+		if *status.State == "TERMINATING" || *status.State == "TERMINATED_WITH_ERRORS" {
 			reason := *status.StateChangeReason
-			return emrc, *status.State, fmt.Errorf("EMR Cluster is terminating. %s: %s",
+			return emrc, *status.State, fmt.Errorf("%s: %s",
 				*reason.Code, *reason.Message)
 		}
 

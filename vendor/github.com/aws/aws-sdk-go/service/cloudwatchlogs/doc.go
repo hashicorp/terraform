@@ -4,30 +4,30 @@
 // requests to Amazon CloudWatch Logs.
 //
 // You can use Amazon CloudWatch Logs to monitor, store, and access your log
-// files from EC2 instances, Amazon CloudTrail, or other sources. You can then
-// retrieve the associated log data from CloudWatch Logs using the Amazon CloudWatch
-// console, the CloudWatch Logs commands in the AWS CLI, the CloudWatch Logs
-// API, or the CloudWatch Logs SDK.
+// files from Amazon EC2 instances, AWS CloudTrail, or other sources. You can
+// then retrieve the associated log data from CloudWatch Logs using the CloudWatch
+// console, CloudWatch Logs commands in the AWS CLI, CloudWatch Logs API, or
+// CloudWatch Logs SDK.
 //
 // You can use CloudWatch Logs to:
 //
-//    * Monitor Logs from Amazon EC2 Instances in Real-time: You can use CloudWatch
+//    * Monitor logs from EC2 instances in real-time: You can use CloudWatch
 //    Logs to monitor applications and systems using log data. For example,
 //    CloudWatch Logs can track the number of errors that occur in your application
 //    logs and send you a notification whenever the rate of errors exceeds a
-//    threshold you specify. CloudWatch Logs uses your log data for monitoring;
+//    threshold that you specify. CloudWatch Logs uses your log data for monitoring;
 //    so, no code changes are required. For example, you can monitor application
 //    logs for specific literal terms (such as "NullReferenceException") or
 //    count the number of occurrences of a literal term at a particular position
 //    in log data (such as "404" status codes in an Apache access log). When
 //    the term you are searching for is found, CloudWatch Logs reports the data
-//    to a Amazon CloudWatch metric that you specify.
+//    to a CloudWatch metric that you specify.
 //
-//    * Monitor Amazon CloudTrail Logged Events: You can create alarms in Amazon
-//    CloudWatch and receive notifications of particular API activity as captured
-//    by CloudTrail and use the notification to perform troubleshooting.
+//    * Monitor AWS CloudTrail logged events: You can create alarms in CloudWatch
+//    and receive notifications of particular API activity as captured by CloudTrail
+//    and use the notification to perform troubleshooting.
 //
-//    * Archive Log Data: You can use CloudWatch Logs to store your log data
+//    * Archive log data: You can use CloudWatch Logs to store your log data
 //    in highly durable storage. You can change the log retention setting so
 //    that any log events older than this setting are automatically deleted.
 //    The CloudWatch Logs agent makes it easy to quickly send both rotated and
@@ -41,7 +41,7 @@
 //
 // Using the Client
 //
-// To Amazon CloudWatch Logs with the SDK use the New function to create
+// To contact Amazon CloudWatch Logs with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

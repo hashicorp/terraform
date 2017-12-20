@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func dataSourceAwsAlb() *schema.Resource {
+func dataSourceAwsLb() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceAwsAlbRead,
+		Read: dataSourceAwsLbRead,
 		Schema: map[string]*schema.Schema{
 			"arn": {
 				Type:     schema.TypeString,
@@ -35,6 +35,11 @@ func dataSourceAwsAlb() *schema.Resource {
 				Computed: true,
 			},
 
+			"load_balancer_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"security_groups": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -47,6 +52,23 @@ func dataSourceAwsAlb() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
 				Set:      schema.HashString,
+			},
+
+			"subnet_mapping": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"subnet_id": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"allocation_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 
 			"access_logs": {
@@ -101,27 +123,27 @@ func dataSourceAwsAlb() *schema.Resource {
 	}
 }
 
-func dataSourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceAwsLbRead(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
-	albArn := d.Get("arn").(string)
-	albName := d.Get("name").(string)
+	lbArn := d.Get("arn").(string)
+	lbName := d.Get("name").(string)
 
-	describeAlbOpts := &elbv2.DescribeLoadBalancersInput{}
+	describeLbOpts := &elbv2.DescribeLoadBalancersInput{}
 	switch {
-	case albArn != "":
-		describeAlbOpts.LoadBalancerArns = []*string{aws.String(albArn)}
-	case albName != "":
-		describeAlbOpts.Names = []*string{aws.String(albName)}
+	case lbArn != "":
+		describeLbOpts.LoadBalancerArns = []*string{aws.String(lbArn)}
+	case lbName != "":
+		describeLbOpts.Names = []*string{aws.String(lbName)}
 	}
 
-	describeResp, err := elbconn.DescribeLoadBalancers(describeAlbOpts)
+	describeResp, err := elbconn.DescribeLoadBalancers(describeLbOpts)
 	if err != nil {
-		return errwrap.Wrapf("Error retrieving ALB: {{err}}", err)
+		return errwrap.Wrapf("Error retrieving LB: {{err}}", err)
 	}
 	if len(describeResp.LoadBalancers) != 1 {
 		return fmt.Errorf("Search returned %d results, please revise so only one is returned", len(describeResp.LoadBalancers))
 	}
 	d.SetId(*describeResp.LoadBalancers[0].LoadBalancerArn)
 
-	return flattenAwsAlbResource(d, meta, describeResp.LoadBalancers[0])
+	return flattenAwsLbResource(d, meta, describeResp.LoadBalancers[0])
 }

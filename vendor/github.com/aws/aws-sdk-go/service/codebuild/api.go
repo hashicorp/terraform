@@ -334,6 +334,106 @@ func (c *CodeBuild) CreateProjectWithContext(ctx aws.Context, input *CreateProje
 	return out, req.Send()
 }
 
+const opCreateWebhook = "CreateWebhook"
+
+// CreateWebhookRequest generates a "aws/request.Request" representing the
+// client's request for the CreateWebhook operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateWebhook for more information on using the CreateWebhook
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateWebhookRequest method.
+//    req, resp := client.CreateWebhookRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/CreateWebhook
+func (c *CodeBuild) CreateWebhookRequest(input *CreateWebhookInput) (req *request.Request, output *CreateWebhookOutput) {
+	op := &request.Operation{
+		Name:       opCreateWebhook,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateWebhookInput{}
+	}
+
+	output = &CreateWebhookOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateWebhook API operation for AWS CodeBuild.
+//
+// For an existing AWS CodeBuild build project that has its source code stored
+// in a GitHub repository, enables AWS CodeBuild to begin automatically rebuilding
+// the source code every time a code change is pushed to the repository.
+//
+// If you enable webhooks for an AWS CodeBuild project, and the project is used
+// as a build step in AWS CodePipeline, then two identical builds will be created
+// for each commit. One build is triggered through webhooks, and one through
+// AWS CodePipeline. Because billing is on a per-build basis, you will be billed
+// for both builds. Therefore, if you are using AWS CodePipeline, we recommend
+// that you disable webhooks in CodeBuild. In the AWS CodeBuild console, clear
+// the Webhook box. For more information, see step 9 in Change a Build Project’s
+// Settings (http://docs.aws.amazon.com/codebuild/latest/userguide/change-project.html#change-project-console).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeBuild's
+// API operation CreateWebhook for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   The input value that was provided is not valid.
+//
+//   * ErrCodeOAuthProviderException "OAuthProviderException"
+//   There was a problem with the underlying OAuth provider.
+//
+//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
+//   The specified AWS resource cannot be created, because an AWS resource with
+//   the same settings already exists.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The specified AWS resource cannot be found.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/CreateWebhook
+func (c *CodeBuild) CreateWebhook(input *CreateWebhookInput) (*CreateWebhookOutput, error) {
+	req, out := c.CreateWebhookRequest(input)
+	return out, req.Send()
+}
+
+// CreateWebhookWithContext is the same as CreateWebhook with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateWebhook for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CodeBuild) CreateWebhookWithContext(ctx aws.Context, input *CreateWebhookInput, opts ...request.Option) (*CreateWebhookOutput, error) {
+	req, out := c.CreateWebhookRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteProject = "DeleteProject"
 
 // DeleteProjectRequest generates a "aws/request.Request" representing the
@@ -408,6 +508,93 @@ func (c *CodeBuild) DeleteProject(input *DeleteProjectInput) (*DeleteProjectOutp
 // for more information on using Contexts.
 func (c *CodeBuild) DeleteProjectWithContext(ctx aws.Context, input *DeleteProjectInput, opts ...request.Option) (*DeleteProjectOutput, error) {
 	req, out := c.DeleteProjectRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteWebhook = "DeleteWebhook"
+
+// DeleteWebhookRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteWebhook operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteWebhook for more information on using the DeleteWebhook
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteWebhookRequest method.
+//    req, resp := client.DeleteWebhookRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/DeleteWebhook
+func (c *CodeBuild) DeleteWebhookRequest(input *DeleteWebhookInput) (req *request.Request, output *DeleteWebhookOutput) {
+	op := &request.Operation{
+		Name:       opDeleteWebhook,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteWebhookInput{}
+	}
+
+	output = &DeleteWebhookOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteWebhook API operation for AWS CodeBuild.
+//
+// For an existing AWS CodeBuild build project that has its source code stored
+// in a GitHub repository, stops AWS CodeBuild from automatically rebuilding
+// the source code every time a code change is pushed to the repository.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeBuild's
+// API operation DeleteWebhook for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   The input value that was provided is not valid.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The specified AWS resource cannot be found.
+//
+//   * ErrCodeOAuthProviderException "OAuthProviderException"
+//   There was a problem with the underlying OAuth provider.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/DeleteWebhook
+func (c *CodeBuild) DeleteWebhook(input *DeleteWebhookInput) (*DeleteWebhookOutput, error) {
+	req, out := c.DeleteWebhookRequest(input)
+	return out, req.Send()
+}
+
+// DeleteWebhookWithContext is the same as DeleteWebhook with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteWebhook for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CodeBuild) DeleteWebhookWithContext(ctx aws.Context, input *DeleteWebhookInput, opts ...request.Option) (*DeleteWebhookOutput, error) {
+	req, out := c.DeleteWebhookRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1778,6 +1965,73 @@ func (s *CreateProjectOutput) SetProject(v *Project) *CreateProjectOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/CreateWebhookInput
+type CreateWebhookInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the build project.
+	//
+	// ProjectName is a required field
+	ProjectName *string `locationName:"projectName" min:"2" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateWebhookInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateWebhookInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateWebhookInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateWebhookInput"}
+	if s.ProjectName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProjectName"))
+	}
+	if s.ProjectName != nil && len(*s.ProjectName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("ProjectName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetProjectName sets the ProjectName field's value.
+func (s *CreateWebhookInput) SetProjectName(v string) *CreateWebhookInput {
+	s.ProjectName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/CreateWebhookOutput
+type CreateWebhookOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about a webhook in GitHub that connects repository events to
+	// a build project in AWS CodeBuild.
+	Webhook *Webhook `locationName:"webhook" type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateWebhookOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateWebhookOutput) GoString() string {
+	return s.String()
+}
+
+// SetWebhook sets the Webhook field's value.
+func (s *CreateWebhookOutput) SetWebhook(v *Webhook) *CreateWebhookOutput {
+	s.Webhook = v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/DeleteProjectInput
 type DeleteProjectInput struct {
 	_ struct{} `type:"structure"`
@@ -1832,6 +2086,63 @@ func (s DeleteProjectOutput) String() string {
 
 // GoString returns the string representation
 func (s DeleteProjectOutput) GoString() string {
+	return s.String()
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/DeleteWebhookInput
+type DeleteWebhookInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the build project.
+	//
+	// ProjectName is a required field
+	ProjectName *string `locationName:"projectName" min:"2" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteWebhookInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteWebhookInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteWebhookInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteWebhookInput"}
+	if s.ProjectName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProjectName"))
+	}
+	if s.ProjectName != nil && len(*s.ProjectName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("ProjectName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetProjectName sets the ProjectName field's value.
+func (s *DeleteWebhookInput) SetProjectName(v string) *DeleteWebhookInput {
+	s.ProjectName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/DeleteWebhookOutput
+type DeleteWebhookOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteWebhookOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteWebhookOutput) GoString() string {
 	return s.String()
 }
 
@@ -1949,6 +2260,14 @@ type EnvironmentVariable struct {
 	// Name is a required field
 	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
 
+	// The type of environment variable. Valid values include:
+	//
+	//    * PARAMETER_STORE: An environment variable stored in Amazon EC2 Systems
+	//    Manager Parameter Store.
+	//
+	//    * PLAINTEXT: An environment variable in plaintext format.
+	Type *string `locationName:"type" type:"string" enum:"EnvironmentVariableType"`
+
 	// The value of the environment variable.
 	//
 	// We strongly discourage using environment variables to store sensitive values,
@@ -1992,6 +2311,12 @@ func (s *EnvironmentVariable) Validate() error {
 // SetName sets the Name field's value.
 func (s *EnvironmentVariable) SetName(v string) *EnvironmentVariable {
 	s.Name = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *EnvironmentVariable) SetType(v string) *EnvironmentVariable {
+	s.Type = &v
 	return s
 }
 
@@ -2470,6 +2795,10 @@ type Project struct {
 	// before timing out any related build that did not get marked as completed.
 	// The default is 60 minutes.
 	TimeoutInMinutes *int64 `locationName:"timeoutInMinutes" min:"5" type:"integer"`
+
+	// Information about a webhook in GitHub that connects repository events to
+	// a build project in AWS CodeBuild.
+	Webhook *Webhook `locationName:"webhook" type:"structure"`
 }
 
 // String returns the string representation
@@ -2551,6 +2880,12 @@ func (s *Project) SetTags(v []*Tag) *Project {
 // SetTimeoutInMinutes sets the TimeoutInMinutes field's value.
 func (s *Project) SetTimeoutInMinutes(v int64) *Project {
 	s.TimeoutInMinutes = &v
+	return s
+}
+
+// SetWebhook sets the Webhook field's value.
+func (s *Project) SetWebhook(v *Webhook) *Project {
+	s.Webhook = v
 	return s
 }
 
@@ -3481,6 +3816,32 @@ func (s *UpdateProjectOutput) SetProject(v *Project) *UpdateProjectOutput {
 	return s
 }
 
+// Information about a webhook in GitHub that connects repository events to
+// a build project in AWS CodeBuild.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/Webhook
+type Webhook struct {
+	_ struct{} `type:"structure"`
+
+	// The URL to the webhook.
+	Url *string `locationName:"url" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s Webhook) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Webhook) GoString() string {
+	return s.String()
+}
+
+// SetUrl sets the Url field's value.
+func (s *Webhook) SetUrl(v string) *Webhook {
+	s.Url = &v
+	return s
+}
+
 const (
 	// ArtifactNamespaceNone is a ArtifactNamespace enum value
 	ArtifactNamespaceNone = "NONE"
@@ -3554,6 +3915,14 @@ const (
 const (
 	// EnvironmentTypeLinuxContainer is a EnvironmentType enum value
 	EnvironmentTypeLinuxContainer = "LINUX_CONTAINER"
+)
+
+const (
+	// EnvironmentVariableTypePlaintext is a EnvironmentVariableType enum value
+	EnvironmentVariableTypePlaintext = "PLAINTEXT"
+
+	// EnvironmentVariableTypeParameterStore is a EnvironmentVariableType enum value
+	EnvironmentVariableTypeParameterStore = "PARAMETER_STORE"
 )
 
 const (

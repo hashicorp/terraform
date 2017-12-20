@@ -14,12 +14,12 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAwsAlbListenerRule() *schema.Resource {
+func resourceAwsLbbListenerRule() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsAlbListenerRuleCreate,
-		Read:   resourceAwsAlbListenerRuleRead,
-		Update: resourceAwsAlbListenerRuleUpdate,
-		Delete: resourceAwsAlbListenerRuleDelete,
+		Create: resourceAwsLbListenerRuleCreate,
+		Read:   resourceAwsLbListenerRuleRead,
+		Update: resourceAwsLbListenerRuleUpdate,
+		Delete: resourceAwsLbListenerRuleDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -38,7 +38,7 @@ func resourceAwsAlbListenerRule() *schema.Resource {
 				Type:         schema.TypeInt,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateAwsAlbListenerRulePriority,
+				ValidateFunc: validateAwsLbListenerRulePriority,
 			},
 			"action": {
 				Type:     schema.TypeList,
@@ -52,7 +52,7 @@ func resourceAwsAlbListenerRule() *schema.Resource {
 						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateAwsAlbListenerActionType,
+							ValidateFunc: validateAwsLbListenerActionType,
 						},
 					},
 				},
@@ -80,7 +80,7 @@ func resourceAwsAlbListenerRule() *schema.Resource {
 	}
 }
 
-func resourceAwsAlbListenerRuleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbListenerRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	params := &elbv2.CreateRuleInput{
@@ -114,19 +114,19 @@ func resourceAwsAlbListenerRuleCreate(d *schema.ResourceData, meta interface{}) 
 
 	resp, err := elbconn.CreateRule(params)
 	if err != nil {
-		return errwrap.Wrapf("Error creating ALB Listener Rule: {{err}}", err)
+		return errwrap.Wrapf("Error creating LB Listener Rule: {{err}}", err)
 	}
 
 	if len(resp.Rules) == 0 {
-		return errors.New("Error creating ALB Listener Rule: no rules returned in response")
+		return errors.New("Error creating LB Listener Rule: no rules returned in response")
 	}
 
 	d.SetId(*resp.Rules[0].RuleArn)
 
-	return resourceAwsAlbListenerRuleRead(d, meta)
+	return resourceAwsLbListenerRuleRead(d, meta)
 }
 
-func resourceAwsAlbListenerRuleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbListenerRuleRead(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	resp, err := elbconn.DescribeRules(&elbv2.DescribeRulesInput{
@@ -150,7 +150,7 @@ func resourceAwsAlbListenerRuleRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("arn", rule.RuleArn)
 
 	// The listener arn isn't in the response but can be derived from the rule arn
-	d.Set("listener_arn", albListenerARNFromRuleARN(*rule.RuleArn))
+	d.Set("listener_arn", lbListenerARNFromRuleARN(*rule.RuleArn))
 
 	// Rules are evaluated in priority order, from the lowest value to the highest value. The default rule has the lowest priority.
 	if *rule.Priority == "default" {
@@ -188,7 +188,7 @@ func resourceAwsAlbListenerRuleRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsAlbListenerRuleUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbListenerRuleUpdate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	d.Partial(true)
@@ -251,32 +251,32 @@ func resourceAwsAlbListenerRuleUpdate(d *schema.ResourceData, meta interface{}) 
 	if requestUpdate {
 		resp, err := elbconn.ModifyRule(params)
 		if err != nil {
-			return errwrap.Wrapf("Error modifying ALB Listener Rule: {{err}}", err)
+			return errwrap.Wrapf("Error modifying LB Listener Rule: {{err}}", err)
 		}
 
 		if len(resp.Rules) == 0 {
-			return errors.New("Error modifying creating ALB Listener Rule: no rules returned in response")
+			return errors.New("Error modifying creating LB Listener Rule: no rules returned in response")
 		}
 	}
 
 	d.Partial(false)
 
-	return resourceAwsAlbListenerRuleRead(d, meta)
+	return resourceAwsLbListenerRuleRead(d, meta)
 }
 
-func resourceAwsAlbListenerRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLbListenerRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
 	_, err := elbconn.DeleteRule(&elbv2.DeleteRuleInput{
 		RuleArn: aws.String(d.Id()),
 	})
 	if err != nil && !isRuleNotFound(err) {
-		return errwrap.Wrapf("Error deleting ALB Listener Rule: {{err}}", err)
+		return errwrap.Wrapf("Error deleting LB Listener Rule: {{err}}", err)
 	}
 	return nil
 }
 
-func validateAwsAlbListenerRulePriority(v interface{}, k string) (ws []string, errors []error) {
+func validateAwsLbListenerRulePriority(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(int)
 	if value < 1 || value > 99999 {
 		errors = append(errors, fmt.Errorf("%q must be in the range 1-99999", k))
@@ -298,10 +298,10 @@ func validateAwsListenerRuleField(v interface{}, k string) (ws []string, errors 
 // (arn:aws:elasticloadbalancing:us-east-1:012345678912:listener)-rule(/app/name/0123456789abcdef/abcdef0123456789)/456789abcedf1234
 // concat to become:
 // arn:aws:elasticloadbalancing:us-east-1:012345678912:listener/app/name/0123456789abcdef/abcdef0123456789
-var albListenerARNFromRuleARNRegexp = regexp.MustCompile(`^(arn:.+:listener)-rule(/.+)/[^/]+$`)
+var lbListenerARNFromRuleARNRegexp = regexp.MustCompile(`^(arn:.+:listener)-rule(/.+)/[^/]+$`)
 
-func albListenerARNFromRuleARN(ruleArn string) string {
-	if arnComponents := albListenerARNFromRuleARNRegexp.FindStringSubmatch(ruleArn); len(arnComponents) > 1 {
+func lbListenerARNFromRuleARN(ruleArn string) string {
+	if arnComponents := lbListenerARNFromRuleARNRegexp.FindStringSubmatch(ruleArn); len(arnComponents) > 1 {
 		return arnComponents[1] + arnComponents[2]
 	}
 

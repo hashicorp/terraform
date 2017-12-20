@@ -104,7 +104,7 @@ func resourceAwsElb() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      60,
-				ValidateFunc: validateIntegerInRange(1, 3600),
+				ValidateFunc: validateIntegerInRange(1, 4000),
 			},
 
 			"connection_draining": &schema.Schema{

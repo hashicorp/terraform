@@ -77,7 +77,11 @@ func resourceAwsKmsAliasCreate(d *schema.ResourceData, meta interface{}) error {
 		AliasName:   aws.String(name),
 		TargetKeyId: aws.String(targetKeyId),
 	}
-	_, err := conn.CreateAlias(req)
+
+	// KMS is eventually consistent
+	_, err := retryOnAwsCode("NotFoundException", func() (interface{}, error) {
+		return conn.CreateAlias(req)
+	})
 	if err != nil {
 		return err
 	}

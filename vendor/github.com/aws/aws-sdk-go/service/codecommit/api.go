@@ -362,6 +362,122 @@ func (c *CodeCommit) CreateRepositoryWithContext(ctx aws.Context, input *CreateR
 	return out, req.Send()
 }
 
+const opDeleteBranch = "DeleteBranch"
+
+// DeleteBranchRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteBranch operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteBranch for more information on using the DeleteBranch
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteBranchRequest method.
+//    req, resp := client.DeleteBranchRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteBranch
+func (c *CodeCommit) DeleteBranchRequest(input *DeleteBranchInput) (req *request.Request, output *DeleteBranchOutput) {
+	op := &request.Operation{
+		Name:       opDeleteBranch,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteBranchInput{}
+	}
+
+	output = &DeleteBranchOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteBranch API operation for AWS CodeCommit.
+//
+// Deletes a branch from a repository, unless that branch is the default branch
+// for the repository.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeCommit's
+// API operation DeleteBranch for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
+//   A repository name is required but was not specified.
+//
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
+//   The specified repository does not exist.
+//
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
+//   At least one specified repository name is not valid.
+//
+//   This exception only occurs when a specified repository name is not valid.
+//   Other exceptions occur when a required repository parameter is missing, or
+//   when a specified repository does not exist.
+//
+//   * ErrCodeBranchNameRequiredException "BranchNameRequiredException"
+//   A branch name is required but was not specified.
+//
+//   * ErrCodeInvalidBranchNameException "InvalidBranchNameException"
+//   The specified branch name is not valid.
+//
+//   * ErrCodeDefaultBranchCannotBeDeletedException "DefaultBranchCannotBeDeletedException"
+//   The specified branch is the default branch for the repository, and cannot
+//   be deleted. To delete this branch, you must first set another branch as the
+//   default branch.
+//
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
+//   An encryption integrity check failed.
+//
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
+//   An encryption key could not be accessed.
+//
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
+//   The encryption key is disabled.
+//
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
+//   No encryption key was found.
+//
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
+//   The encryption key is not available.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteBranch
+func (c *CodeCommit) DeleteBranch(input *DeleteBranchInput) (*DeleteBranchOutput, error) {
+	req, out := c.DeleteBranchRequest(input)
+	return out, req.Send()
+}
+
+// DeleteBranchWithContext is the same as DeleteBranch with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteBranch for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CodeCommit) DeleteBranchWithContext(ctx aws.Context, input *DeleteBranchInput, opts ...request.Option) (*DeleteBranchOutput, error) {
+	req, out := c.DeleteBranchRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteRepository = "DeleteRepository"
 
 // DeleteRepositoryRequest generates a "aws/request.Request" representing the
@@ -2326,6 +2442,9 @@ type Commit struct {
 	// the email address for the author, as configured in Git.
 	Author *UserInfo `locationName:"author" type:"structure"`
 
+	// The full SHA of the specified commit.
+	CommitId *string `locationName:"commitId" type:"string"`
+
 	// Information about the person who committed the specified commit, also known
 	// as the committer. Information includes the date in timestamp format with
 	// GMT offset, the name of the committer, and the email address for the committer,
@@ -2365,6 +2484,12 @@ func (s *Commit) SetAdditionalData(v string) *Commit {
 // SetAuthor sets the Author field's value.
 func (s *Commit) SetAuthor(v *UserInfo) *Commit {
 	s.Author = v
+	return s
+}
+
+// SetCommitId sets the CommitId field's value.
+func (s *Commit) SetCommitId(v string) *Commit {
+	s.CommitId = &v
 	return s
 }
 
@@ -2567,6 +2692,92 @@ func (s CreateRepositoryOutput) GoString() string {
 // SetRepositoryMetadata sets the RepositoryMetadata field's value.
 func (s *CreateRepositoryOutput) SetRepositoryMetadata(v *RepositoryMetadata) *CreateRepositoryOutput {
 	s.RepositoryMetadata = v
+	return s
+}
+
+// Represents the input of a delete branch operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteBranchInput
+type DeleteBranchInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the branch to delete.
+	//
+	// BranchName is a required field
+	BranchName *string `locationName:"branchName" min:"1" type:"string" required:"true"`
+
+	// The name of the repository that contains the branch to be deleted.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteBranchInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteBranchInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteBranchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteBranchInput"}
+	if s.BranchName == nil {
+		invalidParams.Add(request.NewErrParamRequired("BranchName"))
+	}
+	if s.BranchName != nil && len(*s.BranchName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BranchName", 1))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBranchName sets the BranchName field's value.
+func (s *DeleteBranchInput) SetBranchName(v string) *DeleteBranchInput {
+	s.BranchName = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *DeleteBranchInput) SetRepositoryName(v string) *DeleteBranchInput {
+	s.RepositoryName = &v
+	return s
+}
+
+// Represents the output of a delete branch operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteBranchOutput
+type DeleteBranchOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the branch deleted by the operation, including the branch
+	// name and the commit ID that was the tip of the branch.
+	DeletedBranch *BranchInfo `locationName:"deletedBranch" type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteBranchOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteBranchOutput) GoString() string {
+	return s.String()
+}
+
+// SetDeletedBranch sets the DeletedBranch field's value.
+func (s *DeleteBranchOutput) SetDeletedBranch(v *BranchInfo) *DeleteBranchOutput {
+	s.DeletedBranch = v
 	return s
 }
 
@@ -2851,7 +3062,7 @@ func (s *GetBranchOutput) SetBranch(v *BranchInfo) *GetBranchOutput {
 type GetCommitInput struct {
 	_ struct{} `type:"structure"`
 
-	// The commit ID.
+	// The commit ID. Commit IDs are the full SHA of the commit.
 	//
 	// CommitId is a required field
 	CommitId *string `locationName:"commitId" type:"string" required:"true"`
@@ -3628,8 +3839,10 @@ func (s *RepositoryNameIdPair) SetRepositoryName(v string) *RepositoryNameIdPair
 type RepositoryTrigger struct {
 	_ struct{} `type:"structure"`
 
-	// The branches that will be included in the trigger configuration. If no branches
-	// are specified, the trigger will apply to all branches.
+	// The branches that will be included in the trigger configuration. If you specify
+	// an empty array, the trigger will apply to all branches.
+	//
+	// While no content is required in the array, you must include the array itself.
 	Branches []*string `locationName:"branches" type:"list"`
 
 	// Any custom data associated with the trigger that will be included in the

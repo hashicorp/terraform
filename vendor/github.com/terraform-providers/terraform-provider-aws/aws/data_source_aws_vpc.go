@@ -81,8 +81,13 @@ func dataSourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 
 	req := &ec2.DescribeVpcsInput{}
 
-	if id := d.Get("id"); id != "" {
-		req.VpcIds = []*string{aws.String(id.(string))}
+	var id string
+	if cid, ok := d.GetOk("id"); ok {
+		id = cid.(string)
+	}
+
+	if id != "" {
+		req.VpcIds = []*string{aws.String(id)}
 	}
 
 	// We specify "default" as boolean, but EC2 filters want
@@ -129,7 +134,6 @@ func dataSourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	vpc := resp.Vpcs[0]
 
 	d.SetId(*vpc.VpcId)
-	d.Set("id", vpc.VpcId)
 	d.Set("cidr_block", vpc.CidrBlock)
 	d.Set("dhcp_options_id", vpc.DhcpOptionsId)
 	d.Set("instance_tenancy", vpc.InstanceTenancy)

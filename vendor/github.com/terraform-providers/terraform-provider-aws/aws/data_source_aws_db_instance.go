@@ -232,7 +232,7 @@ func dataSourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("availability_zone", dbInstance.AvailabilityZone)
 	d.Set("backup_retention_period", dbInstance.BackupRetentionPeriod)
 	d.Set("db_cluster_identifier", dbInstance.DBClusterIdentifier)
-	d.Set("db_instance_arn", dbInstance.DBClusterIdentifier)
+	d.Set("db_instance_arn", dbInstance.DBInstanceArn)
 	d.Set("db_instance_class", dbInstance.DBInstanceClass)
 	d.Set("db_name", dbInstance.DBName)
 

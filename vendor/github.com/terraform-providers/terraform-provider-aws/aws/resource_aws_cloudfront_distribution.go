@@ -484,7 +484,7 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 						"minimum_protocol_version": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  "SSLv3",
+							Default:  "TLSv1",
 						},
 						"ssl_support_method": {
 							Type:     schema.TypeString,

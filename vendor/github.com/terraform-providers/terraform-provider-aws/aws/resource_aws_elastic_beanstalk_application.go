@@ -112,11 +112,14 @@ func resourceAwsElasticBeanstalkApplicationDelete(d *schema.ResourceData, meta i
 	_, err = beanstalkConn.DeleteApplication(&elasticbeanstalk.DeleteApplicationInput{
 		ApplicationName: aws.String(d.Id()),
 	})
+	if err != nil {
+		return err
+	}
 
 	return resource.Retry(10*time.Second, func() *resource.RetryError {
-		if a, _ = getBeanstalkApplication(d, meta); a != nil {
+		if a, err = getBeanstalkApplication(d, meta); a != nil {
 			return resource.RetryableError(
-				fmt.Errorf("Beanstalk Application still exists"))
+				fmt.Errorf("Beanstalk Application (%s) still exists: %s", d.Id(), err))
 		}
 		return nil
 	})
