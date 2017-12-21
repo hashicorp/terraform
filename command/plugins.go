@@ -113,7 +113,13 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 
 // store the user-supplied path for plugin discovery
 func (m *Meta) storePluginPath(pluginPath []string) error {
+	path := filepath.Join(m.DataDir(), PluginPathFile)
+
 	if len(pluginPath) == 0 {
+		err := os.Remove(path)
+		if !os.IsNotExist(err) {
+			return err
+		}
 		return nil
 	}
 
@@ -125,7 +131,7 @@ func (m *Meta) storePluginPath(pluginPath []string) error {
 	// if this fails, so will WriteFile
 	os.MkdirAll(m.DataDir(), 0755)
 
-	return ioutil.WriteFile(filepath.Join(m.DataDir(), PluginPathFile), js, 0644)
+	return ioutil.WriteFile(path, js, 0644)
 }
 
 // Load the user-defined plugin search path into Meta.pluginPath if the file
