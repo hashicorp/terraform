@@ -2685,6 +2685,52 @@ func TestInterpolateFuncURLEncode(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncTransform(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.originalmap": {
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"Foo": {
+						Type:  ast.TypeString,
+						Value: "Bar",
+					},
+				},
+			},
+			"var.additionalmap": {
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"xyz": {
+						Type:  ast.TypeString,
+						Value: "abc",
+					},
+				},
+			},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${transform(var.originalmap, "key", "value")}`,
+				[]interface{}{
+					map[string]interface{}{"key": "Foo", "value": "Bar"},
+				},
+				false,
+			},
+			{
+				`${transform(var.originalmap, "key", "value", var.additionalmap)}`,
+				[]interface{}{
+					map[string]interface{}{"key": "Foo", "value": "Bar", "xyz": "abc"},
+				},
+				false,
+			},
+			{
+				`${transform(var.originalmap, "key", "value", var.additionalmap, "redundant arg")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncTranspose(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{

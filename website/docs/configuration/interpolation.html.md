@@ -411,6 +411,8 @@ The supported built-in functions are:
     
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
 
+  * `transform(map, key_name, value_name, [additional map])` - Transforms a given map to a list of map in which custom key name and value name containing key and value from the original map. Each new map in the returned list can optionally be enriched with additional key value from a map. E.g.: `${transform(map("Id", "1234", "Name", "Foo"), "name", "value", map("propagated_at_launch","true")))}` returns `[{name="Id", value="1234", propagated_at_launch="true"}, {name="Name", value="Foo", propagated_at_launch="true"}]`
+
   * `transpose(map)` - Swaps the keys and list values in a map of lists of strings. For example, transpose(map("a", list("1", "2"), "b", list("2", "3")) produces a value equivalent to map("1", list("a"), "2", list("a", "b"), "3", list("b")).
 
   * `trimspace(string)` - Returns a copy of the string with all leading and trailing white spaces removed.

@@ -118,6 +118,7 @@ func Funcs() map[string]ast.Function {
 		"timestamp":    interpolationFuncTimestamp(),
 		"timeadd":      interpolationFuncTimeAdd(),
 		"title":        interpolationFuncTitle(),
+		"transform":    interpolationFuncTransform(),
 		"transpose":    interpolationFuncTranspose(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
@@ -1624,6 +1625,42 @@ func interpolationFuncURLEncode() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			s := args[0].(string)
 			return url.QueryEscape(s), nil
+		},
+	}
+}
+
+// interpolationFuncTransform implements the "transform" function
+// that converts a map to a list of map in which custom key name
+// and value name containing key and value from original map.
+// Each new map can optional be enriched with additional key value
+func interpolationFuncTransform() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeMap, ast.TypeString, ast.TypeString},
+		ReturnType:   ast.TypeList,
+		Variadic:     true,
+		VariadicType: ast.TypeMap,
+		Callback: func(args []interface{}) (interface{}, error) {
+			originalMap := args[0].(map[string]ast.Variable)
+			keyName := args[1].(string)
+			valueName := args[2].(string)
+			additionalMap := make(map[string]ast.Variable)
+			if len(args) == 4 {
+				additionalMap = args[3].(map[string]ast.Variable)
+			}
+			if len(args) > 4 {
+				return nil, fmt.Errorf("transform() takes no more than 4 arguments")
+			}
+			var outputList []ast.Variable
+			for k, v := range originalMap {
+				entry := make(map[string]ast.Variable)
+				entry[keyName] = ast.Variable{Type: ast.TypeString, Value: k}
+				entry[valueName] = v
+				for k1, v1 := range additionalMap {
+					entry[k1] = v1
+				}
+				outputList = append(outputList, ast.Variable{Type: ast.TypeMap, Value: entry})
+			}
+			return outputList, nil
 		},
 	}
 }
