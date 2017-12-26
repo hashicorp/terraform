@@ -142,7 +142,6 @@ func (i *Interpolater) valueModuleVar(
 	n string,
 	v *config.ModuleVariable,
 	result map[string]ast.Variable) error {
-
 	// Build the path to the child module we want
 	path := make([]string, len(scope.Path), len(scope.Path)+1)
 	copy(path, scope.Path)
@@ -319,7 +318,6 @@ func (i *Interpolater) valueTerraformVar(
 	n string,
 	v *config.TerraformVariable,
 	result map[string]ast.Variable) error {
-
 	// "env" is supported for backward compatibility, but it's deprecated and
 	// so we won't advertise it as being allowed in the error message. It will
 	// be removed in a future version of Terraform.
@@ -701,7 +699,6 @@ func (i *Interpolater) computeResourceMultiVariable(
 func (i *Interpolater) interpolateComplexTypeAttribute(
 	resourceID string,
 	attributes map[string]string) (ast.Variable, error) {
-
 	// We can now distinguish between lists and maps in state by the count field:
 	//    - lists (and by extension, sets) use the traditional .# notation
 	//    - maps use the newer .% notation

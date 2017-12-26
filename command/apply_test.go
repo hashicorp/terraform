@@ -862,7 +862,6 @@ func TestApply_shutdown(t *testing.T) {
 		*terraform.InstanceInfo,
 		*terraform.InstanceState,
 		*terraform.InstanceDiff) (*terraform.InstanceState, error) {
-
 		// only cancel once
 		if !cancelled {
 			shutdownCh <- struct{}{}
