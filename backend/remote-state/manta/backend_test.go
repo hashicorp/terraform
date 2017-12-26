@@ -64,7 +64,6 @@ func TestBackendLocked(t *testing.T) {
 }
 
 func createMantaFolder(t *testing.T, mantaClient *storage.StorageClient, directoryName string) {
-
 	// Be clear about what we're doing in case the user needs to clean
 	// this up later.
 	//t.Logf("creating Manta directory %s", directoryName)

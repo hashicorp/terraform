@@ -17,7 +17,6 @@ import (
 // present in the configuration. This is guaranteed not to happen for any
 // configuration that has passed a call to Config.Validate().
 func ModuleTreeDependencies(root *module.Tree, state *State) *moduledeps.Module {
-
 	// First we walk the configuration tree to build the overall structure
 	// and capture the explicit/implicit/inherited provider dependencies.
 	deps := moduleTreeConfigDependencies(root, nil)

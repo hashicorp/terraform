@@ -213,7 +213,6 @@ func downloadSwiftObject(t *testing.T, osClient *gophercloud.ServiceClient, cont
 // Helper function to get a list of objects in a Swift container
 func getSwiftObjectNames(t *testing.T, osClient *gophercloud.ServiceClient, container string) (objectNames []string) {
 	_ = objects.List(osClient, container, nil).EachPage(func(page pagination.Page) (bool, error) {
-
 		// Get a slice of object names
 		names, err := objects.ExtractNames(page)
 		if err != nil {

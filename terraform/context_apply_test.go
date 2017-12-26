@@ -3883,7 +3883,6 @@ func TestContext2Apply_outputDependsOn(t *testing.T) {
 			info *InstanceInfo,
 			is *InstanceState,
 			id *InstanceDiff) (*InstanceState, error) {
-
 			// Sleep to allow parallel execution
 			time.Sleep(50 * time.Millisecond)
 
