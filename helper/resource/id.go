@@ -3,7 +3,6 @@ package resource
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
