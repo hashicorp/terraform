@@ -33,7 +33,7 @@ func TestUniqueId(t *testing.T) {
 		rest := strings.TrimPrefix(id, prefix)
 
 		if !all36.MatchString(rest) {
-			t.Fatalf("Suffix isn't in base 36! %s", timestamp)
+			t.Fatalf("Suffix isn't in base 36! %s", rest)
 		}
 
 		ids[id] = struct{}{}
