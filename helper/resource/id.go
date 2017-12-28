@@ -33,11 +33,11 @@ func UniqueId() string {
 // in the order of their creation, even across multiple terraform executions, as
 // long as the clock is not turned back between calls.
 func PrefixedUniqueId(prefix string) string {
-	timestamp := strconv.FormatInt(time.Now().Unix(), 36)
+	timestamp := strconv.FormatUint(time.Now().Unix(), 36)
 
 	idMutex.Lock()
 	defer idMutex.Unlock()
 	idCounter++
-	id := strconv.FormatInt(idCounter, 36)
+	id := strconv.FormatUint(idCounter, 36)
 	return fmt.Sprintf("%s%s%s", prefix, timestamp, id)
 }
