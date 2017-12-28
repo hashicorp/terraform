@@ -1,14 +1,10 @@
 package resource
 
 import (
-	"regexp"
 	"strings"
 	"testing"
 	"time"
 )
-
-var allDigits = regexp.MustCompile(`^\d+$`)
-var allHex = regexp.MustCompile(`^[a-f0-9]+$`)
 
 func TestUniqueId(t *testing.T) {
 	split := func(rest string) (timestamp, increment string) {
@@ -29,22 +25,6 @@ func TestUniqueId(t *testing.T) {
 
 		if !strings.HasPrefix(id, prefix) {
 			t.Fatalf("Unique ID didn't have terraform- prefix! %s", id)
-		}
-
-		rest := strings.TrimPrefix(id, prefix)
-
-		if len(rest) != 26 {
-			t.Fatalf("Post-prefix part has wrong length! %s", rest)
-		}
-
-		timestamp, increment := split(rest)
-
-		if !allDigits.MatchString(timestamp) {
-			t.Fatalf("Timestamp not all digits! %s", timestamp)
-		}
-
-		if !allHex.MatchString(increment) {
-			t.Fatalf("Increment part not all hex! %s", increment)
 		}
 
 		if lastId != "" && lastId >= id {
