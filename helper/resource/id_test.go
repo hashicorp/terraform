@@ -18,7 +18,7 @@ func TestUniqueId(t *testing.T) {
 
 	iterations := 10000
 	ids := make(map[string]struct{})
-	var id, lastId string
+	var id string
 	for i := 0; i < iterations; i++ {
 		id = UniqueId()
 
@@ -37,7 +37,6 @@ func TestUniqueId(t *testing.T) {
 		}
 
 		ids[id] = struct{}{}
-		lastId = id
 	}
 
 	id1 := UniqueId()
