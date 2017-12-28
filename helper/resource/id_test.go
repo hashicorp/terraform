@@ -1,10 +1,13 @@
 package resource
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 )
+
+var all36 = regexp.MustCompile(`^[a-z0-9]+$`)
 
 func TestUniqueId(t *testing.T) {
 	split := func(rest string) (timestamp, increment string) {
@@ -27,8 +30,10 @@ func TestUniqueId(t *testing.T) {
 			t.Fatalf("Unique ID didn't have terraform- prefix! %s", id)
 		}
 
-		if lastId != "" && lastId >= id {
-			t.Fatalf("IDs not ordered! %s vs %s", lastId, id)
+		rest := strings.TrimPrefix(id, prefix)
+
+		if !all36.MatchString(rest) {
+			t.Fatalf("Suffix isn't in base 36! %s", timestamp)
 		}
 
 		ids[id] = struct{}{}
