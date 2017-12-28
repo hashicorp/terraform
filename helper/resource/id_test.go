@@ -4,7 +4,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 )
 
 var all36 = regexp.MustCompile(`^[a-z0-9]+$`)
