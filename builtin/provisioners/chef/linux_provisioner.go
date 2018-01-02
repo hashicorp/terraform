@@ -11,7 +11,7 @@ import (
 
 const (
 	chmod      = "find %s -maxdepth 1 -type f -exec /bin/chmod %d {} +"
-	installURL = "https://www.chef.io/chef/install.sh"
+	installURL = "https://omnitruck-direct.chef.io/chef/install.sh"
 )
 
 func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communicator.Communicator) error {
