@@ -90,7 +90,7 @@ This is a complete configuration that Terraform is ready to apply.
 The general structure should be intuitive and straightforward.
 
 The `provider` block is used to configure the named provider, in
-our case "aws." A provider is responsible for creating and
+our case "aws". A provider is responsible for creating and
 managing resources. Multiple provider blocks can exist if a
 Terraform configuration is composed of multiple providers,
 which is a common situation.
