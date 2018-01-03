@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/hashicorp/errwrap"
@@ -15,21 +16,32 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
+var (
+	ErrUnsetEnvVar = errors.New("SSH_AUTH_SOCK is not set")
+)
+
 type SSHAgentSigner struct {
 	formattedKeyFingerprint string
 	keyFingerprint          string
 	algorithm               string
 	accountName             string
+	userName                string
 	keyIdentifier           string
 
 	agent agent.Agent
 	key   ssh.PublicKey
 }
 
-func NewSSHAgentSigner(keyFingerprint, accountName string) (*SSHAgentSigner, error) {
-	sshAgentAddress := os.Getenv("SSH_AUTH_SOCK")
-	if sshAgentAddress == "" {
-		return nil, errors.New("SSH_AUTH_SOCK is not set")
+type SSHAgentSignerInput struct {
+	KeyID       string
+	AccountName string
+	Username    string
+}
+
+func NewSSHAgentSigner(input SSHAgentSignerInput) (*SSHAgentSigner, error) {
+	sshAgentAddress, agentOk := os.LookupEnv("SSH_AUTH_SOCK")
+	if !agentOk {
+		return nil, ErrUnsetEnvVar
 	}
 
 	conn, err := net.Dial("unix", sshAgentAddress)
@@ -39,12 +51,41 @@ func NewSSHAgentSigner(keyFingerprint, accountName string) (*SSHAgentSigner, err
 
 	ag := agent.NewClient(conn)
 
-	keys, err := ag.List()
+	signer := &SSHAgentSigner{
+		keyFingerprint: input.KeyID,
+		accountName:    input.AccountName,
+		agent:          ag,
+	}
+
+	matchingKey, err := signer.MatchKey()
+	if err != nil {
+		return nil, err
+	}
+	signer.key = matchingKey
+	signer.formattedKeyFingerprint = formatPublicKeyFingerprint(signer.key, true)
+	if input.Username != "" {
+		signer.userName = input.Username
+		signer.keyIdentifier = path.Join("/", signer.accountName, "users", input.Username, "keys", signer.formattedKeyFingerprint)
+	} else {
+		signer.keyIdentifier = path.Join("/", signer.accountName, "keys", signer.formattedKeyFingerprint)
+	}
+
+	_, algorithm, err := signer.SignRaw("HelloWorld")
+	if err != nil {
+		return nil, fmt.Errorf("Cannot sign using ssh agent: %s", err)
+	}
+	signer.algorithm = algorithm
+
+	return signer, nil
+}
+
+func (s *SSHAgentSigner) MatchKey() (ssh.PublicKey, error) {
+	keys, err := s.agent.List()
 	if err != nil {
 		return nil, errwrap.Wrapf("Error listing keys in SSH Agent: %s", err)
 	}
 
-	keyFingerprintStripped := strings.TrimPrefix(keyFingerprint, "MD5:")
+	keyFingerprintStripped := strings.TrimPrefix(s.keyFingerprint, "MD5:")
 	keyFingerprintStripped = strings.TrimPrefix(keyFingerprintStripped, "SHA256:")
 	keyFingerprintStripped = strings.Replace(keyFingerprintStripped, ":", "", -1)
 
@@ -64,27 +105,10 @@ func NewSSHAgentSigner(keyFingerprint, accountName string) (*SSHAgentSigner, err
 	}
 
 	if matchingKey == nil {
-		return nil, fmt.Errorf("No key in the SSH Agent matches fingerprint: %s", keyFingerprint)
+		return nil, fmt.Errorf("No key in the SSH Agent matches fingerprint: %s", s.keyFingerprint)
 	}
 
-	formattedKeyFingerprint := formatPublicKeyFingerprint(matchingKey, true)
-
-	signer := &SSHAgentSigner{
-		formattedKeyFingerprint: formattedKeyFingerprint,
-		keyFingerprint:          keyFingerprint,
-		accountName:             accountName,
-		agent:                   ag,
-		key:                     matchingKey,
-		keyIdentifier:           fmt.Sprintf("/%s/keys/%s", accountName, formattedKeyFingerprint),
-	}
-
-	_, algorithm, err := signer.SignRaw("HelloWorld")
-	if err != nil {
-		return nil, fmt.Errorf("Cannot sign using ssh agent: %s", err)
-	}
-	signer.algorithm = algorithm
-
-	return signer, nil
+	return matchingKey, nil
 }
 
 func (s *SSHAgentSigner) Sign(dateHeader string) (string, error) {
