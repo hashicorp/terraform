@@ -1,3 +1,4 @@
+
 ## 0.11.2 (Unreleased)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
@@ -14,8 +15,9 @@ IMPROVEMENTS:
 * config: new `timeadd` interpolation function allows calculating a new timestamp relative to an existing known timestamp. [GH-16644]
 * cli: Module and provider installation (and some other Terraform features) now implement [RFC6555](https://tools.ietf.org/html/rfc6555) when making outgoing HTTP requests, which should improve installation reliability for dual-stack (both IPv4 and IPv6) hosts running on networks that have non-performant or broken IPv6 Internet connectivity by trying both IPv4 and IPv6 connections. [GH-16805]
 * backend/s3: it is now possible to disable the region check, for improved compatibility with third-party services that attempt to mimic the S3 API. [GH-16757]
+* backend/s3: it is now possible to for the path-based S3 API form, for improved compatibility with third-party services that attempt to mimic the S3 API. [GH-17001]
 * backend/s3: it is now possible to use named credentials from the `~/.aws/credentials` file, similarly to the AWS plugin [GH-16661]
-* backend/manta: Support for Triton RBAC [GH-17003]
+* backend/manta: support for Triton RBAC [GH-17003]
 * provider/terraform: in `terraform_remote_state`, the argument `environment` is now deprecated in favor of `workspace`. The `environment` argument will be removed in a later Terraform release. [GH-16558]
 
 BUG FIXES:
