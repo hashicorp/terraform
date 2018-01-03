@@ -3,10 +3,10 @@ package storage
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -20,8 +20,89 @@ type ObjectsClient struct {
 }
 
 // GetObjectInput represents parameters to a GetObject operation.
+type GetInfoInput struct {
+	ObjectPath string
+	Headers    map[string]string
+}
+
+// GetObjectOutput contains the outputs for a GetObject operation. It is your
+// responsibility to ensure that the io.ReadCloser ObjectReader is closed.
+type GetInfoOutput struct {
+	ContentLength uint64
+	ContentType   string
+	LastModified  time.Time
+	ContentMD5    string
+	ETag          string
+	Metadata      map[string]string
+}
+
+// GetInfo sends a HEAD request to an object in the Manta service. This function
+// does not return a response body.
+func (s *ObjectsClient) GetInfo(ctx context.Context, input *GetInfoInput) (*GetInfoOutput, error) {
+	absPath := absFileInput(s.client.AccountName, input.ObjectPath)
+
+	headers := &http.Header{}
+	for key, value := range input.Headers {
+		headers.Set(key, value)
+	}
+
+	reqInput := client.RequestInput{
+		Method:  http.MethodHead,
+		Path:    string(absPath),
+		Headers: headers,
+	}
+	_, respHeaders, err := s.client.ExecuteRequestStorage(ctx, reqInput)
+	if err != nil {
+		return nil, errwrap.Wrapf("Error executing get info request: {{err}}", err)
+	}
+
+	response := &GetInfoOutput{
+		ContentType: respHeaders.Get("Content-Type"),
+		ContentMD5:  respHeaders.Get("Content-MD5"),
+		ETag:        respHeaders.Get("Etag"),
+	}
+
+	lastModified, err := time.Parse(time.RFC1123, respHeaders.Get("Last-Modified"))
+	if err == nil {
+		response.LastModified = lastModified
+	}
+
+	contentLength, err := strconv.ParseUint(respHeaders.Get("Content-Length"), 10, 64)
+	if err == nil {
+		response.ContentLength = contentLength
+	}
+
+	metadata := map[string]string{}
+	for key, values := range respHeaders {
+		if strings.HasPrefix(key, "m-") {
+			metadata[key] = strings.Join(values, ", ")
+		}
+	}
+	response.Metadata = metadata
+
+	return response, nil
+}
+
+// IsDir is a convenience wrapper around the GetInfo function which takes an
+// ObjectPath and returns a boolean whether or not the object is a directory
+// type in Manta. Returns an error if GetInfo failed upstream for some reason.
+func (s *ObjectsClient) IsDir(ctx context.Context, objectPath string) (bool, error) {
+	info, err := s.GetInfo(ctx, &GetInfoInput{
+		ObjectPath: objectPath,
+	})
+	if err != nil {
+		return false, err
+	}
+	if info != nil {
+		return strings.HasSuffix(info.ContentType, "type=directory"), nil
+	}
+	return false, nil
+}
+
+// GetObjectInput represents parameters to a GetObject operation.
 type GetObjectInput struct {
 	ObjectPath string
+	Headers    map[string]string
 }
 
 // GetObjectOutput contains the outputs for a GetObject operation. It is your
@@ -36,19 +117,25 @@ type GetObjectOutput struct {
 	ObjectReader  io.ReadCloser
 }
 
-// GetObject retrieves an object from the Manta service. If error is nil (i.e.
-// the call returns successfully), it is your responsibility to close the io.ReadCloser
-// named ObjectReader in the operation output.
+// Get retrieves an object from the Manta service. If error is nil (i.e. the
+// call returns successfully), it is your responsibility to close the
+// io.ReadCloser named ObjectReader in the operation output.
 func (s *ObjectsClient) Get(ctx context.Context, input *GetObjectInput) (*GetObjectOutput, error) {
-	path := fmt.Sprintf("/%s%s", s.client.AccountName, input.ObjectPath)
+	absPath := absFileInput(s.client.AccountName, input.ObjectPath)
+
+	headers := &http.Header{}
+	for key, value := range input.Headers {
+		headers.Set(key, value)
+	}
 
 	reqInput := client.RequestInput{
-		Method: http.MethodGet,
-		Path:   path,
+		Method:  http.MethodGet,
+		Path:    string(absPath),
+		Headers: headers,
 	}
 	respBody, respHeaders, err := s.client.ExecuteRequestStorage(ctx, reqInput)
 	if err != nil {
-		return nil, errwrap.Wrapf("Error executing GetDirectory request: {{err}}", err)
+		return nil, errwrap.Wrapf("Error executing Get request: {{err}}", err)
 	}
 
 	response := &GetObjectOutput{
@@ -82,22 +169,29 @@ func (s *ObjectsClient) Get(ctx context.Context, input *GetObjectInput) (*GetObj
 // DeleteObjectInput represents parameters to a DeleteObject operation.
 type DeleteObjectInput struct {
 	ObjectPath string
+	Headers    map[string]string
 }
 
 // DeleteObject deletes an object.
 func (s *ObjectsClient) Delete(ctx context.Context, input *DeleteObjectInput) error {
-	path := fmt.Sprintf("/%s%s", s.client.AccountName, input.ObjectPath)
+	absPath := absFileInput(s.client.AccountName, input.ObjectPath)
+
+	headers := &http.Header{}
+	for key, value := range input.Headers {
+		headers.Set(key, value)
+	}
 
 	reqInput := client.RequestInput{
-		Method: http.MethodDelete,
-		Path:   path,
+		Method:  http.MethodDelete,
+		Path:    string(absPath),
+		Headers: headers,
 	}
 	respBody, _, err := s.client.ExecuteRequestStorage(ctx, reqInput)
 	if respBody != nil {
 		defer respBody.Close()
 	}
 	if err != nil {
-		return errwrap.Wrapf("Error executing DeleteObject request: {{err}}", err)
+		return errwrap.Wrapf("Error executing Delete request: {{err}}", err)
 	}
 
 	return nil
@@ -120,7 +214,7 @@ type PutObjectMetadataInput struct {
 //	- Content-MD5
 //	- Durability-Level
 func (s *ObjectsClient) PutMetadata(ctx context.Context, input *PutObjectMetadataInput) error {
-	path := fmt.Sprintf("/%s%s", s.client.AccountName, input.ObjectPath)
+	absPath := absFileInput(s.client.AccountName, input.ObjectPath)
 	query := &url.Values{}
 	query.Set("metadata", "true")
 
@@ -132,7 +226,7 @@ func (s *ObjectsClient) PutMetadata(ctx context.Context, input *PutObjectMetadat
 
 	reqInput := client.RequestInput{
 		Method:  http.MethodPut,
-		Path:    path,
+		Path:    string(absPath),
 		Query:   query,
 		Headers: headers,
 	}
@@ -141,7 +235,7 @@ func (s *ObjectsClient) PutMetadata(ctx context.Context, input *PutObjectMetadat
 		defer respBody.Close()
 	}
 	if err != nil {
-		return errwrap.Wrapf("Error executing PutObjectMetadata request: {{err}}", err)
+		return errwrap.Wrapf("Error executing PutMetadata request: {{err}}", err)
 	}
 
 	return nil
@@ -157,17 +251,55 @@ type PutObjectInput struct {
 	IfModifiedSince  *time.Time
 	ContentLength    uint64
 	MaxContentLength uint64
-	ObjectReader     io.ReadSeeker
+	ObjectReader     io.Reader
+	Headers          map[string]string
+	ForceInsert      bool //Force the creation of the directory tree
 }
 
 func (s *ObjectsClient) Put(ctx context.Context, input *PutObjectInput) error {
-	path := fmt.Sprintf("/%s%s", s.client.AccountName, input.ObjectPath)
+	absPath := absFileInput(s.client.AccountName, input.ObjectPath)
 
+	if input.ForceInsert {
+		absDirName := _AbsCleanPath(path.Dir(string(absPath)))
+		exists, err := checkDirectoryTreeExists(*s, ctx, absDirName)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			err := createDirectory(*s, ctx, absDirName)
+			if err != nil {
+				return err
+			}
+			return putObject(*s, ctx, input, absPath)
+		}
+	}
+
+	return putObject(*s, ctx, input, absPath)
+}
+
+// _AbsCleanPath is an internal type that means the input has been
+// path.Clean()'ed and is an absolute path.
+type _AbsCleanPath string
+
+func absFileInput(accountName, objPath string) _AbsCleanPath {
+	cleanInput := path.Clean(objPath)
+	if strings.HasPrefix(cleanInput, path.Join("/", accountName, "/")) {
+		return _AbsCleanPath(cleanInput)
+	}
+
+	cleanAbs := path.Clean(path.Join("/", accountName, objPath))
+	return _AbsCleanPath(cleanAbs)
+}
+
+func putObject(c ObjectsClient, ctx context.Context, input *PutObjectInput, absPath _AbsCleanPath) error {
 	if input.MaxContentLength != 0 && input.ContentLength != 0 {
 		return errors.New("ContentLength and MaxContentLength may not both be set to non-zero values.")
 	}
 
 	headers := &http.Header{}
+	for key, value := range input.Headers {
+		headers.Set(key, value)
+	}
 	if input.DurabilityLevel != 0 {
 		headers.Set("Durability-Level", strconv.FormatUint(input.DurabilityLevel, 10))
 	}
@@ -192,17 +324,64 @@ func (s *ObjectsClient) Put(ctx context.Context, input *PutObjectInput) error {
 
 	reqInput := client.RequestNoEncodeInput{
 		Method:  http.MethodPut,
-		Path:    path,
+		Path:    string(absPath),
 		Headers: headers,
 		Body:    input.ObjectReader,
 	}
-	respBody, _, err := s.client.ExecuteRequestNoEncode(ctx, reqInput)
+	respBody, _, err := c.client.ExecuteRequestNoEncode(ctx, reqInput)
 	if respBody != nil {
 		defer respBody.Close()
 	}
 	if err != nil {
-		return errwrap.Wrapf("Error executing PutObjectMetadata request: {{err}}", err)
+		return errwrap.Wrapf("Error executing Put request: {{err}}", err)
 	}
 
 	return nil
+}
+
+func createDirectory(c ObjectsClient, ctx context.Context, absPath _AbsCleanPath) error {
+	dirClient := &DirectoryClient{
+		client: c.client,
+	}
+
+	// An abspath starts w/ a leading "/" which gets added to the slice as an
+	// empty string. Start all array math at 1.
+	parts := strings.Split(string(absPath), "/")
+	if len(parts) < 2 {
+		return errors.New("no path components to create directory")
+	}
+
+	folderPath := parts[1]
+	// Don't attempt to create a manta account as a directory
+	for i := 2; i < len(parts); i++ {
+		part := parts[i]
+		folderPath = path.Clean(path.Join("/", folderPath, part))
+		err := dirClient.Put(ctx, &PutDirectoryInput{
+			DirectoryName: folderPath,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func checkDirectoryTreeExists(c ObjectsClient, ctx context.Context, absPath _AbsCleanPath) (bool, error) {
+	exists, err := c.IsDir(ctx, string(absPath))
+	if err != nil {
+		errType := &client.MantaError{}
+		if errwrap.ContainsType(err, errType) {
+			mantaErr := errwrap.GetType(err, errType).(*client.MantaError)
+			if mantaErr.StatusCode == http.StatusNotFound {
+				return false, nil
+			}
+		}
+		return false, err
+	}
+	if exists {
+		return true, nil
+	}
+
+	return false, nil
 }
