@@ -88,7 +88,6 @@ func (c *RemoteClient) Delete() error {
 }
 
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
-
 	//At Joyent, we want to make sure that the State directory exists before we interact with it
 	//We don't expect users to have to create it in advance
 	//The order of operations of Backend State as follows:

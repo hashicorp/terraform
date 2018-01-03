@@ -1528,7 +1528,6 @@ func (m schemaMap) validatePrimitive(
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
-
 	// Catch if the user gave a complex type where a primitive was
 	// expected, so we can return a friendly error message that
 	// doesn't contain Go type system terminology.

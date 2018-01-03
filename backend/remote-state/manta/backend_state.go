@@ -78,7 +78,6 @@ func (b *Backend) State(name string) (state.State, error) {
 	//if this isn't the default state name, we need to create the object so
 	//it's listed by States.
 	if name != backend.DefaultStateName {
-
 		// take a lock on this state while we write it
 		lockInfo := state.NewLockInfo()
 		lockInfo.Operation = "init"

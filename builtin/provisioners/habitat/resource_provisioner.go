@@ -558,7 +558,6 @@ func (p *provisioner) startHabUnmanaged(o terraform.UIOutput, comm communicator.
 }
 
 func (p *provisioner) startHabSystemd(o terraform.UIOutput, comm communicator.Communicator, options string) error {
-
 	// Create a new template and parse the client config into it
 	unitString := template.Must(template.New("hab-supervisor.service").Parse(systemdUnit))
 
