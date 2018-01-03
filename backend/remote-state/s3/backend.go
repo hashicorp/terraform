@@ -191,6 +191,13 @@ func New() backend.Backend {
 				Description: "The prefix applied to the non-default state path inside the bucket",
 				Default:     "env:",
 			},
+
+			"force_path_style": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Force s3 to use path style api.",
+				Default:     false,
+			},
 		},
 	}
 
@@ -253,6 +260,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		SkipRegionValidation:    data.Get("skip_region_validation").(bool),
 		SkipRequestingAccountId: data.Get("skip_requesting_account_id").(bool),
 		SkipMetadataApiCheck:    data.Get("skip_metadata_api_check").(bool),
+		S3ForcePathStyle:        data.Get("force_path_style").(bool),
 	}
 
 	client, err := cfg.Client()
