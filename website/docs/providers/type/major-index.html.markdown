@@ -1,0 +1,32 @@
+---
+layout: "docs"
+page_title: "Major Cloud Providers"
+sidebar_current: "docs-providers-major"
+description: |-
+  Category for major cloud vendors.
+---
+
+# Major Cloud Providers
+
+This group includes hyper-scale cloud providers that offer a range of services
+including IaaS, SaaS, and PaaS.  A large percentage of Terraform users provision
+their infrastructure on these major cloud providers. HashiCorp closely partners
+with these cloud providers to offer best-in-class integration to provision and
+manage the majority of the services offered. These providers are primarily
+supported by the cloud vendor in close collaboration with HashiCorp, and are
+tested by HashiCorp.
+
+---
+
+
+[AliCloud](/docs/providers/alicloud/index.html)
+
+[AWS](/docs/providers/aws/index.html)
+
+[Azure](/docs/providers/azurerm/index.html)
+
+[Google Cloud](/docs/providers/google/index.html)
+
+[Oracle Public Cloud](/docs/providers/opc/index.html)
+
+[VMware vSphere](/docs/providers/vsphere/index.html)
