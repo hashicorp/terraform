@@ -13,6 +13,8 @@ import (
 
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
 
@@ -530,7 +532,45 @@ func TestInit_inputFalse(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter)
 	}
 
+	// write different states for foo and bar
+	s := terraform.NewState()
+	s.Lineage = "foo"
+	if err := (&state.LocalState{Path: "foo"}).WriteState(s); err != nil {
+		t.Fatal(err)
+	}
+	s.Lineage = "bar"
+	if err := (&state.LocalState{Path: "bar"}).WriteState(s); err != nil {
+		t.Fatal(err)
+	}
+
+	ui = new(cli.MockUi)
+	c = &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
 	args = []string{"-input=false", "-backend-config=path=bar"}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("init should have failed", ui.OutputWriter)
+	}
+
+	errMsg := ui.ErrorWriter.String()
+	if !strings.Contains(errMsg, "input disabled") {
+		t.Fatal("expected input disabled error, got", errMsg)
+	}
+
+	ui = new(cli.MockUi)
+	c = &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	// A missing input=false should abort rather than loop infinitely
+	args = []string{"-backend-config=path=bar"}
 	if code := c.Run(args); code == 0 {
 		t.Fatal("init should have failed", ui.OutputWriter)
 	}
