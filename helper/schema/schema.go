@@ -647,6 +647,15 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 			return fmt.Errorf("%s: ConflictsWith cannot be set with Required", k)
 		}
 
+		if v.Elem != nil {
+			switch v.Elem.(type) {
+			case *Resource:
+			case *Schema:
+			default:
+				return fmt.Errorf("%s: Elem must be a *Resource or a *Schema", k)
+			}
+		}
+
 		if len(v.ConflictsWith) > 0 {
 			for _, key := range v.ConflictsWith {
 				parts := strings.Split(key, ".")

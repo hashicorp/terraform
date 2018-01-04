@@ -3713,6 +3713,17 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			},
 			false,
 		},
+
+		"elem field is of wrong type": {
+			map[string]*Schema{
+				"invalid_elem": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+					Elem:     TypeString,
+				},
+			},
+			true,
+		},
 	}
 
 	for tn, tc := range cases {
