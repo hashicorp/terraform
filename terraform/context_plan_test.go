@@ -2401,6 +2401,32 @@ func TestContext2Plan_hook(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_closeProvider(t *testing.T) {
+	// this fixture only has an aliased provider located in the module, to make
+	// sure that the provier name contains a path more complex than
+	// "provider.aws".
+	m := testModule(t, "plan-close-module-provider")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !p.CloseCalled {
+		t.Fatal("provider not closed")
+	}
+}
+
 func TestContext2Plan_orphan(t *testing.T) {
 	m := testModule(t, "plan-orphan")
 	p := testProvider("aws")
