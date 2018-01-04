@@ -976,7 +976,8 @@ func TestInit_pluginDirReset(t *testing.T) {
 	}
 
 	// make sure we remove the plugin-dir record
-	if code := c.Run(nil); code != 0 {
+	args = []string{"-plugin-dir="}
+	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter)
 	}
 

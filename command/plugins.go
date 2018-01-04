@@ -113,9 +113,14 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 
 // store the user-supplied path for plugin discovery
 func (m *Meta) storePluginPath(pluginPath []string) error {
+	if len(pluginPath) == 0 {
+		return nil
+	}
+
 	path := filepath.Join(m.DataDir(), PluginPathFile)
 
-	if len(pluginPath) == 0 {
+	// remove the plugin dir record if the path was set to an empty string
+	if len(pluginPath) == 1 && (pluginPath[0] == "") {
 		err := os.Remove(path)
 		if !os.IsNotExist(err) {
 			return err
