@@ -1577,7 +1577,7 @@ func interpolationFuncSubstr() ast.Function {
 				return nil, fmt.Errorf("length should be a non-negative integer")
 			}
 
-			if offset > len(str) {
+			if offset > len(str) || offset < 0 {
 				return nil, fmt.Errorf("offset cannot be larger than the length of the string")
 			}
 
