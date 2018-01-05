@@ -209,13 +209,16 @@ func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
 
 	// Add providers defined in the legacy .terraformrc,
 	if m.PluginOverrides != nil {
+		for k, v := range m.PluginOverrides.Providers {
+			log.Printf("[DEBUG] found plugin override in .terraformrc: %q, %q", k, v)
+		}
 		plugins = plugins.OverridePaths(m.PluginOverrides.Providers)
 	}
 
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
-		log.Printf("[DEBUG] found valid plugin: %q", p.Name)
+		log.Printf("[DEBUG] found valid plugin: %q, %q, %q", p.Name, p.Version, p.Path)
 	}
 
 	return plugins
@@ -241,13 +244,17 @@ func (m *Meta) providerPluginManuallyInstalledSet() discovery.PluginMetaSet {
 
 	// Add providers defined in the legacy .terraformrc,
 	if m.PluginOverrides != nil {
+		for k, v := range m.PluginOverrides.Providers {
+			log.Printf("[DEBUG] found plugin override in .terraformrc: %q, %q", k, v)
+		}
+
 		plugins = plugins.OverridePaths(m.PluginOverrides.Providers)
 	}
 
 	plugins, _ = plugins.ValidateVersions()
 
 	for p := range plugins {
-		log.Printf("[DEBUG] found valid plugin: %q", p.Name)
+		log.Printf("[DEBUG] found valid plugin: %q, %q, %q", p.Name, p.Version, p.Path)
 	}
 
 	return plugins
