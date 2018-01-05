@@ -1063,3 +1063,27 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.OutputWriter)
 	}
 }
+
+// Verify that plugin-dir doesn't prevent discovery of internal providers
+func TestInit_pluginWithInternal(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-internal"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	args := []string{"-plugin-dir", "./"}
+	//args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("error: %s", ui.ErrorWriter)
+	}
+}
