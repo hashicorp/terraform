@@ -180,7 +180,6 @@ func (c *InitCommand) Run(args []string) int {
 					"Error downloading modules: %s", err))
 				return 1
 			}
-
 		}
 
 		// If we're requesting backend configuration or looking for required
@@ -278,6 +277,12 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return diags.Err()
+	}
+
+	if err := terraform.CheckStateVersion(state); err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return err
 	}
 
 	if err := terraform.CheckRequiredVersion(mod); err != nil {
