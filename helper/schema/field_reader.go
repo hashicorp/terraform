@@ -217,8 +217,8 @@ func readListField(
 	}
 
 	return FieldReadResult{
-		Value:  result,
-		Exists: true,
+		Value:    result,
+		Exists:   true,
 		Computed: computed,
 	}, nil
 }
