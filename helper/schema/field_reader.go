@@ -195,6 +195,7 @@ func readListField(
 
 	// Go through each count, and get the item value out of it
 	result := make([]interface{}, countResult.Value.(int))
+	computed := false
 	for i, _ := range result {
 		is := strconv.FormatInt(int64(i), 10)
 		addrPadded[len(addrPadded)-1] = is
@@ -208,6 +209,9 @@ func readListField(
 			// Schema.
 			rawResult.Value = nil
 		}
+		if rawResult.Computed {
+			computed = true
+		}
 
 		result[i] = rawResult.Value
 	}
@@ -215,6 +219,7 @@ func readListField(
 	return FieldReadResult{
 		Value:  result,
 		Exists: true,
+		Computed: computed,
 	}, nil
 }
 
