@@ -272,13 +272,16 @@ func (m *Meta) internalProviders() map[string]terraform.ResourceProviderFactory 
 func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.PluginRequirements) discovery.PluginRequirements {
 	missing := make(discovery.PluginRequirements)
 
-	for n, r := range reqd {
-		log.Printf("[DEBUG] plugin requirements: %q=%q", n, r.Versions)
-	}
-
 	candidates := avail.ConstrainVersions(reqd)
+	internal := m.internalProviders()
 
 	for name, versionSet := range reqd {
+		// internal providers can't be missing
+		if _, ok := internal[name]; ok {
+			continue
+		}
+
+		log.Printf("[DEBUG] plugin requirements: %q=%q", name, versionSet.Versions)
 		if metas := candidates[name]; metas.Count() == 0 {
 			missing[name] = versionSet
 		}
