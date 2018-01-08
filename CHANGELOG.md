@@ -14,6 +14,7 @@ IMPROVEMENTS:
 * core: removed duplicate prompts and clarified working when migration backend configurations [GH-16939]
 * config: new `rsadecrypt` interpolation function allows decrypting a base64-encoded ciphertext using a given private key. This is particularly useful for decrypting the password for a Windows instance on AWS EC2, but is generic and may find other uses too. [GH-16647]
 * config: new `timeadd` interpolation function allows calculating a new timestamp relative to an existing known timestamp. [GH-16644]
+* cli: Passing an empty string to `-plugin-dir` during init will remove previously saved paths [GH-16969]
 * cli: Module and provider installation (and some other Terraform features) now implement [RFC6555](https://tools.ietf.org/html/rfc6555) when making outgoing HTTP requests, which should improve installation reliability for dual-stack (both IPv4 and IPv6) hosts running on networks that have non-performant or broken IPv6 Internet connectivity by trying both IPv4 and IPv6 connections. [GH-16805]
 * backend/s3: it is now possible to disable the region check, for improved compatibility with third-party services that attempt to mimic the S3 API. [GH-16757]
 * backend/s3: it is now possible to for the path-based S3 API form, for improved compatibility with third-party services that attempt to mimic the S3 API. [GH-17001]
