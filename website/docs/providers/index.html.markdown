@@ -138,6 +138,9 @@ down to see all providers.
     </tr>
     <tr>
     <td><a href="/docs/providers/vsphere/index.html">VMware vSphere</a></td>
+    <td><a></a></td>
+    <td><a></a></td>
+    </tr>
 </table>
 
 
