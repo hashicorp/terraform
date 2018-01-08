@@ -117,6 +117,17 @@ func (m *Meta) storePluginPath(pluginPath []string) error {
 		return nil
 	}
 
+	path := filepath.Join(m.DataDir(), PluginPathFile)
+
+	// remove the plugin dir record if the path was set to an empty string
+	if len(pluginPath) == 1 && (pluginPath[0] == "") {
+		err := os.Remove(path)
+		if !os.IsNotExist(err) {
+			return err
+		}
+		return nil
+	}
+
 	js, err := json.MarshalIndent(pluginPath, "", "  ")
 	if err != nil {
 		return err
@@ -125,7 +136,7 @@ func (m *Meta) storePluginPath(pluginPath []string) error {
 	// if this fails, so will WriteFile
 	os.MkdirAll(m.DataDir(), 0755)
 
-	return ioutil.WriteFile(filepath.Join(m.DataDir(), PluginPathFile), js, 0644)
+	return ioutil.WriteFile(path, js, 0644)
 }
 
 // Load the user-defined plugin search path into Meta.pluginPath if the file

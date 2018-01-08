@@ -997,6 +997,71 @@ func TestInit_providerLockFile(t *testing.T) {
 	}
 }
 
+func TestInit_pluginDirReset(t *testing.T) {
+	td, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make our vendor paths
+	pluginPath := []string{"a", "b", "c"}
+	for _, p := range pluginPath {
+		if err := os.MkdirAll(p, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// run once and save the -plugin-dir
+	args := []string{"-plugin-dir", "a"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter)
+	}
+
+	pluginDirs, err := c.loadPluginPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(pluginDirs) != 1 || pluginDirs[0] != "a" {
+		t.Fatalf(`expected plugin dir ["a"], got %q`, pluginDirs)
+	}
+
+	ui = new(cli.MockUi)
+	c = &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make sure we remove the plugin-dir record
+	args = []string{"-plugin-dir="}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter)
+	}
+
+	pluginDirs, err = c.loadPluginPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(pluginDirs) != 0 {
+		t.Fatalf("expected no plugin dirs got %q", pluginDirs)
+	}
+}
+
 // Test user-supplied -plugin-dir
 func TestInit_pluginDirProviders(t *testing.T) {
 	td := tempDir(t)
