@@ -133,7 +133,8 @@ The automatic plugin installation behavior can be overridden by extracting
 the desired providers into a local directory and using the additional option
 `-plugin-dir=PATH`. When this option is specified, _only_ the given directory
 is consulted, which prevents Terraform from making requests to the plugin
-repository or looking for plugins in other local directories.
+repository or looking for plugins in other local directories. Passing an empty
+string to `-plugin-dir` removes any previously recorded paths.
 
 Custom plugins can be used along with automatically installed plugins by
 placing them in `terraform.d/plugins/OS_ARCH/` inside the directory being
