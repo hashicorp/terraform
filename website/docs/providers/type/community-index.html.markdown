@@ -22,10 +22,28 @@ please fill how this [community providers form](https://docs.google.com/forms/d/
 
 [Apigee](https://github.com/zambien/terraform-provider-apigee)
 
+[Aviatrix](https://github.com/AviatrixSystems/terraform-provider-aviatrix)
+
+[CouchDB](https://github.com/nicolai86/terraform-provider-couchdb)
+
 [Google Calendar](https://github.com/sethvargo/terraform-provider-googlecalendar)
+
+[Helm](https://github.com/mcuadros/terraform-provider-helm)
 
 [HP OneView](https://github.com/HewlettPackard/terraform-provider-oneview)
 
+[Kafka](https://github.com/Mongey/terraform-provider-kafka)
+
+[LXD](https://github.com/sl1pm4t/terraform-provider-lxd)
+
 [Microsoft SCVMM](https://github.com/GSLabDev/terraform-provider-scvmm)
 
-[Open Day Light](https://github.com/GSLabDev/terraform-provider-odl)
+[Open Day Light](https://github.com/GSLabDev/terraform-provider-odli)
+
+[Pass](https://github.com/camptocamp/terraform-provider-pass)
+
+[Puppet CA](https://github.com/camptocamp/terraform-provider-puppetca)
+
+[PuppetDB](https://github.com/camptocamp/terraform-provider-puppetdb)
+
+
