@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
@@ -832,8 +834,7 @@ func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 }
 
 func TestPlan_shutdown(t *testing.T) {
-	cancelled := false
-	stopped := make(chan struct{})
+	cancelled := make(chan struct{})
 
 	shutdownCh := make(chan struct{})
 	p := testProvider()
@@ -847,20 +848,20 @@ func TestPlan_shutdown(t *testing.T) {
 	}
 
 	p.StopFn = func() error {
-		close(stopped)
-		cancelled = true
+		close(cancelled)
 		return nil
 	}
+
+	var once sync.Once
 
 	p.DiffFn = func(
 		*terraform.InstanceInfo,
 		*terraform.InstanceState,
 		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 
-		if !cancelled {
+		once.Do(func() {
 			shutdownCh <- struct{}{}
-			<-stopped
-		}
+		})
 
 		return &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
@@ -875,7 +876,9 @@ func TestPlan_shutdown(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !cancelled {
+	select {
+	case <-cancelled:
+	case <-time.After(5 * time.Second):
 		t.Fatal("command not cancelled")
 	}
 }
