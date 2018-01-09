@@ -13,7 +13,13 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 )
 
-const noPrefix = ""
+const (
+	noPrefix        = ""
+	noEncryptionKey = ""
+)
+
+// See https://cloud.google.com/storage/docs/using-encryption-keys#generating_your_own_encryption_key
+var encryptionKey = "yRyCOikXi1ZDNE0xN3yiFsJjg7LGimoLrGFcLZgQoVk="
 
 func TestStateFile(t *testing.T) {
 	t.Parallel()
@@ -52,7 +58,26 @@ func TestRemoteClient(t *testing.T) {
 	t.Parallel()
 
 	bucket := bucketName(t)
-	be := setupBackend(t, bucket, noPrefix)
+	be := setupBackend(t, bucket, noPrefix, noEncryptionKey)
+	defer teardownBackend(t, be, noPrefix)
+
+	ss, err := be.State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("be.State(%q) = %v", backend.DefaultStateName, err)
+	}
+
+	rs, ok := ss.(*remote.State)
+	if !ok {
+		t.Fatalf("be.State(): got a %T, want a *remote.State", ss)
+	}
+
+	remote.TestClient(t, rs.Client)
+}
+func TestRemoteClientWithEncryption(t *testing.T) {
+	t.Parallel()
+
+	bucket := bucketName(t)
+	be := setupBackend(t, bucket, noPrefix, encryptionKey)
 	defer teardownBackend(t, be, noPrefix)
 
 	ss, err := be.State(backend.DefaultStateName)
@@ -72,7 +97,7 @@ func TestRemoteLocks(t *testing.T) {
 	t.Parallel()
 
 	bucket := bucketName(t)
-	be := setupBackend(t, bucket, noPrefix)
+	be := setupBackend(t, bucket, noPrefix, noEncryptionKey)
 	defer teardownBackend(t, be, noPrefix)
 
 	remoteClient := func() (remote.Client, error) {
@@ -106,10 +131,10 @@ func TestBackend(t *testing.T) {
 
 	bucket := bucketName(t)
 
-	be0 := setupBackend(t, bucket, noPrefix)
+	be0 := setupBackend(t, bucket, noPrefix, noEncryptionKey)
 	defer teardownBackend(t, be0, noPrefix)
 
-	be1 := setupBackend(t, bucket, noPrefix)
+	be1 := setupBackend(t, bucket, noPrefix, noEncryptionKey)
 
 	backend.TestBackend(t, be0, be1)
 }
@@ -119,16 +144,28 @@ func TestBackendWithPrefix(t *testing.T) {
 	prefix := "test/prefix"
 	bucket := bucketName(t)
 
-	be0 := setupBackend(t, bucket, prefix)
+	be0 := setupBackend(t, bucket, prefix, noEncryptionKey)
 	defer teardownBackend(t, be0, prefix)
 
-	be1 := setupBackend(t, bucket, prefix+"/")
+	be1 := setupBackend(t, bucket, prefix+"/", noEncryptionKey)
+
+	backend.TestBackend(t, be0, be1)
+}
+func TestBackendWithEncryption(t *testing.T) {
+	t.Parallel()
+
+	bucket := bucketName(t)
+
+	be0 := setupBackend(t, bucket, noPrefix, encryptionKey)
+	defer teardownBackend(t, be0, noPrefix)
+
+	be1 := setupBackend(t, bucket, noPrefix, encryptionKey)
 
 	backend.TestBackend(t, be0, be1)
 }
 
 // setupBackend returns a new GCS backend.
-func setupBackend(t *testing.T, bucket, prefix string) backend.Backend {
+func setupBackend(t *testing.T, bucket, prefix, key string) backend.Backend {
 	t.Helper()
 
 	projectID := os.Getenv("GOOGLE_PROJECT")
@@ -139,9 +176,10 @@ func setupBackend(t *testing.T, bucket, prefix string) backend.Backend {
 	}
 
 	config := map[string]interface{}{
-		"project": projectID,
-		"bucket":  bucket,
-		"prefix":  prefix,
+		"project":        projectID,
+		"bucket":         bucket,
+		"prefix":         prefix,
+		"encryption_key": key,
 	}
 
 	b := backend.TestBackendConfig(t, New(), config)
