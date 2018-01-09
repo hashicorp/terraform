@@ -59,3 +59,4 @@ The following configuration options are supported:
     Since buckets have globally unique names, the project ID is not required to access the bucket during normal operation.
  *  `region` / `GOOGLE_REGION` - (Optional) The region in which a new bucket is created.
     For more information, see [Bucket Locations](https://cloud.google.com/storage/docs/bucket-locations).
+ *  `encryption_key` / `GOOGLE_ENCRYPTION_KEY` - (Optional) A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state. For more information see [Customer Supplied Encryption Keys](https://cloud.google.com/storage/docs/encryption#customer-supplied).
