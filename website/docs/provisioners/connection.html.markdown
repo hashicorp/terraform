@@ -81,6 +81,8 @@ provisioner "file" {
   only supported SSH authentication agent is
   [Pageant](http://the.earth.li/~sgtatham/putty/0.66/htmldoc/Chapter9.html#pageant).
 
+* `agent_identity` - The preferred identity from the ssh agent for authentication.
+
 **Additional arguments only supported by the `winrm` connection type:**
 
 * `https` - Set to `true` to connect using HTTPS instead of HTTP.
