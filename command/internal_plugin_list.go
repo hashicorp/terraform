@@ -14,6 +14,8 @@ import (
 	"github.com/hashicorp/terraform/plugin"
 )
 
+var InternalProviders = map[string]plugin.ProviderFunc{}
+
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
 	"chef":            chefprovisioner.Provisioner,
 	"file":            fileprovisioner.Provisioner,

@@ -1,37 +1,36 @@
-
-## 0.11.2 (Unreleased)
+## 0.11.2 (January 9, 2018)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
-* backend/gcs: The gcs remote state backend was erroneously creating the state bucket if it didn't exist. This is not the intended behavior of backends, as Terraform cannot track or manage that resource. The target bucket must now be created separately, before using it with Terraform. [GH-16865]
+* backend/gcs: The gcs remote state backend was erroneously creating the state bucket if it didn't exist. This is not the intended behavior of backends, as Terraform cannot track or manage that resource. The target bucket must now be created separately, before using it with Terraform. ([#16865](https://github.com/hashicorp/terraform/issues/16865))
 
 NEW FEATURES:
 
-* **[Habitat](https://www.habitat.sh/) Provisioner** allowing automatic installation of the Habitat agent [GH-16280]
+* **[Habitat](https://www.habitat.sh/) Provisioner** allowing automatic installation of the Habitat agent ([#16280](https://github.com/hashicorp/terraform/issues/16280))
  
 IMPROVEMENTS:
 
-* core: removed duplicate prompts and clarified working when migration backend configurations [GH-16939]
-* config: new `rsadecrypt` interpolation function allows decrypting a base64-encoded ciphertext using a given private key. This is particularly useful for decrypting the password for a Windows instance on AWS EC2, but is generic and may find other uses too. [GH-16647]
-* config: new `timeadd` interpolation function allows calculating a new timestamp relative to an existing known timestamp. [GH-16644]
-* cli: Passing an empty string to `-plugin-dir` during init will remove previously saved paths [GH-16969]
-* cli: Module and provider installation (and some other Terraform features) now implement [RFC6555](https://tools.ietf.org/html/rfc6555) when making outgoing HTTP requests, which should improve installation reliability for dual-stack (both IPv4 and IPv6) hosts running on networks that have non-performant or broken IPv6 Internet connectivity by trying both IPv4 and IPv6 connections. [GH-16805]
-* backend/s3: it is now possible to disable the region check, for improved compatibility with third-party services that attempt to mimic the S3 API. [GH-16757]
-* backend/s3: it is now possible to for the path-based S3 API form, for improved compatibility with third-party services that attempt to mimic the S3 API. [GH-17001]
-* backend/s3: it is now possible to use named credentials from the `~/.aws/credentials` file, similarly to the AWS plugin [GH-16661]
-* backend/manta: support for Triton RBAC [GH-17003]
-* backend/gcs: support for customer-supplied encryption keys for remote state buckets [GH-16936]
-* provider/terraform: in `terraform_remote_state`, the argument `environment` is now deprecated in favor of `workspace`. The `environment` argument will be removed in a later Terraform release. [GH-16558]
+* core: removed duplicate prompts and clarified working when migration backend configurations ([#16939](https://github.com/hashicorp/terraform/issues/16939))
+* config: new `rsadecrypt` interpolation function allows decrypting a base64-encoded ciphertext using a given private key. This is particularly useful for decrypting the password for a Windows instance on AWS EC2, but is generic and may find other uses too. ([#16647](https://github.com/hashicorp/terraform/issues/16647))
+* config: new `timeadd` interpolation function allows calculating a new timestamp relative to an existing known timestamp. ([#16644](https://github.com/hashicorp/terraform/issues/16644))
+* cli: Passing an empty string to `-plugin-dir` during init will remove previously saved paths ([#16969](https://github.com/hashicorp/terraform/issues/16969))
+* cli: Module and provider installation (and some other Terraform features) now implement [RFC6555](https://tools.ietf.org/html/rfc6555) when making outgoing HTTP requests, which should improve installation reliability for dual-stack (both IPv4 and IPv6) hosts running on networks that have non-performant or broken IPv6 Internet connectivity by trying both IPv4 and IPv6 connections. ([#16805](https://github.com/hashicorp/terraform/issues/16805))
+* backend/s3: it is now possible to disable the region check, for improved compatibility with third-party services that attempt to mimic the S3 API. ([#16757](https://github.com/hashicorp/terraform/issues/16757))
+* backend/s3: it is now possible to for the path-based S3 API form, for improved compatibility with third-party services that attempt to mimic the S3 API. ([#17001](https://github.com/hashicorp/terraform/issues/17001))
+* backend/s3: it is now possible to use named credentials from the `~/.aws/credentials` file, similarly to the AWS plugin ([#16661](https://github.com/hashicorp/terraform/issues/16661))
+* backend/manta: support for Triton RBAC ([#17003](https://github.com/hashicorp/terraform/issues/17003))
+* backend/gcs: support for customer-supplied encryption keys for remote state buckets ([#16936](https://github.com/hashicorp/terraform/issues/16936))
+* provider/terraform: in `terraform_remote_state`, the argument `environment` is now deprecated in favor of `workspace`. The `environment` argument will be removed in a later Terraform release. ([#16558](https://github.com/hashicorp/terraform/issues/16558))
 
 BUG FIXES:
 
-* config: fixed crash in `substr` interpolation function with invalid offset [GH-17043]
-* config: Referencing a count attribute in an output no longer generates a warning [GH-16866]
-* cli: Terraform will no longer crash when `terraform plan`, `terraform apply`, and some other commands encounter an invalid provider version constraint in configuration, generating a proper error message instead. [GH-16867]
-* backend/gcs: The usage of the GOOGLE_CREDENTIALS environment variable now matches that of the google provider [GH-16865]
-* backend/gcs: fixed the locking methodology to avoid "double-locking" issues when used with the `terraform_remote_state` data source [GH-16852]
-* backend/s3: the `workspace_key_prefix` can now be an empty string or contain slashes [GH-16932]
-* provisioner/salt-masterless: now waits for all of the remote operations to complete before returning [GH-16704]
+* config: fixed crash in `substr` interpolation function with invalid offset ([#17043](https://github.com/hashicorp/terraform/issues/17043))
+* config: Referencing a count attribute in an output no longer generates a warning ([#16866](https://github.com/hashicorp/terraform/issues/16866))
+* cli: Terraform will no longer crash when `terraform plan`, `terraform apply`, and some other commands encounter an invalid provider version constraint in configuration, generating a proper error message instead. ([#16867](https://github.com/hashicorp/terraform/issues/16867))
+* backend/gcs: The usage of the GOOGLE_CREDENTIALS environment variable now matches that of the google provider ([#16865](https://github.com/hashicorp/terraform/issues/16865))
+* backend/gcs: fixed the locking methodology to avoid "double-locking" issues when used with the `terraform_remote_state` data source ([#16852](https://github.com/hashicorp/terraform/issues/16852))
+* backend/s3: the `workspace_key_prefix` can now be an empty string or contain slashes ([#16932](https://github.com/hashicorp/terraform/issues/16932))
+* provisioner/salt-masterless: now waits for all of the remote operations to complete before returning ([#16704](https://github.com/hashicorp/terraform/issues/16704))
 
 ## 0.11.1 (November 30, 2017)
 
