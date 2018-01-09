@@ -20,6 +20,7 @@ IMPROVEMENTS:
 * backend/s3: it is now possible to for the path-based S3 API form, for improved compatibility with third-party services that attempt to mimic the S3 API. [GH-17001]
 * backend/s3: it is now possible to use named credentials from the `~/.aws/credentials` file, similarly to the AWS plugin [GH-16661]
 * backend/manta: support for Triton RBAC [GH-17003]
+* backend/gcs: support for customer-supplied encryption keys for remote state buckets [GH-16936]
 * provider/terraform: in `terraform_remote_state`, the argument `environment` is now deprecated in favor of `workspace`. The `environment` argument will be removed in a later Terraform release. [GH-16558]
 
 BUG FIXES:
