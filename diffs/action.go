@@ -5,6 +5,13 @@ type Action rune
 //go:generate stringer -type Action
 
 const (
+	// NoAction is the zero value of type Action.
+	//
+	// NoAction is not usually used as a change type, but might be used as
+	// one in a []*Change that describes modifications to a sequence of
+	// values, in order to serve as context.
+	NoAction Action = 0
+
 	// Create is an action that represents creating a new remote object where no
 	// object existed before.
 	Create Action = '+'

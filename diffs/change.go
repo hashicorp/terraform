@@ -53,6 +53,18 @@ type Change struct {
 	ForcedReplace PathSet
 }
 
+// NewNoAction returns a NoAction change for the given value.
+//
+// This should be used only to add context elements to a diff for a sequence
+// of objects where some objects have not changed.
+func NewNoAction(v cty.Value) *Change {
+	return &Change{
+		Action: NoAction,
+		Old:    v,
+		New:    v,
+	}
+}
+
 // NewCreate returns a Create change for the given value.
 func NewCreate(v cty.Value) *Change {
 	return &Change{
@@ -101,7 +113,7 @@ func NewReplace(old, new cty.Value, forcedReplace PathSet) *Change {
 }
 
 // NewDelete returns a Delete change for the given value.
-func NewDelete(v cty.Value, forcedReplace PathSet) *Change {
+func NewDelete(v cty.Value) *Change {
 	return &Change{
 		Action: Delete,
 		Old:    v,
