@@ -410,6 +410,26 @@ func TestDiffFieldReader(t *testing.T) {
 						New: "42",
 					},
 
+					"listMap.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+
+					"listMap.0.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "2",
+					},
+
+					"listMap.0.foo": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+
+					"listMap.0.bar": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "baz",
+					},
+
 					"map.foo": &terraform.ResourceAttrDiff{
 						Old: "",
 						New: "bar",

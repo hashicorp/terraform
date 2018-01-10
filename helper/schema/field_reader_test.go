@@ -320,6 +320,20 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 			},
 			false,
 		},
+		"listMap": {
+			[]string{"listMap"},
+			FieldReadResult{
+				Value: []interface{}{
+					map[string]interface{}{
+						"foo": "bar",
+						"bar": "baz",
+					},
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
 
 		"listInt": {
 			[]string{"listInt"},
@@ -445,7 +459,7 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 			out.Value = s.List()
 		}
 		if !reflect.DeepEqual(tc.Result, out) {
-			t.Fatalf("%s: bad: %#v", name, out)
+			t.Fatalf("%s: expected: %#v, got: %#v", name, tc.Result, out)
 		}
 	}
 }

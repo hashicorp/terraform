@@ -31,6 +31,13 @@ func TestConfigFieldReader(t *testing.T) {
 
 				"listInt": []interface{}{21, 42},
 
+				"listMap": []interface{}{
+					map[string]interface{}{
+						"foo": "bar",
+						"bar": "baz",
+					},
+				},
+
 				"map": map[string]interface{}{
 					"foo": "bar",
 					"bar": "baz",
@@ -69,6 +76,17 @@ func TestConfigFieldReader_custom(t *testing.T) {
 		"bool": &Schema{
 			Type: TypeBool,
 		},
+		"listComputedMap": &Schema{
+			Type: TypeList,
+			Elem: &Schema{
+				Type:     TypeMap,
+				MinItems: 1,
+				MaxItems: 1,
+				Elem: &Schema{
+					Type: TypeString,
+				},
+			},
+		},
 	}
 
 	cases := map[string]struct {
@@ -105,6 +123,30 @@ func TestConfigFieldReader_custom(t *testing.T) {
 			}),
 			false,
 		},
+
+		"listComputedMap": {
+			[]string{"listComputedMap"},
+			FieldReadResult{
+				Value: []interface{}{
+					nil,
+				},
+				Exists:   true,
+				Computed: true,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"listComputedMap": []interface{}{
+					map[string]interface{}{
+						"foo": "${var.foo}",
+					},
+				},
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeString,
+				},
+			}),
+			false,
+		},
 	}
 
 	for name, tc := range cases {
@@ -122,7 +164,7 @@ func TestConfigFieldReader_custom(t *testing.T) {
 				out.Value = s.List()
 			}
 			if !reflect.DeepEqual(tc.Result, out) {
-				t.Fatalf("%s: bad: %#v", name, out)
+				t.Fatalf("%s: expected: %#v, got: %#v", name, tc.Result, out)
 			}
 		})
 	}
