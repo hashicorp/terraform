@@ -59,6 +59,14 @@ const (
 	// A commit was not specified.
 	ErrCodeCommitRequiredException = "CommitRequiredException"
 
+	// ErrCodeDefaultBranchCannotBeDeletedException for service response error code
+	// "DefaultBranchCannotBeDeletedException".
+	//
+	// The specified branch is the default branch for the repository, and cannot
+	// be deleted. To delete this branch, you must first set another branch as the
+	// default branch.
+	ErrCodeDefaultBranchCannotBeDeletedException = "DefaultBranchCannotBeDeletedException"
+
 	// ErrCodeEncryptionIntegrityChecksFailedException for service response error code
 	// "EncryptionIntegrityChecksFailedException".
 	//

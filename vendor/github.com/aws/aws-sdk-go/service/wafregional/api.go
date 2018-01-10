@@ -13,19 +13,18 @@ const opAssociateWebACL = "AssociateWebACL"
 
 // AssociateWebACLRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateWebACL operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AssociateWebACL for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AssociateWebACL method directly
-// instead.
+// See AssociateWebACL for more information on using the AssociateWebACL
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AssociateWebACLRequest method.
 //    req, resp := client.AssociateWebACLRequest(params)
@@ -86,11 +85,14 @@ func (c *WAFRegional) AssociateWebACLRequest(input *AssociateWebACLInput) (req *
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -131,19 +133,18 @@ const opCreateByteMatchSet = "CreateByteMatchSet"
 
 // CreateByteMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateByteMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateByteMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateByteMatchSet method directly
-// instead.
+// See CreateByteMatchSet for more information on using the CreateByteMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateByteMatchSetRequest method.
 //    req, resp := client.CreateByteMatchSetRequest(params)
@@ -228,11 +229,14 @@ func (c *WAFRegional) CreateByteMatchSetRequest(input *waf.CreateByteMatchSetInp
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -272,23 +276,168 @@ func (c *WAFRegional) CreateByteMatchSetWithContext(ctx aws.Context, input *waf.
 	return out, req.Send()
 }
 
+const opCreateGeoMatchSet = "CreateGeoMatchSet"
+
+// CreateGeoMatchSetRequest generates a "aws/request.Request" representing the
+// client's request for the CreateGeoMatchSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateGeoMatchSet for more information on using the CreateGeoMatchSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateGeoMatchSetRequest method.
+//    req, resp := client.CreateGeoMatchSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/CreateGeoMatchSet
+func (c *WAFRegional) CreateGeoMatchSetRequest(input *waf.CreateGeoMatchSetInput) (req *request.Request, output *waf.CreateGeoMatchSetOutput) {
+	op := &request.Operation{
+		Name:       opCreateGeoMatchSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.CreateGeoMatchSetInput{}
+	}
+
+	output = &waf.CreateGeoMatchSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateGeoMatchSet API operation for AWS WAF Regional.
+//
+// Creates an GeoMatchSet, which you use to specify which web requests you want
+// to allow or block based on the country that the requests originate from.
+// For example, if you're receiving a lot of requests from one or more countries
+// and you want to block the requests, you can create an GeoMatchSet that contains
+// those countries and then configure AWS WAF to block the requests.
+//
+// To create and configure a GeoMatchSet, perform the following steps:
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of a CreateGeoMatchSet request.
+//
+// Submit a CreateGeoMatchSet request.
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of an UpdateGeoMatchSet request.
+//
+// Submit an UpdateGeoMatchSetSet request to specify the countries that you
+// want AWS WAF to watch for.
+//
+// For more information about how to use the AWS WAF API to allow or block HTTP
+// requests, see the AWS WAF Developer Guide (http://docs.aws.amazon.com/waf/latest/developerguide/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation CreateGeoMatchSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFDisallowedNameException "WAFDisallowedNameException"
+//   The name specified is invalid.
+//
+//   * ErrCodeWAFInvalidParameterException "WAFInvalidParameterException"
+//   The operation failed because AWS WAF didn't recognize a parameter in the
+//   request. For example:
+//
+//      * You specified an invalid parameter name.
+//
+//      * You specified an invalid value.
+//
+//      * You tried to update an object (ByteMatchSet, IPSet, Rule, or WebACL)
+//      using an action other than INSERT or DELETE.
+//
+//      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
+//      * You tried to update a WebACL with a WafActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to update a ByteMatchSet with a FieldToMatchType other than
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
+//
+//      * You tried to update a ByteMatchSet with a Field of HEADER but no value
+//      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
+//   * ErrCodeWAFLimitsExceededException "WAFLimitsExceededException"
+//   The operation exceeds a resource limit, for example, the maximum number of
+//   WebACL objects that you can create for an AWS account. For more information,
+//   see Limits (http://docs.aws.amazon.com/waf/latest/developerguide/limits.html)
+//   in the AWS WAF Developer Guide.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/CreateGeoMatchSet
+func (c *WAFRegional) CreateGeoMatchSet(input *waf.CreateGeoMatchSetInput) (*waf.CreateGeoMatchSetOutput, error) {
+	req, out := c.CreateGeoMatchSetRequest(input)
+	return out, req.Send()
+}
+
+// CreateGeoMatchSetWithContext is the same as CreateGeoMatchSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateGeoMatchSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) CreateGeoMatchSetWithContext(ctx aws.Context, input *waf.CreateGeoMatchSetInput, opts ...request.Option) (*waf.CreateGeoMatchSetOutput, error) {
+	req, out := c.CreateGeoMatchSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCreateIPSet = "CreateIPSet"
 
 // CreateIPSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateIPSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateIPSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateIPSet method directly
-// instead.
+// See CreateIPSet for more information on using the CreateIPSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateIPSetRequest method.
 //    req, resp := client.CreateIPSetRequest(params)
@@ -377,11 +526,14 @@ func (c *WAFRegional) CreateIPSetRequest(input *waf.CreateIPSetInput) (req *requ
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -417,23 +569,430 @@ func (c *WAFRegional) CreateIPSetWithContext(ctx aws.Context, input *waf.CreateI
 	return out, req.Send()
 }
 
+const opCreateRateBasedRule = "CreateRateBasedRule"
+
+// CreateRateBasedRuleRequest generates a "aws/request.Request" representing the
+// client's request for the CreateRateBasedRule operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateRateBasedRule for more information on using the CreateRateBasedRule
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateRateBasedRuleRequest method.
+//    req, resp := client.CreateRateBasedRuleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/CreateRateBasedRule
+func (c *WAFRegional) CreateRateBasedRuleRequest(input *waf.CreateRateBasedRuleInput) (req *request.Request, output *waf.CreateRateBasedRuleOutput) {
+	op := &request.Operation{
+		Name:       opCreateRateBasedRule,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.CreateRateBasedRuleInput{}
+	}
+
+	output = &waf.CreateRateBasedRuleOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateRateBasedRule API operation for AWS WAF Regional.
+//
+// Creates a RateBasedRule. The RateBasedRule contains a RateLimit, which specifies
+// the maximum number of requests that AWS WAF allows from a specified IP address
+// in a five-minute period. The RateBasedRule also contains the IPSet objects,
+// ByteMatchSet objects, and other predicates that identify the requests that
+// you want to count or block if these requests exceed the RateLimit.
+//
+// If you add more than one predicate to a RateBasedRule, a request not only
+// must exceed the RateLimit, but it also must match all the specifications
+// to be counted or blocked. For example, suppose you add the following to a
+// RateBasedRule:
+//
+//    * An IPSet that matches the IP address 192.0.2.44/32
+//
+//    * A ByteMatchSet that matches BadBot in the User-Agent header
+//
+// Further, you specify a RateLimit of 15,000.
+//
+// You then add the RateBasedRule to a WebACL and specify that you want to block
+// requests that meet the conditions in the rule. For a request to be blocked,
+// it must come from the IP address 192.0.2.44 and the User-Agent header in
+// the request must contain the value BadBot. Further, requests that match these
+// two conditions must be received at a rate of more than 15,000 requests every
+// five minutes. If both conditions are met and the rate is exceeded, AWS WAF
+// blocks the requests. If the rate drops below 15,000 for a five-minute period,
+// AWS WAF no longer blocks the requests.
+//
+// As a second example, suppose you want to limit requests to a particular page
+// on your site. To do this, you could add the following to a RateBasedRule:
+//
+//    * A ByteMatchSet with FieldToMatch of URI
+//
+//    * A PositionalConstraint of STARTS_WITH
+//
+//    * A TargetString of login
+//
+// Further, you specify a RateLimit of 15,000.
+//
+// By adding this RateBasedRule to a WebACL, you could limit requests to your
+// login page without affecting the rest of your site.
+//
+// To create and configure a RateBasedRule, perform the following steps:
+//
+// Create and update the predicates that you want to include in the rule. For
+// more information, see CreateByteMatchSet, CreateIPSet, and CreateSqlInjectionMatchSet.
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of a CreateRule request.
+//
+// Submit a CreateRateBasedRule request.
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of an UpdateRule request.
+//
+// Submit an UpdateRateBasedRule request to specify the predicates that you
+// want to include in the rule.
+//
+// Create and update a WebACL that contains the RateBasedRule. For more information,
+// see CreateWebACL.
+//
+// For more information about how to use the AWS WAF API to allow or block HTTP
+// requests, see the AWS WAF Developer Guide (http://docs.aws.amazon.com/waf/latest/developerguide/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation CreateRateBasedRule for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFDisallowedNameException "WAFDisallowedNameException"
+//   The name specified is invalid.
+//
+//   * ErrCodeWAFInvalidParameterException "WAFInvalidParameterException"
+//   The operation failed because AWS WAF didn't recognize a parameter in the
+//   request. For example:
+//
+//      * You specified an invalid parameter name.
+//
+//      * You specified an invalid value.
+//
+//      * You tried to update an object (ByteMatchSet, IPSet, Rule, or WebACL)
+//      using an action other than INSERT or DELETE.
+//
+//      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
+//      * You tried to update a WebACL with a WafActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to update a ByteMatchSet with a FieldToMatchType other than
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
+//
+//      * You tried to update a ByteMatchSet with a Field of HEADER but no value
+//      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
+//   * ErrCodeWAFLimitsExceededException "WAFLimitsExceededException"
+//   The operation exceeds a resource limit, for example, the maximum number of
+//   WebACL objects that you can create for an AWS account. For more information,
+//   see Limits (http://docs.aws.amazon.com/waf/latest/developerguide/limits.html)
+//   in the AWS WAF Developer Guide.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/CreateRateBasedRule
+func (c *WAFRegional) CreateRateBasedRule(input *waf.CreateRateBasedRuleInput) (*waf.CreateRateBasedRuleOutput, error) {
+	req, out := c.CreateRateBasedRuleRequest(input)
+	return out, req.Send()
+}
+
+// CreateRateBasedRuleWithContext is the same as CreateRateBasedRule with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateRateBasedRule for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) CreateRateBasedRuleWithContext(ctx aws.Context, input *waf.CreateRateBasedRuleInput, opts ...request.Option) (*waf.CreateRateBasedRuleOutput, error) {
+	req, out := c.CreateRateBasedRuleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateRegexMatchSet = "CreateRegexMatchSet"
+
+// CreateRegexMatchSetRequest generates a "aws/request.Request" representing the
+// client's request for the CreateRegexMatchSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateRegexMatchSet for more information on using the CreateRegexMatchSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateRegexMatchSetRequest method.
+//    req, resp := client.CreateRegexMatchSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/CreateRegexMatchSet
+func (c *WAFRegional) CreateRegexMatchSetRequest(input *waf.CreateRegexMatchSetInput) (req *request.Request, output *waf.CreateRegexMatchSetOutput) {
+	op := &request.Operation{
+		Name:       opCreateRegexMatchSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.CreateRegexMatchSetInput{}
+	}
+
+	output = &waf.CreateRegexMatchSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateRegexMatchSet API operation for AWS WAF Regional.
+//
+// Creates a RegexMatchSet. You then use UpdateRegexMatchSet to identify the
+// part of a web request that you want AWS WAF to inspect, such as the values
+// of the User-Agent header or the query string. For example, you can create
+// a RegexMatchSet that contains a RegexMatchTuple that looks for any requests
+// with User-Agent headers that match a RegexPatternSet with pattern B[a@]dB[o0]t.
+// You can then configure AWS WAF to reject those requests.
+//
+// To create and configure a RegexMatchSet, perform the following steps:
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of a CreateRegexMatchSet request.
+//
+// Submit a CreateRegexMatchSet request.
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of an UpdateRegexMatchSet request.
+//
+// Submit an UpdateRegexMatchSet request to specify the part of the request
+// that you want AWS WAF to inspect (for example, the header or the URI) and
+// the value, using a RegexPatternSet, that you want AWS WAF to watch for.
+//
+// For more information about how to use the AWS WAF API to allow or block HTTP
+// requests, see the AWS WAF Developer Guide (http://docs.aws.amazon.com/waf/latest/developerguide/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation CreateRegexMatchSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFDisallowedNameException "WAFDisallowedNameException"
+//   The name specified is invalid.
+//
+//   * ErrCodeWAFLimitsExceededException "WAFLimitsExceededException"
+//   The operation exceeds a resource limit, for example, the maximum number of
+//   WebACL objects that you can create for an AWS account. For more information,
+//   see Limits (http://docs.aws.amazon.com/waf/latest/developerguide/limits.html)
+//   in the AWS WAF Developer Guide.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/CreateRegexMatchSet
+func (c *WAFRegional) CreateRegexMatchSet(input *waf.CreateRegexMatchSetInput) (*waf.CreateRegexMatchSetOutput, error) {
+	req, out := c.CreateRegexMatchSetRequest(input)
+	return out, req.Send()
+}
+
+// CreateRegexMatchSetWithContext is the same as CreateRegexMatchSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateRegexMatchSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) CreateRegexMatchSetWithContext(ctx aws.Context, input *waf.CreateRegexMatchSetInput, opts ...request.Option) (*waf.CreateRegexMatchSetOutput, error) {
+	req, out := c.CreateRegexMatchSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateRegexPatternSet = "CreateRegexPatternSet"
+
+// CreateRegexPatternSetRequest generates a "aws/request.Request" representing the
+// client's request for the CreateRegexPatternSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateRegexPatternSet for more information on using the CreateRegexPatternSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateRegexPatternSetRequest method.
+//    req, resp := client.CreateRegexPatternSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/CreateRegexPatternSet
+func (c *WAFRegional) CreateRegexPatternSetRequest(input *waf.CreateRegexPatternSetInput) (req *request.Request, output *waf.CreateRegexPatternSetOutput) {
+	op := &request.Operation{
+		Name:       opCreateRegexPatternSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.CreateRegexPatternSetInput{}
+	}
+
+	output = &waf.CreateRegexPatternSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateRegexPatternSet API operation for AWS WAF Regional.
+//
+// Creates a RegexPatternSet. You then use UpdateRegexPatternSet to specify
+// the regular expression (regex) pattern that you want AWS WAF to search for,
+// such as B[a@]dB[o0]t. You can then configure AWS WAF to reject those requests.
+//
+// To create and configure a RegexPatternSet, perform the following steps:
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of a CreateRegexPatternSet request.
+//
+// Submit a CreateRegexPatternSet request.
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of an UpdateRegexPatternSet request.
+//
+// Submit an UpdateRegexPatternSet request to specify the string that you want
+// AWS WAF to watch for.
+//
+// For more information about how to use the AWS WAF API to allow or block HTTP
+// requests, see the AWS WAF Developer Guide (http://docs.aws.amazon.com/waf/latest/developerguide/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation CreateRegexPatternSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFDisallowedNameException "WAFDisallowedNameException"
+//   The name specified is invalid.
+//
+//   * ErrCodeWAFLimitsExceededException "WAFLimitsExceededException"
+//   The operation exceeds a resource limit, for example, the maximum number of
+//   WebACL objects that you can create for an AWS account. For more information,
+//   see Limits (http://docs.aws.amazon.com/waf/latest/developerguide/limits.html)
+//   in the AWS WAF Developer Guide.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/CreateRegexPatternSet
+func (c *WAFRegional) CreateRegexPatternSet(input *waf.CreateRegexPatternSetInput) (*waf.CreateRegexPatternSetOutput, error) {
+	req, out := c.CreateRegexPatternSetRequest(input)
+	return out, req.Send()
+}
+
+// CreateRegexPatternSetWithContext is the same as CreateRegexPatternSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateRegexPatternSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) CreateRegexPatternSetWithContext(ctx aws.Context, input *waf.CreateRegexPatternSetInput, opts ...request.Option) (*waf.CreateRegexPatternSetOutput, error) {
+	req, out := c.CreateRegexPatternSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCreateRule = "CreateRule"
 
 // CreateRuleRequest generates a "aws/request.Request" representing the
 // client's request for the CreateRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateRule method directly
-// instead.
+// See CreateRule for more information on using the CreateRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateRuleRequest method.
 //    req, resp := client.CreateRuleRequest(params)
@@ -532,11 +1091,14 @@ func (c *WAFRegional) CreateRuleRequest(input *waf.CreateRuleInput) (req *reques
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -576,19 +1138,18 @@ const opCreateSizeConstraintSet = "CreateSizeConstraintSet"
 
 // CreateSizeConstraintSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSizeConstraintSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateSizeConstraintSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateSizeConstraintSet method directly
-// instead.
+// See CreateSizeConstraintSet for more information on using the CreateSizeConstraintSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateSizeConstraintSetRequest method.
 //    req, resp := client.CreateSizeConstraintSetRequest(params)
@@ -678,11 +1239,14 @@ func (c *WAFRegional) CreateSizeConstraintSetRequest(input *waf.CreateSizeConstr
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -722,19 +1286,18 @@ const opCreateSqlInjectionMatchSet = "CreateSqlInjectionMatchSet"
 
 // CreateSqlInjectionMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSqlInjectionMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateSqlInjectionMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateSqlInjectionMatchSet method directly
-// instead.
+// See CreateSqlInjectionMatchSet for more information on using the CreateSqlInjectionMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateSqlInjectionMatchSetRequest method.
 //    req, resp := client.CreateSqlInjectionMatchSetRequest(params)
@@ -816,11 +1379,14 @@ func (c *WAFRegional) CreateSqlInjectionMatchSetRequest(input *waf.CreateSqlInje
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -864,19 +1430,18 @@ const opCreateWebACL = "CreateWebACL"
 
 // CreateWebACLRequest generates a "aws/request.Request" representing the
 // client's request for the CreateWebACL operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateWebACL for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateWebACL method directly
-// instead.
+// See CreateWebACL for more information on using the CreateWebACL
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateWebACLRequest method.
 //    req, resp := client.CreateWebACLRequest(params)
@@ -974,11 +1539,14 @@ func (c *WAFRegional) CreateWebACLRequest(input *waf.CreateWebACLInput) (req *re
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -1018,19 +1586,18 @@ const opCreateXssMatchSet = "CreateXssMatchSet"
 
 // CreateXssMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the CreateXssMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateXssMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateXssMatchSet method directly
-// instead.
+// See CreateXssMatchSet for more information on using the CreateXssMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateXssMatchSetRequest method.
 //    req, resp := client.CreateXssMatchSetRequest(params)
@@ -1113,11 +1680,14 @@ func (c *WAFRegional) CreateXssMatchSetRequest(input *waf.CreateXssMatchSetInput
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -1161,19 +1731,18 @@ const opDeleteByteMatchSet = "DeleteByteMatchSet"
 
 // DeleteByteMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteByteMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteByteMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteByteMatchSet method directly
-// instead.
+// See DeleteByteMatchSet for more information on using the DeleteByteMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteByteMatchSetRequest method.
 //    req, resp := client.DeleteByteMatchSetRequest(params)
@@ -1285,23 +1854,148 @@ func (c *WAFRegional) DeleteByteMatchSetWithContext(ctx aws.Context, input *waf.
 	return out, req.Send()
 }
 
+const opDeleteGeoMatchSet = "DeleteGeoMatchSet"
+
+// DeleteGeoMatchSetRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteGeoMatchSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteGeoMatchSet for more information on using the DeleteGeoMatchSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteGeoMatchSetRequest method.
+//    req, resp := client.DeleteGeoMatchSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/DeleteGeoMatchSet
+func (c *WAFRegional) DeleteGeoMatchSetRequest(input *waf.DeleteGeoMatchSetInput) (req *request.Request, output *waf.DeleteGeoMatchSetOutput) {
+	op := &request.Operation{
+		Name:       opDeleteGeoMatchSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.DeleteGeoMatchSetInput{}
+	}
+
+	output = &waf.DeleteGeoMatchSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteGeoMatchSet API operation for AWS WAF Regional.
+//
+// Permanently deletes a GeoMatchSet. You can't delete a GeoMatchSet if it's
+// still used in any Rules or if it still includes any countries.
+//
+// If you just want to remove a GeoMatchSet from a Rule, use UpdateRule.
+//
+// To permanently delete a GeoMatchSet from AWS WAF, perform the following steps:
+//
+// Update the GeoMatchSet to remove any countries. For more information, see
+// UpdateGeoMatchSet.
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of a DeleteGeoMatchSet request.
+//
+// Submit a DeleteGeoMatchSet request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation DeleteGeoMatchSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+//   * ErrCodeWAFReferencedItemException "WAFReferencedItemException"
+//   The operation failed because you tried to delete an object that is still
+//   in use. For example:
+//
+//      * You tried to delete a ByteMatchSet that is still referenced by a Rule.
+//
+//      * You tried to delete a Rule that is still referenced by a WebACL.
+//
+//   * ErrCodeWAFNonEmptyEntityException "WAFNonEmptyEntityException"
+//   The operation failed because you tried to delete an object that isn't empty.
+//   For example:
+//
+//      * You tried to delete a WebACL that still contains one or more Rule objects.
+//
+//      * You tried to delete a Rule that still contains one or more ByteMatchSet
+//      objects or other predicates.
+//
+//      * You tried to delete a ByteMatchSet that contains one or more ByteMatchTuple
+//      objects.
+//
+//      * You tried to delete an IPSet that references one or more IP addresses.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/DeleteGeoMatchSet
+func (c *WAFRegional) DeleteGeoMatchSet(input *waf.DeleteGeoMatchSetInput) (*waf.DeleteGeoMatchSetOutput, error) {
+	req, out := c.DeleteGeoMatchSetRequest(input)
+	return out, req.Send()
+}
+
+// DeleteGeoMatchSetWithContext is the same as DeleteGeoMatchSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteGeoMatchSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) DeleteGeoMatchSetWithContext(ctx aws.Context, input *waf.DeleteGeoMatchSetInput, opts ...request.Option) (*waf.DeleteGeoMatchSetOutput, error) {
+	req, out := c.DeleteGeoMatchSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteIPSet = "DeleteIPSet"
 
 // DeleteIPSetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteIPSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteIPSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteIPSet method directly
-// instead.
+// See DeleteIPSet for more information on using the DeleteIPSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteIPSetRequest method.
 //    req, resp := client.DeleteIPSetRequest(params)
@@ -1412,23 +2106,392 @@ func (c *WAFRegional) DeleteIPSetWithContext(ctx aws.Context, input *waf.DeleteI
 	return out, req.Send()
 }
 
+const opDeleteRateBasedRule = "DeleteRateBasedRule"
+
+// DeleteRateBasedRuleRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRateBasedRule operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteRateBasedRule for more information on using the DeleteRateBasedRule
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteRateBasedRuleRequest method.
+//    req, resp := client.DeleteRateBasedRuleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/DeleteRateBasedRule
+func (c *WAFRegional) DeleteRateBasedRuleRequest(input *waf.DeleteRateBasedRuleInput) (req *request.Request, output *waf.DeleteRateBasedRuleOutput) {
+	op := &request.Operation{
+		Name:       opDeleteRateBasedRule,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.DeleteRateBasedRuleInput{}
+	}
+
+	output = &waf.DeleteRateBasedRuleOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteRateBasedRule API operation for AWS WAF Regional.
+//
+// Permanently deletes a RateBasedRule. You can't delete a rule if it's still
+// used in any WebACL objects or if it still includes any predicates, such as
+// ByteMatchSet objects.
+//
+// If you just want to remove a rule from a WebACL, use UpdateWebACL.
+//
+// To permanently delete a RateBasedRule from AWS WAF, perform the following
+// steps:
+//
+// Update the RateBasedRule to remove predicates, if any. For more information,
+// see UpdateRateBasedRule.
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of a DeleteRateBasedRule request.
+//
+// Submit a DeleteRateBasedRule request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation DeleteRateBasedRule for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+//   * ErrCodeWAFReferencedItemException "WAFReferencedItemException"
+//   The operation failed because you tried to delete an object that is still
+//   in use. For example:
+//
+//      * You tried to delete a ByteMatchSet that is still referenced by a Rule.
+//
+//      * You tried to delete a Rule that is still referenced by a WebACL.
+//
+//   * ErrCodeWAFNonEmptyEntityException "WAFNonEmptyEntityException"
+//   The operation failed because you tried to delete an object that isn't empty.
+//   For example:
+//
+//      * You tried to delete a WebACL that still contains one or more Rule objects.
+//
+//      * You tried to delete a Rule that still contains one or more ByteMatchSet
+//      objects or other predicates.
+//
+//      * You tried to delete a ByteMatchSet that contains one or more ByteMatchTuple
+//      objects.
+//
+//      * You tried to delete an IPSet that references one or more IP addresses.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/DeleteRateBasedRule
+func (c *WAFRegional) DeleteRateBasedRule(input *waf.DeleteRateBasedRuleInput) (*waf.DeleteRateBasedRuleOutput, error) {
+	req, out := c.DeleteRateBasedRuleRequest(input)
+	return out, req.Send()
+}
+
+// DeleteRateBasedRuleWithContext is the same as DeleteRateBasedRule with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteRateBasedRule for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) DeleteRateBasedRuleWithContext(ctx aws.Context, input *waf.DeleteRateBasedRuleInput, opts ...request.Option) (*waf.DeleteRateBasedRuleOutput, error) {
+	req, out := c.DeleteRateBasedRuleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteRegexMatchSet = "DeleteRegexMatchSet"
+
+// DeleteRegexMatchSetRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRegexMatchSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteRegexMatchSet for more information on using the DeleteRegexMatchSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteRegexMatchSetRequest method.
+//    req, resp := client.DeleteRegexMatchSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/DeleteRegexMatchSet
+func (c *WAFRegional) DeleteRegexMatchSetRequest(input *waf.DeleteRegexMatchSetInput) (req *request.Request, output *waf.DeleteRegexMatchSetOutput) {
+	op := &request.Operation{
+		Name:       opDeleteRegexMatchSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.DeleteRegexMatchSetInput{}
+	}
+
+	output = &waf.DeleteRegexMatchSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteRegexMatchSet API operation for AWS WAF Regional.
+//
+// Permanently deletes a RegexMatchSet. You can't delete a RegexMatchSet if
+// it's still used in any Rules or if it still includes any RegexMatchTuples
+// objects (any filters).
+//
+// If you just want to remove a RegexMatchSet from a Rule, use UpdateRule.
+//
+// To permanently delete a RegexMatchSet, perform the following steps:
+//
+// Update the RegexMatchSet to remove filters, if any. For more information,
+// see UpdateRegexMatchSet.
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of a DeleteRegexMatchSet request.
+//
+// Submit a DeleteRegexMatchSet request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation DeleteRegexMatchSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+//   * ErrCodeWAFReferencedItemException "WAFReferencedItemException"
+//   The operation failed because you tried to delete an object that is still
+//   in use. For example:
+//
+//      * You tried to delete a ByteMatchSet that is still referenced by a Rule.
+//
+//      * You tried to delete a Rule that is still referenced by a WebACL.
+//
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFNonEmptyEntityException "WAFNonEmptyEntityException"
+//   The operation failed because you tried to delete an object that isn't empty.
+//   For example:
+//
+//      * You tried to delete a WebACL that still contains one or more Rule objects.
+//
+//      * You tried to delete a Rule that still contains one or more ByteMatchSet
+//      objects or other predicates.
+//
+//      * You tried to delete a ByteMatchSet that contains one or more ByteMatchTuple
+//      objects.
+//
+//      * You tried to delete an IPSet that references one or more IP addresses.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/DeleteRegexMatchSet
+func (c *WAFRegional) DeleteRegexMatchSet(input *waf.DeleteRegexMatchSetInput) (*waf.DeleteRegexMatchSetOutput, error) {
+	req, out := c.DeleteRegexMatchSetRequest(input)
+	return out, req.Send()
+}
+
+// DeleteRegexMatchSetWithContext is the same as DeleteRegexMatchSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteRegexMatchSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) DeleteRegexMatchSetWithContext(ctx aws.Context, input *waf.DeleteRegexMatchSetInput, opts ...request.Option) (*waf.DeleteRegexMatchSetOutput, error) {
+	req, out := c.DeleteRegexMatchSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteRegexPatternSet = "DeleteRegexPatternSet"
+
+// DeleteRegexPatternSetRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRegexPatternSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteRegexPatternSet for more information on using the DeleteRegexPatternSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteRegexPatternSetRequest method.
+//    req, resp := client.DeleteRegexPatternSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/DeleteRegexPatternSet
+func (c *WAFRegional) DeleteRegexPatternSetRequest(input *waf.DeleteRegexPatternSetInput) (req *request.Request, output *waf.DeleteRegexPatternSetOutput) {
+	op := &request.Operation{
+		Name:       opDeleteRegexPatternSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.DeleteRegexPatternSetInput{}
+	}
+
+	output = &waf.DeleteRegexPatternSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteRegexPatternSet API operation for AWS WAF Regional.
+//
+// Permanently deletes a RegexPatternSet. You can't delete a RegexPatternSet
+// if it's still used in any RegexMatchSet or if the RegexPatternSet is not
+// empty.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation DeleteRegexPatternSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+//   * ErrCodeWAFReferencedItemException "WAFReferencedItemException"
+//   The operation failed because you tried to delete an object that is still
+//   in use. For example:
+//
+//      * You tried to delete a ByteMatchSet that is still referenced by a Rule.
+//
+//      * You tried to delete a Rule that is still referenced by a WebACL.
+//
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFNonEmptyEntityException "WAFNonEmptyEntityException"
+//   The operation failed because you tried to delete an object that isn't empty.
+//   For example:
+//
+//      * You tried to delete a WebACL that still contains one or more Rule objects.
+//
+//      * You tried to delete a Rule that still contains one or more ByteMatchSet
+//      objects or other predicates.
+//
+//      * You tried to delete a ByteMatchSet that contains one or more ByteMatchTuple
+//      objects.
+//
+//      * You tried to delete an IPSet that references one or more IP addresses.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/DeleteRegexPatternSet
+func (c *WAFRegional) DeleteRegexPatternSet(input *waf.DeleteRegexPatternSetInput) (*waf.DeleteRegexPatternSetOutput, error) {
+	req, out := c.DeleteRegexPatternSetRequest(input)
+	return out, req.Send()
+}
+
+// DeleteRegexPatternSetWithContext is the same as DeleteRegexPatternSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteRegexPatternSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) DeleteRegexPatternSetWithContext(ctx aws.Context, input *waf.DeleteRegexPatternSetInput, opts ...request.Option) (*waf.DeleteRegexPatternSetOutput, error) {
+	req, out := c.DeleteRegexPatternSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteRule = "DeleteRule"
 
 // DeleteRuleRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteRule method directly
-// instead.
+// See DeleteRule for more information on using the DeleteRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteRuleRequest method.
 //    req, resp := client.DeleteRuleRequest(params)
@@ -1543,19 +2606,18 @@ const opDeleteSizeConstraintSet = "DeleteSizeConstraintSet"
 
 // DeleteSizeConstraintSetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSizeConstraintSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteSizeConstraintSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteSizeConstraintSet method directly
-// instead.
+// See DeleteSizeConstraintSet for more information on using the DeleteSizeConstraintSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteSizeConstraintSetRequest method.
 //    req, resp := client.DeleteSizeConstraintSetRequest(params)
@@ -1671,19 +2733,18 @@ const opDeleteSqlInjectionMatchSet = "DeleteSqlInjectionMatchSet"
 
 // DeleteSqlInjectionMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSqlInjectionMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteSqlInjectionMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteSqlInjectionMatchSet method directly
-// instead.
+// See DeleteSqlInjectionMatchSet for more information on using the DeleteSqlInjectionMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteSqlInjectionMatchSetRequest method.
 //    req, resp := client.DeleteSqlInjectionMatchSetRequest(params)
@@ -1800,19 +2861,18 @@ const opDeleteWebACL = "DeleteWebACL"
 
 // DeleteWebACLRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteWebACL operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteWebACL for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteWebACL method directly
-// instead.
+// See DeleteWebACL for more information on using the DeleteWebACL
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteWebACLRequest method.
 //    req, resp := client.DeleteWebACLRequest(params)
@@ -1924,19 +2984,18 @@ const opDeleteXssMatchSet = "DeleteXssMatchSet"
 
 // DeleteXssMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteXssMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteXssMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteXssMatchSet method directly
-// instead.
+// See DeleteXssMatchSet for more information on using the DeleteXssMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteXssMatchSetRequest method.
 //    req, resp := client.DeleteXssMatchSetRequest(params)
@@ -2052,19 +3111,18 @@ const opDisassociateWebACL = "DisassociateWebACL"
 
 // DisassociateWebACLRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateWebACL operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DisassociateWebACL for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DisassociateWebACL method directly
-// instead.
+// See DisassociateWebACL for more information on using the DisassociateWebACL
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DisassociateWebACLRequest method.
 //    req, resp := client.DisassociateWebACLRequest(params)
@@ -2125,11 +3183,14 @@ func (c *WAFRegional) DisassociateWebACLRequest(input *DisassociateWebACLInput) 
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -2166,19 +3227,18 @@ const opGetByteMatchSet = "GetByteMatchSet"
 
 // GetByteMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the GetByteMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetByteMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetByteMatchSet method directly
-// instead.
+// See GetByteMatchSet for more information on using the GetByteMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetByteMatchSetRequest method.
 //    req, resp := client.GetByteMatchSetRequest(params)
@@ -2254,19 +3314,18 @@ const opGetChangeToken = "GetChangeToken"
 
 // GetChangeTokenRequest generates a "aws/request.Request" representing the
 // client's request for the GetChangeToken operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetChangeToken for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetChangeToken method directly
-// instead.
+// See GetChangeToken for more information on using the GetChangeToken
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetChangeTokenRequest method.
 //    req, resp := client.GetChangeTokenRequest(params)
@@ -2349,19 +3408,18 @@ const opGetChangeTokenStatus = "GetChangeTokenStatus"
 
 // GetChangeTokenStatusRequest generates a "aws/request.Request" representing the
 // client's request for the GetChangeTokenStatus operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetChangeTokenStatus for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetChangeTokenStatus method directly
-// instead.
+// See GetChangeTokenStatus for more information on using the GetChangeTokenStatus
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetChangeTokenStatusRequest method.
 //    req, resp := client.GetChangeTokenStatusRequest(params)
@@ -2439,23 +3497,109 @@ func (c *WAFRegional) GetChangeTokenStatusWithContext(ctx aws.Context, input *wa
 	return out, req.Send()
 }
 
+const opGetGeoMatchSet = "GetGeoMatchSet"
+
+// GetGeoMatchSetRequest generates a "aws/request.Request" representing the
+// client's request for the GetGeoMatchSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetGeoMatchSet for more information on using the GetGeoMatchSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetGeoMatchSetRequest method.
+//    req, resp := client.GetGeoMatchSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetGeoMatchSet
+func (c *WAFRegional) GetGeoMatchSetRequest(input *waf.GetGeoMatchSetInput) (req *request.Request, output *waf.GetGeoMatchSetOutput) {
+	op := &request.Operation{
+		Name:       opGetGeoMatchSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.GetGeoMatchSetInput{}
+	}
+
+	output = &waf.GetGeoMatchSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetGeoMatchSet API operation for AWS WAF Regional.
+//
+// Returns the GeoMatchSet that is specified by GeoMatchSetId.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation GetGeoMatchSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetGeoMatchSet
+func (c *WAFRegional) GetGeoMatchSet(input *waf.GetGeoMatchSetInput) (*waf.GetGeoMatchSetOutput, error) {
+	req, out := c.GetGeoMatchSetRequest(input)
+	return out, req.Send()
+}
+
+// GetGeoMatchSetWithContext is the same as GetGeoMatchSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetGeoMatchSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) GetGeoMatchSetWithContext(ctx aws.Context, input *waf.GetGeoMatchSetInput, opts ...request.Option) (*waf.GetGeoMatchSetOutput, error) {
+	req, out := c.GetGeoMatchSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetIPSet = "GetIPSet"
 
 // GetIPSetRequest generates a "aws/request.Request" representing the
 // client's request for the GetIPSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetIPSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetIPSet method directly
-// instead.
+// See GetIPSet for more information on using the GetIPSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetIPSetRequest method.
 //    req, resp := client.GetIPSetRequest(params)
@@ -2527,23 +3671,403 @@ func (c *WAFRegional) GetIPSetWithContext(ctx aws.Context, input *waf.GetIPSetIn
 	return out, req.Send()
 }
 
+const opGetRateBasedRule = "GetRateBasedRule"
+
+// GetRateBasedRuleRequest generates a "aws/request.Request" representing the
+// client's request for the GetRateBasedRule operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetRateBasedRule for more information on using the GetRateBasedRule
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetRateBasedRuleRequest method.
+//    req, resp := client.GetRateBasedRuleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetRateBasedRule
+func (c *WAFRegional) GetRateBasedRuleRequest(input *waf.GetRateBasedRuleInput) (req *request.Request, output *waf.GetRateBasedRuleOutput) {
+	op := &request.Operation{
+		Name:       opGetRateBasedRule,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.GetRateBasedRuleInput{}
+	}
+
+	output = &waf.GetRateBasedRuleOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetRateBasedRule API operation for AWS WAF Regional.
+//
+// Returns the RateBasedRule that is specified by the RuleId that you included
+// in the GetRateBasedRule request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation GetRateBasedRule for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetRateBasedRule
+func (c *WAFRegional) GetRateBasedRule(input *waf.GetRateBasedRuleInput) (*waf.GetRateBasedRuleOutput, error) {
+	req, out := c.GetRateBasedRuleRequest(input)
+	return out, req.Send()
+}
+
+// GetRateBasedRuleWithContext is the same as GetRateBasedRule with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetRateBasedRule for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) GetRateBasedRuleWithContext(ctx aws.Context, input *waf.GetRateBasedRuleInput, opts ...request.Option) (*waf.GetRateBasedRuleOutput, error) {
+	req, out := c.GetRateBasedRuleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetRateBasedRuleManagedKeys = "GetRateBasedRuleManagedKeys"
+
+// GetRateBasedRuleManagedKeysRequest generates a "aws/request.Request" representing the
+// client's request for the GetRateBasedRuleManagedKeys operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetRateBasedRuleManagedKeys for more information on using the GetRateBasedRuleManagedKeys
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetRateBasedRuleManagedKeysRequest method.
+//    req, resp := client.GetRateBasedRuleManagedKeysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetRateBasedRuleManagedKeys
+func (c *WAFRegional) GetRateBasedRuleManagedKeysRequest(input *waf.GetRateBasedRuleManagedKeysInput) (req *request.Request, output *waf.GetRateBasedRuleManagedKeysOutput) {
+	op := &request.Operation{
+		Name:       opGetRateBasedRuleManagedKeys,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.GetRateBasedRuleManagedKeysInput{}
+	}
+
+	output = &waf.GetRateBasedRuleManagedKeysOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetRateBasedRuleManagedKeys API operation for AWS WAF Regional.
+//
+// Returns an array of IP addresses currently being blocked by the RateBasedRule
+// that is specified by the RuleId. The maximum number of managed keys that
+// will be blocked is 10,000. If more than 10,000 addresses exceed the rate
+// limit, the 10,000 addresses with the highest rates will be blocked.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation GetRateBasedRuleManagedKeys for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+//   * ErrCodeWAFInvalidParameterException "WAFInvalidParameterException"
+//   The operation failed because AWS WAF didn't recognize a parameter in the
+//   request. For example:
+//
+//      * You specified an invalid parameter name.
+//
+//      * You specified an invalid value.
+//
+//      * You tried to update an object (ByteMatchSet, IPSet, Rule, or WebACL)
+//      using an action other than INSERT or DELETE.
+//
+//      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
+//      * You tried to update a WebACL with a WafActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to update a ByteMatchSet with a FieldToMatchType other than
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
+//
+//      * You tried to update a ByteMatchSet with a Field of HEADER but no value
+//      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetRateBasedRuleManagedKeys
+func (c *WAFRegional) GetRateBasedRuleManagedKeys(input *waf.GetRateBasedRuleManagedKeysInput) (*waf.GetRateBasedRuleManagedKeysOutput, error) {
+	req, out := c.GetRateBasedRuleManagedKeysRequest(input)
+	return out, req.Send()
+}
+
+// GetRateBasedRuleManagedKeysWithContext is the same as GetRateBasedRuleManagedKeys with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetRateBasedRuleManagedKeys for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) GetRateBasedRuleManagedKeysWithContext(ctx aws.Context, input *waf.GetRateBasedRuleManagedKeysInput, opts ...request.Option) (*waf.GetRateBasedRuleManagedKeysOutput, error) {
+	req, out := c.GetRateBasedRuleManagedKeysRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetRegexMatchSet = "GetRegexMatchSet"
+
+// GetRegexMatchSetRequest generates a "aws/request.Request" representing the
+// client's request for the GetRegexMatchSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetRegexMatchSet for more information on using the GetRegexMatchSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetRegexMatchSetRequest method.
+//    req, resp := client.GetRegexMatchSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetRegexMatchSet
+func (c *WAFRegional) GetRegexMatchSetRequest(input *waf.GetRegexMatchSetInput) (req *request.Request, output *waf.GetRegexMatchSetOutput) {
+	op := &request.Operation{
+		Name:       opGetRegexMatchSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.GetRegexMatchSetInput{}
+	}
+
+	output = &waf.GetRegexMatchSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetRegexMatchSet API operation for AWS WAF Regional.
+//
+// Returns the RegexMatchSet specified by RegexMatchSetId.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation GetRegexMatchSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetRegexMatchSet
+func (c *WAFRegional) GetRegexMatchSet(input *waf.GetRegexMatchSetInput) (*waf.GetRegexMatchSetOutput, error) {
+	req, out := c.GetRegexMatchSetRequest(input)
+	return out, req.Send()
+}
+
+// GetRegexMatchSetWithContext is the same as GetRegexMatchSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetRegexMatchSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) GetRegexMatchSetWithContext(ctx aws.Context, input *waf.GetRegexMatchSetInput, opts ...request.Option) (*waf.GetRegexMatchSetOutput, error) {
+	req, out := c.GetRegexMatchSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetRegexPatternSet = "GetRegexPatternSet"
+
+// GetRegexPatternSetRequest generates a "aws/request.Request" representing the
+// client's request for the GetRegexPatternSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetRegexPatternSet for more information on using the GetRegexPatternSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetRegexPatternSetRequest method.
+//    req, resp := client.GetRegexPatternSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetRegexPatternSet
+func (c *WAFRegional) GetRegexPatternSetRequest(input *waf.GetRegexPatternSetInput) (req *request.Request, output *waf.GetRegexPatternSetOutput) {
+	op := &request.Operation{
+		Name:       opGetRegexPatternSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.GetRegexPatternSetInput{}
+	}
+
+	output = &waf.GetRegexPatternSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetRegexPatternSet API operation for AWS WAF Regional.
+//
+// Returns the RegexPatternSet specified by RegexPatternSetId.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation GetRegexPatternSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetRegexPatternSet
+func (c *WAFRegional) GetRegexPatternSet(input *waf.GetRegexPatternSetInput) (*waf.GetRegexPatternSetOutput, error) {
+	req, out := c.GetRegexPatternSetRequest(input)
+	return out, req.Send()
+}
+
+// GetRegexPatternSetWithContext is the same as GetRegexPatternSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetRegexPatternSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) GetRegexPatternSetWithContext(ctx aws.Context, input *waf.GetRegexPatternSetInput, opts ...request.Option) (*waf.GetRegexPatternSetOutput, error) {
+	req, out := c.GetRegexPatternSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetRule = "GetRule"
 
 // GetRuleRequest generates a "aws/request.Request" representing the
 // client's request for the GetRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetRule method directly
-// instead.
+// See GetRule for more information on using the GetRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetRuleRequest method.
 //    req, resp := client.GetRuleRequest(params)
@@ -2620,19 +4144,18 @@ const opGetSampledRequests = "GetSampledRequests"
 
 // GetSampledRequestsRequest generates a "aws/request.Request" representing the
 // client's request for the GetSampledRequests operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetSampledRequests for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetSampledRequests method directly
-// instead.
+// See GetSampledRequests for more information on using the GetSampledRequests
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetSampledRequestsRequest method.
 //    req, resp := client.GetSampledRequestsRequest(params)
@@ -2714,19 +4237,18 @@ const opGetSizeConstraintSet = "GetSizeConstraintSet"
 
 // GetSizeConstraintSetRequest generates a "aws/request.Request" representing the
 // client's request for the GetSizeConstraintSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetSizeConstraintSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetSizeConstraintSet method directly
-// instead.
+// See GetSizeConstraintSet for more information on using the GetSizeConstraintSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetSizeConstraintSetRequest method.
 //    req, resp := client.GetSizeConstraintSetRequest(params)
@@ -2802,19 +4324,18 @@ const opGetSqlInjectionMatchSet = "GetSqlInjectionMatchSet"
 
 // GetSqlInjectionMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the GetSqlInjectionMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetSqlInjectionMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetSqlInjectionMatchSet method directly
-// instead.
+// See GetSqlInjectionMatchSet for more information on using the GetSqlInjectionMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetSqlInjectionMatchSetRequest method.
 //    req, resp := client.GetSqlInjectionMatchSetRequest(params)
@@ -2890,19 +4411,18 @@ const opGetWebACL = "GetWebACL"
 
 // GetWebACLRequest generates a "aws/request.Request" representing the
 // client's request for the GetWebACL operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetWebACL for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetWebACL method directly
-// instead.
+// See GetWebACL for more information on using the GetWebACL
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetWebACLRequest method.
 //    req, resp := client.GetWebACLRequest(params)
@@ -2978,19 +4498,18 @@ const opGetWebACLForResource = "GetWebACLForResource"
 
 // GetWebACLForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the GetWebACLForResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetWebACLForResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetWebACLForResource method directly
-// instead.
+// See GetWebACLForResource for more information on using the GetWebACLForResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetWebACLForResourceRequest method.
 //    req, resp := client.GetWebACLForResourceRequest(params)
@@ -3054,11 +4573,14 @@ func (c *WAFRegional) GetWebACLForResourceRequest(input *GetWebACLForResourceInp
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -3096,19 +4618,18 @@ const opGetXssMatchSet = "GetXssMatchSet"
 
 // GetXssMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the GetXssMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetXssMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetXssMatchSet method directly
-// instead.
+// See GetXssMatchSet for more information on using the GetXssMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetXssMatchSetRequest method.
 //    req, resp := client.GetXssMatchSetRequest(params)
@@ -3184,19 +4705,18 @@ const opListByteMatchSets = "ListByteMatchSets"
 
 // ListByteMatchSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListByteMatchSets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListByteMatchSets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListByteMatchSets method directly
-// instead.
+// See ListByteMatchSets for more information on using the ListByteMatchSets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListByteMatchSetsRequest method.
 //    req, resp := client.ListByteMatchSetsRequest(params)
@@ -3265,23 +4785,106 @@ func (c *WAFRegional) ListByteMatchSetsWithContext(ctx aws.Context, input *waf.L
 	return out, req.Send()
 }
 
+const opListGeoMatchSets = "ListGeoMatchSets"
+
+// ListGeoMatchSetsRequest generates a "aws/request.Request" representing the
+// client's request for the ListGeoMatchSets operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListGeoMatchSets for more information on using the ListGeoMatchSets
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListGeoMatchSetsRequest method.
+//    req, resp := client.ListGeoMatchSetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/ListGeoMatchSets
+func (c *WAFRegional) ListGeoMatchSetsRequest(input *waf.ListGeoMatchSetsInput) (req *request.Request, output *waf.ListGeoMatchSetsOutput) {
+	op := &request.Operation{
+		Name:       opListGeoMatchSets,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.ListGeoMatchSetsInput{}
+	}
+
+	output = &waf.ListGeoMatchSetsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListGeoMatchSets API operation for AWS WAF Regional.
+//
+// Returns an array of GeoMatchSetSummary objects in the response.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation ListGeoMatchSets for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/ListGeoMatchSets
+func (c *WAFRegional) ListGeoMatchSets(input *waf.ListGeoMatchSetsInput) (*waf.ListGeoMatchSetsOutput, error) {
+	req, out := c.ListGeoMatchSetsRequest(input)
+	return out, req.Send()
+}
+
+// ListGeoMatchSetsWithContext is the same as ListGeoMatchSets with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListGeoMatchSets for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) ListGeoMatchSetsWithContext(ctx aws.Context, input *waf.ListGeoMatchSetsInput, opts ...request.Option) (*waf.ListGeoMatchSetsOutput, error) {
+	req, out := c.ListGeoMatchSetsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListIPSets = "ListIPSets"
 
 // ListIPSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListIPSets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListIPSets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListIPSets method directly
-// instead.
+// See ListIPSets for more information on using the ListIPSets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListIPSetsRequest method.
 //    req, resp := client.ListIPSetsRequest(params)
@@ -3350,23 +4953,274 @@ func (c *WAFRegional) ListIPSetsWithContext(ctx aws.Context, input *waf.ListIPSe
 	return out, req.Send()
 }
 
+const opListRateBasedRules = "ListRateBasedRules"
+
+// ListRateBasedRulesRequest generates a "aws/request.Request" representing the
+// client's request for the ListRateBasedRules operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListRateBasedRules for more information on using the ListRateBasedRules
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListRateBasedRulesRequest method.
+//    req, resp := client.ListRateBasedRulesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/ListRateBasedRules
+func (c *WAFRegional) ListRateBasedRulesRequest(input *waf.ListRateBasedRulesInput) (req *request.Request, output *waf.ListRateBasedRulesOutput) {
+	op := &request.Operation{
+		Name:       opListRateBasedRules,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.ListRateBasedRulesInput{}
+	}
+
+	output = &waf.ListRateBasedRulesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListRateBasedRules API operation for AWS WAF Regional.
+//
+// Returns an array of RuleSummary objects.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation ListRateBasedRules for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/ListRateBasedRules
+func (c *WAFRegional) ListRateBasedRules(input *waf.ListRateBasedRulesInput) (*waf.ListRateBasedRulesOutput, error) {
+	req, out := c.ListRateBasedRulesRequest(input)
+	return out, req.Send()
+}
+
+// ListRateBasedRulesWithContext is the same as ListRateBasedRules with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListRateBasedRules for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) ListRateBasedRulesWithContext(ctx aws.Context, input *waf.ListRateBasedRulesInput, opts ...request.Option) (*waf.ListRateBasedRulesOutput, error) {
+	req, out := c.ListRateBasedRulesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListRegexMatchSets = "ListRegexMatchSets"
+
+// ListRegexMatchSetsRequest generates a "aws/request.Request" representing the
+// client's request for the ListRegexMatchSets operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListRegexMatchSets for more information on using the ListRegexMatchSets
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListRegexMatchSetsRequest method.
+//    req, resp := client.ListRegexMatchSetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/ListRegexMatchSets
+func (c *WAFRegional) ListRegexMatchSetsRequest(input *waf.ListRegexMatchSetsInput) (req *request.Request, output *waf.ListRegexMatchSetsOutput) {
+	op := &request.Operation{
+		Name:       opListRegexMatchSets,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.ListRegexMatchSetsInput{}
+	}
+
+	output = &waf.ListRegexMatchSetsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListRegexMatchSets API operation for AWS WAF Regional.
+//
+// Returns an array of RegexMatchSetSummary objects.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation ListRegexMatchSets for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/ListRegexMatchSets
+func (c *WAFRegional) ListRegexMatchSets(input *waf.ListRegexMatchSetsInput) (*waf.ListRegexMatchSetsOutput, error) {
+	req, out := c.ListRegexMatchSetsRequest(input)
+	return out, req.Send()
+}
+
+// ListRegexMatchSetsWithContext is the same as ListRegexMatchSets with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListRegexMatchSets for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) ListRegexMatchSetsWithContext(ctx aws.Context, input *waf.ListRegexMatchSetsInput, opts ...request.Option) (*waf.ListRegexMatchSetsOutput, error) {
+	req, out := c.ListRegexMatchSetsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListRegexPatternSets = "ListRegexPatternSets"
+
+// ListRegexPatternSetsRequest generates a "aws/request.Request" representing the
+// client's request for the ListRegexPatternSets operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListRegexPatternSets for more information on using the ListRegexPatternSets
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListRegexPatternSetsRequest method.
+//    req, resp := client.ListRegexPatternSetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/ListRegexPatternSets
+func (c *WAFRegional) ListRegexPatternSetsRequest(input *waf.ListRegexPatternSetsInput) (req *request.Request, output *waf.ListRegexPatternSetsOutput) {
+	op := &request.Operation{
+		Name:       opListRegexPatternSets,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.ListRegexPatternSetsInput{}
+	}
+
+	output = &waf.ListRegexPatternSetsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListRegexPatternSets API operation for AWS WAF Regional.
+//
+// Returns an array of RegexPatternSetSummary objects.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation ListRegexPatternSets for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/ListRegexPatternSets
+func (c *WAFRegional) ListRegexPatternSets(input *waf.ListRegexPatternSetsInput) (*waf.ListRegexPatternSetsOutput, error) {
+	req, out := c.ListRegexPatternSetsRequest(input)
+	return out, req.Send()
+}
+
+// ListRegexPatternSetsWithContext is the same as ListRegexPatternSets with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListRegexPatternSets for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) ListRegexPatternSetsWithContext(ctx aws.Context, input *waf.ListRegexPatternSetsInput, opts ...request.Option) (*waf.ListRegexPatternSetsOutput, error) {
+	req, out := c.ListRegexPatternSetsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListResourcesForWebACL = "ListResourcesForWebACL"
 
 // ListResourcesForWebACLRequest generates a "aws/request.Request" representing the
 // client's request for the ListResourcesForWebACL operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListResourcesForWebACL for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListResourcesForWebACL method directly
-// instead.
+// See ListResourcesForWebACL for more information on using the ListResourcesForWebACL
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListResourcesForWebACLRequest method.
 //    req, resp := client.ListResourcesForWebACLRequest(params)
@@ -3442,19 +5296,18 @@ const opListRules = "ListRules"
 
 // ListRulesRequest generates a "aws/request.Request" representing the
 // client's request for the ListRules operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListRules for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListRules method directly
-// instead.
+// See ListRules for more information on using the ListRules
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListRulesRequest method.
 //    req, resp := client.ListRulesRequest(params)
@@ -3527,19 +5380,18 @@ const opListSizeConstraintSets = "ListSizeConstraintSets"
 
 // ListSizeConstraintSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListSizeConstraintSets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListSizeConstraintSets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListSizeConstraintSets method directly
-// instead.
+// See ListSizeConstraintSets for more information on using the ListSizeConstraintSets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListSizeConstraintSetsRequest method.
 //    req, resp := client.ListSizeConstraintSetsRequest(params)
@@ -3612,19 +5464,18 @@ const opListSqlInjectionMatchSets = "ListSqlInjectionMatchSets"
 
 // ListSqlInjectionMatchSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListSqlInjectionMatchSets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListSqlInjectionMatchSets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListSqlInjectionMatchSets method directly
-// instead.
+// See ListSqlInjectionMatchSets for more information on using the ListSqlInjectionMatchSets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListSqlInjectionMatchSetsRequest method.
 //    req, resp := client.ListSqlInjectionMatchSetsRequest(params)
@@ -3697,19 +5548,18 @@ const opListWebACLs = "ListWebACLs"
 
 // ListWebACLsRequest generates a "aws/request.Request" representing the
 // client's request for the ListWebACLs operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListWebACLs for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListWebACLs method directly
-// instead.
+// See ListWebACLs for more information on using the ListWebACLs
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListWebACLsRequest method.
 //    req, resp := client.ListWebACLsRequest(params)
@@ -3782,19 +5632,18 @@ const opListXssMatchSets = "ListXssMatchSets"
 
 // ListXssMatchSetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListXssMatchSets operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListXssMatchSets for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListXssMatchSets method directly
-// instead.
+// See ListXssMatchSets for more information on using the ListXssMatchSets
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListXssMatchSetsRequest method.
 //    req, resp := client.ListXssMatchSetsRequest(params)
@@ -3867,19 +5716,18 @@ const opUpdateByteMatchSet = "UpdateByteMatchSet"
 
 // UpdateByteMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateByteMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateByteMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateByteMatchSet method directly
-// instead.
+// See UpdateByteMatchSet for more information on using the UpdateByteMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateByteMatchSetRequest method.
 //    req, resp := client.UpdateByteMatchSetRequest(params)
@@ -3997,11 +5845,14 @@ func (c *WAFRegional) UpdateByteMatchSetRequest(input *waf.UpdateByteMatchSetInp
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -4060,23 +5911,220 @@ func (c *WAFRegional) UpdateByteMatchSetWithContext(ctx aws.Context, input *waf.
 	return out, req.Send()
 }
 
+const opUpdateGeoMatchSet = "UpdateGeoMatchSet"
+
+// UpdateGeoMatchSetRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateGeoMatchSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateGeoMatchSet for more information on using the UpdateGeoMatchSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateGeoMatchSetRequest method.
+//    req, resp := client.UpdateGeoMatchSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/UpdateGeoMatchSet
+func (c *WAFRegional) UpdateGeoMatchSetRequest(input *waf.UpdateGeoMatchSetInput) (req *request.Request, output *waf.UpdateGeoMatchSetOutput) {
+	op := &request.Operation{
+		Name:       opUpdateGeoMatchSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.UpdateGeoMatchSetInput{}
+	}
+
+	output = &waf.UpdateGeoMatchSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateGeoMatchSet API operation for AWS WAF Regional.
+//
+// Inserts or deletes GeoMatchConstraint objects in an GeoMatchSet. For each
+// GeoMatchConstraint object, you specify the following values:
+//
+//    * Whether to insert or delete the object from the array. If you want to
+//    change an GeoMatchConstraint object, you delete the existing object and
+//    add a new one.
+//
+//    * The Type. The only valid value for Type is Country.
+//
+//    * The Value, which is a two character code for the country to add to the
+//    GeoMatchConstraint object. Valid codes are listed in GeoMatchConstraint$Value.
+//
+// To create and configure an GeoMatchSet, perform the following steps:
+//
+// Submit a CreateGeoMatchSet request.
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of an UpdateGeoMatchSet request.
+//
+// Submit an UpdateGeoMatchSet request to specify the country that you want
+// AWS WAF to watch for.
+//
+// When you update an GeoMatchSet, you specify the country that you want to
+// add and/or the country that you want to delete. If you want to change a country,
+// you delete the existing country and add the new one.
+//
+// For more information about how to use the AWS WAF API to allow or block HTTP
+// requests, see the AWS WAF Developer Guide (http://docs.aws.amazon.com/waf/latest/developerguide/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation UpdateGeoMatchSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFInvalidOperationException "WAFInvalidOperationException"
+//   The operation failed because there was nothing to do. For example:
+//
+//      * You tried to remove a Rule from a WebACL, but the Rule isn't in the
+//      specified WebACL.
+//
+//      * You tried to remove an IP address from an IPSet, but the IP address
+//      isn't in the specified IPSet.
+//
+//      * You tried to remove a ByteMatchTuple from a ByteMatchSet, but the ByteMatchTuple
+//      isn't in the specified WebACL.
+//
+//      * You tried to add a Rule to a WebACL, but the Rule already exists in
+//      the specified WebACL.
+//
+//      * You tried to add an IP address to an IPSet, but the IP address already
+//      exists in the specified IPSet.
+//
+//      * You tried to add a ByteMatchTuple to a ByteMatchSet, but the ByteMatchTuple
+//      already exists in the specified WebACL.
+//
+//   * ErrCodeWAFInvalidParameterException "WAFInvalidParameterException"
+//   The operation failed because AWS WAF didn't recognize a parameter in the
+//   request. For example:
+//
+//      * You specified an invalid parameter name.
+//
+//      * You specified an invalid value.
+//
+//      * You tried to update an object (ByteMatchSet, IPSet, Rule, or WebACL)
+//      using an action other than INSERT or DELETE.
+//
+//      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
+//      * You tried to update a WebACL with a WafActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to update a ByteMatchSet with a FieldToMatchType other than
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
+//
+//      * You tried to update a ByteMatchSet with a Field of HEADER but no value
+//      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
+//   * ErrCodeWAFNonexistentContainerException "WAFNonexistentContainerException"
+//   The operation failed because you tried to add an object to or delete an object
+//   from another object that doesn't exist. For example:
+//
+//      * You tried to add a Rule to or delete a Rule from a WebACL that doesn't
+//      exist.
+//
+//      * You tried to add a ByteMatchSet to or delete a ByteMatchSet from a Rule
+//      that doesn't exist.
+//
+//      * You tried to add an IP address to or delete an IP address from an IPSet
+//      that doesn't exist.
+//
+//      * You tried to add a ByteMatchTuple to or delete a ByteMatchTuple from
+//      a ByteMatchSet that doesn't exist.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+//   * ErrCodeWAFReferencedItemException "WAFReferencedItemException"
+//   The operation failed because you tried to delete an object that is still
+//   in use. For example:
+//
+//      * You tried to delete a ByteMatchSet that is still referenced by a Rule.
+//
+//      * You tried to delete a Rule that is still referenced by a WebACL.
+//
+//   * ErrCodeWAFLimitsExceededException "WAFLimitsExceededException"
+//   The operation exceeds a resource limit, for example, the maximum number of
+//   WebACL objects that you can create for an AWS account. For more information,
+//   see Limits (http://docs.aws.amazon.com/waf/latest/developerguide/limits.html)
+//   in the AWS WAF Developer Guide.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/UpdateGeoMatchSet
+func (c *WAFRegional) UpdateGeoMatchSet(input *waf.UpdateGeoMatchSetInput) (*waf.UpdateGeoMatchSetOutput, error) {
+	req, out := c.UpdateGeoMatchSetRequest(input)
+	return out, req.Send()
+}
+
+// UpdateGeoMatchSetWithContext is the same as UpdateGeoMatchSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateGeoMatchSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) UpdateGeoMatchSetWithContext(ctx aws.Context, input *waf.UpdateGeoMatchSetInput, opts ...request.Option) (*waf.UpdateGeoMatchSetOutput, error) {
+	req, out := c.UpdateGeoMatchSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opUpdateIPSet = "UpdateIPSet"
 
 // UpdateIPSetRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateIPSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateIPSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateIPSet method directly
-// instead.
+// See UpdateIPSet for more information on using the UpdateIPSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateIPSetRequest method.
 //    req, resp := client.UpdateIPSetRequest(params)
@@ -4210,11 +6258,14 @@ func (c *WAFRegional) UpdateIPSetRequest(input *waf.UpdateIPSetInput) (req *requ
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -4277,23 +6328,566 @@ func (c *WAFRegional) UpdateIPSetWithContext(ctx aws.Context, input *waf.UpdateI
 	return out, req.Send()
 }
 
+const opUpdateRateBasedRule = "UpdateRateBasedRule"
+
+// UpdateRateBasedRuleRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRateBasedRule operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateRateBasedRule for more information on using the UpdateRateBasedRule
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateRateBasedRuleRequest method.
+//    req, resp := client.UpdateRateBasedRuleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/UpdateRateBasedRule
+func (c *WAFRegional) UpdateRateBasedRuleRequest(input *waf.UpdateRateBasedRuleInput) (req *request.Request, output *waf.UpdateRateBasedRuleOutput) {
+	op := &request.Operation{
+		Name:       opUpdateRateBasedRule,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.UpdateRateBasedRuleInput{}
+	}
+
+	output = &waf.UpdateRateBasedRuleOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateRateBasedRule API operation for AWS WAF Regional.
+//
+// Inserts or deletes Predicate objects in a rule and updates the RateLimit
+// in the rule.
+//
+// Each Predicate object identifies a predicate, such as a ByteMatchSet or an
+// IPSet, that specifies the web requests that you want to block or count. The
+// RateLimit specifies the number of requests every five minutes that triggers
+// the rule.
+//
+// If you add more than one predicate to a RateBasedRule, a request must match
+// all the predicates and exceed the RateLimit to be counted or blocked. For
+// example, suppose you add the following to a RateBasedRule:
+//
+//    * An IPSet that matches the IP address 192.0.2.44/32
+//
+//    * A ByteMatchSet that matches BadBot in the User-Agent header
+//
+// Further, you specify a RateLimit of 15,000.
+//
+// You then add the RateBasedRule to a WebACL and specify that you want to block
+// requests that satisfy the rule. For a request to be blocked, it must come
+// from the IP address 192.0.2.44 and the User-Agent header in the request must
+// contain the value BadBot. Further, requests that match these two conditions
+// much be received at a rate of more than 15,000 every five minutes. If the
+// rate drops below this limit, AWS WAF no longer blocks the requests.
+//
+// As a second example, suppose you want to limit requests to a particular page
+// on your site. To do this, you could add the following to a RateBasedRule:
+//
+//    * A ByteMatchSet with FieldToMatch of URI
+//
+//    * A PositionalConstraint of STARTS_WITH
+//
+//    * A TargetString of login
+//
+// Further, you specify a RateLimit of 15,000.
+//
+// By adding this RateBasedRule to a WebACL, you could limit requests to your
+// login page without affecting the rest of your site.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation UpdateRateBasedRule for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFInvalidOperationException "WAFInvalidOperationException"
+//   The operation failed because there was nothing to do. For example:
+//
+//      * You tried to remove a Rule from a WebACL, but the Rule isn't in the
+//      specified WebACL.
+//
+//      * You tried to remove an IP address from an IPSet, but the IP address
+//      isn't in the specified IPSet.
+//
+//      * You tried to remove a ByteMatchTuple from a ByteMatchSet, but the ByteMatchTuple
+//      isn't in the specified WebACL.
+//
+//      * You tried to add a Rule to a WebACL, but the Rule already exists in
+//      the specified WebACL.
+//
+//      * You tried to add an IP address to an IPSet, but the IP address already
+//      exists in the specified IPSet.
+//
+//      * You tried to add a ByteMatchTuple to a ByteMatchSet, but the ByteMatchTuple
+//      already exists in the specified WebACL.
+//
+//   * ErrCodeWAFInvalidParameterException "WAFInvalidParameterException"
+//   The operation failed because AWS WAF didn't recognize a parameter in the
+//   request. For example:
+//
+//      * You specified an invalid parameter name.
+//
+//      * You specified an invalid value.
+//
+//      * You tried to update an object (ByteMatchSet, IPSet, Rule, or WebACL)
+//      using an action other than INSERT or DELETE.
+//
+//      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
+//      * You tried to update a WebACL with a WafActionType other than ALLOW,
+//      BLOCK, or COUNT.
+//
+//      * You tried to update a ByteMatchSet with a FieldToMatchType other than
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
+//
+//      * You tried to update a ByteMatchSet with a Field of HEADER but no value
+//      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
+//   * ErrCodeWAFNonexistentContainerException "WAFNonexistentContainerException"
+//   The operation failed because you tried to add an object to or delete an object
+//   from another object that doesn't exist. For example:
+//
+//      * You tried to add a Rule to or delete a Rule from a WebACL that doesn't
+//      exist.
+//
+//      * You tried to add a ByteMatchSet to or delete a ByteMatchSet from a Rule
+//      that doesn't exist.
+//
+//      * You tried to add an IP address to or delete an IP address from an IPSet
+//      that doesn't exist.
+//
+//      * You tried to add a ByteMatchTuple to or delete a ByteMatchTuple from
+//      a ByteMatchSet that doesn't exist.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+//   * ErrCodeWAFReferencedItemException "WAFReferencedItemException"
+//   The operation failed because you tried to delete an object that is still
+//   in use. For example:
+//
+//      * You tried to delete a ByteMatchSet that is still referenced by a Rule.
+//
+//      * You tried to delete a Rule that is still referenced by a WebACL.
+//
+//   * ErrCodeWAFLimitsExceededException "WAFLimitsExceededException"
+//   The operation exceeds a resource limit, for example, the maximum number of
+//   WebACL objects that you can create for an AWS account. For more information,
+//   see Limits (http://docs.aws.amazon.com/waf/latest/developerguide/limits.html)
+//   in the AWS WAF Developer Guide.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/UpdateRateBasedRule
+func (c *WAFRegional) UpdateRateBasedRule(input *waf.UpdateRateBasedRuleInput) (*waf.UpdateRateBasedRuleOutput, error) {
+	req, out := c.UpdateRateBasedRuleRequest(input)
+	return out, req.Send()
+}
+
+// UpdateRateBasedRuleWithContext is the same as UpdateRateBasedRule with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateRateBasedRule for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) UpdateRateBasedRuleWithContext(ctx aws.Context, input *waf.UpdateRateBasedRuleInput, opts ...request.Option) (*waf.UpdateRateBasedRuleOutput, error) {
+	req, out := c.UpdateRateBasedRuleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateRegexMatchSet = "UpdateRegexMatchSet"
+
+// UpdateRegexMatchSetRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRegexMatchSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateRegexMatchSet for more information on using the UpdateRegexMatchSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateRegexMatchSetRequest method.
+//    req, resp := client.UpdateRegexMatchSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/UpdateRegexMatchSet
+func (c *WAFRegional) UpdateRegexMatchSetRequest(input *waf.UpdateRegexMatchSetInput) (req *request.Request, output *waf.UpdateRegexMatchSetOutput) {
+	op := &request.Operation{
+		Name:       opUpdateRegexMatchSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.UpdateRegexMatchSetInput{}
+	}
+
+	output = &waf.UpdateRegexMatchSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateRegexMatchSet API operation for AWS WAF Regional.
+//
+// Inserts or deletes RegexMatchSetUpdate objects (filters) in a RegexMatchSet.
+// For each RegexMatchSetUpdate object, you specify the following values:
+//
+//    * Whether to insert or delete the object from the array. If you want to
+//    change a RegexMatchSetUpdate object, you delete the existing object and
+//    add a new one.
+//
+//    * The part of a web request that you want AWS WAF to inspect, such as
+//    a query string or the value of the User-Agent header.
+//
+//    * The identifier of the pattern (a regular expression) that you want AWS
+//    WAF to look for. For more information, see RegexPatternSet.
+//
+//    * Whether to perform any conversions on the request, such as converting
+//    it to lowercase, before inspecting it for the specified string.
+//
+// For example, you can create a RegexPatternSet that matches any requests with
+// User-Agent headers that contain the string B[a@]dB[o0]t. You can then configure
+// AWS WAF to reject those requests.
+//
+// To create and configure a RegexMatchSet, perform the following steps:
+//
+// Create a RegexMatchSet. For more information, see CreateRegexMatchSet.
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of an UpdateRegexMatchSet request.
+//
+// Submit an UpdateRegexMatchSet request to specify the part of the request
+// that you want AWS WAF to inspect (for example, the header or the URI) and
+// the identifier of the RegexPatternSet that contain the regular expression
+// patters you want AWS WAF to watch for.
+//
+// For more information about how to use the AWS WAF API to allow or block HTTP
+// requests, see the AWS WAF Developer Guide (http://docs.aws.amazon.com/waf/latest/developerguide/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation UpdateRegexMatchSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFDisallowedNameException "WAFDisallowedNameException"
+//   The name specified is invalid.
+//
+//   * ErrCodeWAFLimitsExceededException "WAFLimitsExceededException"
+//   The operation exceeds a resource limit, for example, the maximum number of
+//   WebACL objects that you can create for an AWS account. For more information,
+//   see Limits (http://docs.aws.amazon.com/waf/latest/developerguide/limits.html)
+//   in the AWS WAF Developer Guide.
+//
+//   * ErrCodeWAFNonexistentItemException "WAFNonexistentItemException"
+//   The operation failed because the referenced object doesn't exist.
+//
+//   * ErrCodeWAFNonexistentContainerException "WAFNonexistentContainerException"
+//   The operation failed because you tried to add an object to or delete an object
+//   from another object that doesn't exist. For example:
+//
+//      * You tried to add a Rule to or delete a Rule from a WebACL that doesn't
+//      exist.
+//
+//      * You tried to add a ByteMatchSet to or delete a ByteMatchSet from a Rule
+//      that doesn't exist.
+//
+//      * You tried to add an IP address to or delete an IP address from an IPSet
+//      that doesn't exist.
+//
+//      * You tried to add a ByteMatchTuple to or delete a ByteMatchTuple from
+//      a ByteMatchSet that doesn't exist.
+//
+//   * ErrCodeWAFInvalidOperationException "WAFInvalidOperationException"
+//   The operation failed because there was nothing to do. For example:
+//
+//      * You tried to remove a Rule from a WebACL, but the Rule isn't in the
+//      specified WebACL.
+//
+//      * You tried to remove an IP address from an IPSet, but the IP address
+//      isn't in the specified IPSet.
+//
+//      * You tried to remove a ByteMatchTuple from a ByteMatchSet, but the ByteMatchTuple
+//      isn't in the specified WebACL.
+//
+//      * You tried to add a Rule to a WebACL, but the Rule already exists in
+//      the specified WebACL.
+//
+//      * You tried to add an IP address to an IPSet, but the IP address already
+//      exists in the specified IPSet.
+//
+//      * You tried to add a ByteMatchTuple to a ByteMatchSet, but the ByteMatchTuple
+//      already exists in the specified WebACL.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/UpdateRegexMatchSet
+func (c *WAFRegional) UpdateRegexMatchSet(input *waf.UpdateRegexMatchSetInput) (*waf.UpdateRegexMatchSetOutput, error) {
+	req, out := c.UpdateRegexMatchSetRequest(input)
+	return out, req.Send()
+}
+
+// UpdateRegexMatchSetWithContext is the same as UpdateRegexMatchSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateRegexMatchSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) UpdateRegexMatchSetWithContext(ctx aws.Context, input *waf.UpdateRegexMatchSetInput, opts ...request.Option) (*waf.UpdateRegexMatchSetOutput, error) {
+	req, out := c.UpdateRegexMatchSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateRegexPatternSet = "UpdateRegexPatternSet"
+
+// UpdateRegexPatternSetRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRegexPatternSet operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateRegexPatternSet for more information on using the UpdateRegexPatternSet
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateRegexPatternSetRequest method.
+//    req, resp := client.UpdateRegexPatternSetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/UpdateRegexPatternSet
+func (c *WAFRegional) UpdateRegexPatternSetRequest(input *waf.UpdateRegexPatternSetInput) (req *request.Request, output *waf.UpdateRegexPatternSetOutput) {
+	op := &request.Operation{
+		Name:       opUpdateRegexPatternSet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &waf.UpdateRegexPatternSetInput{}
+	}
+
+	output = &waf.UpdateRegexPatternSetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateRegexPatternSet API operation for AWS WAF Regional.
+//
+// Inserts or deletes RegexMatchSetUpdate objects (filters) in a RegexPatternSet.
+// For each RegexPatternSet object, you specify the following values:
+//
+//    * Whether to insert or delete the object from the array. If you want to
+//    change a RegexPatternSet object, you delete the existing object and add
+//    a new one.
+//
+//    * The regular expression pattern that you want AWS WAF to look for. For
+//    more information, see RegexPatternSet.
+//
+// For example, you can create a RegexPatternString such as B[a@]dB[o0]t. AWS
+// WAF will match this RegexPatternString to:
+//
+//    * BadBot
+//
+//    * BadB0t
+//
+//    * B@dBot
+//
+//    * B@dB0t
+//
+// To create and configure a RegexPatternSet, perform the following steps:
+//
+// Create a RegexPatternSet. For more information, see CreateRegexPatternSet.
+//
+// Use GetChangeToken to get the change token that you provide in the ChangeToken
+// parameter of an UpdateRegexPatternSet request.
+//
+// Submit an UpdateRegexPatternSet request to specify the regular expression
+// pattern that you want AWS WAF to watch for.
+//
+// For more information about how to use the AWS WAF API to allow or block HTTP
+// requests, see the AWS WAF Developer Guide (http://docs.aws.amazon.com/waf/latest/developerguide/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS WAF Regional's
+// API operation UpdateRegexPatternSet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeWAFStaleDataException "WAFStaleDataException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using a change token that has already been used.
+//
+//   * ErrCodeWAFInternalErrorException "WAFInternalErrorException"
+//   The operation failed because of a system problem, even though the request
+//   was valid. Retry your request.
+//
+//   * ErrCodeWAFLimitsExceededException "WAFLimitsExceededException"
+//   The operation exceeds a resource limit, for example, the maximum number of
+//   WebACL objects that you can create for an AWS account. For more information,
+//   see Limits (http://docs.aws.amazon.com/waf/latest/developerguide/limits.html)
+//   in the AWS WAF Developer Guide.
+//
+//   * ErrCodeWAFNonexistentContainerException "WAFNonexistentContainerException"
+//   The operation failed because you tried to add an object to or delete an object
+//   from another object that doesn't exist. For example:
+//
+//      * You tried to add a Rule to or delete a Rule from a WebACL that doesn't
+//      exist.
+//
+//      * You tried to add a ByteMatchSet to or delete a ByteMatchSet from a Rule
+//      that doesn't exist.
+//
+//      * You tried to add an IP address to or delete an IP address from an IPSet
+//      that doesn't exist.
+//
+//      * You tried to add a ByteMatchTuple to or delete a ByteMatchTuple from
+//      a ByteMatchSet that doesn't exist.
+//
+//   * ErrCodeWAFInvalidOperationException "WAFInvalidOperationException"
+//   The operation failed because there was nothing to do. For example:
+//
+//      * You tried to remove a Rule from a WebACL, but the Rule isn't in the
+//      specified WebACL.
+//
+//      * You tried to remove an IP address from an IPSet, but the IP address
+//      isn't in the specified IPSet.
+//
+//      * You tried to remove a ByteMatchTuple from a ByteMatchSet, but the ByteMatchTuple
+//      isn't in the specified WebACL.
+//
+//      * You tried to add a Rule to a WebACL, but the Rule already exists in
+//      the specified WebACL.
+//
+//      * You tried to add an IP address to an IPSet, but the IP address already
+//      exists in the specified IPSet.
+//
+//      * You tried to add a ByteMatchTuple to a ByteMatchSet, but the ByteMatchTuple
+//      already exists in the specified WebACL.
+//
+//   * ErrCodeWAFInvalidAccountException "WAFInvalidAccountException"
+//   The operation failed because you tried to create, update, or delete an object
+//   by using an invalid account identifier.
+//
+//   * ErrCodeWAFInvalidRegexPatternException "WAFInvalidRegexPatternException"
+//   The regular expression (regex) you specified in RegexPatternString is invalid.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/UpdateRegexPatternSet
+func (c *WAFRegional) UpdateRegexPatternSet(input *waf.UpdateRegexPatternSetInput) (*waf.UpdateRegexPatternSetOutput, error) {
+	req, out := c.UpdateRegexPatternSetRequest(input)
+	return out, req.Send()
+}
+
+// UpdateRegexPatternSetWithContext is the same as UpdateRegexPatternSet with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateRegexPatternSet for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *WAFRegional) UpdateRegexPatternSetWithContext(ctx aws.Context, input *waf.UpdateRegexPatternSetInput, opts ...request.Option) (*waf.UpdateRegexPatternSetOutput, error) {
+	req, out := c.UpdateRegexPatternSetRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opUpdateRule = "UpdateRule"
 
 // UpdateRuleRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRule operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateRule for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateRule method directly
-// instead.
+// See UpdateRule for more information on using the UpdateRule
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateRuleRequest method.
 //    req, resp := client.UpdateRuleRequest(params)
@@ -4411,11 +7005,14 @@ func (c *WAFRegional) UpdateRuleRequest(input *waf.UpdateRuleInput) (req *reques
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -4482,19 +7079,18 @@ const opUpdateSizeConstraintSet = "UpdateSizeConstraintSet"
 
 // UpdateSizeConstraintSetRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateSizeConstraintSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateSizeConstraintSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateSizeConstraintSet method directly
-// instead.
+// See UpdateSizeConstraintSet for more information on using the UpdateSizeConstraintSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateSizeConstraintSetRequest method.
 //    req, resp := client.UpdateSizeConstraintSetRequest(params)
@@ -4618,11 +7214,14 @@ func (c *WAFRegional) UpdateSizeConstraintSetRequest(input *waf.UpdateSizeConstr
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -4689,19 +7288,18 @@ const opUpdateSqlInjectionMatchSet = "UpdateSqlInjectionMatchSet"
 
 // UpdateSqlInjectionMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateSqlInjectionMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateSqlInjectionMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateSqlInjectionMatchSet method directly
-// instead.
+// See UpdateSqlInjectionMatchSet for more information on using the UpdateSqlInjectionMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateSqlInjectionMatchSetRequest method.
 //    req, resp := client.UpdateSqlInjectionMatchSetRequest(params)
@@ -4814,11 +7412,14 @@ func (c *WAFRegional) UpdateSqlInjectionMatchSetRequest(input *waf.UpdateSqlInje
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -4881,19 +7482,18 @@ const opUpdateWebACL = "UpdateWebACL"
 
 // UpdateWebACLRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateWebACL operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateWebACL for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateWebACL method directly
-// instead.
+// See UpdateWebACL for more information on using the UpdateWebACL
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateWebACLRequest method.
 //    req, resp := client.UpdateWebACLRequest(params)
@@ -4963,6 +7563,11 @@ func (c *WAFRegional) UpdateWebACLRequest(input *waf.UpdateWebACLInput) (req *re
 // in the WebACL, to specify the default action, and to associate the WebACL
 // with a CloudFront distribution.
 //
+// Be aware that if you try to add a RATE_BASED rule to a web ACL without setting
+// the rule type when first creating the rule, the UpdateWebACL request will
+// fail because the request tries to add a REGULAR rule (the default rule type)
+// with the specified ID, which does not exist.
+//
 // For more information about how to use the AWS WAF API to allow or block HTTP
 // requests, see the AWS WAF Developer Guide (http://docs.aws.amazon.com/waf/latest/developerguide/).
 //
@@ -5021,11 +7626,14 @@ func (c *WAFRegional) UpdateWebACLRequest(input *waf.UpdateWebACLInput) (req *re
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -5092,19 +7700,18 @@ const opUpdateXssMatchSet = "UpdateXssMatchSet"
 
 // UpdateXssMatchSetRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateXssMatchSet operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateXssMatchSet for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateXssMatchSet method directly
-// instead.
+// See UpdateXssMatchSet for more information on using the UpdateXssMatchSet
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateXssMatchSetRequest method.
 //    req, resp := client.UpdateXssMatchSetRequest(params)
@@ -5217,11 +7824,14 @@ func (c *WAFRegional) UpdateXssMatchSetRequest(input *waf.UpdateXssMatchSetInput
 //      * You tried to create a WebACL with a DefaultActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
+//      * You tried to create a RateBasedRule with a RateKey value other than
+//      IP.
+//
 //      * You tried to update a WebACL with a WafActionType other than ALLOW,
 //      BLOCK, or COUNT.
 //
 //      * You tried to update a ByteMatchSet with a FieldToMatchType other than
-//      HEADER, QUERY_STRING, or URI.
+//      HEADER, METHOD, QUERY_STRING, URI, or BODY.
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
@@ -5588,6 +8198,760 @@ const (
 )
 
 const (
+	// GeoMatchConstraintTypeCountry is a GeoMatchConstraintType enum value
+	GeoMatchConstraintTypeCountry = "Country"
+)
+
+const (
+	// GeoMatchConstraintValueAf is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAf = "AF"
+
+	// GeoMatchConstraintValueAx is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAx = "AX"
+
+	// GeoMatchConstraintValueAl is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAl = "AL"
+
+	// GeoMatchConstraintValueDz is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueDz = "DZ"
+
+	// GeoMatchConstraintValueAs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAs = "AS"
+
+	// GeoMatchConstraintValueAd is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAd = "AD"
+
+	// GeoMatchConstraintValueAo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAo = "AO"
+
+	// GeoMatchConstraintValueAi is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAi = "AI"
+
+	// GeoMatchConstraintValueAq is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAq = "AQ"
+
+	// GeoMatchConstraintValueAg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAg = "AG"
+
+	// GeoMatchConstraintValueAr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAr = "AR"
+
+	// GeoMatchConstraintValueAm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAm = "AM"
+
+	// GeoMatchConstraintValueAw is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAw = "AW"
+
+	// GeoMatchConstraintValueAu is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAu = "AU"
+
+	// GeoMatchConstraintValueAt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAt = "AT"
+
+	// GeoMatchConstraintValueAz is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAz = "AZ"
+
+	// GeoMatchConstraintValueBs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBs = "BS"
+
+	// GeoMatchConstraintValueBh is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBh = "BH"
+
+	// GeoMatchConstraintValueBd is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBd = "BD"
+
+	// GeoMatchConstraintValueBb is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBb = "BB"
+
+	// GeoMatchConstraintValueBy is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBy = "BY"
+
+	// GeoMatchConstraintValueBe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBe = "BE"
+
+	// GeoMatchConstraintValueBz is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBz = "BZ"
+
+	// GeoMatchConstraintValueBj is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBj = "BJ"
+
+	// GeoMatchConstraintValueBm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBm = "BM"
+
+	// GeoMatchConstraintValueBt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBt = "BT"
+
+	// GeoMatchConstraintValueBo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBo = "BO"
+
+	// GeoMatchConstraintValueBq is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBq = "BQ"
+
+	// GeoMatchConstraintValueBa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBa = "BA"
+
+	// GeoMatchConstraintValueBw is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBw = "BW"
+
+	// GeoMatchConstraintValueBv is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBv = "BV"
+
+	// GeoMatchConstraintValueBr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBr = "BR"
+
+	// GeoMatchConstraintValueIo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueIo = "IO"
+
+	// GeoMatchConstraintValueBn is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBn = "BN"
+
+	// GeoMatchConstraintValueBg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBg = "BG"
+
+	// GeoMatchConstraintValueBf is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBf = "BF"
+
+	// GeoMatchConstraintValueBi is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBi = "BI"
+
+	// GeoMatchConstraintValueKh is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueKh = "KH"
+
+	// GeoMatchConstraintValueCm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCm = "CM"
+
+	// GeoMatchConstraintValueCa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCa = "CA"
+
+	// GeoMatchConstraintValueCv is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCv = "CV"
+
+	// GeoMatchConstraintValueKy is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueKy = "KY"
+
+	// GeoMatchConstraintValueCf is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCf = "CF"
+
+	// GeoMatchConstraintValueTd is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTd = "TD"
+
+	// GeoMatchConstraintValueCl is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCl = "CL"
+
+	// GeoMatchConstraintValueCn is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCn = "CN"
+
+	// GeoMatchConstraintValueCx is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCx = "CX"
+
+	// GeoMatchConstraintValueCc is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCc = "CC"
+
+	// GeoMatchConstraintValueCo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCo = "CO"
+
+	// GeoMatchConstraintValueKm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueKm = "KM"
+
+	// GeoMatchConstraintValueCg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCg = "CG"
+
+	// GeoMatchConstraintValueCd is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCd = "CD"
+
+	// GeoMatchConstraintValueCk is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCk = "CK"
+
+	// GeoMatchConstraintValueCr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCr = "CR"
+
+	// GeoMatchConstraintValueCi is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCi = "CI"
+
+	// GeoMatchConstraintValueHr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueHr = "HR"
+
+	// GeoMatchConstraintValueCu is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCu = "CU"
+
+	// GeoMatchConstraintValueCw is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCw = "CW"
+
+	// GeoMatchConstraintValueCy is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCy = "CY"
+
+	// GeoMatchConstraintValueCz is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCz = "CZ"
+
+	// GeoMatchConstraintValueDk is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueDk = "DK"
+
+	// GeoMatchConstraintValueDj is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueDj = "DJ"
+
+	// GeoMatchConstraintValueDm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueDm = "DM"
+
+	// GeoMatchConstraintValueDo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueDo = "DO"
+
+	// GeoMatchConstraintValueEc is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueEc = "EC"
+
+	// GeoMatchConstraintValueEg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueEg = "EG"
+
+	// GeoMatchConstraintValueSv is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSv = "SV"
+
+	// GeoMatchConstraintValueGq is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGq = "GQ"
+
+	// GeoMatchConstraintValueEr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueEr = "ER"
+
+	// GeoMatchConstraintValueEe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueEe = "EE"
+
+	// GeoMatchConstraintValueEt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueEt = "ET"
+
+	// GeoMatchConstraintValueFk is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueFk = "FK"
+
+	// GeoMatchConstraintValueFo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueFo = "FO"
+
+	// GeoMatchConstraintValueFj is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueFj = "FJ"
+
+	// GeoMatchConstraintValueFi is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueFi = "FI"
+
+	// GeoMatchConstraintValueFr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueFr = "FR"
+
+	// GeoMatchConstraintValueGf is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGf = "GF"
+
+	// GeoMatchConstraintValuePf is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePf = "PF"
+
+	// GeoMatchConstraintValueTf is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTf = "TF"
+
+	// GeoMatchConstraintValueGa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGa = "GA"
+
+	// GeoMatchConstraintValueGm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGm = "GM"
+
+	// GeoMatchConstraintValueGe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGe = "GE"
+
+	// GeoMatchConstraintValueDe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueDe = "DE"
+
+	// GeoMatchConstraintValueGh is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGh = "GH"
+
+	// GeoMatchConstraintValueGi is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGi = "GI"
+
+	// GeoMatchConstraintValueGr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGr = "GR"
+
+	// GeoMatchConstraintValueGl is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGl = "GL"
+
+	// GeoMatchConstraintValueGd is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGd = "GD"
+
+	// GeoMatchConstraintValueGp is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGp = "GP"
+
+	// GeoMatchConstraintValueGu is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGu = "GU"
+
+	// GeoMatchConstraintValueGt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGt = "GT"
+
+	// GeoMatchConstraintValueGg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGg = "GG"
+
+	// GeoMatchConstraintValueGn is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGn = "GN"
+
+	// GeoMatchConstraintValueGw is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGw = "GW"
+
+	// GeoMatchConstraintValueGy is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGy = "GY"
+
+	// GeoMatchConstraintValueHt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueHt = "HT"
+
+	// GeoMatchConstraintValueHm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueHm = "HM"
+
+	// GeoMatchConstraintValueVa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueVa = "VA"
+
+	// GeoMatchConstraintValueHn is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueHn = "HN"
+
+	// GeoMatchConstraintValueHk is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueHk = "HK"
+
+	// GeoMatchConstraintValueHu is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueHu = "HU"
+
+	// GeoMatchConstraintValueIs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueIs = "IS"
+
+	// GeoMatchConstraintValueIn is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueIn = "IN"
+
+	// GeoMatchConstraintValueId is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueId = "ID"
+
+	// GeoMatchConstraintValueIr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueIr = "IR"
+
+	// GeoMatchConstraintValueIq is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueIq = "IQ"
+
+	// GeoMatchConstraintValueIe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueIe = "IE"
+
+	// GeoMatchConstraintValueIm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueIm = "IM"
+
+	// GeoMatchConstraintValueIl is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueIl = "IL"
+
+	// GeoMatchConstraintValueIt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueIt = "IT"
+
+	// GeoMatchConstraintValueJm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueJm = "JM"
+
+	// GeoMatchConstraintValueJp is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueJp = "JP"
+
+	// GeoMatchConstraintValueJe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueJe = "JE"
+
+	// GeoMatchConstraintValueJo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueJo = "JO"
+
+	// GeoMatchConstraintValueKz is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueKz = "KZ"
+
+	// GeoMatchConstraintValueKe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueKe = "KE"
+
+	// GeoMatchConstraintValueKi is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueKi = "KI"
+
+	// GeoMatchConstraintValueKp is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueKp = "KP"
+
+	// GeoMatchConstraintValueKr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueKr = "KR"
+
+	// GeoMatchConstraintValueKw is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueKw = "KW"
+
+	// GeoMatchConstraintValueKg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueKg = "KG"
+
+	// GeoMatchConstraintValueLa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueLa = "LA"
+
+	// GeoMatchConstraintValueLv is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueLv = "LV"
+
+	// GeoMatchConstraintValueLb is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueLb = "LB"
+
+	// GeoMatchConstraintValueLs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueLs = "LS"
+
+	// GeoMatchConstraintValueLr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueLr = "LR"
+
+	// GeoMatchConstraintValueLy is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueLy = "LY"
+
+	// GeoMatchConstraintValueLi is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueLi = "LI"
+
+	// GeoMatchConstraintValueLt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueLt = "LT"
+
+	// GeoMatchConstraintValueLu is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueLu = "LU"
+
+	// GeoMatchConstraintValueMo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMo = "MO"
+
+	// GeoMatchConstraintValueMk is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMk = "MK"
+
+	// GeoMatchConstraintValueMg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMg = "MG"
+
+	// GeoMatchConstraintValueMw is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMw = "MW"
+
+	// GeoMatchConstraintValueMy is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMy = "MY"
+
+	// GeoMatchConstraintValueMv is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMv = "MV"
+
+	// GeoMatchConstraintValueMl is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMl = "ML"
+
+	// GeoMatchConstraintValueMt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMt = "MT"
+
+	// GeoMatchConstraintValueMh is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMh = "MH"
+
+	// GeoMatchConstraintValueMq is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMq = "MQ"
+
+	// GeoMatchConstraintValueMr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMr = "MR"
+
+	// GeoMatchConstraintValueMu is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMu = "MU"
+
+	// GeoMatchConstraintValueYt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueYt = "YT"
+
+	// GeoMatchConstraintValueMx is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMx = "MX"
+
+	// GeoMatchConstraintValueFm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueFm = "FM"
+
+	// GeoMatchConstraintValueMd is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMd = "MD"
+
+	// GeoMatchConstraintValueMc is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMc = "MC"
+
+	// GeoMatchConstraintValueMn is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMn = "MN"
+
+	// GeoMatchConstraintValueMe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMe = "ME"
+
+	// GeoMatchConstraintValueMs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMs = "MS"
+
+	// GeoMatchConstraintValueMa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMa = "MA"
+
+	// GeoMatchConstraintValueMz is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMz = "MZ"
+
+	// GeoMatchConstraintValueMm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMm = "MM"
+
+	// GeoMatchConstraintValueNa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNa = "NA"
+
+	// GeoMatchConstraintValueNr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNr = "NR"
+
+	// GeoMatchConstraintValueNp is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNp = "NP"
+
+	// GeoMatchConstraintValueNl is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNl = "NL"
+
+	// GeoMatchConstraintValueNc is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNc = "NC"
+
+	// GeoMatchConstraintValueNz is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNz = "NZ"
+
+	// GeoMatchConstraintValueNi is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNi = "NI"
+
+	// GeoMatchConstraintValueNe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNe = "NE"
+
+	// GeoMatchConstraintValueNg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNg = "NG"
+
+	// GeoMatchConstraintValueNu is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNu = "NU"
+
+	// GeoMatchConstraintValueNf is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNf = "NF"
+
+	// GeoMatchConstraintValueMp is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMp = "MP"
+
+	// GeoMatchConstraintValueNo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueNo = "NO"
+
+	// GeoMatchConstraintValueOm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueOm = "OM"
+
+	// GeoMatchConstraintValuePk is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePk = "PK"
+
+	// GeoMatchConstraintValuePw is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePw = "PW"
+
+	// GeoMatchConstraintValuePs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePs = "PS"
+
+	// GeoMatchConstraintValuePa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePa = "PA"
+
+	// GeoMatchConstraintValuePg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePg = "PG"
+
+	// GeoMatchConstraintValuePy is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePy = "PY"
+
+	// GeoMatchConstraintValuePe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePe = "PE"
+
+	// GeoMatchConstraintValuePh is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePh = "PH"
+
+	// GeoMatchConstraintValuePn is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePn = "PN"
+
+	// GeoMatchConstraintValuePl is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePl = "PL"
+
+	// GeoMatchConstraintValuePt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePt = "PT"
+
+	// GeoMatchConstraintValuePr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePr = "PR"
+
+	// GeoMatchConstraintValueQa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueQa = "QA"
+
+	// GeoMatchConstraintValueRe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueRe = "RE"
+
+	// GeoMatchConstraintValueRo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueRo = "RO"
+
+	// GeoMatchConstraintValueRu is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueRu = "RU"
+
+	// GeoMatchConstraintValueRw is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueRw = "RW"
+
+	// GeoMatchConstraintValueBl is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueBl = "BL"
+
+	// GeoMatchConstraintValueSh is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSh = "SH"
+
+	// GeoMatchConstraintValueKn is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueKn = "KN"
+
+	// GeoMatchConstraintValueLc is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueLc = "LC"
+
+	// GeoMatchConstraintValueMf is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueMf = "MF"
+
+	// GeoMatchConstraintValuePm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValuePm = "PM"
+
+	// GeoMatchConstraintValueVc is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueVc = "VC"
+
+	// GeoMatchConstraintValueWs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueWs = "WS"
+
+	// GeoMatchConstraintValueSm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSm = "SM"
+
+	// GeoMatchConstraintValueSt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSt = "ST"
+
+	// GeoMatchConstraintValueSa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSa = "SA"
+
+	// GeoMatchConstraintValueSn is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSn = "SN"
+
+	// GeoMatchConstraintValueRs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueRs = "RS"
+
+	// GeoMatchConstraintValueSc is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSc = "SC"
+
+	// GeoMatchConstraintValueSl is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSl = "SL"
+
+	// GeoMatchConstraintValueSg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSg = "SG"
+
+	// GeoMatchConstraintValueSx is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSx = "SX"
+
+	// GeoMatchConstraintValueSk is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSk = "SK"
+
+	// GeoMatchConstraintValueSi is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSi = "SI"
+
+	// GeoMatchConstraintValueSb is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSb = "SB"
+
+	// GeoMatchConstraintValueSo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSo = "SO"
+
+	// GeoMatchConstraintValueZa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueZa = "ZA"
+
+	// GeoMatchConstraintValueGs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGs = "GS"
+
+	// GeoMatchConstraintValueSs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSs = "SS"
+
+	// GeoMatchConstraintValueEs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueEs = "ES"
+
+	// GeoMatchConstraintValueLk is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueLk = "LK"
+
+	// GeoMatchConstraintValueSd is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSd = "SD"
+
+	// GeoMatchConstraintValueSr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSr = "SR"
+
+	// GeoMatchConstraintValueSj is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSj = "SJ"
+
+	// GeoMatchConstraintValueSz is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSz = "SZ"
+
+	// GeoMatchConstraintValueSe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSe = "SE"
+
+	// GeoMatchConstraintValueCh is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueCh = "CH"
+
+	// GeoMatchConstraintValueSy is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueSy = "SY"
+
+	// GeoMatchConstraintValueTw is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTw = "TW"
+
+	// GeoMatchConstraintValueTj is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTj = "TJ"
+
+	// GeoMatchConstraintValueTz is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTz = "TZ"
+
+	// GeoMatchConstraintValueTh is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTh = "TH"
+
+	// GeoMatchConstraintValueTl is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTl = "TL"
+
+	// GeoMatchConstraintValueTg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTg = "TG"
+
+	// GeoMatchConstraintValueTk is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTk = "TK"
+
+	// GeoMatchConstraintValueTo is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTo = "TO"
+
+	// GeoMatchConstraintValueTt is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTt = "TT"
+
+	// GeoMatchConstraintValueTn is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTn = "TN"
+
+	// GeoMatchConstraintValueTr is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTr = "TR"
+
+	// GeoMatchConstraintValueTm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTm = "TM"
+
+	// GeoMatchConstraintValueTc is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTc = "TC"
+
+	// GeoMatchConstraintValueTv is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueTv = "TV"
+
+	// GeoMatchConstraintValueUg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueUg = "UG"
+
+	// GeoMatchConstraintValueUa is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueUa = "UA"
+
+	// GeoMatchConstraintValueAe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueAe = "AE"
+
+	// GeoMatchConstraintValueGb is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueGb = "GB"
+
+	// GeoMatchConstraintValueUs is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueUs = "US"
+
+	// GeoMatchConstraintValueUm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueUm = "UM"
+
+	// GeoMatchConstraintValueUy is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueUy = "UY"
+
+	// GeoMatchConstraintValueUz is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueUz = "UZ"
+
+	// GeoMatchConstraintValueVu is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueVu = "VU"
+
+	// GeoMatchConstraintValueVe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueVe = "VE"
+
+	// GeoMatchConstraintValueVn is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueVn = "VN"
+
+	// GeoMatchConstraintValueVg is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueVg = "VG"
+
+	// GeoMatchConstraintValueVi is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueVi = "VI"
+
+	// GeoMatchConstraintValueWf is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueWf = "WF"
+
+	// GeoMatchConstraintValueEh is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueEh = "EH"
+
+	// GeoMatchConstraintValueYe is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueYe = "YE"
+
+	// GeoMatchConstraintValueZm is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueZm = "ZM"
+
+	// GeoMatchConstraintValueZw is a GeoMatchConstraintValue enum value
+	GeoMatchConstraintValueZw = "ZW"
+)
+
+const (
 	// IPSetDescriptorTypeIpv4 is a IPSetDescriptorType enum value
 	IPSetDescriptorTypeIpv4 = "IPV4"
 
@@ -5639,6 +9003,21 @@ const (
 
 	// ParameterExceptionFieldSizeConstraintComparisonOperator is a ParameterExceptionField enum value
 	ParameterExceptionFieldSizeConstraintComparisonOperator = "SIZE_CONSTRAINT_COMPARISON_OPERATOR"
+
+	// ParameterExceptionFieldGeoMatchLocationType is a ParameterExceptionField enum value
+	ParameterExceptionFieldGeoMatchLocationType = "GEO_MATCH_LOCATION_TYPE"
+
+	// ParameterExceptionFieldGeoMatchLocationValue is a ParameterExceptionField enum value
+	ParameterExceptionFieldGeoMatchLocationValue = "GEO_MATCH_LOCATION_VALUE"
+
+	// ParameterExceptionFieldRateKey is a ParameterExceptionField enum value
+	ParameterExceptionFieldRateKey = "RATE_KEY"
+
+	// ParameterExceptionFieldRuleType is a ParameterExceptionField enum value
+	ParameterExceptionFieldRuleType = "RULE_TYPE"
+
+	// ParameterExceptionFieldNextMarker is a ParameterExceptionField enum value
+	ParameterExceptionFieldNextMarker = "NEXT_MARKER"
 )
 
 const (
@@ -5676,11 +9055,22 @@ const (
 	// PredicateTypeSqlInjectionMatch is a PredicateType enum value
 	PredicateTypeSqlInjectionMatch = "SqlInjectionMatch"
 
+	// PredicateTypeGeoMatch is a PredicateType enum value
+	PredicateTypeGeoMatch = "GeoMatch"
+
 	// PredicateTypeSizeConstraint is a PredicateType enum value
 	PredicateTypeSizeConstraint = "SizeConstraint"
 
 	// PredicateTypeXssMatch is a PredicateType enum value
 	PredicateTypeXssMatch = "XssMatch"
+
+	// PredicateTypeRegexMatch is a PredicateType enum value
+	PredicateTypeRegexMatch = "RegexMatch"
+)
+
+const (
+	// RateKeyIp is a RateKey enum value
+	RateKeyIp = "IP"
 )
 
 const (
@@ -5712,4 +9102,12 @@ const (
 
 	// WafActionTypeCount is a WafActionType enum value
 	WafActionTypeCount = "COUNT"
+)
+
+const (
+	// WafRuleTypeRegular is a WafRuleType enum value
+	WafRuleTypeRegular = "REGULAR"
+
+	// WafRuleTypeRateBased is a WafRuleType enum value
+	WafRuleTypeRateBased = "RATE_BASED"
 )

@@ -14,19 +14,18 @@ const opAllocateStaticIp = "AllocateStaticIp"
 
 // AllocateStaticIpRequest generates a "aws/request.Request" representing the
 // client's request for the AllocateStaticIp operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AllocateStaticIp for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AllocateStaticIp method directly
-// instead.
+// See AllocateStaticIp for more information on using the AllocateStaticIp
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AllocateStaticIpRequest method.
 //    req, resp := client.AllocateStaticIpRequest(params)
@@ -72,6 +71,10 @@ func (c *Lightsail) AllocateStaticIpRequest(input *AllocateStaticIpInput) (req *
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -111,23 +114,127 @@ func (c *Lightsail) AllocateStaticIpWithContext(ctx aws.Context, input *Allocate
 	return out, req.Send()
 }
 
+const opAttachDisk = "AttachDisk"
+
+// AttachDiskRequest generates a "aws/request.Request" representing the
+// client's request for the AttachDisk operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See AttachDisk for more information on using the AttachDisk
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the AttachDiskRequest method.
+//    req, resp := client.AttachDiskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/AttachDisk
+func (c *Lightsail) AttachDiskRequest(input *AttachDiskInput) (req *request.Request, output *AttachDiskOutput) {
+	op := &request.Operation{
+		Name:       opAttachDisk,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AttachDiskInput{}
+	}
+
+	output = &AttachDiskOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AttachDisk API operation for Amazon Lightsail.
+//
+// Attaches a block storage disk to a running or stopped Lightsail instance
+// and exposes it to the instance with the specified disk name.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation AttachDisk for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/AttachDisk
+func (c *Lightsail) AttachDisk(input *AttachDiskInput) (*AttachDiskOutput, error) {
+	req, out := c.AttachDiskRequest(input)
+	return out, req.Send()
+}
+
+// AttachDiskWithContext is the same as AttachDisk with the addition of
+// the ability to pass a context and additional request options.
+//
+// See AttachDisk for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) AttachDiskWithContext(ctx aws.Context, input *AttachDiskInput, opts ...request.Option) (*AttachDiskOutput, error) {
+	req, out := c.AttachDiskRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opAttachStaticIp = "AttachStaticIp"
 
 // AttachStaticIpRequest generates a "aws/request.Request" representing the
 // client's request for the AttachStaticIp operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See AttachStaticIp for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the AttachStaticIp method directly
-// instead.
+// See AttachStaticIp for more information on using the AttachStaticIp
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the AttachStaticIpRequest method.
 //    req, resp := client.AttachStaticIpRequest(params)
@@ -173,6 +280,10 @@ func (c *Lightsail) AttachStaticIpRequest(input *AttachStaticIpInput) (req *requ
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -216,19 +327,18 @@ const opCloseInstancePublicPorts = "CloseInstancePublicPorts"
 
 // CloseInstancePublicPortsRequest generates a "aws/request.Request" representing the
 // client's request for the CloseInstancePublicPorts operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CloseInstancePublicPorts for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CloseInstancePublicPorts method directly
-// instead.
+// See CloseInstancePublicPorts for more information on using the CloseInstancePublicPorts
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CloseInstancePublicPortsRequest method.
 //    req, resp := client.CloseInstancePublicPortsRequest(params)
@@ -274,6 +384,10 @@ func (c *Lightsail) CloseInstancePublicPortsRequest(input *CloseInstancePublicPo
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -313,23 +427,353 @@ func (c *Lightsail) CloseInstancePublicPortsWithContext(ctx aws.Context, input *
 	return out, req.Send()
 }
 
+const opCreateDisk = "CreateDisk"
+
+// CreateDiskRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDisk operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateDisk for more information on using the CreateDisk
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateDiskRequest method.
+//    req, resp := client.CreateDiskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDisk
+func (c *Lightsail) CreateDiskRequest(input *CreateDiskInput) (req *request.Request, output *CreateDiskOutput) {
+	op := &request.Operation{
+		Name:       opCreateDisk,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateDiskInput{}
+	}
+
+	output = &CreateDiskOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateDisk API operation for Amazon Lightsail.
+//
+// Creates a block storage disk that can be attached to a Lightsail instance
+// in the same Availability Zone (e.g., us-east-2a). The disk is created in
+// the regional endpoint that you send the HTTP request to. For more information,
+// see Regions and Availability Zones in Lightsail (https://lightsail.aws.amazon.com/ls/docs/overview/article/understanding-regions-and-availability-zones-in-amazon-lightsail).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation CreateDisk for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDisk
+func (c *Lightsail) CreateDisk(input *CreateDiskInput) (*CreateDiskOutput, error) {
+	req, out := c.CreateDiskRequest(input)
+	return out, req.Send()
+}
+
+// CreateDiskWithContext is the same as CreateDisk with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateDisk for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) CreateDiskWithContext(ctx aws.Context, input *CreateDiskInput, opts ...request.Option) (*CreateDiskOutput, error) {
+	req, out := c.CreateDiskRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateDiskFromSnapshot = "CreateDiskFromSnapshot"
+
+// CreateDiskFromSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDiskFromSnapshot operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateDiskFromSnapshot for more information on using the CreateDiskFromSnapshot
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateDiskFromSnapshotRequest method.
+//    req, resp := client.CreateDiskFromSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDiskFromSnapshot
+func (c *Lightsail) CreateDiskFromSnapshotRequest(input *CreateDiskFromSnapshotInput) (req *request.Request, output *CreateDiskFromSnapshotOutput) {
+	op := &request.Operation{
+		Name:       opCreateDiskFromSnapshot,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateDiskFromSnapshotInput{}
+	}
+
+	output = &CreateDiskFromSnapshotOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateDiskFromSnapshot API operation for Amazon Lightsail.
+//
+// Creates a block storage disk from a disk snapshot that can be attached to
+// a Lightsail instance in the same Availability Zone (e.g., us-east-2a). The
+// disk is created in the regional endpoint that you send the HTTP request to.
+// For more information, see Regions and Availability Zones in Lightsail (https://lightsail.aws.amazon.com/ls/docs/overview/article/understanding-regions-and-availability-zones-in-amazon-lightsail).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation CreateDiskFromSnapshot for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDiskFromSnapshot
+func (c *Lightsail) CreateDiskFromSnapshot(input *CreateDiskFromSnapshotInput) (*CreateDiskFromSnapshotOutput, error) {
+	req, out := c.CreateDiskFromSnapshotRequest(input)
+	return out, req.Send()
+}
+
+// CreateDiskFromSnapshotWithContext is the same as CreateDiskFromSnapshot with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateDiskFromSnapshot for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) CreateDiskFromSnapshotWithContext(ctx aws.Context, input *CreateDiskFromSnapshotInput, opts ...request.Option) (*CreateDiskFromSnapshotOutput, error) {
+	req, out := c.CreateDiskFromSnapshotRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateDiskSnapshot = "CreateDiskSnapshot"
+
+// CreateDiskSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDiskSnapshot operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateDiskSnapshot for more information on using the CreateDiskSnapshot
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateDiskSnapshotRequest method.
+//    req, resp := client.CreateDiskSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDiskSnapshot
+func (c *Lightsail) CreateDiskSnapshotRequest(input *CreateDiskSnapshotInput) (req *request.Request, output *CreateDiskSnapshotOutput) {
+	op := &request.Operation{
+		Name:       opCreateDiskSnapshot,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateDiskSnapshotInput{}
+	}
+
+	output = &CreateDiskSnapshotOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateDiskSnapshot API operation for Amazon Lightsail.
+//
+// Creates a snapshot of a block storage disk. You can use snapshots for backups,
+// to make copies of disks, and to save data before shutting down a Lightsail
+// instance.
+//
+// You can take a snapshot of an attached disk that is in use; however, snapshots
+// only capture data that has been written to your disk at the time the snapshot
+// command is issued. This may exclude any data that has been cached by any
+// applications or the operating system. If you can pause any file systems on
+// the disk long enough to take a snapshot, your snapshot should be complete.
+// Nevertheless, if you cannot pause all file writes to the disk, you should
+// unmount the disk from within the Lightsail instance, issue the create disk
+// snapshot command, and then remount the disk to ensure a consistent and complete
+// snapshot. You may remount and use your disk while the snapshot status is
+// pending.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation CreateDiskSnapshot for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDiskSnapshot
+func (c *Lightsail) CreateDiskSnapshot(input *CreateDiskSnapshotInput) (*CreateDiskSnapshotOutput, error) {
+	req, out := c.CreateDiskSnapshotRequest(input)
+	return out, req.Send()
+}
+
+// CreateDiskSnapshotWithContext is the same as CreateDiskSnapshot with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateDiskSnapshot for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) CreateDiskSnapshotWithContext(ctx aws.Context, input *CreateDiskSnapshotInput, opts ...request.Option) (*CreateDiskSnapshotOutput, error) {
+	req, out := c.CreateDiskSnapshotRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCreateDomain = "CreateDomain"
 
 // CreateDomainRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDomain operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDomain for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDomain method directly
-// instead.
+// See CreateDomain for more information on using the CreateDomain
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDomainRequest method.
 //    req, resp := client.CreateDomainRequest(params)
@@ -375,6 +819,10 @@ func (c *Lightsail) CreateDomainRequest(input *CreateDomainInput) (req *request.
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -418,19 +866,18 @@ const opCreateDomainEntry = "CreateDomainEntry"
 
 // CreateDomainEntryRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDomainEntry operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDomainEntry for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDomainEntry method directly
-// instead.
+// See CreateDomainEntry for more information on using the CreateDomainEntry
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDomainEntryRequest method.
 //    req, resp := client.CreateDomainEntryRequest(params)
@@ -477,6 +924,10 @@ func (c *Lightsail) CreateDomainEntryRequest(input *CreateDomainEntryInput) (req
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -520,19 +971,18 @@ const opCreateInstanceSnapshot = "CreateInstanceSnapshot"
 
 // CreateInstanceSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CreateInstanceSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateInstanceSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateInstanceSnapshot method directly
-// instead.
+// See CreateInstanceSnapshot for more information on using the CreateInstanceSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateInstanceSnapshotRequest method.
 //    req, resp := client.CreateInstanceSnapshotRequest(params)
@@ -579,6 +1029,10 @@ func (c *Lightsail) CreateInstanceSnapshotRequest(input *CreateInstanceSnapshotI
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -622,19 +1076,18 @@ const opCreateInstances = "CreateInstances"
 
 // CreateInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the CreateInstances operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateInstances for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateInstances method directly
-// instead.
+// See CreateInstances for more information on using the CreateInstances
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateInstancesRequest method.
 //    req, resp := client.CreateInstancesRequest(params)
@@ -680,6 +1133,10 @@ func (c *Lightsail) CreateInstancesRequest(input *CreateInstancesInput) (req *re
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -723,19 +1180,18 @@ const opCreateInstancesFromSnapshot = "CreateInstancesFromSnapshot"
 
 // CreateInstancesFromSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the CreateInstancesFromSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateInstancesFromSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateInstancesFromSnapshot method directly
-// instead.
+// See CreateInstancesFromSnapshot for more information on using the CreateInstancesFromSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateInstancesFromSnapshotRequest method.
 //    req, resp := client.CreateInstancesFromSnapshotRequest(params)
@@ -782,6 +1238,10 @@ func (c *Lightsail) CreateInstancesFromSnapshotRequest(input *CreateInstancesFro
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -825,19 +1285,18 @@ const opCreateKeyPair = "CreateKeyPair"
 
 // CreateKeyPairRequest generates a "aws/request.Request" representing the
 // client's request for the CreateKeyPair operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateKeyPair for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateKeyPair method directly
-// instead.
+// See CreateKeyPair for more information on using the CreateKeyPair
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateKeyPairRequest method.
 //    req, resp := client.CreateKeyPairRequest(params)
@@ -883,6 +1342,10 @@ func (c *Lightsail) CreateKeyPairRequest(input *CreateKeyPairInput) (req *reques
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -922,23 +1385,240 @@ func (c *Lightsail) CreateKeyPairWithContext(ctx aws.Context, input *CreateKeyPa
 	return out, req.Send()
 }
 
+const opDeleteDisk = "DeleteDisk"
+
+// DeleteDiskRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDisk operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteDisk for more information on using the DeleteDisk
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteDiskRequest method.
+//    req, resp := client.DeleteDiskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteDisk
+func (c *Lightsail) DeleteDiskRequest(input *DeleteDiskInput) (req *request.Request, output *DeleteDiskOutput) {
+	op := &request.Operation{
+		Name:       opDeleteDisk,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteDiskInput{}
+	}
+
+	output = &DeleteDiskOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteDisk API operation for Amazon Lightsail.
+//
+// Deletes the specified block storage disk. The disk must be in the available
+// state (not attached to a Lightsail instance).
+//
+// The disk may remain in the deleting state for several minutes.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation DeleteDisk for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteDisk
+func (c *Lightsail) DeleteDisk(input *DeleteDiskInput) (*DeleteDiskOutput, error) {
+	req, out := c.DeleteDiskRequest(input)
+	return out, req.Send()
+}
+
+// DeleteDiskWithContext is the same as DeleteDisk with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteDisk for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) DeleteDiskWithContext(ctx aws.Context, input *DeleteDiskInput, opts ...request.Option) (*DeleteDiskOutput, error) {
+	req, out := c.DeleteDiskRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteDiskSnapshot = "DeleteDiskSnapshot"
+
+// DeleteDiskSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDiskSnapshot operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteDiskSnapshot for more information on using the DeleteDiskSnapshot
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteDiskSnapshotRequest method.
+//    req, resp := client.DeleteDiskSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteDiskSnapshot
+func (c *Lightsail) DeleteDiskSnapshotRequest(input *DeleteDiskSnapshotInput) (req *request.Request, output *DeleteDiskSnapshotOutput) {
+	op := &request.Operation{
+		Name:       opDeleteDiskSnapshot,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteDiskSnapshotInput{}
+	}
+
+	output = &DeleteDiskSnapshotOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteDiskSnapshot API operation for Amazon Lightsail.
+//
+// Deletes the specified disk snapshot.
+//
+// When you make periodic snapshots of a disk, the snapshots are incremental,
+// and only the blocks on the device that have changed since your last snapshot
+// are saved in the new snapshot. When you delete a snapshot, only the data
+// not needed for any other snapshot is removed. So regardless of which prior
+// snapshots have been deleted, all active snapshots will have access to all
+// the information needed to restore the disk.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation DeleteDiskSnapshot for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteDiskSnapshot
+func (c *Lightsail) DeleteDiskSnapshot(input *DeleteDiskSnapshotInput) (*DeleteDiskSnapshotOutput, error) {
+	req, out := c.DeleteDiskSnapshotRequest(input)
+	return out, req.Send()
+}
+
+// DeleteDiskSnapshotWithContext is the same as DeleteDiskSnapshot with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteDiskSnapshot for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) DeleteDiskSnapshotWithContext(ctx aws.Context, input *DeleteDiskSnapshotInput, opts ...request.Option) (*DeleteDiskSnapshotOutput, error) {
+	req, out := c.DeleteDiskSnapshotRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteDomain = "DeleteDomain"
 
 // DeleteDomainRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDomain operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDomain for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDomain method directly
-// instead.
+// See DeleteDomain for more information on using the DeleteDomain
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDomainRequest method.
 //    req, resp := client.DeleteDomainRequest(params)
@@ -984,6 +1664,10 @@ func (c *Lightsail) DeleteDomainRequest(input *DeleteDomainInput) (req *request.
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -1027,19 +1711,18 @@ const opDeleteDomainEntry = "DeleteDomainEntry"
 
 // DeleteDomainEntryRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDomainEntry operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDomainEntry for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDomainEntry method directly
-// instead.
+// See DeleteDomainEntry for more information on using the DeleteDomainEntry
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDomainEntryRequest method.
 //    req, resp := client.DeleteDomainEntryRequest(params)
@@ -1085,6 +1768,10 @@ func (c *Lightsail) DeleteDomainEntryRequest(input *DeleteDomainEntryInput) (req
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -1128,19 +1815,18 @@ const opDeleteInstance = "DeleteInstance"
 
 // DeleteInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteInstance method directly
-// instead.
+// See DeleteInstance for more information on using the DeleteInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteInstanceRequest method.
 //    req, resp := client.DeleteInstanceRequest(params)
@@ -1186,6 +1872,10 @@ func (c *Lightsail) DeleteInstanceRequest(input *DeleteInstanceInput) (req *requ
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -1229,19 +1919,18 @@ const opDeleteInstanceSnapshot = "DeleteInstanceSnapshot"
 
 // DeleteInstanceSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteInstanceSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteInstanceSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteInstanceSnapshot method directly
-// instead.
+// See DeleteInstanceSnapshot for more information on using the DeleteInstanceSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteInstanceSnapshotRequest method.
 //    req, resp := client.DeleteInstanceSnapshotRequest(params)
@@ -1287,6 +1976,10 @@ func (c *Lightsail) DeleteInstanceSnapshotRequest(input *DeleteInstanceSnapshotI
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -1330,19 +2023,18 @@ const opDeleteKeyPair = "DeleteKeyPair"
 
 // DeleteKeyPairRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteKeyPair operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteKeyPair for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteKeyPair method directly
-// instead.
+// See DeleteKeyPair for more information on using the DeleteKeyPair
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteKeyPairRequest method.
 //    req, resp := client.DeleteKeyPairRequest(params)
@@ -1388,6 +2080,10 @@ func (c *Lightsail) DeleteKeyPairRequest(input *DeleteKeyPairInput) (req *reques
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -1427,23 +2123,128 @@ func (c *Lightsail) DeleteKeyPairWithContext(ctx aws.Context, input *DeleteKeyPa
 	return out, req.Send()
 }
 
+const opDetachDisk = "DetachDisk"
+
+// DetachDiskRequest generates a "aws/request.Request" representing the
+// client's request for the DetachDisk operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DetachDisk for more information on using the DetachDisk
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DetachDiskRequest method.
+//    req, resp := client.DetachDiskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DetachDisk
+func (c *Lightsail) DetachDiskRequest(input *DetachDiskInput) (req *request.Request, output *DetachDiskOutput) {
+	op := &request.Operation{
+		Name:       opDetachDisk,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DetachDiskInput{}
+	}
+
+	output = &DetachDiskOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DetachDisk API operation for Amazon Lightsail.
+//
+// Detaches a stopped block storage disk from a Lightsail instance. Make sure
+// to unmount any file systems on the device within your operating system before
+// stopping the instance and detaching the disk.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation DetachDisk for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DetachDisk
+func (c *Lightsail) DetachDisk(input *DetachDiskInput) (*DetachDiskOutput, error) {
+	req, out := c.DetachDiskRequest(input)
+	return out, req.Send()
+}
+
+// DetachDiskWithContext is the same as DetachDisk with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DetachDisk for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) DetachDiskWithContext(ctx aws.Context, input *DetachDiskInput, opts ...request.Option) (*DetachDiskOutput, error) {
+	req, out := c.DetachDiskRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDetachStaticIp = "DetachStaticIp"
 
 // DetachStaticIpRequest generates a "aws/request.Request" representing the
 // client's request for the DetachStaticIp operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DetachStaticIp for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DetachStaticIp method directly
-// instead.
+// See DetachStaticIp for more information on using the DetachStaticIp
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DetachStaticIpRequest method.
 //    req, resp := client.DetachStaticIpRequest(params)
@@ -1489,6 +2290,10 @@ func (c *Lightsail) DetachStaticIpRequest(input *DetachStaticIpInput) (req *requ
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -1532,19 +2337,18 @@ const opDownloadDefaultKeyPair = "DownloadDefaultKeyPair"
 
 // DownloadDefaultKeyPairRequest generates a "aws/request.Request" representing the
 // client's request for the DownloadDefaultKeyPair operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DownloadDefaultKeyPair for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DownloadDefaultKeyPair method directly
-// instead.
+// See DownloadDefaultKeyPair for more information on using the DownloadDefaultKeyPair
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DownloadDefaultKeyPairRequest method.
 //    req, resp := client.DownloadDefaultKeyPairRequest(params)
@@ -1590,6 +2394,10 @@ func (c *Lightsail) DownloadDefaultKeyPairRequest(input *DownloadDefaultKeyPairI
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -1633,19 +2441,18 @@ const opGetActiveNames = "GetActiveNames"
 
 // GetActiveNamesRequest generates a "aws/request.Request" representing the
 // client's request for the GetActiveNames operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetActiveNames for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetActiveNames method directly
-// instead.
+// See GetActiveNames for more information on using the GetActiveNames
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetActiveNamesRequest method.
 //    req, resp := client.GetActiveNamesRequest(params)
@@ -1691,6 +2498,10 @@ func (c *Lightsail) GetActiveNamesRequest(input *GetActiveNamesInput) (req *requ
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -1734,19 +2545,18 @@ const opGetBlueprints = "GetBlueprints"
 
 // GetBlueprintsRequest generates a "aws/request.Request" representing the
 // client's request for the GetBlueprints operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetBlueprints for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetBlueprints method directly
-// instead.
+// See GetBlueprints for more information on using the GetBlueprints
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetBlueprintsRequest method.
 //    req, resp := client.GetBlueprintsRequest(params)
@@ -1795,6 +2605,10 @@ func (c *Lightsail) GetBlueprintsRequest(input *GetBlueprintsInput) (req *reques
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -1838,19 +2652,18 @@ const opGetBundles = "GetBundles"
 
 // GetBundlesRequest generates a "aws/request.Request" representing the
 // client's request for the GetBundles operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetBundles for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetBundles method directly
-// instead.
+// See GetBundles for more information on using the GetBundles
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetBundlesRequest method.
 //    req, resp := client.GetBundlesRequest(params)
@@ -1897,6 +2710,10 @@ func (c *Lightsail) GetBundlesRequest(input *GetBundlesInput) (req *request.Requ
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -1936,23 +2753,448 @@ func (c *Lightsail) GetBundlesWithContext(ctx aws.Context, input *GetBundlesInpu
 	return out, req.Send()
 }
 
+const opGetDisk = "GetDisk"
+
+// GetDiskRequest generates a "aws/request.Request" representing the
+// client's request for the GetDisk operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetDisk for more information on using the GetDisk
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetDiskRequest method.
+//    req, resp := client.GetDiskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDisk
+func (c *Lightsail) GetDiskRequest(input *GetDiskInput) (req *request.Request, output *GetDiskOutput) {
+	op := &request.Operation{
+		Name:       opGetDisk,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDiskInput{}
+	}
+
+	output = &GetDiskOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDisk API operation for Amazon Lightsail.
+//
+// Returns information about a specific block storage disk.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation GetDisk for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDisk
+func (c *Lightsail) GetDisk(input *GetDiskInput) (*GetDiskOutput, error) {
+	req, out := c.GetDiskRequest(input)
+	return out, req.Send()
+}
+
+// GetDiskWithContext is the same as GetDisk with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDisk for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) GetDiskWithContext(ctx aws.Context, input *GetDiskInput, opts ...request.Option) (*GetDiskOutput, error) {
+	req, out := c.GetDiskRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetDiskSnapshot = "GetDiskSnapshot"
+
+// GetDiskSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the GetDiskSnapshot operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetDiskSnapshot for more information on using the GetDiskSnapshot
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetDiskSnapshotRequest method.
+//    req, resp := client.GetDiskSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDiskSnapshot
+func (c *Lightsail) GetDiskSnapshotRequest(input *GetDiskSnapshotInput) (req *request.Request, output *GetDiskSnapshotOutput) {
+	op := &request.Operation{
+		Name:       opGetDiskSnapshot,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDiskSnapshotInput{}
+	}
+
+	output = &GetDiskSnapshotOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDiskSnapshot API operation for Amazon Lightsail.
+//
+// Returns information about a specific block storage disk snapshot.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation GetDiskSnapshot for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDiskSnapshot
+func (c *Lightsail) GetDiskSnapshot(input *GetDiskSnapshotInput) (*GetDiskSnapshotOutput, error) {
+	req, out := c.GetDiskSnapshotRequest(input)
+	return out, req.Send()
+}
+
+// GetDiskSnapshotWithContext is the same as GetDiskSnapshot with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDiskSnapshot for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) GetDiskSnapshotWithContext(ctx aws.Context, input *GetDiskSnapshotInput, opts ...request.Option) (*GetDiskSnapshotOutput, error) {
+	req, out := c.GetDiskSnapshotRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetDiskSnapshots = "GetDiskSnapshots"
+
+// GetDiskSnapshotsRequest generates a "aws/request.Request" representing the
+// client's request for the GetDiskSnapshots operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetDiskSnapshots for more information on using the GetDiskSnapshots
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetDiskSnapshotsRequest method.
+//    req, resp := client.GetDiskSnapshotsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDiskSnapshots
+func (c *Lightsail) GetDiskSnapshotsRequest(input *GetDiskSnapshotsInput) (req *request.Request, output *GetDiskSnapshotsOutput) {
+	op := &request.Operation{
+		Name:       opGetDiskSnapshots,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDiskSnapshotsInput{}
+	}
+
+	output = &GetDiskSnapshotsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDiskSnapshots API operation for Amazon Lightsail.
+//
+// Returns information about all block storage disk snapshots in your AWS account
+// and region.
+//
+// If you are describing a long list of disk snapshots, you can paginate the
+// output to make the list more manageable. You can use the pageToken and nextPageToken
+// values to retrieve the next items in the list.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation GetDiskSnapshots for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDiskSnapshots
+func (c *Lightsail) GetDiskSnapshots(input *GetDiskSnapshotsInput) (*GetDiskSnapshotsOutput, error) {
+	req, out := c.GetDiskSnapshotsRequest(input)
+	return out, req.Send()
+}
+
+// GetDiskSnapshotsWithContext is the same as GetDiskSnapshots with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDiskSnapshots for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) GetDiskSnapshotsWithContext(ctx aws.Context, input *GetDiskSnapshotsInput, opts ...request.Option) (*GetDiskSnapshotsOutput, error) {
+	req, out := c.GetDiskSnapshotsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetDisks = "GetDisks"
+
+// GetDisksRequest generates a "aws/request.Request" representing the
+// client's request for the GetDisks operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetDisks for more information on using the GetDisks
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetDisksRequest method.
+//    req, resp := client.GetDisksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDisks
+func (c *Lightsail) GetDisksRequest(input *GetDisksInput) (req *request.Request, output *GetDisksOutput) {
+	op := &request.Operation{
+		Name:       opGetDisks,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDisksInput{}
+	}
+
+	output = &GetDisksOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDisks API operation for Amazon Lightsail.
+//
+// Returns information about all block storage disks in your AWS account and
+// region.
+//
+// If you are describing a long list of disks, you can paginate the output to
+// make the list more manageable. You can use the pageToken and nextPageToken
+// values to retrieve the next items in the list.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation GetDisks for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDisks
+func (c *Lightsail) GetDisks(input *GetDisksInput) (*GetDisksOutput, error) {
+	req, out := c.GetDisksRequest(input)
+	return out, req.Send()
+}
+
+// GetDisksWithContext is the same as GetDisks with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDisks for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) GetDisksWithContext(ctx aws.Context, input *GetDisksInput, opts ...request.Option) (*GetDisksOutput, error) {
+	req, out := c.GetDisksRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetDomain = "GetDomain"
 
 // GetDomainRequest generates a "aws/request.Request" representing the
 // client's request for the GetDomain operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetDomain for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetDomain method directly
-// instead.
+// See GetDomain for more information on using the GetDomain
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetDomainRequest method.
 //    req, resp := client.GetDomainRequest(params)
@@ -1998,6 +3240,10 @@ func (c *Lightsail) GetDomainRequest(input *GetDomainInput) (req *request.Reques
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -2041,19 +3287,18 @@ const opGetDomains = "GetDomains"
 
 // GetDomainsRequest generates a "aws/request.Request" representing the
 // client's request for the GetDomains operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetDomains for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetDomains method directly
-// instead.
+// See GetDomains for more information on using the GetDomains
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetDomainsRequest method.
 //    req, resp := client.GetDomainsRequest(params)
@@ -2099,6 +3344,10 @@ func (c *Lightsail) GetDomainsRequest(input *GetDomainsInput) (req *request.Requ
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -2142,19 +3391,18 @@ const opGetInstance = "GetInstance"
 
 // GetInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetInstance method directly
-// instead.
+// See GetInstance for more information on using the GetInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetInstanceRequest method.
 //    req, resp := client.GetInstanceRequest(params)
@@ -2201,6 +3449,10 @@ func (c *Lightsail) GetInstanceRequest(input *GetInstanceInput) (req *request.Re
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -2244,19 +3496,18 @@ const opGetInstanceAccessDetails = "GetInstanceAccessDetails"
 
 // GetInstanceAccessDetailsRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstanceAccessDetails operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetInstanceAccessDetails for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetInstanceAccessDetails method directly
-// instead.
+// See GetInstanceAccessDetails for more information on using the GetInstanceAccessDetails
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetInstanceAccessDetailsRequest method.
 //    req, resp := client.GetInstanceAccessDetailsRequest(params)
@@ -2303,6 +3554,10 @@ func (c *Lightsail) GetInstanceAccessDetailsRequest(input *GetInstanceAccessDeta
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -2346,19 +3601,18 @@ const opGetInstanceMetricData = "GetInstanceMetricData"
 
 // GetInstanceMetricDataRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstanceMetricData operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetInstanceMetricData for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetInstanceMetricData method directly
-// instead.
+// See GetInstanceMetricData for more information on using the GetInstanceMetricData
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetInstanceMetricDataRequest method.
 //    req, resp := client.GetInstanceMetricDataRequest(params)
@@ -2405,6 +3659,10 @@ func (c *Lightsail) GetInstanceMetricDataRequest(input *GetInstanceMetricDataInp
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -2448,19 +3706,18 @@ const opGetInstancePortStates = "GetInstancePortStates"
 
 // GetInstancePortStatesRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstancePortStates operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetInstancePortStates for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetInstancePortStates method directly
-// instead.
+// See GetInstancePortStates for more information on using the GetInstancePortStates
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetInstancePortStatesRequest method.
 //    req, resp := client.GetInstancePortStatesRequest(params)
@@ -2506,6 +3763,10 @@ func (c *Lightsail) GetInstancePortStatesRequest(input *GetInstancePortStatesInp
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -2549,19 +3810,18 @@ const opGetInstanceSnapshot = "GetInstanceSnapshot"
 
 // GetInstanceSnapshotRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstanceSnapshot operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetInstanceSnapshot for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetInstanceSnapshot method directly
-// instead.
+// See GetInstanceSnapshot for more information on using the GetInstanceSnapshot
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetInstanceSnapshotRequest method.
 //    req, resp := client.GetInstanceSnapshotRequest(params)
@@ -2607,6 +3867,10 @@ func (c *Lightsail) GetInstanceSnapshotRequest(input *GetInstanceSnapshotInput) 
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -2650,19 +3914,18 @@ const opGetInstanceSnapshots = "GetInstanceSnapshots"
 
 // GetInstanceSnapshotsRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstanceSnapshots operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetInstanceSnapshots for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetInstanceSnapshots method directly
-// instead.
+// See GetInstanceSnapshots for more information on using the GetInstanceSnapshots
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetInstanceSnapshotsRequest method.
 //    req, resp := client.GetInstanceSnapshotsRequest(params)
@@ -2708,6 +3971,10 @@ func (c *Lightsail) GetInstanceSnapshotsRequest(input *GetInstanceSnapshotsInput
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -2751,19 +4018,18 @@ const opGetInstanceState = "GetInstanceState"
 
 // GetInstanceStateRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstanceState operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetInstanceState for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetInstanceState method directly
-// instead.
+// See GetInstanceState for more information on using the GetInstanceState
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetInstanceStateRequest method.
 //    req, resp := client.GetInstanceStateRequest(params)
@@ -2809,6 +4075,10 @@ func (c *Lightsail) GetInstanceStateRequest(input *GetInstanceStateInput) (req *
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -2852,19 +4122,18 @@ const opGetInstances = "GetInstances"
 
 // GetInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the GetInstances operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetInstances for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetInstances method directly
-// instead.
+// See GetInstances for more information on using the GetInstances
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetInstancesRequest method.
 //    req, resp := client.GetInstancesRequest(params)
@@ -2911,6 +4180,10 @@ func (c *Lightsail) GetInstancesRequest(input *GetInstancesInput) (req *request.
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -2954,19 +4227,18 @@ const opGetKeyPair = "GetKeyPair"
 
 // GetKeyPairRequest generates a "aws/request.Request" representing the
 // client's request for the GetKeyPair operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetKeyPair for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetKeyPair method directly
-// instead.
+// See GetKeyPair for more information on using the GetKeyPair
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetKeyPairRequest method.
 //    req, resp := client.GetKeyPairRequest(params)
@@ -3012,6 +4284,10 @@ func (c *Lightsail) GetKeyPairRequest(input *GetKeyPairInput) (req *request.Requ
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -3055,19 +4331,18 @@ const opGetKeyPairs = "GetKeyPairs"
 
 // GetKeyPairsRequest generates a "aws/request.Request" representing the
 // client's request for the GetKeyPairs operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetKeyPairs for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetKeyPairs method directly
-// instead.
+// See GetKeyPairs for more information on using the GetKeyPairs
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetKeyPairsRequest method.
 //    req, resp := client.GetKeyPairsRequest(params)
@@ -3113,6 +4388,10 @@ func (c *Lightsail) GetKeyPairsRequest(input *GetKeyPairsInput) (req *request.Re
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -3156,19 +4435,18 @@ const opGetOperation = "GetOperation"
 
 // GetOperationRequest generates a "aws/request.Request" representing the
 // client's request for the GetOperation operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetOperation for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetOperation method directly
-// instead.
+// See GetOperation for more information on using the GetOperation
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetOperationRequest method.
 //    req, resp := client.GetOperationRequest(params)
@@ -3216,6 +4494,10 @@ func (c *Lightsail) GetOperationRequest(input *GetOperationInput) (req *request.
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -3259,19 +4541,18 @@ const opGetOperations = "GetOperations"
 
 // GetOperationsRequest generates a "aws/request.Request" representing the
 // client's request for the GetOperations operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetOperations for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetOperations method directly
-// instead.
+// See GetOperations for more information on using the GetOperations
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetOperationsRequest method.
 //    req, resp := client.GetOperationsRequest(params)
@@ -3321,6 +4602,10 @@ func (c *Lightsail) GetOperationsRequest(input *GetOperationsInput) (req *reques
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -3364,19 +4649,18 @@ const opGetOperationsForResource = "GetOperationsForResource"
 
 // GetOperationsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the GetOperationsForResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetOperationsForResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetOperationsForResource method directly
-// instead.
+// See GetOperationsForResource for more information on using the GetOperationsForResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetOperationsForResourceRequest method.
 //    req, resp := client.GetOperationsForResourceRequest(params)
@@ -3422,6 +4706,10 @@ func (c *Lightsail) GetOperationsForResourceRequest(input *GetOperationsForResou
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -3465,19 +4753,18 @@ const opGetRegions = "GetRegions"
 
 // GetRegionsRequest generates a "aws/request.Request" representing the
 // client's request for the GetRegions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetRegions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetRegions method directly
-// instead.
+// See GetRegions for more information on using the GetRegions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetRegionsRequest method.
 //    req, resp := client.GetRegionsRequest(params)
@@ -3506,7 +4793,8 @@ func (c *Lightsail) GetRegionsRequest(input *GetRegionsInput) (req *request.Requ
 
 // GetRegions API operation for Amazon Lightsail.
 //
-// Returns a list of all valid regions for Amazon Lightsail.
+// Returns a list of all valid regions for Amazon Lightsail. Use the include
+// availability zones parameter to also return the availability zones in a region.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3522,6 +4810,10 @@ func (c *Lightsail) GetRegionsRequest(input *GetRegionsInput) (req *request.Requ
 //   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
@@ -3566,19 +4858,18 @@ const opGetStaticIp = "GetStaticIp"
 
 // GetStaticIpRequest generates a "aws/request.Request" representing the
 // client's request for the GetStaticIp operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetStaticIp for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetStaticIp method directly
-// instead.
+// See GetStaticIp for more information on using the GetStaticIp
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetStaticIpRequest method.
 //    req, resp := client.GetStaticIpRequest(params)
@@ -3624,6 +4915,10 @@ func (c *Lightsail) GetStaticIpRequest(input *GetStaticIpInput) (req *request.Re
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -3667,19 +4962,18 @@ const opGetStaticIps = "GetStaticIps"
 
 // GetStaticIpsRequest generates a "aws/request.Request" representing the
 // client's request for the GetStaticIps operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetStaticIps for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetStaticIps method directly
-// instead.
+// See GetStaticIps for more information on using the GetStaticIps
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetStaticIpsRequest method.
 //    req, resp := client.GetStaticIpsRequest(params)
@@ -3725,6 +5019,10 @@ func (c *Lightsail) GetStaticIpsRequest(input *GetStaticIpsInput) (req *request.
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -3768,19 +5066,18 @@ const opImportKeyPair = "ImportKeyPair"
 
 // ImportKeyPairRequest generates a "aws/request.Request" representing the
 // client's request for the ImportKeyPair operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ImportKeyPair for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ImportKeyPair method directly
-// instead.
+// See ImportKeyPair for more information on using the ImportKeyPair
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ImportKeyPairRequest method.
 //    req, resp := client.ImportKeyPairRequest(params)
@@ -3826,6 +5123,10 @@ func (c *Lightsail) ImportKeyPairRequest(input *ImportKeyPairInput) (req *reques
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -3869,19 +5170,18 @@ const opIsVpcPeered = "IsVpcPeered"
 
 // IsVpcPeeredRequest generates a "aws/request.Request" representing the
 // client's request for the IsVpcPeered operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See IsVpcPeered for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the IsVpcPeered method directly
-// instead.
+// See IsVpcPeered for more information on using the IsVpcPeered
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the IsVpcPeeredRequest method.
 //    req, resp := client.IsVpcPeeredRequest(params)
@@ -3927,6 +5227,10 @@ func (c *Lightsail) IsVpcPeeredRequest(input *IsVpcPeeredInput) (req *request.Re
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -3970,19 +5274,18 @@ const opOpenInstancePublicPorts = "OpenInstancePublicPorts"
 
 // OpenInstancePublicPortsRequest generates a "aws/request.Request" representing the
 // client's request for the OpenInstancePublicPorts operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See OpenInstancePublicPorts for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the OpenInstancePublicPorts method directly
-// instead.
+// See OpenInstancePublicPorts for more information on using the OpenInstancePublicPorts
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the OpenInstancePublicPortsRequest method.
 //    req, resp := client.OpenInstancePublicPortsRequest(params)
@@ -4028,6 +5331,10 @@ func (c *Lightsail) OpenInstancePublicPortsRequest(input *OpenInstancePublicPort
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -4071,19 +5378,18 @@ const opPeerVpc = "PeerVpc"
 
 // PeerVpcRequest generates a "aws/request.Request" representing the
 // client's request for the PeerVpc operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PeerVpc for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PeerVpc method directly
-// instead.
+// See PeerVpc for more information on using the PeerVpc
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PeerVpcRequest method.
 //    req, resp := client.PeerVpcRequest(params)
@@ -4129,6 +5435,10 @@ func (c *Lightsail) PeerVpcRequest(input *PeerVpcInput) (req *request.Request, o
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -4168,23 +5478,127 @@ func (c *Lightsail) PeerVpcWithContext(ctx aws.Context, input *PeerVpcInput, opt
 	return out, req.Send()
 }
 
+const opPutInstancePublicPorts = "PutInstancePublicPorts"
+
+// PutInstancePublicPortsRequest generates a "aws/request.Request" representing the
+// client's request for the PutInstancePublicPorts operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutInstancePublicPorts for more information on using the PutInstancePublicPorts
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutInstancePublicPortsRequest method.
+//    req, resp := client.PutInstancePublicPortsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/PutInstancePublicPorts
+func (c *Lightsail) PutInstancePublicPortsRequest(input *PutInstancePublicPortsInput) (req *request.Request, output *PutInstancePublicPortsOutput) {
+	op := &request.Operation{
+		Name:       opPutInstancePublicPorts,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutInstancePublicPortsInput{}
+	}
+
+	output = &PutInstancePublicPortsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutInstancePublicPorts API operation for Amazon Lightsail.
+//
+// Sets the specified open ports for an Amazon Lightsail instance, and closes
+// all ports for every protocol not included in the current request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Lightsail's
+// API operation PutInstancePublicPorts for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   A general service exception.
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   Lightsail throws this exception when user input does not conform to the validation
+//   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   Lightsail throws this exception when it cannot find a resource.
+//
+//   * ErrCodeOperationFailureException "OperationFailureException"
+//   Lightsail throws this exception when an operation fails to execute.
+//
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   Lightsail throws this exception when the user cannot be authenticated or
+//   uses invalid credentials to access a resource.
+//
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
+//   Lightsail throws this exception when an account is still in the setup in
+//   progress state.
+//
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
+//   Lightsail throws this exception when the user has not been authenticated.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/PutInstancePublicPorts
+func (c *Lightsail) PutInstancePublicPorts(input *PutInstancePublicPortsInput) (*PutInstancePublicPortsOutput, error) {
+	req, out := c.PutInstancePublicPortsRequest(input)
+	return out, req.Send()
+}
+
+// PutInstancePublicPortsWithContext is the same as PutInstancePublicPorts with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutInstancePublicPorts for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lightsail) PutInstancePublicPortsWithContext(ctx aws.Context, input *PutInstancePublicPortsInput, opts ...request.Option) (*PutInstancePublicPortsOutput, error) {
+	req, out := c.PutInstancePublicPortsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opRebootInstance = "RebootInstance"
 
 // RebootInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the RebootInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RebootInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RebootInstance method directly
-// instead.
+// See RebootInstance for more information on using the RebootInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RebootInstanceRequest method.
 //    req, resp := client.RebootInstanceRequest(params)
@@ -4233,6 +5647,10 @@ func (c *Lightsail) RebootInstanceRequest(input *RebootInstanceInput) (req *requ
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -4276,19 +5694,18 @@ const opReleaseStaticIp = "ReleaseStaticIp"
 
 // ReleaseStaticIpRequest generates a "aws/request.Request" representing the
 // client's request for the ReleaseStaticIp operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ReleaseStaticIp for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ReleaseStaticIp method directly
-// instead.
+// See ReleaseStaticIp for more information on using the ReleaseStaticIp
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ReleaseStaticIpRequest method.
 //    req, resp := client.ReleaseStaticIpRequest(params)
@@ -4334,6 +5751,10 @@ func (c *Lightsail) ReleaseStaticIpRequest(input *ReleaseStaticIpInput) (req *re
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -4377,19 +5798,18 @@ const opStartInstance = "StartInstance"
 
 // StartInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the StartInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See StartInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StartInstance method directly
-// instead.
+// See StartInstance for more information on using the StartInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StartInstanceRequest method.
 //    req, resp := client.StartInstanceRequest(params)
@@ -4436,6 +5856,10 @@ func (c *Lightsail) StartInstanceRequest(input *StartInstanceInput) (req *reques
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -4479,19 +5903,18 @@ const opStopInstance = "StopInstance"
 
 // StopInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the StopInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See StopInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StopInstance method directly
-// instead.
+// See StopInstance for more information on using the StopInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StopInstanceRequest method.
 //    req, resp := client.StopInstanceRequest(params)
@@ -4537,6 +5960,10 @@ func (c *Lightsail) StopInstanceRequest(input *StopInstanceInput) (req *request.
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -4580,19 +6007,18 @@ const opUnpeerVpc = "UnpeerVpc"
 
 // UnpeerVpcRequest generates a "aws/request.Request" representing the
 // client's request for the UnpeerVpc operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UnpeerVpc for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UnpeerVpc method directly
-// instead.
+// See UnpeerVpc for more information on using the UnpeerVpc
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UnpeerVpcRequest method.
 //    req, resp := client.UnpeerVpcRequest(params)
@@ -4638,6 +6064,10 @@ func (c *Lightsail) UnpeerVpcRequest(input *UnpeerVpcInput) (req *request.Reques
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
+//
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
@@ -4681,19 +6111,18 @@ const opUpdateDomainEntry = "UpdateDomainEntry"
 
 // UpdateDomainEntryRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDomainEntry operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateDomainEntry for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateDomainEntry method directly
-// instead.
+// See UpdateDomainEntry for more information on using the UpdateDomainEntry
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateDomainEntryRequest method.
 //    req, resp := client.UpdateDomainEntryRequest(params)
@@ -4738,6 +6167,10 @@ func (c *Lightsail) UpdateDomainEntryRequest(input *UpdateDomainEntryInput) (req
 //   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
+//
+//   Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
+//   Please set your Region configuration to us-east-1 to create, view, or edit
+//   these resources.
 //
 //   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
@@ -4842,6 +6275,98 @@ func (s *AllocateStaticIpOutput) SetOperations(v []*Operation) *AllocateStaticIp
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/AttachDiskRequest
+type AttachDiskInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique Lightsail disk name (e.g., my-disk).
+	//
+	// DiskName is a required field
+	DiskName *string `locationName:"diskName" type:"string" required:"true"`
+
+	// The disk path to expose to the instance (e.g., /dev/xvdf).
+	//
+	// DiskPath is a required field
+	DiskPath *string `locationName:"diskPath" type:"string" required:"true"`
+
+	// The name of the Lightsail instance where you want to utilize the storage
+	// disk.
+	//
+	// InstanceName is a required field
+	InstanceName *string `locationName:"instanceName" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AttachDiskInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachDiskInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AttachDiskInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AttachDiskInput"}
+	if s.DiskName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskName"))
+	}
+	if s.DiskPath == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskPath"))
+	}
+	if s.InstanceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDiskName sets the DiskName field's value.
+func (s *AttachDiskInput) SetDiskName(v string) *AttachDiskInput {
+	s.DiskName = &v
+	return s
+}
+
+// SetDiskPath sets the DiskPath field's value.
+func (s *AttachDiskInput) SetDiskPath(v string) *AttachDiskInput {
+	s.DiskPath = &v
+	return s
+}
+
+// SetInstanceName sets the InstanceName field's value.
+func (s *AttachDiskInput) SetInstanceName(v string) *AttachDiskInput {
+	s.InstanceName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/AttachDiskResult
+type AttachDiskOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object describing the API operation.
+	Operations []*Operation `locationName:"operations" type:"list"`
+}
+
+// String returns the string representation
+func (s AttachDiskOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachDiskOutput) GoString() string {
+	return s.String()
+}
+
+// SetOperations sets the Operations field's value.
+func (s *AttachDiskOutput) SetOperations(v []*Operation) *AttachDiskOutput {
+	s.Operations = v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/AttachStaticIpRequest
 type AttachStaticIpInput struct {
 	_ struct{} `type:"structure"`
@@ -4927,7 +6452,7 @@ type AvailabilityZone struct {
 	// The state of the Availability Zone.
 	State *string `locationName:"state" type:"string"`
 
-	// The name of the Availability Zone.
+	// The name of the Availability Zone. The format is us-east-2a (case-sensitive).
 	ZoneName *string `locationName:"zoneName" type:"string"`
 }
 
@@ -4975,12 +6500,18 @@ type Blueprint struct {
 	// The end-user license agreement URL for the image or blueprint.
 	LicenseUrl *string `locationName:"licenseUrl" type:"string"`
 
-	// The minimum machine size required to run this blueprint. 0 indicates that
-	// the blueprint runs on all instances.
+	// The minimum bundle power required to run this blueprint. For example, you
+	// need a bundle with a power value of 500 or more to create an instance that
+	// uses a blueprint with a minimum power value of 500. 0 indicates that the
+	// blueprint runs on all instance sizes.
 	MinPower *int64 `locationName:"minPower" type:"integer"`
 
 	// The friendly name of the blueprint (e.g., Amazon Linux).
 	Name *string `locationName:"name" type:"string"`
+
+	// The operating system platform (either Linux/Unix-based or Windows Server-based)
+	// of the blueprint.
+	Platform *string `locationName:"platform" type:"string" enum:"InstancePlatform"`
 
 	// The product URL to learn more about the image or blueprint.
 	ProductUrl *string `locationName:"productUrl" type:"string"`
@@ -5048,6 +6579,12 @@ func (s *Blueprint) SetName(v string) *Blueprint {
 	return s
 }
 
+// SetPlatform sets the Platform field's value.
+func (s *Blueprint) SetPlatform(v string) *Blueprint {
+	s.Platform = &v
+	return s
+}
+
 // SetProductUrl sets the ProductUrl field's value.
 func (s *Blueprint) SetProductUrl(v string) *Blueprint {
 	s.ProductUrl = &v
@@ -5096,7 +6633,11 @@ type Bundle struct {
 	// A friendly name for the bundle (e.g., Micro).
 	Name *string `locationName:"name" type:"string"`
 
-	// The power of the bundle (e.g., 500).
+	// A numeric value that represents the power of the bundle (e.g., 500). You
+	// can use the bundle's power value in conjunction with a blueprint's minimum
+	// power value to determine whether the blueprint will run on the bundle. For
+	// example, you need a bundle with a power value of 500 or more to create an
+	// instance that uses a blueprint with a minimum power value of 500.
 	Power *int64 `locationName:"power" type:"integer"`
 
 	// The price in US dollars (e.g., 5.0).
@@ -5104,6 +6645,12 @@ type Bundle struct {
 
 	// The amount of RAM in GB (e.g., 2.0).
 	RamSizeInGb *float64 `locationName:"ramSizeInGb" type:"float"`
+
+	// The operating system platform (Linux/Unix-based or Windows Server-based)
+	// that the bundle supports. You can only launch a WINDOWS bundle on a blueprint
+	// that supports the WINDOWS platform. LINUX_UNIX blueprints require a LINUX_UNIX
+	// bundle.
+	SupportedPlatforms []*string `locationName:"supportedPlatforms" type:"list"`
 
 	// The data transfer rate per month in GB (e.g., 2000).
 	TransferPerMonthInGb *int64 `locationName:"transferPerMonthInGb" type:"integer"`
@@ -5170,6 +6717,12 @@ func (s *Bundle) SetPrice(v float64) *Bundle {
 // SetRamSizeInGb sets the RamSizeInGb field's value.
 func (s *Bundle) SetRamSizeInGb(v float64) *Bundle {
 	s.RamSizeInGb = &v
+	return s
+}
+
+// SetSupportedPlatforms sets the SupportedPlatforms field's value.
+func (s *Bundle) SetSupportedPlatforms(v []*string) *Bundle {
+	s.SupportedPlatforms = v
 	return s
 }
 
@@ -5253,6 +6806,291 @@ func (s CloseInstancePublicPortsOutput) GoString() string {
 // SetOperation sets the Operation field's value.
 func (s *CloseInstancePublicPortsOutput) SetOperation(v *Operation) *CloseInstancePublicPortsOutput {
 	s.Operation = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDiskFromSnapshotRequest
+type CreateDiskFromSnapshotInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Availability Zone where you want to create the disk (e.g., us-east-2a).
+	// Choose the same Availability Zone as the Lightsail instance where you want
+	// to create the disk.
+	//
+	// Use the GetRegions operation to list the Availability Zones where Lightsail
+	// is currently available.
+	//
+	// AvailabilityZone is a required field
+	AvailabilityZone *string `locationName:"availabilityZone" type:"string" required:"true"`
+
+	// The unique Lightsail disk name (e.g., my-disk).
+	//
+	// DiskName is a required field
+	DiskName *string `locationName:"diskName" type:"string" required:"true"`
+
+	// The name of the disk snapshot (e.g., my-snapshot) from which to create the
+	// new storage disk.
+	//
+	// DiskSnapshotName is a required field
+	DiskSnapshotName *string `locationName:"diskSnapshotName" type:"string" required:"true"`
+
+	// The size of the disk in GB (e.g., 32).
+	//
+	// SizeInGb is a required field
+	SizeInGb *int64 `locationName:"sizeInGb" type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateDiskFromSnapshotInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateDiskFromSnapshotInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDiskFromSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDiskFromSnapshotInput"}
+	if s.AvailabilityZone == nil {
+		invalidParams.Add(request.NewErrParamRequired("AvailabilityZone"))
+	}
+	if s.DiskName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskName"))
+	}
+	if s.DiskSnapshotName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskSnapshotName"))
+	}
+	if s.SizeInGb == nil {
+		invalidParams.Add(request.NewErrParamRequired("SizeInGb"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAvailabilityZone sets the AvailabilityZone field's value.
+func (s *CreateDiskFromSnapshotInput) SetAvailabilityZone(v string) *CreateDiskFromSnapshotInput {
+	s.AvailabilityZone = &v
+	return s
+}
+
+// SetDiskName sets the DiskName field's value.
+func (s *CreateDiskFromSnapshotInput) SetDiskName(v string) *CreateDiskFromSnapshotInput {
+	s.DiskName = &v
+	return s
+}
+
+// SetDiskSnapshotName sets the DiskSnapshotName field's value.
+func (s *CreateDiskFromSnapshotInput) SetDiskSnapshotName(v string) *CreateDiskFromSnapshotInput {
+	s.DiskSnapshotName = &v
+	return s
+}
+
+// SetSizeInGb sets the SizeInGb field's value.
+func (s *CreateDiskFromSnapshotInput) SetSizeInGb(v int64) *CreateDiskFromSnapshotInput {
+	s.SizeInGb = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDiskFromSnapshotResult
+type CreateDiskFromSnapshotOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object describing the API operations.
+	Operations []*Operation `locationName:"operations" type:"list"`
+}
+
+// String returns the string representation
+func (s CreateDiskFromSnapshotOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateDiskFromSnapshotOutput) GoString() string {
+	return s.String()
+}
+
+// SetOperations sets the Operations field's value.
+func (s *CreateDiskFromSnapshotOutput) SetOperations(v []*Operation) *CreateDiskFromSnapshotOutput {
+	s.Operations = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDiskRequest
+type CreateDiskInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Availability Zone where you want to create the disk (e.g., us-east-2a).
+	// Choose the same Availability Zone as the Lightsail instance where you want
+	// to create the disk.
+	//
+	// Use the GetRegions operation to list the Availability Zones where Lightsail
+	// is currently available.
+	//
+	// AvailabilityZone is a required field
+	AvailabilityZone *string `locationName:"availabilityZone" type:"string" required:"true"`
+
+	// The unique Lightsail disk name (e.g., my-disk).
+	//
+	// DiskName is a required field
+	DiskName *string `locationName:"diskName" type:"string" required:"true"`
+
+	// The size of the disk in GB (e.g., 32).
+	//
+	// SizeInGb is a required field
+	SizeInGb *int64 `locationName:"sizeInGb" type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateDiskInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateDiskInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDiskInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDiskInput"}
+	if s.AvailabilityZone == nil {
+		invalidParams.Add(request.NewErrParamRequired("AvailabilityZone"))
+	}
+	if s.DiskName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskName"))
+	}
+	if s.SizeInGb == nil {
+		invalidParams.Add(request.NewErrParamRequired("SizeInGb"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAvailabilityZone sets the AvailabilityZone field's value.
+func (s *CreateDiskInput) SetAvailabilityZone(v string) *CreateDiskInput {
+	s.AvailabilityZone = &v
+	return s
+}
+
+// SetDiskName sets the DiskName field's value.
+func (s *CreateDiskInput) SetDiskName(v string) *CreateDiskInput {
+	s.DiskName = &v
+	return s
+}
+
+// SetSizeInGb sets the SizeInGb field's value.
+func (s *CreateDiskInput) SetSizeInGb(v int64) *CreateDiskInput {
+	s.SizeInGb = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDiskResult
+type CreateDiskOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object describing the API operations.
+	Operations []*Operation `locationName:"operations" type:"list"`
+}
+
+// String returns the string representation
+func (s CreateDiskOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateDiskOutput) GoString() string {
+	return s.String()
+}
+
+// SetOperations sets the Operations field's value.
+func (s *CreateDiskOutput) SetOperations(v []*Operation) *CreateDiskOutput {
+	s.Operations = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDiskSnapshotRequest
+type CreateDiskSnapshotInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique name of the source disk (e.g., my-source-disk).
+	//
+	// DiskName is a required field
+	DiskName *string `locationName:"diskName" type:"string" required:"true"`
+
+	// The name of the destination disk snapshot (e.g., my-disk-snapshot) based
+	// on the source disk.
+	//
+	// DiskSnapshotName is a required field
+	DiskSnapshotName *string `locationName:"diskSnapshotName" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateDiskSnapshotInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateDiskSnapshotInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDiskSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDiskSnapshotInput"}
+	if s.DiskName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskName"))
+	}
+	if s.DiskSnapshotName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskSnapshotName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDiskName sets the DiskName field's value.
+func (s *CreateDiskSnapshotInput) SetDiskName(v string) *CreateDiskSnapshotInput {
+	s.DiskName = &v
+	return s
+}
+
+// SetDiskSnapshotName sets the DiskSnapshotName field's value.
+func (s *CreateDiskSnapshotInput) SetDiskSnapshotName(v string) *CreateDiskSnapshotInput {
+	s.DiskSnapshotName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDiskSnapshotResult
+type CreateDiskSnapshotOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object describing the API operations.
+	Operations []*Operation `locationName:"operations" type:"list"`
+}
+
+// String returns the string representation
+func (s CreateDiskSnapshotOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateDiskSnapshotOutput) GoString() string {
+	return s.String()
+}
+
+// SetOperations sets the Operations field's value.
+func (s *CreateDiskSnapshotOutput) SetOperations(v []*Operation) *CreateDiskSnapshotOutput {
+	s.Operations = v
 	return s
 }
 
@@ -5486,8 +7324,14 @@ func (s *CreateInstanceSnapshotOutput) SetOperations(v []*Operation) *CreateInst
 type CreateInstancesFromSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
+	// An object containing information about one or more disk mappings.
+	AttachedDiskMapping map[string][]*DiskMap `locationName:"attachedDiskMapping" type:"map"`
+
 	// The Availability Zone where you want to create your instances. Use the following
-	// formatting: us-east-1a (case sensitive).
+	// formatting: us-east-2a (case sensitive). You can get a list of availability
+	// zones by using the get regions (http://docs.aws.amazon.com/lightsail/2016-11-28/api-reference/API_GetRegions.html)
+	// operation. Be sure to add the include availability zones parameter to your
+	// request.
 	//
 	// AvailabilityZone is a required field
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string" required:"true"`
@@ -5553,6 +7397,12 @@ func (s *CreateInstancesFromSnapshotInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAttachedDiskMapping sets the AttachedDiskMapping field's value.
+func (s *CreateInstancesFromSnapshotInput) SetAttachedDiskMapping(v map[string][]*DiskMap) *CreateInstancesFromSnapshotInput {
+	s.AttachedDiskMapping = v
+	return s
 }
 
 // SetAvailabilityZone sets the AvailabilityZone field's value.
@@ -5621,7 +7471,10 @@ type CreateInstancesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Availability Zone in which to create your instance. Use the following
-	// format: us-east-1a (case sensitive).
+	// format: us-east-2a (case sensitive). You can get a list of availability zones
+	// by using the get regions (http://docs.aws.amazon.com/lightsail/2016-11-28/api-reference/API_GetRegions.html)
+	// operation. Be sure to add the include availability zones parameter to your
+	// request.
 	//
 	// AvailabilityZone is a required field
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string" required:"true"`
@@ -5639,8 +7492,11 @@ type CreateInstancesInput struct {
 	// BundleId is a required field
 	BundleId *string `locationName:"bundleId" type:"string" required:"true"`
 
-	// The name for your custom image.
-	CustomImageName *string `locationName:"customImageName" type:"string"`
+	// (Deprecated) The name for your custom image.
+	//
+	// In releases prior to June 12, 2017, this parameter was ignored by the API.
+	// It is now deprecated.
+	CustomImageName *string `locationName:"customImageName" deprecated:"true" type:"string"`
 
 	// The names to use for your new Lightsail instances. Separate multiple values
 	// using quotation marks and commas, for example: ["MyFirstInstance","MySecondInstance"]
@@ -5657,7 +7513,7 @@ type CreateInstancesInput struct {
 	// Depending on the machine image you choose, the command to get software on
 	// your instance varies. Amazon Linux and CentOS use yum, Debian and Ubuntu
 	// use apt-get, and FreeBSD uses pkg. For a complete list, see the Dev Guide
-	// (http://lightsail.aws.amazon.com/ls/docs/getting-started/articles/pre-installed-apps).
+	// (https://lightsail.aws.amazon.com/ls/docs/getting-started/article/compare-options-choose-lightsail-instance-image).
 	UserData *string `locationName:"userData" type:"string"`
 }
 
@@ -5849,6 +7705,132 @@ func (s *CreateKeyPairOutput) SetPrivateKeyBase64(v string) *CreateKeyPairOutput
 // SetPublicKeyBase64 sets the PublicKeyBase64 field's value.
 func (s *CreateKeyPairOutput) SetPublicKeyBase64(v string) *CreateKeyPairOutput {
 	s.PublicKeyBase64 = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteDiskRequest
+type DeleteDiskInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique name of the disk you want to delete (e.g., my-disk).
+	//
+	// DiskName is a required field
+	DiskName *string `locationName:"diskName" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteDiskInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteDiskInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDiskInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDiskInput"}
+	if s.DiskName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDiskName sets the DiskName field's value.
+func (s *DeleteDiskInput) SetDiskName(v string) *DeleteDiskInput {
+	s.DiskName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteDiskResult
+type DeleteDiskOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object describing the API operations.
+	Operations []*Operation `locationName:"operations" type:"list"`
+}
+
+// String returns the string representation
+func (s DeleteDiskOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteDiskOutput) GoString() string {
+	return s.String()
+}
+
+// SetOperations sets the Operations field's value.
+func (s *DeleteDiskOutput) SetOperations(v []*Operation) *DeleteDiskOutput {
+	s.Operations = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteDiskSnapshotRequest
+type DeleteDiskSnapshotInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the disk snapshot you want to delete (e.g., my-disk-snapshot).
+	//
+	// DiskSnapshotName is a required field
+	DiskSnapshotName *string `locationName:"diskSnapshotName" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteDiskSnapshotInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteDiskSnapshotInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDiskSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDiskSnapshotInput"}
+	if s.DiskSnapshotName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskSnapshotName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDiskSnapshotName sets the DiskSnapshotName field's value.
+func (s *DeleteDiskSnapshotInput) SetDiskSnapshotName(v string) *DeleteDiskSnapshotInput {
+	s.DiskSnapshotName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteDiskSnapshotResult
+type DeleteDiskSnapshotOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object describing the API operations.
+	Operations []*Operation `locationName:"operations" type:"list"`
+}
+
+// String returns the string representation
+func (s DeleteDiskSnapshotOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteDiskSnapshotOutput) GoString() string {
+	return s.String()
+}
+
+// SetOperations sets the Operations field's value.
+func (s *DeleteDiskSnapshotOutput) SetOperations(v []*Operation) *DeleteDiskSnapshotOutput {
+	s.Operations = v
 	return s
 }
 
@@ -6186,6 +8168,70 @@ func (s *DeleteKeyPairOutput) SetOperation(v *Operation) *DeleteKeyPairOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DetachDiskRequest
+type DetachDiskInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique name of the disk you want to detach from your instance (e.g.,
+	// my-disk).
+	//
+	// DiskName is a required field
+	DiskName *string `locationName:"diskName" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DetachDiskInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetachDiskInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DetachDiskInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DetachDiskInput"}
+	if s.DiskName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDiskName sets the DiskName field's value.
+func (s *DetachDiskInput) SetDiskName(v string) *DetachDiskInput {
+	s.DiskName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DetachDiskResult
+type DetachDiskOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object describing the API operations.
+	Operations []*Operation `locationName:"operations" type:"list"`
+}
+
+// String returns the string representation
+func (s DetachDiskOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetachDiskOutput) GoString() string {
+	return s.String()
+}
+
+// SetOperations sets the Operations field's value.
+func (s *DetachDiskOutput) SetOperations(v []*Operation) *DetachDiskOutput {
+	s.Operations = v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DetachStaticIpRequest
 type DetachStaticIpInput struct {
 	_ struct{} `type:"structure"`
@@ -6250,7 +8296,7 @@ func (s *DetachStaticIpOutput) SetOperations(v []*Operation) *DetachStaticIpOutp
 	return s
 }
 
-// Describes the hard disk (an SSD).
+// Describes a system disk or an block storage disk.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/Disk
 type Disk struct {
 	_ struct{} `type:"structure"`
@@ -6261,14 +8307,21 @@ type Disk struct {
 	// The resources to which the disk is attached.
 	AttachedTo *string `locationName:"attachedTo" type:"string"`
 
-	// The attachment state of the disk.
-	AttachmentState *string `locationName:"attachmentState" type:"string"`
+	// (Deprecated) The attachment state of the disk.
+	//
+	// In releases prior to November 9, 2017, this parameter returned attached for
+	// system disks in the API response. It is now deprecated, but still included
+	// in the response. Use isAttached instead.
+	AttachmentState *string `locationName:"attachmentState" deprecated:"true" type:"string"`
 
 	// The date when the disk was created.
 	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix"`
 
-	// The number of GB in use by the disk.
-	GbInUse *int64 `locationName:"gbInUse" type:"integer"`
+	// (Deprecated) The number of GB in use by the disk.
+	//
+	// In releases prior to November 9, 2017, this parameter was not included in
+	// the API response. It is now deprecated.
+	GbInUse *int64 `locationName:"gbInUse" deprecated:"true" type:"integer"`
 
 	// The input/output operations per second (IOPS) of the disk.
 	Iops *int64 `locationName:"iops" type:"integer"`
@@ -6280,20 +8333,23 @@ type Disk struct {
 	// system loaded on it).
 	IsSystemDisk *bool `locationName:"isSystemDisk" type:"boolean"`
 
-	// The region and Availability Zone where the disk is located.
+	// The AWS Region and Availability Zone where the disk is located.
 	Location *ResourceLocation `locationName:"location" type:"structure"`
 
-	// The name of the disk.
+	// The unique name of the disk.
 	Name *string `locationName:"name" type:"string"`
 
 	// The disk path.
 	Path *string `locationName:"path" type:"string"`
 
-	// The resource type of the disk.
+	// The Lightsail resource type (e.g., Disk).
 	ResourceType *string `locationName:"resourceType" type:"string" enum:"ResourceType"`
 
 	// The size of the disk in GB.
 	SizeInGb *int64 `locationName:"sizeInGb" type:"integer"`
+
+	// Describes the status of the disk.
+	State *string `locationName:"state" type:"string" enum:"DiskState"`
 
 	// The support code. Include this code in your email to support when you have
 	// questions about an instance or another resource in Lightsail. This code enables
@@ -6389,8 +8445,166 @@ func (s *Disk) SetSizeInGb(v int64) *Disk {
 	return s
 }
 
+// SetState sets the State field's value.
+func (s *Disk) SetState(v string) *Disk {
+	s.State = &v
+	return s
+}
+
 // SetSupportCode sets the SupportCode field's value.
 func (s *Disk) SetSupportCode(v string) *Disk {
+	s.SupportCode = &v
+	return s
+}
+
+// Describes a block storage disk mapping.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DiskMap
+type DiskMap struct {
+	_ struct{} `type:"structure"`
+
+	// The new disk name (e.g., my-new-disk).
+	NewDiskName *string `locationName:"newDiskName" type:"string"`
+
+	// The original disk path exposed to the instance (for example, /dev/sdh).
+	OriginalDiskPath *string `locationName:"originalDiskPath" type:"string"`
+}
+
+// String returns the string representation
+func (s DiskMap) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DiskMap) GoString() string {
+	return s.String()
+}
+
+// SetNewDiskName sets the NewDiskName field's value.
+func (s *DiskMap) SetNewDiskName(v string) *DiskMap {
+	s.NewDiskName = &v
+	return s
+}
+
+// SetOriginalDiskPath sets the OriginalDiskPath field's value.
+func (s *DiskMap) SetOriginalDiskPath(v string) *DiskMap {
+	s.OriginalDiskPath = &v
+	return s
+}
+
+// Describes a block storage disk snapshot.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DiskSnapshot
+type DiskSnapshot struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the disk snapshot.
+	Arn *string `locationName:"arn" type:"string"`
+
+	// The date when the disk snapshot was created.
+	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix"`
+
+	// The Amazon Resource Name (ARN) of the source disk from which you are creating
+	// the disk snapshot.
+	FromDiskArn *string `locationName:"fromDiskArn" type:"string"`
+
+	// The unique name of the source disk from which you are creating the disk snapshot.
+	FromDiskName *string `locationName:"fromDiskName" type:"string"`
+
+	// The AWS Region and Availability Zone where the disk snapshot was created.
+	Location *ResourceLocation `locationName:"location" type:"structure"`
+
+	// The name of the disk snapshot (e.g., my-disk-snapshot).
+	Name *string `locationName:"name" type:"string"`
+
+	// The progress of the disk snapshot operation.
+	Progress *string `locationName:"progress" type:"string"`
+
+	// The Lightsail resource type (e.g., DiskSnapshot).
+	ResourceType *string `locationName:"resourceType" type:"string" enum:"ResourceType"`
+
+	// The size of the disk in GB.
+	SizeInGb *int64 `locationName:"sizeInGb" type:"integer"`
+
+	// The status of the disk snapshot operation.
+	State *string `locationName:"state" type:"string" enum:"DiskSnapshotState"`
+
+	// The support code. Include this code in your email to support when you have
+	// questions about an instance or another resource in Lightsail. This code enables
+	// our support team to look up your Lightsail information more easily.
+	SupportCode *string `locationName:"supportCode" type:"string"`
+}
+
+// String returns the string representation
+func (s DiskSnapshot) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DiskSnapshot) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *DiskSnapshot) SetArn(v string) *DiskSnapshot {
+	s.Arn = &v
+	return s
+}
+
+// SetCreatedAt sets the CreatedAt field's value.
+func (s *DiskSnapshot) SetCreatedAt(v time.Time) *DiskSnapshot {
+	s.CreatedAt = &v
+	return s
+}
+
+// SetFromDiskArn sets the FromDiskArn field's value.
+func (s *DiskSnapshot) SetFromDiskArn(v string) *DiskSnapshot {
+	s.FromDiskArn = &v
+	return s
+}
+
+// SetFromDiskName sets the FromDiskName field's value.
+func (s *DiskSnapshot) SetFromDiskName(v string) *DiskSnapshot {
+	s.FromDiskName = &v
+	return s
+}
+
+// SetLocation sets the Location field's value.
+func (s *DiskSnapshot) SetLocation(v *ResourceLocation) *DiskSnapshot {
+	s.Location = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DiskSnapshot) SetName(v string) *DiskSnapshot {
+	s.Name = &v
+	return s
+}
+
+// SetProgress sets the Progress field's value.
+func (s *DiskSnapshot) SetProgress(v string) *DiskSnapshot {
+	s.Progress = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *DiskSnapshot) SetResourceType(v string) *DiskSnapshot {
+	s.ResourceType = &v
+	return s
+}
+
+// SetSizeInGb sets the SizeInGb field's value.
+func (s *DiskSnapshot) SetSizeInGb(v int64) *DiskSnapshot {
+	s.SizeInGb = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *DiskSnapshot) SetState(v string) *DiskSnapshot {
+	s.State = &v
+	return s
+}
+
+// SetSupportCode sets the SupportCode field's value.
+func (s *DiskSnapshot) SetSupportCode(v string) *DiskSnapshot {
 	s.SupportCode = &v
 	return s
 }
@@ -6778,6 +8992,250 @@ func (s *GetBundlesOutput) SetBundles(v []*Bundle) *GetBundlesOutput {
 
 // SetNextPageToken sets the NextPageToken field's value.
 func (s *GetBundlesOutput) SetNextPageToken(v string) *GetBundlesOutput {
+	s.NextPageToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDiskRequest
+type GetDiskInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the disk (e.g., my-disk).
+	//
+	// DiskName is a required field
+	DiskName *string `locationName:"diskName" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetDiskInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDiskInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDiskInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDiskInput"}
+	if s.DiskName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDiskName sets the DiskName field's value.
+func (s *GetDiskInput) SetDiskName(v string) *GetDiskInput {
+	s.DiskName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDiskResult
+type GetDiskOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object containing information about the disk.
+	Disk *Disk `locationName:"disk" type:"structure"`
+}
+
+// String returns the string representation
+func (s GetDiskOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDiskOutput) GoString() string {
+	return s.String()
+}
+
+// SetDisk sets the Disk field's value.
+func (s *GetDiskOutput) SetDisk(v *Disk) *GetDiskOutput {
+	s.Disk = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDiskSnapshotRequest
+type GetDiskSnapshotInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the disk snapshot (e.g., my-disk-snapshot).
+	//
+	// DiskSnapshotName is a required field
+	DiskSnapshotName *string `locationName:"diskSnapshotName" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetDiskSnapshotInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDiskSnapshotInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDiskSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDiskSnapshotInput"}
+	if s.DiskSnapshotName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DiskSnapshotName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDiskSnapshotName sets the DiskSnapshotName field's value.
+func (s *GetDiskSnapshotInput) SetDiskSnapshotName(v string) *GetDiskSnapshotInput {
+	s.DiskSnapshotName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDiskSnapshotResult
+type GetDiskSnapshotOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object containing information about the disk snapshot.
+	DiskSnapshot *DiskSnapshot `locationName:"diskSnapshot" type:"structure"`
+}
+
+// String returns the string representation
+func (s GetDiskSnapshotOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDiskSnapshotOutput) GoString() string {
+	return s.String()
+}
+
+// SetDiskSnapshot sets the DiskSnapshot field's value.
+func (s *GetDiskSnapshotOutput) SetDiskSnapshot(v *DiskSnapshot) *GetDiskSnapshotOutput {
+	s.DiskSnapshot = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDiskSnapshotsRequest
+type GetDiskSnapshotsInput struct {
+	_ struct{} `type:"structure"`
+
+	// A token used for advancing to the next page of results from your GetDiskSnapshots
+	// request.
+	PageToken *string `locationName:"pageToken" type:"string"`
+}
+
+// String returns the string representation
+func (s GetDiskSnapshotsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDiskSnapshotsInput) GoString() string {
+	return s.String()
+}
+
+// SetPageToken sets the PageToken field's value.
+func (s *GetDiskSnapshotsInput) SetPageToken(v string) *GetDiskSnapshotsInput {
+	s.PageToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDiskSnapshotsResult
+type GetDiskSnapshotsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of objects containing information about all block storage disk snapshots.
+	DiskSnapshots []*DiskSnapshot `locationName:"diskSnapshots" type:"list"`
+
+	// A token used for advancing to the next page of results from your GetDiskSnapshots
+	// request.
+	NextPageToken *string `locationName:"nextPageToken" type:"string"`
+}
+
+// String returns the string representation
+func (s GetDiskSnapshotsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDiskSnapshotsOutput) GoString() string {
+	return s.String()
+}
+
+// SetDiskSnapshots sets the DiskSnapshots field's value.
+func (s *GetDiskSnapshotsOutput) SetDiskSnapshots(v []*DiskSnapshot) *GetDiskSnapshotsOutput {
+	s.DiskSnapshots = v
+	return s
+}
+
+// SetNextPageToken sets the NextPageToken field's value.
+func (s *GetDiskSnapshotsOutput) SetNextPageToken(v string) *GetDiskSnapshotsOutput {
+	s.NextPageToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDisksRequest
+type GetDisksInput struct {
+	_ struct{} `type:"structure"`
+
+	// A token used for advancing to the next page of results from your GetDisks
+	// request.
+	PageToken *string `locationName:"pageToken" type:"string"`
+}
+
+// String returns the string representation
+func (s GetDisksInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDisksInput) GoString() string {
+	return s.String()
+}
+
+// SetPageToken sets the PageToken field's value.
+func (s *GetDisksInput) SetPageToken(v string) *GetDisksInput {
+	s.PageToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDisksResult
+type GetDisksOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of objects containing information about all block storage disks.
+	Disks []*Disk `locationName:"disks" type:"list"`
+
+	// A token used for advancing to the next page of results from your GetDisks
+	// request.
+	NextPageToken *string `locationName:"nextPageToken" type:"string"`
+}
+
+// String returns the string representation
+func (s GetDisksOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDisksOutput) GoString() string {
+	return s.String()
+}
+
+// SetDisks sets the Disks field's value.
+func (s *GetDisksOutput) SetDisks(v []*Disk) *GetDisksOutput {
+	s.Disks = v
+	return s
+}
+
+// SetNextPageToken sets the NextPageToken field's value.
+func (s *GetDisksOutput) SetNextPageToken(v string) *GetDisksOutput {
 	s.NextPageToken = &v
 	return s
 }
@@ -7246,7 +9704,7 @@ type GetInstancePortStatesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Information about the port states resulting from your request.
-	PortStates []*string `locationName:"portStates" type:"list"`
+	PortStates []*InstancePortState `locationName:"portStates" type:"list"`
 }
 
 // String returns the string representation
@@ -7260,7 +9718,7 @@ func (s GetInstancePortStatesOutput) GoString() string {
 }
 
 // SetPortStates sets the PortStates field's value.
-func (s *GetInstancePortStatesOutput) SetPortStates(v []*string) *GetInstancePortStatesOutput {
+func (s *GetInstancePortStatesOutput) SetPortStates(v []*InstancePortState) *GetInstancePortStatesOutput {
 	s.PortStates = v
 	return s
 }
@@ -7750,8 +10208,15 @@ func (s *GetOperationsForResourceInput) SetResourceName(v string) *GetOperations
 type GetOperationsForResourceOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Returns the number of pages of results that remain.
-	NextPageCount *string `locationName:"nextPageCount" type:"string"`
+	// (Deprecated) Returns the number of pages of results that remain.
+	//
+	// In releases prior to June 12, 2017, this parameter returned null by the API.
+	// It is now deprecated, and the API returns the nextPageToken parameter instead.
+	NextPageCount *string `locationName:"nextPageCount" deprecated:"true" type:"string"`
+
+	// An identifier that was returned from the previous call to this operation,
+	// which can be used to return the next set of items in the list.
+	NextPageToken *string `locationName:"nextPageToken" type:"string"`
 
 	// An array of key-value pairs containing information about the results of your
 	// get operations for resource request.
@@ -7771,6 +10236,12 @@ func (s GetOperationsForResourceOutput) GoString() string {
 // SetNextPageCount sets the NextPageCount field's value.
 func (s *GetOperationsForResourceOutput) SetNextPageCount(v string) *GetOperationsForResourceOutput {
 	s.NextPageCount = &v
+	return s
+}
+
+// SetNextPageToken sets the NextPageToken field's value.
+func (s *GetOperationsForResourceOutput) SetNextPageToken(v string) *GetOperationsForResourceOutput {
+	s.NextPageToken = &v
 	return s
 }
 
@@ -7846,7 +10317,7 @@ type GetRegionsInput struct {
 
 	// A Boolean value indicating whether to also include Availability Zones in
 	// your get regions request. Availability Zones are indicated with a letter:
-	// e.g., us-east-1a.
+	// e.g., us-east-2a.
 	IncludeAvailabilityZones *bool `locationName:"includeAvailabilityZones" type:"boolean"`
 }
 
@@ -8097,7 +10568,7 @@ func (s *ImportKeyPairOutput) SetOperation(v *Operation) *ImportKeyPairOutput {
 type Instance struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the instance (e.g., arn:aws:lightsail:us-east-1:123456789101:Instance/244ad76f-8aad-4741-809f-12345EXAMPLE).
+	// The Amazon Resource Name (ARN) of the instance (e.g., arn:aws:lightsail:us-east-2:123456789101:Instance/244ad76f-8aad-4741-809f-12345EXAMPLE).
 	Arn *string `locationName:"arn" type:"string"`
 
 	// The blueprint ID (e.g., os_amlinux_2016_03).
@@ -8125,7 +10596,7 @@ type Instance struct {
 	// The region name and availability zone where the instance is located.
 	Location *ResourceLocation `locationName:"location" type:"structure"`
 
-	// The name the user gave the instance (e.g., Amazon_Linux-1GB-Virginia-1).
+	// The name the user gave the instance (e.g., Amazon_Linux-1GB-Ohio-1).
 	Name *string `locationName:"name" type:"string"`
 
 	// Information about the public ports and monthly data transfer rates for the
@@ -8293,8 +10764,25 @@ type InstanceAccessDetails struct {
 	// The public IP address of the Amazon Lightsail instance.
 	IpAddress *string `locationName:"ipAddress" type:"string"`
 
-	// For RDP access, the temporary password of the Amazon EC2 instance.
+	// For RDP access, the password for your Amazon Lightsail instance. Password
+	// will be an empty string if the password for your new instance is not ready
+	// yet. When you create an instance, it can take up to 15 minutes for the instance
+	// to be ready.
+	//
+	// If you create an instance using any key pair other than the default (LightsailDefaultKeyPair),
+	// password will always be an empty string.
+	//
+	// If you change the Administrator password on the instance, Lightsail will
+	// continue to return the original password value. When accessing the instance
+	// using RDP, you need to manually enter the Administrator password after changing
+	// it from the default.
 	Password *string `locationName:"password" type:"string"`
+
+	// For a Windows Server-based instance, an object with the data you can use
+	// to retrieve your password. This is only needed if password is empty and the
+	// instance is not new (and therefore the password is not ready yet). When you
+	// create an instance, it can take up to 15 minutes for the instance to be ready.
+	PasswordData *PasswordData `locationName:"passwordData" type:"structure"`
 
 	// For SSH access, the temporary private key. For OpenSSH clients (e.g., command
 	// line SSH), you should save this value to tempkey).
@@ -8344,6 +10832,12 @@ func (s *InstanceAccessDetails) SetIpAddress(v string) *InstanceAccessDetails {
 // SetPassword sets the Password field's value.
 func (s *InstanceAccessDetails) SetPassword(v string) *InstanceAccessDetails {
 	s.Password = &v
+	return s
+}
+
+// SetPasswordData sets the PasswordData field's value.
+func (s *InstanceAccessDetails) SetPasswordData(v *PasswordData) *InstanceAccessDetails {
+	s.PasswordData = v
 	return s
 }
 
@@ -8463,7 +10957,24 @@ type InstancePortInfo struct {
 	// The first port in the range.
 	FromPort *int64 `locationName:"fromPort" type:"integer"`
 
-	// The protocol.
+	// The protocol being used. Can be one of the following.
+	//
+	//    * tcp - Transmission Control Protocol (TCP) provides reliable, ordered,
+	//    and error-checked delivery of streamed data between applications running
+	//    on hosts communicating by an IP network. If you have an application that
+	//    doesn't require reliable data stream service, use UDP instead.
+	//
+	//    * all - All transport layer protocol types. For more general information,
+	//    see Transport layer (https://en.wikipedia.org/wiki/Transport_layer) on
+	//    Wikipedia.
+	//
+	//    * udp - With User Datagram Protocol (UDP), computer applications can send
+	//    messages (or datagrams) to other hosts on an Internet Protocol (IP) network.
+	//    Prior communications are not required to set up transmission channels
+	//    or data paths. Applications that don't require reliable data stream service
+	//    can use UDP, which provides a connectionless datagram service that emphasizes
+	//    reduced latency over reliability. If you do require reliable data stream
+	//    service, use TCP instead.
 	Protocol *string `locationName:"protocol" type:"string" enum:"NetworkProtocol"`
 
 	// The last port in the range.
@@ -8522,16 +11033,88 @@ func (s *InstancePortInfo) SetToPort(v int64) *InstancePortInfo {
 	return s
 }
 
+// Describes the port state.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/InstancePortState
+type InstancePortState struct {
+	_ struct{} `type:"structure"`
+
+	// The first port in the range.
+	FromPort *int64 `locationName:"fromPort" type:"integer"`
+
+	// The protocol being used. Can be one of the following.
+	//
+	//    * tcp - Transmission Control Protocol (TCP) provides reliable, ordered,
+	//    and error-checked delivery of streamed data between applications running
+	//    on hosts communicating by an IP network. If you have an application that
+	//    doesn't require reliable data stream service, use UDP instead.
+	//
+	//    * all - All transport layer protocol types. For more general information,
+	//    see Transport layer (https://en.wikipedia.org/wiki/Transport_layer) on
+	//    Wikipedia.
+	//
+	//    * udp - With User Datagram Protocol (UDP), computer applications can send
+	//    messages (or datagrams) to other hosts on an Internet Protocol (IP) network.
+	//    Prior communications are not required to set up transmission channels
+	//    or data paths. Applications that don't require reliable data stream service
+	//    can use UDP, which provides a connectionless datagram service that emphasizes
+	//    reduced latency over reliability. If you do require reliable data stream
+	//    service, use TCP instead.
+	Protocol *string `locationName:"protocol" type:"string" enum:"NetworkProtocol"`
+
+	// Specifies whether the instance port is open or closed.
+	State *string `locationName:"state" type:"string" enum:"PortState"`
+
+	// The last port in the range.
+	ToPort *int64 `locationName:"toPort" type:"integer"`
+}
+
+// String returns the string representation
+func (s InstancePortState) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstancePortState) GoString() string {
+	return s.String()
+}
+
+// SetFromPort sets the FromPort field's value.
+func (s *InstancePortState) SetFromPort(v int64) *InstancePortState {
+	s.FromPort = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *InstancePortState) SetProtocol(v string) *InstancePortState {
+	s.Protocol = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *InstancePortState) SetState(v string) *InstancePortState {
+	s.State = &v
+	return s
+}
+
+// SetToPort sets the ToPort field's value.
+func (s *InstancePortState) SetToPort(v int64) *InstancePortState {
+	s.ToPort = &v
+	return s
+}
+
 // Describes the snapshot of the virtual private server, or instance.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/InstanceSnapshot
 type InstanceSnapshot struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the snapshot (e.g., arn:aws:lightsail:us-east-1:123456789101:InstanceSnapshot/d23b5706-3322-4d83-81e5-12345EXAMPLE).
+	// The Amazon Resource Name (ARN) of the snapshot (e.g., arn:aws:lightsail:us-east-2:123456789101:InstanceSnapshot/d23b5706-3322-4d83-81e5-12345EXAMPLE).
 	Arn *string `locationName:"arn" type:"string"`
 
 	// The timestamp when the snapshot was created (e.g., 1479907467.024).
 	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix"`
+
+	// An array of disk objects containing information about all block storage disks.
+	FromAttachedDisks []*Disk `locationName:"fromAttachedDisks" type:"list"`
 
 	// The blueprint ID from which you created the snapshot (e.g., os_debian_8_3).
 	// A blueprint is a virtual private server (or instance) image used to create
@@ -8542,7 +11125,7 @@ type InstanceSnapshot struct {
 	FromBundleId *string `locationName:"fromBundleId" type:"string"`
 
 	// The Amazon Resource Name (ARN) of the instance from which the snapshot was
-	// created (e.g., arn:aws:lightsail:us-east-1:123456789101:Instance/64b8404c-ccb1-430b-8daf-12345EXAMPLE).
+	// created (e.g., arn:aws:lightsail:us-east-2:123456789101:Instance/64b8404c-ccb1-430b-8daf-12345EXAMPLE).
 	FromInstanceArn *string `locationName:"fromInstanceArn" type:"string"`
 
 	// The instance from which the snapshot was created.
@@ -8591,6 +11174,12 @@ func (s *InstanceSnapshot) SetArn(v string) *InstanceSnapshot {
 // SetCreatedAt sets the CreatedAt field's value.
 func (s *InstanceSnapshot) SetCreatedAt(v time.Time) *InstanceSnapshot {
 	s.CreatedAt = &v
+	return s
+}
+
+// SetFromAttachedDisks sets the FromAttachedDisks field's value.
+func (s *InstanceSnapshot) SetFromAttachedDisks(v []*Disk) *InstanceSnapshot {
+	s.FromAttachedDisks = v
 	return s
 }
 
@@ -8738,7 +11327,7 @@ func (s *IsVpcPeeredOutput) SetIsPeered(v bool) *IsVpcPeeredOutput {
 type KeyPair struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the key pair (e.g., arn:aws:lightsail:us-east-1:123456789101:KeyPair/05859e3d-331d-48ba-9034-12345EXAMPLE).
+	// The Amazon Resource Name (ARN) of the key pair (e.g., arn:aws:lightsail:us-east-2:123456789101:KeyPair/05859e3d-331d-48ba-9034-12345EXAMPLE).
 	Arn *string `locationName:"arn" type:"string"`
 
 	// The timestamp when the key pair was created (e.g., 1479816991.349).
@@ -9019,7 +11608,7 @@ type Operation struct {
 	// The region and Availability Zone.
 	Location *ResourceLocation `locationName:"location" type:"structure"`
 
-	// Details about the operation (e.g., Debian-1GB-Virginia-1).
+	// Details about the operation (e.g., Debian-1GB-Ohio-1).
 	OperationDetails *string `locationName:"operationDetails" type:"string"`
 
 	// The type of operation.
@@ -9120,6 +11709,59 @@ func (s *Operation) SetStatusChangedAt(v time.Time) *Operation {
 	return s
 }
 
+// The password data for the Windows Server-based instance, including the ciphertext
+// and the key pair name.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/PasswordData
+type PasswordData struct {
+	_ struct{} `type:"structure"`
+
+	// The encrypted password. Ciphertext will be an empty string if access to your
+	// new instance is not ready yet. When you create an instance, it can take up
+	// to 15 minutes for the instance to be ready.
+	//
+	// If you use the default key pair (LightsailDefaultKeyPair), the decrypted
+	// password will be available in the password field.
+	//
+	// If you are using a custom key pair, you need to use your own means of decryption.
+	//
+	// If you change the Administrator password on the instance, Lightsail will
+	// continue to return the original ciphertext value. When accessing the instance
+	// using RDP, you need to manually enter the Administrator password after changing
+	// it from the default.
+	Ciphertext *string `locationName:"ciphertext" type:"string"`
+
+	// The name of the key pair that you used when creating your instance. If no
+	// key pair name was specified when creating the instance, Lightsail uses the
+	// default key pair (LightsailDefaultKeyPair).
+	//
+	// If you are using a custom key pair, you need to use your own means of decrypting
+	// your password using the ciphertext. Lightsail creates the ciphertext by encrypting
+	// your password with the public key part of this key pair.
+	KeyPairName *string `locationName:"keyPairName" type:"string"`
+}
+
+// String returns the string representation
+func (s PasswordData) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PasswordData) GoString() string {
+	return s.String()
+}
+
+// SetCiphertext sets the Ciphertext field's value.
+func (s *PasswordData) SetCiphertext(v string) *PasswordData {
+	s.Ciphertext = &v
+	return s
+}
+
+// SetKeyPairName sets the KeyPairName field's value.
+func (s *PasswordData) SetKeyPairName(v string) *PasswordData {
+	s.KeyPairName = &v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/PeerVpcRequest
 type PeerVpcInput struct {
 	_ struct{} `type:"structure"`
@@ -9203,6 +11845,83 @@ func (s *PortInfo) SetToPort(v int64) *PortInfo {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/PutInstancePublicPortsRequest
+type PutInstancePublicPortsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Lightsail instance name of the public port(s) you are setting.
+	//
+	// InstanceName is a required field
+	InstanceName *string `locationName:"instanceName" type:"string" required:"true"`
+
+	// Specifies information about the public port(s).
+	//
+	// PortInfos is a required field
+	PortInfos []*PortInfo `locationName:"portInfos" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s PutInstancePublicPortsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutInstancePublicPortsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutInstancePublicPortsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutInstancePublicPortsInput"}
+	if s.InstanceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceName"))
+	}
+	if s.PortInfos == nil {
+		invalidParams.Add(request.NewErrParamRequired("PortInfos"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceName sets the InstanceName field's value.
+func (s *PutInstancePublicPortsInput) SetInstanceName(v string) *PutInstancePublicPortsInput {
+	s.InstanceName = &v
+	return s
+}
+
+// SetPortInfos sets the PortInfos field's value.
+func (s *PutInstancePublicPortsInput) SetPortInfos(v []*PortInfo) *PutInstancePublicPortsInput {
+	s.PortInfos = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/PutInstancePublicPortsResult
+type PutInstancePublicPortsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Describes metadata about the operation you just executed.
+	Operation *Operation `locationName:"operation" type:"structure"`
+}
+
+// String returns the string representation
+func (s PutInstancePublicPortsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutInstancePublicPortsOutput) GoString() string {
+	return s.String()
+}
+
+// SetOperation sets the Operation field's value.
+func (s *PutInstancePublicPortsOutput) SetOperation(v *Operation) *PutInstancePublicPortsOutput {
+	s.Operation = v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/RebootInstanceRequest
 type RebootInstanceInput struct {
 	_ struct{} `type:"structure"`
@@ -9271,7 +11990,7 @@ func (s *RebootInstanceOutput) SetOperations(v []*Operation) *RebootInstanceOutp
 type Region struct {
 	_ struct{} `type:"structure"`
 
-	// The Availability Zones.
+	// The Availability Zones. Follows the format us-east-2a (case-sensitive).
 	AvailabilityZones []*AvailabilityZone `locationName:"availabilityZones" type:"list"`
 
 	// The continent code (e.g., NA, meaning North America).
@@ -9281,10 +12000,10 @@ type Region struct {
 	// users in the eastern United States and eastern Canada).
 	Description *string `locationName:"description" type:"string"`
 
-	// The display name (e.g., Virginia).
+	// The display name (e.g., Ohio).
 	DisplayName *string `locationName:"displayName" type:"string"`
 
-	// The region name (e.g., us-east-1).
+	// The region name (e.g., us-east-2).
 	Name *string `locationName:"name" type:"string" enum:"RegionName"`
 }
 
@@ -9396,7 +12115,7 @@ func (s *ReleaseStaticIpOutput) SetOperations(v []*Operation) *ReleaseStaticIpOu
 type ResourceLocation struct {
 	_ struct{} `type:"structure"`
 
-	// The Availability Zone.
+	// The Availability Zone. Follows the format us-east-2a (case-sensitive).
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string"`
 
 	// The AWS Region name.
@@ -9493,10 +12212,10 @@ func (s *StartInstanceOutput) SetOperations(v []*Operation) *StartInstanceOutput
 type StaticIp struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the static IP (e.g., arn:aws:lightsail:us-east-1:123456789101:StaticIp/9cbb4a9e-f8e3-4dfe-b57e-12345EXAMPLE).
+	// The Amazon Resource Name (ARN) of the static IP (e.g., arn:aws:lightsail:us-east-2:123456789101:StaticIp/9cbb4a9e-f8e3-4dfe-b57e-12345EXAMPLE).
 	Arn *string `locationName:"arn" type:"string"`
 
-	// The instance where the static IP is attached (e.g., Amazon_Linux-1GB-Virginia-1).
+	// The instance where the static IP is attached (e.g., Amazon_Linux-1GB-Ohio-1).
 	AttachedTo *string `locationName:"attachedTo" type:"string"`
 
 	// The timestamp when the static IP was created (e.g., 1479735304.222).
@@ -9511,7 +12230,7 @@ type StaticIp struct {
 	// The region and Availability Zone where the static IP was created.
 	Location *ResourceLocation `locationName:"location" type:"structure"`
 
-	// The name of the static IP (e.g., StaticIP-Virginia-EXAMPLE).
+	// The name of the static IP (e.g., StaticIP-Ohio-EXAMPLE).
 	Name *string `locationName:"name" type:"string"`
 
 	// The resource type (usually StaticIp).
@@ -9591,6 +12310,14 @@ func (s *StaticIp) SetSupportCode(v string) *StaticIp {
 type StopInstanceInput struct {
 	_ struct{} `type:"structure"`
 
+	// When set to True, forces a Lightsail instance that is stuck in a stopping
+	// state to stop.
+	//
+	// Only use the force parameter if your instance is stuck in the stopping state.
+	// In any other state, your instance should stop normally without adding this
+	// parameter to your API request.
+	Force *bool `locationName:"force" type:"boolean"`
+
 	// The name of the instance (a virtual private server) to stop.
 	//
 	// InstanceName is a required field
@@ -9618,6 +12345,12 @@ func (s *StopInstanceInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetForce sets the Force field's value.
+func (s *StopInstanceInput) SetForce(v bool) *StopInstanceInput {
+	s.Force = &v
+	return s
 }
 
 // SetInstanceName sets the InstanceName field's value.
@@ -9783,6 +12516,37 @@ const (
 )
 
 const (
+	// DiskSnapshotStatePending is a DiskSnapshotState enum value
+	DiskSnapshotStatePending = "pending"
+
+	// DiskSnapshotStateCompleted is a DiskSnapshotState enum value
+	DiskSnapshotStateCompleted = "completed"
+
+	// DiskSnapshotStateError is a DiskSnapshotState enum value
+	DiskSnapshotStateError = "error"
+
+	// DiskSnapshotStateUnknown is a DiskSnapshotState enum value
+	DiskSnapshotStateUnknown = "unknown"
+)
+
+const (
+	// DiskStatePending is a DiskState enum value
+	DiskStatePending = "pending"
+
+	// DiskStateError is a DiskState enum value
+	DiskStateError = "error"
+
+	// DiskStateAvailable is a DiskState enum value
+	DiskStateAvailable = "available"
+
+	// DiskStateInUse is a DiskState enum value
+	DiskStateInUse = "in-use"
+
+	// DiskStateUnknown is a DiskState enum value
+	DiskStateUnknown = "unknown"
+)
+
+const (
 	// InstanceAccessProtocolSsh is a InstanceAccessProtocol enum value
 	InstanceAccessProtocolSsh = "ssh"
 
@@ -9808,6 +12572,14 @@ const (
 
 	// InstanceMetricNameStatusCheckFailedSystem is a InstanceMetricName enum value
 	InstanceMetricNameStatusCheckFailedSystem = "StatusCheckFailed_System"
+)
+
+const (
+	// InstancePlatformLinuxUnix is a InstancePlatform enum value
+	InstancePlatformLinuxUnix = "LINUX_UNIX"
+
+	// InstancePlatformWindows is a InstancePlatform enum value
+	InstancePlatformWindows = "WINDOWS"
 )
 
 const (
@@ -9965,6 +12737,9 @@ const (
 	// OperationTypeOpenInstancePublicPorts is a OperationType enum value
 	OperationTypeOpenInstancePublicPorts = "OpenInstancePublicPorts"
 
+	// OperationTypePutInstancePublicPorts is a OperationType enum value
+	OperationTypePutInstancePublicPorts = "PutInstancePublicPorts"
+
 	// OperationTypeCloseInstancePublicPorts is a OperationType enum value
 	OperationTypeCloseInstancePublicPorts = "CloseInstancePublicPorts"
 
@@ -10000,6 +12775,27 @@ const (
 
 	// OperationTypeCreateInstancesFromSnapshot is a OperationType enum value
 	OperationTypeCreateInstancesFromSnapshot = "CreateInstancesFromSnapshot"
+
+	// OperationTypeCreateDisk is a OperationType enum value
+	OperationTypeCreateDisk = "CreateDisk"
+
+	// OperationTypeDeleteDisk is a OperationType enum value
+	OperationTypeDeleteDisk = "DeleteDisk"
+
+	// OperationTypeAttachDisk is a OperationType enum value
+	OperationTypeAttachDisk = "AttachDisk"
+
+	// OperationTypeDetachDisk is a OperationType enum value
+	OperationTypeDetachDisk = "DetachDisk"
+
+	// OperationTypeCreateDiskSnapshot is a OperationType enum value
+	OperationTypeCreateDiskSnapshot = "CreateDiskSnapshot"
+
+	// OperationTypeDeleteDiskSnapshot is a OperationType enum value
+	OperationTypeDeleteDiskSnapshot = "DeleteDiskSnapshot"
+
+	// OperationTypeCreateDiskFromSnapshot is a OperationType enum value
+	OperationTypeCreateDiskFromSnapshot = "CreateDiskFromSnapshot"
 )
 
 const (
@@ -10021,6 +12817,9 @@ const (
 const (
 	// RegionNameUsEast1 is a RegionName enum value
 	RegionNameUsEast1 = "us-east-1"
+
+	// RegionNameUsEast2 is a RegionName enum value
+	RegionNameUsEast2 = "us-east-2"
 
 	// RegionNameUsWest1 is a RegionName enum value
 	RegionNameUsWest1 = "us-west-1"
@@ -10068,4 +12867,10 @@ const (
 
 	// ResourceTypePeeredVpc is a ResourceType enum value
 	ResourceTypePeeredVpc = "PeeredVpc"
+
+	// ResourceTypeDisk is a ResourceType enum value
+	ResourceTypeDisk = "Disk"
+
+	// ResourceTypeDiskSnapshot is a ResourceType enum value
+	ResourceTypeDiskSnapshot = "DiskSnapshot"
 )

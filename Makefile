@@ -1,4 +1,4 @@
-TEST?=$$(go list ./... | grep -v '/terraform/vendor/' | grep -v '/builtin/bins/')
+TEST?=./...
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
 default: test vet
@@ -20,17 +20,6 @@ dev: fmtcheck generate
 quickdev: generate
 	@TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
-# Shorthand for quickly building the core of Terraform. Note that some
-# changes will require a rebuild of everything, in which case the dev
-# target should be used.
-core-dev: generate
-	go install -tags 'core' github.com/hashicorp/terraform
-
-# Shorthand for quickly testing the core of Terraform (i.e. "not providers")
-core-test: generate
-	@echo "Testing core packages..." && \
-		go test -tags 'core' $(TESTARGS) $(shell go list ./... | grep -v -E 'terraform/(builtin|vendor)')
-
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
 plugin-dev: generate
@@ -38,10 +27,11 @@ plugin-dev: generate
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
 # test runs the unit tests
-test: fmtcheck errcheck generate
+# we run this one package at a time here because running the entire suite in
+# one command creates memory usage issues when running in Travis-CI.
+test: fmtcheck generate
 	go test -i $(TEST) || exit 1
-	echo $(TEST) | \
-		xargs -t -n4 go test $(TESTARGS) -timeout=60s -parallel=4
+	go list $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=60s -parallel=4
 
 # testacc runs acceptance tests
 testacc: fmtcheck generate
@@ -51,6 +41,12 @@ testacc: fmtcheck generate
 		exit 1; \
 	fi
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+
+# e2etest runs the end-to-end tests against a generated Terraform binary
+# The TF_ACC here allows network access, but does not require any special
+# credentials since the e2etests use local-only providers such as "null".
+e2etest: generate
+	TF_ACC=1 go test -v ./command/e2etest
 
 test-compile: fmtcheck generate
 	@if [ "$(TEST)" = "./..." ]; then \
@@ -75,8 +71,8 @@ cover:
 # vet runs the Go source code static analysis tool `vet` to find
 # any common errors.
 vet:
-	@echo 'go vet $$(go list ./... | grep -v /terraform/vendor/)'
-	@go vet $$(go list ./... | grep -v /terraform/vendor/) ; if [ $$? -eq 1 ]; then \
+	@echo 'go vet ./...'
+	@go vet ./... ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
@@ -89,7 +85,7 @@ generate:
 	@which stringer > /dev/null; if [ $$? -ne 0 ]; then \
 	  go get -u golang.org/x/tools/cmd/stringer; \
 	fi
-	go generate $$(go list ./... | grep -v /terraform/vendor/)
+	go generate ./...
 	@go fmt command/internal_plugin_list.go > /dev/null
 
 fmt:
@@ -97,9 +93,6 @@ fmt:
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
-
-errcheck:
-	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
 vendor-status:
 	@govendor status
@@ -109,4 +102,4 @@ vendor-status:
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: bin core-dev core-test cover default dev errcheck fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status vet
+.PHONY: bin cover default dev e2etest fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status vet

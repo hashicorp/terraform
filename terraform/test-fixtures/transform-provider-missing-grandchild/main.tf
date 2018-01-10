@@ -1,0 +1,3 @@
+module "sub" {
+    source = "./sub"
+}

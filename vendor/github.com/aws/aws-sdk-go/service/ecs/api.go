@@ -15,19 +15,18 @@ const opCreateCluster = "CreateCluster"
 
 // CreateClusterRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCluster operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateCluster for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateCluster method directly
-// instead.
+// See CreateCluster for more information on using the CreateCluster
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateClusterRequest method.
 //    req, resp := client.CreateClusterRequest(params)
@@ -59,6 +58,14 @@ func (c *ECS) CreateClusterRequest(input *CreateClusterInput) (req *request.Requ
 // Creates a new Amazon ECS cluster. By default, your account receives a default
 // cluster when you launch your first container instance. However, you can create
 // your own cluster with a unique name with the CreateCluster action.
+//
+// When you call the CreateCluster API operation, Amazon ECS attempts to create
+// the service-linked role for your account so that required resources in other
+// AWS services can be managed on your behalf. However, if the IAM user that
+// makes the call does not have permissions to create the service-linked role,
+// it is not created. For more information, see Using Service-Linked Roles for
+// Amazon ECS (http://docs.aws.amazon.com/AmazonECS/latest/developerguideusing-service-linked-roles.html)
+// in the Amazon EC2 Container Service Developer Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -106,19 +113,18 @@ const opCreateService = "CreateService"
 
 // CreateServiceRequest generates a "aws/request.Request" representing the
 // client's request for the CreateService operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateService for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateService method directly
-// instead.
+// See CreateService for more information on using the CreateService
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateServiceRequest method.
 //    req, resp := client.CreateServiceRequest(params)
@@ -257,19 +263,18 @@ const opDeleteAttributes = "DeleteAttributes"
 
 // DeleteAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAttributes operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteAttributes for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteAttributes method directly
-// instead.
+// See DeleteAttributes for more information on using the DeleteAttributes
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteAttributesRequest method.
 //    req, resp := client.DeleteAttributesRequest(params)
@@ -347,19 +352,18 @@ const opDeleteCluster = "DeleteCluster"
 
 // DeleteClusterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCluster operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteCluster for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteCluster method directly
-// instead.
+// See DeleteCluster for more information on using the DeleteCluster
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteClusterRequest method.
 //    req, resp := client.DeleteClusterRequest(params)
@@ -452,19 +456,18 @@ const opDeleteService = "DeleteService"
 
 // DeleteServiceRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteService operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteService for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteService method directly
-// instead.
+// See DeleteService for more information on using the DeleteService
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteServiceRequest method.
 //    req, resp := client.DeleteServiceRequest(params)
@@ -562,19 +565,18 @@ const opDeregisterContainerInstance = "DeregisterContainerInstance"
 
 // DeregisterContainerInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the DeregisterContainerInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeregisterContainerInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeregisterContainerInstance method directly
-// instead.
+// See DeregisterContainerInstance for more information on using the DeregisterContainerInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeregisterContainerInstanceRequest method.
 //    req, resp := client.DeregisterContainerInstanceRequest(params)
@@ -669,19 +671,18 @@ const opDeregisterTaskDefinition = "DeregisterTaskDefinition"
 
 // DeregisterTaskDefinitionRequest generates a "aws/request.Request" representing the
 // client's request for the DeregisterTaskDefinition operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeregisterTaskDefinition for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeregisterTaskDefinition method directly
-// instead.
+// See DeregisterTaskDefinition for more information on using the DeregisterTaskDefinition
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeregisterTaskDefinitionRequest method.
 //    req, resp := client.DeregisterTaskDefinitionRequest(params)
@@ -772,19 +773,18 @@ const opDescribeClusters = "DescribeClusters"
 
 // DescribeClustersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeClusters operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeClusters for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeClusters method directly
-// instead.
+// See DescribeClusters for more information on using the DescribeClusters
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeClustersRequest method.
 //    req, resp := client.DescribeClustersRequest(params)
@@ -861,19 +861,18 @@ const opDescribeContainerInstances = "DescribeContainerInstances"
 
 // DescribeContainerInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeContainerInstances operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeContainerInstances for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeContainerInstances method directly
-// instead.
+// See DescribeContainerInstances for more information on using the DescribeContainerInstances
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeContainerInstancesRequest method.
 //    req, resp := client.DescribeContainerInstancesRequest(params)
@@ -955,19 +954,18 @@ const opDescribeServices = "DescribeServices"
 
 // DescribeServicesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeServices operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeServices for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeServices method directly
-// instead.
+// See DescribeServices for more information on using the DescribeServices
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeServicesRequest method.
 //    req, resp := client.DescribeServicesRequest(params)
@@ -1048,19 +1046,18 @@ const opDescribeTaskDefinition = "DescribeTaskDefinition"
 
 // DescribeTaskDefinitionRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTaskDefinition operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeTaskDefinition for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeTaskDefinition method directly
-// instead.
+// See DescribeTaskDefinition for more information on using the DescribeTaskDefinition
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeTaskDefinitionRequest method.
 //    req, resp := client.DescribeTaskDefinitionRequest(params)
@@ -1142,19 +1139,18 @@ const opDescribeTasks = "DescribeTasks"
 
 // DescribeTasksRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTasks operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DescribeTasks for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DescribeTasks method directly
-// instead.
+// See DescribeTasks for more information on using the DescribeTasks
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DescribeTasksRequest method.
 //    req, resp := client.DescribeTasksRequest(params)
@@ -1235,19 +1231,18 @@ const opDiscoverPollEndpoint = "DiscoverPollEndpoint"
 
 // DiscoverPollEndpointRequest generates a "aws/request.Request" representing the
 // client's request for the DiscoverPollEndpoint operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DiscoverPollEndpoint for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DiscoverPollEndpoint method directly
-// instead.
+// See DiscoverPollEndpoint for more information on using the DiscoverPollEndpoint
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DiscoverPollEndpointRequest method.
 //    req, resp := client.DiscoverPollEndpointRequest(params)
@@ -1324,19 +1319,18 @@ const opListAttributes = "ListAttributes"
 
 // ListAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the ListAttributes operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListAttributes for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListAttributes method directly
-// instead.
+// See ListAttributes for more information on using the ListAttributes
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListAttributesRequest method.
 //    req, resp := client.ListAttributesRequest(params)
@@ -1415,19 +1409,18 @@ const opListClusters = "ListClusters"
 
 // ListClustersRequest generates a "aws/request.Request" representing the
 // client's request for the ListClusters operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListClusters for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListClusters method directly
-// instead.
+// See ListClusters for more information on using the ListClusters
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListClustersRequest method.
 //    req, resp := client.ListClustersRequest(params)
@@ -1560,19 +1553,18 @@ const opListContainerInstances = "ListContainerInstances"
 
 // ListContainerInstancesRequest generates a "aws/request.Request" representing the
 // client's request for the ListContainerInstances operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListContainerInstances for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListContainerInstances method directly
-// instead.
+// See ListContainerInstances for more information on using the ListContainerInstances
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListContainerInstancesRequest method.
 //    req, resp := client.ListContainerInstancesRequest(params)
@@ -1713,19 +1705,18 @@ const opListServices = "ListServices"
 
 // ListServicesRequest generates a "aws/request.Request" representing the
 // client's request for the ListServices operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListServices for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListServices method directly
-// instead.
+// See ListServices for more information on using the ListServices
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListServicesRequest method.
 //    req, resp := client.ListServicesRequest(params)
@@ -1862,19 +1853,18 @@ const opListTaskDefinitionFamilies = "ListTaskDefinitionFamilies"
 
 // ListTaskDefinitionFamiliesRequest generates a "aws/request.Request" representing the
 // client's request for the ListTaskDefinitionFamilies operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTaskDefinitionFamilies for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTaskDefinitionFamilies method directly
-// instead.
+// See ListTaskDefinitionFamilies for more information on using the ListTaskDefinitionFamilies
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTaskDefinitionFamiliesRequest method.
 //    req, resp := client.ListTaskDefinitionFamiliesRequest(params)
@@ -2013,19 +2003,18 @@ const opListTaskDefinitions = "ListTaskDefinitions"
 
 // ListTaskDefinitionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListTaskDefinitions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTaskDefinitions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTaskDefinitions method directly
-// instead.
+// See ListTaskDefinitions for more information on using the ListTaskDefinitions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTaskDefinitionsRequest method.
 //    req, resp := client.ListTaskDefinitionsRequest(params)
@@ -2160,19 +2149,18 @@ const opListTasks = "ListTasks"
 
 // ListTasksRequest generates a "aws/request.Request" representing the
 // client's request for the ListTasks operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTasks for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTasks method directly
-// instead.
+// See ListTasks for more information on using the ListTasks
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTasksRequest method.
 //    req, resp := client.ListTasksRequest(params)
@@ -2318,19 +2306,18 @@ const opPutAttributes = "PutAttributes"
 
 // PutAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the PutAttributes operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutAttributes for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutAttributes method directly
-// instead.
+// See PutAttributes for more information on using the PutAttributes
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutAttributesRequest method.
 //    req, resp := client.PutAttributesRequest(params)
@@ -2417,19 +2404,18 @@ const opRegisterContainerInstance = "RegisterContainerInstance"
 
 // RegisterContainerInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterContainerInstance operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RegisterContainerInstance for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RegisterContainerInstance method directly
-// instead.
+// See RegisterContainerInstance for more information on using the RegisterContainerInstance
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RegisterContainerInstanceRequest method.
 //    req, resp := client.RegisterContainerInstanceRequest(params)
@@ -2506,19 +2492,18 @@ const opRegisterTaskDefinition = "RegisterTaskDefinition"
 
 // RegisterTaskDefinitionRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterTaskDefinition operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RegisterTaskDefinition for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RegisterTaskDefinition method directly
-// instead.
+// See RegisterTaskDefinition for more information on using the RegisterTaskDefinition
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RegisterTaskDefinitionRequest method.
 //    req, resp := client.RegisterTaskDefinitionRequest(params)
@@ -2611,19 +2596,18 @@ const opRunTask = "RunTask"
 
 // RunTaskRequest generates a "aws/request.Request" representing the
 // client's request for the RunTask operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See RunTask for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RunTask method directly
-// instead.
+// See RunTask for more information on using the RunTask
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the RunTaskRequest method.
 //    req, resp := client.RunTaskRequest(params)
@@ -2712,19 +2696,18 @@ const opStartTask = "StartTask"
 
 // StartTaskRequest generates a "aws/request.Request" representing the
 // client's request for the StartTask operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See StartTask for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StartTask method directly
-// instead.
+// See StartTask for more information on using the StartTask
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StartTaskRequest method.
 //    req, resp := client.StartTaskRequest(params)
@@ -2810,19 +2793,18 @@ const opStopTask = "StopTask"
 
 // StopTaskRequest generates a "aws/request.Request" representing the
 // client's request for the StopTask operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See StopTask for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the StopTask method directly
-// instead.
+// See StopTask for more information on using the StopTask
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the StopTaskRequest method.
 //    req, resp := client.StopTaskRequest(params)
@@ -2914,19 +2896,18 @@ const opSubmitContainerStateChange = "SubmitContainerStateChange"
 
 // SubmitContainerStateChangeRequest generates a "aws/request.Request" representing the
 // client's request for the SubmitContainerStateChange operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See SubmitContainerStateChange for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the SubmitContainerStateChange method directly
-// instead.
+// See SubmitContainerStateChange for more information on using the SubmitContainerStateChange
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the SubmitContainerStateChangeRequest method.
 //    req, resp := client.SubmitContainerStateChangeRequest(params)
@@ -3002,19 +2983,18 @@ const opSubmitTaskStateChange = "SubmitTaskStateChange"
 
 // SubmitTaskStateChangeRequest generates a "aws/request.Request" representing the
 // client's request for the SubmitTaskStateChange operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See SubmitTaskStateChange for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the SubmitTaskStateChange method directly
-// instead.
+// See SubmitTaskStateChange for more information on using the SubmitTaskStateChange
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the SubmitTaskStateChangeRequest method.
 //    req, resp := client.SubmitTaskStateChangeRequest(params)
@@ -3090,19 +3070,18 @@ const opUpdateContainerAgent = "UpdateContainerAgent"
 
 // UpdateContainerAgentRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateContainerAgent operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateContainerAgent for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateContainerAgent method directly
-// instead.
+// See UpdateContainerAgent for more information on using the UpdateContainerAgent
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateContainerAgentRequest method.
 //    req, resp := client.UpdateContainerAgentRequest(params)
@@ -3211,19 +3190,18 @@ const opUpdateContainerInstancesState = "UpdateContainerInstancesState"
 
 // UpdateContainerInstancesStateRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateContainerInstancesState operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateContainerInstancesState for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateContainerInstancesState method directly
-// instead.
+// See UpdateContainerInstancesState for more information on using the UpdateContainerInstancesState
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateContainerInstancesStateRequest method.
 //    req, resp := client.UpdateContainerInstancesStateRequest(params)
@@ -3347,19 +3325,18 @@ const opUpdateService = "UpdateService"
 
 // UpdateServiceRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateService operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateService for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateService method directly
-// instead.
+// See UpdateService for more information on using the UpdateService
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateServiceRequest method.
 //    req, resp := client.UpdateServiceRequest(params)
@@ -3388,8 +3365,8 @@ func (c *ECS) UpdateServiceRequest(input *UpdateServiceInput) (req *request.Requ
 
 // UpdateService API operation for Amazon EC2 Container Service.
 //
-// Modifies the desired count, deployment configuration, or task definition
-// used in a service.
+// Modifies the desired count, deployment configuration, network configuration,
+// or task definition used in a service.
 //
 // You can add to or subtract from the number of instantiations of a task definition
 // in a service by specifying the cluster that the service is running in and
@@ -3511,6 +3488,115 @@ func (c *ECS) UpdateServiceWithContext(ctx aws.Context, input *UpdateServiceInpu
 	return out, req.Send()
 }
 
+// An object representing a container instance or task attachment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/Attachment
+type Attachment struct {
+	_ struct{} `type:"structure"`
+
+	// Details of the attachment. For Elastic Network Interfaces, this includes
+	// the network interface ID, the MAC address, the subnet ID, and the private
+	// IPv4 address.
+	Details []*KeyValuePair `locationName:"details" type:"list"`
+
+	// The unique identifier for the attachment.
+	Id *string `locationName:"id" type:"string"`
+
+	// The status of the attachment. Valid values are PRECREATED, CREATED, ATTACHING,
+	// ATTACHED, DETACHING, DETACHED, and DELETED.
+	Status *string `locationName:"status" type:"string"`
+
+	// The type of the attachment, such as an ElasticNetworkInterface.
+	Type *string `locationName:"type" type:"string"`
+}
+
+// String returns the string representation
+func (s Attachment) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Attachment) GoString() string {
+	return s.String()
+}
+
+// SetDetails sets the Details field's value.
+func (s *Attachment) SetDetails(v []*KeyValuePair) *Attachment {
+	s.Details = v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *Attachment) SetId(v string) *Attachment {
+	s.Id = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *Attachment) SetStatus(v string) *Attachment {
+	s.Status = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *Attachment) SetType(v string) *Attachment {
+	s.Type = &v
+	return s
+}
+
+// An object representing a change in state for a task attachment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/AttachmentStateChange
+type AttachmentStateChange struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the attachment.
+	//
+	// AttachmentArn is a required field
+	AttachmentArn *string `locationName:"attachmentArn" type:"string" required:"true"`
+
+	// The status of the attachment.
+	//
+	// Status is a required field
+	Status *string `locationName:"status" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AttachmentStateChange) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachmentStateChange) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AttachmentStateChange) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AttachmentStateChange"}
+	if s.AttachmentArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("AttachmentArn"))
+	}
+	if s.Status == nil {
+		invalidParams.Add(request.NewErrParamRequired("Status"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAttachmentArn sets the AttachmentArn field's value.
+func (s *AttachmentStateChange) SetAttachmentArn(v string) *AttachmentStateChange {
+	s.AttachmentArn = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *AttachmentStateChange) SetStatus(v string) *AttachmentStateChange {
+	s.Status = &v
+	return s
+}
+
 // An attribute is a name-value pair associated with an Amazon ECS object. Attributes
 // enable you to extend the Amazon ECS data model by adding custom metadata
 // to your resources. For more information, see Attributes (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement-constraints.html#attributes)
@@ -3584,6 +3670,56 @@ func (s *Attribute) SetTargetType(v string) *Attribute {
 // SetValue sets the Value field's value.
 func (s *Attribute) SetValue(v string) *Attribute {
 	s.Value = &v
+	return s
+}
+
+// An object representing the subnets and security groups for a task or service.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/AwsVpcConfiguration
+type AwsVpcConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The security groups associated with the task or service. If you do not specify
+	// a security group, the default security group for the VPC is used.
+	SecurityGroups []*string `locationName:"securityGroups" type:"list"`
+
+	// The subnets associated with the task or service.
+	//
+	// Subnets is a required field
+	Subnets []*string `locationName:"subnets" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s AwsVpcConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AwsVpcConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AwsVpcConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AwsVpcConfiguration"}
+	if s.Subnets == nil {
+		invalidParams.Add(request.NewErrParamRequired("Subnets"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *AwsVpcConfiguration) SetSecurityGroups(v []*string) *AwsVpcConfiguration {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *AwsVpcConfiguration) SetSubnets(v []*string) *AwsVpcConfiguration {
+	s.Subnets = v
 	return s
 }
 
@@ -3695,6 +3831,9 @@ type Container struct {
 	// The network bindings associated with the container.
 	NetworkBindings []*NetworkBinding `locationName:"networkBindings" type:"list"`
 
+	// The network interfaces associated with the container.
+	NetworkInterfaces []*NetworkInterface `locationName:"networkInterfaces" type:"list"`
+
 	// A short (255 max characters) human-readable string to provide additional
 	// details about a running or stopped container.
 	Reason *string `locationName:"reason" type:"string"`
@@ -3743,6 +3882,12 @@ func (s *Container) SetNetworkBindings(v []*NetworkBinding) *Container {
 	return s
 }
 
+// SetNetworkInterfaces sets the NetworkInterfaces field's value.
+func (s *Container) SetNetworkInterfaces(v []*NetworkInterface) *Container {
+	s.NetworkInterfaces = v
+	return s
+}
+
 // SetReason sets the Reason field's value.
 func (s *Container) SetReason(v string) *Container {
 	s.Reason = &v
@@ -3762,8 +3907,8 @@ type ContainerDefinition struct {
 	_ struct{} `type:"structure"`
 
 	// The command that is passed to the container. This parameter maps to Cmd in
-	// the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the COMMAND parameter to docker run (https://docs.docker.com/engine/reference/run/).
 	// For more information, see https://docs.docker.com/engine/reference/builder/#cmd
 	// (https://docs.docker.com/engine/reference/builder/#cmd).
@@ -3774,8 +3919,8 @@ type ContainerDefinition struct {
 	// amount of CPU to reserve for a container, and containers share unallocated
 	// CPU units with other containers on the instance with the same ratio as their
 	// allocated amount. This parameter maps to CpuShares in the Create a container
-	// (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --cpu-shares option to docker run (https://docs.docker.com/engine/reference/run/).
 	//
 	// You can determine the number of CPU units that are available per EC2 instance
@@ -3811,25 +3956,25 @@ type ContainerDefinition struct {
 	Cpu *int64 `locationName:"cpu" type:"integer"`
 
 	// When this parameter is true, networking is disabled within the container.
-	// This parameter maps to NetworkDisabled in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/).
+	// This parameter maps to NetworkDisabled in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/).
 	DisableNetworking *bool `locationName:"disableNetworking" type:"boolean"`
 
 	// A list of DNS search domains that are presented to the container. This parameter
-	// maps to DnsSearch in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// maps to DnsSearch in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --dns-search option to docker run (https://docs.docker.com/engine/reference/run/).
 	DnsSearchDomains []*string `locationName:"dnsSearchDomains" type:"list"`
 
 	// A list of DNS servers that are presented to the container. This parameter
-	// maps to Dns in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// maps to Dns in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --dns option to docker run (https://docs.docker.com/engine/reference/run/).
 	DnsServers []*string `locationName:"dnsServers" type:"list"`
 
 	// A key/value map of labels to add to the container. This parameter maps to
-	// Labels in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// Labels in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --label option to docker run (https://docs.docker.com/engine/reference/run/).
 	// This parameter requires version 1.18 of the Docker Remote API or greater
 	// on your container instance. To check the Docker Remote API version on your
@@ -3839,8 +3984,8 @@ type ContainerDefinition struct {
 
 	// A list of strings to provide custom labels for SELinux and AppArmor multi-level
 	// security systems. This parameter maps to SecurityOpt in the Create a container
-	// (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --security-opt option to docker run (https://docs.docker.com/engine/reference/run/).
 	//
 	// The Amazon ECS container agent running on a container instance must register
@@ -3856,16 +4001,16 @@ type ContainerDefinition struct {
 	// agent or enter your commands and arguments as command array items instead.
 	//
 	// The entry point that is passed to the container. This parameter maps to Entrypoint
-	// in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --entrypoint option to docker run (https://docs.docker.com/engine/reference/run/).
 	// For more information, see https://docs.docker.com/engine/reference/builder/#entrypoint
 	// (https://docs.docker.com/engine/reference/builder/#entrypoint).
 	EntryPoint []*string `locationName:"entryPoint" type:"list"`
 
 	// The environment variables to pass to a container. This parameter maps to
-	// Env in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// Env in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --env option to docker run (https://docs.docker.com/engine/reference/run/).
 	//
 	// We do not recommend using plain text environment variables for sensitive
@@ -3888,31 +4033,31 @@ type ContainerDefinition struct {
 
 	// A list of hostnames and IP address mappings to append to the /etc/hosts file
 	// on the container. This parameter maps to ExtraHosts in the Create a container
-	// (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --add-host option to docker run (https://docs.docker.com/engine/reference/run/).
 	ExtraHosts []*HostEntry `locationName:"extraHosts" type:"list"`
 
 	// The hostname to use for your container. This parameter maps to Hostname in
-	// the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --hostname option to docker run (https://docs.docker.com/engine/reference/run/).
 	Hostname *string `locationName:"hostname" type:"string"`
 
 	// The image used to start a container. This string is passed directly to the
 	// Docker daemon. Images in the Docker Hub registry are available by default.
-	// Other repositories are specified with repository-url/image:tag. Up to 255
-	// letters (uppercase and lowercase), numbers, hyphens, underscores, colons,
-	// periods, forward slashes, and number signs are allowed. This parameter maps
-	// to Image in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// Other repositories are specified with either repository-url/image:tag or
+	// repository-url/image@digest. Up to 255 letters (uppercase and lowercase),
+	// numbers, hyphens, underscores, colons, periods, forward slashes, and number
+	// signs are allowed. This parameter maps to Image in the Create a container
+	// (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the IMAGE parameter of docker run (https://docs.docker.com/engine/reference/run/).
 	//
-	// Amazon ECS task definitions currently only support tags as image identifiers
-	// within a specified repository (and not sha256 digests).
-	//
-	//    * Images in Amazon ECR repositories use the full registry and repository
-	//    URI (for example, 012345678910.dkr.ecr.<region-name>.amazonaws.com/<repository-name>).
+	//    * Images in Amazon ECR repositories can be specified by either using the
+	//    full registry/repository:tag or registry/repository@digest. For example,
+	//    012345678910.dkr.ecr.<region-name>.amazonaws.com/<repository-name>:latest
+	//    or 012345678910.dkr.ecr.<region-name>.amazonaws.com/<repository-name>@sha256:94afd1f2e64d908bc90dbca0035a5b567EXAMPLE.
 	//
 	//
 	//    * Images in official repositories on Docker Hub use a single name (for
@@ -3932,8 +4077,8 @@ type ContainerDefinition struct {
 	// are allowed for each name and alias. For more information on linking Docker
 	// containers, see https://docs.docker.com/engine/userguide/networking/default_network/dockerlinks/
 	// (https://docs.docker.com/engine/userguide/networking/default_network/dockerlinks/).
-	// This parameter maps to Links in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// This parameter maps to Links in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --link option to docker run (https://docs.docker.com/engine/reference/run/).
 	//
 	// Containers that are collocated on a single container instance may be able
@@ -3942,9 +4087,13 @@ type ContainerDefinition struct {
 	// and VPC settings.
 	Links []*string `locationName:"links" type:"list"`
 
+	// Linux-specific modifications that are applied to the container, such as Linux
+	// KernelCapabilities.
+	LinuxParameters *LinuxParameters `locationName:"linuxParameters" type:"structure"`
+
 	// The log configuration specification for the container. This parameter maps
-	// to LogConfig in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// to LogConfig in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --log-driver option to docker run (https://docs.docker.com/engine/reference/run/).
 	// By default, containers use the same logging driver that the Docker daemon
 	// uses; however the container may use a different logging driver than the Docker
@@ -3974,8 +4123,8 @@ type ContainerDefinition struct {
 
 	// The hard limit (in MiB) of memory to present to the container. If your container
 	// attempts to exceed the memory specified here, the container is killed. This
-	// parameter maps to Memory in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// parameter maps to Memory in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --memory option to docker run (https://docs.docker.com/engine/reference/run/).
 	//
 	// You must specify a non-zero integer for one or both of memory or memoryReservation
@@ -3994,8 +4143,8 @@ type ContainerDefinition struct {
 	// it needs to, up to either the hard limit specified with the memory parameter
 	// (if applicable), or all of the available memory on the container instance,
 	// whichever comes first. This parameter maps to MemoryReservation in the Create
-	// a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --memory-reservation option to docker run (https://docs.docker.com/engine/reference/run/).
 	//
 	// You must specify a non-zero integer for one or both of memory or memoryReservation
@@ -4013,8 +4162,8 @@ type ContainerDefinition struct {
 	MemoryReservation *int64 `locationName:"memoryReservation" type:"integer"`
 
 	// The mount points for data volumes in your container. This parameter maps
-	// to Volumes in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// to Volumes in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --volume option to docker run (https://docs.docker.com/engine/reference/run/).
 	MountPoints []*MountPoint `locationName:"mountPoints" type:"list"`
 
@@ -4022,15 +4171,15 @@ type ContainerDefinition struct {
 	// in a task definition, the name of one container can be entered in the links
 	// of another container to connect the containers. Up to 255 letters (uppercase
 	// and lowercase), numbers, hyphens, and underscores are allowed. This parameter
-	// maps to name in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// maps to name in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --name option to docker run (https://docs.docker.com/engine/reference/run/).
 	Name *string `locationName:"name" type:"string"`
 
 	// The list of port mappings for the container. Port mappings allow containers
 	// to access ports on the host container instance to send or receive traffic.
-	// This parameter maps to PortBindings in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// This parameter maps to PortBindings in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --publish option to docker run (https://docs.docker.com/engine/reference/run/).
 	// If the network mode of a task definition is set to none, then you cannot
 	// specify port mappings. If the network mode of a task definition is set to
@@ -4045,21 +4194,21 @@ type ContainerDefinition struct {
 
 	// When this parameter is true, the container is given elevated privileges on
 	// the host container instance (similar to the root user). This parameter maps
-	// to Privileged in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// to Privileged in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --privileged option to docker run (https://docs.docker.com/engine/reference/run/).
 	Privileged *bool `locationName:"privileged" type:"boolean"`
 
 	// When this parameter is true, the container is given read-only access to its
 	// root file system. This parameter maps to ReadonlyRootfs in the Create a container
-	// (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --read-only option to docker run.
 	ReadonlyRootFilesystem *bool `locationName:"readonlyRootFilesystem" type:"boolean"`
 
 	// A list of ulimits to set in the container. This parameter maps to Ulimits
-	// in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --ulimit option to docker run (https://docs.docker.com/engine/reference/run/).
 	// Valid naming values are displayed in the Ulimit data type. This parameter
 	// requires version 1.18 of the Docker Remote API or greater on your container
@@ -4069,20 +4218,20 @@ type ContainerDefinition struct {
 	Ulimits []*Ulimit `locationName:"ulimits" type:"list"`
 
 	// The user name to use inside the container. This parameter maps to User in
-	// the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --user option to docker run (https://docs.docker.com/engine/reference/run/).
 	User *string `locationName:"user" type:"string"`
 
 	// Data volumes to mount from another container. This parameter maps to VolumesFrom
-	// in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --volumes-from option to docker run (https://docs.docker.com/engine/reference/run/).
 	VolumesFrom []*VolumeFrom `locationName:"volumesFrom" type:"list"`
 
 	// The working directory in which to run commands inside the container. This
-	// parameter maps to WorkingDir in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#create-a-container)
-	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/)
+	// parameter maps to WorkingDir in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
 	// and the --workdir option to docker run (https://docs.docker.com/engine/reference/run/).
 	WorkingDirectory *string `locationName:"workingDirectory" type:"string"`
 }
@@ -4108,6 +4257,11 @@ func (s *ContainerDefinition) Validate() error {
 			if err := v.Validate(); err != nil {
 				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ExtraHosts", i), err.(request.ErrInvalidParams))
 			}
+		}
+	}
+	if s.LinuxParameters != nil {
+		if err := s.LinuxParameters.Validate(); err != nil {
+			invalidParams.AddNested("LinuxParameters", err.(request.ErrInvalidParams))
 		}
 	}
 	if s.LogConfiguration != nil {
@@ -4216,6 +4370,12 @@ func (s *ContainerDefinition) SetLinks(v []*string) *ContainerDefinition {
 	return s
 }
 
+// SetLinuxParameters sets the LinuxParameters field's value.
+func (s *ContainerDefinition) SetLinuxParameters(v *LinuxParameters) *ContainerDefinition {
+	s.LinuxParameters = v
+	return s
+}
+
 // SetLogConfiguration sets the LogConfiguration field's value.
 func (s *ContainerDefinition) SetLogConfiguration(v *LogConfiguration) *ContainerDefinition {
 	s.LogConfiguration = v
@@ -4304,6 +4464,9 @@ type ContainerInstance struct {
 	// this value is NULL.
 	AgentUpdateStatus *string `locationName:"agentUpdateStatus" type:"string" enum:"AgentUpdateStatus"`
 
+	// The Elastic Network Interfaces associated with the container instance.
+	Attachments []*Attachment `locationName:"attachments" type:"list"`
+
 	// The attributes set for the container instance, either by the Amazon ECS container
 	// agent at instance registration or manually with the PutAttributes operation.
 	Attributes []*Attribute `locationName:"attributes" type:"list"`
@@ -4384,6 +4547,12 @@ func (s *ContainerInstance) SetAgentUpdateStatus(v string) *ContainerInstance {
 	return s
 }
 
+// SetAttachments sets the Attachments field's value.
+func (s *ContainerInstance) SetAttachments(v []*Attachment) *ContainerInstance {
+	s.Attachments = v
+	return s
+}
+
 // SetAttributes sets the Attributes field's value.
 func (s *ContainerInstance) SetAttributes(v []*Attribute) *ContainerInstance {
 	s.Attributes = v
@@ -4460,14 +4629,29 @@ type ContainerOverride struct {
 	// name.
 	Command []*string `locationName:"command" type:"list"`
 
+	// The number of cpu units reserved for the container, instead of the default
+	// value from the task definition. You must also specify a container name.
+	Cpu *int64 `locationName:"cpu" type:"integer"`
+
 	// The environment variables to send to the container. You can add new environment
 	// variables, which are added to the container at launch, or you can override
 	// the existing environment variables from the Docker image or the task definition.
 	// You must also specify a container name.
 	Environment []*KeyValuePair `locationName:"environment" type:"list"`
 
+	// The hard limit (in MiB) of memory to present to the container, instead of
+	// the default value from the task definition. If your container attempts to
+	// exceed the memory specified here, the container is killed. You must also
+	// specify a container name.
+	Memory *int64 `locationName:"memory" type:"integer"`
+
+	// The soft limit (in MiB) of memory to reserve for the container, instead of
+	// the default value from the task definition. You must also specify a container
+	// name.
+	MemoryReservation *int64 `locationName:"memoryReservation" type:"integer"`
+
 	// The name of the container that receives the override. This parameter is required
-	// if a command or environment variable is specified.
+	// if any override is specified.
 	Name *string `locationName:"name" type:"string"`
 }
 
@@ -4487,15 +4671,95 @@ func (s *ContainerOverride) SetCommand(v []*string) *ContainerOverride {
 	return s
 }
 
+// SetCpu sets the Cpu field's value.
+func (s *ContainerOverride) SetCpu(v int64) *ContainerOverride {
+	s.Cpu = &v
+	return s
+}
+
 // SetEnvironment sets the Environment field's value.
 func (s *ContainerOverride) SetEnvironment(v []*KeyValuePair) *ContainerOverride {
 	s.Environment = v
 	return s
 }
 
+// SetMemory sets the Memory field's value.
+func (s *ContainerOverride) SetMemory(v int64) *ContainerOverride {
+	s.Memory = &v
+	return s
+}
+
+// SetMemoryReservation sets the MemoryReservation field's value.
+func (s *ContainerOverride) SetMemoryReservation(v int64) *ContainerOverride {
+	s.MemoryReservation = &v
+	return s
+}
+
 // SetName sets the Name field's value.
 func (s *ContainerOverride) SetName(v string) *ContainerOverride {
 	s.Name = &v
+	return s
+}
+
+// An object representing a change in state for a container.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/ContainerStateChange
+type ContainerStateChange struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the container.
+	ContainerName *string `locationName:"containerName" type:"string"`
+
+	// The exit code for the container, if the state change is a result of the container
+	// exiting.
+	ExitCode *int64 `locationName:"exitCode" type:"integer"`
+
+	// Any network bindings associated with the container.
+	NetworkBindings []*NetworkBinding `locationName:"networkBindings" type:"list"`
+
+	// The reason for the state change.
+	Reason *string `locationName:"reason" type:"string"`
+
+	// The status of the container.
+	Status *string `locationName:"status" type:"string"`
+}
+
+// String returns the string representation
+func (s ContainerStateChange) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ContainerStateChange) GoString() string {
+	return s.String()
+}
+
+// SetContainerName sets the ContainerName field's value.
+func (s *ContainerStateChange) SetContainerName(v string) *ContainerStateChange {
+	s.ContainerName = &v
+	return s
+}
+
+// SetExitCode sets the ExitCode field's value.
+func (s *ContainerStateChange) SetExitCode(v int64) *ContainerStateChange {
+	s.ExitCode = &v
+	return s
+}
+
+// SetNetworkBindings sets the NetworkBindings field's value.
+func (s *ContainerStateChange) SetNetworkBindings(v []*NetworkBinding) *ContainerStateChange {
+	s.NetworkBindings = v
+	return s
+}
+
+// SetReason sets the Reason field's value.
+func (s *ContainerStateChange) SetReason(v string) *ContainerStateChange {
+	s.Reason = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ContainerStateChange) SetStatus(v string) *ContainerStateChange {
+	s.Status = &v
 	return s
 }
 
@@ -4577,19 +4841,26 @@ type CreateServiceInput struct {
 	// After you create a service, the load balancer name or target group ARN, container
 	// name, and container port specified in the service definition are immutable.
 	//
-	// For Elastic Load Balancing Classic load balancers, this object must contain
-	// the load balancer name, the container name (as it appears in a container
-	// definition), and the container port to access from the load balancer. When
-	// a task from this service is placed on a container instance, the container
-	// instance is registered with the load balancer specified here.
+	// For Classic Load Balancers, this object must contain the load balancer name,
+	// the container name (as it appears in a container definition), and the container
+	// port to access from the load balancer. When a task from this service is placed
+	// on a container instance, the container instance is registered with the load
+	// balancer specified here.
 	//
-	// For Elastic Load Balancing Application load balancers, this object must contain
-	// the load balancer target group ARN, the container name (as it appears in
-	// a container definition), and the container port to access from the load balancer.
-	// When a task from this service is placed on a container instance, the container
-	// instance and port combination is registered as a target in the target group
-	// specified here.
+	// For Application Load Balancers and Network Load Balancers, this object must
+	// contain the load balancer target group ARN, the container name (as it appears
+	// in a container definition), and the container port to access from the load
+	// balancer. When a task from this service is placed on a container instance,
+	// the container instance and port combination is registered as a target in
+	// the target group specified here.
 	LoadBalancers []*LoadBalancer `locationName:"loadBalancers" type:"list"`
+
+	// The network configuration for the service. This parameter is required for
+	// task definitions that use the awsvpc network mode to receive their own Elastic
+	// Network Interface, and it is not supported for other network modes. For more
+	// information, see Task Networking (http://docs.aws.amazon.com/AmazonECS/latest/developerguidetask-networking.html)
+	// in the Amazon EC2 Container Service Developer Guide.
+	NetworkConfiguration *NetworkConfiguration `locationName:"networkConfiguration" type:"structure"`
 
 	// An array of placement constraint objects to use for tasks in your service.
 	// You can specify a maximum of 10 constraints per task (this limit includes
@@ -4602,9 +4873,17 @@ type CreateServiceInput struct {
 
 	// The name or full Amazon Resource Name (ARN) of the IAM role that allows Amazon
 	// ECS to make calls to your load balancer on your behalf. This parameter is
-	// required if you are using a load balancer with your service. If you specify
-	// the role parameter, you must also specify a load balancer object with the
-	// loadBalancers parameter.
+	// only permitted if you are using a load balancer with your service and your
+	// task definition does not use the awsvpc network mode. If you specify the
+	// role parameter, you must also specify a load balancer object with the loadBalancers
+	// parameter.
+	//
+	// If your account has already created the Amazon ECS service-linked role, that
+	// role is used by default for your service unless you specify a role here.
+	// The service-linked role is required if your task definition uses the awsvpc
+	// network mode, in which case you should not specify a role here. For more
+	// information, see Using Service-Linked Roles for Amazon ECS (http://docs.aws.amazon.com/AmazonECS/latest/developerguideusing-service-linked-roles.html)
+	// in the Amazon EC2 Container Service Developer Guide.
 	//
 	// If your specified role has a path other than /, then you must either specify
 	// the full role ARN (this is recommended) or prefix the role name with the
@@ -4652,6 +4931,11 @@ func (s *CreateServiceInput) Validate() error {
 	if s.TaskDefinition == nil {
 		invalidParams.Add(request.NewErrParamRequired("TaskDefinition"))
 	}
+	if s.NetworkConfiguration != nil {
+		if err := s.NetworkConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("NetworkConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -4686,6 +4970,12 @@ func (s *CreateServiceInput) SetDesiredCount(v int64) *CreateServiceInput {
 // SetLoadBalancers sets the LoadBalancers field's value.
 func (s *CreateServiceInput) SetLoadBalancers(v []*LoadBalancer) *CreateServiceInput {
 	s.LoadBalancers = v
+	return s
+}
+
+// SetNetworkConfiguration sets the NetworkConfiguration field's value.
+func (s *CreateServiceInput) SetNetworkConfiguration(v *NetworkConfiguration) *CreateServiceInput {
+	s.NetworkConfiguration = v
 	return s
 }
 
@@ -4982,6 +5272,10 @@ type Deployment struct {
 	// The ID of the deployment.
 	Id *string `locationName:"id" type:"string"`
 
+	// The VPC subnet and security group configuration for tasks that receive their
+	// own Elastic Network Interface by using the awsvpc networking mode.
+	NetworkConfiguration *NetworkConfiguration `locationName:"networkConfiguration" type:"structure"`
+
 	// The number of tasks in the deployment that are in the PENDING status.
 	PendingCount *int64 `locationName:"pendingCount" type:"integer"`
 
@@ -5026,6 +5320,12 @@ func (s *Deployment) SetDesiredCount(v int64) *Deployment {
 // SetId sets the Id field's value.
 func (s *Deployment) SetId(v string) *Deployment {
 	s.Id = &v
+	return s
+}
+
+// SetNetworkConfiguration sets the NetworkConfiguration field's value.
+func (s *Deployment) SetNetworkConfiguration(v *NetworkConfiguration) *Deployment {
+	s.NetworkConfiguration = v
 	return s
 }
 
@@ -5128,7 +5428,7 @@ type DeregisterContainerInstanceInput struct {
 	// of that task, on a different container instance if possible.
 	//
 	// Any containers in orphaned service tasks that are registered with a Classic
-	// load balancer or an Application load balancer target group are deregistered,
+	// Load Balancer or an Application Load Balancer target group are deregistered,
 	// and they will begin connection draining according to the settings on the
 	// load balancer or target group.
 	Force *bool `locationName:"force" type:"boolean"`
@@ -5636,6 +5936,65 @@ func (s *DescribeTasksOutput) SetTasks(v []*Task) *DescribeTasksOutput {
 	return s
 }
 
+// An object representing a container instance host device.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/Device
+type Device struct {
+	_ struct{} `type:"structure"`
+
+	// The path inside the container at which to expose the host device.
+	ContainerPath *string `locationName:"containerPath" type:"string"`
+
+	// The path for the device on the host container instance.
+	//
+	// HostPath is a required field
+	HostPath *string `locationName:"hostPath" type:"string" required:"true"`
+
+	// The explicit permissions to provide to the container for the device. By default,
+	// the container will be able to read, write, and mknod the device.
+	Permissions []*string `locationName:"permissions" type:"list"`
+}
+
+// String returns the string representation
+func (s Device) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Device) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Device) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Device"}
+	if s.HostPath == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostPath"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContainerPath sets the ContainerPath field's value.
+func (s *Device) SetContainerPath(v string) *Device {
+	s.ContainerPath = &v
+	return s
+}
+
+// SetHostPath sets the HostPath field's value.
+func (s *Device) SetHostPath(v string) *Device {
+	s.HostPath = &v
+	return s
+}
+
+// SetPermissions sets the Permissions field's value.
+func (s *Device) SetPermissions(v []*string) *Device {
+	s.Permissions = v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/DiscoverPollEndpointRequest
 type DiscoverPollEndpointInput struct {
 	_ struct{} `type:"structure"`
@@ -5827,6 +6186,72 @@ func (s *HostVolumeProperties) SetSourcePath(v string) *HostVolumeProperties {
 	return s
 }
 
+// The Linux capabilities for the container that are added to or dropped from
+// the default configuration provided by Docker. For more information on the
+// default capabilities and the non-default available capabilities, see Runtime
+// privilege and Linux capabilities (https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities)
+// in the Docker run reference. For more detailed information on these Linux
+// capabilities, see the capabilities(7) (http://man7.org/linux/man-pages/man7/capabilities.7.html)
+// Linux manual page.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/KernelCapabilities
+type KernelCapabilities struct {
+	_ struct{} `type:"structure"`
+
+	// The Linux capabilities for the container that have been added to the default
+	// configuration provided by Docker. This parameter maps to CapAdd in the Create
+	// a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
+	// and the --cap-add option to docker run (https://docs.docker.com/engine/reference/run/).
+	//
+	// Valid values: "ALL" | "AUDIT_CONTROL" | "AUDIT_WRITE" | "BLOCK_SUSPEND" |
+	// "CHOWN" | "DAC_OVERRIDE" | "DAC_READ_SEARCH" | "FOWNER" | "FSETID" | "IPC_LOCK"
+	// | "IPC_OWNER" | "KILL" | "LEASE" | "LINUX_IMMUTABLE" | "MAC_ADMIN" | "MAC_OVERRIDE"
+	// | "MKNOD" | "NET_ADMIN" | "NET_BIND_SERVICE" | "NET_BROADCAST" | "NET_RAW"
+	// | "SETFCAP" | "SETGID" | "SETPCAP" | "SETUID" | "SYS_ADMIN" | "SYS_BOOT"
+	// | "SYS_CHROOT" | "SYS_MODULE" | "SYS_NICE" | "SYS_PACCT" | "SYS_PTRACE" |
+	// "SYS_RAWIO" | "SYS_RESOURCE" | "SYS_TIME" | "SYS_TTY_CONFIG" | "SYSLOG" |
+	// "WAKE_ALARM"
+	Add []*string `locationName:"add" type:"list"`
+
+	// The Linux capabilities for the container that have been removed from the
+	// default configuration provided by Docker. This parameter maps to CapDrop
+	// in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
+	// and the --cap-drop option to docker run (https://docs.docker.com/engine/reference/run/).
+	//
+	// Valid values: "ALL" | "AUDIT_CONTROL" | "AUDIT_WRITE" | "BLOCK_SUSPEND" |
+	// "CHOWN" | "DAC_OVERRIDE" | "DAC_READ_SEARCH" | "FOWNER" | "FSETID" | "IPC_LOCK"
+	// | "IPC_OWNER" | "KILL" | "LEASE" | "LINUX_IMMUTABLE" | "MAC_ADMIN" | "MAC_OVERRIDE"
+	// | "MKNOD" | "NET_ADMIN" | "NET_BIND_SERVICE" | "NET_BROADCAST" | "NET_RAW"
+	// | "SETFCAP" | "SETGID" | "SETPCAP" | "SETUID" | "SYS_ADMIN" | "SYS_BOOT"
+	// | "SYS_CHROOT" | "SYS_MODULE" | "SYS_NICE" | "SYS_PACCT" | "SYS_PTRACE" |
+	// "SYS_RAWIO" | "SYS_RESOURCE" | "SYS_TIME" | "SYS_TTY_CONFIG" | "SYSLOG" |
+	// "WAKE_ALARM"
+	Drop []*string `locationName:"drop" type:"list"`
+}
+
+// String returns the string representation
+func (s KernelCapabilities) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s KernelCapabilities) GoString() string {
+	return s.String()
+}
+
+// SetAdd sets the Add field's value.
+func (s *KernelCapabilities) SetAdd(v []*string) *KernelCapabilities {
+	s.Add = v
+	return s
+}
+
+// SetDrop sets the Drop field's value.
+func (s *KernelCapabilities) SetDrop(v []*string) *KernelCapabilities {
+	s.Drop = v
+	return s
+}
+
 // A key and value pair object.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/KeyValuePair
 type KeyValuePair struct {
@@ -5860,6 +6285,78 @@ func (s *KeyValuePair) SetName(v string) *KeyValuePair {
 // SetValue sets the Value field's value.
 func (s *KeyValuePair) SetValue(v string) *KeyValuePair {
 	s.Value = &v
+	return s
+}
+
+// Linux-specific options that are applied to the container, such as Linux KernelCapabilities.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/LinuxParameters
+type LinuxParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The Linux capabilities for the container that are added to or dropped from
+	// the default configuration provided by Docker.
+	Capabilities *KernelCapabilities `locationName:"capabilities" type:"structure"`
+
+	// Any host devices to expose to the container. This parameter maps to Devices
+	// in the Create a container (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/#create-a-container)
+	// section of the Docker Remote API (https://docs.docker.com/engine/reference/api/docker_remote_api_v1.27/)
+	// and the --device option to docker run (https://docs.docker.com/engine/reference/run/).
+	Devices []*Device `locationName:"devices" type:"list"`
+
+	// Run an init process inside the container that forwards signals and reaps
+	// processes. This parameter maps to the --init option to docker run (https://docs.docker.com/engine/reference/run/).
+	// This parameter requires version 1.25 of the Docker Remote API or greater
+	// on your container instance. To check the Docker Remote API version on your
+	// container instance, log into your container instance and run the following
+	// command: sudo docker version | grep "Server API version"
+	InitProcessEnabled *bool `locationName:"initProcessEnabled" type:"boolean"`
+}
+
+// String returns the string representation
+func (s LinuxParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LinuxParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *LinuxParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "LinuxParameters"}
+	if s.Devices != nil {
+		for i, v := range s.Devices {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Devices", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCapabilities sets the Capabilities field's value.
+func (s *LinuxParameters) SetCapabilities(v *KernelCapabilities) *LinuxParameters {
+	s.Capabilities = v
+	return s
+}
+
+// SetDevices sets the Devices field's value.
+func (s *LinuxParameters) SetDevices(v []*Device) *LinuxParameters {
+	s.Devices = v
+	return s
+}
+
+// SetInitProcessEnabled sets the InitProcessEnabled field's value.
+func (s *LinuxParameters) SetInitProcessEnabled(v bool) *LinuxParameters {
+	s.InitProcessEnabled = &v
 	return s
 }
 
@@ -6208,13 +6705,13 @@ type ListServicesInput struct {
 	// is assumed.
 	Cluster *string `locationName:"cluster" type:"string"`
 
-	// The maximum number of container instance results returned by ListServices
-	// in paginated output. When this parameter is used, ListServices only returns
-	// maxResults results in a single page along with a nextToken response element.
-	// The remaining results of the initial request can be seen by sending another
-	// ListServices request with the returned nextToken value. This value can be
-	// between 1 and 10. If this parameter is not used, then ListServices returns
-	// up to 10 results and a nextToken value if applicable.
+	// The maximum number of service results returned by ListServices in paginated
+	// output. When this parameter is used, ListServices only returns maxResults
+	// results in a single page along with a nextToken response element. The remaining
+	// results of the initial request can be seen by sending another ListServices
+	// request with the returned nextToken value. This value can be between 1 and
+	// 10. If this parameter is not used, then ListServices returns up to 10 results
+	// and a nextToken value if applicable.
 	MaxResults *int64 `locationName:"maxResults" type:"integer"`
 
 	// The nextToken value returned from a previous paginated ListServices request
@@ -6688,7 +7185,7 @@ type LoadBalancer struct {
 	// mapping.
 	ContainerPort *int64 `locationName:"containerPort" type:"integer"`
 
-	// The name of a Classic load balancer.
+	// The name of a load balancer.
 	LoadBalancerName *string `locationName:"loadBalancerName" type:"string"`
 
 	// The full Amazon Resource Name (ARN) of the Elastic Load Balancing target
@@ -6898,6 +7395,90 @@ func (s *NetworkBinding) SetProtocol(v string) *NetworkBinding {
 	return s
 }
 
+// An object representing the network configuration for a task or service.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/NetworkConfiguration
+type NetworkConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The VPC subnets and security groups associated with a task.
+	AwsvpcConfiguration *AwsVpcConfiguration `locationName:"awsvpcConfiguration" type:"structure"`
+}
+
+// String returns the string representation
+func (s NetworkConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NetworkConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *NetworkConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "NetworkConfiguration"}
+	if s.AwsvpcConfiguration != nil {
+		if err := s.AwsvpcConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("AwsvpcConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAwsvpcConfiguration sets the AwsvpcConfiguration field's value.
+func (s *NetworkConfiguration) SetAwsvpcConfiguration(v *AwsVpcConfiguration) *NetworkConfiguration {
+	s.AwsvpcConfiguration = v
+	return s
+}
+
+// An object representing the Elastic Network Interface for tasks that use the
+// awsvpc network mode.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/NetworkInterface
+type NetworkInterface struct {
+	_ struct{} `type:"structure"`
+
+	// The attachment ID for the network interface.
+	AttachmentId *string `locationName:"attachmentId" type:"string"`
+
+	// The private IPv6 address for the network interface.
+	Ipv6Address *string `locationName:"ipv6Address" type:"string"`
+
+	// The private IPv4 address for the network interface.
+	PrivateIpv4Address *string `locationName:"privateIpv4Address" type:"string"`
+}
+
+// String returns the string representation
+func (s NetworkInterface) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NetworkInterface) GoString() string {
+	return s.String()
+}
+
+// SetAttachmentId sets the AttachmentId field's value.
+func (s *NetworkInterface) SetAttachmentId(v string) *NetworkInterface {
+	s.AttachmentId = &v
+	return s
+}
+
+// SetIpv6Address sets the Ipv6Address field's value.
+func (s *NetworkInterface) SetIpv6Address(v string) *NetworkInterface {
+	s.Ipv6Address = &v
+	return s
+}
+
+// SetPrivateIpv4Address sets the PrivateIpv4Address field's value.
+func (s *NetworkInterface) SetPrivateIpv4Address(v string) *NetworkInterface {
+	s.PrivateIpv4Address = &v
+	return s
+}
+
 // An object representing a constraint on task placement. For more information,
 // see Task Placement Constraints (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement-constraints.html)
 // in the Amazon EC2 Container Service Developer Guide.
@@ -7010,13 +7591,15 @@ type PortMapping struct {
 	// and your container automatically receives a port in the ephemeral port range
 	// for your container instance operating system and Docker version.
 	//
-	// The default ephemeral port range is 49153 to 65535, and this range is used
-	// for Docker versions prior to 1.6.0. For Docker version 1.6.0 and later, the
-	// Docker daemon tries to read the ephemeral port range from /proc/sys/net/ipv4/ip_local_port_range;
-	// if this kernel parameter is unavailable, the default ephemeral port range
+	// The default ephemeral port range for Docker version 1.6.0 and later is listed
+	// on the instance under /proc/sys/net/ipv4/ip_local_port_range; if this kernel
+	// parameter is unavailable, the default ephemeral port range of 49153 to 65535
 	// is used. You should not attempt to specify a host port in the ephemeral port
-	// range, because these are reserved for automatic assignment. In general, ports
-	// below 32768 are outside of the ephemeral port range.
+	// range as these are reserved for automatic assignment. In general, ports below
+	// 32768 are outside of the ephemeral port range.
+	//
+	// The default ephemeral port range of 49153 to 65535 will always be used for
+	// Docker versions prior to 1.6.0.
 	//
 	// The default reserved ports are 22 for SSH, the Docker ports 2375 and 2376,
 	// and the Amazon ECS container agent ports 51678 and 51679. Any host port that
@@ -7295,17 +7878,26 @@ type RegisterTaskDefinitionInput struct {
 	Family *string `locationName:"family" type:"string" required:"true"`
 
 	// The Docker networking mode to use for the containers in the task. The valid
-	// values are none, bridge, and host.
+	// values are none, bridge, awsvpc, and host. The default Docker network mode
+	// is bridge. If the network mode is set to none, you cannot specify port mappings
+	// in your container definitions, and the task's containers do not have external
+	// connectivity. The host and awsvpc network modes offer the highest networking
+	// performance for containers because they use the EC2 network stack instead
+	// of the virtualized network stack provided by the bridge mode.
 	//
-	// The default Docker network mode is bridge. If the network mode is set to
-	// none, you cannot specify port mappings in your container definitions, and
-	// the task's containers do not have external connectivity. The host network
-	// mode offers the highest networking performance for containers because they
-	// use the host network stack instead of the virtualized network stack provided
-	// by the bridge mode; however, exposed container ports are mapped directly
-	// to the corresponding host port, so you cannot take advantage of dynamic host
-	// port mappings or run multiple instantiations of the same task on a single
-	// container instance if port mappings are used.
+	// With the host and awsvpc network modes, exposed container ports are mapped
+	// directly to the corresponding host port (for the host network mode) or the
+	// attached ENI port (for the awsvpc network mode), so you cannot take advantage
+	// of dynamic host port mappings.
+	//
+	// If the network mode is awsvpc, the task is allocated an Elastic Network Interface,
+	// and you must specify a NetworkConfiguration when you create a service or
+	// run a task with the task definition. For more information, see Task Networking
+	// (http://docs.aws.amazon.com/AmazonECS/latest/developerguidetask-networking.html)
+	// in the Amazon EC2 Container Service Developer Guide.
+	//
+	// If the network mode is host, you can not run multiple instantiations of the
+	// same task on a single container instance when port mappings are used.
 	//
 	// For more information, see Network settings (https://docs.docker.com/engine/reference/run/#network-settings)
 	// in the Docker run reference.
@@ -7514,6 +8106,13 @@ type RunTaskInput struct {
 	// is the family name of the task definition (for example, family:my-family-name).
 	Group *string `locationName:"group" type:"string"`
 
+	// The network configuration for the task. This parameter is required for task
+	// definitions that use the awsvpc network mode to receive their own Elastic
+	// Network Interface, and it is not supported for other network modes. For more
+	// information, see Task Networking (http://docs.aws.amazon.com/AmazonECS/latest/developerguidetask-networking.html)
+	// in the Amazon EC2 Container Service Developer Guide.
+	NetworkConfiguration *NetworkConfiguration `locationName:"networkConfiguration" type:"structure"`
+
 	// A list of container overrides in JSON format that specify the name of a container
 	// in the specified task definition and the overrides it should receive. You
 	// can override the default command for a container (that is specified in the
@@ -7570,6 +8169,11 @@ func (s *RunTaskInput) Validate() error {
 	if s.TaskDefinition == nil {
 		invalidParams.Add(request.NewErrParamRequired("TaskDefinition"))
 	}
+	if s.NetworkConfiguration != nil {
+		if err := s.NetworkConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("NetworkConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -7592,6 +8196,12 @@ func (s *RunTaskInput) SetCount(v int64) *RunTaskInput {
 // SetGroup sets the Group field's value.
 func (s *RunTaskInput) SetGroup(v string) *RunTaskInput {
 	s.Group = &v
+	return s
+}
+
+// SetNetworkConfiguration sets the NetworkConfiguration field's value.
+func (s *RunTaskInput) SetNetworkConfiguration(v *NetworkConfiguration) *RunTaskInput {
+	s.NetworkConfiguration = v
 	return s
 }
 
@@ -7691,6 +8301,10 @@ type Service struct {
 	// and the container port to access from the load balancer.
 	LoadBalancers []*LoadBalancer `locationName:"loadBalancers" type:"list"`
 
+	// The VPC subnet and security group configuration for tasks that receive their
+	// own Elastic Network Interface by using the awsvpc networking mode.
+	NetworkConfiguration *NetworkConfiguration `locationName:"networkConfiguration" type:"structure"`
+
 	// The number of tasks in the cluster that are in the PENDING state.
 	PendingCount *int64 `locationName:"pendingCount" type:"integer"`
 
@@ -7778,6 +8392,12 @@ func (s *Service) SetEvents(v []*ServiceEvent) *Service {
 // SetLoadBalancers sets the LoadBalancers field's value.
 func (s *Service) SetLoadBalancers(v []*LoadBalancer) *Service {
 	s.LoadBalancers = v
+	return s
+}
+
+// SetNetworkConfiguration sets the NetworkConfiguration field's value.
+func (s *Service) SetNetworkConfiguration(v *NetworkConfiguration) *Service {
+	s.NetworkConfiguration = v
 	return s
 }
 
@@ -7898,6 +8518,10 @@ type StartTaskInput struct {
 	// is the family name of the task definition (for example, family:my-family-name).
 	Group *string `locationName:"group" type:"string"`
 
+	// The VPC subnet and security group configuration for tasks that receive their
+	// own Elastic Network Interface by using the awsvpc networking mode.
+	NetworkConfiguration *NetworkConfiguration `locationName:"networkConfiguration" type:"structure"`
+
 	// A list of container overrides in JSON format that specify the name of a container
 	// in the specified task definition and the overrides it should receive. You
 	// can override the default command for a container (that is specified in the
@@ -7948,6 +8572,11 @@ func (s *StartTaskInput) Validate() error {
 	if s.TaskDefinition == nil {
 		invalidParams.Add(request.NewErrParamRequired("TaskDefinition"))
 	}
+	if s.NetworkConfiguration != nil {
+		if err := s.NetworkConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("NetworkConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -7970,6 +8599,12 @@ func (s *StartTaskInput) SetContainerInstances(v []*string) *StartTaskInput {
 // SetGroup sets the Group field's value.
 func (s *StartTaskInput) SetGroup(v string) *StartTaskInput {
 	s.Group = &v
+	return s
+}
+
+// SetNetworkConfiguration sets the NetworkConfiguration field's value.
+func (s *StartTaskInput) SetNetworkConfiguration(v *NetworkConfiguration) *StartTaskInput {
+	s.NetworkConfiguration = v
 	return s
 }
 
@@ -8219,9 +8854,15 @@ func (s *SubmitContainerStateChangeOutput) SetAcknowledgment(v string) *SubmitCo
 type SubmitTaskStateChangeInput struct {
 	_ struct{} `type:"structure"`
 
+	// Any attachments associated with the state change request.
+	Attachments []*AttachmentStateChange `locationName:"attachments" type:"list"`
+
 	// The short name or full Amazon Resource Name (ARN) of the cluster that hosts
 	// the task.
 	Cluster *string `locationName:"cluster" type:"string"`
+
+	// Any containers associated with the state change request.
+	Containers []*ContainerStateChange `locationName:"containers" type:"list"`
 
 	// The reason for the state change request.
 	Reason *string `locationName:"reason" type:"string"`
@@ -8244,9 +8885,41 @@ func (s SubmitTaskStateChangeInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SubmitTaskStateChangeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SubmitTaskStateChangeInput"}
+	if s.Attachments != nil {
+		for i, v := range s.Attachments {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Attachments", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAttachments sets the Attachments field's value.
+func (s *SubmitTaskStateChangeInput) SetAttachments(v []*AttachmentStateChange) *SubmitTaskStateChangeInput {
+	s.Attachments = v
+	return s
+}
+
 // SetCluster sets the Cluster field's value.
 func (s *SubmitTaskStateChangeInput) SetCluster(v string) *SubmitTaskStateChangeInput {
 	s.Cluster = &v
+	return s
+}
+
+// SetContainers sets the Containers field's value.
+func (s *SubmitTaskStateChangeInput) SetContainers(v []*ContainerStateChange) *SubmitTaskStateChangeInput {
+	s.Containers = v
 	return s
 }
 
@@ -8296,6 +8969,10 @@ func (s *SubmitTaskStateChangeOutput) SetAcknowledgment(v string) *SubmitTaskSta
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/Task
 type Task struct {
 	_ struct{} `type:"structure"`
+
+	// The Elastic Network Adapter associated with the task if the task uses the
+	// awsvpc network mode.
+	Attachments []*Attachment `locationName:"attachments" type:"list"`
 
 	// The Amazon Resource Name (ARN) of the cluster that hosts the task.
 	ClusterArn *string `locationName:"clusterArn" type:"string"`
@@ -8361,6 +9038,12 @@ func (s Task) String() string {
 // GoString returns the string representation
 func (s Task) GoString() string {
 	return s.String()
+}
+
+// SetAttachments sets the Attachments field's value.
+func (s *Task) SetAttachments(v []*Attachment) *Task {
+	s.Attachments = v
+	return s
 }
 
 // SetClusterArn sets the ClusterArn field's value.
@@ -8468,12 +9151,14 @@ type TaskDefinition struct {
 	Family *string `locationName:"family" type:"string"`
 
 	// The Docker networking mode to use for the containers in the task. The valid
-	// values are none, bridge, and host.
+	// values are none, bridge, awsvpc, and host.
 	//
 	// If the network mode is none, the containers do not have external connectivity.
-	// The default Docker network mode is bridge. The host network mode offers the
-	// highest networking performance for containers because it uses the host network
-	// stack instead of the virtualized network stack provided by the bridge mode.
+	// The default Docker network mode is bridge. If the network mode is awsvpc,
+	// the task is allocated an Elastic Network Interface. The host and awsvpc network
+	// modes offer the highest networking performance for containers because they
+	// use the EC2 network stack instead of the virtualized network stack provided
+	// by the bridge mode.
 	//
 	// For more information, see Network settings (https://docs.docker.com/engine/reference/run/#network-settings)
 	// in the Docker run reference.
@@ -8913,6 +9598,18 @@ type UpdateServiceInput struct {
 	// service.
 	DesiredCount *int64 `locationName:"desiredCount" type:"integer"`
 
+	// The network configuration for the service. This parameter is required for
+	// task definitions that use the awsvpc network mode to receive their own Elastic
+	// Network Interface, and it is not supported for other network modes. For more
+	// information, see Task Networking (http://docs.aws.amazon.com/AmazonECS/latest/developerguidetask-networking.html)
+	// in the Amazon EC2 Container Service Developer Guide.
+	//
+	// Updating a service to add a subnet to a list of existing subnets does not
+	// trigger a service deployment. For example, if your network configuration
+	// change is to keep the existing subnets and simply add another subnet to the
+	// network configuration, this does not trigger a new service deployment.
+	NetworkConfiguration *NetworkConfiguration `locationName:"networkConfiguration" type:"structure"`
+
 	// The name of the service to update.
 	//
 	// Service is a required field
@@ -8942,6 +9639,11 @@ func (s *UpdateServiceInput) Validate() error {
 	if s.Service == nil {
 		invalidParams.Add(request.NewErrParamRequired("Service"))
 	}
+	if s.NetworkConfiguration != nil {
+		if err := s.NetworkConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("NetworkConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -8964,6 +9666,12 @@ func (s *UpdateServiceInput) SetDeploymentConfiguration(v *DeploymentConfigurati
 // SetDesiredCount sets the DesiredCount field's value.
 func (s *UpdateServiceInput) SetDesiredCount(v int64) *UpdateServiceInput {
 	s.DesiredCount = &v
+	return s
+}
+
+// SetNetworkConfiguration sets the NetworkConfiguration field's value.
+func (s *UpdateServiceInput) SetNetworkConfiguration(v *NetworkConfiguration) *UpdateServiceInput {
+	s.NetworkConfiguration = v
 	return s
 }
 
@@ -9165,6 +9873,17 @@ const (
 )
 
 const (
+	// DeviceCgroupPermissionRead is a DeviceCgroupPermission enum value
+	DeviceCgroupPermissionRead = "read"
+
+	// DeviceCgroupPermissionWrite is a DeviceCgroupPermission enum value
+	DeviceCgroupPermissionWrite = "write"
+
+	// DeviceCgroupPermissionMknod is a DeviceCgroupPermission enum value
+	DeviceCgroupPermissionMknod = "mknod"
+)
+
+const (
 	// LogDriverJsonFile is a LogDriver enum value
 	LogDriverJsonFile = "json-file"
 
@@ -9193,6 +9912,9 @@ const (
 
 	// NetworkModeHost is a NetworkMode enum value
 	NetworkModeHost = "host"
+
+	// NetworkModeAwsvpc is a NetworkMode enum value
+	NetworkModeAwsvpc = "awsvpc"
 
 	// NetworkModeNone is a NetworkMode enum value
 	NetworkModeNone = "none"

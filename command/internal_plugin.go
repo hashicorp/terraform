@@ -45,16 +45,6 @@ func (c *InternalPluginCommand) Run(args []string) int {
 	log.SetPrefix(fmt.Sprintf("%s-%s (internal) ", pluginName, pluginType))
 
 	switch pluginType {
-	case "provider":
-		pluginFunc, found := InternalProviders[pluginName]
-		if !found {
-			log.Printf("[ERROR] Could not load provider: %s", pluginName)
-			return 1
-		}
-		log.Printf("[INFO] Starting provider plugin %s", pluginName)
-		plugin.Serve(&plugin.ServeOpts{
-			ProviderFunc: pluginFunc,
-		})
 	case "provisioner":
 		pluginFunc, found := InternalProvisioners[pluginName]
 		if !found {

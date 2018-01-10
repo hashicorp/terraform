@@ -1,0 +1,73 @@
+---
+layout: "downloads"
+page_title: "Upgrading to Terraform 0.9"
+sidebar_current: "upgrade-guides-0-9"
+description: |-
+  Upgrading to Terraform v0.9
+---
+
+# Upgrading to Terraform v0.9
+
+Terraform v0.9 is a major release and thus includes some changes that
+you'll need to consider when upgrading. This guide is meant to help with
+that process.
+
+The goal of this guide is to cover the most common upgrade concerns and
+issues that would benefit from more explanation and background. The exhaustive
+list of changes will always be the
+[Terraform Changelog](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md).
+After reviewing this guide, we recommend reviewing the Changelog to check on
+specific notes about the resources and providers you use.
+
+## Remote State
+
+Remote state has been overhauled to be easier and safer to configure and use.
+**The new changes are backwards compatible** with existing remote state and
+you'll be prompted to migrate to the new remote backend system.
+
+An in-depth guide for migrating to the new backend system
+[is available here](/docs/backends/legacy-0-8.html). This includes
+backing up your existing remote state and also rolling back if necessary.
+
+The only non-backwards compatible change is in the CLI: the existing
+`terraform remote config` command is now gone. Remote state is now configured
+via the "backend" section within the Terraform configuration itself.
+
+**Example configuring a Consul remote backend:**
+
+```
+terraform {
+  backend "consul" {
+    address    = "demo.consul.io"
+    datacenter = "nyc3"
+    path       = "tfdemo"
+  }
+}
+```
+
+**Action:** Nothing immediately, everything will continue working
+except scripts using `terraform remote config`.
+As soon as possible, [upgrade to backends](/docs/backends/legacy-0-8.html).
+
+## State Locking
+
+Terraform 0.9 now will acquire a lock for your state if your backend
+supports it. **This change is backwards compatible**, but may require
+enhanced permissions for the authentication used with your backend.
+
+Backends that support locking as of the 0.9.0 release are: local files,
+Amazon S3, HashiCorp Consul, and Terraform Enterprise (atlas). If you don't
+use these backends, you can ignore this section.
+
+Specific notes for each affected backend:
+
+  * **Amazon S3**: DynamoDB is used for locking. The AWS access keys
+    must have access to Dynamo. You may disable locking by omitting the
+    `lock_table` key in your backend configuration.
+
+  * **HashiCorp Consul**: Sessions are used for locking. If an auth token
+    is used it must have permissions to create and destroy sessions. You
+    may disable locking by specifying `lock = false` in your backend
+    configuration.
+
+**Action:** Update your credentials or configuration if necessary.

@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
@@ -28,8 +30,8 @@ func TestPlan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -61,8 +63,8 @@ func TestPlan_lockedState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -89,8 +91,8 @@ func TestPlan_plan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -128,8 +130,8 @@ func TestPlan_destroy(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -165,8 +167,8 @@ func TestPlan_noState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -205,8 +207,8 @@ func TestPlan_outPath(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -262,8 +264,8 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -318,8 +320,8 @@ func TestPlan_outBackend(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -382,8 +384,8 @@ func TestPlan_outBackendLegacy(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -412,8 +414,8 @@ func TestPlan_refresh(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -450,8 +452,8 @@ func TestPlan_state(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -506,8 +508,8 @@ func TestPlan_stateDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -535,8 +537,8 @@ func TestPlan_stateFuture(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -576,8 +578,8 @@ func TestPlan_statePast(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -608,8 +610,8 @@ func TestPlan_validate(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -632,8 +634,8 @@ func TestPlan_vars(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -676,8 +678,8 @@ func TestPlan_varsUnset(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -702,8 +704,8 @@ func TestPlan_varFile(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -752,8 +754,8 @@ func TestPlan_varFileDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -795,8 +797,8 @@ func TestPlan_detailedExitcode(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -820,14 +822,64 @@ func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
 	args := []string{"-detailed-exitcode"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestPlan_shutdown(t *testing.T) {
+	cancelled := make(chan struct{})
+
+	shutdownCh := make(chan struct{})
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			ShutdownCh:       shutdownCh,
+		},
+	}
+
+	p.StopFn = func() error {
+		close(cancelled)
+		return nil
+	}
+
+	var once sync.Once
+
+	p.DiffFn = func(
+		*terraform.InstanceInfo,
+		*terraform.InstanceState,
+		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+
+		once.Do(func() {
+			shutdownCh <- struct{}{}
+		})
+
+		return &terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"ami": &terraform.ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+
+	if code := c.Run([]string{testFixturePath("apply-shutdown")}); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	select {
+	case <-cancelled:
+	case <-time.After(5 * time.Second):
+		t.Fatal("command not cancelled")
 	}
 }
 

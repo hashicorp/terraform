@@ -42,6 +42,10 @@ func (h *CountHook) PreApply(
 	h.Lock()
 	defer h.Unlock()
 
+	if d.Empty() {
+		return terraform.HookActionContinue, nil
+	}
+
 	if h.pending == nil {
 		h.pending = make(map[string]countHookAction)
 	}

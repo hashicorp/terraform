@@ -18,6 +18,8 @@ import (
 	"os/exec"
 	"regexp"
 	"syscall"
+
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 )
 
 // Getter defines the interface that schemes must implement to download
@@ -49,8 +51,13 @@ var Getters map[string]Getter
 // syntax is schema::url, example: git::https://foo.com
 var forcedRegexp = regexp.MustCompile(`^([A-Za-z0-9]+)::(.+)$`)
 
+// httpClient is the default client to be used by HttpGetters.
+var httpClient = cleanhttp.DefaultClient()
+
 func init() {
-	httpGetter := &HttpGetter{Netrc: true}
+	httpGetter := &HttpGetter{
+		Netrc: true,
+	}
 
 	Getters = map[string]Getter{
 		"file":  new(FileGetter),

@@ -17,19 +17,18 @@ const opCreateCloudFrontOriginAccessIdentity = "CreateCloudFrontOriginAccessIden
 
 // CreateCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCloudFrontOriginAccessIdentity operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateCloudFrontOriginAccessIdentity for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateCloudFrontOriginAccessIdentity method directly
-// instead.
+// See CreateCloudFrontOriginAccessIdentity for more information on using the CreateCloudFrontOriginAccessIdentity
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateCloudFrontOriginAccessIdentityRequest method.
 //    req, resp := client.CreateCloudFrontOriginAccessIdentityRequest(params)
@@ -91,7 +90,7 @@ func (c *CloudFront) CreateCloudFrontOriginAccessIdentityRequest(input *CreateCl
 //   The argument is invalid.
 //
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
-//   The value of Quantity and the size of Items do not match.
+//   The value of Quantity and the size of Items don't match.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateCloudFrontOriginAccessIdentity
 func (c *CloudFront) CreateCloudFrontOriginAccessIdentity(input *CreateCloudFrontOriginAccessIdentityInput) (*CreateCloudFrontOriginAccessIdentityOutput, error) {
@@ -119,19 +118,18 @@ const opCreateDistribution = "CreateDistribution2017_03_25"
 
 // CreateDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDistribution method directly
-// instead.
+// See CreateDistribution for more information on using the CreateDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDistributionRequest method.
 //    req, resp := client.CreateDistributionRequest(params)
@@ -191,7 +189,7 @@ func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (
 //   Your request contains more trusted signers than are allowed per distribution.
 //
 //   * ErrCodeTrustedSignerDoesNotExist "TrustedSignerDoesNotExist"
-//   One or more of your trusted signers do not exist.
+//   One or more of your trusted signers don't exist.
 //
 //   * ErrCodeInvalidViewerCertificate "InvalidViewerCertificate"
 //
@@ -251,7 +249,7 @@ func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (
 //   * ErrCodeInvalidHeadersForS3Origin "InvalidHeadersForS3Origin"
 //
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
-//   The value of Quantity and the size of Items do not match.
+//   The value of Quantity and the size of Items don't match.
 //
 //   * ErrCodeTooManyCertificates "TooManyCertificates"
 //   You cannot create anymore custom SSL/TLS certificates.
@@ -315,19 +313,18 @@ const opCreateDistributionWithTags = "CreateDistributionWithTags2017_03_25"
 
 // CreateDistributionWithTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDistributionWithTags operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateDistributionWithTags for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateDistributionWithTags method directly
-// instead.
+// See CreateDistributionWithTags for more information on using the CreateDistributionWithTags
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateDistributionWithTagsRequest method.
 //    req, resp := client.CreateDistributionWithTagsRequest(params)
@@ -386,7 +383,7 @@ func (c *CloudFront) CreateDistributionWithTagsRequest(input *CreateDistribution
 //   Your request contains more trusted signers than are allowed per distribution.
 //
 //   * ErrCodeTrustedSignerDoesNotExist "TrustedSignerDoesNotExist"
-//   One or more of your trusted signers do not exist.
+//   One or more of your trusted signers don't exist.
 //
 //   * ErrCodeInvalidViewerCertificate "InvalidViewerCertificate"
 //
@@ -446,7 +443,7 @@ func (c *CloudFront) CreateDistributionWithTagsRequest(input *CreateDistribution
 //   * ErrCodeInvalidHeadersForS3Origin "InvalidHeadersForS3Origin"
 //
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
-//   The value of Quantity and the size of Items do not match.
+//   The value of Quantity and the size of Items don't match.
 //
 //   * ErrCodeTooManyCertificates "TooManyCertificates"
 //   You cannot create anymore custom SSL/TLS certificates.
@@ -512,19 +509,18 @@ const opCreateInvalidation = "CreateInvalidation2017_03_25"
 
 // CreateInvalidationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateInvalidation operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateInvalidation for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateInvalidation method directly
-// instead.
+// See CreateInvalidation for more information on using the CreateInvalidation
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateInvalidationRequest method.
 //    req, resp := client.CreateInvalidationRequest(params)
@@ -583,7 +579,7 @@ func (c *CloudFront) CreateInvalidationRequest(input *CreateInvalidationInput) (
 //   batch requests, or invalidation objects.
 //
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
-//   The value of Quantity and the size of Items do not match.
+//   The value of Quantity and the size of Items don't match.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateInvalidation
 func (c *CloudFront) CreateInvalidation(input *CreateInvalidationInput) (*CreateInvalidationOutput, error) {
@@ -611,19 +607,18 @@ const opCreateStreamingDistribution = "CreateStreamingDistribution2017_03_25"
 
 // CreateStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateStreamingDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateStreamingDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateStreamingDistribution method directly
-// instead.
+// See CreateStreamingDistribution for more information on using the CreateStreamingDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateStreamingDistributionRequest method.
 //    req, resp := client.CreateStreamingDistributionRequest(params)
@@ -707,7 +702,7 @@ func (c *CloudFront) CreateStreamingDistributionRequest(input *CreateStreamingDi
 //   Your request contains more trusted signers than are allowed per distribution.
 //
 //   * ErrCodeTrustedSignerDoesNotExist "TrustedSignerDoesNotExist"
-//   One or more of your trusted signers do not exist.
+//   One or more of your trusted signers don't exist.
 //
 //   * ErrCodeMissingBody "MissingBody"
 //   This operation requires a body. Ensure that the body is present and the Content-Type
@@ -723,7 +718,7 @@ func (c *CloudFront) CreateStreamingDistributionRequest(input *CreateStreamingDi
 //   The argument is invalid.
 //
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
-//   The value of Quantity and the size of Items do not match.
+//   The value of Quantity and the size of Items don't match.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistribution
 func (c *CloudFront) CreateStreamingDistribution(input *CreateStreamingDistributionInput) (*CreateStreamingDistributionOutput, error) {
@@ -751,19 +746,18 @@ const opCreateStreamingDistributionWithTags = "CreateStreamingDistributionWithTa
 
 // CreateStreamingDistributionWithTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateStreamingDistributionWithTags operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateStreamingDistributionWithTags for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateStreamingDistributionWithTags method directly
-// instead.
+// See CreateStreamingDistributionWithTags for more information on using the CreateStreamingDistributionWithTags
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateStreamingDistributionWithTagsRequest method.
 //    req, resp := client.CreateStreamingDistributionWithTagsRequest(params)
@@ -820,7 +814,7 @@ func (c *CloudFront) CreateStreamingDistributionWithTagsRequest(input *CreateStr
 //   Your request contains more trusted signers than are allowed per distribution.
 //
 //   * ErrCodeTrustedSignerDoesNotExist "TrustedSignerDoesNotExist"
-//   One or more of your trusted signers do not exist.
+//   One or more of your trusted signers don't exist.
 //
 //   * ErrCodeMissingBody "MissingBody"
 //   This operation requires a body. Ensure that the body is present and the Content-Type
@@ -836,7 +830,7 @@ func (c *CloudFront) CreateStreamingDistributionWithTagsRequest(input *CreateStr
 //   The argument is invalid.
 //
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
-//   The value of Quantity and the size of Items do not match.
+//   The value of Quantity and the size of Items don't match.
 //
 //   * ErrCodeInvalidTagging "InvalidTagging"
 //
@@ -866,19 +860,18 @@ const opDeleteCloudFrontOriginAccessIdentity = "DeleteCloudFrontOriginAccessIden
 
 // DeleteCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCloudFrontOriginAccessIdentity operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteCloudFrontOriginAccessIdentity for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteCloudFrontOriginAccessIdentity method directly
-// instead.
+// See DeleteCloudFrontOriginAccessIdentity for more information on using the DeleteCloudFrontOriginAccessIdentity
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteCloudFrontOriginAccessIdentityRequest method.
 //    req, resp := client.DeleteCloudFrontOriginAccessIdentityRequest(params)
@@ -960,19 +953,18 @@ const opDeleteDistribution = "DeleteDistribution2017_03_25"
 
 // DeleteDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteDistribution method directly
-// instead.
+// See DeleteDistribution for more information on using the DeleteDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteDistributionRequest method.
 //    req, resp := client.DeleteDistributionRequest(params)
@@ -1050,23 +1042,108 @@ func (c *CloudFront) DeleteDistributionWithContext(ctx aws.Context, input *Delet
 	return out, req.Send()
 }
 
+const opDeleteServiceLinkedRole = "DeleteServiceLinkedRole2017_03_25"
+
+// DeleteServiceLinkedRoleRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteServiceLinkedRole operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteServiceLinkedRole for more information on using the DeleteServiceLinkedRole
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteServiceLinkedRoleRequest method.
+//    req, resp := client.DeleteServiceLinkedRoleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRole
+func (c *CloudFront) DeleteServiceLinkedRoleRequest(input *DeleteServiceLinkedRoleInput) (req *request.Request, output *DeleteServiceLinkedRoleOutput) {
+	op := &request.Operation{
+		Name:       opDeleteServiceLinkedRole,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/2017-03-25/service-linked-role/{RoleName}",
+	}
+
+	if input == nil {
+		input = &DeleteServiceLinkedRoleInput{}
+	}
+
+	output = &DeleteServiceLinkedRoleOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteServiceLinkedRole API operation for Amazon CloudFront.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudFront's
+// API operation DeleteServiceLinkedRole for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidArgument "InvalidArgument"
+//   The argument is invalid.
+//
+//   * ErrCodeAccessDenied "AccessDenied"
+//   Access denied.
+//
+//   * ErrCodeResourceInUse "ResourceInUse"
+//
+//   * ErrCodeNoSuchResource "NoSuchResource"
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRole
+func (c *CloudFront) DeleteServiceLinkedRole(input *DeleteServiceLinkedRoleInput) (*DeleteServiceLinkedRoleOutput, error) {
+	req, out := c.DeleteServiceLinkedRoleRequest(input)
+	return out, req.Send()
+}
+
+// DeleteServiceLinkedRoleWithContext is the same as DeleteServiceLinkedRole with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteServiceLinkedRole for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) DeleteServiceLinkedRoleWithContext(ctx aws.Context, input *DeleteServiceLinkedRoleInput, opts ...request.Option) (*DeleteServiceLinkedRoleOutput, error) {
+	req, out := c.DeleteServiceLinkedRoleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteStreamingDistribution = "DeleteStreamingDistribution2017_03_25"
 
 // DeleteStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteStreamingDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteStreamingDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteStreamingDistribution method directly
-// instead.
+// See DeleteStreamingDistribution for more information on using the DeleteStreamingDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteStreamingDistributionRequest method.
 //    req, resp := client.DeleteStreamingDistributionRequest(params)
@@ -1183,19 +1260,18 @@ const opGetCloudFrontOriginAccessIdentity = "GetCloudFrontOriginAccessIdentity20
 
 // GetCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the GetCloudFrontOriginAccessIdentity operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetCloudFrontOriginAccessIdentity for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetCloudFrontOriginAccessIdentity method directly
-// instead.
+// See GetCloudFrontOriginAccessIdentity for more information on using the GetCloudFrontOriginAccessIdentity
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetCloudFrontOriginAccessIdentityRequest method.
 //    req, resp := client.GetCloudFrontOriginAccessIdentityRequest(params)
@@ -1266,19 +1342,18 @@ const opGetCloudFrontOriginAccessIdentityConfig = "GetCloudFrontOriginAccessIden
 
 // GetCloudFrontOriginAccessIdentityConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetCloudFrontOriginAccessIdentityConfig operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetCloudFrontOriginAccessIdentityConfig for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetCloudFrontOriginAccessIdentityConfig method directly
-// instead.
+// See GetCloudFrontOriginAccessIdentityConfig for more information on using the GetCloudFrontOriginAccessIdentityConfig
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetCloudFrontOriginAccessIdentityConfigRequest method.
 //    req, resp := client.GetCloudFrontOriginAccessIdentityConfigRequest(params)
@@ -1349,19 +1424,18 @@ const opGetDistribution = "GetDistribution2017_03_25"
 
 // GetDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the GetDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetDistribution method directly
-// instead.
+// See GetDistribution for more information on using the GetDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetDistributionRequest method.
 //    req, resp := client.GetDistributionRequest(params)
@@ -1432,19 +1506,18 @@ const opGetDistributionConfig = "GetDistributionConfig2017_03_25"
 
 // GetDistributionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetDistributionConfig operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetDistributionConfig for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetDistributionConfig method directly
-// instead.
+// See GetDistributionConfig for more information on using the GetDistributionConfig
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetDistributionConfigRequest method.
 //    req, resp := client.GetDistributionConfigRequest(params)
@@ -1515,19 +1588,18 @@ const opGetInvalidation = "GetInvalidation2017_03_25"
 
 // GetInvalidationRequest generates a "aws/request.Request" representing the
 // client's request for the GetInvalidation operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetInvalidation for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetInvalidation method directly
-// instead.
+// See GetInvalidation for more information on using the GetInvalidation
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetInvalidationRequest method.
 //    req, resp := client.GetInvalidationRequest(params)
@@ -1601,19 +1673,18 @@ const opGetStreamingDistribution = "GetStreamingDistribution2017_03_25"
 
 // GetStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the GetStreamingDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetStreamingDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetStreamingDistribution method directly
-// instead.
+// See GetStreamingDistribution for more information on using the GetStreamingDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetStreamingDistributionRequest method.
 //    req, resp := client.GetStreamingDistributionRequest(params)
@@ -1685,19 +1756,18 @@ const opGetStreamingDistributionConfig = "GetStreamingDistributionConfig2017_03_
 
 // GetStreamingDistributionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetStreamingDistributionConfig operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetStreamingDistributionConfig for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetStreamingDistributionConfig method directly
-// instead.
+// See GetStreamingDistributionConfig for more information on using the GetStreamingDistributionConfig
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetStreamingDistributionConfigRequest method.
 //    req, resp := client.GetStreamingDistributionConfigRequest(params)
@@ -1768,19 +1838,18 @@ const opListCloudFrontOriginAccessIdentities = "ListCloudFrontOriginAccessIdenti
 
 // ListCloudFrontOriginAccessIdentitiesRequest generates a "aws/request.Request" representing the
 // client's request for the ListCloudFrontOriginAccessIdentities operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListCloudFrontOriginAccessIdentities for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListCloudFrontOriginAccessIdentities method directly
-// instead.
+// See ListCloudFrontOriginAccessIdentities for more information on using the ListCloudFrontOriginAccessIdentities
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListCloudFrontOriginAccessIdentitiesRequest method.
 //    req, resp := client.ListCloudFrontOriginAccessIdentitiesRequest(params)
@@ -1904,19 +1973,18 @@ const opListDistributions = "ListDistributions2017_03_25"
 
 // ListDistributionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListDistributions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListDistributions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListDistributions method directly
-// instead.
+// See ListDistributions for more information on using the ListDistributions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListDistributionsRequest method.
 //    req, resp := client.ListDistributionsRequest(params)
@@ -2040,19 +2108,18 @@ const opListDistributionsByWebACLId = "ListDistributionsByWebACLId2017_03_25"
 
 // ListDistributionsByWebACLIdRequest generates a "aws/request.Request" representing the
 // client's request for the ListDistributionsByWebACLId operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListDistributionsByWebACLId for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListDistributionsByWebACLId method directly
-// instead.
+// See ListDistributionsByWebACLId for more information on using the ListDistributionsByWebACLId
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListDistributionsByWebACLIdRequest method.
 //    req, resp := client.ListDistributionsByWebACLIdRequest(params)
@@ -2122,19 +2189,18 @@ const opListInvalidations = "ListInvalidations2017_03_25"
 
 // ListInvalidationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListInvalidations operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListInvalidations for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListInvalidations method directly
-// instead.
+// See ListInvalidations for more information on using the ListInvalidations
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListInvalidationsRequest method.
 //    req, resp := client.ListInvalidationsRequest(params)
@@ -2264,19 +2330,18 @@ const opListStreamingDistributions = "ListStreamingDistributions2017_03_25"
 
 // ListStreamingDistributionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListStreamingDistributions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListStreamingDistributions for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListStreamingDistributions method directly
-// instead.
+// See ListStreamingDistributions for more information on using the ListStreamingDistributions
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListStreamingDistributionsRequest method.
 //    req, resp := client.ListStreamingDistributionsRequest(params)
@@ -2400,19 +2465,18 @@ const opListTagsForResource = "ListTagsForResource2017_03_25"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListTagsForResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTagsForResource method directly
-// instead.
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListTagsForResourceRequest method.
 //    req, resp := client.ListTagsForResourceRequest(params)
@@ -2487,19 +2551,18 @@ const opTagResource = "TagResource2017_03_25"
 
 // TagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the TagResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See TagResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the TagResource method directly
-// instead.
+// See TagResource for more information on using the TagResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the TagResourceRequest method.
 //    req, resp := client.TagResourceRequest(params)
@@ -2576,19 +2639,18 @@ const opUntagResource = "UntagResource2017_03_25"
 
 // UntagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the UntagResource operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UntagResource for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UntagResource method directly
-// instead.
+// See UntagResource for more information on using the UntagResource
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UntagResourceRequest method.
 //    req, resp := client.UntagResourceRequest(params)
@@ -2665,19 +2727,18 @@ const opUpdateCloudFrontOriginAccessIdentity = "UpdateCloudFrontOriginAccessIden
 
 // UpdateCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateCloudFrontOriginAccessIdentity operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateCloudFrontOriginAccessIdentity for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateCloudFrontOriginAccessIdentity method directly
-// instead.
+// See UpdateCloudFrontOriginAccessIdentity for more information on using the UpdateCloudFrontOriginAccessIdentity
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateCloudFrontOriginAccessIdentityRequest method.
 //    req, resp := client.UpdateCloudFrontOriginAccessIdentityRequest(params)
@@ -2740,7 +2801,7 @@ func (c *CloudFront) UpdateCloudFrontOriginAccessIdentityRequest(input *UpdateCl
 //   The argument is invalid.
 //
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
-//   The value of Quantity and the size of Items do not match.
+//   The value of Quantity and the size of Items don't match.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateCloudFrontOriginAccessIdentity
 func (c *CloudFront) UpdateCloudFrontOriginAccessIdentity(input *UpdateCloudFrontOriginAccessIdentityInput) (*UpdateCloudFrontOriginAccessIdentityOutput, error) {
@@ -2768,19 +2829,18 @@ const opUpdateDistribution = "UpdateDistribution2017_03_25"
 
 // UpdateDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateDistribution method directly
-// instead.
+// See UpdateDistribution for more information on using the UpdateDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateDistributionRequest method.
 //    req, resp := client.UpdateDistributionRequest(params)
@@ -2809,7 +2869,56 @@ func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (
 
 // UpdateDistribution API operation for Amazon CloudFront.
 //
-// Update a distribution.
+// Updates the configuration for a web distribution. Perform the following steps.
+//
+// For information about updating a distribution using the CloudFront console,
+// see Creating or Updating a Web Distribution Using the CloudFront Console
+//  (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-creating-console.html)
+// in the Amazon CloudFront Developer Guide.
+//
+// To update a web distribution using the CloudFront API
+//
+// Submit a GetDistributionConfig request to get the current configuration and
+// an Etag header for the distribution.
+//
+// If you update the distribution again, you need to get a new Etag header.
+//
+// Update the XML document that was returned in the response to your GetDistributionConfig
+// request to include the desired changes. You can't change the value of CallerReference.
+// If you try to change this value, CloudFront returns an IllegalUpdate error.
+//
+// The new configuration replaces the existing configuration; the values that
+// you specify in an UpdateDistribution request are not merged into the existing
+// configuration. When you add, delete, or replace values in an element that
+// allows multiple values (for example, CNAME), you must specify all of the
+// values that you want to appear in the updated distribution. In addition,
+// you must update the corresponding Quantity element.
+//
+// Submit an UpdateDistribution request to update the configuration for your
+// distribution:
+//
+// In the request body, include the XML document that you updated in Step 2.
+// The request body must include an XML document with a DistributionConfig element.
+//
+// Set the value of the HTTP If-Match header to the value of the ETag header
+// that CloudFront returned when you submitted the GetDistributionConfig request
+// in Step 1.
+//
+// Review the response to the UpdateDistribution request to confirm that the
+// configuration was successfully updated.
+//
+// Optional: Submit a GetDistribution request to confirm that your changes have
+// propagated. When propagation is complete, the value of Status is Deployed.
+//
+// Beginning with the 2012-05-05 version of the CloudFront API, we made substantial
+// changes to the format of the XML document that you include in the request
+// body when you create or update a distribution. With previous versions of
+// the API, we discovered that it was too easy to accidentally delete one or
+// more values for an element that accepts multiple values, for example, CNAMEs
+// and trusted signers. Our changes for the 2012-05-05 release are intended
+// to prevent these accidental deletions and to notify you when there's a mismatch
+// between the number of values you say you're specifying in the Quantity element
+// and the number of values you're actually specifying.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2865,7 +2974,7 @@ func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (
 //   Your request contains more trusted signers than are allowed per distribution.
 //
 //   * ErrCodeTrustedSignerDoesNotExist "TrustedSignerDoesNotExist"
-//   One or more of your trusted signers do not exist.
+//   One or more of your trusted signers don't exist.
 //
 //   * ErrCodeInvalidViewerCertificate "InvalidViewerCertificate"
 //
@@ -2900,7 +3009,7 @@ func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (
 //   * ErrCodeInvalidHeadersForS3Origin "InvalidHeadersForS3Origin"
 //
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
-//   The value of Quantity and the size of Items do not match.
+//   The value of Quantity and the size of Items don't match.
 //
 //   * ErrCodeTooManyCertificates "TooManyCertificates"
 //   You cannot create anymore custom SSL/TLS certificates.
@@ -2960,19 +3069,18 @@ const opUpdateStreamingDistribution = "UpdateStreamingDistribution2017_03_25"
 
 // UpdateStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateStreamingDistribution operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateStreamingDistribution for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateStreamingDistribution method directly
-// instead.
+// See UpdateStreamingDistribution for more information on using the UpdateStreamingDistribution
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateStreamingDistributionRequest method.
 //    req, resp := client.UpdateStreamingDistributionRequest(params)
@@ -3045,10 +3153,10 @@ func (c *CloudFront) UpdateStreamingDistributionRequest(input *UpdateStreamingDi
 //   Your request contains more trusted signers than are allowed per distribution.
 //
 //   * ErrCodeTrustedSignerDoesNotExist "TrustedSignerDoesNotExist"
-//   One or more of your trusted signers do not exist.
+//   One or more of your trusted signers don't exist.
 //
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
-//   The value of Quantity and the size of Items do not match.
+//   The value of Quantity and the size of Items don't match.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateStreamingDistribution
 func (c *CloudFront) UpdateStreamingDistribution(input *UpdateStreamingDistributionInput) (*UpdateStreamingDistributionOutput, error) {
@@ -3857,7 +3965,7 @@ type CreateCloudFrontOriginAccessIdentityInput struct {
 	// The current configuration information for the identity.
 	//
 	// CloudFrontOriginAccessIdentityConfig is a required field
-	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true"`
+	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -3946,7 +4054,7 @@ type CreateDistributionInput struct {
 	// The distribution's configuration information.
 	//
 	// DistributionConfig is a required field
-	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true"`
+	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -4035,7 +4143,7 @@ type CreateDistributionWithTagsInput struct {
 	// The distribution's configuration information.
 	//
 	// DistributionConfigWithTags is a required field
-	DistributionConfigWithTags *DistributionConfigWithTags `locationName:"DistributionConfigWithTags" type:"structure" required:"true"`
+	DistributionConfigWithTags *DistributionConfigWithTags `locationName:"DistributionConfigWithTags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -4129,7 +4237,7 @@ type CreateInvalidationInput struct {
 	// The batch information for the invalidation.
 	//
 	// InvalidationBatch is a required field
-	InvalidationBatch *InvalidationBatch `locationName:"InvalidationBatch" type:"structure" required:"true"`
+	InvalidationBatch *InvalidationBatch `locationName:"InvalidationBatch" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -4218,7 +4326,7 @@ type CreateStreamingDistributionInput struct {
 	// The streaming distribution's configuration information.
 	//
 	// StreamingDistributionConfig is a required field
-	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true"`
+	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -4307,7 +4415,7 @@ type CreateStreamingDistributionWithTagsInput struct {
 	// The streaming distribution's configuration information.
 	//
 	// StreamingDistributionConfigWithTags is a required field
-	StreamingDistributionConfigWithTags *StreamingDistributionConfigWithTags `locationName:"StreamingDistributionConfigWithTags" type:"structure" required:"true"`
+	StreamingDistributionConfigWithTags *StreamingDistributionConfigWithTags `locationName:"StreamingDistributionConfigWithTags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -4761,7 +4869,7 @@ func (s *CustomOriginConfig) SetOriginSslProtocols(v *OriginSslProtocols) *Custo
 	return s
 }
 
-// A complex type that describes the default cache behavior if you do not specify
+// A complex type that describes the default cache behavior if you don't specify
 // a CacheBehavior element or if files don't match any of the values of PathPattern
 // in CacheBehavior elements. You must create exactly one default cache behavior.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DefaultCacheBehavior
@@ -5173,6 +5281,58 @@ func (s DeleteDistributionOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRoleRequest
+type DeleteServiceLinkedRoleInput struct {
+	_ struct{} `type:"structure"`
+
+	// RoleName is a required field
+	RoleName *string `location:"uri" locationName:"RoleName" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteServiceLinkedRoleInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteServiceLinkedRoleInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteServiceLinkedRoleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteServiceLinkedRoleInput"}
+	if s.RoleName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRoleName sets the RoleName field's value.
+func (s *DeleteServiceLinkedRoleInput) SetRoleName(v string) *DeleteServiceLinkedRoleInput {
+	s.RoleName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRoleOutput
+type DeleteServiceLinkedRoleOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteServiceLinkedRoleOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteServiceLinkedRoleOutput) GoString() string {
+	return s.String()
+}
+
 // The request to delete a streaming distribution.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteStreamingDistributionRequest
 type DeleteStreamingDistributionInput struct {
@@ -5267,7 +5427,7 @@ type Distribution struct {
 	// DistributionConfig is a required field
 	DistributionConfig *DistributionConfig `type:"structure" required:"true"`
 
-	// The domain name corresponding to the distribution. For example: d604721fxaaqy9.cloudfront.net.
+	// The domain name corresponding to the distribution, for example, d111111abcdef8.cloudfront.net.
 	//
 	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
@@ -5408,7 +5568,7 @@ type DistributionConfig struct {
 	// in the Amazon CloudFront Developer Guide.
 	CustomErrorResponses *CustomErrorResponses `type:"structure"`
 
-	// A complex type that describes the default cache behavior if you do not specify
+	// A complex type that describes the default cache behavior if you don't specify
 	// a CacheBehavior element or if files don't match any of the values of PathPattern
 	// in CacheBehavior elements. You must create exactly one default cache behavior.
 	//
@@ -5420,7 +5580,7 @@ type DistributionConfig struct {
 	// instead of an object in your distribution (http://www.example.com/product-description.html).
 	// Specifying a default root object avoids exposing the contents of your distribution.
 	//
-	// Specify only the object name, for example, index.html. Do not add a / before
+	// Specify only the object name, for example, index.html. Don't add a / before
 	// the object name.
 	//
 	// If you don't want to specify a default root object when you create a distribution,
@@ -5468,7 +5628,7 @@ type DistributionConfig struct {
 	// want to access your content. However, if you're using signed URLs or signed
 	// cookies to restrict access to your content, and if you're using a custom
 	// policy that includes the IpAddress parameter to restrict the IP addresses
-	// that can access your content, do not enable IPv6. If you want to restrict
+	// that can access your content, don't enable IPv6. If you want to restrict
 	// access to some content by IP address and not restrict access to other content
 	// (or restrict access but not by IP address), you can create two distributions.
 	// For more information, see Creating a Signed URL Using a Custom Policy (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-creating-signed-url-custom-policy.html)
@@ -5526,18 +5686,90 @@ type DistributionConfig struct {
 
 	// A complex type that specifies the following:
 	//
-	//    * Which SSL/TLS certificate to use when viewers request objects using
-	//    HTTPS
+	//    * Whether you want viewers to use HTTP or HTTPS to request your objects.
 	//
-	//    * Whether you want CloudFront to use dedicated IP addresses or SNI when
-	//    you're using alternate domain names in your object names
+	//    * If you want viewers to use HTTPS, whether you're using an alternate
+	//    domain name such as example.com or the CloudFront domain name for your
+	//    distribution, such as d111111abcdef8.cloudfront.net.
 	//
-	//    * The minimum protocol version that you want CloudFront to use when communicating
-	//    with viewers
+	//    * If you're using an alternate domain name, whether AWS Certificate Manager
+	//    (ACM) provided the certificate, or you purchased a certificate from a
+	//    third-party certificate authority and imported it into ACM or uploaded
+	//    it to the IAM certificate store.
 	//
-	// For more information, see Using an HTTPS Connection to Access Your Objects
-	// (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html)
-	// in the Amazon Amazon CloudFront Developer Guide.
+	// You must specify only one of the following values:
+	//
+	//    * ViewerCertificate$ACMCertificateArn
+	//
+	//    * ViewerCertificate$IAMCertificateId
+	//
+	//    * ViewerCertificate$CloudFrontDefaultCertificate
+	//
+	// Don't specify false for CloudFrontDefaultCertificate.
+	//
+	// If you want viewers to use HTTP instead of HTTPS to request your objects:
+	// Specify the following value:
+	//
+	// <CloudFrontDefaultCertificate>true<CloudFrontDefaultCertificate>
+	//
+	// In addition, specify allow-all for ViewerProtocolPolicy for all of your cache
+	// behaviors.
+	//
+	// If you want viewers to use HTTPS to request your objects: Choose the type
+	// of certificate that you want to use based on whether you're using an alternate
+	// domain name for your objects or the CloudFront domain name:
+	//
+	//    * If you're using an alternate domain name, such as example.com: Specify
+	//    one of the following values, depending on whether ACM provided your certificate
+	//    or you purchased your certificate from third-party certificate authority:
+	//
+	// <ACMCertificateArn>ARN for ACM SSL/TLS certificate<ACMCertificateArn> where
+	//    ARN for ACM SSL/TLS certificate is the ARN for the ACM SSL/TLS certificate
+	//    that you want to use for this distribution.
+	//
+	// <IAMCertificateId>IAM certificate ID<IAMCertificateId> where IAM certificate
+	//    ID is the ID that IAM returned when you added the certificate to the IAM
+	//    certificate store.
+	//
+	// If you specify ACMCertificateArn or IAMCertificateId, you must also specify
+	//    a value for SSLSupportMethod.
+	//
+	// If you choose to use an ACM certificate or a certificate in the IAM certificate
+	//    store, we recommend that you use only an alternate domain name in your
+	//    object URLs (https://example.com/logo.jpg). If you use the domain name
+	//    that is associated with your CloudFront distribution (such as https://d111111abcdef8.cloudfront.net/logo.jpg)
+	//    and the viewer supports SNI, then CloudFront behaves normally. However,
+	//    if the browser does not support SNI, the user's experience depends on
+	//    the value that you choose for SSLSupportMethod:
+	//
+	// vip: The viewer displays a warning because there is a mismatch between the
+	//    CloudFront domain name and the domain name in your SSL/TLS certificate.
+	//
+	// sni-only: CloudFront drops the connection with the browser without returning
+	//    the object.
+	//
+	//    * If you're using the CloudFront domain name for your distribution, such
+	//    as d111111abcdef8.cloudfront.net: Specify the following value:
+	//
+	// <CloudFrontDefaultCertificate>true<CloudFrontDefaultCertificate>
+	//
+	// If you want viewers to use HTTPS, you must also specify one of the following
+	// values in your cache behaviors:
+	//
+	//    *  <ViewerProtocolPolicy>https-only<ViewerProtocolPolicy>
+	//
+	//    * <ViewerProtocolPolicy>redirect-to-https<ViewerProtocolPolicy>
+	//
+	// You can also optionally require that CloudFront use HTTPS to communicate
+	// with your origin by specifying one of the following values for the applicable
+	// origins:
+	//
+	//    * <OriginProtocolPolicy>https-only<OriginProtocolPolicy>
+	//
+	//    * <OriginProtocolPolicy>match-viewer<OriginProtocolPolicy>
+	//
+	// For more information, see Using Alternate Domain Names and HTTPS (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html#CNAMEsAndHTTPS)
+	// in the Amazon CloudFront Developer Guide.
 	ViewerCertificate *ViewerCertificate `type:"structure"`
 
 	// A unique identifier that specifies the AWS WAF web ACL, if any, to associate
@@ -5901,14 +6133,14 @@ type DistributionSummary struct {
 	// CustomErrorResponses is a required field
 	CustomErrorResponses *CustomErrorResponses `type:"structure" required:"true"`
 
-	// A complex type that describes the default cache behavior if you do not specify
+	// A complex type that describes the default cache behavior if you don't specify
 	// a CacheBehavior element or if files don't match any of the values of PathPattern
 	// in CacheBehavior elements. You must create exactly one default cache behavior.
 	//
 	// DefaultCacheBehavior is a required field
 	DefaultCacheBehavior *DefaultCacheBehavior `type:"structure" required:"true"`
 
-	// The domain name that corresponds to the distribution. For example: d604721fxaaqy9.cloudfront.net.
+	// The domain name that corresponds to the distribution, for example, d111111abcdef8.cloudfront.net.
 	//
 	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
@@ -5963,18 +6195,90 @@ type DistributionSummary struct {
 
 	// A complex type that specifies the following:
 	//
-	//    * Which SSL/TLS certificate to use when viewers request objects using
-	//    HTTPS
+	//    * Whether you want viewers to use HTTP or HTTPS to request your objects.
 	//
-	//    * Whether you want CloudFront to use dedicated IP addresses or SNI when
-	//    you're using alternate domain names in your object names
+	//    * If you want viewers to use HTTPS, whether you're using an alternate
+	//    domain name such as example.com or the CloudFront domain name for your
+	//    distribution, such as d111111abcdef8.cloudfront.net.
 	//
-	//    * The minimum protocol version that you want CloudFront to use when communicating
-	//    with viewers
+	//    * If you're using an alternate domain name, whether AWS Certificate Manager
+	//    (ACM) provided the certificate, or you purchased a certificate from a
+	//    third-party certificate authority and imported it into ACM or uploaded
+	//    it to the IAM certificate store.
 	//
-	// For more information, see Using an HTTPS Connection to Access Your Objects
-	// (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html)
-	// in the Amazon Amazon CloudFront Developer Guide.
+	// You must specify only one of the following values:
+	//
+	//    * ViewerCertificate$ACMCertificateArn
+	//
+	//    * ViewerCertificate$IAMCertificateId
+	//
+	//    * ViewerCertificate$CloudFrontDefaultCertificate
+	//
+	// Don't specify false for CloudFrontDefaultCertificate.
+	//
+	// If you want viewers to use HTTP instead of HTTPS to request your objects:
+	// Specify the following value:
+	//
+	// <CloudFrontDefaultCertificate>true<CloudFrontDefaultCertificate>
+	//
+	// In addition, specify allow-all for ViewerProtocolPolicy for all of your cache
+	// behaviors.
+	//
+	// If you want viewers to use HTTPS to request your objects: Choose the type
+	// of certificate that you want to use based on whether you're using an alternate
+	// domain name for your objects or the CloudFront domain name:
+	//
+	//    * If you're using an alternate domain name, such as example.com: Specify
+	//    one of the following values, depending on whether ACM provided your certificate
+	//    or you purchased your certificate from third-party certificate authority:
+	//
+	// <ACMCertificateArn>ARN for ACM SSL/TLS certificate<ACMCertificateArn> where
+	//    ARN for ACM SSL/TLS certificate is the ARN for the ACM SSL/TLS certificate
+	//    that you want to use for this distribution.
+	//
+	// <IAMCertificateId>IAM certificate ID<IAMCertificateId> where IAM certificate
+	//    ID is the ID that IAM returned when you added the certificate to the IAM
+	//    certificate store.
+	//
+	// If you specify ACMCertificateArn or IAMCertificateId, you must also specify
+	//    a value for SSLSupportMethod.
+	//
+	// If you choose to use an ACM certificate or a certificate in the IAM certificate
+	//    store, we recommend that you use only an alternate domain name in your
+	//    object URLs (https://example.com/logo.jpg). If you use the domain name
+	//    that is associated with your CloudFront distribution (such as https://d111111abcdef8.cloudfront.net/logo.jpg)
+	//    and the viewer supports SNI, then CloudFront behaves normally. However,
+	//    if the browser does not support SNI, the user's experience depends on
+	//    the value that you choose for SSLSupportMethod:
+	//
+	// vip: The viewer displays a warning because there is a mismatch between the
+	//    CloudFront domain name and the domain name in your SSL/TLS certificate.
+	//
+	// sni-only: CloudFront drops the connection with the browser without returning
+	//    the object.
+	//
+	//    * If you're using the CloudFront domain name for your distribution, such
+	//    as d111111abcdef8.cloudfront.net: Specify the following value:
+	//
+	// <CloudFrontDefaultCertificate>true<CloudFrontDefaultCertificate>
+	//
+	// If you want viewers to use HTTPS, you must also specify one of the following
+	// values in your cache behaviors:
+	//
+	//    *  <ViewerProtocolPolicy>https-only<ViewerProtocolPolicy>
+	//
+	//    * <ViewerProtocolPolicy>redirect-to-https<ViewerProtocolPolicy>
+	//
+	// You can also optionally require that CloudFront use HTTPS to communicate
+	// with your origin by specifying one of the following values for the applicable
+	// origins:
+	//
+	//    * <OriginProtocolPolicy>https-only<OriginProtocolPolicy>
+	//
+	//    * <OriginProtocolPolicy>match-viewer<OriginProtocolPolicy>
+	//
+	// For more information, see Using Alternate Domain Names and HTTPS (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html#CNAMEsAndHTTPS)
+	// in the Amazon CloudFront Developer Guide.
 	//
 	// ViewerCertificate is a required field
 	ViewerCertificate *ViewerCertificate `type:"structure" required:"true"`
@@ -6118,7 +6422,7 @@ type ForwardedValues struct {
 	Cookies *CookiePreference `type:"structure" required:"true"`
 
 	// A complex type that specifies the Headers, if any, that you want CloudFront
-	// to vary upon for this cache behavior.
+	// to base caching on for this cache behavior.
 	Headers *Headers `type:"structure"`
 
 	// Indicates whether you want CloudFront to forward query strings to the origin
@@ -6235,7 +6539,7 @@ type GeoRestriction struct {
 	// CloudFront and MaxMind both use ISO 3166 country codes. For the current list
 	// of countries and the corresponding codes, see ISO 3166-1-alpha-2 code on
 	// the International Organization for Standardization website. You can also
-	// refer to the country list in the CloudFront console, which includes both
+	// refer to the country list on the CloudFront console, which includes both
 	// country names and codes.
 	Items []*string `locationNameList:"Location" type:"list"`
 
@@ -6253,7 +6557,7 @@ type GeoRestriction struct {
 	//    restricted by client geo location.
 	//
 	//    * blacklist: The Location elements specify the countries in which you
-	//    do not want CloudFront to distribute your content.
+	//    don't want CloudFront to distribute your content.
 	//
 	//    * whitelist: The Location elements specify the countries in which you
 	//    want CloudFront to distribute your content.
@@ -6833,48 +7137,53 @@ func (s *GetStreamingDistributionOutput) SetStreamingDistribution(v *StreamingDi
 	return s
 }
 
-// A complex type that specifies the headers that you want CloudFront to forward
-// to the origin for this cache behavior.
+// A complex type that specifies the request headers, if any, that you want
+// CloudFront to base caching on for this cache behavior.
 //
-// For the headers that you specify, CloudFront also caches separate versions
-// of a specified object based on the header values in viewer requests. For
-// example, suppose viewer requests for logo.jpg contain a custom Product header
-// that has a value of either Acme or Apex, and you configure CloudFront to
-// cache your content based on values in the Product header. CloudFront forwards
-// the Product header to the origin and caches the response from the origin
-// once for each header value. For more information about caching based on header
+// For the headers that you specify, CloudFront caches separate versions of
+// a specified object based on the header values in viewer requests. For example,
+// suppose viewer requests for logo.jpg contain a custom product header that
+// has a value of either acme or apex, and you configure CloudFront to cache
+// your content based on values in the product header. CloudFront forwards the
+// product header to the origin and caches the response from the origin once
+// for each header value. For more information about caching based on header
 // values, see How CloudFront Forwards and Caches Headers (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/header-caching.html)
 // in the Amazon CloudFront Developer Guide.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Headers
 type Headers struct {
 	_ struct{} `type:"structure"`
 
-	// A complex type that contains one Name element for each header that you want
-	// CloudFront to forward to the origin and to vary on for this cache behavior.
-	// If Quantity is 0, omit Items.
+	// A list that contains one Name element for each header that you want CloudFront
+	// to use for caching in this cache behavior. If Quantity is 0, omit Items.
 	Items []*string `locationNameList:"Name" type:"list"`
 
-	// The number of different headers that you want CloudFront to forward to the
-	// origin for this cache behavior. You can configure each cache behavior in
-	// a web distribution to do one of the following:
+	// The number of different headers that you want CloudFront to base caching
+	// on for this cache behavior. You can configure each cache behavior in a web
+	// distribution to do one of the following:
 	//
 	//    * Forward all headers to your origin: Specify 1 for Quantity and * for
 	//    Name.
 	//
-	// If you configure CloudFront to forward all headers to your origin, CloudFront
-	//    doesn't cache the objects associated with this cache behavior. Instead,
-	//    it sends every request to the origin.
+	// CloudFront doesn't cache the objects that are associated with this cache
+	//    behavior. Instead, CloudFront sends every request to the origin.
 	//
 	//    * Forward a whitelist of headers you specify: Specify the number of headers
-	//    that you want to forward, and specify the header names in Name elements.
-	//    CloudFront caches your objects based on the values in all of the specified
-	//    headers. CloudFront also forwards the headers that it forwards by default,
-	//    but it caches your objects based only on the headers that you specify.
-	//
+	//    that you want CloudFront to base caching on. Then specify the header names
+	//    in Name elements. CloudFront caches your objects based on the values in
+	//    the specified headers.
 	//
 	//    * Forward only the default headers: Specify 0 for Quantity and omit Items.
 	//    In this configuration, CloudFront doesn't cache based on the values in
 	//    the request headers.
+	//
+	// Regardless of which option you choose, CloudFront forwards headers to your
+	// origin based on whether the origin is an S3 bucket or a custom origin. See
+	// the following documentation:
+	//
+	//    * S3 bucket: See HTTP Request Headers That CloudFront Removes or Updates
+	//    (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/RequestAndResponseBehaviorS3Origin.html#request-s3-removed-headers)
+	//
+	//    * Custom origin: See HTTP Request Headers and CloudFront Behavior (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/RequestAndResponseBehaviorCustomOrigin.html#request-custom-headers-behavior)
 	//
 	// Quantity is a required field
 	Quantity *int64 `type:"integer" required:"true"`
@@ -7235,19 +7544,34 @@ func (s *KeyPairIds) SetQuantity(v int64) *KeyPairIds {
 type LambdaFunctionAssociation struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies the event type that triggers a Lambda function invocation. Valid
-	// values are:
+	// Specifies the event type that triggers a Lambda function invocation. You
+	// can specify the following values:
 	//
-	//    * viewer-request
+	//    * viewer-request: The function executes when CloudFront receives a request
+	//    from a viewer and before it checks to see whether the requested object
+	//    is in the edge cache.
 	//
-	//    * origin-request
+	//    * origin-request: The function executes only when CloudFront forwards
+	//    a request to your origin. When the requested object is in the edge cache,
+	//    the function doesn't execute.
 	//
-	//    * viewer-response
+	//    * origin-response: The function executes after CloudFront receives a response
+	//    from the origin and before it caches the object in the response. When
+	//    the requested object is in the edge cache, the function doesn't execute.
 	//
-	//    * origin-response
+	// If the origin returns an HTTP status code other than HTTP 200 (OK), the function
+	//    doesn't execute.
+	//
+	//    * viewer-response: The function executes before CloudFront returns the
+	//    requested object to the viewer. The function executes regardless of whether
+	//    the object was already in the edge cache.
+	//
+	// If the origin returns an HTTP status code other than HTTP 200 (OK), the function
+	//    doesn't execute.
 	EventType *string `type:"string" enum:"EventType"`
 
-	// The ARN of the Lambda function.
+	// The ARN of the Lambda function. You must specify the ARN of a function version;
+	// you can't specify a Lambda alias or $LATEST.
 	LambdaFunctionARN *string `type:"string"`
 }
 
@@ -7778,7 +8102,7 @@ type LoggingConfig struct {
 	Bucket *string `type:"string" required:"true"`
 
 	// Specifies whether you want CloudFront to save access logs to an Amazon S3
-	// bucket. If you do not want to enable logging when you create a distribution
+	// bucket. If you don't want to enable logging when you create a distribution
 	// or if you want to disable logging for an existing distribution, specify false
 	// for Enabled, and specify empty Bucket and Prefix elements. If you specify
 	// false for Enabled but you specify values for Bucket, prefix, and IncludeCookies,
@@ -7790,7 +8114,7 @@ type LoggingConfig struct {
 	// Specifies whether you want CloudFront to include cookies in access logs,
 	// specify true for IncludeCookies. If you choose to include cookies in logs,
 	// CloudFront logs all cookies regardless of how you configure the cache behaviors
-	// for this distribution. If you do not want to include cookies when you create
+	// for this distribution. If you don't want to include cookies when you create
 	// a distribution or if you want to disable include cookies for an existing
 	// distribution, specify false for IncludeCookies.
 	//
@@ -7799,8 +8123,8 @@ type LoggingConfig struct {
 
 	// An optional string that you want CloudFront to prefix to the access log filenames
 	// for this distribution, for example, myprefix/. If you want to enable logging,
-	// but you do not want to specify a prefix, you still must include an empty
-	// Prefix element in the Logging element.
+	// but you don't want to specify a prefix, you still must include an empty Prefix
+	// element in the Logging element.
 	//
 	// Prefix is a required field
 	Prefix *string `type:"string" required:"true"`
@@ -7886,8 +8210,8 @@ type Origin struct {
 	//
 	// Constraints for Amazon S3 origins:
 	//
-	//    * If you configured Amazon S3 Transfer Acceleration for your bucket, do
-	//    not specify the s3-accelerate endpoint for DomainName.
+	//    * If you configured Amazon S3 Transfer Acceleration for your bucket, don't
+	//    specify the s3-accelerate endpoint for DomainName.
 	//
 	//    * The bucket name must be between 3 and 63 characters long (inclusive).
 	//
@@ -8034,7 +8358,7 @@ type OriginAccessIdentity struct {
 	// The current configuration information for the identity.
 	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `type:"structure"`
 
-	// The ID for the origin access identity. For example: E74FTE3AJFJ256A.
+	// The ID for the origin access identity, for example, E74FTE3AJFJ256A.
 	//
 	// Id is a required field
 	Id *string `type:"string" required:"true"`
@@ -8696,7 +9020,7 @@ type S3OriginConfig struct {
 	// objects in an Amazon S3 bucket through CloudFront. The format of the value
 	// is:
 	//
-	// origin-access-identity/CloudFront/ID-of-origin-access-identity
+	// origin-access-identity/cloudfront/ID-of-origin-access-identity
 	//
 	// where ID-of-origin-access-identity is the value that CloudFront returned
 	// in the ID element when you created the origin access identity.
@@ -8813,7 +9137,7 @@ type StreamingDistribution struct {
 	// ActiveTrustedSigners is a required field
 	ActiveTrustedSigners *ActiveTrustedSigners `type:"structure" required:"true"`
 
-	// The domain name that corresponds to the streaming distribution. For example:
+	// The domain name that corresponds to the streaming distribution, for example,
 	// s5c39gqb8ow64r.cloudfront.net.
 	//
 	// DomainName is a required field
@@ -9226,7 +9550,7 @@ type StreamingDistributionSummary struct {
 	// Comment is a required field
 	Comment *string `type:"string" required:"true"`
 
-	// The domain name corresponding to the distribution. For example: d604721fxaaqy9.cloudfront.net.
+	// The domain name corresponding to the distribution, for example, d111111abcdef8.cloudfront.net.
 	//
 	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
@@ -9236,7 +9560,7 @@ type StreamingDistributionSummary struct {
 	// Enabled is a required field
 	Enabled *bool `type:"boolean" required:"true"`
 
-	// The identifier for the distribution. For example: EDFDVBD632BHDS5.
+	// The identifier for the distribution, for example, EDFDVBD632BHDS5.
 	//
 	// Id is a required field
 	Id *string `type:"string" required:"true"`
@@ -9365,19 +9689,19 @@ type StreamingLoggingConfig struct {
 	Bucket *string `type:"string" required:"true"`
 
 	// Specifies whether you want CloudFront to save access logs to an Amazon S3
-	// bucket. If you do not want to enable logging when you create a streaming
-	// distribution or if you want to disable logging for an existing streaming
-	// distribution, specify false for Enabled, and specify empty Bucket and Prefix
-	// elements. If you specify false for Enabled but you specify values for Bucket
-	// and Prefix, the values are automatically deleted.
+	// bucket. If you don't want to enable logging when you create a streaming distribution
+	// or if you want to disable logging for an existing streaming distribution,
+	// specify false for Enabled, and specify empty Bucket and Prefix elements.
+	// If you specify false for Enabled but you specify values for Bucket and Prefix,
+	// the values are automatically deleted.
 	//
 	// Enabled is a required field
 	Enabled *bool `type:"boolean" required:"true"`
 
 	// An optional string that you want CloudFront to prefix to the access log filenames
 	// for this streaming distribution, for example, myprefix/. If you want to enable
-	// logging, but you do not want to specify a prefix, you still must include
-	// an empty Prefix element in the Logging element.
+	// logging, but you don't want to specify a prefix, you still must include an
+	// empty Prefix element in the Logging element.
 	//
 	// Prefix is a required field
 	Prefix *string `type:"string" required:"true"`
@@ -9526,7 +9850,7 @@ type TagResourceInput struct {
 	// A complex type that contains zero or more Tag elements.
 	//
 	// Tags is a required field
-	Tags *Tags `locationName:"Tags" type:"structure" required:"true"`
+	Tags *Tags `locationName:"Tags" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -9727,7 +10051,7 @@ type UntagResourceInput struct {
 	// A complex type that contains zero or more Tag key elements.
 	//
 	// TagKeys is a required field
-	TagKeys *TagKeys `locationName:"TagKeys" type:"structure" required:"true"`
+	TagKeys *TagKeys `locationName:"TagKeys" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -9791,7 +10115,7 @@ type UpdateCloudFrontOriginAccessIdentityInput struct {
 	// The identity's configuration information.
 	//
 	// CloudFrontOriginAccessIdentityConfig is a required field
-	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true"`
+	CloudFrontOriginAccessIdentityConfig *OriginAccessIdentityConfig `locationName:"CloudFrontOriginAccessIdentityConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 
 	// The identity's id.
 	//
@@ -9894,7 +10218,7 @@ type UpdateDistributionInput struct {
 	// The distribution's configuration information.
 	//
 	// DistributionConfig is a required field
-	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true"`
+	DistributionConfig *DistributionConfig `locationName:"DistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 
 	// The distribution's id.
 	//
@@ -10006,7 +10330,7 @@ type UpdateStreamingDistributionInput struct {
 	// The streaming distribution's configuration information.
 	//
 	// StreamingDistributionConfig is a required field
-	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true"`
+	StreamingDistributionConfig *StreamingDistributionConfig `locationName:"StreamingDistributionConfig" type:"structure" required:"true" xmlURI:"http://cloudfront.amazonaws.com/doc/2017-03-25/"`
 }
 
 // String returns the string representation
@@ -10094,130 +10418,157 @@ func (s *UpdateStreamingDistributionOutput) SetStreamingDistribution(v *Streamin
 
 // A complex type that specifies the following:
 //
-//    * Which SSL/TLS certificate to use when viewers request objects using
-//    HTTPS
+//    * Whether you want viewers to use HTTP or HTTPS to request your objects.
 //
-//    * Whether you want CloudFront to use dedicated IP addresses or SNI when
-//    you're using alternate domain names in your object names
+//    * If you want viewers to use HTTPS, whether you're using an alternate
+//    domain name such as example.com or the CloudFront domain name for your
+//    distribution, such as d111111abcdef8.cloudfront.net.
 //
-//    * The minimum protocol version that you want CloudFront to use when communicating
-//    with viewers
+//    * If you're using an alternate domain name, whether AWS Certificate Manager
+//    (ACM) provided the certificate, or you purchased a certificate from a
+//    third-party certificate authority and imported it into ACM or uploaded
+//    it to the IAM certificate store.
 //
-// For more information, see Using an HTTPS Connection to Access Your Objects
-// (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html)
-// in the Amazon Amazon CloudFront Developer Guide.
+// You must specify only one of the following values:
+//
+//    * ViewerCertificate$ACMCertificateArn
+//
+//    * ViewerCertificate$IAMCertificateId
+//
+//    * ViewerCertificate$CloudFrontDefaultCertificate
+//
+// Don't specify false for CloudFrontDefaultCertificate.
+//
+// If you want viewers to use HTTP instead of HTTPS to request your objects:
+// Specify the following value:
+//
+// <CloudFrontDefaultCertificate>true<CloudFrontDefaultCertificate>
+//
+// In addition, specify allow-all for ViewerProtocolPolicy for all of your cache
+// behaviors.
+//
+// If you want viewers to use HTTPS to request your objects: Choose the type
+// of certificate that you want to use based on whether you're using an alternate
+// domain name for your objects or the CloudFront domain name:
+//
+//    * If you're using an alternate domain name, such as example.com: Specify
+//    one of the following values, depending on whether ACM provided your certificate
+//    or you purchased your certificate from third-party certificate authority:
+//
+// <ACMCertificateArn>ARN for ACM SSL/TLS certificate<ACMCertificateArn> where
+//    ARN for ACM SSL/TLS certificate is the ARN for the ACM SSL/TLS certificate
+//    that you want to use for this distribution.
+//
+// <IAMCertificateId>IAM certificate ID<IAMCertificateId> where IAM certificate
+//    ID is the ID that IAM returned when you added the certificate to the IAM
+//    certificate store.
+//
+// If you specify ACMCertificateArn or IAMCertificateId, you must also specify
+//    a value for SSLSupportMethod.
+//
+// If you choose to use an ACM certificate or a certificate in the IAM certificate
+//    store, we recommend that you use only an alternate domain name in your
+//    object URLs (https://example.com/logo.jpg). If you use the domain name
+//    that is associated with your CloudFront distribution (such as https://d111111abcdef8.cloudfront.net/logo.jpg)
+//    and the viewer supports SNI, then CloudFront behaves normally. However,
+//    if the browser does not support SNI, the user's experience depends on
+//    the value that you choose for SSLSupportMethod:
+//
+// vip: The viewer displays a warning because there is a mismatch between the
+//    CloudFront domain name and the domain name in your SSL/TLS certificate.
+//
+// sni-only: CloudFront drops the connection with the browser without returning
+//    the object.
+//
+//    * If you're using the CloudFront domain name for your distribution, such
+//    as d111111abcdef8.cloudfront.net: Specify the following value:
+//
+// <CloudFrontDefaultCertificate>true<CloudFrontDefaultCertificate>
+//
+// If you want viewers to use HTTPS, you must also specify one of the following
+// values in your cache behaviors:
+//
+//    *  <ViewerProtocolPolicy>https-only<ViewerProtocolPolicy>
+//
+//    * <ViewerProtocolPolicy>redirect-to-https<ViewerProtocolPolicy>
+//
+// You can also optionally require that CloudFront use HTTPS to communicate
+// with your origin by specifying one of the following values for the applicable
+// origins:
+//
+//    * <OriginProtocolPolicy>https-only<OriginProtocolPolicy>
+//
+//    * <OriginProtocolPolicy>match-viewer<OriginProtocolPolicy>
+//
+// For more information, see Using Alternate Domain Names and HTTPS (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html#CNAMEsAndHTTPS)
+// in the Amazon CloudFront Developer Guide.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ViewerCertificate
 type ViewerCertificate struct {
 	_ struct{} `type:"structure"`
 
+	// For information about how and when to use ACMCertificateArn, see ViewerCertificate.
 	ACMCertificateArn *string `type:"string"`
 
-	// Include one of these values to specify the following:
+	// This field has been deprecated. Use one of the following fields instead:
 	//
-	//    * Whether you want viewers to use HTTP or HTTPS to request your objects.
+	//    * ViewerCertificate$ACMCertificateArn
 	//
-	//    * If you want viewers to use HTTPS, whether you're using an alternate
-	//    domain name such as example.com or the CloudFront domain name for your
-	//    distribution, such as d111111abcdef8.cloudfront.net.
+	//    * ViewerCertificate$IAMCertificateId
 	//
-	//    * If you're using an alternate domain name, whether AWS Certificate Manager
-	//    (ACM) provided the certificate, or you purchased a certificate from a
-	//    third-party certificate authority and imported it into ACM or uploaded
-	//    it to the IAM certificate store.
-	//
-	// You must specify one (and only one) of the three values. Do not specify false
-	// for CloudFrontDefaultCertificate.
-	//
-	// If you want viewers to use HTTP to request your objects: Specify the following
-	// value:
-	//
-	// <CloudFrontDefaultCertificate>true<CloudFrontDefaultCertificate>
-	//
-	// In addition, specify allow-all for ViewerProtocolPolicy for all of your cache
-	// behaviors.
-	//
-	// If you want viewers to use HTTPS to request your objects: Choose the type
-	// of certificate that you want to use based on whether you're using an alternate
-	// domain name for your objects or the CloudFront domain name:
-	//
-	//    * If you're using an alternate domain name, such as example.com: Specify
-	//    one of the following values, depending on whether ACM provided your certificate
-	//    or you purchased your certificate from third-party certificate authority:
-	//
-	// <ACMCertificateArn>ARN for ACM SSL/TLS certificate<ACMCertificateArn> where
-	//    ARN for ACM SSL/TLS certificate is the ARN for the ACM SSL/TLS certificate
-	//    that you want to use for this distribution.
-	//
-	// <IAMCertificateId>IAM certificate ID<IAMCertificateId> where IAM certificate
-	//    ID is the ID that IAM returned when you added the certificate to the IAM
-	//    certificate store.
-	//
-	// If you specify ACMCertificateArn or IAMCertificateId, you must also specify
-	//    a value for SSLSupportMethod.
-	//
-	// If you choose to use an ACM certificate or a certificate in the IAM certificate
-	//    store, we recommend that you use only an alternate domain name in your
-	//    object URLs (https://example.com/logo.jpg). If you use the domain name
-	//    that is associated with your CloudFront distribution (https://d111111abcdef8.cloudfront.net/logo.jpg)
-	//    and the viewer supports SNI, then CloudFront behaves normally. However,
-	//    if the browser does not support SNI, the user's experience depends on
-	//    the value that you choose for SSLSupportMethod:
-	//
-	// vip: The viewer displays a warning because there is a mismatch between the
-	//    CloudFront domain name and the domain name in your SSL/TLS certificate.
-	//
-	// sni-only: CloudFront drops the connection with the browser without returning
-	//    the object.
-	//
-	//    * If you're using the CloudFront domain name for your distribution, such
-	//    as d111111abcdef8.cloudfront.net: Specify the following value:
-	//
-	//  <CloudFrontDefaultCertificate>true<CloudFrontDefaultCertificate>
-	//
-	// If you want viewers to use HTTPS, you must also specify one of the following
-	//    values in your cache behaviors:
-	//
-	//  <ViewerProtocolPolicy>https-only<ViewerProtocolPolicy>
-	//
-	//  <ViewerProtocolPolicy>redirect-to-https<ViewerProtocolPolicy>
-	//
-	// You can also optionally require that CloudFront use HTTPS to communicate
-	//    with your origin by specifying one of the following values for the applicable
-	//    origins:
-	//
-	//  <OriginProtocolPolicy>https-only<OriginProtocolPolicy>
-	//
-	//  <OriginProtocolPolicy>match-viewer<OriginProtocolPolicy>
-	//
-	// For more information, see Using Alternate Domain Names and HTTPS (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html#CNAMEsAndHTTPS)
-	//    in the Amazon CloudFront Developer Guide.
+	//    * ViewerCertificate$CloudFrontDefaultCertificate
 	Certificate *string `deprecated:"true" type:"string"`
 
-	// This field is deprecated. You can use one of the following: [ACMCertificateArn,
-	// IAMCertificateId, or CloudFrontDefaultCertificate].
+	// This field has been deprecated. Use one of the following fields instead:
+	//
+	//    * ViewerCertificate$ACMCertificateArn
+	//
+	//    * ViewerCertificate$IAMCertificateId
+	//
+	//    * ViewerCertificate$CloudFrontDefaultCertificate
 	CertificateSource *string `deprecated:"true" type:"string" enum:"CertificateSource"`
 
+	// For information about how and when to use CloudFrontDefaultCertificate, see
+	// ViewerCertificate.
 	CloudFrontDefaultCertificate *bool `type:"boolean"`
 
+	// For information about how and when to use IAMCertificateId, see ViewerCertificate.
 	IAMCertificateId *string `type:"string"`
 
-	// Specify the minimum version of the SSL/TLS protocol that you want CloudFront
-	// to use for HTTPS connections between viewers and CloudFront: SSLv3 or TLSv1.
-	// CloudFront serves your objects only to viewers that support SSL/TLS version
-	// that you specify and later versions. The TLSv1 protocol is more secure, so
-	// we recommend that you specify SSLv3 only if your users are using browsers
-	// or devices that don't support TLSv1. Note the following:
+	// Specify the security policy that you want CloudFront to use for HTTPS connections.
+	// A security policy determines two settings:
 	//
-	//    * If you specify <CloudFrontDefaultCertificate>true<CloudFrontDefaultCertificate>,
-	//    the minimum SSL protocol version is TLSv1 and can't be changed.
+	//    * The minimum SSL/TLS protocol that CloudFront uses to communicate with
+	//    viewers
 	//
-	//    * If you're using a custom certificate (if you specify a value for ACMCertificateArn
-	//    or for IAMCertificateId) and if you're using SNI (if you specify sni-only
-	//    for SSLSupportMethod), you must specify TLSv1 for MinimumProtocolVersion.
+	//    * The cipher that CloudFront uses to encrypt the content that it returns
+	//    to viewers
+	//
+	// On the CloudFront console, this setting is called Security policy.
+	//
+	// We recommend that you specify TLSv1.1_2016 unless your users are using browsers
+	// or devices that do not support TLSv1.1 or later.
+	//
+	// When both of the following are true, you must specify TLSv1 or later for
+	// the security policy:
+	//
+	//    * You're using a custom certificate: you specified a value for ACMCertificateArn
+	//    or for IAMCertificateId
+	//
+	//    * You're using SNI: you specified sni-only for SSLSupportMethod
+	//
+	// If you specify true for CloudFrontDefaultCertificate, CloudFront automatically
+	// sets the security policy to TLSv1 regardless of the value that you specify
+	// for MinimumProtocolVersion.
+	//
+	// For information about the relationship between the security policy that you
+	// choose and the protocols and ciphers that CloudFront uses to communicate
+	// with viewers, see  Supported SSL/TLS Protocols and Ciphers for Communication
+	// Between Viewers and CloudFront (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/secure-connections-supported-viewer-protocols-ciphers.html#secure-connections-supported-ciphers)
+	// in the Amazon CloudFront Developer Guide.
 	MinimumProtocolVersion *string `type:"string" enum:"MinimumProtocolVersion"`
 
-	// If you specify a value for ACMCertificateArn or for IAMCertificateId, you
-	// must also specify how you want CloudFront to serve HTTPS requests: using
+	// If you specify a value for ViewerCertificate$ACMCertificateArn or for ViewerCertificate$IAMCertificateId,
+	// you must also specify how you want CloudFront to serve HTTPS requests: using
 	// a method that works for all clients or one that works for most clients:
 	//
 	//    * vip: CloudFront uses dedicated IP addresses for your content and can
@@ -10240,7 +10591,7 @@ type ViewerCertificate struct {
 	//
 	// Use HTTP instead of HTTPS.
 	//
-	// Do not specify a value for SSLSupportMethod if you specified <CloudFrontDefaultCertificate>true<CloudFrontDefaultCertificate>.
+	// Don't specify a value for SSLSupportMethod if you specified <CloudFrontDefaultCertificate>true<CloudFrontDefaultCertificate>.
 	//
 	// For more information, see Using Alternate Domain Names and HTTPS (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html#CNAMEsAndHTTPS.html)
 	// in the Amazon CloudFront Developer Guide.
@@ -10383,6 +10734,15 @@ const (
 
 	// MinimumProtocolVersionTlsv1 is a MinimumProtocolVersion enum value
 	MinimumProtocolVersionTlsv1 = "TLSv1"
+
+	// MinimumProtocolVersionTlsv12016 is a MinimumProtocolVersion enum value
+	MinimumProtocolVersionTlsv12016 = "TLSv1_2016"
+
+	// MinimumProtocolVersionTlsv112016 is a MinimumProtocolVersion enum value
+	MinimumProtocolVersionTlsv112016 = "TLSv1.1_2016"
+
+	// MinimumProtocolVersionTlsv122018 is a MinimumProtocolVersion enum value
+	MinimumProtocolVersionTlsv122018 = "TLSv1.2_2018"
 )
 
 const (

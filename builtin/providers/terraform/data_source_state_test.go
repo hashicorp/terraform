@@ -63,6 +63,38 @@ func TestState_complexOutputs(t *testing.T) {
 	})
 }
 
+func TestEmptyState_defaults(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccEmptyState_defaults,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue(
+						"data.terraform_remote_state.foo", "foo", "bar"),
+				),
+			},
+		},
+	})
+}
+
+func TestState_defaults(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccEmptyState_defaults,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue(
+						"data.terraform_remote_state.foo", "foo", "bar"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[id]
@@ -107,5 +139,31 @@ resource "terraform_remote_state" "foo" {
 
 	config {
 		path = "./test-fixtures/complex_outputs.tfstate"
+	}
+}`
+
+const testAccEmptyState_defaults = `
+data "terraform_remote_state" "foo" {
+	backend = "local"
+
+	config {
+		path = "./test-fixtures/empty.tfstate"
+	}
+
+	defaults {
+		foo = "bar"
+	}
+}`
+
+const testAccState_defaults = `
+data "terraform_remote_state" "foo" {
+	backend = "local"
+
+	config {
+		path = "./test-fixtures/basic.tfstate"
+	}
+
+	defaults {
+		foo = "not bar"
 	}
 }`

@@ -120,11 +120,12 @@ type UpdateOptsBuilder interface {
 
 // UpdateOpts represents the attributes used when updating an existing subnet.
 type UpdateOpts struct {
-	Name           string      `json:"name,omitempty"`
-	GatewayIP      *string     `json:"gateway_ip,omitempty"`
-	DNSNameservers []string    `json:"dns_nameservers,omitempty"`
-	HostRoutes     []HostRoute `json:"host_routes,omitempty"`
-	EnableDHCP     *bool       `json:"enable_dhcp,omitempty"`
+	Name            string           `json:"name,omitempty"`
+	AllocationPools []AllocationPool `json:"allocation_pools,omitempty"`
+	GatewayIP       *string          `json:"gateway_ip,omitempty"`
+	DNSNameservers  []string         `json:"dns_nameservers,omitempty"`
+	HostRoutes      []HostRoute      `json:"host_routes,omitempty"`
+	EnableDHCP      *bool            `json:"enable_dhcp,omitempty"`
 }
 
 // ToSubnetUpdateMap casts an UpdateOpts struct to a map.

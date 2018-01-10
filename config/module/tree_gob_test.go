@@ -8,11 +8,12 @@ import (
 )
 
 func TestTreeEncodeDecodeGob(t *testing.T) {
-	storage := testStorage(t)
+	storage := testStorage(t, nil)
 	tree := NewTree("", testConfig(t, "basic"))
 
 	// This should get things
-	if err := tree.Load(storage, GetModeGet); err != nil {
+	storage.Mode = GetModeGet
+	if err := tree.Load(storage); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

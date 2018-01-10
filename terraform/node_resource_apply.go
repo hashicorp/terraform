@@ -135,7 +135,7 @@ func (n *NodeApplyableResource) evalTreeDataResource(
 			},
 
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 
@@ -158,7 +158,7 @@ func (n *NodeApplyableResource) evalTreeDataResource(
 			&EvalWriteState{
 				Name:         stateId,
 				ResourceType: n.Config.Type,
-				Provider:     n.Config.Provider,
+				Provider:     n.ResolvedProvider,
 				Dependencies: stateDeps,
 				State:        &state,
 			},
@@ -242,7 +242,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				Output:   &resourceConfig,
 			},
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 			&EvalReadState{
@@ -283,7 +283,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 			},
 
 			&EvalGetProvider{
-				Name:   n.ProvidedBy()[0],
+				Name:   n.ResolvedProvider,
 				Output: &provider,
 			},
 			&EvalReadState{
@@ -308,7 +308,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 			&EvalWriteState{
 				Name:         stateId,
 				ResourceType: n.Config.Type,
-				Provider:     n.Config.Provider,
+				Provider:     n.ResolvedProvider,
 				Dependencies: stateDeps,
 				State:        &state,
 			},
@@ -332,7 +332,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				Else: &EvalWriteState{
 					Name:         stateId,
 					ResourceType: n.Config.Type,
-					Provider:     n.Config.Provider,
+					Provider:     n.ResolvedProvider,
 					Dependencies: stateDeps,
 					State:        &state,
 				},

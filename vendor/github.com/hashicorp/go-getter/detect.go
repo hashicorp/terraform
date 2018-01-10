@@ -72,12 +72,18 @@ func Detect(src string, pwd string, ds []Detector) (string, error) {
 				subDir = detectSubdir
 			}
 		}
+
 		if subDir != "" {
 			u, err := url.Parse(result)
 			if err != nil {
 				return "", fmt.Errorf("Error parsing URL: %s", err)
 			}
 			u.Path += "//" + subDir
+
+			// a subdir may contain wildcards, but in order to support them we
+			// have to ensure the path isn't escaped.
+			u.RawPath = u.Path
+
 			result = u.String()
 		}
 

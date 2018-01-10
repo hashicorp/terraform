@@ -1,0 +1,48 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<ul class="nav docs-sidenav">
+			<li<%= sidebar_current("docs-home") %>>
+				<a class="back" href="/docs/index.html">Documentation Home</a>
+			</li>
+
+			<li<%= sidebar_current("docs-registry-home") %>>
+				<a class="back" href="/docs/registry/index.html">Terraform Registry</a>
+			</li>
+
+			<hr>
+
+			<li class="active">
+				<a href="#">Modules</a>
+				<ul class="nav">
+					<li<%= sidebar_current("docs-registry-use") %>>
+						<a href="/docs/registry/modules/use.html">Finding and Using Modules</a>
+					</li>
+
+					<li<%= sidebar_current("docs-registry-publish") %>>
+						<a href="/docs/registry/modules/publish.html">Publishing Modules</a>
+					</li>
+
+					<li<%= sidebar_current("docs-registry-verified") %>>
+						<a href="/docs/registry/modules/verified.html">Verified Modules</a>
+					</li>
+				</ul>
+			</li>
+
+			<li<%= sidebar_current("docs-registry-private") %>>
+				<a href="/docs/registry/private.html">Private Registry</a>
+			</li>
+
+			<hr>
+
+			<li<%= sidebar_current("docs-registry-api") %>>
+				<a href="/docs/registry/api.html">API</a>
+			</li>
+
+			<li<%= sidebar_current("docs-registry-support") %>>
+				<a href="/docs/registry/support.html">Support</a>
+			</li>
+		</ul>
+	<% end %>
+
+	<%= yield %>
+<% end %>

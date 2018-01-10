@@ -100,6 +100,35 @@ func TestInterpolater_moduleVariable(t *testing.T) {
 	})
 }
 
+func TestInterpolater_localVal(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Locals: map[string]interface{}{
+					"foo": "hello!",
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-local"),
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "local.foo", ast.Variable{
+		Value: "hello!",
+		Type:  ast.TypeString,
+	})
+}
+
 func TestInterpolater_pathCwd(t *testing.T) {
 	i := &Interpolater{}
 	scope := &InterpolationScope{}

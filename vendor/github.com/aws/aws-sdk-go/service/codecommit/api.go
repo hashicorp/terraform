@@ -17,19 +17,18 @@ const opBatchGetRepositories = "BatchGetRepositories"
 
 // BatchGetRepositoriesRequest generates a "aws/request.Request" representing the
 // client's request for the BatchGetRepositories operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See BatchGetRepositories for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the BatchGetRepositories method directly
-// instead.
+// See BatchGetRepositories for more information on using the BatchGetRepositories
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the BatchGetRepositoriesRequest method.
 //    req, resp := client.BatchGetRepositoriesRequest(params)
@@ -129,19 +128,18 @@ const opCreateBranch = "CreateBranch"
 
 // CreateBranchRequest generates a "aws/request.Request" representing the
 // client's request for the CreateBranch operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateBranch for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateBranch method directly
-// instead.
+// See CreateBranch for more information on using the CreateBranch
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateBranchRequest method.
 //    req, resp := client.CreateBranchRequest(params)
@@ -258,19 +256,18 @@ const opCreateRepository = "CreateRepository"
 
 // CreateRepositoryRequest generates a "aws/request.Request" representing the
 // client's request for the CreateRepository operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See CreateRepository for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CreateRepository method directly
-// instead.
+// See CreateRepository for more information on using the CreateRepository
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the CreateRepositoryRequest method.
 //    req, resp := client.CreateRepositoryRequest(params)
@@ -365,23 +362,138 @@ func (c *CodeCommit) CreateRepositoryWithContext(ctx aws.Context, input *CreateR
 	return out, req.Send()
 }
 
+const opDeleteBranch = "DeleteBranch"
+
+// DeleteBranchRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteBranch operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteBranch for more information on using the DeleteBranch
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteBranchRequest method.
+//    req, resp := client.DeleteBranchRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteBranch
+func (c *CodeCommit) DeleteBranchRequest(input *DeleteBranchInput) (req *request.Request, output *DeleteBranchOutput) {
+	op := &request.Operation{
+		Name:       opDeleteBranch,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteBranchInput{}
+	}
+
+	output = &DeleteBranchOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteBranch API operation for AWS CodeCommit.
+//
+// Deletes a branch from a repository, unless that branch is the default branch
+// for the repository.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeCommit's
+// API operation DeleteBranch for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
+//   A repository name is required but was not specified.
+//
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
+//   The specified repository does not exist.
+//
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
+//   At least one specified repository name is not valid.
+//
+//   This exception only occurs when a specified repository name is not valid.
+//   Other exceptions occur when a required repository parameter is missing, or
+//   when a specified repository does not exist.
+//
+//   * ErrCodeBranchNameRequiredException "BranchNameRequiredException"
+//   A branch name is required but was not specified.
+//
+//   * ErrCodeInvalidBranchNameException "InvalidBranchNameException"
+//   The specified branch name is not valid.
+//
+//   * ErrCodeDefaultBranchCannotBeDeletedException "DefaultBranchCannotBeDeletedException"
+//   The specified branch is the default branch for the repository, and cannot
+//   be deleted. To delete this branch, you must first set another branch as the
+//   default branch.
+//
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
+//   An encryption integrity check failed.
+//
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
+//   An encryption key could not be accessed.
+//
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
+//   The encryption key is disabled.
+//
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
+//   No encryption key was found.
+//
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
+//   The encryption key is not available.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteBranch
+func (c *CodeCommit) DeleteBranch(input *DeleteBranchInput) (*DeleteBranchOutput, error) {
+	req, out := c.DeleteBranchRequest(input)
+	return out, req.Send()
+}
+
+// DeleteBranchWithContext is the same as DeleteBranch with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteBranch for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CodeCommit) DeleteBranchWithContext(ctx aws.Context, input *DeleteBranchInput, opts ...request.Option) (*DeleteBranchOutput, error) {
+	req, out := c.DeleteBranchRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteRepository = "DeleteRepository"
 
 // DeleteRepositoryRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRepository operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See DeleteRepository for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteRepository method directly
-// instead.
+// See DeleteRepository for more information on using the DeleteRepository
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the DeleteRepositoryRequest method.
 //    req, resp := client.DeleteRepositoryRequest(params)
@@ -476,19 +588,18 @@ const opGetBlob = "GetBlob"
 
 // GetBlobRequest generates a "aws/request.Request" representing the
 // client's request for the GetBlob operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetBlob for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetBlob method directly
-// instead.
+// See GetBlob for more information on using the GetBlob
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetBlobRequest method.
 //    req, resp := client.GetBlobRequest(params)
@@ -595,19 +706,18 @@ const opGetBranch = "GetBranch"
 
 // GetBranchRequest generates a "aws/request.Request" representing the
 // client's request for the GetBranch operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetBranch for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetBranch method directly
-// instead.
+// See GetBranch for more information on using the GetBranch
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetBranchRequest method.
 //    req, resp := client.GetBranchRequest(params)
@@ -710,19 +820,18 @@ const opGetCommit = "GetCommit"
 
 // GetCommitRequest generates a "aws/request.Request" representing the
 // client's request for the GetCommit operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetCommit for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetCommit method directly
-// instead.
+// See GetCommit for more information on using the GetCommit
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetCommitRequest method.
 //    req, resp := client.GetCommitRequest(params)
@@ -825,19 +934,18 @@ const opGetDifferences = "GetDifferences"
 
 // GetDifferencesRequest generates a "aws/request.Request" representing the
 // client's request for the GetDifferences operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetDifferences for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetDifferences method directly
-// instead.
+// See GetDifferences for more information on using the GetDifferences
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetDifferencesRequest method.
 //    req, resp := client.GetDifferencesRequest(params)
@@ -1013,19 +1121,18 @@ const opGetRepository = "GetRepository"
 
 // GetRepositoryRequest generates a "aws/request.Request" representing the
 // client's request for the GetRepository operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetRepository for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetRepository method directly
-// instead.
+// See GetRepository for more information on using the GetRepository
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetRepositoryRequest method.
 //    req, resp := client.GetRepositoryRequest(params)
@@ -1124,19 +1231,18 @@ const opGetRepositoryTriggers = "GetRepositoryTriggers"
 
 // GetRepositoryTriggersRequest generates a "aws/request.Request" representing the
 // client's request for the GetRepositoryTriggers operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See GetRepositoryTriggers for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetRepositoryTriggers method directly
-// instead.
+// See GetRepositoryTriggers for more information on using the GetRepositoryTriggers
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the GetRepositoryTriggersRequest method.
 //    req, resp := client.GetRepositoryTriggersRequest(params)
@@ -1229,19 +1335,18 @@ const opListBranches = "ListBranches"
 
 // ListBranchesRequest generates a "aws/request.Request" representing the
 // client's request for the ListBranches operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListBranches for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListBranches method directly
-// instead.
+// See ListBranches for more information on using the ListBranches
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListBranchesRequest method.
 //    req, resp := client.ListBranchesRequest(params)
@@ -1393,19 +1498,18 @@ const opListRepositories = "ListRepositories"
 
 // ListRepositoriesRequest generates a "aws/request.Request" representing the
 // client's request for the ListRepositories operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See ListRepositories for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListRepositories method directly
-// instead.
+// See ListRepositories for more information on using the ListRepositories
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the ListRepositoriesRequest method.
 //    req, resp := client.ListRepositoriesRequest(params)
@@ -1535,19 +1639,18 @@ const opPutRepositoryTriggers = "PutRepositoryTriggers"
 
 // PutRepositoryTriggersRequest generates a "aws/request.Request" representing the
 // client's request for the PutRepositoryTriggers operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See PutRepositoryTriggers for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the PutRepositoryTriggers method directly
-// instead.
+// See PutRepositoryTriggers for more information on using the PutRepositoryTriggers
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the PutRepositoryTriggersRequest method.
 //    req, resp := client.PutRepositoryTriggersRequest(params)
@@ -1686,19 +1789,18 @@ const opTestRepositoryTriggers = "TestRepositoryTriggers"
 
 // TestRepositoryTriggersRequest generates a "aws/request.Request" representing the
 // client's request for the TestRepositoryTriggers operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See TestRepositoryTriggers for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the TestRepositoryTriggers method directly
-// instead.
+// See TestRepositoryTriggers for more information on using the TestRepositoryTriggers
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the TestRepositoryTriggersRequest method.
 //    req, resp := client.TestRepositoryTriggersRequest(params)
@@ -1839,19 +1941,18 @@ const opUpdateDefaultBranch = "UpdateDefaultBranch"
 
 // UpdateDefaultBranchRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDefaultBranch operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateDefaultBranch for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateDefaultBranch method directly
-// instead.
+// See UpdateDefaultBranch for more information on using the UpdateDefaultBranch
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateDefaultBranchRequest method.
 //    req, resp := client.UpdateDefaultBranchRequest(params)
@@ -1959,19 +2060,18 @@ const opUpdateRepositoryDescription = "UpdateRepositoryDescription"
 
 // UpdateRepositoryDescriptionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRepositoryDescription operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateRepositoryDescription for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateRepositoryDescription method directly
-// instead.
+// See UpdateRepositoryDescription for more information on using the UpdateRepositoryDescription
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateRepositoryDescriptionRequest method.
 //    req, resp := client.UpdateRepositoryDescriptionRequest(params)
@@ -2075,19 +2175,18 @@ const opUpdateRepositoryName = "UpdateRepositoryName"
 
 // UpdateRepositoryNameRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRepositoryName operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
+// value will be populated with the request's response once the request complets
+// successfuly.
 //
-// See UpdateRepositoryName for usage and error information.
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
 //
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateRepositoryName method directly
-// instead.
+// See UpdateRepositoryName for more information on using the UpdateRepositoryName
+// API call, and error handling.
 //
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
 //
 //    // Example sending a request using the UpdateRepositoryNameRequest method.
 //    req, resp := client.UpdateRepositoryNameRequest(params)
@@ -2343,6 +2442,9 @@ type Commit struct {
 	// the email address for the author, as configured in Git.
 	Author *UserInfo `locationName:"author" type:"structure"`
 
+	// The full SHA of the specified commit.
+	CommitId *string `locationName:"commitId" type:"string"`
+
 	// Information about the person who committed the specified commit, also known
 	// as the committer. Information includes the date in timestamp format with
 	// GMT offset, the name of the committer, and the email address for the committer,
@@ -2382,6 +2484,12 @@ func (s *Commit) SetAdditionalData(v string) *Commit {
 // SetAuthor sets the Author field's value.
 func (s *Commit) SetAuthor(v *UserInfo) *Commit {
 	s.Author = v
+	return s
+}
+
+// SetCommitId sets the CommitId field's value.
+func (s *Commit) SetCommitId(v string) *Commit {
+	s.CommitId = &v
 	return s
 }
 
@@ -2584,6 +2692,92 @@ func (s CreateRepositoryOutput) GoString() string {
 // SetRepositoryMetadata sets the RepositoryMetadata field's value.
 func (s *CreateRepositoryOutput) SetRepositoryMetadata(v *RepositoryMetadata) *CreateRepositoryOutput {
 	s.RepositoryMetadata = v
+	return s
+}
+
+// Represents the input of a delete branch operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteBranchInput
+type DeleteBranchInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the branch to delete.
+	//
+	// BranchName is a required field
+	BranchName *string `locationName:"branchName" min:"1" type:"string" required:"true"`
+
+	// The name of the repository that contains the branch to be deleted.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteBranchInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteBranchInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteBranchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteBranchInput"}
+	if s.BranchName == nil {
+		invalidParams.Add(request.NewErrParamRequired("BranchName"))
+	}
+	if s.BranchName != nil && len(*s.BranchName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BranchName", 1))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBranchName sets the BranchName field's value.
+func (s *DeleteBranchInput) SetBranchName(v string) *DeleteBranchInput {
+	s.BranchName = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *DeleteBranchInput) SetRepositoryName(v string) *DeleteBranchInput {
+	s.RepositoryName = &v
+	return s
+}
+
+// Represents the output of a delete branch operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteBranchOutput
+type DeleteBranchOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the branch deleted by the operation, including the branch
+	// name and the commit ID that was the tip of the branch.
+	DeletedBranch *BranchInfo `locationName:"deletedBranch" type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteBranchOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteBranchOutput) GoString() string {
+	return s.String()
+}
+
+// SetDeletedBranch sets the DeletedBranch field's value.
+func (s *DeleteBranchOutput) SetDeletedBranch(v *BranchInfo) *DeleteBranchOutput {
+	s.DeletedBranch = v
 	return s
 }
 
@@ -2868,7 +3062,7 @@ func (s *GetBranchOutput) SetBranch(v *BranchInfo) *GetBranchOutput {
 type GetCommitInput struct {
 	_ struct{} `type:"structure"`
 
-	// The commit ID.
+	// The commit ID. Commit IDs are the full SHA of the commit.
 	//
 	// CommitId is a required field
 	CommitId *string `locationName:"commitId" type:"string" required:"true"`
@@ -3645,8 +3839,10 @@ func (s *RepositoryNameIdPair) SetRepositoryName(v string) *RepositoryNameIdPair
 type RepositoryTrigger struct {
 	_ struct{} `type:"structure"`
 
-	// The branches that will be included in the trigger configuration. If no branches
-	// are specified, the trigger will apply to all branches.
+	// The branches that will be included in the trigger configuration. If you specify
+	// an empty array, the trigger will apply to all branches.
+	//
+	// While no content is required in the array, you must include the array itself.
 	Branches []*string `locationName:"branches" type:"list"`
 
 	// Any custom data associated with the trigger that will be included in the

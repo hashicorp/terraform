@@ -137,6 +137,17 @@ func Merge(c1, c2 *Config) (*Config, error) {
 		}
 	}
 
+	// Local Values
+	// These are simpler than the other config elements because they are just
+	// flat values and so no deep merging is required.
+	if localsCount := len(c1.Locals) + len(c2.Locals); localsCount != 0 {
+		// Explicit length check above because we want c.Locals to remain
+		// nil if the result would be empty.
+		c.Locals = make([]*Local, 0, len(c1.Locals)+len(c2.Locals))
+		c.Locals = append(c.Locals, c1.Locals...)
+		c.Locals = append(c.Locals, c2.Locals...)
+	}
+
 	return c, nil
 }
 

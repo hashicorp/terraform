@@ -37,7 +37,7 @@ type connectionInfo struct {
 	Port       int
 	HTTPS      bool
 	Insecure   bool
-	CACert     *[]byte `mapstructure:"ca_cert"`
+	CACert     string `mapstructure:"cacert"`
 	Timeout    string
 	ScriptPath string        `mapstructure:"script_path"`
 	TimeoutVal time.Duration `mapstructure:"-"`

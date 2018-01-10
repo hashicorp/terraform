@@ -19,6 +19,11 @@ func (n *NodeOutputOrphan) Name() string {
 	return result
 }
 
+// GraphNodeReferenceable
+func (n *NodeOutputOrphan) ReferenceableName() []string {
+	return []string{"output." + n.OutputName}
+}
+
 // GraphNodeSubPath
 func (n *NodeOutputOrphan) Path() []string {
 	return n.PathValue

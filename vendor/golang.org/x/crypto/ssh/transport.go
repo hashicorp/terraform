@@ -76,17 +76,17 @@ type connectionState struct {
 // both directions are triggered by reading and writing a msgNewKey packet
 // respectively.
 func (t *transport) prepareKeyChange(algs *algorithms, kexResult *kexResult) error {
-	if ciph, err := newPacketCipher(t.reader.dir, algs.r, kexResult); err != nil {
+	ciph, err := newPacketCipher(t.reader.dir, algs.r, kexResult)
+	if err != nil {
 		return err
-	} else {
-		t.reader.pendingKeyChange <- ciph
 	}
+	t.reader.pendingKeyChange <- ciph
 
-	if ciph, err := newPacketCipher(t.writer.dir, algs.w, kexResult); err != nil {
+	ciph, err = newPacketCipher(t.writer.dir, algs.w, kexResult)
+	if err != nil {
 		return err
-	} else {
-		t.writer.pendingKeyChange <- ciph
 	}
+	t.writer.pendingKeyChange <- ciph
 
 	return nil
 }
@@ -139,7 +139,7 @@ func (s *connectionState) readPacket(r *bufio.Reader) ([]byte, error) {
 			case cipher := <-s.pendingKeyChange:
 				s.packetCipher = cipher
 			default:
-				return nil, errors.New("ssh: got bogus newkeys message.")
+				return nil, errors.New("ssh: got bogus newkeys message")
 			}
 
 		case msgDisconnect:
@@ -254,7 +254,7 @@ func newPacketCipher(d direction, algs directionAlgorithms, kex *kexResult) (pac
 	iv, key, macKey := generateKeys(d, algs, kex)
 
 	if algs.Cipher == gcmCipherID {
-		return newGCMCipher(iv, key, macKey)
+		return newGCMCipher(iv, key)
 	}
 
 	if algs.Cipher == aes128cbcID {

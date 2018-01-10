@@ -16,8 +16,8 @@ func TestShow(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -61,8 +61,8 @@ func TestShow_noArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -93,8 +93,8 @@ func TestShow_noArgsNoState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -112,8 +112,8 @@ func TestShow_plan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -138,8 +138,8 @@ func TestShow_noArgsRemoteState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -162,8 +162,8 @@ func TestShow_state(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 

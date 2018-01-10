@@ -90,6 +90,8 @@ func (i *Interpolater) Values(
 			err = i.valueSimpleVar(scope, n, v, result)
 		case *config.TerraformVariable:
 			err = i.valueTerraformVar(scope, n, v, result)
+		case *config.LocalVariable:
+			err = i.valueLocalVar(scope, n, v, result)
 		case *config.UserVariable:
 			err = i.valueUserVar(scope, n, v, result)
 		default:
@@ -140,7 +142,6 @@ func (i *Interpolater) valueModuleVar(
 	n string,
 	v *config.ModuleVariable,
 	result map[string]ast.Variable) error {
-
 	// Build the path to the child module we want
 	path := make([]string, len(scope.Path), len(scope.Path)+1)
 	copy(path, scope.Path)
@@ -317,9 +318,12 @@ func (i *Interpolater) valueTerraformVar(
 	n string,
 	v *config.TerraformVariable,
 	result map[string]ast.Variable) error {
-	if v.Field != "env" {
+	// "env" is supported for backward compatibility, but it's deprecated and
+	// so we won't advertise it as being allowed in the error message. It will
+	// be removed in a future version of Terraform.
+	if v.Field != "workspace" && v.Field != "env" {
 		return fmt.Errorf(
-			"%s: only supported key for 'terraform.X' interpolations is 'env'", n)
+			"%s: only supported key for 'terraform.X' interpolations is 'workspace'", n)
 	}
 
 	if i.Meta == nil {
@@ -328,6 +332,59 @@ func (i *Interpolater) valueTerraformVar(
 	}
 
 	result[n] = ast.Variable{Type: ast.TypeString, Value: i.Meta.Env}
+	return nil
+}
+
+func (i *Interpolater) valueLocalVar(
+	scope *InterpolationScope,
+	n string,
+	v *config.LocalVariable,
+	result map[string]ast.Variable,
+) error {
+	i.StateLock.RLock()
+	defer i.StateLock.RUnlock()
+
+	modTree := i.Module
+	if len(scope.Path) > 1 {
+		modTree = i.Module.Child(scope.Path[1:])
+	}
+
+	// Get the resource from the configuration so we can verify
+	// that the resource is in the configuration and so we can access
+	// the configuration if we need to.
+	var cl *config.Local
+	for _, l := range modTree.Config().Locals {
+		if l.Name == v.Name {
+			cl = l
+			break
+		}
+	}
+
+	if cl == nil {
+		return fmt.Errorf("%s: no local value of this name has been declared", n)
+	}
+
+	// Get the relevant module
+	module := i.State.ModuleByPath(scope.Path)
+	if module == nil {
+		result[n] = unknownVariable()
+		return nil
+	}
+
+	rawV, exists := module.Locals[v.Name]
+	if !exists {
+		result[n] = unknownVariable()
+		return nil
+	}
+
+	varV, err := hil.InterfaceToVariable(rawV)
+	if err != nil {
+		// Should never happen, since interpolation should always produce
+		// something we can feed back in to interpolation.
+		return fmt.Errorf("%s: %s", n, err)
+	}
+
+	result[n] = varV
 	return nil
 }
 
@@ -642,7 +699,6 @@ func (i *Interpolater) computeResourceMultiVariable(
 func (i *Interpolater) interpolateComplexTypeAttribute(
 	resourceID string,
 	attributes map[string]string) (ast.Variable, error) {
-
 	// We can now distinguish between lists and maps in state by the count field:
 	//    - lists (and by extension, sets) use the traditional .# notation
 	//    - maps use the newer .% notation

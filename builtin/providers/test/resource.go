@@ -12,6 +12,11 @@ func testResource() *schema.Resource {
 		Read:   testResourceRead,
 		Update: testResourceUpdate,
 		Delete: testResourceDelete,
+
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"required": {
 				Type:     schema.TypeString,
@@ -42,6 +47,10 @@ func testResource() *schema.Resource {
 				ForceNew: true,
 			},
 			"computed_read_only": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"computed_from_required": {
 				Type:     schema.TypeString,
 				Computed: true,
 				ForceNew: true,
@@ -128,6 +137,8 @@ func testResourceCreate(d *schema.ResourceData, meta interface{}) error {
 	if _, ok := d.GetOk("required_map"); !ok {
 		return fmt.Errorf("Missing attribute 'required_map', but it's required!")
 	}
+
+	d.Set("computed_from_required", d.Get("required"))
 
 	return testResourceRead(d, meta)
 }

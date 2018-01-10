@@ -6,13 +6,19 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/terraform"
 
 	backendatlas "github.com/hashicorp/terraform/backend/atlas"
 	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
 	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
+	backendetcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
+	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
 	backendinmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
+	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
+	backendSwift "github.com/hashicorp/terraform/backend/remote-state/swift"
 )
 
 // backends is the list of available backends. This is a global variable
@@ -37,7 +43,14 @@ func init() {
 		"local":  func() backend.Backend { return &backendlocal.Local{} },
 		"consul": func() backend.Backend { return backendconsul.New() },
 		"inmem":  func() backend.Backend { return backendinmem.New() },
+		"swift":  func() backend.Backend { return backendSwift.New() },
 		"s3":     func() backend.Backend { return backendS3.New() },
+		"azure": deprecateBackend(backendAzure.New(),
+			`Warning: "azure" name is deprecated, please use "azurerm"`),
+		"azurerm": func() backend.Backend { return backendAzure.New() },
+		"etcdv3":  func() backend.Backend { return backendetcdv3.New() },
+		"gcs":     func() backend.Backend { return backendGCS.New() },
+		"manta":   func() backend.Backend { return backendManta.New() },
 	}
 
 	// Add the legacy remote backends that haven't yet been convertd to
@@ -70,4 +83,42 @@ func Set(name string, f func() backend.Backend) {
 	}
 
 	backends[name] = f
+}
+
+// deprecatedBackendShim is used to wrap a backend and inject a deprecation
+// warning into the Validate method.
+type deprecatedBackendShim struct {
+	backend.Backend
+	Message string
+}
+
+// Validate the Backend then add the deprecation warning.
+func (b deprecatedBackendShim) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+	warns, errs := b.Backend.Validate(c)
+	warns = append(warns, b.Message)
+	return warns, errs
+}
+
+// DeprecateBackend can be used to wrap a backend to retrun a deprecation
+// warning during validation.
+func deprecateBackend(b backend.Backend, message string) func() backend.Backend {
+	// Since a Backend wrapped by deprecatedBackendShim can no longer be
+	// asserted as an Enhanced or Local backend, disallow those types here
+	// entirely.  If something other than a basic backend.Backend needs to be
+	// deprecated, we can add that functionality to schema.Backend or the
+	// backend itself.
+	if _, ok := b.(backend.Enhanced); ok {
+		panic("cannot use DeprecateBackend on an Enhanced Backend")
+	}
+
+	if _, ok := b.(backend.Local); ok {
+		panic("cannot use DeprecateBackend on a Local Backend")
+	}
+
+	return func() backend.Backend {
+		return deprecatedBackendShim{
+			Backend: b,
+			Message: message,
+		}
+	}
 }

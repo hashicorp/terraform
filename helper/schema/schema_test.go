@@ -2,6 +2,7 @@ package schema
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -138,6 +139,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		State           *terraform.InstanceState
 		Config          map[string]interface{}
 		ConfigVariables map[string]ast.Variable
+		CustomizeDiff   CustomizeDiffFunc
 		Diff            *terraform.InstanceDiff
 		Err             bool
 	}{
@@ -2823,6 +2825,323 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		{
+			Name: "overridden diff with a CustomizeDiff function, ForceNew not in schema",
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"availability_zone": "foo",
+			},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				if err := d.SetNew("availability_zone", "bar"); err != nil {
+					return err
+				}
+				if err := d.ForceNew("availability_zone"); err != nil {
+					return err
+				}
+				return nil
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "bar",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Name: "overridden diff with a CustomizeDiff function, ForceNew in schema",
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"availability_zone": "foo",
+			},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				if err := d.SetNew("availability_zone", "bar"); err != nil {
+					return err
+				}
+				return nil
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "bar",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Name: "required field with computed diff added with CustomizeDiff function",
+			Schema: map[string]*Schema{
+				"ami_id": &Schema{
+					Type:     TypeString,
+					Required: true,
+				},
+				"instance_id": &Schema{
+					Type:     TypeString,
+					Computed: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"ami_id": "foo",
+			},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				if err := d.SetNew("instance_id", "bar"); err != nil {
+					return err
+				}
+				return nil
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ami_id": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"instance_id": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Name: "Set ForceNew only marks the changing element as ForceNew - CustomizeDiffFunc edition",
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ports.#": "3",
+					"ports.1": "1",
+					"ports.2": "2",
+					"ports.4": "4",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{5, 2, 6},
+			},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				if err := d.SetNew("ports", []interface{}{5, 2, 1}); err != nil {
+					return err
+				}
+				if err := d.ForceNew("ports"); err != nil {
+					return err
+				}
+				return nil
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "3",
+						New: "3",
+					},
+					"ports.1": &terraform.ResourceAttrDiff{
+						Old: "1",
+						New: "1",
+					},
+					"ports.2": &terraform.ResourceAttrDiff{
+						Old: "2",
+						New: "2",
+					},
+					"ports.5": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "5",
+						RequiresNew: true,
+					},
+					"ports.4": &terraform.ResourceAttrDiff{
+						Old:         "4",
+						New:         "0",
+						NewRemoved:  true,
+						RequiresNew: true,
+					},
+				},
+			},
+		},
+
+		{
+			Name:   "tainted resource does not run CustomizeDiffFunc",
+			Schema: map[string]*Schema{},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"id": "someid",
+				},
+				Tainted: true,
+			},
+
+			Config: map[string]interface{}{},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				return errors.New("diff customization should not have run")
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes:     map[string]*terraform.ResourceAttrDiff{},
+				DestroyTainted: true,
+			},
+
+			Err: false,
+		},
+
+		{
+			Name: "NewComputed based on a conditional with CustomizeDiffFunc",
+			Schema: map[string]*Schema{
+				"etag": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+				},
+				"version_id": &Schema{
+					Type:     TypeString,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"etag":       "foo",
+					"version_id": "1",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"etag": "bar",
+			},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				if d.HasChange("etag") {
+					d.SetNewComputed("version_id")
+				}
+				return nil
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"etag": &terraform.ResourceAttrDiff{
+						Old: "foo",
+						New: "bar",
+					},
+					"version_id": &terraform.ResourceAttrDiff{
+						Old:         "1",
+						New:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Name: "vetoing a diff",
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"foo": "bar",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"foo": "baz",
+			},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				return fmt.Errorf("diff vetoed")
+			},
+
+			Err: true,
+		},
+
+		// A lot of resources currently depended on using the empty string as a
+		// nil/unset value.
+		// FIXME: We want this to eventually produce a diff, since there
+		// technically is a new value in the config.
+		{
+			Name: "optional, computed, empty string",
+			Schema: map[string]*Schema{
+				"attr": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"attr": "bar",
+				},
+			},
+
+			// this does necessarily depend on an interpolated value, but this
+			// is often how it comes about in a configuration, otherwise the
+			// value would be unset.
+			Config: map[string]interface{}{
+				"attr": "${var.foo}",
+			},
+
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": interfaceToVariableSwallowError(""),
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -2838,8 +3157,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				}
 			}
 
-			d, err := schemaMap(tc.Schema).Diff(
-				tc.State, terraform.NewResourceConfig(c))
+			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil)
 			if err != nil != tc.Err {
 				t.Fatalf("err: %s", err)
 			}
@@ -3353,6 +3671,48 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			},
 			true,
 		},
+
+		"invalid field name format #1": {
+			map[string]*Schema{
+				"with space": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+			true,
+		},
+
+		"invalid field name format #2": {
+			map[string]*Schema{
+				"WithCapitals": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+			true,
+		},
+
+		"invalid field name format of a Deprecated field": {
+			map[string]*Schema{
+				"WithCapitals": &Schema{
+					Type:       TypeString,
+					Optional:   true,
+					Deprecated: "Use with_underscores instead",
+				},
+			},
+			false,
+		},
+
+		"invalid field name format of a Removed field": {
+			map[string]*Schema{
+				"WithCapitals": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Removed:  "Use with_underscores instead",
+				},
+			},
+			false,
+		},
 	}
 
 	for tn, tc := range cases {
@@ -3647,8 +4007,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 				}
 			}
 
-			d, err := schemaMap(tc.Schema).Diff(
-				tc.State, terraform.NewResourceConfig(c))
+			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), nil, nil)
 			if err != nil != tc.Err {
 				t.Fatalf("#%q err: %s", tn, err)
 			}
@@ -3942,6 +4301,62 @@ func TestSchemaMap_Validate(t *testing.T) {
 						"from": 80,
 					},
 				},
+			},
+
+			Err: false,
+		},
+
+		"Good sub-resource, interpolated value": {
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{
+					`${map("from", "80")}`,
+				},
+			},
+
+			Vars: map[string]string{},
+
+			Err: false,
+		},
+
+		"Good sub-resource, computed value": {
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{
+					`${map("from", var.port)}`,
+				},
+			},
+
+			Vars: map[string]string{
+				"var.port": config.UnknownVariableValue,
 			},
 
 			Err: false,
@@ -4923,4 +5338,18 @@ func (e errorSort) Len() int      { return len(e) }
 func (e errorSort) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
 func (e errorSort) Less(i, j int) bool {
 	return e[i].Error() < e[j].Error()
+}
+
+func TestSchemaMapDeepCopy(t *testing.T) {
+	schema := map[string]*Schema{
+		"foo": &Schema{
+			Type: TypeString,
+		},
+	}
+	source := schemaMap(schema)
+	dest := source.DeepCopy()
+	dest["foo"].ForceNew = true
+	if reflect.DeepEqual(source, dest) {
+		t.Fatalf("source and dest should not match")
+	}
 }

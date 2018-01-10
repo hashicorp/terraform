@@ -6,14 +6,16 @@ import (
 
 // CoordinateEntry represents a node and its associated network coordinate.
 type CoordinateEntry struct {
-	Node  string
-	Coord *coordinate.Coordinate
+	Node    string
+	Segment string
+	Coord   *coordinate.Coordinate
 }
 
-// CoordinateDatacenterMap represents a datacenter and its associated WAN
-// nodes and their associates coordinates.
+// CoordinateDatacenterMap has the coordinates for servers in a given datacenter
+// and area. Network coordinates are only compatible within the same area.
 type CoordinateDatacenterMap struct {
 	Datacenter  string
+	AreaID      string
 	Coordinates []CoordinateEntry
 }
 
