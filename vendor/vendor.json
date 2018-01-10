@@ -2132,46 +2132,46 @@
 			"revisionTime": "2016-10-29T10:40:18Z"
 		},
 		{
-			"checksumSHA1": "R9ayYqxeUsPcIbs6KXCVwDIdf6M=",
+			"checksumSHA1": "TudZOVOvOvR5zw7EFbvD3eZpmLI=",
 			"path": "github.com/zclconf/go-cty/cty",
-			"revision": "8bf222d6d03b7b336d013978f3acbfd877da428f",
-			"revisionTime": "2017-10-13T21:58:09Z"
+			"revision": "709e4033eeb037dc543dbc2048065dfb814ce316",
+			"revisionTime": "2018-01-06T05:58:34Z"
 		},
 		{
 			"checksumSHA1": "IjvfMUZ9S1L1NM0haXwMfKzkyvM=",
 			"path": "github.com/zclconf/go-cty/cty/convert",
-			"revision": "8bf222d6d03b7b336d013978f3acbfd877da428f",
-			"revisionTime": "2017-10-13T21:58:09Z"
+			"revision": "709e4033eeb037dc543dbc2048065dfb814ce316",
+			"revisionTime": "2018-01-06T05:58:34Z"
 		},
 		{
 			"checksumSHA1": "TU21yqpRZdbEbH8pp4I5YsQa00E=",
 			"path": "github.com/zclconf/go-cty/cty/function",
-			"revision": "8bf222d6d03b7b336d013978f3acbfd877da428f",
-			"revisionTime": "2017-10-13T21:58:09Z"
+			"revision": "709e4033eeb037dc543dbc2048065dfb814ce316",
+			"revisionTime": "2018-01-06T05:58:34Z"
 		},
 		{
 			"checksumSHA1": "Ke4kpRBTSophcLSCrusR8XxSC0Y=",
 			"path": "github.com/zclconf/go-cty/cty/function/stdlib",
-			"revision": "8bf222d6d03b7b336d013978f3acbfd877da428f",
-			"revisionTime": "2017-10-13T21:58:09Z"
+			"revision": "709e4033eeb037dc543dbc2048065dfb814ce316",
+			"revisionTime": "2018-01-06T05:58:34Z"
 		},
 		{
 			"checksumSHA1": "tmCzwfNXOEB1sSO7TKVzilb2vjA=",
 			"path": "github.com/zclconf/go-cty/cty/gocty",
-			"revision": "8bf222d6d03b7b336d013978f3acbfd877da428f",
-			"revisionTime": "2017-10-13T21:58:09Z"
+			"revision": "709e4033eeb037dc543dbc2048065dfb814ce316",
+			"revisionTime": "2018-01-06T05:58:34Z"
 		},
 		{
 			"checksumSHA1": "1ApmO+Q33+Oem/3f6BU6sztJWNc=",
 			"path": "github.com/zclconf/go-cty/cty/json",
-			"revision": "8bf222d6d03b7b336d013978f3acbfd877da428f",
-			"revisionTime": "2017-10-13T21:58:09Z"
+			"revision": "709e4033eeb037dc543dbc2048065dfb814ce316",
+			"revisionTime": "2018-01-06T05:58:34Z"
 		},
 		{
 			"checksumSHA1": "gH4rRyzIQknMIXAJfpvC04KTsME=",
 			"path": "github.com/zclconf/go-cty/cty/set",
-			"revision": "8bf222d6d03b7b336d013978f3acbfd877da428f",
-			"revisionTime": "2017-10-13T21:58:09Z"
+			"revision": "709e4033eeb037dc543dbc2048065dfb814ce316",
+			"revisionTime": "2018-01-06T05:58:34Z"
 		},
 		{
 			"checksumSHA1": "vE43s37+4CJ2CDU6TlOUOYE0K9c=",
