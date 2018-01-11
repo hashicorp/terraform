@@ -86,8 +86,8 @@ func (b *Local) opRefresh(
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
-		newState, err = tfCtx.Refresh()
-		log.Printf("[INFO] backend/local: plan calling Plan")
+		newState, refreshErr = tfCtx.Refresh()
+		log.Printf("[INFO] backend/local: refresh calling Refresh")
 	}()
 
 	select {
