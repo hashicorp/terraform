@@ -93,7 +93,8 @@ syntax to specify a _range_ of versions that are acceptable:
 
 * `>= 1.2.0`: version 1.2.0 or newer
 * `<= 1.2.0`: version 1.2.0 or older
-* `~> 1.2`: any non-beta patch release within the `1.2` range
+* `~> 1.2.0`: any non-beta version between 1.2.0 (inclusive) and 1.3.0 (exclusive), e.g. `1.2.X`
+* `~> 1.2`: any non-beta version between 1.2.0 (inclusive) and 2.0.0 (exclusive), e.g. `1.X.Y`
 * `>= 1.0.0, <= 2.0.0`: any version between 1.0.0 and 2.0.0 inclusive
 
 When depending on third-party modules, references to specific versions are
