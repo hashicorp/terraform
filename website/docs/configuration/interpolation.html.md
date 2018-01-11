@@ -187,6 +187,11 @@ The supported built-in functions are:
 
   * `chomp(string)` - Removes trailing newlines from the given string.
 
+  * `chunklist(list, size)` - Returns the `list` items chunked by `size`.
+      Examples:
+      * `chunklist(aws_subnet.foo.*.id, 1)`: will outputs `[["id1"], ["id2"], ["id3"]]`
+      * `chunklist(var.list_of_strings, 2)`: will outputs `[["id1", "id2"], ["id3", "id4"], ["id5"]]`
+
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. If given host
     number is negative, the count starts from the end of the range.
