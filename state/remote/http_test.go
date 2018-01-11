@@ -31,6 +31,14 @@ func TestHTTPClient(t *testing.T) {
 	client := &HTTPClient{URL: url, Client: cleanhttp.DefaultClient()}
 	testClient(t, client)
 
+	// test just a single PUT
+	p := &HTTPClient{
+		URL:          url,
+		UpdateMethod: "PUT",
+		Client:       cleanhttp.DefaultClient(),
+	}
+	testClient(t, p)
+
 	// Test locking and alternative UpdateMethod
 	a := &HTTPClient{
 		URL:          url,
@@ -134,12 +142,18 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		w.Write(h.Data)
-	case "POST", "PUT":
+	case "PUT":
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, r.Body); err != nil {
 			w.WriteHeader(500)
 		}
-
+		w.WriteHeader(201)
+		h.Data = buf.Bytes()
+	case "POST":
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, r.Body); err != nil {
+			w.WriteHeader(500)
+		}
 		h.Data = buf.Bytes()
 	case "LOCK":
 		if h.Locked {
