@@ -26,6 +26,8 @@ please fill how this [community providers form](https://docs.google.com/forms/d/
 
 [CouchDB](https://github.com/nicolai86/terraform-provider-couchdb)
 
+[Digital Rebar](https://github.com/rackn/terraform-provider-drp/)
+
 [Google Calendar](https://github.com/sethvargo/terraform-provider-googlecalendar)
 
 [Helm](https://github.com/mcuadros/terraform-provider-helm)
@@ -34,16 +36,24 @@ please fill how this [community providers form](https://docs.google.com/forms/d/
 
 [Kafka](https://github.com/Mongey/terraform-provider-kafka)
 
+[Kibana](https://github.com/ewilde/terraform-provider-kibana)
+
+[Kong](https://github.com/kevholditch/terraform-provider-kong)
+
 [LXD](https://github.com/sl1pm4t/terraform-provider-lxd)
 
 [Microsoft SCVMM](https://github.com/GSLabDev/terraform-provider-scvmm)
 
-[Open Day Light](https://github.com/GSLabDev/terraform-provider-odli)
+[Open Day Light](https://github.com/GSLabDev/terraform-provider-odl)
 
 [Pass](https://github.com/camptocamp/terraform-provider-pass)
 
 [Puppet CA](https://github.com/camptocamp/terraform-provider-puppetca)
 
 [PuppetDB](https://github.com/camptocamp/terraform-provider-puppetdb)
+
+[Runscope](https://github.com/ewilde/terraform-provider-runscope)
+
+
 
 
