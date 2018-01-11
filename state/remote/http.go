@@ -313,7 +313,7 @@ func (c *HTTPClient) Put(data []byte) error {
 
 	// Handle the error codes
 	switch resp.StatusCode {
-	case http.StatusOK:
+	case http.StatusOK, http.StatusCreated, http.StatusNoContent:
 		return nil
 	default:
 		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
