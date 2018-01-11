@@ -249,6 +249,35 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 }
 
+// ensure we can separate the workspace prefix when it also matches the prefix
+// of the workspace name itself.
+func TestBackendPrefixInWorkspace(t *testing.T) {
+	testACC(t)
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+
+	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"bucket": bucketName,
+		"key":    "test-env.tfstate",
+		"workspace_key_prefix": "env",
+	}).(*Backend)
+
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
+
+	// get a state that contains the prefix as a substring
+	sMgr, err := b.State("env-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sMgr.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkStateList(b, []string{"default", "env-1"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestKeyEnv(t *testing.T) {
 	testACC(t)
 	keyName := "some/paths/tfstate"
