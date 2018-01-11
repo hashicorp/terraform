@@ -110,6 +110,16 @@ This special argument applies to _all_ providers.
 view the specified version constraints for all providers used in the
 current configuration.
 
+The `version` attribute value may either be a single explicit version or
+a version constraint expression. Constraint expressions use the following
+syntax to specify a _range_ of versions that are acceptable:
+
+* `>= 1.2.0`: version 1.2.0 or newer
+* `<= 1.2.0`: version 1.2.0 or older
+* `~> 1.2.0`: any non-beta version between 1.2.0 (inclusive) and 1.3.0 (exclusive), e.g. `1.2.X`
+* `~> 1.2`: any non-beta version between 1.2.0 (inclusive) and 2.0.0 (exclusive), e.g. `1.X.Y`
+* `>= 1.0.0, <= 2.0.0`: any version between 1.0.0 and 2.0.0 inclusive
+
 When `terraform init` is re-run with providers already installed, it will
 use an already-installed provider that meets the constraints in preference
 to downloading a new version. To upgrade to the latest acceptable version
