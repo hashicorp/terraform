@@ -53,7 +53,7 @@ func (b *Backend) keyEnv(key string) string {
 		}
 	}
 
-	parts := strings.SplitAfter(key, b.workspaceKeyPrefix)
+	parts := strings.SplitAfterN(key, b.workspaceKeyPrefix, 2)
 
 	if len(parts) < 2 {
 		return ""
