@@ -5,9 +5,20 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl2/hcltest"
+	"github.com/hashicorp/terraform/command/format"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/diffs"
+	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -18,6 +29,240 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
+
+	fmt.Printf("temporary plan\n\n")
+
+	reqd := discovery.PluginRequirements{
+		"aws": &discovery.PluginConstraints{
+			Versions: discovery.ConstraintStr(">= 0.0.0").MustParse(),
+		},
+	}
+
+	providerResolver := c.providerResolver()
+	factories, errs := providerResolver.ResolveProviders(reqd)
+	if len(errs) > 0 {
+		c.showDiagnostics(errs[0])
+		return 1
+	}
+
+	provider, err := factories["aws"]()
+	if err != nil {
+		c.showDiagnostics(err)
+		return 1
+	}
+
+	schema, err := provider.GetSchema(&terraform.ProviderSchemaRequest{
+		ResourceTypes: []string{"aws_instance"},
+	})
+	if err != nil {
+		c.showDiagnostics(err)
+		return 1
+	}
+
+	rSchema := schema.ResourceTypes["aws_instance"]
+	//ty := rSchema.ImpliedType()
+
+	addr, _ := terraform.ParseResourceAddress("aws_instance.example[2]")
+
+	old := cty.ObjectVal(map[string]cty.Value{
+		"ami":                  cty.StringVal("ami-abcd"),
+		"instance_type":        cty.StringVal("z1.weedy"),
+		"ebs_optimized":        cty.True,
+		"iam_instance_profile": cty.NullVal(cty.String),
+		"private_dns":          cty.StringVal("127.0.0.1.example.com"),
+		"private_ip":           cty.StringVal("127.0.0.1"),
+		"user_data":            cty.StringVal("#!/usr/bin/bash\necho howdy\ncat /etc/foo"),
+		"vpc_security_group_ids": cty.SetVal([]cty.Value{
+			cty.StringVal("sg-12354"),
+		}),
+		"root_block_device": cty.ListVal([]cty.Value{
+			cty.ObjectVal(map[string]cty.Value{
+				"volume_type": cty.StringVal("standard"),
+				"volume_size": cty.NumberIntVal(0),
+				"iops":        cty.NumberIntVal(0),
+			}),
+		}),
+		"ebs_block_device": cty.SetVal([]cty.Value{
+			cty.ObjectVal(map[string]cty.Value{
+				"device_name": cty.StringVal("foo"),
+				"volume_type": cty.StringVal("standard"),
+				"volume_size": cty.NumberIntVal(0),
+				"iops":        cty.NumberIntVal(0),
+				"encrypted":   cty.False,
+				"snapshot_id": cty.StringVal("snap-abc123"),
+			}),
+		}),
+	})
+
+	old, err = configschema.ForceObjectConformance(old, rSchema)
+	if err != nil {
+		c.showDiagnostics(err)
+		return 1
+	}
+	newBody := hcltest.MockBody(&hcl.BodyContent{
+		Attributes: hcl.Attributes{
+			"ami": {
+				Name: "ami",
+				Expr: hcltest.MockExprLiteral(cty.StringVal("ami-1234")),
+			},
+			"instance_type": {
+				Name: "instance_type",
+				Expr: hcltest.MockExprLiteral(cty.StringVal("z1.weedy")),
+			},
+			"ebs_optimized": {
+				Name: "ebs_optimized",
+				Expr: hcltest.MockExprLiteral(cty.False),
+			},
+			"user_data": {
+				Name: "user_data",
+				Expr: hcltest.MockExprLiteral(cty.StringVal("#!/usr/bin/bash\necho hello\ncat /etc/foo")),
+			},
+			"iam_instance_profile": {
+				Name: "iam_instance_profile",
+				Expr: hcltest.MockExprLiteral(cty.StringVal("arn:aws:foobarbaz")),
+			},
+			"vpc_security_group_ids": {
+				Name: "vpc_security_group_ids",
+				Expr: hcltest.MockExprLiteral(cty.SetVal([]cty.Value{
+					cty.StringVal("sg-12354"),
+					cty.StringVal("sg-abcde"),
+				})),
+			},
+		},
+		Blocks: hcl.Blocks{
+			&hcl.Block{
+				Type: "root_block_device",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"volume_type": {
+							Name: "volume_type",
+							Expr: hcltest.MockExprLiteral(cty.StringVal("gp2")),
+						},
+						"volume_size": {
+							Name: "volume_size",
+							Expr: hcltest.MockExprLiteral(cty.NumberIntVal(0)),
+						},
+						"iops": {
+							Name: "iops",
+							Expr: hcltest.MockExprLiteral(cty.NumberIntVal(0)),
+						},
+					},
+				}),
+			},
+			&hcl.Block{
+				Type: "ebs_block_device",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"device_name": {
+							Name: "volume_type",
+							Expr: hcltest.MockExprLiteral(cty.StringVal("foo")),
+						},
+						"volume_type": {
+							Name: "volume_type",
+							Expr: hcltest.MockExprLiteral(cty.StringVal("standard")),
+						},
+						"volume_size": {
+							Name: "volume_size",
+							Expr: hcltest.MockExprLiteral(cty.NumberIntVal(0)),
+						},
+						"iops": {
+							Name: "iops",
+							Expr: hcltest.MockExprLiteral(cty.NumberIntVal(0)),
+						},
+						"encrypted": {
+							Name: "encrypted",
+							Expr: hcltest.MockExprLiteral(cty.False),
+						},
+					},
+				}),
+			},
+			&hcl.Block{
+				Type: "ebs_block_device",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"device_name": {
+							Name: "volume_type",
+							Expr: hcltest.MockExprLiteral(cty.StringVal("bar")),
+						},
+						"volume_type": {
+							Name: "volume_type",
+							Expr: hcltest.MockExprLiteral(cty.StringVal("standard")),
+						},
+						"volume_size": {
+							Name: "volume_size",
+							Expr: hcltest.MockExprLiteral(cty.NumberIntVal(0)),
+						},
+						"iops": {
+							Name: "iops",
+							Expr: hcltest.MockExprLiteral(cty.NumberIntVal(0)),
+						},
+					},
+				}),
+			},
+		},
+	})
+
+	forcedReplace := diffs.NewPathSet()
+	forcedReplace.AddAllSteps(cty.Path{
+		cty.GetAttrStep{
+			Name: "ami",
+		},
+	})
+	forcedReplace.AddAllSteps(cty.Path{
+		cty.GetAttrStep{
+			Name: "user_data",
+		},
+	})
+	forcedReplace.AddAllSteps(cty.Path{
+		cty.GetAttrStep{
+			Name: "vpc_security_group_ids",
+		},
+	})
+	forcedReplace.AddAllSteps(cty.Path{
+		cty.GetAttrStep{
+			Name: "ebs_block_device",
+		},
+	})
+	forcedReplace.AddAllSteps(cty.Path{
+		cty.GetAttrStep{
+			Name: "root_block_device",
+		},
+		cty.IndexStep{
+			Key: cty.NumberIntVal(0),
+		},
+		cty.GetAttrStep{
+			Name: "volume_type",
+		},
+	})
+
+	new, diags := hcldec.Decode(newBody, rSchema.DecoderSpec(), nil)
+	c.showDiagnostics(diags)
+	if diags.HasErrors() {
+		return 1
+	}
+
+	// Propagate computed values from old into new, so that they remain
+	// unchanged unless overridden.
+	//new = diffs.PreserveComputedAttrs(old, new, rSchema)
+
+	fmt.Printf("--- old %#v\n\n--- new %#v\n\n--- forcedReplace %s\n", old, new, spew.Sdump(forcedReplace))
+
+	//change := diffs.NewCreate(new)
+	//change := diffs.NewUpdate(old, new)
+	//change := diffs.NewUpdate(new, new)
+	change := diffs.NewReplace(old, new, forcedReplace)
+
+	diff := format.ResourceChange(addr, change, rSchema, c.Colorize())
+	fmt.Println(diff)
+
+	return 0
+}
+
+func (c *PlanCommand) NormalRun(args []string) int {
 	var destroy, refresh, detailed bool
 	var outPath string
 	var moduleDepth int
