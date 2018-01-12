@@ -90,7 +90,8 @@ func TestEvalInitProvider(t *testing.T) {
 }
 
 func TestEvalCloseProvider(t *testing.T) {
-	n := &EvalCloseProvider{Name: "foo"}
+	providerName := ResolveProviderName("foo", nil)
+	n := &EvalCloseProvider{Name: providerName}
 	provider := &MockResourceProvider{}
 	ctx := &MockEvalContext{CloseProviderProvider: provider}
 	if _, err := n.Eval(ctx); err != nil {
@@ -100,7 +101,7 @@ func TestEvalCloseProvider(t *testing.T) {
 	if !ctx.CloseProviderCalled {
 		t.Fatal("should be called")
 	}
-	if ctx.CloseProviderName != "foo" {
+	if ctx.CloseProviderName != providerName {
 		t.Fatalf("bad: %#v", ctx.CloseProviderName)
 	}
 }

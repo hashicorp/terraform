@@ -737,6 +737,30 @@ func (val Value) HasIndex(key Value) Value {
 	}
 }
 
+// HasElement returns True if the receiver (which must be of a set type)
+// has the given value as an element, or False if it does not.
+//
+// The result will be UnknownVal(Bool) if either the set or the
+// given value are unknown.
+//
+// This method will panic if the receiver is not a set, or if it is a null set.
+func (val Value) HasElement(elem Value) Value {
+	ty := val.Type()
+
+	if !ty.IsSetType() {
+		panic("not a set type")
+	}
+	if !val.IsKnown() || !elem.IsKnown() {
+		return UnknownVal(Bool)
+	}
+	if val.IsNull() {
+		panic("can't call HasElement on a nil value")
+	}
+
+	s := val.v.(set.Set)
+	return BoolVal(s.Has(elem.v))
+}
+
 // Length returns the length of the receiver, which must be a collection type
 // or tuple type, as a number value. If the receiver is not a compatible type
 // then this method will panic.

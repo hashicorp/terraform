@@ -678,47 +678,30 @@ func (m *Meta) backend_c_r_S(
 	// Get the backend type for output
 	backendType := s.Backend.Type
 
-	copy := m.forceInitCopy
-	if !copy {
-		var err error
-		// Confirm with the user that the copy should occur
-		copy, err = m.confirm(&terraform.InputOpts{
-			Id:    "backend-migrate-to-local",
-			Query: fmt.Sprintf("Do you want to copy the state from %q?", s.Backend.Type),
-			Description: fmt.Sprintf(
-				strings.TrimSpace(inputBackendMigrateLocal), s.Backend.Type),
-		})
-		if err != nil {
-			return nil, fmt.Errorf(
-				"Error asking for state copy action: %s", err)
-		}
+	m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputBackendMigrateLocal), s.Backend.Type))
+
+	// Grab a purely local backend to get the local state if it exists
+	localB, err := m.Backend(&BackendOpts{ForceLocal: true})
+	if err != nil {
+		return nil, fmt.Errorf(strings.TrimSpace(errBackendLocalRead), err)
 	}
 
-	// If we're copying, perform the migration
-	if copy {
-		// Grab a purely local backend to get the local state if it exists
-		localB, err := m.Backend(&BackendOpts{ForceLocal: true})
-		if err != nil {
-			return nil, fmt.Errorf(strings.TrimSpace(errBackendLocalRead), err)
-		}
+	// Initialize the configured backend
+	b, err := m.backend_C_r_S_unchanged(c, sMgr)
+	if err != nil {
+		return nil, fmt.Errorf(
+			strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
+	}
 
-		// Initialize the configured backend
-		b, err := m.backend_C_r_S_unchanged(c, sMgr)
-		if err != nil {
-			return nil, fmt.Errorf(
-				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
-		}
-
-		// Perform the migration
-		err = m.backendMigrateState(&backendMigrateOpts{
-			OneType: s.Backend.Type,
-			TwoType: "local",
-			One:     b,
-			Two:     localB,
-		})
-		if err != nil {
-			return nil, err
-		}
+	// Perform the migration
+	err = m.backendMigrateState(&backendMigrateOpts{
+		OneType: s.Backend.Type,
+		TwoType: "local",
+		One:     b,
+		Two:     localB,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	// Remove the stored metadata
@@ -802,40 +785,22 @@ func (m *Meta) backend_c_R_S(
 	// Grab the state
 	s := sMgr.State()
 
-	// Ask the user if they want to migrate their existing remote state
-	copy := m.forceInitCopy
-	if !copy {
-		copy, err = m.confirm(&terraform.InputOpts{
-			Id: "backend-migrate-to-new",
-			Query: fmt.Sprintf(
-				"Do you want to copy the legacy remote state from %q?",
-				s.Remote.Type),
-			Description: strings.TrimSpace(inputBackendMigrateLegacyLocal),
-		})
-		if err != nil {
-			return nil, fmt.Errorf(
-				"Error asking for state copy action: %s", err)
-		}
+	m.Ui.Output(strings.TrimSpace(outputBackendMigrateLegacy))
+	// Initialize the legacy backend
+	oldB, err := m.backendInitFromLegacy(s.Remote)
+	if err != nil {
+		return nil, err
 	}
 
-	// If the user wants a copy, copy!
-	if copy {
-		// Initialize the legacy backend
-		oldB, err := m.backendInitFromLegacy(s.Remote)
-		if err != nil {
-			return nil, err
-		}
-
-		// Perform the migration
-		err = m.backendMigrateState(&backendMigrateOpts{
-			OneType: s.Remote.Type,
-			TwoType: "local",
-			One:     oldB,
-			Two:     localB,
-		})
-		if err != nil {
-			return nil, err
-		}
+	// Perform the migration
+	err = m.backendMigrateState(&backendMigrateOpts{
+		OneType: s.Remote.Type,
+		TwoType: "local",
+		One:     oldB,
+		Two:     localB,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	// Unset the remote state
@@ -897,41 +862,22 @@ func (m *Meta) backend_C_R_s(
 		return b, nil
 	}
 
-	// Finally, ask the user if they want to copy the state from
-	// their old remote state location.
-	copy := m.forceInitCopy
-	if !copy {
-		copy, err = m.confirm(&terraform.InputOpts{
-			Id: "backend-migrate-to-new",
-			Query: fmt.Sprintf(
-				"Do you want to copy the legacy remote state from %q?",
-				s.Remote.Type),
-			Description: strings.TrimSpace(inputBackendMigrateLegacy),
-		})
-		if err != nil {
-			return nil, fmt.Errorf(
-				"Error asking for state copy action: %s", err)
-		}
+	m.Ui.Output(strings.TrimSpace(outputBackendMigrateLegacy))
+	// Initialize the legacy backend
+	oldB, err := m.backendInitFromLegacy(s.Remote)
+	if err != nil {
+		return nil, err
 	}
 
-	// If the user wants a copy, copy!
-	if copy {
-		// Initialize the legacy backend
-		oldB, err := m.backendInitFromLegacy(s.Remote)
-		if err != nil {
-			return nil, err
-		}
-
-		// Perform the migration
-		err = m.backendMigrateState(&backendMigrateOpts{
-			OneType: s.Remote.Type,
-			TwoType: c.Type,
-			One:     oldB,
-			Two:     b,
-		})
-		if err != nil {
-			return nil, err
-		}
+	// Perform the migration
+	err = m.backendMigrateState(&backendMigrateOpts{
+		OneType: s.Remote.Type,
+		TwoType: c.Type,
+		One:     oldB,
+		Two:     b,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	// Unset the remote state
@@ -1077,40 +1023,27 @@ func (m *Meta) backend_C_r_S_changed(
 			"Error initializing new backend: %s", err)
 	}
 
-	// Check with the user if we want to migrate state
-	copy := m.forceInitCopy
-	if !copy {
-		copy, err = m.confirm(&terraform.InputOpts{
-			Id:          "backend-migrate-to-new",
-			Query:       fmt.Sprintf("Do you want to copy the state from %q?", s.Backend.Type),
-			Description: strings.TrimSpace(fmt.Sprintf(inputBackendMigrateChange, s.Backend.Type, c.Type)),
-		})
-		if err != nil {
-			return nil, fmt.Errorf(
-				"Error asking for state copy action: %s", err)
-		}
+	// no need to confuse the user if the backend types are the same
+	if s.Backend.Type != c.Type {
+		m.Ui.Output(strings.TrimSpace(fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)))
 	}
 
-	// If we are, then we need to initialize the old backend and
-	// perform the copy.
-	if copy {
-		// Grab the existing backend
-		oldB, err := m.backend_C_r_S_unchanged(c, sMgr)
-		if err != nil {
-			return nil, fmt.Errorf(
-				"Error loading previously configured backend: %s", err)
-		}
+	// Grab the existing backend
+	oldB, err := m.backend_C_r_S_unchanged(c, sMgr)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error loading previously configured backend: %s", err)
+	}
 
-		// Perform the migration
-		err = m.backendMigrateState(&backendMigrateOpts{
-			OneType: s.Backend.Type,
-			TwoType: c.Type,
-			One:     oldB,
-			Two:     b,
-		})
-		if err != nil {
-			return nil, err
-		}
+	// Perform the migration
+	err = m.backendMigrateState(&backendMigrateOpts{
+		OneType: s.Backend.Type,
+		TwoType: c.Type,
+		One:     oldB,
+		Two:     b,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	if m.stateLock {
@@ -1237,40 +1170,23 @@ func (m *Meta) backend_C_R_S_unchanged(
 		return nil, err
 	}
 
-	// Ask if the user wants to move their legacy remote state
-	copy := m.forceInitCopy
-	if !copy {
-		copy, err = m.confirm(&terraform.InputOpts{
-			Id: "backend-migrate-to-new",
-			Query: fmt.Sprintf(
-				"Do you want to copy the legacy remote state from %q?",
-				s.Remote.Type),
-			Description: strings.TrimSpace(inputBackendMigrateLegacy),
-		})
-		if err != nil {
-			return nil, fmt.Errorf(
-				"Error asking for state copy action: %s", err)
-		}
+	m.Ui.Output(strings.TrimSpace(outputBackendMigrateLegacy))
+
+	// Initialize the legacy backend
+	oldB, err := m.backendInitFromLegacy(s.Remote)
+	if err != nil {
+		return nil, err
 	}
 
-	// If the user wants a copy, copy!
-	if copy {
-		// Initialize the legacy backend
-		oldB, err := m.backendInitFromLegacy(s.Remote)
-		if err != nil {
-			return nil, err
-		}
-
-		// Perform the migration
-		err = m.backendMigrateState(&backendMigrateOpts{
-			OneType: s.Remote.Type,
-			TwoType: s.Backend.Type,
-			One:     oldB,
-			Two:     b,
-		})
-		if err != nil {
-			return nil, err
-		}
+	// Perform the migration
+	err = m.backendMigrateState(&backendMigrateOpts{
+		OneType: s.Remote.Type,
+		TwoType: s.Backend.Type,
+		One:     oldB,
+		Two:     b,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	if m.stateLock {
@@ -1638,27 +1554,16 @@ Plan Serial:    %[1]d
 Current Serial: %[2]d
 `
 
-const inputBackendMigrateChange = `
-Would you like to copy the state from your prior backend %q to the
-newly configured %q backend? If you're reconfiguring the same backend,
-answering "yes" or "no" shouldn't make a difference. Please answer exactly
-"yes" or "no".
+const outputBackendMigrateChange = `
+Terraform detected that the backend type changed from %q to %q.
 `
 
-const inputBackendMigrateLegacy = `
-Terraform can copy the existing state in your legacy remote state
-backend to your newly configured backend. Please answer "yes" or "no".
+const outputBackendMigrateLegacy = `
+Terraform detected legacy remote state.
 `
 
-const inputBackendMigrateLegacyLocal = `
-Terraform can copy the existing state in your legacy remote state
-backend to your local state. Please answer "yes" or "no".
-`
-
-const inputBackendMigrateLocal = `
-Terraform has detected you're unconfiguring your previously set backend.
-Would you like to copy the state from %q to local state? Please answer
-"yes" or "no". If you answer "no", you will start with a blank local state.
+const outputBackendMigrateLocal = `
+Terraform has detected you're unconfiguring your previously set %q backend.
 `
 
 const outputBackendConfigureWithLegacy = `
@@ -1674,9 +1579,7 @@ const outputBackendReconfigure = `
 [reset][bold]Backend configuration changed![reset]
 
 Terraform has detected that the configuration specified for the backend
-has changed. Terraform will now reconfigure for this backend. If you didn't
-intend to reconfigure your backend please undo any changes to the "backend"
-section in your Terraform configuration.
+has changed. Terraform will now check for existing state in the backends.
 `
 
 const outputBackendSavedWithLegacy = `

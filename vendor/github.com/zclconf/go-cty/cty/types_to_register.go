@@ -2,7 +2,9 @@ package cty
 
 import (
 	"encoding/gob"
+	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty/set"
 )
@@ -45,6 +47,11 @@ func init() {
 	// Register these with gob here, rather than in gob.go, to ensure
 	// that this will always happen after we build the above.
 	for _, tv := range InternalTypesToRegister {
-		gob.Register(tv)
+		typeName := fmt.Sprintf("%T", tv)
+		if strings.HasPrefix(typeName, "cty.") {
+			gob.RegisterName(fmt.Sprintf("github.com/zclconf/go-cty/%s", typeName), tv)
+		} else {
+			gob.Register(tv)
+		}
 	}
 }

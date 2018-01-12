@@ -15,9 +15,15 @@ import (
 )
 
 func (b *Backend) States() ([]string, error) {
+	prefix := b.workspaceKeyPrefix + "/"
+
+	// List bucket root if there is no workspaceKeyPrefix
+	if b.workspaceKeyPrefix == "" {
+		prefix = ""
+	}
 	params := &s3.ListObjectsInput{
 		Bucket: &b.bucketName,
-		Prefix: aws.String(b.workspaceKeyPrefix + "/"),
+		Prefix: aws.String(prefix),
 	}
 
 	resp, err := b.s3Client.ListObjects(params)
@@ -25,29 +31,42 @@ func (b *Backend) States() ([]string, error) {
 		return nil, err
 	}
 
-	envs := []string{backend.DefaultStateName}
+	wss := []string{backend.DefaultStateName}
 	for _, obj := range resp.Contents {
-		env := b.keyEnv(*obj.Key)
-		if env != "" {
-			envs = append(envs, env)
+		ws := b.keyEnv(*obj.Key)
+		if ws != "" {
+			wss = append(wss, ws)
 		}
 	}
 
-	sort.Strings(envs[1:])
-	return envs, nil
+	sort.Strings(wss[1:])
+	return wss, nil
 }
 
-// extract the env name from the S3 key
 func (b *Backend) keyEnv(key string) string {
-	// we have 3 parts, the prefix, the env name, and the key name
-	parts := strings.SplitN(key, "/", 3)
-	if len(parts) < 3 {
-		// no env here
+	if b.workspaceKeyPrefix == "" {
+		parts := strings.SplitN(key, "/", 2)
+		if len(parts) > 1 && parts[1] == b.keyName {
+			return parts[0]
+		} else {
+			return ""
+		}
+	}
+
+	parts := strings.SplitAfter(key, b.workspaceKeyPrefix)
+
+	if len(parts) < 2 {
 		return ""
 	}
 
 	// shouldn't happen since we listed by prefix
 	if parts[0] != b.workspaceKeyPrefix {
+		return ""
+	}
+
+	parts = strings.SplitN(parts[1], "/", 3)
+
+	if len(parts) < 3 {
 		return ""
 	}
 
@@ -177,7 +196,12 @@ func (b *Backend) path(name string) string {
 		return b.keyName
 	}
 
-	return strings.Join([]string{b.workspaceKeyPrefix, name, b.keyName}, "/")
+	if b.workspaceKeyPrefix != "" {
+		return strings.Join([]string{b.workspaceKeyPrefix, name, b.keyName}, "/")
+	} else {
+		// Trim the leading / for no workspace prefix
+		return strings.Join([]string{b.workspaceKeyPrefix, name, b.keyName}, "/")[1:]
+	}
 }
 
 const errStateUnlock = `

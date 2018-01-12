@@ -2568,6 +2568,11 @@ func TestInterpolateFuncSubstr(t *testing.T) {
 				nil,
 				true,
 			},
+			{
+				`${substr("foo", -4, -1)}`,
+				nil,
+				true,
+			},
 
 			// invalid length
 			{
