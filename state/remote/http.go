@@ -1,5 +1,5 @@
 package remote
-//touch
+
 import (
 	"bytes"
 	"crypto/md5"
