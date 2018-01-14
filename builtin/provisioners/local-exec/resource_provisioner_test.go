@@ -147,8 +147,12 @@ func TestResourceProvider_ApplyCustomInterpreter(t *testing.T) {
 }
 
 func TestResourceProvider_ApplyCustomWorkingDirectory(t *testing.T) {
+	testdir := "working_dir_test"
+	os.Mkdir(testdir, 0755)
+	defer os.Remove(testdir)
+
 	c := testConfig(t, map[string]interface{}{
-		"working_dir": "/tmp",
+		"working_dir": testdir,
 		"command":     "echo `pwd`",
 	})
 
@@ -159,8 +163,13 @@ func TestResourceProvider_ApplyCustomWorkingDirectory(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	got := strings.TrimSpace(output.OutputMessage)
-	want := "/private/tmp"
+	want := dir + "/" + testdir
 	if got != want {
 		t.Errorf("wrong output\ngot:  %s\nwant: %s", got, want)
 	}
