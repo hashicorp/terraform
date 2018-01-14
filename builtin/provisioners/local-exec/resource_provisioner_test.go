@@ -145,3 +145,23 @@ func TestResourceProvider_ApplyCustomInterpreter(t *testing.T) {
 		t.Errorf("wrong output\ngot:  %s\nwant: %s", got, want)
 	}
 }
+
+func TestResourceProvider_ApplyCustomWorkingDirectory(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"working_dir": "/tmp",
+		"command":     "echo `pwd`",
+	})
+
+	output := new(terraform.MockUIOutput)
+	p := Provisioner()
+
+	if err := p.Apply(output, nil, c); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	got := strings.TrimSpace(output.OutputMessage)
+	want := "/private/tmp"
+	if got != want {
+		t.Errorf("wrong output\ngot:  %s\nwant: %s", got, want)
+	}
+}
