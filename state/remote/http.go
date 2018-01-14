@@ -185,12 +185,12 @@ func (c *HTTPClient) Lock(info *state.LockInfo) (string, error) {
 		c.jsonLockInfo = jsonLockInfo
 		return info.ID, nil
 	case http.StatusUnauthorized:
-		if len(body) == 0 {
+		if len(body) == 0 || err != nil {
 			return "", fmt.Errorf("HTTP remote state endpoint requires auth")
 		}
 		return "", fmt.Errorf("HTTP remote state endpoint requires auth\nRemote backend says: %s", body)
 	case http.StatusForbidden:
-		if len(body) == 0 {
+		if len(body) == 0 || err != nil {
 			return "", fmt.Errorf("HTTP remote state endpoint invalid auth")
 		}
 		return "", fmt.Errorf("HTTP remote state endpoint invalid auth\nRemote backend says: %s", body)
@@ -205,7 +205,7 @@ func (c *HTTPClient) Lock(info *state.LockInfo) (string, error) {
 		}
 		return "", fmt.Errorf("HTTP remote state already locked: ID=%s", existing.ID)
 	default:
-		if err != nil {
+		if len(body) == 0 || err != nil {
 			return "", fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 		}
 		return "", fmt.Errorf("Unexpected HTTP response code %d\nRemote backend says: %s", resp.StatusCode, body)
@@ -241,6 +241,10 @@ func (c *HTTPClient) Get() (*Payload, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	// 'body' is referenced in multiple places, so get the value in advance.
+	// return resp.Body to beginning of (new) buffer for reading again later.
+	body, err := ioutil.ReadAll(resp.Body)
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
 	// Handle the common status codes
 	switch resp.StatusCode {
@@ -251,13 +255,21 @@ func (c *HTTPClient) Get() (*Payload, error) {
 	case http.StatusNotFound:
 		return nil, nil
 	case http.StatusUnauthorized:
-		return nil, fmt.Errorf("HTTP remote state endpoint requires auth")
+		if len(body) == 0 || err != nil {
+			return nil, fmt.Errorf("HTTP remote state endpoint requires auth")
+		}
+		return nil, fmt.Errorf("HTTP remote state endpoint requires auth\nRemote backend says: %s", body)
 	case http.StatusForbidden:
-		return nil, fmt.Errorf("HTTP remote state endpoint invalid auth")
+		if len(body) == 0 || err != nil {
+			return nil, fmt.Errorf("HTTP remote state endpoint invalid auth")
+		}
+		return nil, fmt.Errorf("HTTP remote state endpoint invalid auth\nRemote backend says: %s", body)
 	case http.StatusInternalServerError:
-		return nil, fmt.Errorf("HTTP remote state internal server error")
+		if len(body) == 0 || err != nil {
+			return nil, fmt.Errorf("HTTP remote state internal server error")
+		}
+		return nil, fmt.Errorf("HTTP remote state internal server error\nRemote backend says: %s", body)
 	default:
-		body, err := ioutil.ReadAll(resp.Body)
 		if len(body) == 0 || err != nil {
 			return nil, fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 		}
