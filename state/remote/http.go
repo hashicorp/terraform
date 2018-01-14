@@ -185,11 +185,16 @@ func (c *HTTPClient) Lock(info *state.LockInfo) (string, error) {
 		c.jsonLockInfo = jsonLockInfo
 		return info.ID, nil
 	case http.StatusUnauthorized:
-		return "", fmt.Errorf("HTTP remote state endpoint requires auth")
+		if len(body) == 0 {
+			return "", fmt.Errorf("HTTP remote state endpoint requires auth")
+		}
+		return "", fmt.Errorf("HTTP remote state endpoint requires auth\nRemote backend says: %s", body)
 	case http.StatusForbidden:
-		return "", fmt.Errorf("HTTP remote state endpoint invalid auth")
+		if len(body) == 0 {
+			return "", fmt.Errorf("HTTP remote state endpoint invalid auth")
+		}
+		return "", fmt.Errorf("HTTP remote state endpoint invalid auth\nRemote backend says: %s", body)
 	case http.StatusConflict, http.StatusLocked:
-		defer resp.Body.Close()
 		if err != nil {
 			return "", fmt.Errorf("HTTP remote state already locked, failed to read body")
 		}
@@ -200,8 +205,7 @@ func (c *HTTPClient) Lock(info *state.LockInfo) (string, error) {
 		}
 		return "", fmt.Errorf("HTTP remote state already locked: ID=%s", existing.ID)
 	default:
-		// err from ReadAll()
-		if len(body) == 0 || err != nil {
+		if err != nil {
 			return "", fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 		}
 		return "", fmt.Errorf("Unexpected HTTP response code %d\nRemote backend says: %s", resp.StatusCode, body)
@@ -237,7 +241,6 @@ func (c *HTTPClient) Get() (*Payload, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
 
 	// Handle the common status codes
 	switch resp.StatusCode {
@@ -248,21 +251,13 @@ func (c *HTTPClient) Get() (*Payload, error) {
 	case http.StatusNotFound:
 		return nil, nil
 	case http.StatusUnauthorized:
-		if len(body) == 0 {
-			return nil, fmt.Errorf("HTTP remote state endpoint requires auth")
-		}
-		return nil, fmt.Errorf("HTTP remote state endpoint requires auth\nRemote backend says: %s", body)
+		return nil, fmt.Errorf("HTTP remote state endpoint requires auth")
 	case http.StatusForbidden:
-		if len(body) == 0 {
-			return nil, fmt.Errorf("HTTP remote state endpoint invalid auth")
-		}
-		return nil, fmt.Errorf("HTTP remote state endpoint invalid auth\nRemote backend says: %s", body)
+		return nil, fmt.Errorf("HTTP remote state endpoint invalid auth")
 	case http.StatusInternalServerError:
-		if len(body) == 0 {
-			return nil, fmt.Errorf("HTTP remote state internal server error")
-		}
-		return nil, fmt.Errorf("HTTP remote state internal server error\nRemote backend says: %s", body)
+		return nil, fmt.Errorf("HTTP remote state internal server error")
 	default:
+		body, err := ioutil.ReadAll(resp.Body)
 		if len(body) == 0 || err != nil {
 			return nil, fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 		}
@@ -341,7 +336,7 @@ func (c *HTTPClient) Put(data []byte) error {
 		if len(body) == 0 || err != nil {
 			return fmt.Errorf("HTTP error: %d", resp.StatusCode)
 		}
-		return fmt.Errorf("HTTP error: %d\nRemote backed says: %s", resp.StatusCode, body)
+		return fmt.Errorf("HTTP error: %d\nRemote backend says: %s", resp.StatusCode, body)
 	}
 }
 
@@ -362,6 +357,6 @@ func (c *HTTPClient) Delete() error {
 		if len(body) == 0 || err != nil {
 			return fmt.Errorf("HTTP error: %d", resp.StatusCode)
 		}
-		return fmt.Errorf("HTTP error: %d\nRemote backed says: %s", resp.StatusCode, body)
+		return fmt.Errorf("HTTP error: %d\nRemote backend says: %s", resp.StatusCode, body)
 	}
 }
