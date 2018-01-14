@@ -241,10 +241,8 @@ func (c *HTTPClient) Get() (*Payload, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	// 'body' is referenced in multiple places, so get the value in advance.
-	// return resp.Body to beginning of (new) buffer for reading again later.
-	body, err := ioutil.ReadAll(resp.Body)
-	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+	body, err := ioutil.ReadAll(resp.Body) // 'body' is referenced in multiple places, so get the value in advance.
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body)) // return resp.Body to beginning of (new) buffer for reading again later.
 
 	// Handle the common status codes
 	switch resp.StatusCode {
