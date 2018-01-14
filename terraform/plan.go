@@ -117,7 +117,7 @@ func (p *Plan) contextOpts(base *ContextOpts) (*ContextOpts, error) {
 		// the state, there is little chance that these aren't actually equal.
 		// Log the error condition for reference, but continue with the state
 		// we have.
-		log.Println("[WARNING] Plan state and ContextOpts state are not equal")
+		log.Println("[WARN] Plan state and ContextOpts state are not equal")
 	}
 
 	thisVersion := version.String()

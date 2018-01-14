@@ -369,7 +369,7 @@ func checkPlugin(url string, pluginProtocolVersion uint) bool {
 	if proto == "" {
 		// The header isn't present, but we don't make this error fatal since
 		// the latest version will probably work.
-		log.Printf("[WARNING] missing %s from: %s", protocolVersionHeader, url)
+		log.Printf("[WARN] missing %s from: %s", protocolVersionHeader, url)
 		return true
 	}
 

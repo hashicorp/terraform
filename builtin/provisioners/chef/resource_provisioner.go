@@ -436,7 +436,7 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	// Check if the run_list was also in the attributes and if so log a warning
 	// that it will be overwritten with the value of the run_list argument.
 	if _, found := fb["run_list"]; found {
-		log.Printf("[WARNING] Found a 'run_list' specified in the configured attributes! " +
+		log.Printf("[WARN] Found a 'run_list' specified in the configured attributes! " +
 			"This value will be overwritten by the value of the `run_list` argument!")
 	}
 

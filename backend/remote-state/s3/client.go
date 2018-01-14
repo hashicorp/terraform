@@ -71,9 +71,9 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 
 		// verify that this state is what we expect
 		if expected, err := c.getMD5(); err != nil {
-			log.Printf("[WARNING] failed to fetch state md5: %s", err)
+			log.Printf("[WARN] failed to fetch state md5: %s", err)
 		} else if len(expected) > 0 && !bytes.Equal(expected, digest) {
-			log.Printf("[WARNING] state md5 mismatch: expected '%x', got '%x'", expected, digest)
+			log.Printf("[WARN] state md5 mismatch: expected '%x', got '%x'", expected, digest)
 
 			if testChecksumHook != nil {
 				testChecksumHook()
@@ -312,7 +312,7 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 	}
 	_, err := c.dynClient.PutItem(putParams)
 	if err != nil {
-		log.Printf("[WARNING] failed to record state serial in dynamodb: %s", err)
+		log.Printf("[WARN] failed to record state serial in dynamodb: %s", err)
 	}
 
 	return nil
