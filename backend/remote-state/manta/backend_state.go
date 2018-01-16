@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
+	tritonErrors "github.com/joyent/triton-go/errors"
 	"github.com/joyent/triton-go/storage"
 )
 
@@ -22,7 +23,7 @@ func (b *Backend) States() ([]string, error) {
 		DirectoryName: path.Join(mantaDefaultRootStore, b.path),
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "ResourceNotFound") {
+		if tritonErrors.IsResourceNotFound(err) {
 			return result, nil
 		}
 		return nil, err
