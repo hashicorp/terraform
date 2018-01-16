@@ -9,11 +9,10 @@ import (
 	"log"
 	"path"
 
-	"strings"
-
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
+	tritonErrors "github.com/joyent/triton-go/errors"
 	"github.com/joyent/triton-go/storage"
 )
 
@@ -34,7 +33,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		ObjectPath: path.Join(mantaDefaultRootStore, c.directoryName, c.keyName),
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "ResourceNotFound") {
+		if tritonErrors.IsResourceNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -107,7 +106,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	lockErr := &state.LockError{}
 	lockInfo, err := c.getLockInfo()
 	if err != nil {
-		if !strings.Contains(err.Error(), "ResourceNotFound") {
+		if tritonErrors.IsResourceNotFound(err) {
 			lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
 			return "", lockErr
 		}
