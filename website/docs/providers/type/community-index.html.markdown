@@ -13,7 +13,7 @@ and vendors. These providers are not tested nor officially maintained by
 HashiCorp, and are listed here in order to help users find them easily.
 
 If you have built a provider and would like to add it to this community list,
-please fill how this [community providers form](https://docs.google.com/forms/d/e/1FAIpQLSeenG02tGEmz7pntIqMKlp5kY53f8AV5u88wJ_H1pJc2CmvKA/viewform?usp=sf_link#responses).
+please fill out this [community providers form](https://docs.google.com/forms/d/e/1FAIpQLSeenG02tGEmz7pntIqMKlp5kY53f8AV5u88wJ_H1pJc2CmvKA/viewform?usp=sf_link#responses).
 
 ---
 
@@ -53,7 +53,3 @@ please fill how this [community providers form](https://docs.google.com/forms/d/
 [PuppetDB](https://github.com/camptocamp/terraform-provider-puppetdb)
 
 [Runscope](https://github.com/ewilde/terraform-provider-runscope)
-
-
-
-
