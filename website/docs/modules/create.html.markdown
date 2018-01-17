@@ -161,8 +161,9 @@ standard structure.
   own IAM policy choices.
 
 * **Examples**. Examples of using the module should exist under the
-  `examples/` subdirectory. Each example may have a README to explain the
-  goal and usage of the example.
+  `examples/` subdirectory at the root of the repository. Each example may have
+  a README to explain the goal and usage of the example. Examples for
+  submodules should also be placed in the root `examples/` directory.
 
 A minimal recommended module following the standard structure is shown below.
 While the root module is the only required element, we recommend the structure
