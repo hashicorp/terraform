@@ -140,7 +140,7 @@ func (c *Client) addRequestCreds(host svchost.Hostname, req *http.Request) {
 
 	creds, err := c.creds.ForHost(host)
 	if err != nil {
-		log.Printf("[WARNING] Failed to get credentials for %s: %s (ignoring)", host, err)
+		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", host, err)
 		return
 	}
 

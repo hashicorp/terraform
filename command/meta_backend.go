@@ -190,7 +190,7 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*config.Backend, error) {
 			return nil, nil
 		}
 
-		log.Println("[WARNING] BackendOpts.Config not set, but config found")
+		log.Println("[WARN] BackendOpts.Config not set, but config found")
 		opts.Config = conf
 	}
 

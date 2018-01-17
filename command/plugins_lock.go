@@ -45,7 +45,7 @@ func (pf *pluginSHA256LockFile) Read() map[string][]byte {
 	err = json.Unmarshal(buf, &strDigests)
 	if err != nil {
 		// This should never happen unless the user directly edits the file.
-		log.Printf("[WARNING] Plugin lock file %s failed to parse as JSON: %s", pf.Filename, err)
+		log.Printf("[WARN] Plugin lock file %s failed to parse as JSON: %s", pf.Filename, err)
 		return digests
 	}
 
@@ -56,7 +56,7 @@ func (pf *pluginSHA256LockFile) Read() map[string][]byte {
 			digests[name] = digest
 		} else {
 			// This should never happen unless the user directly edits the file.
-			log.Printf("[WARNING] Plugin lock file %s has invalid digest for %q", pf.Filename, name)
+			log.Printf("[WARN] Plugin lock file %s has invalid digest for %q", pf.Filename, name)
 		}
 	}
 

@@ -95,7 +95,7 @@ func findPluginPaths(kind string, dirs []string) []string {
 				continue
 			}
 
-			log.Printf("[WARNING] found legacy %s %q", kind, fullName)
+			log.Printf("[WARN] found legacy %s %q", kind, fullName)
 
 			ret = append(ret, filepath.Clean(absPath))
 		}
