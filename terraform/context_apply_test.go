@@ -2421,6 +2421,73 @@ func TestContext2Apply_countVariableRef(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_provisionerInterpCount(t *testing.T) {
+	// This test ensures that a provisioner can interpolate a resource count
+	// even though the provisioner expression is evaluated during the plan
+	// walk. https://github.com/hashicorp/terraform/issues/16840
+
+	m := testModule(t, "apply-provisioner-interp-count")
+
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	pr := testProvisioner()
+
+	providerResolver := ResourceProviderResolverFixed(
+		map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	)
+	provisioners := map[string]ResourceProvisionerFactory{
+		"local-exec": testProvisionerFuncFixed(pr),
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module:           m,
+		ProviderResolver: providerResolver,
+		Provisioners:     provisioners,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("plan failed: %s", err)
+	}
+
+	// We'll marshal and unmarshal the plan here, to ensure that we have
+	// a clean new context as would be created if we separately ran
+	// terraform plan -out=tfplan && terraform apply tfplan
+	var planBuf bytes.Buffer
+	err = WritePlan(plan, &planBuf)
+	if err != nil {
+		t.Fatalf("failed to write plan: %s", err)
+	}
+	plan, err = ReadPlan(&planBuf)
+	if err != nil {
+		t.Fatalf("failed to read plan: %s", err)
+	}
+
+	ctx, err = plan.Context(&ContextOpts{
+		// Most options are taken from the plan in this case, but we still
+		// need to provide the plugins.
+		ProviderResolver: providerResolver,
+		Provisioners:     provisioners,
+	})
+	if err != nil {
+		t.Fatalf("failed to create context for plan: %s", err)
+	}
+
+	// Applying the plan should now succeed
+	_, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("apply failed: %s", err)
+	}
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner was not applied")
+	}
+}
+
 func TestContext2Apply_mapVariableOverride(t *testing.T) {
 	m := testModule(t, "apply-map-var-override")
 	p := testProvider("aws")
