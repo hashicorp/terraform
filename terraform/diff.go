@@ -396,11 +396,6 @@ type ResourceAttrDiff struct {
 	Type        DiffAttrType
 }
 
-// Modified returns the inequality of Old and New for this attr
-func (d *ResourceAttrDiff) Modified() bool {
-	return d.Old != d.New
-}
-
 // Empty returns true if the diff for this attr is neutral
 func (d *ResourceAttrDiff) Empty() bool {
 	return d.Old == d.New && !d.NewComputed && !d.NewRemoved

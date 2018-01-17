@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -79,7 +80,7 @@ func TestEvalFilterDiff(t *testing.T) {
 	}
 }
 
-func TestProcessIgnoreChangesOnResourceIgnoredWithRequiresNew(t *testing.T) {
+func TestProcessIgnoreChanges(t *testing.T) {
 	var evalDiff *EvalDiff
 	var instanceDiff *InstanceDiff
 
@@ -94,53 +95,84 @@ func TestProcessIgnoreChangesOnResourceIgnoredWithRequiresNew(t *testing.T) {
 			&InstanceDiff{
 				Destroy: true,
 				Attributes: map[string]*ResourceAttrDiff{
+					"resource.%": {
+						Old: "3",
+						New: "3",
+					},
 					"resource.changed": {
 						RequiresNew: true,
 						Type:        DiffAttrInput,
 						Old:         "old",
 						New:         "new",
 					},
-					"resource.unchanged": {
-						Old: "unchanged",
+					"resource.maybe": {
+						Old: "",
 						New: newAttribute,
+					},
+					"resource.same": {
+						Old: "same",
+						New: "same",
 					},
 				},
 			}
 	}
 
-	evalDiff, instanceDiff = testDiffs([]string{"resource.changed"}, "unchanged")
-	err := evalDiff.processIgnoreChanges(instanceDiff)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(instanceDiff.Attributes) > 0 {
-		t.Fatalf("Expected all resources to be ignored, found %d", len(instanceDiff.Attributes))
-	}
-
-	evalDiff, instanceDiff = testDiffs([]string{}, "unchanged")
-	err = evalDiff.processIgnoreChanges(instanceDiff)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(instanceDiff.Attributes) != 2 {
-		t.Fatalf("Expected 2 resources to be found, found %d", len(instanceDiff.Attributes))
-	}
-
-	evalDiff, instanceDiff = testDiffs([]string{"resource.changed"}, "changed")
-	err = evalDiff.processIgnoreChanges(instanceDiff)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(instanceDiff.Attributes) != 1 {
-		t.Fatalf("Expected 1 resource to be found, found %d", len(instanceDiff.Attributes))
-	}
-
-	evalDiff, instanceDiff = testDiffs([]string{}, "changed")
-	err = evalDiff.processIgnoreChanges(instanceDiff)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(instanceDiff.Attributes) != 2 {
-		t.Fatalf("Expected 2 resource to be found, found %d", len(instanceDiff.Attributes))
+	for i, tc := range []struct {
+		ignore    []string
+		newAttr   string
+		attrDiffs int
+	}{
+		// attr diffs should be all (4), or nothing
+		{
+			ignore:    []string{"resource.changed"},
+			attrDiffs: 0,
+		},
+		{
+			ignore:    []string{"resource.changed"},
+			newAttr:   "new",
+			attrDiffs: 4,
+		},
+		{
+			attrDiffs: 4,
+		},
+		{
+			ignore:    []string{"resource.maybe"},
+			newAttr:   "new",
+			attrDiffs: 4,
+		},
+		{
+			newAttr:   "new",
+			attrDiffs: 4,
+		},
+		{
+			ignore:    []string{"resource"},
+			newAttr:   "new",
+			attrDiffs: 0,
+		},
+		// extra ignored values shouldn't effect the diff
+		{
+			ignore:    []string{"resource.missing", "resource.maybe"},
+			newAttr:   "new",
+			attrDiffs: 4,
+		},
+		// this isn't useful, but make sure it doesn't break
+		{
+			ignore:    []string{"resource.%"},
+			attrDiffs: 4,
+		},
+	} {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			evalDiff, instanceDiff = testDiffs(tc.ignore, tc.newAttr)
+			err := evalDiff.processIgnoreChanges(instanceDiff)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			if len(instanceDiff.Attributes) != tc.attrDiffs {
+				t.Errorf("expected %d diffs, found %d", tc.attrDiffs, len(instanceDiff.Attributes))
+				for k, attr := range instanceDiff.Attributes {
+					fmt.Printf("  %s:%#v\n", k, attr)
+				}
+			}
+		})
 	}
 }
