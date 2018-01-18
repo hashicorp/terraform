@@ -17,9 +17,9 @@ func resourceProperty() *schema.Resource {
 		Update: resourcePropertyUpdate,
 		Delete: resourcePropertyDelete,
 		Exists: resourcePropertyExists,
-		// Importer: &schema.ResourceImporter{
-		// State: importRecord,
-		// },
+		Importer: &schema.ResourceImporter{
+			State: resourcePropertyImport,
+		},
 		Schema: akamaiPropertySchema,
 	}
 }
