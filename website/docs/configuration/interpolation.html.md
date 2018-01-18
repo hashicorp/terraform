@@ -245,7 +245,7 @@ The supported built-in functions are:
   * `file(path)` - Reads the contents of a file into the string. Variables
       in this file are _not_ interpolated. The contents of the file are
       read as-is. The `path` is interpreted relative to the working directory.
-      [Path variables](#path-variables) can be used to reference paths relative
+      [Path variables](#path-information) can be used to reference paths relative
       to other base locations. For example, when using `file()` from inside a
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.
