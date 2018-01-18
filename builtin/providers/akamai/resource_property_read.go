@@ -9,6 +9,13 @@ import (
 )
 
 func resourcePropertyExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	property := papi.NewProperty(papi.NewProperties())
+	property.PropertyID = d.Id()
+	e := property.GetProperty()
+	if e != nil {
+		return false, e
+	}
+
 	return true, nil
 }
 
