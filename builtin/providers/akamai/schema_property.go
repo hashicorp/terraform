@@ -9,7 +9,7 @@ var akps_option *schema.Schema = &schema.Schema{
 	Optional: true,
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"name": {
+			"key": {
 				Type:     schema.TypeString,
 				Required: true,
 			},

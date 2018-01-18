@@ -29,7 +29,7 @@ resource "akamai_property" "akamaidevelopernet" {
     behavior {
       name = "downstreamCache"
       option {
-        name = "behavior"
+        key = "behavior"
         value = "TUNNEL_ORIGIN"
       }
     }
@@ -41,18 +41,18 @@ resource "akamai_property" "akamaidevelopernet" {
     criteria {
       name = "cacheability"
       option {
-        name = "matchOperator"
+        key = "matchOperator"
         value = "IS_NOT"
       }
       option {
-        name = "value"
+        key = "value"
         value = "CACHEABLE"
       }
     }
     behavior {
       name = "downstreamCache"
       option {
-        name = "behavior"
+        key = "behavior"
         value = "TUNNEL_ORIGIN"
       }
     }
@@ -62,18 +62,18 @@ resource "akamai_property" "akamaidevelopernet" {
       criteria {
         name = "cacheability"
         option {
-          name = "matchOperator"
+          key = "matchOperator"
           value = "IS_NOT"
         }
         option {
-          name = "value"
+          key = "value"
           value = "CACHEABLE"
         }
       }
       behavior {
         name = "downstreamCache"
         option {
-          name = "behavior"
+          key = "behavior"
           value = "TUNNEL_ORIGIN"
         }
       }
