@@ -61,21 +61,27 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 	},
 	"contract_id": &schema.Schema{
 		Type:     schema.TypeString,
-		Required: true,
+		Optional: true,
 	},
 	"group_id": &schema.Schema{
 		Type:     schema.TypeString,
-		Required: true,
+		Optional: true,
 	},
 	"product_id": &schema.Schema{
 		Type:     schema.TypeString,
-		Required: true,
+		Optional: true,
 	},
 
 	"network": &schema.Schema{
 		Type:     schema.TypeString,
 		Optional: true,
 		Default:  "staging",
+	},
+
+	"activate": &schema.Schema{
+		Type: schema.TypeBool,
+		Optional: true,
+		Default: true,
 	},
 
 	// Will get added to the default rule

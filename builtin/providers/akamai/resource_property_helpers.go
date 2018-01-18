@@ -13,12 +13,10 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func getProperty(d *schema.ResourceData, contract *papi.Contract, group *papi.Group) (*papi.Property, error) {
+func getProperty(d *schema.ResourceData) (*papi.Property, error) {
 	log.Println("[DEBUG] Fetching property")
 	propertyId := d.Id()
 	property := papi.NewProperty(papi.NewProperties())
-	property.Contract = contract
-	property.Group = group
 	property.PropertyID = propertyId
 	e := property.GetProperty()
 	return property, e
@@ -199,7 +197,37 @@ func createOrigin(d *schema.ResourceData) (*papi.OptionValue, error) {
 	return nil, errors.New("No origin config found")
 }
 
-func addStandardBehaviors(rules *papi.Rules, cpCode *papi.CpCode, origin *papi.OptionValue) {
+func fixupPerformanceBehaviors(rules *papi.Rules) {
+	foundSureRoute := false
+	if rule, err := rules.FindRule("/Performance"); err == nil && rule != nil {
+		for _, behavior := range rule.Behaviors {
+			if behavior.Name == "sureRoute" && behavior.Options["testObjectUrl"] != "" {
+				foundSureRoute = true
+				break
+			}
+		}
+
+		if !foundSureRoute {
+			return
+		}
+	}
+
+	log.Println("[DEBUG] Fixing Up SureRoute Behavior")
+	r := papi.NewRule()
+	r.Name = "Performance"
+
+	b := papi.NewBehavior()
+	b.Name = "sureRoute"
+	b.Options = papi.OptionValue{
+		"testObjectUrl":   "/akamai/sureroute-testobject.html",
+		"enableCustomKey": false,
+		"enabled":         false,
+	}
+	r.AddBehavior(b)
+	rules.Rule.AddChildRule(r)
+}
+
+func updateStandardBehaviors(rules *papi.Rules, cpCode *papi.CpCode, origin *papi.OptionValue) {
 	b := papi.NewBehavior()
 	b.Name = "cpCode"
 	b.Options = papi.OptionValue{
@@ -213,31 +241,6 @@ func addStandardBehaviors(rules *papi.Rules, cpCode *papi.CpCode, origin *papi.O
 	b.Name = "origin"
 	b.Options = *origin
 	rules.Rule.AddBehavior(b)
-
-	log.Println("[DEBUG] Setting Performance")
-	r := papi.NewRule()
-	r.Name = "Performance"
-
-	b = papi.NewBehavior()
-	b.Name = "sureRoute"
-	b.Options = papi.OptionValue{
-		"testObjectUrl":   "/akamai/sureroute-testobject.html",
-		"enableCustomKey": false,
-		"enabled":         false,
-	}
-	r.AddBehavior(b)
-
-	// log.Println("[DEBUG] Fixing Image compression settings")
-	// b = papi.NewBehavior()
-	// b.Name = "adaptiveImageCompression"
-	// b.Options = &papi.OptionValue{
-	// 	"compressMobile":               true,
-	// 	"tier1MobileCompressionMethod": "BYPASS",
-	// 	"tier2MobileCompressionMethod": "COMPRESS",
-	// 	"tier2MobileCompressionValue":  60,
-	// }
-	// r.AddBehavior(b)
-	rules.Rule.AddChildRule(r)
 }
 
 func createHostnames(contract *papi.Contract, group *papi.Group, product *papi.Product, d *schema.ResourceData) (map[string]*papi.EdgeHostname, error) {
@@ -405,7 +408,9 @@ func unmarshalRules(d *schema.ResourceData, rules *papi.Rules) {
 	// ALL OTHER RULES
 	drules, ok := d.GetOk("rule")
 	if ok {
-		rules.Rule.Children = append(rules.Rule.Children, extractRules(drules.(*schema.Set))...)
+		for _, rule := range extractRules(drules.(*schema.Set)) {
+			rules.Rule.AddChildRule(rule)
+		}
 	}
 }
 
@@ -415,16 +420,15 @@ func extractOptions(options *schema.Set) map[string]interface{} {
 		oo, ok := o.(map[string]interface{})
 		if ok {
 			vals, ok := oo["values"]
-			if ok {
-				if vals.(*schema.Set).Len() > 0 {
-					op := make([]interface{}, vals.(*schema.Set).Len())
-					for _, v := range vals.(*schema.Set).List() {
-						op = append(op, numberify(v.(string)))
-					}
-					optv["values"] = op
-				} else {
-					optv[oo["name"].(string)] = numberify(oo["value"].(string))
+			if ok && vals.(*schema.Set).Len() > 0 {
+				op := make([]interface{}, 0)
+				for _, v := range vals.(*schema.Set).List() {
+					op = append(op, numberify(v.(string)))
 				}
+
+				optv["values"] = op
+			} else {
+				optv[oo["name"].(string)] = numberify(oo["value"].(string))
 			}
 		}
 	}
@@ -497,8 +501,9 @@ func extractRules(drules *schema.Set) []*papi.Rule {
 
 			dchildRule, ok := vv["rule"]
 			if ok && dchildRule.(*schema.Set).Len() > 0 {
-				r := extractRules(dchildRule.(*schema.Set))
-				rule.Children = append(rule.Children, r...)
+				for _, r := range extractRules(dchildRule.(*schema.Set)) {
+					rule.AddChildRule(r)
+				}
 			}
 		}
 		rules = append(rules, rule)
@@ -525,4 +530,41 @@ func activateProperty(property *papi.Property, d *schema.ResourceData) (*papi.Ac
 	log.Println("[DEBUG] Activation submitted successfully")
 
 	return activation, nil
+}
+
+func findProperty(d *schema.ResourceData) *papi.Property {
+	results, err := papi.Search(papi.SearchByPropertyName, d.Get("name").(string))
+	if err != nil {
+		return nil
+	}
+
+	if len(results.Versions.Items) == 0 {
+		for _, hostname := range d.Get("hostname").(*schema.Set).List() {
+			results, err = papi.Search(papi.SearchByHostname, hostname.(string))
+			if err == nil && len(results.Versions.Items) != 0 {
+				break
+			}
+		}
+
+		if err != nil || len(results.Versions.Items) == 0 {
+			return nil
+		}
+	}
+
+	property := &papi.Property{
+		PropertyID: results.Versions.Items[0].PropertyID,
+		Group: &papi.Group{
+			GroupID: results.Versions.Items[0].GroupID,
+		},
+		Contract: &papi.Contract{
+			ContractID: results.Versions.Items[0].ContractID,
+		},
+	}
+
+	err = property.GetProperty()
+	if err != nil {
+		return nil
+	}
+
+	return property
 }

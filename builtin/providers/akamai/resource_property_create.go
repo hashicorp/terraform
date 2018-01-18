@@ -47,9 +47,12 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
-	property, e := createProperty(contract, group, product, cloneFrom, d)
-	if e != nil {
-		return e
+	var property *papi.Property
+	if property = findProperty(d); property == nil {
+		property, e = createProperty(contract, group, product, cloneFrom, d)
+		if e != nil {
+			return e
+		}
 	}
 
 	// The API now has data, so save the partial state
@@ -79,7 +82,8 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
-	addStandardBehaviors(rules, cpCode, origin)
+	updateStandardBehaviors(rules, cpCode, origin)
+	fixupPerformanceBehaviors(rules)
 
 	// get rules from the TF config
 	unmarshalRules(d, rules)
@@ -112,28 +116,30 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("ipv6")
 	d.Set("edge_hostname", edgeHostnames)
 
-	activation, err := activateProperty(property, d)
-	if err != nil {
-		return err
-	}
-	d.SetPartial("contact")
+	if d.Get("activation").(bool) {
+		activation, err := activateProperty(property, d)
+		if err != nil {
+			return err
+		}
+		d.SetPartial("contact")
 
-	go activation.PollStatus(property)
+		go activation.PollStatus(property)
 
-	d.Partial(false)
+		d.Partial(false)
 
-polling:
-	for activation.Status != papi.StatusActive {
-		select {
-		case statusChanged := <-activation.StatusChange:
-			log.Printf("[DEBUG] Property Status: %s\n", activation.Status)
-			if statusChanged == false {
+	polling:
+		for activation.Status != papi.StatusActive {
+			select {
+			case statusChanged := <-activation.StatusChange:
+				log.Printf("[DEBUG] Property Status: %s\n", activation.Status)
+				if statusChanged == false {
+					break polling
+				}
+				continue polling
+			case <-time.After(time.Minute * 90):
+				log.Println("[DEBUG] Activation Timeout (90 minutes)")
 				break polling
 			}
-			continue polling
-		case <-time.After(time.Minute * 90):
-			log.Println("[DEBUG] Activation Timeout (90 minutes)")
-			break polling
 		}
 	}
 

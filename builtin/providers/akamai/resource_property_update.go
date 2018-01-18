@@ -14,35 +14,25 @@ func resourcePropertyUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] UPDATING")
 	d.Partial(true)
 
-	group, e := getGroup(d)
+	property, e := getProperty(d)
 	if e != nil {
 		return e
 	}
 
-	contract, e := getContract(d)
-	if e != nil {
-		return e
-	}
-
-	product, e := getProduct(d, contract)
-	if e != nil {
-		return e
-	}
-
-	property, e := getProperty(d, contract, group)
+	product, e := getProduct(d, property.Contract)
 	if e != nil {
 		return e
 	}
 
 	var cpCode *papi.CpCode
 	if d.HasChange("cp_code") {
-		cpCode, e = createCpCode(contract, group, product, d)
+		cpCode, e = createCpCode(property.Contract, property.Group, product, d)
 		if e != nil {
 			return e
 		}
 		d.SetPartial("cp_code")
 	} else {
-		cpCode = papi.NewCpCode(papi.NewCpCodes(contract, group))
+		cpCode = papi.NewCpCode(papi.NewCpCodes(property.Contract, property.Group))
 		cpCode.CpcodeID = d.Get("cp_code").(string)
 		e := cpCode.GetCpCode()
 		if e != nil {
@@ -60,7 +50,7 @@ func resourcePropertyUpdate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
-	addStandardBehaviors(rules, cpCode, origin)
+	updateStandardBehaviors(rules, cpCode, origin)
 
 	// get rules from the TF config
 	unmarshalRules(d, rules)
@@ -81,7 +71,7 @@ func resourcePropertyUpdate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("rule")
 
 	if d.HasChange("hostname") || d.HasChange("ipv6") {
-		hostnameEdgeHostnameMap, err := createHostnames(contract, group, product, d)
+		hostnameEdgeHostnameMap, err := createHostnames(property.Contract, property.Group, product, d)
 		if err != nil {
 			return err
 		}
@@ -97,28 +87,30 @@ func resourcePropertyUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	// an existing activation on this property will be automatically deactivated upon
 	// creation of this new activation
-	activation, err := activateProperty(property, d)
-	if err != nil {
-		return err
-	}
-	d.SetPartial("contact")
+	if d.Get("activate").(bool) {
+		activation, err := activateProperty(property, d)
+		if err != nil {
+			return err
+		}
+		d.SetPartial("contact")
 
-	go activation.PollStatus(property)
+		go activation.PollStatus(property)
 
-	d.Partial(false)
+		d.Partial(false)
 
-polling:
-	for activation.Status != papi.StatusActive {
-		select {
-		case statusChanged := <-activation.StatusChange:
-			log.Printf("[DEBUG] Property Status: %s\n", activation.Status)
-			if statusChanged == false {
+	polling:
+		for activation.Status != papi.StatusActive {
+			select {
+			case statusChanged := <-activation.StatusChange:
+				log.Printf("[DEBUG] Property Status: %s\n", activation.Status)
+				if statusChanged == false {
+					break polling
+				}
+				continue polling
+			case <-time.After(time.Minute * 90):
+				log.Println("[DEBUG] Activation Timeout (90 minutes)")
 				break polling
 			}
-			continue polling
-		case <-time.After(time.Minute * 90):
-			log.Println("[DEBUG] Activation Timeout (90 minutes)")
-			break polling
 		}
 	}
 
