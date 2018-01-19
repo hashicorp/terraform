@@ -1675,7 +1675,10 @@ aws_instance.foo:
 const testTFPlanDiffIgnoreChangesWithFlatmaps = `
 UPDATE: aws_instance.foo
   lst.#:   "1" => "2"
+  lst.0:   "j" => "j"
   lst.1:   "" => "k"
+  set.#:   "1" => "1"
+  set.0.a: "1" => "1"
   set.0.b: "" => "2"
   type:    "" => "aws_instance"
 `
