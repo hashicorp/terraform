@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -370,18 +371,29 @@ func applyFn(ctx context.Context) error {
 }
 
 func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
-	usePolicyFile, ok := c.Get("use_policyfile")
-	if !ok {
-		usePolicyFile = false
+	usePolicyFile := false
+	if usePolicyFileRaw, ok := c.Get("use_policyfile"); ok {
+		switch usePolicyFileRaw := usePolicyFileRaw.(type) {
+		case bool:
+			usePolicyFile = usePolicyFileRaw
+		case string:
+			usePolicyFileBool, err := strconv.ParseBool(usePolicyFileRaw)
+			if err != nil {
+				return ws, append(es, errors.New("\"use_policyfile\" must be a boolean"))
+			}
+			usePolicyFile = usePolicyFileBool
+		default:
+			return ws, append(es, errors.New("\"use_policyfile\" must be a boolean"))
+		}
 	}
 
-	if !usePolicyFile.(bool) && !c.IsSet("run_list") {
+	if !usePolicyFile && !c.IsSet("run_list") {
 		es = append(es, errors.New("\"run_list\": required field is not set"))
 	}
-	if usePolicyFile.(bool) && !c.IsSet("policy_name") {
+	if usePolicyFile && !c.IsSet("policy_name") {
 		es = append(es, errors.New("using policyfile, but \"policy_name\" not set"))
 	}
-	if usePolicyFile.(bool) && !c.IsSet("policy_group") {
+	if usePolicyFile && !c.IsSet("policy_group") {
 		es = append(es, errors.New("using policyfile, but \"policy_group\" not set"))
 	}
 
