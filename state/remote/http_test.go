@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -60,6 +61,19 @@ func TestHTTPClient(t *testing.T) {
 	}
 	TestRemoteLocks(t, a, b)
 
+	// test a WebDAV-ish backend
+	davhandler := new(testHTTPHandler)
+	ts = httptest.NewServer(http.HandlerFunc(davhandler.HandleWebDAV))
+	defer ts.Close()
+
+	url, err = url.Parse(ts.URL)
+	c := &HTTPClient{
+		URL:          url,
+		UpdateMethod: "PUT",
+		Client:       cleanhttp.DefaultClient(),
+	}
+	testClient(t, c) // first time through: 201
+	testClient(t, c) // second time, with identical data: 204
 }
 
 func assertError(t *testing.T, err error, expected string) {
@@ -163,6 +177,32 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 	case "UNLOCK":
 		h.Locked = false
+	case "DELETE":
+		h.Data = nil
+		w.WriteHeader(200)
+	default:
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("Unknown method: %s", r.Method)))
+	}
+}
+
+// mod_dav-ish behavior
+func (h *testHTTPHandler) HandleWebDAV(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		w.Write(h.Data)
+	case "PUT":
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, r.Body); err != nil {
+			w.WriteHeader(500)
+		}
+		if reflect.DeepEqual(h.Data, buf.Bytes()) {
+			h.Data = buf.Bytes()
+			w.WriteHeader(204)
+		} else {
+			h.Data = buf.Bytes()
+			w.WriteHeader(201)
+		}
 	case "DELETE":
 		h.Data = nil
 		w.WriteHeader(200)
