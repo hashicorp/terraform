@@ -426,9 +426,9 @@ func extractOptions(options *schema.Set) map[string]interface{} {
 					op = append(op, numberify(v.(string)))
 				}
 
-				optv["values"] = op
+				optv[oo["key"].(string)] = op
 			} else {
-				optv[oo["name"].(string)] = numberify(oo["value"].(string))
+				optv[oo["key"].(string)] = numberify(oo["value"].(string))
 			}
 		}
 	}
