@@ -39,6 +39,8 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 
 [HP OneView](https://github.com/HewlettPackard/terraform-provider-oneview)
 
+[Infoblox](https://github.com/sky-uk/terraform-provider-infoblox)
+
 [Jira](https://github.com/anubhavmishra/terraform-provider-jira)
 
 [Kafka](https://github.com/Mongey/terraform-provider-kafka)
