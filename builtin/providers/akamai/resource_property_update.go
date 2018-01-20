@@ -19,6 +19,8 @@ func resourcePropertyUpdate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
+	ensureEditableVersion(property)
+
 	product, e := getProduct(d, property.Contract)
 	if e != nil {
 		return e

@@ -55,6 +55,8 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	ensureEditableVersion(property)
+
 	// The API now has data, so save the partial state
 	d.SetId(property.PropertyID)
 	d.SetPartial("name")

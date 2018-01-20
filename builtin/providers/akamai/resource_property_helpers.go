@@ -613,3 +613,26 @@ func findProperty(d *schema.ResourceData) *papi.Property {
 
 	return property
 }
+
+func ensureEditableVersion(property *papi.Property) error {
+	latestVersion, err := property.GetLatestVersion("")
+	if err != nil {
+		return err
+	}
+
+	if latestVersion.ProductionStatus != papi.StatusInactive || latestVersion.StagingStatus != papi.StatusInactive {
+		// The latest version has been activated on either production or staging, so we need to create a new version to apply changes on
+		versions, err := property.GetVersions()
+		if err != nil {
+			return err
+		}
+
+		newVersion := versions.NewVersion(latestVersion, false)
+		err = newVersion.Save()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
