@@ -71,7 +71,7 @@ func resourcePropertyUpdate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("rule")
 
 	if d.HasChange("hostname") || d.HasChange("ipv6") {
-		hostnameEdgeHostnameMap, err := createHostnames(property.Contract, property.Group, product, d)
+		hostnameEdgeHostnameMap, err := createHostnames(property, product, d)
 		if err != nil {
 			return err
 		}

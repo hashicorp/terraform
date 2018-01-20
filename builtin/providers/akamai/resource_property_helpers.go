@@ -243,15 +243,54 @@ func updateStandardBehaviors(rules *papi.Rules, cpCode *papi.CpCode, origin *pap
 	rules.Rule.AddBehavior(b)
 }
 
-func createHostnames(contract *papi.Contract, group *papi.Group, product *papi.Product, d *schema.ResourceData) (map[string]*papi.EdgeHostname, error) {
+func createHostnames(property *papi.Property, product *papi.Product, d *schema.ResourceData) (map[string]*papi.EdgeHostname, error) {
+	// If the property has edge hostnames and none is specified in the schema, then don't update them
+	edgeHostname, edgeHostnameOk := d.GetOk("edge_hostname")
+	if edgeHostnameOk != false {
+		hostnames, err := property.GetHostnames(nil)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(hostnames.Hostnames.Items) > 0 {
+			return make(map[string]*papi.EdgeHostname), nil
+		}
+	}
+
 	hostnames := d.Get("hostname").(*schema.Set).List()
-	ipv6, ipv6Ok := d.GetOk("ipv6")
+	ipv6 := d.Get("ipv6").(bool)
 
 	log.Println("[DEBUG] Figuring out hostnames")
 	edgeHostnames := papi.NewEdgeHostnames()
-	edgeHostnames.GetEdgeHostnames(contract, group, "")
+	edgeHostnames.GetEdgeHostnames(property.Contract, property.Group, "")
 
 	hostnameEdgeHostnameMap := map[string]*papi.EdgeHostname{}
+	defaultEdgeHostname := edgeHostnames.EdgeHostnames.Items[0]
+
+	if edgeHostnameOk {
+		foundEdgeHostname := false
+		for _, eHn := range edgeHostnames.EdgeHostnames.Items {
+			if eHn.EdgeHostnameDomain == edgeHostname.(string) {
+				foundEdgeHostname = true
+				defaultEdgeHostname = eHn
+			}
+		}
+
+		if foundEdgeHostname == false {
+			var err error
+			defaultEdgeHostname, err = createEdgehostname(edgeHostnames, product, edgeHostname.(string), ipv6)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		for _, hostname := range hostnames {
+			if _, ok := hostnameEdgeHostnameMap[hostname.(string)]; !ok {
+				hostnameEdgeHostnameMap[hostname.(string)] = defaultEdgeHostname
+				return hostnameEdgeHostnameMap, nil
+			}
+		}
+	}
 
 	// Contract/Group has _some_ Edge Hostnames, try to map 1:1 (e.g. example.com -> example.com.edgesuite.net)
 	// If some mapping exists, map non-existent ones to the first 1:1 we find, otherwise if none exist map to the
@@ -259,8 +298,6 @@ func createHostnames(contract *papi.Contract, group *papi.Group, product *papi.P
 	if len(edgeHostnames.EdgeHostnames.Items) > 0 {
 		log.Println("[DEBUG] Hostnames retrieved, trying to map")
 		edgeHostnamesMap := map[string]*papi.EdgeHostname{}
-
-		defaultEdgeHostname := edgeHostnames.EdgeHostnames.Items[0]
 
 		for _, edgeHostname := range edgeHostnames.EdgeHostnames.Items {
 			edgeHostnamesMap[edgeHostname.EdgeHostnameDomain] = edgeHostname
@@ -303,25 +340,9 @@ func createHostnames(contract *papi.Contract, group *papi.Group, product *papi.P
 	// mapping example.com -> example.com.edgegrid.net
 	if len(edgeHostnames.EdgeHostnames.Items) == 0 {
 		log.Println("[DEBUG] No Edge Hostnames found, creating new one")
-		newEdgeHostname := papi.NewEdgeHostname(edgeHostnames)
-		newEdgeHostname.ProductID = product.ProductID
-		newEdgeHostname.IPVersionBehavior = "IPV4"
-		if ipv6Ok && ipv6.(bool) {
-			newEdgeHostname.IPVersionBehavior = "IPV6_COMPLIANCE"
-		}
-
-		newEdgeHostname.DomainPrefix = hostnames[0].(string)
-		newEdgeHostname.DomainSuffix = "edgesuite.net"
-		newEdgeHostname.Save("")
-
-		go newEdgeHostname.PollStatus("")
-
-		for newEdgeHostname.Status != papi.StatusActive {
-			select {
-			case <-newEdgeHostname.StatusChange:
-			case <-time.After(time.Minute * 20):
-				return nil, fmt.Errorf("No Edge Hostname found and a timeout occurred trying to create \"%s.%s\"", newEdgeHostname.DomainPrefix, newEdgeHostname.DomainSuffix)
-			}
+		newEdgeHostname, err := createEdgehostname(edgeHostnames, product, hostnames[0].(string), ipv6)
+		if err != nil {
+			return nil, err
 		}
 
 		for _, hostname := range hostnames {
@@ -332,6 +353,30 @@ func createHostnames(contract *papi.Contract, group *papi.Group, product *papi.P
 	}
 
 	return hostnameEdgeHostnameMap, nil
+}
+
+func createEdgehostname(edgeHostnames *papi.EdgeHostnames, product *papi.Product, hostname string, ipv6 bool) (*papi.EdgeHostname, error) {
+	newEdgeHostname := papi.NewEdgeHostname(edgeHostnames)
+	newEdgeHostname.ProductID = product.ProductID
+	newEdgeHostname.IPVersionBehavior = "IPV4"
+	if ipv6 {
+		newEdgeHostname.IPVersionBehavior = "IPV6_COMPLIANCE"
+	}
+
+	newEdgeHostname.EdgeHostnameDomain = hostname
+	newEdgeHostname.Save("")
+
+	go newEdgeHostname.PollStatus("")
+
+	for newEdgeHostname.Status != papi.StatusActive {
+		select {
+		case <-newEdgeHostname.StatusChange:
+		case <-time.After(time.Minute * 20):
+			return nil, fmt.Errorf("No Edge Hostname found and a timeout occurred trying to create \"%s.%s\"", newEdgeHostname.DomainPrefix, newEdgeHostname.DomainSuffix)
+		}
+	}
+
+	return newEdgeHostname, nil
 }
 
 func setEdgeHostnames(property *papi.Property, hostnameEdgeHostnameMap map[string]*papi.EdgeHostname) (map[string]string, error) {

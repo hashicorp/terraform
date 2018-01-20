@@ -103,7 +103,7 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("origin")
 	d.SetPartial("rule")
 
-	hostnameEdgeHostnameMap, err := createHostnames(contract, group, product, d)
+	hostnameEdgeHostnameMap, err := createHostnames(property, product, d)
 	if err != nil {
 		return err
 	}
