@@ -1,6 +1,8 @@
 package akamai
 
 import (
+	"strings"
+
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -9,11 +11,17 @@ func resourcePropertyImport(d *schema.ResourceData, meta interface{}) ([]*schema
 	resourceId := d.Id()
 	propertyId := resourceId
 
-	for _, searchKey := range []papi.SearchKey{papi.SearchByPropertyName, papi.SearchByHostname, papi.SearchByEdgeHostname} {
-		results, _ := papi.Search(searchKey, resourceId)
-		if len(results.Versions.Items) > 0 {
-			propertyId = results.Versions.Items[0].PropertyID
-			break
+	if !strings.HasPrefix(resourceId, "prp_") {
+		for _, searchKey := range []papi.SearchKey{papi.SearchByPropertyName, papi.SearchByHostname, papi.SearchByEdgeHostname} {
+			results, err := papi.Search(searchKey, resourceId)
+			if err != nil {
+				continue
+			}
+
+			if results != nil && len(results.Versions.Items) > 0 {
+				propertyId = results.Versions.Items[0].PropertyID
+				break
+			}
 		}
 	}
 
@@ -27,9 +35,7 @@ func resourcePropertyImport(d *schema.ResourceData, meta interface{}) ([]*schema
 	d.Set("account_id", property.AccountID)
 	d.Set("contract_id", property.ContractID)
 	d.Set("group_id", property.GroupID)
-	d.Set("product_id", property.ProductID)
-	d.Set("rule_format", property.RuleFormat)
-	// d.Set("clone_from", property.CloneFrom)
+	//d.Set("clone_from", property.CloneFrom.PropertyID)
 	d.Set("name", property.PropertyName)
 	d.SetId(property.PropertyID)
 
