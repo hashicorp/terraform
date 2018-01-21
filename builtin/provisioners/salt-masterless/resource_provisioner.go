@@ -58,10 +58,12 @@ func Provisioner() terraform.ResourceProvisioner {
 			"remote_state_tree": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  DefaultStateTreeDir,
 			},
 			"remote_pillar_roots": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  DefaultPillarRootDir,
 			},
 			"temp_config_dir": &schema.Schema{
 				Type:     schema.TypeString,
