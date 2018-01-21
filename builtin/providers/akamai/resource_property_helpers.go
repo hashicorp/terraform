@@ -538,42 +538,58 @@ func extractRules(drules *schema.Set) []*papi.Rule {
 		if ok {
 			rule.Name = vv["name"].(string)
 			rule.Comments = vv["comment"].(string)
-			dbehavior, ok := vv["behavior"]
+			behaviors, ok := vv["behavior"]
 			if ok {
-				for _, b := range dbehavior.(*schema.Set).List() {
-					bb, ok := b.(map[string]interface{})
+				for _, behavior := range behaviors.(*schema.Set).List() {
+					behaviorMap, ok := behavior.(map[string]interface{})
 					if ok {
-						beh := papi.NewBehavior()
-						beh.Name = bb["name"].(string)
-						boptions, ok := bb["option"]
+						newBehavior := papi.NewBehavior()
+						newBehavior.Name = behaviorMap["name"].(string)
+						behaviorOptions, ok := behaviorMap["option"]
 						if ok {
-							beh.Options = extractOptions(boptions.(*schema.Set))
+							newBehavior.Options = extractOptions(behaviorOptions.(*schema.Set))
 						}
-						rule.MergeBehavior(beh)
+						rule.MergeBehavior(newBehavior)
 					}
 				}
 			}
 
-			dcriteria, ok := vv["criteria"]
+			criterias, ok := vv["criteria"]
 			if ok {
-				for _, b := range dcriteria.(*schema.Set).List() {
-					bb, ok := b.(map[string]interface{})
+				for _, criteria := range criterias.(*schema.Set).List() {
+					criteriaMap, ok := criteria.(map[string]interface{})
 					if ok {
-						beh := papi.NewCriteria()
-						beh.Name = bb["name"].(string)
-						coptions, ok := bb["option"]
+						newCriteria := papi.NewCriteria()
+						newCriteria.Name = criteriaMap["name"].(string)
+						criteriaOptions, ok := criteriaMap["option"]
 						if ok {
-							beh.Options = extractOptions(coptions.(*schema.Set))
+							newCriteria.Options = extractOptions(criteriaOptions.(*schema.Set))
 						}
-						rule.MergeCriteria(beh)
+						rule.MergeCriteria(newCriteria)
 					}
 				}
 			}
 
-			dchildRule, ok := vv["rule"]
-			if ok && dchildRule.(*schema.Set).Len() > 0 {
-				for _, r := range extractRules(dchildRule.(*schema.Set)) {
-					rule.MergeChildRule(r)
+			variables, ok := vv["variable"]
+			if ok {
+				for _, variable := range variables.(*schema.Set).List() {
+					variableMap, ok := variable.(map[string]interface{})
+					if ok {
+						newVariable := papi.NewVariable()
+						newVariable.Name = variableMap["name"].(string)
+						newVariable.Description = variableMap["description"].(string)
+						newVariable.Value = variableMap["value"].(string)
+						newVariable.Hidden = variableMap["hidden"].(bool)
+						newVariable.Sensitive = variableMap["sensitive"].(bool)
+						rule.AddVariable(newVariable)
+					}
+				}
+			}
+
+			childRules, ok := vv["rule"]
+			if ok && childRules.(*schema.Set).Len() > 0 {
+				for _, newRule := range extractRules(childRules.(*schema.Set)) {
+					rule.MergeChildRule(newRule)
 				}
 			}
 		}

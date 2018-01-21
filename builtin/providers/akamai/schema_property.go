@@ -294,6 +294,34 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 						},
 					},
 				},
+				"variable": &schema.Schema{
+					Type:     schema.TypeSet,
+					Optional: true,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"name": {
+								Type:     schema.TypeString,
+								Required: true,
+							},
+							"description": {
+								Type:     schema.TypeString,
+								Optional: true,
+							},
+							"hidden": {
+								Type:     schema.TypeBool,
+								Required: true,
+							},
+							"sensitive": {
+								Type:     schema.TypeBool,
+								Required: true,
+							},
+							"value": {
+								Type:     schema.TypeString,
+								Optional: true,
+							},
+						},
+					},
+				},
 			},
 		},
 	},
