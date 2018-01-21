@@ -19,7 +19,11 @@ func resourcePropertyUpdate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
-	ensureEditableVersion(property)
+	err := ensureEditableVersion(property)
+	if err != nil {
+		return err
+	}
+	d.Set("version", property.LatestVersion)
 
 	product, e := getProduct(d, property.Contract)
 	if e != nil {
@@ -98,8 +102,6 @@ func resourcePropertyUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		go activation.PollStatus(property)
 
-		d.Partial(false)
-
 	polling:
 		for activation.Status != papi.StatusActive {
 			select {
@@ -115,6 +117,8 @@ func resourcePropertyUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 	}
+
+	d.Partial(false)
 
 	log.Println("[DEBUG] Done")
 	return nil

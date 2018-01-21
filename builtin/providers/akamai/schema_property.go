@@ -79,9 +79,9 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 	},
 
 	"activate": &schema.Schema{
-		Type: schema.TypeBool,
+		Type:     schema.TypeBool,
 		Optional: true,
-		Default: true,
+		Default:  true,
 	},
 
 	// Will get added to the default rule
@@ -92,6 +92,10 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 	"name": &schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
+	},
+	"version": &schema.Schema{
+		Type:     schema.TypeInt,
+		Computed: true,
 	},
 	"rule_format": &schema.Schema{
 		Type:     schema.TypeString,
@@ -143,28 +147,10 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 		},
 	},
 
-	// The default rule applies to all requests
-	"default": &schema.Schema{
-		Type:     schema.TypeSet,
-		Optional: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"criteria_match": {
-					Type:     schema.TypeString,
-					Optional: true,
-					Default:  "all",
-				},
-				"criteria": akps_criteria,
-				"behavior": akps_behavior,
-				// "children": [], //TODO
-			},
-		},
-	},
-
 	// Will get added to the default rule
 	"origin": {
-		Type:     schema.TypeList,
-		Required: true,
+		Type:     schema.TypeSet,
+		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"is_secure": {
@@ -190,12 +176,12 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 					Optional: true,
 					Default:  "ORIGIN_HOSTNAME",
 				},
-				"gzip_compression": {
+				"compress": {
 					Type:     schema.TypeBool,
 					Optional: true,
 					Default:  false,
 				},
-				"true_client_ip_header": {
+				"enable_true_client_ip": {
 					Type:     schema.TypeBool,
 					Optional: true,
 					Default:  false,
@@ -205,25 +191,16 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 	},
 
 	// rules tree can go max 5 levels deep
-	"rule": &schema.Schema{
+	"rules": &schema.Schema{
 		Type:     schema.TypeSet,
 		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"name": {
-					Type:     schema.TypeString,
-					Required: true,
-				},
-				"comment": {
-					Type:     schema.TypeString,
-					Optional: true,
-				},
 				"criteria_match": {
 					Type:     schema.TypeString,
 					Optional: true,
 					Default:  "all",
 				},
-				"criteria": akps_criteria,
 				"behavior": akps_behavior,
 				"rule": &schema.Schema{
 					Type:     schema.TypeSet,
@@ -285,6 +262,29 @@ var akamaiPropertySchema map[string]*schema.Schema = map[string]*schema.Schema{
 													},
 													"criteria": akps_criteria,
 													"behavior": akps_behavior,
+													"rule": &schema.Schema{
+														Type:     schema.TypeSet,
+														Optional: true,
+														Elem: &schema.Resource{
+															Schema: map[string]*schema.Schema{
+																"name": {
+																	Type:     schema.TypeString,
+																	Required: true,
+																},
+																"comment": {
+																	Type:     schema.TypeString,
+																	Optional: true,
+																},
+																"criteria_match": {
+																	Type:     schema.TypeString,
+																	Optional: true,
+																	Default:  "all",
+																},
+																"criteria": akps_criteria,
+																"behavior": akps_behavior,
+															},
+														},
+													},
 												},
 											},
 										},

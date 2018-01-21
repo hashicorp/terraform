@@ -42,20 +42,32 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
-	cloneFrom, e := getCloneFrom(d, group, contract)
+	cloneFrom, e := getCloneFrom(d)
 	if e != nil {
 		return e
 	}
 
 	var property *papi.Property
 	if property = findProperty(d); property == nil {
+		if group == nil {
+			return errors.New("A group_id must be specified to create a new property")
+		}
+
+		if contract == nil {
+			return errors.New("A contract_id must be specified to create a new property")
+		}
+
 		property, e = createProperty(contract, group, product, cloneFrom, d)
 		if e != nil {
 			return e
 		}
 	}
 
-	ensureEditableVersion(property)
+	err := ensureEditableVersion(property)
+	if err != nil {
+		return err
+	}
+	d.Set("version", property.LatestVersion)
 
 	// The API now has data, so save the partial state
 	d.SetId(property.PropertyID)
@@ -68,7 +80,7 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("clone_from")
 	d.SetPartial("network")
 
-	cpCode, e := createCpCode(contract, group, product, d)
+	cpCode, e := createCpCode(property.Contract, property.Group, product, d)
 	if e != nil {
 		return e
 	}
@@ -118,7 +130,7 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("ipv6")
 	d.Set("edge_hostname", edgeHostnames)
 
-	if d.Get("activation").(bool) {
+	if d.Get("activate").(bool) {
 		activation, err := activateProperty(property, d)
 		if err != nil {
 			return err
@@ -126,8 +138,6 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("contact")
 
 		go activation.PollStatus(property)
-
-		d.Partial(false)
 
 	polling:
 		for activation.Status != papi.StatusActive {
@@ -145,6 +155,7 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	d.Partial(false)
 	log.Println("[DEBUG] Done")
 	return nil
 }

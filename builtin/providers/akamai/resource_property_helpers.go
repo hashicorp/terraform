@@ -24,7 +24,11 @@ func getProperty(d *schema.ResourceData) (*papi.Property, error) {
 
 func getGroup(d *schema.ResourceData) (*papi.Group, error) {
 	log.Println("[DEBUG] Fetching groups")
-	groupId := d.Get("group_id").(string)
+	groupId, ok := d.GetOk("group_id")
+
+	if !ok {
+		return nil, nil
+	}
 
 	groups := papi.NewGroups()
 	e := groups.GetGroups()
@@ -32,7 +36,7 @@ func getGroup(d *schema.ResourceData) (*papi.Group, error) {
 		return nil, e
 	}
 
-	group, e := groups.FindGroup(groupId)
+	group, e := groups.FindGroup(groupId.(string))
 	if e != nil {
 		return nil, e
 	}
@@ -43,7 +47,10 @@ func getGroup(d *schema.ResourceData) (*papi.Group, error) {
 
 func getContract(d *schema.ResourceData) (*papi.Contract, error) {
 	log.Println("[DEBUG] Fetching contract")
-	contractId := d.Get("contract_id").(string)
+	contractId, ok := d.GetOk("contract_id")
+	if !ok {
+		return nil, nil
+	}
 
 	contracts := papi.NewContracts()
 	e := contracts.GetContracts()
@@ -51,7 +58,7 @@ func getContract(d *schema.ResourceData) (*papi.Contract, error) {
 		return nil, e
 	}
 
-	contract, e := contracts.FindContract(contractId)
+	contract, e := contracts.FindContract(contractId.(string))
 	if e != nil {
 		return nil, e
 	}
@@ -61,8 +68,15 @@ func getContract(d *schema.ResourceData) (*papi.Contract, error) {
 }
 
 func getProduct(d *schema.ResourceData, contract *papi.Contract) (*papi.Product, error) {
+	if contract == nil {
+		return nil, nil
+	}
+
 	log.Println("[DEBUG] Fetching product")
-	productId := d.Get("product_id").(string)
+	productId, ok := d.GetOk("product_id")
+	if !ok {
+		return nil, nil
+	}
 
 	products := papi.NewProducts()
 	e := products.GetProducts(contract)
@@ -70,7 +84,7 @@ func getProduct(d *schema.ResourceData, contract *papi.Contract) (*papi.Product,
 		return nil, e
 	}
 
-	product, e := products.FindProduct(productId)
+	product, e := products.FindProduct(productId.(string))
 	if e != nil {
 		return nil, e
 	}
@@ -79,7 +93,7 @@ func getProduct(d *schema.ResourceData, contract *papi.Contract) (*papi.Product,
 	return product, nil
 }
 
-func getCloneFrom(d *schema.ResourceData, group *papi.Group, contract *papi.Contract) (*papi.ClonePropertyFrom, error) {
+func getCloneFrom(d *schema.ResourceData) (*papi.ClonePropertyFrom, error) {
 	log.Println("[DEBUG] Setting up clone from")
 
 	cF, ok := d.GetOk("clone_from")
@@ -95,8 +109,6 @@ func getCloneFrom(d *schema.ResourceData, group *papi.Group, contract *papi.Cont
 
 	property := papi.NewProperty(papi.NewProperties())
 	property.PropertyID = propertyId
-	property.Group = group
-	property.Contract = contract
 	err := property.GetProperty()
 	if err != nil {
 		return nil, err
@@ -131,9 +143,15 @@ func getCloneFrom(d *schema.ResourceData, group *papi.Group, contract *papi.Cont
 
 func createCpCode(contract *papi.Contract, group *papi.Group, product *papi.Product, d *schema.ResourceData) (*papi.CpCode, error) {
 	log.Println("[DEBUG] Setting up CPCode")
+
+	cpCodeValue, ok := d.GetOk("cp_code")
+	if !ok {
+		return nil, nil
+	}
+
 	cpCodes := papi.NewCpCodes(contract, group)
 	cpCode := papi.NewCpCode(cpCodes)
-	cpCode.CpcodeID = d.Get("cp_code").(string)
+	cpCode.CpcodeID = cpCodeValue.(string)
 	if !strings.HasPrefix(cpCode.CpcodeID, "cpc_") {
 		cpCode.CpcodeID = "cpc_" + cpCode.CpcodeID
 	}
@@ -145,7 +163,7 @@ func createCpCode(contract *papi.Contract, group *papi.Group, product *papi.Prod
 			return nil, err
 		}
 
-		if cpCode == nil {
+		if cpCode == nil && product != nil {
 			log.Println("[DEBUG] CPCode not found, creating a new one")
 			cpCode = papi.NewCpCode(cpCodes)
 			cpCode.ProductID = product.ProductID
@@ -155,6 +173,8 @@ func createCpCode(contract *papi.Contract, group *papi.Group, product *papi.Prod
 				return nil, err
 			}
 			log.Println("[DEBUG] CPCode created")
+		} else {
+			return nil, errors.New("A product_id must be specified to create a new cp_code")
 		}
 	}
 	log.Println("[DEBUG] CPCode set up")
@@ -165,95 +185,94 @@ func createCpCode(contract *papi.Contract, group *papi.Group, product *papi.Prod
 func createOrigin(d *schema.ResourceData) (*papi.OptionValue, error) {
 	log.Println("[DEBUG] Setting origin")
 	if origin, ok := d.GetOk("origin"); ok {
-		originConfig := origin.([]interface{})[0].(map[string]interface{})
-		forwardHostname := originConfig["forward_hostname"].(string)
-		var originValues *papi.OptionValue
-		if forwardHostname == "ORIGIN_HOSTNAME" || forwardHostname == "REQUEST_HOST_HEADER" {
-			log.Println("[DEBUG] Setting non-custom forward hostname")
-			originValues = &papi.OptionValue{
-				"originType":         "CUSTOMER",
-				"hostname":           originConfig["hostname"].(string),
-				"httpPort":           originConfig["port"].(int),
-				"forwardHostHeader":  forwardHostname,
-				"cacheKeyHostname":   originConfig["cache_key_hostname"].(string),
-				"compress":           originConfig["gzip_compression"].(bool),
-				"enableTrueClientIp": originConfig["true_client_ip_header"].(bool),
-			}
-		} else {
-			log.Println("[DEBUG] Setting custom forward hostname")
-			originValues = &papi.OptionValue{
-				"originType":              "CUSTOMER",
-				"hostname":                originConfig["hostname"].(string),
-				"httpPort":                originConfig["port"].(string),
-				"forwardHostHeader":       "CUSTOM",
-				"customForwardHostHeader": forwardHostname,
-				"cacheKeyHostname":        originConfig["cache_key_hostname"].(string),
-				"compress":                originConfig["gzip_compression"].(bool),
-				"enableTrueClientIp":      originConfig["true_client_ip_header"].(bool),
-			}
+		originConfig := origin.(*schema.Set).List()[0].(map[string]interface{})
+
+		forwardHostname, forwardHostnameOk := originConfig["forward_hostname"].(string)
+		originValues := make(map[string]interface{})
+
+		originValues["originType"] = "CUSTOMER"
+		if val, ok := originConfig["hostname"]; ok {
+			originValues["hostname"] = val.(string)
 		}
-		return originValues, nil
+
+		if val, ok := originConfig["port"]; ok {
+			originValues["httpPort"] = val.(int)
+		}
+
+		if val, ok := originConfig["cache_key_hostname"]; ok {
+			originValues["cacheKeyHostname"] = val.(string)
+		}
+
+		if val, ok := originConfig["compress"]; ok {
+			originValues["compress"] = val.(bool)
+		}
+
+		if val, ok := originConfig["enable_true_client_ip"]; ok {
+			originValues["enableTrueClientIp"] = val.(bool)
+		}
+
+		if forwardHostnameOk && (forwardHostname == "ORIGIN_HOSTNAME" || forwardHostname == "REQUEST_HOST_HEADER") {
+			log.Println("[DEBUG] Setting non-custom forward hostname")
+
+			originValues["forwardHostHeader"] = forwardHostname
+		} else if forwardHostnameOk {
+			log.Println("[DEBUG] Setting custom forward hostname")
+
+			originValues["forwardHostHeader"] = "CUSTOM"
+			originValues["customForwardHostHeader"] = "CUSTOM"
+		}
+
+		ov := papi.OptionValue(originValues)
+		return &ov, nil
 	}
-	return nil, errors.New("No origin config found")
+	return nil, nil
 }
 
 func fixupPerformanceBehaviors(rules *papi.Rules) {
-	foundSureRoute := false
-	if rule, err := rules.FindRule("/Performance"); err == nil && rule != nil {
-		for _, behavior := range rule.Behaviors {
-			if behavior.Name == "sureRoute" && behavior.Options["testObjectUrl"] != "" {
-				foundSureRoute = true
-				break
-			}
-		}
-
-		if !foundSureRoute {
-			return
-		}
+	behavior, err := rules.FindBehavior("/Performance/sureRoute")
+	if err != nil || behavior == nil || (behavior != nil && behavior.Options["testObjectUrl"] != "") {
+		return
 	}
 
 	log.Println("[DEBUG] Fixing Up SureRoute Behavior")
-	r := papi.NewRule()
-	r.Name = "Performance"
-
-	b := papi.NewBehavior()
-	b.Name = "sureRoute"
-	b.Options = papi.OptionValue{
+	behavior.MergeOptions(papi.OptionValue{
 		"testObjectUrl":   "/akamai/sureroute-testobject.html",
 		"enableCustomKey": false,
 		"enabled":         false,
-	}
-	r.AddBehavior(b)
-	rules.Rule.AddChildRule(r)
+	})
 }
 
 func updateStandardBehaviors(rules *papi.Rules, cpCode *papi.CpCode, origin *papi.OptionValue) {
-	b := papi.NewBehavior()
-	b.Name = "cpCode"
-	b.Options = papi.OptionValue{
-		"value": papi.OptionValue{
-			"id": cpCode.ID(),
-		},
+	if cpCode != nil {
+		b := papi.NewBehavior()
+		b.Name = "cpCode"
+		b.Options = papi.OptionValue{
+			"value": papi.OptionValue{
+				"id": cpCode.ID(),
+			},
+		}
+		rules.Rule.MergeBehavior(b)
 	}
-	rules.Rule.AddBehavior(b)
 
-	b = papi.NewBehavior()
-	b.Name = "origin"
-	b.Options = *origin
-	rules.Rule.AddBehavior(b)
+	if origin != nil {
+		b := papi.NewBehavior()
+		b.Name = "origin"
+		b.Options = *origin
+		rules.Rule.MergeBehavior(b)
+	}
 }
 
 func createHostnames(property *papi.Property, product *papi.Product, d *schema.ResourceData) (map[string]*papi.EdgeHostname, error) {
 	// If the property has edge hostnames and none is specified in the schema, then don't update them
 	edgeHostname, edgeHostnameOk := d.GetOk("edge_hostname")
-	if edgeHostnameOk != false {
+	if edgeHostnameOk == false {
 		hostnames, err := property.GetHostnames(nil)
 		if err != nil {
 			return nil, err
 		}
 
 		if len(hostnames.Hostnames.Items) > 0 {
-			return make(map[string]*papi.EdgeHostname), nil
+			return nil, nil
 		}
 	}
 
@@ -380,44 +399,52 @@ func createEdgehostname(edgeHostnames *papi.EdgeHostnames, product *papi.Product
 }
 
 func setEdgeHostnames(property *papi.Property, hostnameEdgeHostnameMap map[string]*papi.EdgeHostname) (map[string]string, error) {
-	log.Println("[DEBUG] Setting Edge Hostnames")
-	version := papi.NewVersion(papi.NewVersions())
-	version.PropertyVersion = property.LatestVersion
-	propertyHostnames, err := property.GetHostnames(version)
+	if hostnameEdgeHostnameMap != nil {
+		log.Println("[DEBUG] Setting Edge Hostnames")
+		propertyHostnames, err := property.GetHostnames(nil)
+		if err != nil {
+			return nil, err
+		}
+
+		propertyHostnames.Hostnames.Items = []*papi.Hostname{}
+		for from, to := range hostnameEdgeHostnameMap {
+			hostname := propertyHostnames.NewHostname()
+			hostname.CnameType = papi.CnameTypeEdgeHostname
+			hostname.CnameFrom = from
+			hostname.CnameTo = to.EdgeHostnameDomain
+			hostname.EdgeHostnameID = to.EdgeHostnameID
+		}
+		log.Println("[DEBUG] Saving edge hostnames")
+		err = propertyHostnames.Save()
+		log.Println("[DEBUG] Edge hostnames saved")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	hostnames, err := property.GetHostnames(nil)
 	if err != nil {
 		return nil, err
 	}
 
 	var ehn map[string]string = make(map[string]string)
-	propertyHostnames.Hostnames.Items = []*papi.Hostname{}
-	for from, to := range hostnameEdgeHostnameMap {
-		hostname := propertyHostnames.NewHostname()
-		hostname.CnameType = papi.CnameTypeEdgeHostname
-		hostname.CnameFrom = from
-		hostname.CnameTo = to.EdgeHostnameDomain
-		hostname.EdgeHostnameID = to.EdgeHostnameID
-		ehn[strings.Replace(from, ".", "-", -1)] = to.EdgeHostnameDomain
-	}
-	log.Println("[DEBUG] Saving edge hostnames")
-	err = propertyHostnames.Save()
-	log.Println("[DEBUG] Edge hostnames saved")
-	if err != nil {
-		return nil, err
+	for _, hostname := range hostnames.Hostnames.Items {
+		ehn[strings.Replace(hostname.CnameFrom, ".", "-", -1)] = hostname.CnameTo
 	}
 
 	return ehn, nil
 }
 
-func unmarshalRules(d *schema.ResourceData, rules *papi.Rules) {
-	// DEFAULT RULES
-	def, ok := d.GetOk("default")
+func unmarshalRules(d *schema.ResourceData, propertyRules *papi.Rules) {
+	// Default Rules
+	rules, ok := d.GetOk("rules")
 	if ok {
-		for _, v := range def.(*schema.Set).List() {
-			vv, ok := v.(map[string]interface{})
+		for _, r := range rules.(*schema.Set).List() {
+			ruleTree, ok := r.(map[string]interface{})
 			if ok {
-				dbehavior, ok := vv["behavior"]
+				behavior, ok := ruleTree["behavior"]
 				if ok {
-					for _, b := range dbehavior.(*schema.Set).List() {
+					for _, b := range behavior.(*schema.Set).List() {
 						bb, ok := b.(map[string]interface{})
 						if ok {
 							beh := papi.NewBehavior()
@@ -426,35 +453,34 @@ func unmarshalRules(d *schema.ResourceData, rules *papi.Rules) {
 							if ok {
 								beh.Options = extractOptions(boptions.(*schema.Set))
 							}
-							rules.Rule.AddBehavior(beh)
+							propertyRules.Rule.MergeBehavior(beh)
 						}
 					}
 				}
 
-				dcriteria, ok := vv["criteria"]
+				criteria, ok := ruleTree["criteria"]
 				if ok {
-					for _, b := range dcriteria.(*schema.Set).List() {
-						bb, ok := b.(map[string]interface{})
+					for _, c := range criteria.(*schema.Set).List() {
+						cc, ok := c.(map[string]interface{})
 						if ok {
-							beh := papi.NewCriteria()
-							beh.Name = bb["name"].(string)
-							coptions, ok := bb["option"]
+							newCriteria := papi.NewCriteria()
+							newCriteria.Name = cc["name"].(string)
+							coptions, ok := cc["option"]
 							if ok {
-								beh.Options = extractOptions(coptions.(*schema.Set))
+								newCriteria.Options = extractOptions(coptions.(*schema.Set))
 							}
-							rules.Rule.AddCriteria(beh)
+							propertyRules.Rule.MergeCriteria(newCriteria)
 						}
 					}
 				}
 			}
-		}
-	}
 
-	// ALL OTHER RULES
-	drules, ok := d.GetOk("rule")
-	if ok {
-		for _, rule := range extractRules(drules.(*schema.Set)) {
-			rules.Rule.AddChildRule(rule)
+			childRules, ok := ruleTree["rule"]
+			if ok {
+				for _, rule := range extractRules(childRules.(*schema.Set)) {
+					propertyRules.Rule.MergeChildRule(rule)
+				}
+			}
 		}
 	}
 }
@@ -523,7 +549,7 @@ func extractRules(drules *schema.Set) []*papi.Rule {
 						if ok {
 							beh.Options = extractOptions(boptions.(*schema.Set))
 						}
-						rule.AddBehavior(beh)
+						rule.MergeBehavior(beh)
 					}
 				}
 			}
@@ -539,7 +565,7 @@ func extractRules(drules *schema.Set) []*papi.Rule {
 						if ok {
 							beh.Options = extractOptions(coptions.(*schema.Set))
 						}
-						rule.AddCriteria(beh)
+						rule.MergeCriteria(beh)
 					}
 				}
 			}
@@ -547,7 +573,7 @@ func extractRules(drules *schema.Set) []*papi.Rule {
 			dchildRule, ok := vv["rule"]
 			if ok && dchildRule.(*schema.Set).Len() > 0 {
 				for _, r := range extractRules(dchildRule.(*schema.Set)) {
-					rule.AddChildRule(r)
+					rule.MergeChildRule(r)
 				}
 			}
 		}
@@ -620,19 +646,21 @@ func ensureEditableVersion(property *papi.Property) error {
 		return err
 	}
 
+	versions, err := property.GetVersions()
+	if err != nil {
+		return err
+	}
+
 	if latestVersion.ProductionStatus != papi.StatusInactive || latestVersion.StagingStatus != papi.StatusInactive {
 		// The latest version has been activated on either production or staging, so we need to create a new version to apply changes on
-		versions, err := property.GetVersions()
-		if err != nil {
-			return err
-		}
-
 		newVersion := versions.NewVersion(latestVersion, false)
 		err = newVersion.Save()
 		if err != nil {
 			return err
 		}
 	}
+
+	property.GetProperty()
 
 	return nil
 }

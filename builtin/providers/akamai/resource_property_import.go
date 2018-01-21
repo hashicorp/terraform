@@ -37,6 +37,7 @@ func resourcePropertyImport(d *schema.ResourceData, meta interface{}) ([]*schema
 	d.Set("group_id", property.GroupID)
 	//d.Set("clone_from", property.CloneFrom.PropertyID)
 	d.Set("name", property.PropertyName)
+	d.Set("version", property.LatestVersion)
 	d.SetId(property.PropertyID)
 
 	return []*schema.ResourceData{d}, nil
