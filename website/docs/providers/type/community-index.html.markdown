@@ -17,10 +17,13 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 
 ---
 
+[Acme](https://github.com/vancluever/terraform-provider-acme)
 
 [Active Directory](https://github.com/GSLabDev/terraform-provider-ad)
 
 [Apigee](https://github.com/zambien/terraform-provider-apigee)
+
+[AVI](https://github.com/avinetworks/terraform-provider-avi)
 
 [Aviatrix](https://github.com/AviatrixSystems/terraform-provider-aviatrix)
 
@@ -28,11 +31,17 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 
 [Digital Rebar](https://github.com/rackn/terraform-provider-drp/)
 
+[GoCD](https://github.com/drewsonne/terraform-provider-gocd)
+
 [Google Calendar](https://github.com/sethvargo/terraform-provider-googlecalendar)
 
 [Helm](https://github.com/mcuadros/terraform-provider-helm)
 
 [HP OneView](https://github.com/HewlettPackard/terraform-provider-oneview)
+
+[Infoblox](https://github.com/sky-uk/terraform-provider-infoblox)
+
+[Jira](https://github.com/anubhavmishra/terraform-provider-jira)
 
 [Kafka](https://github.com/Mongey/terraform-provider-kafka)
 
