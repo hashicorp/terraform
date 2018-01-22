@@ -17,7 +17,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 
 ---
 
-[Acme](https://github.com/paybyphone/terraform-provider-acme)
+[Acme](https://github.com/vancluever/terraform-provider-acme)
 
 [Active Directory](https://github.com/GSLabDev/terraform-provider-ad)
 
