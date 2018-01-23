@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
@@ -289,6 +290,8 @@ func loadTerraformHcl(list *ast.ObjectList) (*Terraform, error) {
 		}
 	}
 
+	log.Printf("[INFO] Terraform config is %v", config)
+
 	return &config, nil
 }
 
@@ -330,6 +333,8 @@ func loadTerraformBackendHcl(list *ast.ObjectList) (*Backend, error) {
 		RawConfig: rawConfig,
 	}
 	b.Hash = b.Rehash()
+
+	log.Printf("[INFO] Using backend %v", b)
 
 	return b, nil
 }

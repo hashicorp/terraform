@@ -36,6 +36,10 @@ type Local struct {
 	CLI      cli.Ui
 	CLIColor *colorstring.Colorize
 
+	// PasswordFilePath is the location of a password file
+	// used to encrypt / decrypt state, if provided
+	PasswordFilePath string
+
 	// The State* paths are set from the backend config, and may be left blank
 	// to use the defaults. If the actual paths for the local backend state are
 	// needed, use the StatePaths method.
@@ -196,8 +200,9 @@ func (b *Local) State(name string) (state.State, error) {
 
 	// Otherwise, we need to load the state.
 	var s state.State = &state.LocalState{
-		Path:    statePath,
-		PathOut: stateOutPath,
+		Path:             statePath,
+		PathOut:          stateOutPath,
+		PasswordFilePath: b.PasswordFilePath,
 	}
 
 	// If we are backing up the state, wrap it
@@ -338,6 +343,12 @@ func (b *Local) Colorize() *colorstring.Colorize {
 func (b *Local) init() {
 	b.schema = &schema.Backend{
 		Schema: map[string]*schema.Schema{
+			"password_file_path": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
+
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -366,6 +377,19 @@ func (b *Local) init() {
 
 func (b *Local) schemaConfigure(ctx context.Context) error {
 	d := schema.FromContextBackendConfig(ctx)
+
+	passwordFilePathRaw, ok := d.GetOk("password_file_path")
+	if ok {
+		passwordFilePath := passwordFilePathRaw.(string)
+		if passwordFilePath == "" {
+			log.Printf("[WARN] Configured password file path is %v", passwordFilePath)
+			return fmt.Errorf("configured password_file_path is empty")
+		}
+		log.Printf("[INFO] Using password file; will encrypte state: %v\n", passwordFilePath)
+		b.PasswordFilePath = passwordFilePath
+	} else {
+		log.Printf("[INFO] Not using pasword file, so not decrypting state\n")
+	}
 
 	// Set the path if it is set
 	pathRaw, ok := d.GetOk("path")
