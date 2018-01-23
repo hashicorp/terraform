@@ -12,6 +12,8 @@ import (
 	"io/ioutil"
 	"log"
 
+	home "github.com/mitchellh/go-homedir"
+
 	pbkdf2 "golang.org/x/crypto/pbkdf2"
 )
 
@@ -21,9 +23,13 @@ const keySize = 32
 
 // WriteSealedState writes state in encrypted form onto the destination
 // if passwordFilePath is not nil
-func WriteSealedState(d *State, dst io.Writer, passwordFilePath string) error {
-	if passwordFilePath == "" {
+func WriteSealedState(d *State, dst io.Writer, rawPasswordFilePath string) error {
+	if rawPasswordFilePath == "" {
 		return WriteState(d, dst)
+	}
+	passwordFilePath, err := home.Expand(rawPasswordFilePath)
+	if err != nil {
+		return fmt.Errorf("Could not expand file path: %v", err)
 	}
 	password, err := ioutil.ReadFile(passwordFilePath)
 	if err != nil {
@@ -49,15 +55,20 @@ func WriteSealedState(d *State, dst io.Writer, passwordFilePath string) error {
 	stream := cipher.NewOFB(block, iv)
 	base32Encoder := base32.NewEncoder(base32.StdEncoding, dst)
 	encryptedDst := &cipher.StreamWriter{S: stream, W: base32Encoder}
+	defer encryptedDst.Close()
 	return WriteState(d, encryptedDst)
 }
 
 // ReadSealedState reads state in encrypted from from the source
 // if passwordFilePath is not nil
-func ReadSealedState(src io.Reader, passwordFilePath string) (*State, error) {
-	if passwordFilePath == "" {
+func ReadSealedState(src io.Reader, rawPasswordFilePath string) (*State, error) {
+	if rawPasswordFilePath == "" {
 		log.Printf("[INFO] No password_file_path; not decrypting state")
 		return ReadState(src)
+	}
+	passwordFilePath, err := home.Expand(rawPasswordFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("Could not expand file path: %v", err)
 	}
 	password, err := ioutil.ReadFile(passwordFilePath)
 	if err != nil {
