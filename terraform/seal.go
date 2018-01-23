@@ -23,7 +23,10 @@ const keySize = 32
 
 // WriteSealedState writes state in encrypted form onto the destination
 // if passwordFilePath is not nil
-func WriteSealedState(d *State, dst io.Writer, rawPasswordFilePath string) error {
+func WriteSealedState(d *State, dst io.Writer, rawPasswordFilePath string, encrypt bool) error {
+	if !encrypt {
+		return WriteState(d, dst)
+	}
 	if rawPasswordFilePath == "" {
 		return WriteState(d, dst)
 	}
