@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"sort"
@@ -1655,6 +1656,78 @@ func TestReadWriteState(t *testing.T) {
 	}
 
 	actual, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// ReadState should not restore sensitive information!
+	mod := state.RootModule()
+	mod.Resources["foo"].Primary.Ephemeral = EphemeralState{}
+	mod.Resources["foo"].Primary.Ephemeral.init()
+
+	if !reflect.DeepEqual(actual, state) {
+		t.Logf("expected:\n%#v", state)
+		t.Fatalf("got:\n%#v", actual)
+	}
+}
+
+func TestReadWriteSealedState(t *testing.T) {
+	state := &State{
+		Serial:  9,
+		Lineage: "5d1ad1a1-4027-4665-a908-dbe6adff11d8",
+		Remote: &RemoteState{
+			Type: "http",
+			Config: map[string]string{
+				"url": "http://my-cool-server.com/",
+			},
+		},
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Dependencies: []string{
+					"aws_instance.bar",
+				},
+				Resources: map[string]*ResourceState{
+					"foo": &ResourceState{
+						Primary: &InstanceState{
+							ID: "bar",
+							Ephemeral: EphemeralState{
+								ConnInfo: map[string]string{
+									"type":     "ssh",
+									"user":     "root",
+									"password": "supersecret",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	state.init()
+
+	passwordFile, err := ioutil.TempFile("", "password_file")
+	if err != nil {
+		t.Fatalf("Could not create tempfile: %v", err)
+	}
+	passwordFilePath := passwordFile.Name()
+	defer os.Remove(passwordFilePath)
+	passwordFile.WriteString("a password")
+	if _, err = passwordFile.Seek(0, 0); err != nil {
+		t.Fatalf("Could seek to beginning of file: %v", err)
+	}
+
+	buf := new(bytes.Buffer)
+	if err := WriteSealedState(state, buf, passwordFilePath, true); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify that the version and serial are set
+	if state.Version != StateVersion {
+		t.Fatalf("bad version number: %d", state.Version)
+	}
+
+	actual, err := ReadSealedState(buf, passwordFilePath)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
