@@ -20,6 +20,10 @@ import (
 const sealPrefix = "!seal!"
 const keyGenerationIterations = 4096
 const keySize = 32
+const currentVersion = "001"
+
+// Format of sealed state is:
+//   !seal!<version #>!<base32 encoded salt>!<base32 encoded, encrypted payload
 
 // WriteSealedState writes state in encrypted form onto the destination
 // if passwordFilePath is not nil
@@ -38,8 +42,14 @@ func WriteSealedState(d *State, dst io.Writer, rawPasswordFilePath string, encry
 	if err != nil {
 		return fmt.Errorf("Password file could not be read: %v", err)
 	}
+	io.WriteString(dst, sealPrefix)
+	fmt.Fprintf(dst, "%v!", currentVersion)
+	return writeSealedStateV001(d, dst, password)
+}
+
+func writeSealedStateV001(d *State, dst io.Writer, password []byte) error {
 	salt := make([]byte, keySize)
-	_, err = srand.Read(salt)
+	_, err := srand.Read(salt)
 	if err != nil {
 		return fmt.Errorf("Could not generate salt for encryption: %v", err)
 	}
@@ -48,9 +58,7 @@ func WriteSealedState(d *State, dst io.Writer, rawPasswordFilePath string, encry
 	if err != nil {
 		return fmt.Errorf("Could not create cipher for encryption: %v", err)
 	}
-	// Format of sealed state is:
-	//   !seal!<base32 encoded salt>!<base32 encoded, encrypted payload
-	io.WriteString(dst, sealPrefix)
+
 	encodedSalt := base32.StdEncoding.EncodeToString(salt)
 	io.WriteString(dst, encodedSalt)
 	io.WriteString(dst, "!")
@@ -92,6 +100,21 @@ func ReadSealedState(src io.Reader, rawPasswordFilePath string) (*State, error) 
 	if err != nil {
 		return nil, fmt.Errorf("Could not discard sealed header: %v", err)
 	}
+	rawVersion, err := bufSrc.ReadBytes('!')
+	if err != nil {
+		return nil, fmt.Errorf("Could not read seal version: %v", err)
+	}
+	version := string(rawVersion[0 : len(rawVersion)-1])
+	// Add additional version checks here
+	switch version {
+	case currentVersion:
+		return readSealedStateV001(password, bufSrc)
+	default:
+		return nil, fmt.Errorf("Seal version not recognized: %v", version)
+	}
+}
+
+func readSealedStateV001(password []byte, bufSrc *bufio.Reader) (*State, error) {
 	// salt is separated from main encrypted state by '!'
 	rawSalt, err := bufSrc.ReadBytes('!')
 	if err != nil {
