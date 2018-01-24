@@ -11,9 +11,11 @@ import (
 //
 // If Path exists, it will be overwritten.
 type BackupState struct {
-	mu   sync.Mutex
-	Real State
-	Path string
+	mu               sync.Mutex
+	Real             State
+	Path             string
+	PasswordFilePath string
+	Seal             bool
 
 	done bool
 }
@@ -74,7 +76,11 @@ func (s *BackupState) backup() error {
 	// purposes, but we don't need a backup or lock if the state is empty, so
 	// skip this with a nil state.
 	if state != nil {
-		ls := &LocalState{Path: s.Path}
+		ls := &LocalState{
+			Path:             s.Path,
+			PasswordFilePath: s.PasswordFilePath,
+			Seal:             s.Seal,
+		}
 		if err := ls.WriteState(state); err != nil {
 			return err
 		}

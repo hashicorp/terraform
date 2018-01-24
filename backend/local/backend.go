@@ -212,8 +212,10 @@ func (b *Local) State(name string) (state.State, error) {
 	// If we are backing up the state, wrap it
 	if backupPath != "" {
 		s = &state.BackupState{
-			Real: s,
-			Path: backupPath,
+			Real:             s,
+			Path:             backupPath,
+			PasswordFilePath: b.PasswordFilePath,
+			Seal:             b.Seal,
 		}
 	}
 
