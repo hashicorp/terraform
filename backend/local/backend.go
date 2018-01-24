@@ -41,7 +41,7 @@ type Local struct {
 	PasswordFilePath string
 
 	// If true, then state should be written out encrypted
-	Encrypt bool
+	Seal bool
 
 	// The State* paths are set from the backend config, and may be left blank
 	// to use the defaults. If the actual paths for the local backend state are
@@ -206,7 +206,7 @@ func (b *Local) State(name string) (state.State, error) {
 		Path:             statePath,
 		PathOut:          stateOutPath,
 		PasswordFilePath: b.PasswordFilePath,
-		Encrypt:          b.Encrypt,
+		Seal:             b.Seal,
 	}
 
 	// If we are backing up the state, wrap it
@@ -353,7 +353,7 @@ func (b *Local) init() {
 				Default:  "",
 			},
 
-			"encrypt": &schema.Schema{
+			"seal": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -401,11 +401,16 @@ func (b *Local) schemaConfigure(ctx context.Context) error {
 		log.Printf("[INFO] Not using pasword file, so not decrypting state\n")
 	}
 
-	encrypt, ok := d.GetOk("encrypt")
+	seal, ok := d.GetOk("seal")
 	if ok {
-		b.Encrypt = encrypt.(bool)
+		value, ok := seal.(bool)
+		if ok {
+			b.Seal = value
+		} else {
+			log.Printf("[INFO] Seal flag not boolean; will not write sealed state\n")
+		}
 	} else {
-		log.Printf("[INFO] Encrypt flag not set; will not write sealed state\n")
+		log.Printf("[INFO] Seal flag not set; will not write sealed state\n")
 	}
 
 	// Set the path if it is set

@@ -30,7 +30,7 @@ type LocalState struct {
 	PasswordFilePath string
 
 	// If true, then state should be written out encrypted
-	Encrypt bool
+	Seal bool
 
 	// the file handle corresponding to PathOut
 	stateFileOut *os.File
@@ -106,7 +106,7 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 		s.state.Serial++
 	}
 
-	if err := terraform.WriteSealedState(s.state, s.stateFileOut, s.PasswordFilePath, s.Encrypt); err != nil {
+	if err := terraform.WriteSealedState(s.state, s.stateFileOut, s.PasswordFilePath, s.Seal); err != nil {
 		return err
 	}
 
