@@ -5,7 +5,7 @@ import (
 	aes "crypto/aes"
 	cipher "crypto/cipher"
 	srand "crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
 	"io"
@@ -18,7 +18,7 @@ import (
 )
 
 const sealPrefix = "!seal!"
-const keyGenerationIterations = 4096
+const keyGenerationIterations = 3 * 4096
 const keySize = 32
 const currentVersion = "001"
 
@@ -53,7 +53,7 @@ func writeSealedStateV001(d *State, dst io.Writer, password []byte) error {
 	if err != nil {
 		return fmt.Errorf("Could not generate salt for encryption: %v", err)
 	}
-	key := pbkdf2.Key(password, salt, keyGenerationIterations, keySize, sha1.New)
+	key := generateKey(password, salt)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return fmt.Errorf("Could not create cipher for encryption: %v", err)
@@ -126,7 +126,7 @@ func readSealedStateV001(password []byte, bufSrc *bufio.Reader) (*State, error) 
 	if err != nil {
 		return nil, fmt.Errorf("Could not decode salt: %v", err)
 	}
-	key := pbkdf2.Key(password, salt, keyGenerationIterations, keySize, sha1.New)
+	key := generateKey(password, salt)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create cipher for encryption: %v", err)
@@ -136,4 +136,8 @@ func readSealedStateV001(password []byte, bufSrc *bufio.Reader) (*State, error) 
 	base32Decoder := base32.NewDecoder(base32.StdEncoding, bufSrc)
 	decryptedSrc := &cipher.StreamReader{S: stream, R: base32Decoder}
 	return ReadState(decryptedSrc)
+}
+
+func generateKey(password []byte, salt []byte) []byte {
+	return pbkdf2.Key(password, salt, keyGenerationIterations, keySize, sha256.New)
 }
