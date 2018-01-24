@@ -26,10 +26,11 @@ type LocalState struct {
 	PathOut string
 
 	// PasswordFilePath is the location of a password file
-	// used to encrypt / decrypt state
+	// used to encrypt / decrypt state, when provided
 	PasswordFilePath string
 
-	// If true, then state should be written out encrypted
+	// If true, then state should be written out encrypted, otherwise written
+	// out as cleartext or decrypted
 	Seal bool
 
 	// the file handle corresponding to PathOut

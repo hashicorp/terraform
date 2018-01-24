@@ -37,10 +37,11 @@ type Local struct {
 	CLIColor *colorstring.Colorize
 
 	// PasswordFilePath is the location of a password file
-	// used to encrypt / decrypt state, if provided
+	// used to encrypt / decrypt state, when provided
 	PasswordFilePath string
 
-	// If true, then state should be written out encrypted
+	// If true, then state should be written out encrypted, otherwise written
+	// out as cleartext or decrypted
 	Seal bool
 
 	// The State* paths are set from the backend config, and may be left blank
