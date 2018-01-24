@@ -104,8 +104,6 @@ func LoadConfig() (*Config, tfdiags.Diagnostics) {
 
 	diags = diags.Append(config.Validate())
 
-	log.Printf("[INFO] Loaded config %v", config)
-
 	return config, diags
 }
 
