@@ -79,4 +79,4 @@ and bootstrap resources using provisioners.
 
 Next, we're going to take a look at
 [how to use modules](/intro/getting-started/modules.html), a useful
-abstraction to organization and reuse Terraform configurations.
+abstraction to organize and reuse Terraform configurations.
