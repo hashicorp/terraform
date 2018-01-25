@@ -27,7 +27,7 @@ Once state has been encrypted, it can be decrypted with a similar series of step
 * Leave `password_file_path` set in configuration
 * Set `seal = false` in configuration
 * Run `terraform init` to reinitialize the backend (any other command will prompt to do so anyway)
-* Run `terraform apply` to apply any changes and write a decrypted state and an encrypted backup
+* Run `terraform apply` to apply any changes and write a decrypted state and a decrypted backup
 
 Note that because `password_file_path` supports referencing the home directory via `~`, then it's possible for keys to reside in a location separate from where actual Terraform configurations reside. Teams may find it useful to distribute keys separately through external, secure means, but require all team members to store such keys in identical locations so that backend configuration can reference the same path for all team members.
 
