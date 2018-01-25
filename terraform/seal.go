@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"bufio"
+	"bytes"
 	aes "crypto/aes"
 	cipher "crypto/cipher"
 	srand "crypto/rand"
@@ -26,7 +27,7 @@ const currentVersion = "001"
 //   !seal!<version #>!<base32 encoded salt>!<base32 encoded, encrypted payload
 
 // WriteSealedState writes state in encrypted form onto the destination
-// if passwordFilePath is not nil
+// if rawPasswordFilePath is not nil
 func WriteSealedState(d *State, dst io.Writer, rawPasswordFilePath string, encrypt bool) error {
 	if !encrypt {
 		return WriteState(d, dst)
@@ -34,13 +35,9 @@ func WriteSealedState(d *State, dst io.Writer, rawPasswordFilePath string, encry
 	if rawPasswordFilePath == "" {
 		return WriteState(d, dst)
 	}
-	passwordFilePath, err := home.Expand(rawPasswordFilePath)
+	password, err := readPassword(rawPasswordFilePath)
 	if err != nil {
-		return fmt.Errorf("Could not expand file path: %v", err)
-	}
-	password, err := ioutil.ReadFile(passwordFilePath)
-	if err != nil {
-		return fmt.Errorf("Password file could not be read: %v", err)
+		return err
 	}
 	io.WriteString(dst, sealPrefix)
 	fmt.Fprintf(dst, "%v!", currentVersion)
@@ -53,40 +50,37 @@ func writeSealedStateV001(d *State, dst io.Writer, password []byte) error {
 	if err != nil {
 		return fmt.Errorf("Could not generate salt for encryption: %v", err)
 	}
-	key := generateKey(password, salt)
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return fmt.Errorf("Could not create cipher for encryption: %v", err)
-	}
-
 	encodedSalt := base32.StdEncoding.EncodeToString(salt)
 	io.WriteString(dst, encodedSalt)
 	io.WriteString(dst, "!")
-	iv := make([]byte, aes.BlockSize)
-	stream := cipher.NewOFB(block, iv)
+	key := generateKey(password, salt)
 	base32Encoder := base32.NewEncoder(base32.StdEncoding, dst)
-	encryptedDst := &cipher.StreamWriter{S: stream, W: base32Encoder}
-	defer encryptedDst.Close()
-	return WriteState(d, encryptedDst)
+	defer base32Encoder.Close()
+	decBytes, err := serializeState(d)
+	if err != nil {
+		return fmt.Errorf("Could not serialize state: %v", err)
+	}
+	encBytes, err := encrypt(decBytes, key)
+	if err != nil {
+		return fmt.Errorf("Could not encrypt state: %v", err)
+	}
+	if _, err := base32Encoder.Write(encBytes); err != nil {
+		return fmt.Errorf("Could not encode encrypted state: %v", err)
+	}
+	return err
 }
 
 // ReadSealedState reads state in encrypted from from the source
-// if passwordFilePath is not nil
+// if rawPasswordFilePath is not nil
 func ReadSealedState(src io.Reader, rawPasswordFilePath string) (*State, error) {
 	if rawPasswordFilePath == "" {
 		log.Printf("[INFO] No password_file_path; not decrypting state")
 		return ReadState(src)
 	}
-	passwordFilePath, err := home.Expand(rawPasswordFilePath)
+	password, err := readPassword(rawPasswordFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("Could not expand file path: %v", err)
+		return nil, err
 	}
-	password, err := ioutil.ReadFile(passwordFilePath)
-	if err != nil {
-		log.Printf("[INFO] Password file could not be read: %v", err)
-		return nil, fmt.Errorf("Password file could not be read: %v", err)
-	}
-	log.Printf("[INFO] Using password file %v", passwordFilePath)
 	bufSrc := bufio.NewReader(src)
 	header, err := bufSrc.Peek(len(sealPrefix))
 	if err != nil || string(header) != sealPrefix {
@@ -127,15 +121,69 @@ func readSealedStateV001(password []byte, bufSrc *bufio.Reader) (*State, error) 
 		return nil, fmt.Errorf("Could not decode salt: %v", err)
 	}
 	key := generateKey(password, salt)
+	base32Decoder := base32.NewDecoder(base32.StdEncoding, bufSrc)
+	encBytes, err := ioutil.ReadAll(base32Decoder)
+	if err != nil {
+		return nil, fmt.Errorf("Could not decode sealed state: %v", err)
+	}
+	decBytes, err := decrypt(encBytes, key)
+	if err != nil {
+		return nil, fmt.Errorf("Could not decrypt state:%v", err)
+	}
+	buffer := bytes.NewBuffer(decBytes)
+	return ReadState(buffer)
+}
+
+func serializeState(d *State) ([]byte, error) {
+	var buffer bytes.Buffer
+	err := WriteState(d, &buffer)
+	return buffer.Bytes(), err
+}
+
+func deserializeState(data []byte) (*State, error) {
+	buffer := bytes.NewBuffer(data)
+	state, err := ReadState(buffer)
+	return state, err
+}
+
+func encrypt(dec []byte, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create cipher for encryption: %v", err)
 	}
 	iv := make([]byte, aes.BlockSize)
 	stream := cipher.NewOFB(block, iv)
-	base32Decoder := base32.NewDecoder(base32.StdEncoding, bufSrc)
-	decryptedSrc := &cipher.StreamReader{S: stream, R: base32Decoder}
-	return ReadState(decryptedSrc)
+	var buffer bytes.Buffer
+	encryptedDst := &cipher.StreamWriter{S: stream, W: &buffer}
+	if _, err := encryptedDst.Write(dec); err != nil {
+		return nil, fmt.Errorf("Could not encrypt: %v", err)
+	}
+	return buffer.Bytes(), nil
+}
+
+func decrypt(enc []byte, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("Could not create cipher for encryption: %v", err)
+	}
+	iv := make([]byte, aes.BlockSize)
+	stream := cipher.NewOFB(block, iv)
+	buffer := bytes.NewBuffer(enc)
+	decryptedSrc := &cipher.StreamReader{S: stream, R: buffer}
+	return ioutil.ReadAll(decryptedSrc)
+}
+
+func readPassword(rawPasswordFilePath string) ([]byte, error) {
+	passwordFilePath, err := home.Expand(rawPasswordFilePath)
+	log.Printf("[INFO] Using password file %v", passwordFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("Could not expand file path: %v", err)
+	}
+	password, err := ioutil.ReadFile(passwordFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("Password file could not be read: %v", err)
+	}
+	return password, nil
 }
 
 func generateKey(password []byte, salt []byte) []byte {
