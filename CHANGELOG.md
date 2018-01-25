@@ -2,7 +2,7 @@
 
 BUG FIXES:
 
-* config: fixed crash when invalid module source [GH-17134]
+* config: fixed crash when module source is invalid [GH-17134]
 * config: allow the count pseudo-attribute of a resource to be interpolated into `provisioner` and `connection` blocks without errors [GH-17133]
 * backend/s3: allow the workspace name to be a prefix of workspace_key_prefix [GH-17086]
 
