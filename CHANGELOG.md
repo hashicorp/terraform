@@ -1,10 +1,17 @@
 ## 0.11.3 (Unreleased)
 
+IMPROVEMENTS:
+
+* backend/s3: add support for the eu-west-3 region [GH-17193]
+
+
 BUG FIXES:
 
+* core: fix crash when an error is encountered during refresh [GH-17076]
 * config: fixed crash when module source is invalid [GH-17134]
 * config: allow the count pseudo-attribute of a resource to be interpolated into `provisioner` and `connection` blocks without errors [GH-17133]
 * backend/s3: allow the workspace name to be a prefix of workspace_key_prefix [GH-17086]
+* provisioner/chef: fix crash when validating `use_policyfile` [GH-17147]
 
 ## 0.11.2 (January 9, 2018)
 
