@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"log"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -67,6 +69,7 @@ func resourceAwsAthenaNamedQueryRead(d *schema.ResourceData, meta interface{}) e
 	_, err := conn.GetNamedQuery(input)
 	if err != nil {
 		if isAWSErr(err, athena.ErrCodeInvalidRequestException, d.Id()) {
+			log.Printf("[WARN] Athena Named Query (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

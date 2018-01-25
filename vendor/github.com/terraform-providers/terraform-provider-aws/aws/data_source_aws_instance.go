@@ -38,6 +38,10 @@ func dataSourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"placement_group": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"tenancy": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -169,6 +173,11 @@ func dataSourceAwsInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+
+						"volume_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -193,6 +202,11 @@ func dataSourceAwsInstance() *schema.Resource {
 						},
 
 						"volume_type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"volume_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -229,7 +243,7 @@ func dataSourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		)...)
 	}
 
-	// Perform the lookup
+	log.Printf("[DEBUG] Reading IAM Instance: %s", params)
 	resp, err := conn.DescribeInstances(params)
 	if err != nil {
 		return err
@@ -276,6 +290,9 @@ func instanceDescriptionAttributes(d *schema.ResourceData, instance *ec2.Instanc
 	d.Set("instance_state", instance.State.Name)
 	if instance.Placement != nil {
 		d.Set("availability_zone", instance.Placement.AvailabilityZone)
+	}
+	if instance.Placement.GroupName != nil {
+		d.Set("placement_group", instance.Placement.GroupName)
 	}
 	if instance.Placement.Tenancy != nil {
 		d.Set("tenancy", instance.Placement.Tenancy)

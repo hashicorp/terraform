@@ -15,6 +15,7 @@ func resourceAwsAthenaDatabase() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsAthenaDatabaseCreate,
 		Read:   resourceAwsAthenaDatabaseRead,
+		Update: resourceAwsAthenaDatabaseUpdate,
 		Delete: resourceAwsAthenaDatabaseDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -27,6 +28,11 @@ func resourceAwsAthenaDatabase() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+			"force_destroy": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 		},
 	}
@@ -76,12 +82,24 @@ func resourceAwsAthenaDatabaseRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
+func resourceAwsAthenaDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
+	return resourceAwsAthenaDatabaseRead(d, meta)
+}
+
 func resourceAwsAthenaDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).athenaconn
 
+	name := d.Get("name").(string)
 	bucket := d.Get("bucket").(string)
+
+	queryString := fmt.Sprintf("drop database %s", name)
+	if d.Get("force_destroy").(bool) {
+		queryString += " cascade"
+	}
+	queryString += ";"
+
 	input := &athena.StartQueryExecutionInput{
-		QueryString: aws.String(fmt.Sprintf("drop database %s;", d.Get("name").(string))),
+		QueryString: aws.String(queryString),
 		ResultConfiguration: &athena.ResultConfiguration{
 			OutputLocation: aws.String("s3://" + bucket),
 		},
@@ -168,7 +186,12 @@ func queryExecutionStateRefreshFunc(qeid string, conn *athena.Athena) resource.S
 		if err != nil {
 			return nil, "failed", err
 		}
-		return out, *out.QueryExecution.Status.State, nil
+		status := out.QueryExecution.Status
+		if *status.State == athena.QueryExecutionStateFailed &&
+			status.StateChangeReason != nil {
+			err = fmt.Errorf("reason: %s", *status.StateChangeReason)
+		}
+		return out, *out.QueryExecution.Status.State, err
 	}
 }
 

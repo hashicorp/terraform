@@ -33,11 +33,9 @@ func dataSourceAwsVpcEndpointServiceRead(d *schema.ResourceData, meta interface{
 	conn := meta.(*AWSClient).ec2conn
 
 	service := d.Get("service").(string)
-
-	log.Printf("[DEBUG] Reading VPC Endpoint Services.")
-
 	request := &ec2.DescribeVpcEndpointServicesInput{}
 
+	log.Printf("[DEBUG] Reading VPC Endpoint Service: %s", request)
 	resp, err := conn.DescribeVpcEndpointServices(request)
 	if err != nil {
 		return fmt.Errorf("Error fetching VPC Endpoint Services: %s", err)

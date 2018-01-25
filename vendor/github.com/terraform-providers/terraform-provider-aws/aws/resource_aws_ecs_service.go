@@ -49,10 +49,24 @@ func resourceAwsEcsService() *schema.Resource {
 				Optional: true,
 			},
 
+			"health_check_grace_period_seconds": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateAwsEcsServiceHealthCheckGracePeriodSeconds,
+			},
+
+			"launch_type": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "EC2",
+			},
+
 			"iam_role": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
+				Computed: true,
 			},
 
 			"deployment_maximum_percent": {
@@ -101,7 +115,27 @@ func resourceAwsEcsService() *schema.Resource {
 				},
 				Set: resourceAwsEcsLoadBalancerHash,
 			},
-
+			"network_configuration": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"security_groups": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+						"subnets": {
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+					},
+				},
+			},
 			"placement_strategy": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -185,6 +219,14 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		input.Cluster = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("health_check_grace_period_seconds"); ok {
+		input.HealthCheckGracePeriodSeconds = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("launch_type"); ok {
+		input.LaunchType = aws.String(v.(string))
+	}
+
 	loadBalancers := expandEcsLoadBalancers(d.Get("load_balancer").(*schema.Set).List())
 	if len(loadBalancers) > 0 {
 		log.Printf("[DEBUG] Adding ECS load balancers: %s", loadBalancers)
@@ -193,6 +235,8 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 	if v, ok := d.GetOk("iam_role"); ok {
 		input.Role = aws.String(v.(string))
 	}
+
+	input.NetworkConfiguration = expandEcsNetworkConfigration(d.Get("network_configuration").([]interface{}))
 
 	strategies := d.Get("placement_strategy").(*schema.Set).List()
 	if len(strategies) > 0 {
@@ -318,6 +362,8 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("desired_count", service.DesiredCount)
+	d.Set("health_check_grace_period_seconds", service.HealthCheckGracePeriodSeconds)
+	d.Set("launch_type", service.LaunchType)
 
 	// Save cluster in the same format
 	if strings.HasPrefix(d.Get("cluster").(string), "arn:"+meta.(*AWSClient).partition+":ecs:") {
@@ -353,7 +399,34 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[ERR] Error setting placement_constraints for (%s): %s", d.Id(), err)
 	}
 
+	if err := d.Set("network_configuration", flattenEcsNetworkConfigration(service.NetworkConfiguration)); err != nil {
+		return fmt.Errorf("[ERR] Error setting network_configuration for (%s): %s", d.Id(), err)
+	}
+
 	return nil
+}
+
+func flattenEcsNetworkConfigration(nc *ecs.NetworkConfiguration) []interface{} {
+	if nc == nil {
+		return nil
+	}
+	result := make(map[string]interface{})
+	result["security_groups"] = schema.NewSet(schema.HashString, flattenStringList(nc.AwsvpcConfiguration.SecurityGroups))
+	result["subnets"] = schema.NewSet(schema.HashString, flattenStringList(nc.AwsvpcConfiguration.Subnets))
+	return []interface{}{result}
+}
+
+func expandEcsNetworkConfigration(nc []interface{}) *ecs.NetworkConfiguration {
+	if len(nc) == 0 {
+		return nil
+	}
+	awsVpcConfig := &ecs.AwsVpcConfiguration{}
+	raw := nc[0].(map[string]interface{})
+	if val, ok := raw["security_groups"]; ok {
+		awsVpcConfig.SecurityGroups = expandStringSet(val.(*schema.Set))
+	}
+	awsVpcConfig.Subnets = expandStringSet(raw["subnets"].(*schema.Set))
+	return &ecs.NetworkConfiguration{AwsvpcConfiguration: awsVpcConfig}
 }
 
 func flattenServicePlacementConstraints(pcs []*ecs.PlacementConstraint) []map[string]interface{} {
@@ -406,6 +479,10 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 		_, n := d.GetChange("desired_count")
 		input.DesiredCount = aws.Int64(int64(n.(int)))
 	}
+	if d.HasChange("health_check_grace_period_seconds") {
+		_, n := d.GetChange("health_check_grace_period_seconds")
+		input.HealthCheckGracePeriodSeconds = aws.Int64(int64(n.(int)))
+	}
 	if d.HasChange("task_definition") {
 		_, n := d.GetChange("task_definition")
 		input.TaskDefinition = aws.String(n.(string))
@@ -416,6 +493,10 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 			MaximumPercent:        aws.Int64(int64(d.Get("deployment_maximum_percent").(int))),
 			MinimumHealthyPercent: aws.Int64(int64(d.Get("deployment_minimum_healthy_percent").(int))),
 		}
+	}
+
+	if d.HasChange("network_configration") {
+		input.NetworkConfiguration = expandEcsNetworkConfigration(d.Get("network_configuration").([]interface{}))
 	}
 
 	// Retry due to IAM & ECS eventual consistency
@@ -578,4 +659,12 @@ func parseTaskDefinition(taskDefinition string) (string, string, error) {
 	}
 
 	return matches[0][1], matches[0][2], nil
+}
+
+func validateAwsEcsServiceHealthCheckGracePeriodSeconds(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(int)
+	if (value < 0) || (value > 1800) {
+		errors = append(errors, fmt.Errorf("%q must be between 0 and 1800", k))
+	}
+	return
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 func resourceAwsKmsKey() *schema.Resource {
@@ -26,20 +27,20 @@ func resourceAwsKmsKey() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"key_id": &schema.Schema{
+			"key_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"key_usage": &schema.Schema{
+			"key_usage": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -53,24 +54,24 @@ func resourceAwsKmsKey() *schema.Resource {
 					return
 				},
 			},
-			"policy": &schema.Schema{
+			"policy": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
 				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
-			"is_enabled": &schema.Schema{
+			"is_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"enable_key_rotation": &schema.Schema{
+			"enable_key_rotation": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"deletion_window_in_days": &schema.Schema{
+			"deletion_window_in_days": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
@@ -176,7 +177,7 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	p := pOut.(*kms.GetKeyPolicyOutput)
-	policy, err := normalizeJsonString(*p.Policy)
+	policy, err := structure.NormalizeJsonString(*p.Policy)
 	if err != nil {
 		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
 	}
@@ -267,7 +268,7 @@ func resourceAwsKmsKeyDescriptionUpdate(conn *kms.KMS, d *schema.ResourceData) e
 }
 
 func resourceAwsKmsKeyPolicyUpdate(conn *kms.KMS, d *schema.ResourceData) error {
-	policy, err := normalizeJsonString(d.Get("policy").(string))
+	policy, err := structure.NormalizeJsonString(d.Get("policy").(string))
 	if err != nil {
 		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
 	}

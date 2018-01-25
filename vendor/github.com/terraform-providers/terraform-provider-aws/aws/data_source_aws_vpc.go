@@ -119,7 +119,7 @@ func dataSourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 		req.Filters = nil
 	}
 
-	log.Printf("[DEBUG] DescribeVpcs %s\n", req)
+	log.Printf("[DEBUG] Reading AWS VPC: %s", req)
 	resp, err := conn.DescribeVpcs(req)
 	if err != nil {
 		return err

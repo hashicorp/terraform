@@ -134,6 +134,10 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 				Set:      schema.HashString,
 				Computed: true,
 			},
+			"security_group_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"type": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -445,6 +449,10 @@ func resourceAwsDirectoryServiceDirectoryRead(d *schema.ResourceData, meta inter
 	d.Set("vpc_settings", flattenDSVpcSettings(dir.VpcSettings))
 	d.Set("connect_settings", flattenDSConnectSettings(dir.DnsIpAddrs, dir.ConnectSettings))
 	d.Set("enable_sso", *dir.SsoEnabled)
+
+	if dir.VpcSettings != nil {
+		d.Set("security_group_id", *dir.VpcSettings.SecurityGroupId)
+	}
 
 	tagList, err := dsconn.ListTagsForResource(&directoryservice.ListTagsForResourceInput{
 		ResourceId: aws.String(d.Id()),

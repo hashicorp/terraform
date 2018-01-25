@@ -202,6 +202,7 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	log.Printf("[DEBUG] Reading AMI: %s", params)
 	resp, err := conn.DescribeImages(params)
 	if err != nil {
 		return err

@@ -97,7 +97,7 @@ func resourceAwsApiGatewayMethodSettingsRead(d *schema.ResourceData, meta interf
 	stage, err := conn.GetStage(&input)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
-			log.Printf("[WARN] API Gateway Stage %s not found, removing method settings", d.Id())
+			log.Printf("[WARN] API Gateway Stage (%s) not found, removing method settings", d.Id())
 			d.SetId("")
 			return nil
 		}

@@ -150,7 +150,7 @@ func resourceAwsApiGatewayStageRead(d *schema.ResourceData, meta interface{}) er
 	stage, err := conn.GetStage(&input)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
-			log.Printf("[WARN] API Gateway Stage %s not found, removing", d.Id())
+			log.Printf("[WARN] API Gateway Stage (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

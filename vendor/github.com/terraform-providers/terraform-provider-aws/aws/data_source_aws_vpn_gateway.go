@@ -43,8 +43,6 @@ func dataSourceAwsVpnGateway() *schema.Resource {
 func dataSourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	log.Printf("[DEBUG] Reading VPN Gateways.")
-
 	req := &ec2.DescribeVpnGatewaysInput{}
 
 	if id, ok := d.GetOk("id"); ok {
@@ -76,6 +74,7 @@ func dataSourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error
 		req.Filters = nil
 	}
 
+	log.Printf("[DEBUG] Reading VPN Gateway: %s", req)
 	resp, err := conn.DescribeVpnGateways(req)
 	if err != nil {
 		return err

@@ -6,9 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-// See https://github.com/fog/fog-aws/pull/332/files
-// This list isn't exposed by AWS - it's been found through
-// trouble solving
+// See http://docs.aws.amazon.com/general/latest/gr/rande.html#elb_region
 var elbHostedZoneIdPerRegionMap = map[string]string{
 	"ap-northeast-1": "Z14GRHDCWA56QT",
 	"ap-northeast-2": "ZWKZPGTI48KDX",
@@ -19,6 +17,7 @@ var elbHostedZoneIdPerRegionMap = map[string]string{
 	"eu-central-1":   "Z215JYRZR1TBD5",
 	"eu-west-1":      "Z32O12XQLNTSW2",
 	"eu-west-2":      "ZHURV8PSTC4K8",
+	"eu-west-3":      "Z3Q77PNBQS71R4",
 	"us-east-1":      "Z35SXDOTRQ7X7K",
 	"us-east-2":      "Z3AADJGX6KTTL2",
 	"us-west-1":      "Z368ELLRRE2KJ0",

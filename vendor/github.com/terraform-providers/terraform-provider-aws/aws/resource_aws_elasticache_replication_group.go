@@ -23,6 +23,9 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		Required:     true,
 		ForceNew:     true,
 		ValidateFunc: validateAwsElastiCacheReplicationGroupId,
+		StateFunc: func(val interface{}) string {
+			return strings.ToLower(val.(string))
+		},
 	}
 
 	resourceSchema["automatic_failover_enabled"] = &schema.Schema{
@@ -83,6 +86,28 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 	resourceSchema["engine"].Optional = true
 	resourceSchema["engine"].Default = "redis"
 	resourceSchema["engine"].ValidateFunc = validateAwsElastiCacheReplicationGroupEngine
+
+	resourceSchema["at_rest_encryption_enabled"] = &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+		Default:  false,
+		ForceNew: true,
+	}
+
+	resourceSchema["transit_encryption_enabled"] = &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+		Default:  false,
+		ForceNew: true,
+	}
+
+	resourceSchema["auth_token"] = &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Sensitive:    true,
+		ForceNew:     true,
+		ValidateFunc: validateAwsElastiCacheReplicationGroupAuthToken,
+	}
 
 	return &schema.Resource{
 		Create: resourceAwsElasticacheReplicationGroupCreate,
@@ -163,6 +188,18 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 
 	if v, ok := d.GetOk("snapshot_name"); ok {
 		params.SnapshotName = aws.String(v.(string))
+	}
+
+	if _, ok := d.GetOk("transit_encryption_enabled"); ok {
+		params.TransitEncryptionEnabled = aws.Bool(d.Get("transit_encryption_enabled").(bool))
+	}
+
+	if _, ok := d.GetOk("at_rest_encryption_enabled"); ok {
+		params.AtRestEncryptionEnabled = aws.Bool(d.Get("at_rest_encryption_enabled").(bool))
+	}
+
+	if v, ok := d.GetOk("auth_token"); ok {
+		params.AuthToken = aws.String(v.(string))
 	}
 
 	clusterMode, clusterModeOk := d.GetOk("cluster_mode")
@@ -310,6 +347,12 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		}
 
 		d.Set("auto_minor_version_upgrade", c.AutoMinorVersionUpgrade)
+		d.Set("at_rest_encryption_enabled", c.AtRestEncryptionEnabled)
+		d.Set("transit_encryption_enabled", c.TransitEncryptionEnabled)
+
+		if c.AuthTokenEnabled != nil && !*c.AuthTokenEnabled {
+			d.Set("auth_token", nil)
+		}
 	}
 
 	return nil
@@ -518,7 +561,7 @@ func validateAwsElastiCacheReplicationGroupId(v interface{}, k string) (ws []str
 		errors = append(errors, fmt.Errorf(
 			"only alphanumeric characters and hyphens allowed in %q", k))
 	}
-	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+	if !regexp.MustCompile(`^[a-zA-Z]`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"first character of %q must be a letter", k))
 	}

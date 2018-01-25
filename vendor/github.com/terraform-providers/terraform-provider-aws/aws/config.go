@@ -31,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/devicefarm"
@@ -50,6 +51,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/aws/aws-sdk-go/service/glacier"
+	"github.com/aws/aws-sdk-go/service/glue"
+	"github.com/aws/aws-sdk-go/service/guardduty"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/inspector"
 	"github.com/aws/aws-sdk-go/service/iot"
@@ -57,12 +60,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lightsail"
+	"github.com/aws/aws-sdk-go/service/mediastore"
+	"github.com/aws/aws-sdk-go/service/mq"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/servicecatalog"
+	"github.com/aws/aws-sdk-go/service/servicediscovery"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/simpledb"
@@ -96,6 +102,8 @@ type Config struct {
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
 
+	AcmEndpoint              string
+	ApigatewayEndpoint       string
 	CloudFormationEndpoint   string
 	CloudWatchEndpoint       string
 	CloudWatchEventsEndpoint string
@@ -103,14 +111,19 @@ type Config struct {
 	DynamoDBEndpoint         string
 	DeviceFarmEndpoint       string
 	Ec2Endpoint              string
+	EcsEndpoint              string
+	EcrEndpoint              string
 	ElbEndpoint              string
 	IamEndpoint              string
 	KinesisEndpoint          string
 	KmsEndpoint              string
+	LambdaEndpoint           string
 	RdsEndpoint              string
+	R53Endpoint              string
 	S3Endpoint               string
 	SnsEndpoint              string
 	SqsEndpoint              string
+	StsEndpoint              string
 	Insecure                 bool
 
 	SkipCredsValidation     bool
@@ -129,6 +142,7 @@ type AWSClient struct {
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
 	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
 	cognitoconn           *cognitoidentity.CognitoIdentity
+	cognitoidpconn        *cognitoidentityprovider.CognitoIdentityProvider
 	configconn            *configservice.ConfigService
 	devicefarmconn        *devicefarm.DeviceFarm
 	dmsconn               *databasemigrationservice.DatabaseMigrationService
@@ -170,20 +184,25 @@ type AWSClient struct {
 	elastictranscoderconn *elastictranscoder.ElasticTranscoder
 	lambdaconn            *lambda.Lambda
 	lightsailconn         *lightsail.Lightsail
+	mqconn                *mq.MQ
 	opsworksconn          *opsworks.OpsWorks
 	glacierconn           *glacier.Glacier
+	guarddutyconn         *guardduty.GuardDuty
 	codebuildconn         *codebuild.CodeBuild
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
 	codepipelineconn      *codepipeline.CodePipeline
+	sdconn                *servicediscovery.ServiceDiscovery
 	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
 	wafregionalconn       *wafregional.WAFRegional
 	iotconn               *iot.IoT
 	batchconn             *batch.Batch
+	glueconn              *glue.Glue
 	athenaconn            *athena.Athena
 	dxconn                *directconnect.DirectConnect
+	mediastoreconn        *mediastore.MediaStore
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -307,23 +326,29 @@ func (c *Config) Client() (interface{}, error) {
 	// Other resources that have restrictions should allow the API to fail, rather
 	// than Terraform abstracting the region for the user. This can lead to breaking
 	// changes if that resource is ever opened up to more regions.
-	r53Sess := sess.Copy(&aws.Config{Region: aws.String("us-east-1")})
+	r53Sess := sess.Copy(&aws.Config{Region: aws.String("us-east-1"), Endpoint: aws.String(c.R53Endpoint)})
 
 	// Some services have user-configurable endpoints
+	awsAcmSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.AcmEndpoint)})
+	awsApigatewaySess := sess.Copy(&aws.Config{Endpoint: aws.String(c.ApigatewayEndpoint)})
 	awsCfSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudFormationEndpoint)})
 	awsCwSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudWatchEndpoint)})
 	awsCweSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudWatchEventsEndpoint)})
 	awsCwlSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudWatchLogsEndpoint)})
 	awsDynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
 	awsEc2Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.Ec2Endpoint)})
+	awsEcrSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.EcrEndpoint)})
+	awsEcsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.EcsEndpoint)})
 	awsElbSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.ElbEndpoint)})
 	awsIamSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.IamEndpoint)})
+	awsLambdaSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.LambdaEndpoint)})
 	awsKinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
 	awsKmsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KmsEndpoint)})
 	awsRdsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.RdsEndpoint)})
 	awsS3Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.S3Endpoint)})
 	awsSnsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SnsEndpoint)})
 	awsSqsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SqsEndpoint)})
+	awsStsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.StsEndpoint)})
 	awsDeviceFarmSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DeviceFarmEndpoint)})
 
 	log.Println("[INFO] Initializing DeviceFarm SDK connection")
@@ -331,7 +356,7 @@ func (c *Config) Client() (interface{}, error) {
 
 	// These two services need to be set up early so we can check on AccountID
 	client.iamconn = iam.New(awsIamSess)
-	client.stsconn = sts.New(sess)
+	client.stsconn = sts.New(awsStsSess)
 
 	if !c.SkipCredsValidation {
 		err = c.ValidateCredentials(client.stsconn)
@@ -366,8 +391,8 @@ func (c *Config) Client() (interface{}, error) {
 		}
 	}
 
-	client.acmconn = acm.New(sess)
-	client.apigateway = apigateway.New(sess)
+	client.acmconn = acm.New(awsAcmSess)
+	client.apigateway = apigateway.New(awsApigatewaySess)
 	client.appautoscalingconn = applicationautoscaling.New(sess)
 	client.autoscalingconn = autoscaling.New(sess)
 	client.cfconn = cloudformation.New(awsCfSess)
@@ -381,12 +406,13 @@ func (c *Config) Client() (interface{}, error) {
 	client.codedeployconn = codedeploy.New(sess)
 	client.configconn = configservice.New(sess)
 	client.cognitoconn = cognitoidentity.New(sess)
+	client.cognitoidpconn = cognitoidentityprovider.New(sess)
 	client.dmsconn = databasemigrationservice.New(sess)
 	client.codepipelineconn = codepipeline.New(sess)
 	client.dsconn = directoryservice.New(sess)
 	client.dynamodbconn = dynamodb.New(awsDynamoSess)
-	client.ecrconn = ecr.New(sess)
-	client.ecsconn = ecs.New(sess)
+	client.ecrconn = ecr.New(awsEcrSess)
+	client.ecsconn = ecs.New(awsEcsSess)
 	client.efsconn = efs.New(sess)
 	client.elasticacheconn = elasticache.New(sess)
 	client.elasticbeanstalkconn = elasticbeanstalk.New(sess)
@@ -398,11 +424,13 @@ func (c *Config) Client() (interface{}, error) {
 	client.firehoseconn = firehose.New(sess)
 	client.inspectorconn = inspector.New(sess)
 	client.glacierconn = glacier.New(sess)
+	client.guarddutyconn = guardduty.New(sess)
 	client.iotconn = iot.New(sess)
 	client.kinesisconn = kinesis.New(awsKinesisSess)
 	client.kmsconn = kms.New(awsKmsSess)
-	client.lambdaconn = lambda.New(sess)
+	client.lambdaconn = lambda.New(awsLambdaSess)
 	client.lightsailconn = lightsail.New(sess)
+	client.mqconn = mq.New(sess)
 	client.opsworksconn = opsworks.New(sess)
 	client.r53conn = route53.New(r53Sess)
 	client.rdsconn = rds.New(awsRdsSess)
@@ -410,6 +438,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.simpledbconn = simpledb.New(sess)
 	client.s3conn = s3.New(awsS3Sess)
 	client.scconn = servicecatalog.New(sess)
+	client.sdconn = servicediscovery.New(sess)
 	client.sesConn = ses.New(sess)
 	client.sfnconn = sfn.New(sess)
 	client.snsconn = sns.New(awsSnsSess)
@@ -418,8 +447,10 @@ func (c *Config) Client() (interface{}, error) {
 	client.wafconn = waf.New(sess)
 	client.wafregionalconn = wafregional.New(sess)
 	client.batchconn = batch.New(sess)
+	client.glueconn = glue.New(sess)
 	client.athenaconn = athena.New(sess)
 	client.dxconn = directconnect.New(sess)
+	client.mediastoreconn = mediastore.New(sess)
 
 	// Workaround for https://github.com/aws/aws-sdk-go/issues/1376
 	client.kinesisconn.Handlers.Retry.PushBack(func(r *request.Request) {
@@ -475,6 +506,7 @@ func (c *Config) ValidateRegion() error {
 		"eu-central-1",
 		"eu-west-1",
 		"eu-west-2",
+		"eu-west-3",
 		"sa-east-1",
 		"us-east-1",
 		"us-east-2",

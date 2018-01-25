@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticache"
@@ -66,6 +67,7 @@ func dataSourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta i
 		ReplicationGroupId: aws.String(d.Get("replication_group_id").(string)),
 	}
 
+	log.Printf("[DEBUG] Reading ElastiCache Replication Group: %s", input)
 	resp, err := conn.DescribeReplicationGroups(input)
 	if err != nil {
 		return err

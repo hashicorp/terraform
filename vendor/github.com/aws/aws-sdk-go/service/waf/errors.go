@@ -154,4 +154,10 @@ const (
 	// The operation failed because you tried to create, update, or delete an object
 	// by using a change token that has already been used.
 	ErrCodeStaleDataException = "StaleDataException"
+
+	// ErrCodeSubscriptionNotFoundException for service response error code
+	// "SubscriptionNotFoundException".
+	//
+	// The specified subscription does not exist.
+	ErrCodeSubscriptionNotFoundException = "SubscriptionNotFoundException"
 )
