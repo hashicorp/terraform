@@ -5,6 +5,7 @@ import (
 	"bytes"
 	aes "crypto/aes"
 	cipher "crypto/cipher"
+	"crypto/hmac"
 	srand "crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
@@ -24,7 +25,7 @@ const keySize = 32
 const currentVersion = "001"
 
 // Format of sealed state is:
-//   !seal!<version #>!<base32 encoded salt>!<base32 encoded, encrypted payload
+//   !seal!<version #>!<base32 encoded salt>!<base32 encrypted hmac>!<base32 encoded, encrypted payload>
 
 // WriteSealedState writes state in encrypted form onto the destination
 // if rawPasswordFilePath is not nil
@@ -40,7 +41,8 @@ func WriteSealedState(d *State, dst io.Writer, rawPasswordFilePath string, encry
 		return err
 	}
 	io.WriteString(dst, sealPrefix)
-	fmt.Fprintf(dst, "%v!", currentVersion)
+	// fmt.Fprintf(dst, "%v!", currentVersion)
+	writeField(dst, []byte(currentVersion))
 	return writeSealedStateV001(d, dst, password)
 }
 
@@ -50,21 +52,25 @@ func writeSealedStateV001(d *State, dst io.Writer, password []byte) error {
 	if err != nil {
 		return fmt.Errorf("Could not generate salt for encryption: %v", err)
 	}
-	encodedSalt := base32.StdEncoding.EncodeToString(salt)
-	io.WriteString(dst, encodedSalt)
-	io.WriteString(dst, "!")
+	if err := writeField(dst, salt); err != nil {
+		return fmt.Errorf("Could not write salt: %v", err)
+	}
 	key := generateKey(password, salt)
 	base32Encoder := base32.NewEncoder(base32.StdEncoding, dst)
 	defer base32Encoder.Close()
-	decBytes, err := serializeState(d)
+	dec, err := serializeState(d)
 	if err != nil {
 		return fmt.Errorf("Could not serialize state: %v", err)
 	}
-	encBytes, err := encrypt(decBytes, key)
+	enc, err := encrypt(dec, key)
 	if err != nil {
 		return fmt.Errorf("Could not encrypt state: %v", err)
 	}
-	if _, err := base32Encoder.Write(encBytes); err != nil {
+	mac := sign(enc, key)
+	if err := writeField(dst, mac); err != nil {
+		return fmt.Errorf("Could not write HMAC signature: %v", err)
+	}
+	if _, err := base32Encoder.Write(enc); err != nil {
 		return fmt.Errorf("Could not encode encrypted state: %v", err)
 	}
 	return err
@@ -94,11 +100,11 @@ func ReadSealedState(src io.Reader, rawPasswordFilePath string) (*State, error) 
 	if err != nil {
 		return nil, fmt.Errorf("Could not discard sealed header: %v", err)
 	}
-	rawVersion, err := bufSrc.ReadBytes('!')
+	rawVersion, err := readField(bufSrc)
 	if err != nil {
 		return nil, fmt.Errorf("Could not read seal version: %v", err)
 	}
-	version := string(rawVersion[0 : len(rawVersion)-1])
+	version := string(rawVersion)
 	// Add additional version checks here
 	switch version {
 	case currentVersion:
@@ -109,29 +115,48 @@ func ReadSealedState(src io.Reader, rawPasswordFilePath string) (*State, error) 
 }
 
 func readSealedStateV001(password []byte, bufSrc *bufio.Reader) (*State, error) {
-	// salt is separated from main encrypted state by '!'
-	rawSalt, err := bufSrc.ReadBytes('!')
-	if err != nil {
-		return nil, fmt.Errorf("Could not read salt from sealed state: %v", err)
-	}
-	// trim the '!' off the end, and convert to string
-	base32Salt := string(rawSalt[0 : len(rawSalt)-1])
-	salt, err := base32.StdEncoding.DecodeString(base32Salt)
+	salt, err := readField(bufSrc)
 	if err != nil {
 		return nil, fmt.Errorf("Could not decode salt: %v", err)
 	}
+	expectedMac, err := readField(bufSrc)
 	key := generateKey(password, salt)
 	base32Decoder := base32.NewDecoder(base32.StdEncoding, bufSrc)
-	encBytes, err := ioutil.ReadAll(base32Decoder)
+	enc, err := ioutil.ReadAll(base32Decoder)
 	if err != nil {
 		return nil, fmt.Errorf("Could not decode sealed state: %v", err)
 	}
-	decBytes, err := decrypt(encBytes, key)
+	actualMac := sign(enc, key)
+	if !hmac.Equal(expectedMac, actualMac) {
+		return nil, fmt.Errorf("HMAC signature not matched")
+	}
+	dec, err := decrypt(enc, key)
 	if err != nil {
 		return nil, fmt.Errorf("Could not decrypt state:%v", err)
 	}
-	buffer := bytes.NewBuffer(decBytes)
+	buffer := bytes.NewBuffer(dec)
 	return ReadState(buffer)
+}
+
+func writeField(dst io.Writer, rawData []byte) error {
+	base32Data := base32.StdEncoding.EncodeToString(rawData)
+	if _, err := io.WriteString(dst, base32Data); err != nil {
+		return fmt.Errorf("Could not write base32 encoded field: %v", err)
+	}
+	if _, err := io.WriteString(dst, "!"); err != nil {
+		return fmt.Errorf("Could not write field delimiter: %v", err)
+	}
+	return nil
+}
+
+func readField(bufSrc *bufio.Reader) ([]byte, error) {
+	rawData, err := bufSrc.ReadBytes('!')
+	if err != nil {
+		return nil, fmt.Errorf("No delimiter found, could not read data: %v", err)
+	}
+	// trim the '!' off the end, and convert to string
+	base32Data := string(rawData[0 : len(rawData)-1])
+	return base32.StdEncoding.DecodeString(base32Data)
 }
 
 func serializeState(d *State) ([]byte, error) {
@@ -144,6 +169,12 @@ func deserializeState(data []byte) (*State, error) {
 	buffer := bytes.NewBuffer(data)
 	state, err := ReadState(buffer)
 	return state, err
+}
+
+func sign(msg []byte, key []byte) []byte {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(msg)
+	return mac.Sum(nil)
 }
 
 func encrypt(dec []byte, key []byte) ([]byte, error) {
