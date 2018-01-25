@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -50,9 +51,11 @@ func dataSourceAwsEcsCluster() *schema.Resource {
 func dataSourceAwsEcsClusterRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ecsconn
 
-	desc, err := conn.DescribeClusters(&ecs.DescribeClustersInput{
+	params := &ecs.DescribeClustersInput{
 		Clusters: []*string{aws.String(d.Get("cluster_name").(string))},
-	})
+	}
+	log.Printf("[DEBUG] Reading ECS Cluster: %s", params)
+	desc, err := conn.DescribeClusters(params)
 
 	if err != nil {
 		return err

@@ -124,6 +124,7 @@ func resourceAwsAutoscalingPolicyRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 	if p == nil {
+		log.Printf("[WARN] Autoscaling Policy (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -276,7 +277,7 @@ func getAwsAutoscalingPolicy(d *schema.ResourceData, meta interface{}) (*autosca
 	if err != nil {
 		//A ValidationError here can mean that either the Policy is missing OR the Autoscaling Group is missing
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ValidationError" {
-			log.Printf("[WARNING] %s not found, removing from state", d.Id())
+			log.Printf("[WARN] Autoscaling Policy (%s) not found, removing from state", d.Id())
 			d.SetId("")
 
 			return nil, nil

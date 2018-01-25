@@ -34,7 +34,7 @@ func dataSourceAwsAmiIds() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"ids": &schema.Schema{
+			"ids": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -71,6 +71,7 @@ func dataSourceAwsAmiIdsRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	log.Printf("[DEBUG] Reading AMI IDs: %s", params)
 	resp, err := conn.DescribeImages(params)
 	if err != nil {
 		return err

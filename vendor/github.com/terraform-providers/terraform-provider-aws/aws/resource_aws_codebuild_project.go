@@ -147,6 +147,7 @@ func resourceAwsCodeBuildProject() *schema.Resource {
 								},
 							},
 							Optional: true,
+							Set:      resourceAwsCodeBuildProjectSourceAuthHash,
 						},
 						"buildspec": {
 							Type:     schema.TypeString,
@@ -165,6 +166,7 @@ func resourceAwsCodeBuildProject() *schema.Resource {
 				},
 				Required: true,
 				MaxItems: 1,
+				Set:      resourceAwsCodeBuildProjectSourceHash,
 			},
 			"timeout": {
 				Type:         schema.TypeInt,
@@ -523,37 +525,27 @@ func flattenAwsCodebuildProjectEnvironment(environment *codebuild.ProjectEnviron
 
 }
 
-func flattenAwsCodebuildProjectSource(source *codebuild.ProjectSource) *schema.Set {
+func flattenAwsCodebuildProjectSource(source *codebuild.ProjectSource) []interface{} {
+	l := make([]interface{}, 1)
+	m := map[string]interface{}{}
 
-	sourceSet := schema.Set{
-		F: resourceAwsCodeBuildProjectSourceHash,
-	}
-
-	authSet := schema.Set{
-		F: resourceAwsCodeBuildProjectSourceAuthHash,
-	}
-
-	sourceConfig := map[string]interface{}{}
-
-	sourceConfig["type"] = *source.Type
+	m["type"] = *source.Type
 
 	if source.Auth != nil {
-		authSet.Add(sourceAuthToMap(source.Auth))
-		sourceConfig["auth"] = &authSet
+		m["auth"] = sourceAuthToMap(source.Auth)
 	}
 
 	if source.Buildspec != nil {
-		sourceConfig["buildspec"] = *source.Buildspec
+		m["buildspec"] = *source.Buildspec
 	}
 
 	if source.Location != nil {
-		sourceConfig["location"] = *source.Location
+		m["location"] = *source.Location
 	}
 
-	sourceSet.Add(sourceConfig)
+	l[0] = m
 
-	return &sourceSet
-
+	return l
 }
 
 func resourceAwsCodeBuildProjectArtifactsHash(v interface{}) int {
@@ -594,13 +586,13 @@ func resourceAwsCodeBuildProjectSourceHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	sourceType := m["type"].(string)
-	buildspec := m["buildspec"].(string)
-	location := m["location"].(string)
-
-	buf.WriteString(fmt.Sprintf("%s-", sourceType))
-	buf.WriteString(fmt.Sprintf("%s-", buildspec))
-	buf.WriteString(fmt.Sprintf("%s-", location))
+	buf.WriteString(fmt.Sprintf("%s-", m["type"].(string)))
+	if v, ok := m["buildspec"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	if v, ok := m["location"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
 
 	return hashcode.String(buf.String())
 }

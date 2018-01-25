@@ -281,7 +281,9 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	if err := setFromIPPerm(d, sg, p); err != nil {
 		return errwrap.Wrapf("Error setting IP Permission for Security Group Rule: {{err}}", err)
 	}
-	setDescriptionFromIPPerm(d, rule)
+
+	d.Set("description", descriptionFromIPPerm(d, rule))
+
 	return nil
 }
 
@@ -695,38 +697,86 @@ func setFromIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup, rule *ec2.IpPe
 	return nil
 }
 
-func setDescriptionFromIPPerm(d *schema.ResourceData, rule *ec2.IpPermission) {
-	var description string
-
-	for _, c := range rule.IpRanges {
-		desc := aws.StringValue(c.Description)
-		if desc != "" {
-			description = desc
+func descriptionFromIPPerm(d *schema.ResourceData, rule *ec2.IpPermission) string {
+	// probe IpRanges
+	cidrIps := make(map[string]bool)
+	if raw, ok := d.GetOk("cidr_blocks"); ok {
+		for _, v := range raw.([]interface{}) {
+			cidrIps[v.(string)] = true
 		}
 	}
 
-	for _, ip := range rule.Ipv6Ranges {
-		desc := aws.StringValue(ip.Description)
-		if desc != "" {
-			description = desc
+	if len(cidrIps) > 0 {
+		for _, c := range rule.IpRanges {
+			if _, ok := cidrIps[*c.CidrIp]; !ok {
+				continue
+			}
+
+			if desc := aws.StringValue(c.Description); desc != "" {
+				return desc
+			}
 		}
 	}
 
-	for _, p := range rule.PrefixListIds {
-		desc := aws.StringValue(p.Description)
-		if desc != "" {
-			description = desc
+	// probe Ipv6Ranges
+	cidrIpv6s := make(map[string]bool)
+	if raw, ok := d.GetOk("ipv6_cidr_blocks"); ok {
+		for _, v := range raw.([]interface{}) {
+			cidrIpv6s[v.(string)] = true
 		}
 	}
 
-	if len(rule.UserIdGroupPairs) > 0 {
-		desc := aws.StringValue(rule.UserIdGroupPairs[0].Description)
-		if desc != "" {
-			description = desc
+	if len(cidrIpv6s) > 0 {
+		for _, ip := range rule.Ipv6Ranges {
+			if _, ok := cidrIpv6s[*ip.CidrIpv6]; !ok {
+				continue
+			}
+
+			if desc := aws.StringValue(ip.Description); desc != "" {
+				return desc
+			}
 		}
 	}
 
-	d.Set("description", description)
+	// probe PrefixListIds
+	listIds := make(map[string]bool)
+	if raw, ok := d.GetOk("prefix_list_ids"); ok {
+		for _, v := range raw.([]interface{}) {
+			listIds[v.(string)] = true
+		}
+	}
+
+	if len(listIds) > 0 {
+		for _, p := range rule.PrefixListIds {
+			if _, ok := listIds[*p.PrefixListId]; !ok {
+				continue
+			}
+
+			if desc := aws.StringValue(p.Description); desc != "" {
+				return desc
+			}
+		}
+	}
+
+	// probe UserIdGroupPairs
+	groupIds := make(map[string]bool)
+	if raw, ok := d.GetOk("source_security_group_id"); ok {
+		groupIds[raw.(string)] = true
+	}
+
+	if len(groupIds) > 0 {
+		for _, gp := range rule.UserIdGroupPairs {
+			if _, ok := groupIds[*gp.GroupId]; !ok {
+				continue
+			}
+
+			if desc := aws.StringValue(gp.Description); desc != "" {
+				return desc
+			}
+		}
+	}
+
+	return ""
 }
 
 // Validates that either 'cidr_blocks', 'ipv6_cidr_blocks', 'self', or 'source_security_group_id' is set

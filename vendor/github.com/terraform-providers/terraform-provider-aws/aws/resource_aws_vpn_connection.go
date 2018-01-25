@@ -5,7 +5,10 @@ import (
 	"encoding/xml"
 	"fmt"
 	"log"
+	"net"
+	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -94,6 +97,40 @@ func resourceAwsVpnConnection() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"tunnel1_inside_cidr": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validateVpnConnectionTunnelInsideCIDR,
+			},
+
+			"tunnel1_preshared_key": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validateVpnConnectionTunnelPreSharedKey,
+			},
+
+			"tunnel2_inside_cidr": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validateVpnConnectionTunnelInsideCIDR,
+			},
+
+			"tunnel2_preshared_key": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validateVpnConnectionTunnelPreSharedKey,
+			},
+
 			"tags": tagsSchema(),
 
 			// Begin read only attributes
@@ -107,21 +144,13 @@ func resourceAwsVpnConnection() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-
 			"tunnel1_cgw_inside_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-
 			"tunnel1_vgw_inside_address": {
 				Type:     schema.TypeString,
 				Computed: true,
-			},
-
-			"tunnel1_preshared_key": {
-				Type:      schema.TypeString,
-				Sensitive: true,
-				Computed:  true,
 			},
 			"tunnel1_bgp_asn": {
 				Type:     schema.TypeString,
@@ -131,25 +160,18 @@ func resourceAwsVpnConnection() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+
 			"tunnel2_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-
 			"tunnel2_cgw_inside_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-
 			"tunnel2_vgw_inside_address": {
 				Type:     schema.TypeString,
 				Computed: true,
-			},
-
-			"tunnel2_preshared_key": {
-				Type:      schema.TypeString,
-				Sensitive: true,
-				Computed:  true,
 			},
 			"tunnel2_bgp_asn": {
 				Type:     schema.TypeString,
@@ -159,6 +181,7 @@ func resourceAwsVpnConnection() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+
 			"routes": {
 				Type:     schema.TypeSet,
 				Computed: true,
@@ -245,8 +268,30 @@ func resourceAwsVpnConnection() *schema.Resource {
 func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
+	// Fill the tunnel options for the EC2 API
+	options := []*ec2.VpnTunnelOptionsSpecification{
+		{}, {},
+	}
+
+	if v, ok := d.GetOk("tunnel1_inside_cidr"); ok {
+		options[0].TunnelInsideCidr = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("tunnel2_inside_cidr"); ok {
+		options[1].TunnelInsideCidr = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("tunnel1_preshared_key"); ok {
+		options[0].PreSharedKey = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("tunnel2_preshared_key"); ok {
+		options[1].PreSharedKey = aws.String(v.(string))
+	}
+
 	connectOpts := &ec2.VpnConnectionOptionsSpecification{
 		StaticRoutesOnly: aws.Bool(d.Get("static_routes_only").(bool)),
+		TunnelOptions:    options,
 	}
 
 	createOpts := &ec2.CreateVpnConnectionInput{
@@ -510,4 +555,57 @@ func xmlConfigToTunnelInfo(xmlConfig string) (*TunnelInfo, error) {
 	}
 
 	return &tunnelInfo, nil
+}
+
+func validateVpnConnectionTunnelPreSharedKey(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if (len(value) < 8) || (len(value) > 64) {
+		errors = append(errors, fmt.Errorf("%q must be between 8 and 64 characters in length", k))
+	}
+
+	if strings.HasPrefix(value, "0") {
+		errors = append(errors, fmt.Errorf("%q cannot start with zero character", k))
+	}
+
+	if !regexp.MustCompile(`^[0-9a-zA-Z_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q can only contain alphanumeric and underscore characters", k))
+	}
+
+	return
+}
+
+// https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_VpnTunnelOptionsSpecification.html
+func validateVpnConnectionTunnelInsideCIDR(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	_, ipnet, err := net.ParseCIDR(value)
+
+	if err != nil {
+		errors = append(errors, fmt.Errorf("%q must contain a valid CIDR, got error parsing: %s", k, err))
+		return
+	}
+
+	if !strings.HasSuffix(ipnet.String(), "/30") {
+		errors = append(errors, fmt.Errorf("%q must be /30 CIDR", k))
+	}
+
+	if !strings.HasPrefix(ipnet.String(), "169.254.") {
+		errors = append(errors, fmt.Errorf("%q must be within 169.254.0.0/16", k))
+	} else if ipnet.String() == "169.254.0.0/30" {
+		errors = append(errors, fmt.Errorf("%q cannot be 169.254.0.0/30", k))
+	} else if ipnet.String() == "169.254.1.0/30" {
+		errors = append(errors, fmt.Errorf("%q cannot be 169.254.1.0/30", k))
+	} else if ipnet.String() == "169.254.2.0/30" {
+		errors = append(errors, fmt.Errorf("%q cannot be 169.254.2.0/30", k))
+	} else if ipnet.String() == "169.254.3.0/30" {
+		errors = append(errors, fmt.Errorf("%q cannot be 169.254.3.0/30", k))
+	} else if ipnet.String() == "169.254.4.0/30" {
+		errors = append(errors, fmt.Errorf("%q cannot be 169.254.4.0/30", k))
+	} else if ipnet.String() == "169.254.5.0/30" {
+		errors = append(errors, fmt.Errorf("%q cannot be 169.254.5.0/30", k))
+	} else if ipnet.String() == "169.254.169.252/30" {
+		errors = append(errors, fmt.Errorf("%q cannot be 169.254.169.252/30", k))
+	}
+
+	return
 }

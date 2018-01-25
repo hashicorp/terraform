@@ -14,23 +14,23 @@ func dataSourceAwsAvailabilityZone() *schema.Resource {
 		Read: dataSourceAwsAvailabilityZoneRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name_suffix": &schema.Schema{
+			"name_suffix": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"state": &schema.Schema{
+			"state": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -58,7 +58,7 @@ func dataSourceAwsAvailabilityZoneRead(d *schema.ResourceData, meta interface{})
 		req.Filters = nil
 	}
 
-	log.Printf("[DEBUG] DescribeAvailabilityZones %s\n", req)
+	log.Printf("[DEBUG] Reading Availability Zone: %s", req)
 	resp, err := conn.DescribeAvailabilityZones(req)
 	if err != nil {
 		return err

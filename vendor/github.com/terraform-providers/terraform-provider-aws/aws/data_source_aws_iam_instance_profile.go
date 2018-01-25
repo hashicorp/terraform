@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -47,6 +48,7 @@ func dataSourceAwsIAMInstanceProfileRead(d *schema.ResourceData, meta interface{
 		InstanceProfileName: aws.String(name),
 	}
 
+	log.Printf("[DEBUG] Reading IAM Instance Profile: %s", req)
 	resp, err := iamconn.GetInstanceProfile(req)
 	if err != nil {
 		return errwrap.Wrapf("Error getting instance profiles: {{err}}", err)

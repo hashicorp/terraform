@@ -62,6 +62,7 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 		describeEfsOpts.FileSystemId = aws.String(v.(string))
 	}
 
+	log.Printf("[DEBUG] Reading EFS File System: %s", describeEfsOpts)
 	describeResp, err := efsconn.DescribeFileSystems(describeEfsOpts)
 	if err != nil {
 		return errwrap.Wrapf("Error retrieving EFS: {{err}}", err)

@@ -331,8 +331,11 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 					time.Sleep(DYNAMODB_THROTTLE_SLEEP)
 					attemptCount += 1
 				case "LimitExceededException":
-					// If we're at resource capacity, error out without retry
-					if strings.Contains(awsErr.Message(), "Subscriber limit exceeded:") {
+					// If we're at resource capacity, error out without retry. e.g.
+					// Subscriber limit exceeded: There is a limit of 256 tables per subscriber
+					// Do not error out on this similar throttling message:
+					// Subscriber limit exceeded: Only 10 tables can be created, updated, or deleted simultaneously
+					if strings.Contains(awsErr.Message(), "Subscriber limit exceeded:") && !strings.Contains(awsErr.Message(), "can be created, updated, or deleted simultaneously") {
 						return fmt.Errorf("AWS Error creating DynamoDB table: %s", err)
 					}
 					log.Printf("[DEBUG] Limit on concurrent table creations hit, sleeping for a bit")
@@ -813,15 +816,21 @@ func flattenAwsDynamoDbTableResource(d *schema.ResourceData, meta interface{}, t
 	if err != nil {
 		return err
 	}
-	timeToLive := []interface{}{}
-	attribute := map[string]*string{
-		"name": timeToLiveOutput.TimeToLiveDescription.AttributeName,
-		"type": timeToLiveOutput.TimeToLiveDescription.TimeToLiveStatus,
-	}
-	timeToLive = append(timeToLive, attribute)
-	d.Set("timeToLive", timeToLive)
 
-	log.Printf("[DEBUG] Loaded TimeToLive data for DynamoDB table '%s'", d.Id())
+	if timeToLiveOutput.TimeToLiveDescription != nil && timeToLiveOutput.TimeToLiveDescription.AttributeName != nil {
+		timeToLiveList := []interface{}{
+			map[string]interface{}{
+				"attribute_name": *timeToLiveOutput.TimeToLiveDescription.AttributeName,
+				"enabled":        (*timeToLiveOutput.TimeToLiveDescription.TimeToLiveStatus == dynamodb.TimeToLiveStatusEnabled),
+			},
+		}
+		err := d.Set("ttl", timeToLiveList)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("[DEBUG] Loaded TimeToLive data for DynamoDB table '%s'", d.Id())
+	}
 
 	tags, err := readTableTags(d, meta)
 	if err != nil {

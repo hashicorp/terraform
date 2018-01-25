@@ -21,7 +21,6 @@ func dataSourceAwsDynamoDbTable() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-
 			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -178,11 +177,11 @@ func dataSourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) er
 	dynamodbconn := meta.(*AWSClient).dynamodbconn
 
 	name := d.Get("name").(string)
-	log.Printf("[DEBUG] Loading data for DynamoDB table %q", name)
 	req := &dynamodb.DescribeTableInput{
 		TableName: aws.String(name),
 	}
 
+	log.Printf("[DEBUG] Reading DynamoDB Table: %s", req)
 	result, err := dynamodbconn.DescribeTable(req)
 
 	if err != nil {

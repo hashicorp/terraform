@@ -40,12 +40,13 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 			"protocol": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     false,
+				ForceNew:     true,
 				ValidateFunc: validateSNSSubscriptionProtocol,
 			},
 			"endpoint": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"endpoint_auto_confirms": {
 				Type:     schema.TypeBool,
@@ -60,6 +61,7 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 			"topic_arn": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"delivery_policy": {
 				Type:     schema.TypeString,
@@ -96,31 +98,13 @@ func resourceAwsSnsTopicSubscriptionCreate(d *schema.ResourceData, meta interfac
 	d.SetId(*output.SubscriptionArn)
 
 	// Write the ARN to the 'arn' field for export
-	d.Set("arn", *output.SubscriptionArn)
+	d.Set("arn", output.SubscriptionArn)
 
 	return resourceAwsSnsTopicSubscriptionUpdate(d, meta)
 }
 
 func resourceAwsSnsTopicSubscriptionUpdate(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
-
-	// If any changes happened, un-subscribe and re-subscribe
-	if !d.IsNewResource() && (d.HasChange("protocol") || d.HasChange("endpoint") || d.HasChange("topic_arn")) {
-		log.Printf("[DEBUG] Updating subscription %s", d.Id())
-		// Unsubscribe
-		_, err := snsconn.Unsubscribe(&sns.UnsubscribeInput{
-			SubscriptionArn: aws.String(d.Id()),
-		})
-
-		if err != nil {
-			return fmt.Errorf("Error unsubscribing from SNS topic: %s", err)
-		}
-
-		// Re-subscribe and set id
-		output, err := subscribeToSNSTopic(d, snsconn)
-		d.SetId(*output.SubscriptionArn)
-		d.Set("arn", *output.SubscriptionArn)
-	}
 
 	if d.HasChange("raw_message_delivery") {
 		_, n := d.GetChange("raw_message_delivery")

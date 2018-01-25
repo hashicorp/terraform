@@ -72,7 +72,7 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 		req.Filters = nil
 	}
 
-	log.Printf("[DEBUG] Describe Security Groups %v\n", req)
+	log.Printf("[DEBUG] Reading Security Group: %s", req)
 	resp, err := conn.DescribeSecurityGroups(req)
 	if err != nil {
 		return err

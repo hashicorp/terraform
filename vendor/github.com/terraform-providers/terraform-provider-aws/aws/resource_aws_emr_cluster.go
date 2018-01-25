@@ -376,17 +376,29 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	log.Printf("[DEBUG] EMR Cluster create options: %s", params)
-	resp, err := conn.RunJobFlow(params)
 
+	var resp *emr.RunJobFlowOutput
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+		var err error
+		resp, err = conn.RunJobFlow(params)
+		if err != nil {
+			if isAWSErr(err, "ValidationException", "Invalid InstanceProfile:") {
+				return resource.RetryableError(err)
+			}
+			if isAWSErr(err, "AccessDeniedException", "Failed to authorize instance profile") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
-		log.Printf("[ERROR] %s", err)
 		return err
 	}
 
 	d.SetId(*resp.JobFlowId)
 
-	log.Println(
-		"[INFO] Waiting for EMR Cluster to be available")
+	log.Println("[INFO] Waiting for EMR Cluster to be available")
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"STARTING", "BOOTSTRAPPING"},

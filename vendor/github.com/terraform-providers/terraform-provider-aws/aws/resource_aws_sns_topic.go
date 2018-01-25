@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 // Mutable attributes
@@ -48,7 +49,7 @@ func resourceAwsSnsTopic() *schema.Resource {
 				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 				StateFunc: func(v interface{}) string {
-					json, _ := normalizeJsonString(v)
+					json, _ := structure.NormalizeJsonString(v)
 					return json
 				},
 			},
@@ -59,7 +60,7 @@ func resourceAwsSnsTopic() *schema.Resource {
 				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentJsonDiffs,
 				StateFunc: func(v interface{}) string {
-					json, _ := normalizeJsonString(v)
+					json, _ := structure.NormalizeJsonString(v)
 					return json
 				},
 			},
@@ -156,7 +157,7 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 				if resource.Schema[iKey] != nil {
 					var value string
 					if iKey == "policy" {
-						value, err = normalizeJsonString(*attrmap[oKey])
+						value, err = structure.NormalizeJsonString(*attrmap[oKey])
 						if err != nil {
 							return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
 						}

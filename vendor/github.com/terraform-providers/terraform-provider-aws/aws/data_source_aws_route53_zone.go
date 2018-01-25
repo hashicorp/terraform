@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -63,7 +64,9 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 	tags := tagsFromMap(d.Get("tags").(map[string]interface{}))
 	if nameExists && idExists {
 		return fmt.Errorf("zone_id and name arguments can't be used together")
-	} else if !nameExists && !idExists {
+	}
+
+	if !nameExists && !idExists {
 		return fmt.Errorf("Either name or zone_id must be set")
 	}
 
@@ -76,6 +79,7 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 		if nextMarker != nil {
 			req.Marker = nextMarker
 		}
+		log.Printf("[DEBUG] Reading Route53 Zone: %s", req)
 		resp, err := conn.ListHostedZones(req)
 
 		if err != nil {
@@ -137,15 +141,14 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 				if matchingTags && matchingVPC {
 					if hostedZoneFound != nil {
 						return fmt.Errorf("multiple Route53Zone found please use vpc_id option to filter")
-					} else {
-						hostedZoneFound = hostedZone
 					}
+
+					hostedZoneFound = hostedZone
 				}
 			}
 
 		}
 		if *resp.IsTruncated {
-
 			nextMarker = resp.NextMarker
 		} else {
 			allHostedZoneListed = true
@@ -170,7 +173,7 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 func hostedZoneName(name string) string {
 	if strings.HasSuffix(name, ".") {
 		return name
-	} else {
-		return name + "."
 	}
+
+	return name + "."
 }

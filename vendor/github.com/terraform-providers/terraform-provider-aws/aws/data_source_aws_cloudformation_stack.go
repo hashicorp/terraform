@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -73,11 +74,12 @@ func dataSourceAwsCloudFormationStack() *schema.Resource {
 func dataSourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cfconn
 	name := d.Get("name").(string)
-	input := cloudformation.DescribeStacksInput{
+	input := &cloudformation.DescribeStacksInput{
 		StackName: aws.String(name),
 	}
 
-	out, err := conn.DescribeStacks(&input)
+	log.Printf("[DEBUG] Reading CloudFormation Stack: %s", input)
+	out, err := conn.DescribeStacks(input)
 	if err != nil {
 		return fmt.Errorf("Failed describing CloudFormation stack (%s): %s", name, err)
 	}

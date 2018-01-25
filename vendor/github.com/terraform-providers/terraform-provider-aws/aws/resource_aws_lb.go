@@ -24,6 +24,8 @@ func resourceAwsLb() *schema.Resource {
 		Read:   resoureAwsLbRead,
 		Update: resourceAwsLbUpdate,
 		Delete: resourceAwsLbDelete,
+		// Subnets are ForceNew for Network Load Balancers
+		CustomizeDiff: customizeDiffNLBSubnets,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -387,7 +389,11 @@ func resourceAwsLbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	}
 
-	if d.HasChange("subnets") {
+	// subnets are assigned at Create; the 'change' here is an empty map for old
+	// and current subnets for new, so this change is redundant when the
+	// resource is just created, so we don't attempt if it is a newly created
+	// resource.
+	if d.HasChange("subnets") && !d.IsNewResource() {
 		subnets := expandStringList(d.Get("subnets").(*schema.Set).List())
 
 		params := &elbv2.SetSubnetsInput{
@@ -685,5 +691,52 @@ func flattenAwsLbResource(d *schema.ResourceData, meta interface{}, lb *elbv2.Lo
 		d.Set("access_logs", []interface{}{})
 	}
 
+	return nil
+}
+
+// Load balancers of type 'network' cannot have their subnets updated at
+// this time. If the type is 'network' and subnets have changed, mark the
+// diff as a ForceNew operation
+func customizeDiffNLBSubnets(diff *schema.ResourceDiff, v interface{}) error {
+	// The current criteria for determining if the operation should be ForceNew:
+	// - lb of type "network"
+	// - existing resource (id is not "")
+	// - there are actual changes to be made in the subnets
+	//
+	// Any other combination should be treated as normal. At this time, subnet
+	// handling is the only known difference between Network Load Balancers and
+	// Application Load Balancers, so the logic below is simple individual checks.
+	// If other differences arise we'll want to refactor to check other
+	// conditions in combinations, but for now all we handle is subnets
+	lbType := diff.Get("load_balancer_type").(string)
+	if "network" != lbType {
+		return nil
+	}
+
+	if "" == diff.Id() {
+		return nil
+	}
+
+	o, n := diff.GetChange("subnets")
+	if o == nil {
+		o = new(schema.Set)
+	}
+	if n == nil {
+		n = new(schema.Set)
+	}
+	os := o.(*schema.Set)
+	ns := n.(*schema.Set)
+	remove := os.Difference(ns).List()
+	add := ns.Difference(os).List()
+	delta := len(remove) > 0 || len(add) > 0
+	if delta {
+		if err := diff.SetNew("subnets", n); err != nil {
+			return err
+		}
+
+		if err := diff.ForceNew("subnets"); err != nil {
+			return err
+		}
+	}
 	return nil
 }

@@ -58,6 +58,7 @@ func dataSourceAwsEfsMountTargetRead(d *schema.ResourceData, meta interface{}) e
 		MountTargetId: aws.String(d.Get("mount_target_id").(string)),
 	}
 
+	log.Printf("[DEBUG] Reading EFS Mount Target: %s", describeEfsOpts)
 	resp, err := efsconn.DescribeMountTargets(describeEfsOpts)
 	if err != nil {
 		return errwrap.Wrapf("Error retrieving EFS Mount Target: {{err}}", err)

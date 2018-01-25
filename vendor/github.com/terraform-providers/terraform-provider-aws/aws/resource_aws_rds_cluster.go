@@ -340,7 +340,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			log.Println("[INFO] Waiting for RDS Cluster to be available")
 
 			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"creating", "backing-up", "modifying", "preparing-data-migration", "migrating"},
+				Pending:    resourceAwsRdsClusterCreatePendingStates,
 				Target:     []string{"available"},
 				Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 				Timeout:    d.Timeout(schema.TimeoutCreate),
@@ -497,7 +497,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		"[INFO] Waiting for RDS Cluster to be available")
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "backing-up", "modifying"},
+		Pending:    resourceAwsRdsClusterCreatePendingStates,
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
@@ -765,7 +765,7 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"available", "deleting", "backing-up", "modifying"},
+		Pending:    resourceAwsRdsClusterDeletePendingStates,
 		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 		Timeout:    d.Timeout(schema.TimeoutDelete),
@@ -858,4 +858,20 @@ func removeIamRoleFromRdsCluster(clusterIdentifier string, roleArn string, conn 
 	}
 
 	return nil
+}
+
+var resourceAwsRdsClusterCreatePendingStates = []string{
+	"creating",
+	"backing-up",
+	"modifying",
+	"preparing-data-migration",
+	"migrating",
+	"resetting-master-credentials",
+}
+
+var resourceAwsRdsClusterDeletePendingStates = []string{
+	"available",
+	"deleting",
+	"backing-up",
+	"modifying",
 }

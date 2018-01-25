@@ -19,26 +19,26 @@ func resourceAwsSesEventDestination() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"configuration_set_name": &schema.Schema{
+			"configuration_set_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"enabled": &schema.Schema{
+			"enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
 			},
 
-			"matching_types": &schema.Schema{
+			"matching_types": {
 				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: true,
@@ -53,20 +53,21 @@ func resourceAwsSesEventDestination() *schema.Resource {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"kinesis_destination"},
+				MaxItems:      1,
+				ConflictsWith: []string{"kinesis_destination", "sns_destination"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"default_value": &schema.Schema{
+						"default_value": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"dimension_name": &schema.Schema{
+						"dimension_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"value_source": &schema.Schema{
+						"value_source": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateDimensionValueSource,
@@ -79,15 +80,32 @@ func resourceAwsSesEventDestination() *schema.Resource {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"cloudwatch_destination"},
+				MaxItems:      1,
+				ConflictsWith: []string{"cloudwatch_destination", "sns_destination"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"stream_arn": &schema.Schema{
+						"stream_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"role_arn": &schema.Schema{
+						"role_arn": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+
+			"sns_destination": {
+				Type:          schema.TypeSet,
+				MaxItems:      1,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"cloudwatch_destination", "kinesis_destination"},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"topic_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -125,15 +143,22 @@ func resourceAwsSesEventDestinationCreate(d *schema.ResourceData, meta interface
 
 	if v, ok := d.GetOk("kinesis_destination"); ok {
 		destination := v.(*schema.Set).List()
-		if len(destination) > 1 {
-			return fmt.Errorf("You can only define a single kinesis destination per record")
-		}
+
 		kinesis := destination[0].(map[string]interface{})
 		createOpts.EventDestination.KinesisFirehoseDestination = &ses.KinesisFirehoseDestination{
 			DeliveryStreamARN: aws.String(kinesis["stream_arn"].(string)),
 			IAMRoleARN:        aws.String(kinesis["role_arn"].(string)),
 		}
 		log.Printf("[DEBUG] Creating kinesis destination: %#v", kinesis)
+	}
+
+	if v, ok := d.GetOk("sns_destination"); ok {
+		destination := v.(*schema.Set).List()
+		sns := destination[0].(map[string]interface{})
+		createOpts.EventDestination.SNSDestination = &ses.SNSDestination{
+			TopicARN: aws.String(sns["topic_arn"].(string)),
+		}
+		log.Printf("[DEBUG] Creating sns destination: %#v", sns)
 	}
 
 	_, err := conn.CreateConfigurationSetEventDestination(createOpts)

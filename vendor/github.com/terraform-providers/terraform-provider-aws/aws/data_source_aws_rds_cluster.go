@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -150,9 +151,11 @@ func dataSourceAwsRdsCluster() *schema.Resource {
 func dataSourceAwsRdsClusterRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
 
-	resp, err := conn.DescribeDBClusters(&rds.DescribeDBClustersInput{
+	params := &rds.DescribeDBClustersInput{
 		DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
-	})
+	}
+	log.Printf("[DEBUG] Reading RDS Cluster: %s", params)
+	resp, err := conn.DescribeDBClusters(params)
 
 	if err != nil {
 		return errwrap.Wrapf("Error retrieving RDS cluster: {{err}}", err)

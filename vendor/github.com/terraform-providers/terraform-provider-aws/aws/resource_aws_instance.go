@@ -116,6 +116,7 @@ func resourceAwsInstance() *schema.Resource {
 						return ""
 					}
 				},
+				ValidateFunc: validateInstanceUserDataSize,
 			},
 
 			"user_data_base64": {
@@ -324,6 +325,11 @@ func resourceAwsInstance() *schema.Resource {
 							Computed: true,
 							ForceNew: true,
 						},
+
+						"volume_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 				Set: func(v interface{}) int {
@@ -407,6 +413,11 @@ func resourceAwsInstance() *schema.Resource {
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
+						},
+
+						"volume_id": {
+							Type:     schema.TypeString,
+							Computed: true,
 						},
 					},
 				},
@@ -612,6 +623,9 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	if instance.Placement != nil {
 		d.Set("availability_zone", instance.Placement.AvailabilityZone)
 	}
+	if instance.Placement.GroupName != nil {
+		d.Set("placement_group", instance.Placement.GroupName)
+	}
 	if instance.Placement.Tenancy != nil {
 		d.Set("tenancy", instance.Placement.Tenancy)
 	}
@@ -808,11 +822,20 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		if _, ok := d.GetOk("iam_instance_profile"); ok {
 			// Does not have an Iam Instance Profile associated with it, need to associate
 			if len(resp.IamInstanceProfileAssociations) == 0 {
-				_, err := conn.AssociateIamInstanceProfile(&ec2.AssociateIamInstanceProfileInput{
-					InstanceId: aws.String(d.Id()),
-					IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
-						Name: aws.String(d.Get("iam_instance_profile").(string)),
-					},
+				err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+					_, err := conn.AssociateIamInstanceProfile(&ec2.AssociateIamInstanceProfileInput{
+						InstanceId: aws.String(d.Id()),
+						IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+							Name: aws.String(d.Get("iam_instance_profile").(string)),
+						},
+					})
+					if err != nil {
+						if isAWSErr(err, "InvalidParameterValue", "Invalid IAM Instance Profile") {
+							return resource.RetryableError(err)
+						}
+						return resource.NonRetryableError(err)
+					}
+					return nil
 				})
 				if err != nil {
 					return err
@@ -822,11 +845,20 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 				// Has an Iam Instance Profile associated with it, need to replace the association
 				associationId := resp.IamInstanceProfileAssociations[0].AssociationId
 
-				_, err := conn.ReplaceIamInstanceProfileAssociation(&ec2.ReplaceIamInstanceProfileAssociationInput{
-					AssociationId: associationId,
-					IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
-						Name: aws.String(d.Get("iam_instance_profile").(string)),
-					},
+				err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+					_, err := conn.ReplaceIamInstanceProfileAssociation(&ec2.ReplaceIamInstanceProfileAssociationInput{
+						AssociationId: associationId,
+						IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+							Name: aws.String(d.Get("iam_instance_profile").(string)),
+						},
+					})
+					if err != nil {
+						if isAWSErr(err, "InvalidParameterValue", "Invalid IAM Instance Profile") {
+							return resource.RetryableError(err)
+						}
+						return resource.NonRetryableError(err)
+					}
+					return nil
 				})
 				if err != nil {
 					return err
@@ -1147,6 +1179,8 @@ func readBlockDevicesFromInstance(instance *ec2.Instance, conn *ec2.EC2) (map[st
 	for _, vol := range volResp.Volumes {
 		instanceBd := instanceBlockDevices[*vol.VolumeId]
 		bd := make(map[string]interface{})
+
+		bd["volume_id"] = *vol.VolumeId
 
 		if instanceBd.Ebs != nil && instanceBd.Ebs.DeleteOnTermination != nil {
 			bd["delete_on_termination"] = *instanceBd.Ebs.DeleteOnTermination

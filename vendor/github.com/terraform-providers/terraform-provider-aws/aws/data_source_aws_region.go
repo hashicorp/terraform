@@ -14,19 +14,19 @@ func dataSourceAwsRegion() *schema.Resource {
 		Read: dataSourceAwsRegionRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"current": &schema.Schema{
+			"current": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -60,7 +60,7 @@ func dataSourceAwsRegionRead(d *schema.ResourceData, meta interface{}) error {
 		req.Filters = nil
 	}
 
-	log.Printf("[DEBUG] DescribeRegions %s\n", req)
+	log.Printf("[DEBUG] Reading Region: %s", req)
 	resp, err := conn.DescribeRegions(req)
 	if err != nil {
 		return err

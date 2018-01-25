@@ -159,16 +159,32 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	case "instance_id":
 		createOpts = &ec2.CreateRouteInput{
-			RouteTableId:         aws.String(d.Get("route_table_id").(string)),
-			DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
-			InstanceId:           aws.String(d.Get("instance_id").(string)),
+			RouteTableId: aws.String(d.Get("route_table_id").(string)),
+			InstanceId:   aws.String(d.Get("instance_id").(string)),
 		}
+
+		if v, ok := d.GetOk("destination_cidr_block"); ok {
+			createOpts.DestinationCidrBlock = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("destination_ipv6_cidr_block"); ok {
+			createOpts.DestinationIpv6CidrBlock = aws.String(v.(string))
+		}
+
 	case "network_interface_id":
 		createOpts = &ec2.CreateRouteInput{
-			RouteTableId:         aws.String(d.Get("route_table_id").(string)),
-			DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
-			NetworkInterfaceId:   aws.String(d.Get("network_interface_id").(string)),
+			RouteTableId:       aws.String(d.Get("route_table_id").(string)),
+			NetworkInterfaceId: aws.String(d.Get("network_interface_id").(string)),
 		}
+
+		if v, ok := d.GetOk("destination_cidr_block"); ok {
+			createOpts.DestinationCidrBlock = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("destination_ipv6_cidr_block"); ok {
+			createOpts.DestinationIpv6CidrBlock = aws.String(v.(string))
+		}
+
 	case "vpc_peering_connection_id":
 		createOpts = &ec2.CreateRouteInput{
 			RouteTableId:           aws.String(d.Get("route_table_id").(string)),

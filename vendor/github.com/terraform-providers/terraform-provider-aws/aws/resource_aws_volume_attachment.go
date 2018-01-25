@@ -81,8 +81,8 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 		// a spot request and whilst the request has been fulfilled the
 		// instance is not running yet
 		stateConf := &resource.StateChangeConf{
-			Pending:    []string{"pending"},
-			Target:     []string{"running"},
+			Pending:    []string{"pending", "stopping"},
+			Target:     []string{"running", "stopped"},
 			Refresh:    InstanceStateRefreshFunc(conn, iID, "terminated"),
 			Timeout:    10 * time.Minute,
 			Delay:      10 * time.Second,
@@ -117,7 +117,7 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"attaching"},
 		Target:     []string{"attached"},
-		Refresh:    volumeAttachmentStateRefreshFunc(conn, vID, iID),
+		Refresh:    volumeAttachmentStateRefreshFunc(conn, name, vID, iID),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -134,12 +134,15 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 	return resourceAwsVolumeAttachmentRead(d, meta)
 }
 
-func volumeAttachmentStateRefreshFunc(conn *ec2.EC2, volumeID, instanceID string) resource.StateRefreshFunc {
+func volumeAttachmentStateRefreshFunc(conn *ec2.EC2, name, volumeID, instanceID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-
 		request := &ec2.DescribeVolumesInput{
 			VolumeIds: []*string{aws.String(volumeID)},
 			Filters: []*ec2.Filter{
+				&ec2.Filter{
+					Name:   aws.String("attachment.device"),
+					Values: []*string{aws.String(name)},
+				},
 				&ec2.Filter{
 					Name:   aws.String("attachment.instance-id"),
 					Values: []*string{aws.String(instanceID)},
@@ -167,12 +170,17 @@ func volumeAttachmentStateRefreshFunc(conn *ec2.EC2, volumeID, instanceID string
 		return 42, "detached", nil
 	}
 }
+
 func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
 	request := &ec2.DescribeVolumesInput{
 		VolumeIds: []*string{aws.String(d.Get("volume_id").(string))},
 		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("attachment.device"),
+				Values: []*string{aws.String(d.Get("device_name").(string))},
+			},
 			&ec2.Filter{
 				Name:   aws.String("attachment.instance-id"),
 				Values: []*string{aws.String(d.Get("instance_id").(string))},
@@ -206,11 +214,12 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
+	name := d.Get("device_name").(string)
 	vID := d.Get("volume_id").(string)
 	iID := d.Get("instance_id").(string)
 
 	opts := &ec2.DetachVolumeInput{
-		Device:     aws.String(d.Get("device_name").(string)),
+		Device:     aws.String(name),
 		InstanceId: aws.String(iID),
 		VolumeId:   aws.String(vID),
 		Force:      aws.Bool(d.Get("force_detach").(bool)),
@@ -224,7 +233,7 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"detaching"},
 		Target:     []string{"detached"},
-		Refresh:    volumeAttachmentStateRefreshFunc(conn, vID, iID),
+		Refresh:    volumeAttachmentStateRefreshFunc(conn, name, vID, iID),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
