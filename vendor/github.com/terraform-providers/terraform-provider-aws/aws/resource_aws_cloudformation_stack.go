@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 func resourceAwsCloudFormationStack() *schema.Resource {
@@ -88,7 +89,7 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 				Computed:     true,
 				ValidateFunc: validateJsonString,
 				StateFunc: func(v interface{}) string {
-					json, _ := normalizeJsonString(v)
+					json, _ := structure.NormalizeJsonString(v)
 					return json
 				},
 			},
@@ -104,7 +105,6 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 			"tags": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				ForceNew: true,
 			},
 			"iam_role_arn": {
 				Type:     schema.TypeString,
@@ -146,7 +146,7 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 		input.Parameters = expandCloudFormationParameters(v.(map[string]interface{}))
 	}
 	if v, ok := d.GetOk("policy_body"); ok {
-		policy, err := normalizeJsonString(v)
+		policy, err := structure.NormalizeJsonString(v)
 		if err != nil {
 			return errwrap.Wrapf("policy body contains an invalid JSON: {{err}}", err)
 		}
@@ -386,8 +386,12 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		input.Parameters = expandCloudFormationParameters(v.(map[string]interface{}))
 	}
 
+	if v, ok := d.GetOk("tags"); ok {
+		input.Tags = expandCloudFormationTags(v.(map[string]interface{}))
+	}
+
 	if d.HasChange("policy_body") {
-		policy, err := normalizeJsonString(d.Get("policy_body"))
+		policy, err := structure.NormalizeJsonString(d.Get("policy_body"))
 		if err != nil {
 			return errwrap.Wrapf("policy body contains an invalid JSON: {{err}}", err)
 		}

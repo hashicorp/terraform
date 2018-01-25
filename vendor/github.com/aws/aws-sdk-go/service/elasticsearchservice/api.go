@@ -1641,6 +1641,9 @@ type CreateElasticsearchDomainInput struct {
 	// in the Amazon Elasticsearch Service Developer Guide.
 	ElasticsearchVersion *string `type:"string"`
 
+	// Specifies the Encryption At Rest Options.
+	EncryptionAtRestOptions *EncryptionAtRestOptions `type:"structure"`
+
 	// Map of LogType and LogPublishingOption, each containing options to publish
 	// a given type of Elasticsearch log.
 	LogPublishingOptions map[string]*LogPublishingOption `type:"map"`
@@ -1673,6 +1676,11 @@ func (s *CreateElasticsearchDomainInput) Validate() error {
 	}
 	if s.DomainName != nil && len(*s.DomainName) < 3 {
 		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+	if s.EncryptionAtRestOptions != nil {
+		if err := s.EncryptionAtRestOptions.Validate(); err != nil {
+			invalidParams.AddNested("EncryptionAtRestOptions", err.(request.ErrInvalidParams))
+		}
 	}
 
 	if invalidParams.Len() > 0 {
@@ -1714,6 +1722,12 @@ func (s *CreateElasticsearchDomainInput) SetElasticsearchClusterConfig(v *Elasti
 // SetElasticsearchVersion sets the ElasticsearchVersion field's value.
 func (s *CreateElasticsearchDomainInput) SetElasticsearchVersion(v string) *CreateElasticsearchDomainInput {
 	s.ElasticsearchVersion = &v
+	return s
+}
+
+// SetEncryptionAtRestOptions sets the EncryptionAtRestOptions field's value.
+func (s *CreateElasticsearchDomainInput) SetEncryptionAtRestOptions(v *EncryptionAtRestOptions) *CreateElasticsearchDomainInput {
+	s.EncryptionAtRestOptions = v
 	return s
 }
 
@@ -2405,6 +2419,9 @@ type ElasticsearchDomainConfig struct {
 	// String of format X.Y to specify version for the Elasticsearch domain.
 	ElasticsearchVersion *ElasticsearchVersionStatus `type:"structure"`
 
+	// Specifies the EncryptionAtRestOptions for the Elasticsearch domain.
+	EncryptionAtRestOptions *EncryptionAtRestOptionsStatus `type:"structure"`
+
 	// Log publishing options for the given domain.
 	LogPublishingOptions *LogPublishingOptionsStatus `type:"structure"`
 
@@ -2453,6 +2470,12 @@ func (s *ElasticsearchDomainConfig) SetElasticsearchClusterConfig(v *Elasticsear
 // SetElasticsearchVersion sets the ElasticsearchVersion field's value.
 func (s *ElasticsearchDomainConfig) SetElasticsearchVersion(v *ElasticsearchVersionStatus) *ElasticsearchDomainConfig {
 	s.ElasticsearchVersion = v
+	return s
+}
+
+// SetEncryptionAtRestOptions sets the EncryptionAtRestOptions field's value.
+func (s *ElasticsearchDomainConfig) SetEncryptionAtRestOptions(v *EncryptionAtRestOptionsStatus) *ElasticsearchDomainConfig {
+	s.EncryptionAtRestOptions = v
 	return s
 }
 
@@ -2525,6 +2548,9 @@ type ElasticsearchDomainStatus struct {
 	ElasticsearchClusterConfig *ElasticsearchClusterConfig `type:"structure" required:"true"`
 
 	ElasticsearchVersion *string `type:"string"`
+
+	// Specifies the status of the EncryptionAtRestOptions.
+	EncryptionAtRestOptions *EncryptionAtRestOptions `type:"structure"`
 
 	// The Elasticsearch domain endpoint that you use to submit index and search
 	// requests.
@@ -2620,6 +2646,12 @@ func (s *ElasticsearchDomainStatus) SetElasticsearchVersion(v string) *Elasticse
 	return s
 }
 
+// SetEncryptionAtRestOptions sets the EncryptionAtRestOptions field's value.
+func (s *ElasticsearchDomainStatus) SetEncryptionAtRestOptions(v *EncryptionAtRestOptions) *ElasticsearchDomainStatus {
+	s.EncryptionAtRestOptions = v
+	return s
+}
+
 // SetEndpoint sets the Endpoint field's value.
 func (s *ElasticsearchDomainStatus) SetEndpoint(v string) *ElasticsearchDomainStatus {
 	s.Endpoint = &v
@@ -2691,6 +2723,92 @@ func (s *ElasticsearchVersionStatus) SetOptions(v string) *ElasticsearchVersionS
 
 // SetStatus sets the Status field's value.
 func (s *ElasticsearchVersionStatus) SetStatus(v *OptionStatus) *ElasticsearchVersionStatus {
+	s.Status = v
+	return s
+}
+
+// Specifies the Encryption At Rest Options.
+type EncryptionAtRestOptions struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the option to enable Encryption At Rest.
+	Enabled *bool `type:"boolean"`
+
+	// Specifies the KMS Key ID for Encryption At Rest options.
+	KmsKeyId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s EncryptionAtRestOptions) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EncryptionAtRestOptions) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EncryptionAtRestOptions) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EncryptionAtRestOptions"}
+	if s.KmsKeyId != nil && len(*s.KmsKeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KmsKeyId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *EncryptionAtRestOptions) SetEnabled(v bool) *EncryptionAtRestOptions {
+	s.Enabled = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *EncryptionAtRestOptions) SetKmsKeyId(v string) *EncryptionAtRestOptions {
+	s.KmsKeyId = &v
+	return s
+}
+
+// Status of the Encryption At Rest options for the specified Elasticsearch
+// domain.
+type EncryptionAtRestOptionsStatus struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the Encryption At Rest options for the specified Elasticsearch
+	// domain.
+	//
+	// Options is a required field
+	Options *EncryptionAtRestOptions `type:"structure" required:"true"`
+
+	// Specifies the status of the Encryption At Rest options for the specified
+	// Elasticsearch domain.
+	//
+	// Status is a required field
+	Status *OptionStatus `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s EncryptionAtRestOptionsStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EncryptionAtRestOptionsStatus) GoString() string {
+	return s.String()
+}
+
+// SetOptions sets the Options field's value.
+func (s *EncryptionAtRestOptionsStatus) SetOptions(v *EncryptionAtRestOptions) *EncryptionAtRestOptionsStatus {
+	s.Options = v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *EncryptionAtRestOptionsStatus) SetStatus(v *OptionStatus) *EncryptionAtRestOptionsStatus {
 	s.Status = v
 	return s
 }

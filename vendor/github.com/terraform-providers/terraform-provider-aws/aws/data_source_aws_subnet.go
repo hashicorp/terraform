@@ -124,7 +124,7 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		req.Filters = nil
 	}
 
-	log.Printf("[DEBUG] DescribeSubnets %s\n", req)
+	log.Printf("[DEBUG] Reading Subnet: %s", req)
 	resp, err := conn.DescribeSubnets(req)
 	if err != nil {
 		return err

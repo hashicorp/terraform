@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -26,7 +27,7 @@ func dataSourceAwsEbsSnapshotIds() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"ids": &schema.Schema{
+			"ids": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -58,6 +59,7 @@ func dataSourceAwsEbsSnapshotIdsRead(d *schema.ResourceData, meta interface{}) e
 		params.OwnerIds = expandStringList(owners.([]interface{}))
 	}
 
+	log.Printf("[DEBUG] Reading EBS Snapshot IDs: %s", params)
 	resp, err := conn.DescribeSnapshots(params)
 	if err != nil {
 		return err

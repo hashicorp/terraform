@@ -459,7 +459,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 	if g == nil {
-		log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+		log.Printf("[WARN] Autoscaling Group (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -743,7 +743,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 	if g == nil {
-		log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+		log.Printf("[WARN] Autoscaling Group (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -850,7 +850,7 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 			return resource.NonRetryableError(err)
 		}
 		if g == nil {
-			log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+			log.Printf("[WARN] Autoscaling Group (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

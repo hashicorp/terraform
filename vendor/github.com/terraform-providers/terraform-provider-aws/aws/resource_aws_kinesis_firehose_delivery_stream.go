@@ -1,14 +1,17 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/firehose"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -161,12 +164,196 @@ func processingConfigurationSchema() *schema.Schema {
 	}
 }
 
+func cloudwatchLoggingOptionsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%t-", m["enabled"].(bool)))
+	if m["enabled"].(bool) {
+		buf.WriteString(fmt.Sprintf("%s-", m["log_group_name"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", m["log_stream_name"].(string)))
+	}
+	return hashcode.String(buf.String())
+}
+
+func flattenCloudwatchLoggingOptions(clo firehose.CloudWatchLoggingOptions) *schema.Set {
+	cloudwatchLoggingOptions := map[string]interface{}{
+		"enabled": *clo.Enabled,
+	}
+	if *clo.Enabled {
+		cloudwatchLoggingOptions["log_group_name"] = *clo.LogGroupName
+		cloudwatchLoggingOptions["log_stream_name"] = *clo.LogStreamName
+	}
+	return schema.NewSet(cloudwatchLoggingOptionsHash, []interface{}{cloudwatchLoggingOptions})
+}
+
+func flattenFirehoseS3Configuration(s3 firehose.S3DestinationDescription) []interface{} {
+	s3Configuration := map[string]interface{}{
+		"role_arn":           *s3.RoleARN,
+		"bucket_arn":         *s3.BucketARN,
+		"buffer_size":        *s3.BufferingHints.SizeInMBs,
+		"buffer_interval":    *s3.BufferingHints.IntervalInSeconds,
+		"compression_format": *s3.CompressionFormat,
+	}
+	if s3.CloudWatchLoggingOptions != nil {
+		s3Configuration["cloudwatch_logging_options"] = flattenCloudwatchLoggingOptions(*s3.CloudWatchLoggingOptions)
+	}
+	if s3.EncryptionConfiguration.KMSEncryptionConfig != nil {
+		s3Configuration["kms_key_arn"] = *s3.EncryptionConfiguration.KMSEncryptionConfig
+	}
+	if s3.Prefix != nil {
+		s3Configuration["prefix"] = *s3.Prefix
+	}
+	return []interface{}{s3Configuration}
+}
+
+func flattenProcessingConfiguration(pc firehose.ProcessingConfiguration, roleArn string) []map[string]interface{} {
+	processingConfiguration := make([]map[string]interface{}, 1)
+
+	// It is necessary to explicitely filter this out
+	// to prevent diffs during routine use and retain the ability
+	// to show diffs if any field has drifted
+	defaultLambdaParams := map[string]string{
+		"NumberOfRetries":         "3",
+		"RoleArn":                 roleArn,
+		"BufferSizeInMBs":         "3",
+		"BufferIntervalInSeconds": "60",
+	}
+
+	processors := make([]interface{}, len(pc.Processors), len(pc.Processors))
+	for i, p := range pc.Processors {
+		t := *p.Type
+		parameters := make([]interface{}, 0)
+
+		for _, params := range p.Parameters {
+			name, value := *params.ParameterName, *params.ParameterValue
+
+			if t == firehose.ProcessorTypeLambda {
+				// Ignore defaults
+				if v, ok := defaultLambdaParams[name]; ok && v == value {
+					continue
+				}
+			}
+
+			parameters = append(parameters, map[string]interface{}{
+				"parameter_name":  name,
+				"parameter_value": value,
+			})
+		}
+
+		processors[i] = map[string]interface{}{
+			"type":       t,
+			"parameters": parameters,
+		}
+	}
+	processingConfiguration[0] = map[string]interface{}{
+		"enabled":    *pc.Enabled,
+		"processors": processors,
+	}
+	return processingConfiguration
+}
+
+func flattenKinesisFirehoseDeliveryStream(d *schema.ResourceData, s *firehose.DeliveryStreamDescription) error {
+	d.Set("version_id", s.VersionId)
+	d.Set("arn", *s.DeliveryStreamARN)
+	d.Set("name", s.DeliveryStreamName)
+	if len(s.Destinations) > 0 {
+		destination := s.Destinations[0]
+		if destination.RedshiftDestinationDescription != nil {
+			d.Set("destination", "redshift")
+			password := d.Get("redshift_configuration.0.password").(string)
+
+			redshiftConfiguration := map[string]interface{}{
+				"cluster_jdbcurl":            *destination.RedshiftDestinationDescription.ClusterJDBCURL,
+				"role_arn":                   *destination.RedshiftDestinationDescription.RoleARN,
+				"username":                   *destination.RedshiftDestinationDescription.Username,
+				"password":                   password,
+				"data_table_name":            *destination.RedshiftDestinationDescription.CopyCommand.DataTableName,
+				"copy_options":               *destination.RedshiftDestinationDescription.CopyCommand.CopyOptions,
+				"data_table_columns":         *destination.RedshiftDestinationDescription.CopyCommand.DataTableColumns,
+				"s3_backup_mode":             *destination.RedshiftDestinationDescription.S3BackupMode,
+				"retry_duration":             *destination.RedshiftDestinationDescription.RetryOptions.DurationInSeconds,
+				"cloudwatch_logging_options": flattenCloudwatchLoggingOptions(*destination.RedshiftDestinationDescription.CloudWatchLoggingOptions),
+			}
+			if s3bd := destination.RedshiftDestinationDescription.S3BackupDescription; s3bd != nil {
+				redshiftConfiguration["s3_backup_configuration"] = flattenFirehoseS3Configuration(*s3bd)
+			}
+			redshiftConfList := make([]map[string]interface{}, 1)
+			redshiftConfList[0] = redshiftConfiguration
+			d.Set("redshift_configuration", redshiftConfList)
+			d.Set("s3_configuration", flattenFirehoseS3Configuration(*destination.RedshiftDestinationDescription.S3DestinationDescription))
+
+		} else if destination.ElasticsearchDestinationDescription != nil {
+			d.Set("destination", "elasticsearch")
+
+			elasticsearchConfiguration := map[string]interface{}{
+				"buffering_interval":         *destination.ElasticsearchDestinationDescription.BufferingHints.IntervalInSeconds,
+				"buffering_size":             *destination.ElasticsearchDestinationDescription.BufferingHints.SizeInMBs,
+				"domain_arn":                 *destination.ElasticsearchDestinationDescription.DomainARN,
+				"role_arn":                   *destination.ElasticsearchDestinationDescription.RoleARN,
+				"type_name":                  *destination.ElasticsearchDestinationDescription.TypeName,
+				"index_name":                 *destination.ElasticsearchDestinationDescription.IndexName,
+				"s3_backup_mode":             *destination.ElasticsearchDestinationDescription.S3BackupMode,
+				"retry_duration":             *destination.ElasticsearchDestinationDescription.RetryOptions.DurationInSeconds,
+				"index_rotation_period":      *destination.ElasticsearchDestinationDescription.IndexRotationPeriod,
+				"cloudwatch_logging_options": flattenCloudwatchLoggingOptions(*destination.ElasticsearchDestinationDescription.CloudWatchLoggingOptions),
+			}
+			elasticsearchConfList := make([]map[string]interface{}, 1)
+			elasticsearchConfList[0] = elasticsearchConfiguration
+			d.Set("elasticsearch_configuration", elasticsearchConfList)
+			d.Set("s3_configuration", flattenFirehoseS3Configuration(*destination.ElasticsearchDestinationDescription.S3DestinationDescription))
+		} else if d.Get("destination").(string) == "s3" {
+			d.Set("destination", "s3")
+			d.Set("s3_configuration", flattenFirehoseS3Configuration(*destination.S3DestinationDescription))
+		} else {
+			d.Set("destination", "extended_s3")
+
+			roleArn := *destination.ExtendedS3DestinationDescription.RoleARN
+			extendedS3Configuration := map[string]interface{}{
+				"buffer_interval":            *destination.ExtendedS3DestinationDescription.BufferingHints.IntervalInSeconds,
+				"buffer_size":                *destination.ExtendedS3DestinationDescription.BufferingHints.SizeInMBs,
+				"bucket_arn":                 *destination.ExtendedS3DestinationDescription.BucketARN,
+				"role_arn":                   roleArn,
+				"compression_format":         *destination.ExtendedS3DestinationDescription.CompressionFormat,
+				"prefix":                     *destination.ExtendedS3DestinationDescription.Prefix,
+				"cloudwatch_logging_options": flattenCloudwatchLoggingOptions(*destination.ExtendedS3DestinationDescription.CloudWatchLoggingOptions),
+			}
+			if destination.ExtendedS3DestinationDescription.EncryptionConfiguration.KMSEncryptionConfig != nil {
+				extendedS3Configuration["kms_key_arn"] = *destination.ExtendedS3DestinationDescription.EncryptionConfiguration.KMSEncryptionConfig
+			}
+			if destination.ExtendedS3DestinationDescription.ProcessingConfiguration != nil {
+				extendedS3Configuration["processing_configuration"] = flattenProcessingConfiguration(
+					*destination.ExtendedS3DestinationDescription.ProcessingConfiguration, roleArn)
+			}
+			extendedS3ConfList := make([]map[string]interface{}, 1)
+			extendedS3ConfList[0] = extendedS3Configuration
+
+			err := d.Set("extended_s3_configuration", extendedS3ConfList)
+			if err != nil {
+				return err
+			}
+		}
+		d.Set("destination_id", *destination.DestinationId)
+	}
+	return nil
+}
+
 func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsKinesisFirehoseDeliveryStreamCreate,
 		Read:   resourceAwsKinesisFirehoseDeliveryStreamRead,
 		Update: resourceAwsKinesisFirehoseDeliveryStreamUpdate,
 		Delete: resourceAwsKinesisFirehoseDeliveryStreamDelete,
+
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				resARN, err := arn.Parse(d.Id())
+				if err != nil {
+					return nil, err
+				}
+				d.Set("name", strings.Split(resARN.Resource, "/")[1])
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsKinesisFirehoseMigrateState,
@@ -1103,17 +1290,15 @@ func resourceAwsKinesisFirehoseDeliveryStreamRead(d *schema.ResourceData, meta i
 				d.SetId("")
 				return nil
 			}
-			return fmt.Errorf("[WARN] Error reading Kinesis Firehose Delivery Stream: \"%s\", code: \"%s\"", awsErr.Message(), awsErr.Code())
+			return fmt.Errorf("[WARN] Error reading Kinesis Firehose Delivery Stream: %s", awsErr.Error())
 		}
 		return err
 	}
 
 	s := resp.DeliveryStreamDescription
-	d.Set("version_id", s.VersionId)
-	d.Set("arn", *s.DeliveryStreamARN)
-	if len(s.Destinations) > 0 {
-		destination := s.Destinations[0]
-		d.Set("destination_id", *destination.DestinationId)
+	err = flattenKinesisFirehoseDeliveryStream(d, s)
+	if err != nil {
+		return err
 	}
 
 	return nil

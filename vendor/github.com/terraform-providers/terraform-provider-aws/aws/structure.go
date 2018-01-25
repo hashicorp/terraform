@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -25,12 +27,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/mq"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/waf"
+	"github.com/beevik/etree"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 	"gopkg.in/yaml.v2"
 )
 
@@ -797,6 +802,34 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 	return att
 }
 
+func flattenEc2NetworkInterfaceAssociation(a *ec2.NetworkInterfaceAssociation) []interface{} {
+	att := make(map[string]interface{})
+	if a.AllocationId != nil {
+		att["allocation_id"] = *a.AllocationId
+	}
+	if a.AssociationId != nil {
+		att["association_id"] = *a.AssociationId
+	}
+	if a.IpOwnerId != nil {
+		att["ip_owner_id"] = *a.IpOwnerId
+	}
+	if a.PublicDnsName != nil {
+		att["public_dns_name"] = *a.PublicDnsName
+	}
+	if a.PublicIp != nil {
+		att["public_ip"] = *a.PublicIp
+	}
+	return []interface{}{att}
+}
+
+func flattenEc2NetworkInterfaceIpv6Address(niia []*ec2.NetworkInterfaceIpv6Address) []string {
+	ips := make([]string, 0, len(niia))
+	for _, v := range niia {
+		ips = append(ips, *v.Ipv6Address)
+	}
+	return ips
+}
+
 func flattenElastiCacheSecurityGroupNames(securityGroups []*elasticache.CacheSecurityGroupMembership) []string {
 	result := make([]string, 0, len(securityGroups))
 	for _, sg := range securityGroups {
@@ -1008,6 +1041,36 @@ func expandESEBSOptions(m map[string]interface{}) *elasticsearch.EBSOptions {
 	}
 	if v, ok := m["volume_type"]; ok && v.(string) != "" {
 		options.VolumeType = aws.String(v.(string))
+	}
+
+	return &options
+}
+
+func flattenESEncryptAtRestOptions(o *elasticsearch.EncryptionAtRestOptions) []map[string]interface{} {
+	if o == nil {
+		return []map[string]interface{}{}
+	}
+
+	m := map[string]interface{}{}
+
+	if o.Enabled != nil {
+		m["enabled"] = *o.Enabled
+	}
+	if o.KmsKeyId != nil {
+		m["kms_key_id"] = *o.KmsKeyId
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func expandESEncryptAtRestOptions(m map[string]interface{}) *elasticsearch.EncryptionAtRestOptions {
+	options := elasticsearch.EncryptionAtRestOptions{}
+
+	if v, ok := m["enabled"]; ok {
+		options.Enabled = aws.Bool(v.(bool))
+	}
+	if v, ok := m["kms_key_id"]; ok && v.(string) != "" {
+		options.KmsKeyId = aws.String(v.(string))
 	}
 
 	return &options
@@ -1932,30 +1995,6 @@ func expandConfigRuleScope(configured map[string]interface{}) *configservice.Sco
 	return scope
 }
 
-// Takes a value containing JSON string and passes it through
-// the JSON parser to normalize it, returns either a parsing
-// error or normalized JSON string.
-func normalizeJsonString(jsonString interface{}) (string, error) {
-	var j interface{}
-
-	if jsonString == nil || jsonString.(string) == "" {
-		return "", nil
-	}
-
-	s := jsonString.(string)
-
-	err := json.Unmarshal([]byte(s), &j)
-	if err != nil {
-		return s, err
-	}
-
-	// The error is intentionally ignored here to allow empty policies to passthrough validation.
-	// This covers any interpolated values
-	bytes, _ := json.Marshal(j)
-
-	return string(bytes[:]), nil
-}
-
 // Takes a value containing YAML string and passes it through
 // the YAML parser. Returns either a parsing
 // error or original YAML string.
@@ -1978,10 +2017,10 @@ func checkYamlString(yamlString interface{}) (string, error) {
 
 func normalizeCloudFormationTemplate(templateString interface{}) (string, error) {
 	if looksLikeJsonString(templateString) {
-		return normalizeJsonString(templateString)
-	} else {
-		return checkYamlString(templateString)
+		return structure.NormalizeJsonString(templateString.(string))
 	}
+
+	return checkYamlString(templateString)
 }
 
 func flattenInspectorTags(cfTags []*cloudformation.Tag) map[string]string {
@@ -2137,6 +2176,520 @@ func flattenCognitoIdentityProviders(ips []*cognitoidentity.Provider) []map[stri
 	return values
 }
 
+func flattenCognitoUserPoolEmailConfiguration(s *cognitoidentityprovider.EmailConfigurationType) []map[string]interface{} {
+	m := make(map[string]interface{}, 0)
+
+	if s == nil {
+		return nil
+	}
+
+	if s.ReplyToEmailAddress != nil {
+		m["reply_to_email_address"] = *s.ReplyToEmailAddress
+	}
+
+	if s.SourceArn != nil {
+		m["source_arn"] = *s.SourceArn
+	}
+
+	if len(m) > 0 {
+		return []map[string]interface{}{m}
+	}
+
+	return []map[string]interface{}{}
+}
+
+func expandCognitoUserPoolAdminCreateUserConfig(config map[string]interface{}) *cognitoidentityprovider.AdminCreateUserConfigType {
+	configs := &cognitoidentityprovider.AdminCreateUserConfigType{}
+
+	if v, ok := config["allow_admin_create_user_only"]; ok {
+		configs.AllowAdminCreateUserOnly = aws.Bool(v.(bool))
+	}
+
+	if v, ok := config["invite_message_template"]; ok {
+		data := v.([]interface{})
+
+		if len(data) > 0 {
+			m, ok := data[0].(map[string]interface{})
+
+			if ok {
+				imt := &cognitoidentityprovider.MessageTemplateType{}
+
+				if v, ok := m["email_message"]; ok {
+					imt.EmailMessage = aws.String(v.(string))
+				}
+
+				if v, ok := m["email_subject"]; ok {
+					imt.EmailSubject = aws.String(v.(string))
+				}
+
+				if v, ok := m["sms_message"]; ok {
+					imt.SMSMessage = aws.String(v.(string))
+				}
+
+				configs.InviteMessageTemplate = imt
+			}
+		}
+	}
+
+	configs.UnusedAccountValidityDays = aws.Int64(int64(config["unused_account_validity_days"].(int)))
+
+	return configs
+}
+
+func flattenCognitoUserPoolAdminCreateUserConfig(s *cognitoidentityprovider.AdminCreateUserConfigType) []map[string]interface{} {
+	config := map[string]interface{}{}
+
+	if s == nil {
+		return nil
+	}
+
+	if s.AllowAdminCreateUserOnly != nil {
+		config["allow_admin_create_user_only"] = *s.AllowAdminCreateUserOnly
+	}
+
+	if s.InviteMessageTemplate != nil {
+		subconfig := map[string]interface{}{}
+
+		if s.InviteMessageTemplate.EmailMessage != nil {
+			subconfig["email_message"] = *s.InviteMessageTemplate.EmailMessage
+		}
+
+		if s.InviteMessageTemplate.EmailSubject != nil {
+			subconfig["email_subject"] = *s.InviteMessageTemplate.EmailSubject
+		}
+
+		if s.InviteMessageTemplate.SMSMessage != nil {
+			subconfig["sms_message"] = *s.InviteMessageTemplate.SMSMessage
+		}
+
+		if len(subconfig) > 0 {
+			config["invite_message_template"] = []map[string]interface{}{subconfig}
+		}
+	}
+
+	config["unused_account_validity_days"] = *s.UnusedAccountValidityDays
+
+	return []map[string]interface{}{config}
+}
+
+func expandCognitoUserPoolDeviceConfiguration(config map[string]interface{}) *cognitoidentityprovider.DeviceConfigurationType {
+	configs := &cognitoidentityprovider.DeviceConfigurationType{}
+
+	if v, ok := config["challenge_required_on_new_device"]; ok {
+		configs.ChallengeRequiredOnNewDevice = aws.Bool(v.(bool))
+	}
+
+	if v, ok := config["device_only_remembered_on_user_prompt"]; ok {
+		configs.DeviceOnlyRememberedOnUserPrompt = aws.Bool(v.(bool))
+	}
+
+	return configs
+}
+
+func flattenCognitoUserPoolDeviceConfiguration(s *cognitoidentityprovider.DeviceConfigurationType) []map[string]interface{} {
+	config := map[string]interface{}{}
+
+	if s == nil {
+		return nil
+	}
+
+	if s.ChallengeRequiredOnNewDevice != nil {
+		config["challenge_required_on_new_device"] = *s.ChallengeRequiredOnNewDevice
+	}
+
+	if s.DeviceOnlyRememberedOnUserPrompt != nil {
+		config["device_only_remembered_on_user_prompt"] = *s.DeviceOnlyRememberedOnUserPrompt
+	}
+
+	return []map[string]interface{}{config}
+}
+
+func expandCognitoUserPoolLambdaConfig(config map[string]interface{}) *cognitoidentityprovider.LambdaConfigType {
+	configs := &cognitoidentityprovider.LambdaConfigType{}
+
+	if v, ok := config["create_auth_challenge"]; ok && v.(string) != "" {
+		configs.CreateAuthChallenge = aws.String(v.(string))
+	}
+
+	if v, ok := config["custom_message"]; ok && v.(string) != "" {
+		configs.CustomMessage = aws.String(v.(string))
+	}
+
+	if v, ok := config["define_auth_challenge"]; ok && v.(string) != "" {
+		configs.DefineAuthChallenge = aws.String(v.(string))
+	}
+
+	if v, ok := config["post_authentication"]; ok && v.(string) != "" {
+		configs.PostAuthentication = aws.String(v.(string))
+	}
+
+	if v, ok := config["post_confirmation"]; ok && v.(string) != "" {
+		configs.PostConfirmation = aws.String(v.(string))
+	}
+
+	if v, ok := config["pre_authentication"]; ok && v.(string) != "" {
+		configs.PreAuthentication = aws.String(v.(string))
+	}
+
+	if v, ok := config["pre_sign_up"]; ok && v.(string) != "" {
+		configs.PreSignUp = aws.String(v.(string))
+	}
+
+	if v, ok := config["pre_token_generation"]; ok && v.(string) != "" {
+		configs.PreTokenGeneration = aws.String(v.(string))
+	}
+
+	if v, ok := config["verify_auth_challenge_response"]; ok && v.(string) != "" {
+		configs.VerifyAuthChallengeResponse = aws.String(v.(string))
+	}
+
+	return configs
+}
+
+func flattenCognitoUserPoolLambdaConfig(s *cognitoidentityprovider.LambdaConfigType) []map[string]interface{} {
+	m := map[string]interface{}{}
+
+	if s == nil {
+		return nil
+	}
+
+	if s.CreateAuthChallenge != nil {
+		m["create_auth_challenge"] = *s.CreateAuthChallenge
+	}
+
+	if s.CustomMessage != nil {
+		m["custom_message"] = *s.CustomMessage
+	}
+
+	if s.DefineAuthChallenge != nil {
+		m["define_auth_challenge"] = *s.DefineAuthChallenge
+	}
+
+	if s.PostAuthentication != nil {
+		m["post_authentication"] = *s.PostAuthentication
+	}
+
+	if s.PostConfirmation != nil {
+		m["post_confirmation"] = *s.PostConfirmation
+	}
+
+	if s.PreAuthentication != nil {
+		m["pre_authentication"] = *s.PreAuthentication
+	}
+
+	if s.PreSignUp != nil {
+		m["pre_sign_up"] = *s.PreSignUp
+	}
+
+	if s.PreTokenGeneration != nil {
+		m["pre_token_generation"] = *s.PreTokenGeneration
+	}
+
+	if s.VerifyAuthChallengeResponse != nil {
+		m["verify_auth_challenge_response"] = *s.VerifyAuthChallengeResponse
+	}
+
+	if len(m) > 0 {
+		return []map[string]interface{}{m}
+	}
+
+	return []map[string]interface{}{}
+}
+
+func expandCognitoUserPoolPasswordPolicy(config map[string]interface{}) *cognitoidentityprovider.PasswordPolicyType {
+	configs := &cognitoidentityprovider.PasswordPolicyType{}
+
+	if v, ok := config["minimum_length"]; ok {
+		configs.MinimumLength = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := config["require_lowercase"]; ok {
+		configs.RequireLowercase = aws.Bool(v.(bool))
+	}
+
+	if v, ok := config["require_numbers"]; ok {
+		configs.RequireNumbers = aws.Bool(v.(bool))
+	}
+
+	if v, ok := config["require_symbols"]; ok {
+		configs.RequireSymbols = aws.Bool(v.(bool))
+	}
+
+	if v, ok := config["require_uppercase"]; ok {
+		configs.RequireUppercase = aws.Bool(v.(bool))
+	}
+
+	return configs
+}
+
+func flattenCognitoUserPoolPasswordPolicy(s *cognitoidentityprovider.PasswordPolicyType) []map[string]interface{} {
+	m := map[string]interface{}{}
+
+	if s == nil {
+		return nil
+	}
+
+	if s.MinimumLength != nil {
+		m["minimum_length"] = *s.MinimumLength
+	}
+
+	if s.RequireLowercase != nil {
+		m["require_lowercase"] = *s.RequireLowercase
+	}
+
+	if s.RequireNumbers != nil {
+		m["require_numbers"] = *s.RequireNumbers
+	}
+
+	if s.RequireSymbols != nil {
+		m["require_symbols"] = *s.RequireSymbols
+	}
+
+	if s.RequireUppercase != nil {
+		m["require_uppercase"] = *s.RequireUppercase
+	}
+
+	if len(m) > 0 {
+		return []map[string]interface{}{m}
+	}
+
+	return []map[string]interface{}{}
+}
+
+func expandCognitoUserPoolSchema(inputs []interface{}) []*cognitoidentityprovider.SchemaAttributeType {
+	configs := make([]*cognitoidentityprovider.SchemaAttributeType, len(inputs), len(inputs))
+
+	for i, input := range inputs {
+		param := input.(map[string]interface{})
+		config := &cognitoidentityprovider.SchemaAttributeType{}
+
+		if v, ok := param["attribute_data_type"]; ok {
+			config.AttributeDataType = aws.String(v.(string))
+		}
+
+		if v, ok := param["developer_only_attribute"]; ok {
+			config.DeveloperOnlyAttribute = aws.Bool(v.(bool))
+		}
+
+		if v, ok := param["mutable"]; ok {
+			config.Mutable = aws.Bool(v.(bool))
+		}
+
+		if v, ok := param["name"]; ok {
+			config.Name = aws.String(v.(string))
+		}
+
+		if v, ok := param["required"]; ok {
+			config.Required = aws.Bool(v.(bool))
+		}
+
+		if v, ok := param["number_attribute_constraints"]; ok {
+			data := v.([]interface{})
+
+			if len(data) > 0 {
+				m, ok := data[0].(map[string]interface{})
+				if ok {
+					numberAttributeConstraintsType := &cognitoidentityprovider.NumberAttributeConstraintsType{}
+
+					if v, ok := m["min_value"]; ok && v.(string) != "" {
+						numberAttributeConstraintsType.MinValue = aws.String(v.(string))
+					}
+
+					if v, ok := m["max_value"]; ok && v.(string) != "" {
+						numberAttributeConstraintsType.MaxValue = aws.String(v.(string))
+					}
+
+					config.NumberAttributeConstraints = numberAttributeConstraintsType
+				}
+			}
+		}
+
+		if v, ok := param["string_attribute_constraints"]; ok {
+			data := v.([]interface{})
+
+			if len(data) > 0 {
+				m, _ := data[0].(map[string]interface{})
+				if ok {
+					stringAttributeConstraintsType := &cognitoidentityprovider.StringAttributeConstraintsType{}
+
+					if l, ok := m["min_length"]; ok && l.(string) != "" {
+						stringAttributeConstraintsType.MinLength = aws.String(l.(string))
+					}
+
+					if l, ok := m["max_length"]; ok && l.(string) != "" {
+						stringAttributeConstraintsType.MaxLength = aws.String(l.(string))
+					}
+
+					config.StringAttributeConstraints = stringAttributeConstraintsType
+				}
+			}
+		}
+
+		configs[i] = config
+	}
+
+	return configs
+}
+
+func flattenCognitoUserPoolSchema(inputs []*cognitoidentityprovider.SchemaAttributeType) []map[string]interface{} {
+	values := make([]map[string]interface{}, len(inputs), len(inputs))
+
+	for i, input := range inputs {
+		value := make(map[string]interface{})
+
+		if input == nil {
+			return nil
+		}
+
+		if input.AttributeDataType != nil {
+			value["attribute_data_type"] = *input.AttributeDataType
+		}
+
+		if input.DeveloperOnlyAttribute != nil {
+			value["developer_only_attribute"] = *input.DeveloperOnlyAttribute
+		}
+
+		if input.Mutable != nil {
+			value["mutable"] = *input.Mutable
+		}
+
+		if input.Name != nil {
+			value["name"] = *input.Name
+		}
+
+		if input.NumberAttributeConstraints != nil {
+			subvalue := make(map[string]interface{})
+
+			if input.NumberAttributeConstraints.MinValue != nil {
+				subvalue["min_value"] = input.NumberAttributeConstraints.MinValue
+			}
+
+			if input.NumberAttributeConstraints.MaxValue != nil {
+				subvalue["max_value"] = input.NumberAttributeConstraints.MaxValue
+			}
+
+			value["number_attribute_constraints"] = subvalue
+		}
+
+		if input.Required != nil {
+			value["required"] = *input.Required
+		}
+
+		if input.StringAttributeConstraints != nil {
+			subvalue := make(map[string]interface{})
+
+			if input.StringAttributeConstraints.MinLength != nil {
+				subvalue["min_length"] = input.StringAttributeConstraints.MinLength
+			}
+
+			if input.StringAttributeConstraints.MaxLength != nil {
+				subvalue["max_length"] = input.StringAttributeConstraints.MaxLength
+			}
+
+			value["string_attribute_constraints"] = subvalue
+		}
+
+		values[i] = value
+	}
+
+	return values
+}
+
+func expandCognitoUserPoolSmsConfiguration(config map[string]interface{}) *cognitoidentityprovider.SmsConfigurationType {
+	smsConfigurationType := &cognitoidentityprovider.SmsConfigurationType{
+		SnsCallerArn: aws.String(config["sns_caller_arn"].(string)),
+	}
+
+	if v, ok := config["external_id"]; ok && v.(string) != "" {
+		smsConfigurationType.ExternalId = aws.String(v.(string))
+	}
+
+	return smsConfigurationType
+}
+
+func flattenCognitoUserPoolSmsConfiguration(s *cognitoidentityprovider.SmsConfigurationType) []map[string]interface{} {
+	m := map[string]interface{}{}
+
+	if s == nil {
+		return nil
+	}
+
+	if s.ExternalId != nil {
+		m["external_id"] = *s.ExternalId
+	}
+	m["sns_caller_arn"] = *s.SnsCallerArn
+
+	return []map[string]interface{}{m}
+}
+
+func expandCognitoUserPoolVerificationMessageTemplate(config map[string]interface{}) *cognitoidentityprovider.VerificationMessageTemplateType {
+	verificationMessageTemplateType := &cognitoidentityprovider.VerificationMessageTemplateType{}
+
+	if v, ok := config["default_email_option"]; ok && v.(string) != "" {
+		verificationMessageTemplateType.DefaultEmailOption = aws.String(v.(string))
+	}
+
+	if v, ok := config["email_message"]; ok && v.(string) != "" {
+		verificationMessageTemplateType.EmailMessage = aws.String(v.(string))
+	}
+
+	if v, ok := config["email_message_by_link"]; ok && v.(string) != "" {
+		verificationMessageTemplateType.EmailMessageByLink = aws.String(v.(string))
+	}
+
+	if v, ok := config["email_subject"]; ok && v.(string) != "" {
+		verificationMessageTemplateType.EmailSubject = aws.String(v.(string))
+	}
+
+	if v, ok := config["email_subject_by_link"]; ok && v.(string) != "" {
+		verificationMessageTemplateType.EmailSubjectByLink = aws.String(v.(string))
+	}
+
+	if v, ok := config["sms_message"]; ok && v.(string) != "" {
+		verificationMessageTemplateType.SmsMessage = aws.String(v.(string))
+	}
+
+	return verificationMessageTemplateType
+}
+
+func flattenCognitoUserPoolVerificationMessageTemplate(s *cognitoidentityprovider.VerificationMessageTemplateType) []map[string]interface{} {
+	m := map[string]interface{}{}
+
+	if s == nil {
+		return nil
+	}
+
+	if s.DefaultEmailOption != nil {
+		m["default_email_option"] = *s.DefaultEmailOption
+	}
+
+	if s.EmailMessage != nil {
+		m["email_message"] = *s.EmailMessage
+	}
+
+	if s.EmailMessageByLink != nil {
+		m["email_message_by_link"] = *s.EmailMessageByLink
+	}
+
+	if s.EmailSubject != nil {
+		m["email_subject"] = *s.EmailSubject
+	}
+
+	if s.EmailSubjectByLink != nil {
+		m["email_subject_by_link"] = *s.EmailSubjectByLink
+	}
+
+	if s.SmsMessage != nil {
+		m["sms_message"] = *s.SmsMessage
+	}
+
+	if len(m) > 0 {
+		return []map[string]interface{}{m}
+	}
+
+	return []map[string]interface{}{}
+}
+
 func buildLambdaInvokeArn(lambdaArn, region string) string {
 	apiVersion := "2015-03-31"
 	return fmt.Sprintf("arn:aws:apigateway:%s:lambda:path/%s/functions/%s/invocations",
@@ -2154,7 +2707,7 @@ func sliceContainsMap(l []interface{}, m map[string]interface{}) (int, bool) {
 }
 
 func expandAwsSsmTargets(d *schema.ResourceData) []*ssm.Target {
-	var targets []*ssm.Target
+	targets := make([]*ssm.Target, 0)
 
 	targetConfig := d.Get("targets").([]interface{})
 
@@ -2178,13 +2731,13 @@ func flattenAwsSsmTargets(targets []*ssm.Target) []map[string]interface{} {
 	}
 
 	result := make([]map[string]interface{}, 0, len(targets))
-	target := targets[0]
+	for _, target := range targets {
+		t := make(map[string]interface{}, 1)
+		t["key"] = *target.Key
+		t["values"] = flattenStringList(target.Values)
 
-	t := make(map[string]interface{})
-	t["key"] = *target.Key
-	t["values"] = flattenStringList(target.Values)
-
-	result = append(result, t)
+		result = append(result, t)
+	}
 
 	return result
 }
@@ -2373,4 +2926,151 @@ func flattenRedshiftSnapshotCopy(scs *redshift.ClusterSnapshotCopyStatus) []inte
 	}
 
 	return []interface{}{cfg}
+}
+
+// cannonicalXML reads XML in a string and re-writes it canonically, used for
+// comparing XML for logical equivalency
+func canonicalXML(s string) (string, error) {
+	doc := etree.NewDocument()
+	doc.WriteSettings.CanonicalEndTags = true
+	if err := doc.ReadFromString(s); err != nil {
+		return "", err
+	}
+
+	rawString, err := doc.WriteToString()
+	if err != nil {
+		return "", err
+	}
+
+	re := regexp.MustCompile(`\s`)
+	results := re.ReplaceAllString(rawString, "")
+	return results, nil
+}
+
+func expandMqUsers(cfg []interface{}) []*mq.User {
+	users := make([]*mq.User, len(cfg), len(cfg))
+	for i, m := range cfg {
+		u := m.(map[string]interface{})
+		user := mq.User{
+			Username: aws.String(u["username"].(string)),
+			Password: aws.String(u["password"].(string)),
+		}
+		if v, ok := u["console_access"]; ok {
+			user.ConsoleAccess = aws.Bool(v.(bool))
+		}
+		if v, ok := u["groups"]; ok {
+			user.Groups = expandStringList(v.(*schema.Set).List())
+		}
+		users[i] = &user
+	}
+	return users
+}
+
+// We use cfgdUsers to get & set the password
+func flattenMqUsers(users []*mq.User, cfgUsers []interface{}) *schema.Set {
+	existingPairs := make(map[string]string, 0)
+	for _, u := range cfgUsers {
+		user := u.(map[string]interface{})
+		username := user["username"].(string)
+		existingPairs[username] = user["password"].(string)
+	}
+
+	out := make([]interface{}, 0)
+	for _, u := range users {
+		password := ""
+		if p, ok := existingPairs[*u.Username]; ok {
+			password = p
+		}
+		m := map[string]interface{}{
+			"username": *u.Username,
+			"password": password,
+		}
+		if u.ConsoleAccess != nil {
+			m["console_access"] = *u.ConsoleAccess
+		}
+		if len(u.Groups) > 0 {
+			m["groups"] = schema.NewSet(schema.HashString, flattenStringList(u.Groups))
+		}
+		out = append(out, m)
+	}
+	return schema.NewSet(resourceAwsMqUserHash, out)
+}
+
+func expandMqWeeklyStartTime(cfg []interface{}) *mq.WeeklyStartTime {
+	if len(cfg) < 1 {
+		return nil
+	}
+
+	m := cfg[0].(map[string]interface{})
+	return &mq.WeeklyStartTime{
+		DayOfWeek: aws.String(m["day_of_week"].(string)),
+		TimeOfDay: aws.String(m["time_of_day"].(string)),
+		TimeZone:  aws.String(m["time_zone"].(string)),
+	}
+}
+
+func flattenMqWeeklyStartTime(wst *mq.WeeklyStartTime) []interface{} {
+	if wst == nil {
+		return []interface{}{}
+	}
+	m := make(map[string]interface{}, 0)
+	if wst.DayOfWeek != nil {
+		m["day_of_week"] = *wst.DayOfWeek
+	}
+	if wst.TimeOfDay != nil {
+		m["time_of_day"] = *wst.TimeOfDay
+	}
+	if wst.TimeZone != nil {
+		m["time_zone"] = *wst.TimeZone
+	}
+	return []interface{}{m}
+}
+
+func expandMqConfigurationId(cfg []interface{}) *mq.ConfigurationId {
+	if len(cfg) < 1 {
+		return nil
+	}
+
+	m := cfg[0].(map[string]interface{})
+	out := mq.ConfigurationId{
+		Id: aws.String(m["id"].(string)),
+	}
+	if v, ok := m["revision"].(int); ok && v > 0 {
+		out.Revision = aws.Int64(int64(v))
+	}
+
+	return &out
+}
+
+func flattenMqConfigurationId(cid *mq.ConfigurationId) []interface{} {
+	if cid == nil {
+		return []interface{}{}
+	}
+	m := make(map[string]interface{}, 0)
+	if cid.Id != nil {
+		m["id"] = *cid.Id
+	}
+	if cid.Revision != nil {
+		m["revision"] = *cid.Revision
+	}
+	return []interface{}{m}
+}
+
+func flattenMqBrokerInstances(instances []*mq.BrokerInstance) []interface{} {
+	if len(instances) == 0 {
+		return []interface{}{}
+	}
+	l := make([]interface{}, len(instances), len(instances))
+	for i, instance := range instances {
+		m := make(map[string]interface{}, 0)
+		if instance.ConsoleURL != nil {
+			m["console_url"] = *instance.ConsoleURL
+		}
+		if len(instance.Endpoints) > 0 {
+			m["endpoints"] = aws.StringValueSlice(instance.Endpoints)
+		}
+		l[i] = m
+	}
+
+	return l
 }

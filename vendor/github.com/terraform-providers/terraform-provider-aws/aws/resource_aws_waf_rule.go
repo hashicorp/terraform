@@ -100,7 +100,7 @@ func resourceAwsWafRuleRead(d *schema.ResourceData, meta interface{}) error {
 	resp, err := conn.GetRule(params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "WAFNonexistentItemException" {
-			log.Printf("[WARN] WAF Rule (%s) not found, error code (404)", d.Id())
+			log.Printf("[WARN] WAF Rule (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

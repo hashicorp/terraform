@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -29,6 +30,9 @@ func resourceAwsElasticacheParameterGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
+				StateFunc: func(val interface{}) string {
+					return strings.ToLower(val.(string))
+				},
 			},
 			"family": &schema.Schema{
 				Type:     schema.TypeString,
@@ -72,7 +76,7 @@ func resourceAwsElasticacheParameterGroupCreate(d *schema.ResourceData, meta int
 	}
 
 	log.Printf("[DEBUG] Create Cache Parameter Group: %#v", createOpts)
-	_, err := conn.CreateCacheParameterGroup(&createOpts)
+	resp, err := conn.CreateCacheParameterGroup(&createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating Cache Parameter Group: %s", err)
 	}
@@ -83,7 +87,7 @@ func resourceAwsElasticacheParameterGroupCreate(d *schema.ResourceData, meta int
 	d.SetPartial("description")
 	d.Partial(false)
 
-	d.SetId(*createOpts.CacheParameterGroupName)
+	d.SetId(*resp.CacheParameterGroup.CacheParameterGroupName)
 	log.Printf("[INFO] Cache Parameter Group ID: %s", d.Id())
 
 	return resourceAwsElasticacheParameterGroupUpdate(d, meta)

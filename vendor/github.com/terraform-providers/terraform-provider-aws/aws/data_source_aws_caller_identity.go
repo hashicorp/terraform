@@ -35,7 +35,9 @@ func dataSourceAwsCallerIdentity() *schema.Resource {
 func dataSourceAwsCallerIdentityRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).stsconn
 
+	log.Printf("[DEBUG] Reading Caller Identity")
 	res, err := client.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+
 	if err != nil {
 		return fmt.Errorf("Error getting Caller Identity: %v", err)
 	}
@@ -46,5 +48,6 @@ func dataSourceAwsCallerIdentityRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("account_id", res.Account)
 	d.Set("arn", res.Arn)
 	d.Set("user_id", res.UserId)
+
 	return nil
 }

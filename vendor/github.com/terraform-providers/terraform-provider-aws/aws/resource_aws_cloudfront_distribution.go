@@ -666,9 +666,19 @@ func resourceAwsCloudFrontDistributionDelete(d *schema.ResourceData, meta interf
 		IfMatch: aws.String(d.Get("etag").(string)),
 	}
 
-	_, err = conn.DeleteDistribution(params)
+	// Eventual consistency for "deployed" state
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		_, err := conn.DeleteDistribution(params)
+		if err != nil {
+			if isAWSErr(err, cloudfront.ErrCodeDistributionNotDisabled, "The distribution you are trying to delete has not been disabled.") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("CloudFront Distribution %s cannot be deleted: %s", d.Id(), err)
 	}
 
 	// Done

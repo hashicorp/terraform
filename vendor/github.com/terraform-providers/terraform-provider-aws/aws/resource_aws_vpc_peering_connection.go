@@ -49,6 +49,12 @@ func resourceAwsVpcPeeringConnection() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"peer_region": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
 			"accepter":  vpcPeeringConnectionOptionsSchema(),
 			"requester": vpcPeeringConnectionOptionsSchema(),
 			"tags":      tagsSchema(),
@@ -69,6 +75,13 @@ func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error
 		createOpts.PeerOwnerId = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("peer_region"); ok {
+		if _, ok := d.GetOk("auto_accept"); ok {
+			return fmt.Errorf("peer_region cannot be set whilst auto_accept is true when creating a vpc peering connection")
+		}
+		createOpts.PeerRegion = aws.String(v.(string))
+	}
+
 	log.Printf("[DEBUG] VPC Peering Create options: %#v", createOpts)
 
 	resp, err := conn.CreateVpcPeeringConnection(createOpts)
@@ -81,18 +94,9 @@ func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error
 	d.SetId(*rt.VpcPeeringConnectionId)
 	log.Printf("[INFO] VPC Peering Connection ID: %s", d.Id())
 
-	// Wait for the vpc peering connection to become available
-	log.Printf("[DEBUG] Waiting for VPC Peering Connection (%s) to become available.", d.Id())
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"initiating-request", "provisioning", "pending"},
-		Target:  []string{"pending-acceptance", "active"},
-		Refresh: resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id()),
-		Timeout: 1 * time.Minute,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return errwrap.Wrapf(fmt.Sprintf(
-			"Error waiting for VPC Peering Connection (%s) to become available: {{err}}",
-			d.Id()), err)
+	vpcAvailableErr := checkVpcPeeringConnectionAvailable(conn, d.Id())
+	if vpcAvailableErr != nil {
+		return errwrap.Wrapf("Error waiting for VPC Peering Connection to become available: {{err}}", vpcAvailableErr)
 	}
 
 	return resourceAwsVPCPeeringUpdate(d, meta)
@@ -151,6 +155,7 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("vpc_id", pc.RequesterVpcInfo.VpcId)
 	}
 
+	d.Set("peer_region", pc.AccepterVpcInfo.Region)
 	d.Set("accept_status", pc.Status.Code)
 
 	// When the VPC Peering Connection is pending acceptance,
@@ -266,6 +271,11 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
+	vpcAvailableErr := checkVpcPeeringConnectionAvailable(conn, d.Id())
+	if vpcAvailableErr != nil {
+		return errwrap.Wrapf("Error waiting for VPC Peering Connection to become available: {{err}}", vpcAvailableErr)
+	}
+
 	return resourceAwsVPCPeeringRead(d, meta)
 }
 
@@ -276,6 +286,20 @@ func resourceAwsVPCPeeringDelete(d *schema.ResourceData, meta interface{}) error
 		&ec2.DeleteVpcPeeringConnectionInput{
 			VpcPeeringConnectionId: aws.String(d.Id()),
 		})
+
+	// Wait for the vpc peering connection to become available
+	log.Printf("[DEBUG] Waiting for VPC Peering Connection (%s) to delete.", d.Id())
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"deleting"},
+		Target:  []string{"rejecting", "deleted"},
+		Refresh: resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id()),
+		Timeout: 1 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf(
+			"Error waiting for VPC Peering Connection (%s) to be deleted: {{err}}",
+			d.Id()), err)
+	}
 
 	return err
 }
@@ -378,4 +402,21 @@ func expandPeeringOptions(m map[string]interface{}) *ec2.PeeringConnectionOption
 	}
 
 	return r
+}
+
+func checkVpcPeeringConnectionAvailable(conn *ec2.EC2, id string) error {
+	// Wait for the vpc peering connection to become available
+	log.Printf("[DEBUG] Waiting for VPC Peering Connection (%s) to become available.", id)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"initiating-request", "provisioning", "pending"},
+		Target:  []string{"pending-acceptance", "active"},
+		Refresh: resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, id),
+		Timeout: 1 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf(
+			"Error waiting for VPC Peering Connection (%s) to become available: {{err}}",
+			id), err)
+	}
+	return nil
 }

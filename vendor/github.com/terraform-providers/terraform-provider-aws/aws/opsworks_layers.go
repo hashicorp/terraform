@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/opsworks"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 // OpsWorks has a single concept of "layer" which represents several different
@@ -45,148 +46,151 @@ var (
 
 func (lt *opsworksLayerType) SchemaResource() *schema.Resource {
 	resourceSchema := map[string]*schema.Schema{
-		"auto_assign_elastic_ips": &schema.Schema{
+		"auto_assign_elastic_ips": {
 			Type:     schema.TypeBool,
 			Optional: true,
 			Default:  false,
 		},
 
-		"auto_assign_public_ips": &schema.Schema{
+		"auto_assign_public_ips": {
 			Type:     schema.TypeBool,
 			Optional: true,
 			Default:  false,
 		},
 
-		"custom_instance_profile_arn": &schema.Schema{
+		"custom_instance_profile_arn": {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
 
-		"elastic_load_balancer": &schema.Schema{
+		"elastic_load_balancer": {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
 
-		"custom_setup_recipes": &schema.Schema{
+		"custom_setup_recipes": {
 			Type:     schema.TypeList,
 			Optional: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 		},
 
-		"custom_configure_recipes": &schema.Schema{
+		"custom_configure_recipes": {
 			Type:     schema.TypeList,
 			Optional: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 		},
 
-		"custom_deploy_recipes": &schema.Schema{
+		"custom_deploy_recipes": {
 			Type:     schema.TypeList,
 			Optional: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 		},
 
-		"custom_undeploy_recipes": &schema.Schema{
+		"custom_undeploy_recipes": {
 			Type:     schema.TypeList,
 			Optional: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 		},
 
-		"custom_shutdown_recipes": &schema.Schema{
+		"custom_shutdown_recipes": {
 			Type:     schema.TypeList,
 			Optional: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 		},
 
-		"custom_security_group_ids": &schema.Schema{
+		"custom_security_group_ids": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 			Set:      schema.HashString,
 		},
 
-		"custom_json": &schema.Schema{
-			Type:      schema.TypeString,
-			StateFunc: normalizeJson,
-			Optional:  true,
+		"custom_json": {
+			Type: schema.TypeString,
+			StateFunc: func(v interface{}) string {
+				json, _ := structure.NormalizeJsonString(v)
+				return json
+			},
+			Optional: true,
 		},
 
-		"auto_healing": &schema.Schema{
+		"auto_healing": {
 			Type:     schema.TypeBool,
 			Optional: true,
 			Default:  true,
 		},
 
-		"install_updates_on_boot": &schema.Schema{
+		"install_updates_on_boot": {
 			Type:     schema.TypeBool,
 			Optional: true,
 			Default:  true,
 		},
 
-		"instance_shutdown_timeout": &schema.Schema{
+		"instance_shutdown_timeout": {
 			Type:     schema.TypeInt,
 			Optional: true,
 			Default:  120,
 		},
 
-		"drain_elb_on_shutdown": &schema.Schema{
+		"drain_elb_on_shutdown": {
 			Type:     schema.TypeBool,
 			Optional: true,
 			Default:  true,
 		},
 
-		"system_packages": &schema.Schema{
+		"system_packages": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 			Set:      schema.HashString,
 		},
 
-		"stack_id": &schema.Schema{
+		"stack_id": {
 			Type:     schema.TypeString,
 			ForceNew: true,
 			Required: true,
 		},
 
-		"use_ebs_optimized_instances": &schema.Schema{
+		"use_ebs_optimized_instances": {
 			Type:     schema.TypeBool,
 			Optional: true,
 			Default:  false,
 		},
 
-		"ebs_volume": &schema.Schema{
+		"ebs_volume": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 
-					"iops": &schema.Schema{
+					"iops": {
 						Type:     schema.TypeInt,
 						Optional: true,
 						Default:  0,
 					},
 
-					"mount_point": &schema.Schema{
+					"mount_point": {
 						Type:     schema.TypeString,
 						Required: true,
 					},
 
-					"number_of_disks": &schema.Schema{
+					"number_of_disks": {
 						Type:     schema.TypeInt,
 						Required: true,
 					},
 
-					"raid_level": &schema.Schema{
+					"raid_level": {
 						Type:     schema.TypeString,
 						Optional: true,
 						Default:  "",
 					},
 
-					"size": &schema.Schema{
+					"size": {
 						Type:     schema.TypeInt,
 						Required: true,
 					},
 
-					"type": &schema.Schema{
+					"type": {
 						Type:     schema.TypeString,
 						Optional: true,
 						Default:  "standard",
@@ -292,12 +296,14 @@ func (lt *opsworksLayerType) Read(d *schema.ResourceData, client *opsworks.OpsWo
 		d.Set("short_name", layer.Shortname)
 	}
 
-	if v := layer.CustomJson; v == nil {
-		if err := d.Set("custom_json", ""); err != nil {
-			return err
+	if layer.CustomJson == nil {
+		d.Set("custom_json", "")
+	} else {
+		policy, err := structure.NormalizeJsonString(*layer.CustomJson)
+		if err != nil {
+			return fmt.Errorf("policy contains an invalid JSON: %s", err)
 		}
-	} else if err := d.Set("custom_json", normalizeJson(*v)); err != nil {
-		return err
+		d.Set("custom_json", policy)
 	}
 
 	lt.SetAttributeMap(d, layer.Attributes)

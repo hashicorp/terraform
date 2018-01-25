@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -136,6 +137,7 @@ func dataSourceAwsLbRead(d *schema.ResourceData, meta interface{}) error {
 		describeLbOpts.Names = []*string{aws.String(lbName)}
 	}
 
+	log.Printf("[DEBUG] Reading Load Balancer: %s", describeLbOpts)
 	describeResp, err := elbconn.DescribeLoadBalancers(describeLbOpts)
 	if err != nil {
 		return errwrap.Wrapf("Error retrieving LB: {{err}}", err)

@@ -2,8 +2,10 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -67,6 +69,21 @@ func dataSourceAwsIAMServerCertificate() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"upload_date": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"certificate_body": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"certificate_chain": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -98,6 +115,7 @@ func dataSourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interfac
 	}
 
 	var metadatas = []*iam.ServerCertificateMetadata{}
+	log.Printf("[DEBUG] Reading IAM Server Certificate")
 	err := iamconn.ListServerCertificatesPages(&iam.ListServerCertificatesInput{}, func(p *iam.ListServerCertificatesOutput, lastPage bool) bool {
 		for _, cert := range p.ServerCertificateMetadataList {
 			if matcher(cert) {
@@ -127,8 +145,19 @@ func dataSourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interfac
 	d.Set("path", *metadata.Path)
 	d.Set("name", *metadata.ServerCertificateName)
 	if metadata.Expiration != nil {
-		d.Set("expiration_date", metadata.Expiration.Format("2006-01-02T15:04:05"))
+		d.Set("expiration_date", metadata.Expiration.Format(time.RFC3339))
 	}
+
+	log.Printf("[DEBUG] Get Public Key Certificate for %s", *metadata.ServerCertificateName)
+	serverCertificateResp, err := iamconn.GetServerCertificate(&iam.GetServerCertificateInput{
+		ServerCertificateName: metadata.ServerCertificateName,
+	})
+	if err != nil {
+		return err
+	}
+	d.Set("upload_date", serverCertificateResp.ServerCertificate.ServerCertificateMetadata.UploadDate.Format(time.RFC3339))
+	d.Set("certificate_body", aws.StringValue(serverCertificateResp.ServerCertificate.CertificateBody))
+	d.Set("certificate_chain", aws.StringValue(serverCertificateResp.ServerCertificate.CertificateChain))
 
 	return nil
 }

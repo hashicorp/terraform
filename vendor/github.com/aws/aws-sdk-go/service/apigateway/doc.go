@@ -4,10 +4,10 @@
 // requests to Amazon API Gateway.
 //
 // Amazon API Gateway helps developers deliver robust, secure, and scalable
-// mobile and web application back ends. Amazon API Gateway allows developers
-// to securely connect mobile and web applications to APIs that run on AWS Lambda,
-// Amazon EC2, or other publicly addressable web services that are hosted outside
-// of AWS.
+// mobile and web application back ends. API Gateway allows developers to securely
+// connect mobile and web applications to APIs that run on AWS Lambda, Amazon
+// EC2, or other publicly addressable web services that are hosted outside of
+// AWS.
 //
 // See apigateway package documentation for more information.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/apigateway/

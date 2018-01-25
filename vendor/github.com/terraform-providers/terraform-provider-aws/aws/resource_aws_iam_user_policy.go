@@ -24,8 +24,10 @@ func resourceAwsIamUserPolicy() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validateIAMPolicyJson,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"name": &schema.Schema{
 				Type:          schema.TypeString,
@@ -57,7 +59,9 @@ func resourceAwsIamUserPolicyPut(d *schema.ResourceData, meta interface{}) error
 	}
 
 	var policyName string
-	if v, ok := d.GetOk("name"); ok {
+	if !d.IsNewResource() {
+		_, policyName = resourceAwsIamUserPolicyParseId(d.Id())
+	} else if v, ok := d.GetOk("name"); ok {
 		policyName = v.(string)
 	} else if v, ok := d.GetOk("name_prefix"); ok {
 		policyName = resource.PrefixedUniqueId(v.(string))

@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"log"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/errwrap"
@@ -39,6 +41,7 @@ func dataSourceAwsIAMUserRead(d *schema.ResourceData, meta interface{}) error {
 		UserName: aws.String(userName),
 	}
 
+	log.Printf("[DEBUG] Reading IAM User: %s", req)
 	resp, err := iamconn.GetUser(req)
 	if err != nil {
 		return errwrap.Wrapf("error getting user: {{err}}", err)

@@ -117,7 +117,7 @@ func resourceAwsWafRateBasedRuleRead(d *schema.ResourceData, meta interface{}) e
 	resp, err := conn.GetRateBasedRule(params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "WAFNonexistentItemException" {
-			log.Printf("[WARN] WAF Rate Based Rule (%s) not found, error code (404)", d.Id())
+			log.Printf("[WARN] WAF Rate Based Rule (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

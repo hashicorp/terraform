@@ -41,9 +41,7 @@ const (
 	//
 	// One of the parameters in the request is invalid. For example, if you provided
 	// an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
-	// API, that AWS Lambda is unable to assume you will get this exception. You
-	// will also get this exception if you have selected a deprecated runtime, such
-	// as Node v0.10.42.
+	// API, that AWS Lambda is unable to assume you will get this exception.
 	ErrCodeInvalidParameterValueException = "InvalidParameterValueException"
 
 	// ErrCodeInvalidRequestContentException for service response error code
@@ -146,6 +144,15 @@ const (
 
 	// ErrCodeTooManyRequestsException for service response error code
 	// "TooManyRequestsException".
+	//
+	// You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
+	// is returned if you have no functions with reserved-concurrency and have exceeded
+	// your account concurrent limit or if a function without reserved concurrency
+	// exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
+	// is returned when a function with reserved concurrency exceeds its configured
+	// concurrent limit. CallerRateLimitExceeded is returned when your account limit
+	// is exceeded and you have not reserved concurrency on any function. For more
+	// information, see concurrent-executions
 	ErrCodeTooManyRequestsException = "TooManyRequestsException"
 
 	// ErrCodeUnsupportedMediaTypeException for service response error code

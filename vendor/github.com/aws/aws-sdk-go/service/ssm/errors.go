@@ -69,6 +69,13 @@ const (
 	// execution ID.
 	ErrCodeAutomationExecutionNotFoundException = "AutomationExecutionNotFoundException"
 
+	// ErrCodeAutomationStepNotFoundException for service response error code
+	// "AutomationStepNotFoundException".
+	//
+	// The specified step name and execution ID don't exist. Verify the information
+	// and try again.
+	ErrCodeAutomationStepNotFoundException = "AutomationStepNotFoundException"
+
 	// ErrCodeComplianceTypeCountLimitExceededException for service response error code
 	// "ComplianceTypeCountLimitExceededException".
 	//
@@ -113,8 +120,11 @@ const (
 	// ErrCodeDoesNotExistException for service response error code
 	// "DoesNotExistException".
 	//
-	// Error returned when the ID specified for a resource (e.g. a Maintenance Window)
-	// doesn't exist.
+	// Error returned when the ID specified for a resource, such as a Maintenance
+	// Window or Patch baseline, doesn't exist.
+	//
+	// For information about resource limits in Systems Manager, see AWS Systems
+	// Manager Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_ssm).
 	ErrCodeDoesNotExistException = "DoesNotExistException"
 
 	// ErrCodeDuplicateDocumentContent for service response error code
@@ -209,6 +219,12 @@ const (
 	//
 	// The signal is not valid for the current Automation execution.
 	ErrCodeInvalidAutomationSignalException = "InvalidAutomationSignalException"
+
+	// ErrCodeInvalidAutomationStatusUpdateException for service response error code
+	// "InvalidAutomationStatusUpdateException".
+	//
+	// The specified update status operation is not valid.
+	ErrCodeInvalidAutomationStatusUpdateException = "InvalidAutomationStatusUpdateException"
 
 	// ErrCodeInvalidCommandId for service response error code
 	// "InvalidCommandId".
@@ -387,7 +403,7 @@ const (
 	// an IAM role for notifications that includes the required trust policy. For
 	// information about configuring the IAM role for Run Command notifications,
 	// see Configuring Amazon SNS Notifications for Run Command (http://docs.aws.amazon.com/systems-manager/latest/userguide/rc-sns-notifications.html)
-	// in the Amazon EC2 Systems Manager User Guide.
+	// in the AWS Systems Manager User Guide.
 	ErrCodeInvalidRole = "InvalidRole"
 
 	// ErrCodeInvalidSchedule for service response error code
@@ -512,8 +528,11 @@ const (
 	// ErrCodeResourceLimitExceededException for service response error code
 	// "ResourceLimitExceededException".
 	//
-	// Error returned when the caller has exceeded the default resource limits (e.g.
-	// too many Maintenance Windows have been created).
+	// Error returned when the caller has exceeded the default resource limits.
+	// For example, too many Maintenance Windows or Patch baselines have been created.
+	//
+	// For information about resource limits in Systems Manager, see AWS Systems
+	// Manager Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_ssm).
 	ErrCodeResourceLimitExceededException = "ResourceLimitExceededException"
 
 	// ErrCodeStatusUnchanged for service response error code

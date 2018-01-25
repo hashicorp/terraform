@@ -134,6 +134,11 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 
 	describeResp, err := rdsconn.DescribeDBParameterGroups(&describeOpts)
 	if err != nil {
+		if isAWSErr(err, rds.ErrCodeDBParameterGroupNotFoundFault, "") {
+			log.Printf("[WARN] DB Parameter Group (%s) not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 

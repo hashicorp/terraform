@@ -38,7 +38,7 @@ const opCreateCloudFrontOriginAccessIdentity = "CreateCloudFrontOriginAccessIden
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateCloudFrontOriginAccessIdentity
 func (c *CloudFront) CreateCloudFrontOriginAccessIdentityRequest(input *CreateCloudFrontOriginAccessIdentityInput) (req *request.Request, output *CreateCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opCreateCloudFrontOriginAccessIdentity,
@@ -92,7 +92,7 @@ func (c *CloudFront) CreateCloudFrontOriginAccessIdentityRequest(input *CreateCl
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
 //   The value of Quantity and the size of Items don't match.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateCloudFrontOriginAccessIdentity
 func (c *CloudFront) CreateCloudFrontOriginAccessIdentity(input *CreateCloudFrontOriginAccessIdentityInput) (*CreateCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.CreateCloudFrontOriginAccessIdentityRequest(input)
 	return out, req.Send()
@@ -139,7 +139,7 @@ const opCreateDistribution = "CreateDistribution2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistribution
 func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (req *request.Request, output *CreateDistributionOutput) {
 	op := &request.Operation{
 		Name:       opCreateDistribution,
@@ -287,7 +287,7 @@ func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (
 //
 //   * ErrCodeInvalidOriginKeepaliveTimeout "InvalidOriginKeepaliveTimeout"
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistribution
 func (c *CloudFront) CreateDistribution(input *CreateDistributionInput) (*CreateDistributionOutput, error) {
 	req, out := c.CreateDistributionRequest(input)
 	return out, req.Send()
@@ -334,7 +334,7 @@ const opCreateDistributionWithTags = "CreateDistributionWithTags2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionWithTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionWithTags
 func (c *CloudFront) CreateDistributionWithTagsRequest(input *CreateDistributionWithTagsInput) (req *request.Request, output *CreateDistributionWithTagsOutput) {
 	op := &request.Operation{
 		Name:       opCreateDistributionWithTags,
@@ -483,7 +483,7 @@ func (c *CloudFront) CreateDistributionWithTagsRequest(input *CreateDistribution
 //
 //   * ErrCodeInvalidOriginKeepaliveTimeout "InvalidOriginKeepaliveTimeout"
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionWithTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionWithTags
 func (c *CloudFront) CreateDistributionWithTags(input *CreateDistributionWithTagsInput) (*CreateDistributionWithTagsOutput, error) {
 	req, out := c.CreateDistributionWithTagsRequest(input)
 	return out, req.Send()
@@ -530,7 +530,7 @@ const opCreateInvalidation = "CreateInvalidation2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateInvalidation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateInvalidation
 func (c *CloudFront) CreateInvalidationRequest(input *CreateInvalidationInput) (req *request.Request, output *CreateInvalidationOutput) {
 	op := &request.Operation{
 		Name:       opCreateInvalidation,
@@ -581,7 +581,7 @@ func (c *CloudFront) CreateInvalidationRequest(input *CreateInvalidationInput) (
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
 //   The value of Quantity and the size of Items don't match.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateInvalidation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateInvalidation
 func (c *CloudFront) CreateInvalidation(input *CreateInvalidationInput) (*CreateInvalidationOutput, error) {
 	req, out := c.CreateInvalidationRequest(input)
 	return out, req.Send()
@@ -628,7 +628,7 @@ const opCreateStreamingDistribution = "CreateStreamingDistribution2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistribution
 func (c *CloudFront) CreateStreamingDistributionRequest(input *CreateStreamingDistributionInput) (req *request.Request, output *CreateStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opCreateStreamingDistribution,
@@ -720,7 +720,7 @@ func (c *CloudFront) CreateStreamingDistributionRequest(input *CreateStreamingDi
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
 //   The value of Quantity and the size of Items don't match.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistribution
 func (c *CloudFront) CreateStreamingDistribution(input *CreateStreamingDistributionInput) (*CreateStreamingDistributionOutput, error) {
 	req, out := c.CreateStreamingDistributionRequest(input)
 	return out, req.Send()
@@ -767,7 +767,7 @@ const opCreateStreamingDistributionWithTags = "CreateStreamingDistributionWithTa
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionWithTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionWithTags
 func (c *CloudFront) CreateStreamingDistributionWithTagsRequest(input *CreateStreamingDistributionWithTagsInput) (req *request.Request, output *CreateStreamingDistributionWithTagsOutput) {
 	op := &request.Operation{
 		Name:       opCreateStreamingDistributionWithTags,
@@ -834,7 +834,7 @@ func (c *CloudFront) CreateStreamingDistributionWithTagsRequest(input *CreateStr
 //
 //   * ErrCodeInvalidTagging "InvalidTagging"
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionWithTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionWithTags
 func (c *CloudFront) CreateStreamingDistributionWithTags(input *CreateStreamingDistributionWithTagsInput) (*CreateStreamingDistributionWithTagsOutput, error) {
 	req, out := c.CreateStreamingDistributionWithTagsRequest(input)
 	return out, req.Send()
@@ -881,7 +881,7 @@ const opDeleteCloudFrontOriginAccessIdentity = "DeleteCloudFrontOriginAccessIden
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteCloudFrontOriginAccessIdentity
 func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityRequest(input *DeleteCloudFrontOriginAccessIdentityInput) (req *request.Request, output *DeleteCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opDeleteCloudFrontOriginAccessIdentity,
@@ -927,7 +927,7 @@ func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityRequest(input *DeleteCl
 //
 //   * ErrCodeOriginAccessIdentityInUse "OriginAccessIdentityInUse"
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteCloudFrontOriginAccessIdentity
 func (c *CloudFront) DeleteCloudFrontOriginAccessIdentity(input *DeleteCloudFrontOriginAccessIdentityInput) (*DeleteCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.DeleteCloudFrontOriginAccessIdentityRequest(input)
 	return out, req.Send()
@@ -974,7 +974,7 @@ const opDeleteDistribution = "DeleteDistribution2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteDistribution
 func (c *CloudFront) DeleteDistributionRequest(input *DeleteDistributionInput) (req *request.Request, output *DeleteDistributionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDistribution,
@@ -1020,7 +1020,7 @@ func (c *CloudFront) DeleteDistributionRequest(input *DeleteDistributionInput) (
 //   The precondition given in one or more of the request-header fields evaluated
 //   to false.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteDistribution
 func (c *CloudFront) DeleteDistribution(input *DeleteDistributionInput) (*DeleteDistributionOutput, error) {
 	req, out := c.DeleteDistributionRequest(input)
 	return out, req.Send()
@@ -1067,7 +1067,7 @@ const opDeleteServiceLinkedRole = "DeleteServiceLinkedRole2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRole
 func (c *CloudFront) DeleteServiceLinkedRoleRequest(input *DeleteServiceLinkedRoleInput) (req *request.Request, output *DeleteServiceLinkedRoleOutput) {
 	op := &request.Operation{
 		Name:       opDeleteServiceLinkedRole,
@@ -1106,7 +1106,7 @@ func (c *CloudFront) DeleteServiceLinkedRoleRequest(input *DeleteServiceLinkedRo
 //
 //   * ErrCodeNoSuchResource "NoSuchResource"
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRole
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRole
 func (c *CloudFront) DeleteServiceLinkedRole(input *DeleteServiceLinkedRoleInput) (*DeleteServiceLinkedRoleOutput, error) {
 	req, out := c.DeleteServiceLinkedRoleRequest(input)
 	return out, req.Send()
@@ -1153,7 +1153,7 @@ const opDeleteStreamingDistribution = "DeleteStreamingDistribution2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteStreamingDistribution
 func (c *CloudFront) DeleteStreamingDistributionRequest(input *DeleteStreamingDistributionInput) (req *request.Request, output *DeleteStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteStreamingDistribution,
@@ -1234,7 +1234,7 @@ func (c *CloudFront) DeleteStreamingDistributionRequest(input *DeleteStreamingDi
 //   The precondition given in one or more of the request-header fields evaluated
 //   to false.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteStreamingDistribution
 func (c *CloudFront) DeleteStreamingDistribution(input *DeleteStreamingDistributionInput) (*DeleteStreamingDistributionOutput, error) {
 	req, out := c.DeleteStreamingDistributionRequest(input)
 	return out, req.Send()
@@ -1281,7 +1281,7 @@ const opGetCloudFrontOriginAccessIdentity = "GetCloudFrontOriginAccessIdentity20
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentity
 func (c *CloudFront) GetCloudFrontOriginAccessIdentityRequest(input *GetCloudFrontOriginAccessIdentityInput) (req *request.Request, output *GetCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opGetCloudFrontOriginAccessIdentity,
@@ -1316,7 +1316,7 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityRequest(input *GetCloudFro
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentity
 func (c *CloudFront) GetCloudFrontOriginAccessIdentity(input *GetCloudFrontOriginAccessIdentityInput) (*GetCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.GetCloudFrontOriginAccessIdentityRequest(input)
 	return out, req.Send()
@@ -1363,7 +1363,7 @@ const opGetCloudFrontOriginAccessIdentityConfig = "GetCloudFrontOriginAccessIden
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityConfig
 func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfigRequest(input *GetCloudFrontOriginAccessIdentityConfigInput) (req *request.Request, output *GetCloudFrontOriginAccessIdentityConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetCloudFrontOriginAccessIdentityConfig,
@@ -1398,7 +1398,7 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfigRequest(input *GetCl
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityConfig
 func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfig(input *GetCloudFrontOriginAccessIdentityConfigInput) (*GetCloudFrontOriginAccessIdentityConfigOutput, error) {
 	req, out := c.GetCloudFrontOriginAccessIdentityConfigRequest(input)
 	return out, req.Send()
@@ -1445,7 +1445,7 @@ const opGetDistribution = "GetDistribution2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistribution
 func (c *CloudFront) GetDistributionRequest(input *GetDistributionInput) (req *request.Request, output *GetDistributionOutput) {
 	op := &request.Operation{
 		Name:       opGetDistribution,
@@ -1480,7 +1480,7 @@ func (c *CloudFront) GetDistributionRequest(input *GetDistributionInput) (req *r
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistribution
 func (c *CloudFront) GetDistribution(input *GetDistributionInput) (*GetDistributionOutput, error) {
 	req, out := c.GetDistributionRequest(input)
 	return out, req.Send()
@@ -1527,7 +1527,7 @@ const opGetDistributionConfig = "GetDistributionConfig2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionConfig
 func (c *CloudFront) GetDistributionConfigRequest(input *GetDistributionConfigInput) (req *request.Request, output *GetDistributionConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetDistributionConfig,
@@ -1562,7 +1562,7 @@ func (c *CloudFront) GetDistributionConfigRequest(input *GetDistributionConfigIn
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionConfig
 func (c *CloudFront) GetDistributionConfig(input *GetDistributionConfigInput) (*GetDistributionConfigOutput, error) {
 	req, out := c.GetDistributionConfigRequest(input)
 	return out, req.Send()
@@ -1609,7 +1609,7 @@ const opGetInvalidation = "GetInvalidation2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetInvalidation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetInvalidation
 func (c *CloudFront) GetInvalidationRequest(input *GetInvalidationInput) (req *request.Request, output *GetInvalidationOutput) {
 	op := &request.Operation{
 		Name:       opGetInvalidation,
@@ -1647,7 +1647,7 @@ func (c *CloudFront) GetInvalidationRequest(input *GetInvalidationInput) (req *r
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetInvalidation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetInvalidation
 func (c *CloudFront) GetInvalidation(input *GetInvalidationInput) (*GetInvalidationOutput, error) {
 	req, out := c.GetInvalidationRequest(input)
 	return out, req.Send()
@@ -1694,7 +1694,7 @@ const opGetStreamingDistribution = "GetStreamingDistribution2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistribution
 func (c *CloudFront) GetStreamingDistributionRequest(input *GetStreamingDistributionInput) (req *request.Request, output *GetStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opGetStreamingDistribution,
@@ -1730,7 +1730,7 @@ func (c *CloudFront) GetStreamingDistributionRequest(input *GetStreamingDistribu
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistribution
 func (c *CloudFront) GetStreamingDistribution(input *GetStreamingDistributionInput) (*GetStreamingDistributionOutput, error) {
 	req, out := c.GetStreamingDistributionRequest(input)
 	return out, req.Send()
@@ -1777,7 +1777,7 @@ const opGetStreamingDistributionConfig = "GetStreamingDistributionConfig2017_03_
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionConfig
 func (c *CloudFront) GetStreamingDistributionConfigRequest(input *GetStreamingDistributionConfigInput) (req *request.Request, output *GetStreamingDistributionConfigOutput) {
 	op := &request.Operation{
 		Name:       opGetStreamingDistributionConfig,
@@ -1812,7 +1812,7 @@ func (c *CloudFront) GetStreamingDistributionConfigRequest(input *GetStreamingDi
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionConfig
 func (c *CloudFront) GetStreamingDistributionConfig(input *GetStreamingDistributionConfigInput) (*GetStreamingDistributionConfigOutput, error) {
 	req, out := c.GetStreamingDistributionConfigRequest(input)
 	return out, req.Send()
@@ -1859,7 +1859,7 @@ const opListCloudFrontOriginAccessIdentities = "ListCloudFrontOriginAccessIdenti
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListCloudFrontOriginAccessIdentities
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListCloudFrontOriginAccessIdentities
 func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesRequest(input *ListCloudFrontOriginAccessIdentitiesInput) (req *request.Request, output *ListCloudFrontOriginAccessIdentitiesOutput) {
 	op := &request.Operation{
 		Name:       opListCloudFrontOriginAccessIdentities,
@@ -1897,7 +1897,7 @@ func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesRequest(input *ListClou
 //   * ErrCodeInvalidArgument "InvalidArgument"
 //   The argument is invalid.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListCloudFrontOriginAccessIdentities
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListCloudFrontOriginAccessIdentities
 func (c *CloudFront) ListCloudFrontOriginAccessIdentities(input *ListCloudFrontOriginAccessIdentitiesInput) (*ListCloudFrontOriginAccessIdentitiesOutput, error) {
 	req, out := c.ListCloudFrontOriginAccessIdentitiesRequest(input)
 	return out, req.Send()
@@ -1994,7 +1994,7 @@ const opListDistributions = "ListDistributions2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributions
 func (c *CloudFront) ListDistributionsRequest(input *ListDistributionsInput) (req *request.Request, output *ListDistributionsOutput) {
 	op := &request.Operation{
 		Name:       opListDistributions,
@@ -2032,7 +2032,7 @@ func (c *CloudFront) ListDistributionsRequest(input *ListDistributionsInput) (re
 //   * ErrCodeInvalidArgument "InvalidArgument"
 //   The argument is invalid.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributions
 func (c *CloudFront) ListDistributions(input *ListDistributionsInput) (*ListDistributionsOutput, error) {
 	req, out := c.ListDistributionsRequest(input)
 	return out, req.Send()
@@ -2129,7 +2129,7 @@ const opListDistributionsByWebACLId = "ListDistributionsByWebACLId2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsByWebACLId
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsByWebACLId
 func (c *CloudFront) ListDistributionsByWebACLIdRequest(input *ListDistributionsByWebACLIdInput) (req *request.Request, output *ListDistributionsByWebACLIdOutput) {
 	op := &request.Operation{
 		Name:       opListDistributionsByWebACLId,
@@ -2163,7 +2163,7 @@ func (c *CloudFront) ListDistributionsByWebACLIdRequest(input *ListDistributions
 //
 //   * ErrCodeInvalidWebACLId "InvalidWebACLId"
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsByWebACLId
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsByWebACLId
 func (c *CloudFront) ListDistributionsByWebACLId(input *ListDistributionsByWebACLIdInput) (*ListDistributionsByWebACLIdOutput, error) {
 	req, out := c.ListDistributionsByWebACLIdRequest(input)
 	return out, req.Send()
@@ -2210,7 +2210,7 @@ const opListInvalidations = "ListInvalidations2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListInvalidations
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListInvalidations
 func (c *CloudFront) ListInvalidationsRequest(input *ListInvalidationsInput) (req *request.Request, output *ListInvalidationsOutput) {
 	op := &request.Operation{
 		Name:       opListInvalidations,
@@ -2254,7 +2254,7 @@ func (c *CloudFront) ListInvalidationsRequest(input *ListInvalidationsInput) (re
 //   * ErrCodeAccessDenied "AccessDenied"
 //   Access denied.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListInvalidations
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListInvalidations
 func (c *CloudFront) ListInvalidations(input *ListInvalidationsInput) (*ListInvalidationsOutput, error) {
 	req, out := c.ListInvalidationsRequest(input)
 	return out, req.Send()
@@ -2351,7 +2351,7 @@ const opListStreamingDistributions = "ListStreamingDistributions2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListStreamingDistributions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListStreamingDistributions
 func (c *CloudFront) ListStreamingDistributionsRequest(input *ListStreamingDistributionsInput) (req *request.Request, output *ListStreamingDistributionsOutput) {
 	op := &request.Operation{
 		Name:       opListStreamingDistributions,
@@ -2389,7 +2389,7 @@ func (c *CloudFront) ListStreamingDistributionsRequest(input *ListStreamingDistr
 //   * ErrCodeInvalidArgument "InvalidArgument"
 //   The argument is invalid.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListStreamingDistributions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListStreamingDistributions
 func (c *CloudFront) ListStreamingDistributions(input *ListStreamingDistributionsInput) (*ListStreamingDistributionsOutput, error) {
 	req, out := c.ListStreamingDistributionsRequest(input)
 	return out, req.Send()
@@ -2486,7 +2486,7 @@ const opListTagsForResource = "ListTagsForResource2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListTagsForResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListTagsForResource
 func (c *CloudFront) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForResource,
@@ -2525,7 +2525,7 @@ func (c *CloudFront) ListTagsForResourceRequest(input *ListTagsForResourceInput)
 //
 //   * ErrCodeNoSuchResource "NoSuchResource"
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListTagsForResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListTagsForResource
 func (c *CloudFront) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
 	req, out := c.ListTagsForResourceRequest(input)
 	return out, req.Send()
@@ -2572,7 +2572,7 @@ const opTagResource = "TagResource2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TagResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TagResource
 func (c *CloudFront) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
 	op := &request.Operation{
 		Name:       opTagResource,
@@ -2613,7 +2613,7 @@ func (c *CloudFront) TagResourceRequest(input *TagResourceInput) (req *request.R
 //
 //   * ErrCodeNoSuchResource "NoSuchResource"
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TagResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TagResource
 func (c *CloudFront) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
 	req, out := c.TagResourceRequest(input)
 	return out, req.Send()
@@ -2660,7 +2660,7 @@ const opUntagResource = "UntagResource2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UntagResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UntagResource
 func (c *CloudFront) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
 	op := &request.Operation{
 		Name:       opUntagResource,
@@ -2701,7 +2701,7 @@ func (c *CloudFront) UntagResourceRequest(input *UntagResourceInput) (req *reque
 //
 //   * ErrCodeNoSuchResource "NoSuchResource"
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UntagResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UntagResource
 func (c *CloudFront) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
 	req, out := c.UntagResourceRequest(input)
 	return out, req.Send()
@@ -2748,7 +2748,7 @@ const opUpdateCloudFrontOriginAccessIdentity = "UpdateCloudFrontOriginAccessIden
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateCloudFrontOriginAccessIdentity
 func (c *CloudFront) UpdateCloudFrontOriginAccessIdentityRequest(input *UpdateCloudFrontOriginAccessIdentityInput) (req *request.Request, output *UpdateCloudFrontOriginAccessIdentityOutput) {
 	op := &request.Operation{
 		Name:       opUpdateCloudFrontOriginAccessIdentity,
@@ -2803,7 +2803,7 @@ func (c *CloudFront) UpdateCloudFrontOriginAccessIdentityRequest(input *UpdateCl
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
 //   The value of Quantity and the size of Items don't match.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateCloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateCloudFrontOriginAccessIdentity
 func (c *CloudFront) UpdateCloudFrontOriginAccessIdentity(input *UpdateCloudFrontOriginAccessIdentityInput) (*UpdateCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.UpdateCloudFrontOriginAccessIdentityRequest(input)
 	return out, req.Send()
@@ -2850,7 +2850,7 @@ const opUpdateDistribution = "UpdateDistribution2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateDistribution
 func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (req *request.Request, output *UpdateDistributionOutput) {
 	op := &request.Operation{
 		Name:       opUpdateDistribution,
@@ -3043,7 +3043,7 @@ func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (
 //
 //   * ErrCodeInvalidOriginKeepaliveTimeout "InvalidOriginKeepaliveTimeout"
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateDistribution
 func (c *CloudFront) UpdateDistribution(input *UpdateDistributionInput) (*UpdateDistributionOutput, error) {
 	req, out := c.UpdateDistributionRequest(input)
 	return out, req.Send()
@@ -3090,7 +3090,7 @@ const opUpdateStreamingDistribution = "UpdateStreamingDistribution2017_03_25"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateStreamingDistribution
 func (c *CloudFront) UpdateStreamingDistributionRequest(input *UpdateStreamingDistributionInput) (req *request.Request, output *UpdateStreamingDistributionOutput) {
 	op := &request.Operation{
 		Name:       opUpdateStreamingDistribution,
@@ -3158,7 +3158,7 @@ func (c *CloudFront) UpdateStreamingDistributionRequest(input *UpdateStreamingDi
 //   * ErrCodeInconsistentQuantities "InconsistentQuantities"
 //   The value of Quantity and the size of Items don't match.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateStreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateStreamingDistribution
 func (c *CloudFront) UpdateStreamingDistribution(input *UpdateStreamingDistributionInput) (*UpdateStreamingDistributionOutput, error) {
 	req, out := c.UpdateStreamingDistributionRequest(input)
 	return out, req.Send()
@@ -3192,7 +3192,7 @@ func (c *CloudFront) UpdateStreamingDistributionWithContext(ctx aws.Context, inp
 //
 // For more information, see Serving Private Content through CloudFront (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/PrivateContent.html)
 // in the Amazon CloudFront Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ActiveTrustedSigners
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ActiveTrustedSigners
 type ActiveTrustedSigners struct {
 	_ struct{} `type:"structure"`
 
@@ -3250,7 +3250,7 @@ func (s *ActiveTrustedSigners) SetQuantity(v int64) *ActiveTrustedSigners {
 
 // A complex type that contains information about CNAMEs (alternate domain names),
 // if any, for this distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Aliases
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Aliases
 type Aliases struct {
 	_ struct{} `type:"structure"`
 
@@ -3315,7 +3315,7 @@ func (s *Aliases) SetQuantity(v int64) *Aliases {
 // S3 bucket or to your custom origin so users can't perform operations that
 // you don't want them to. For example, you might not want users to have permissions
 // to delete objects from your origin.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/AllowedMethods
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/AllowedMethods
 type AllowedMethods struct {
 	_ struct{} `type:"structure"`
 
@@ -3420,7 +3420,7 @@ func (s *AllowedMethods) SetQuantity(v int64) *AllowedMethods {
 //
 // For more information about cache behaviors, see Cache Behaviors (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesCacheBehavior)
 // in the Amazon CloudFront Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CacheBehavior
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CacheBehavior
 type CacheBehavior struct {
 	_ struct{} `type:"structure"`
 
@@ -3702,7 +3702,7 @@ func (s *CacheBehavior) SetViewerProtocolPolicy(v string) *CacheBehavior {
 }
 
 // A complex type that contains zero or more CacheBehavior elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CacheBehaviors
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CacheBehaviors
 type CacheBehaviors struct {
 	_ struct{} `type:"structure"`
 
@@ -3771,7 +3771,7 @@ func (s *CacheBehaviors) SetQuantity(v int64) *CacheBehaviors {
 // If you pick the second choice for your Amazon S3 Origin, you may need to
 // forward Access-Control-Request-Method, Access-Control-Request-Headers, and
 // Origin headers for the responses to be cached correctly.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CachedMethods
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CachedMethods
 type CachedMethods struct {
 	_ struct{} `type:"structure"`
 
@@ -3832,7 +3832,7 @@ func (s *CachedMethods) SetQuantity(v int64) *CachedMethods {
 // cookies to the origin, see How CloudFront Forwards, Caches, and Logs Cookies
 // (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Cookies.html)
 // in the Amazon CloudFront Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CookieNames
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CookieNames
 type CookieNames struct {
 	_ struct{} `type:"structure"`
 
@@ -3887,7 +3887,7 @@ func (s *CookieNames) SetQuantity(v int64) *CookieNames {
 // cookies to the origin, see How CloudFront Forwards, Caches, and Logs Cookies
 // (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Cookies.html)
 // in the Amazon CloudFront Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CookiePreference
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CookiePreference
 type CookiePreference struct {
 	_ struct{} `type:"structure"`
 
@@ -3958,7 +3958,7 @@ func (s *CookiePreference) SetWhitelistedNames(v *CookieNames) *CookiePreference
 }
 
 // The request to create a new origin access identity.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateCloudFrontOriginAccessIdentityRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateCloudFrontOriginAccessIdentityRequest
 type CreateCloudFrontOriginAccessIdentityInput struct {
 	_ struct{} `type:"structure" payload:"CloudFrontOriginAccessIdentityConfig"`
 
@@ -4003,7 +4003,7 @@ func (s *CreateCloudFrontOriginAccessIdentityInput) SetCloudFrontOriginAccessIde
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateCloudFrontOriginAccessIdentityResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateCloudFrontOriginAccessIdentityResult
 type CreateCloudFrontOriginAccessIdentityOutput struct {
 	_ struct{} `type:"structure" payload:"CloudFrontOriginAccessIdentity"`
 
@@ -4047,7 +4047,7 @@ func (s *CreateCloudFrontOriginAccessIdentityOutput) SetLocation(v string) *Crea
 }
 
 // The request to create a new distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionRequest
 type CreateDistributionInput struct {
 	_ struct{} `type:"structure" payload:"DistributionConfig"`
 
@@ -4092,7 +4092,7 @@ func (s *CreateDistributionInput) SetDistributionConfig(v *DistributionConfig) *
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionResult
 type CreateDistributionOutput struct {
 	_ struct{} `type:"structure" payload:"Distribution"`
 
@@ -4136,7 +4136,7 @@ func (s *CreateDistributionOutput) SetLocation(v string) *CreateDistributionOutp
 }
 
 // The request to create a new distribution with tags.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionWithTagsRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionWithTagsRequest
 type CreateDistributionWithTagsInput struct {
 	_ struct{} `type:"structure" payload:"DistributionConfigWithTags"`
 
@@ -4181,7 +4181,7 @@ func (s *CreateDistributionWithTagsInput) SetDistributionConfigWithTags(v *Distr
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionWithTagsResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateDistributionWithTagsResult
 type CreateDistributionWithTagsOutput struct {
 	_ struct{} `type:"structure" payload:"Distribution"`
 
@@ -4225,7 +4225,7 @@ func (s *CreateDistributionWithTagsOutput) SetLocation(v string) *CreateDistribu
 }
 
 // The request to create an invalidation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateInvalidationRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateInvalidationRequest
 type CreateInvalidationInput struct {
 	_ struct{} `type:"structure" payload:"InvalidationBatch"`
 
@@ -4284,7 +4284,7 @@ func (s *CreateInvalidationInput) SetInvalidationBatch(v *InvalidationBatch) *Cr
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateInvalidationResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateInvalidationResult
 type CreateInvalidationOutput struct {
 	_ struct{} `type:"structure" payload:"Invalidation"`
 
@@ -4319,7 +4319,7 @@ func (s *CreateInvalidationOutput) SetLocation(v string) *CreateInvalidationOutp
 }
 
 // The request to create a new streaming distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionRequest
 type CreateStreamingDistributionInput struct {
 	_ struct{} `type:"structure" payload:"StreamingDistributionConfig"`
 
@@ -4364,7 +4364,7 @@ func (s *CreateStreamingDistributionInput) SetStreamingDistributionConfig(v *Str
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionResult
 type CreateStreamingDistributionOutput struct {
 	_ struct{} `type:"structure" payload:"StreamingDistribution"`
 
@@ -4408,7 +4408,7 @@ func (s *CreateStreamingDistributionOutput) SetStreamingDistribution(v *Streamin
 }
 
 // The request to create a new streaming distribution with tags.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionWithTagsRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionWithTagsRequest
 type CreateStreamingDistributionWithTagsInput struct {
 	_ struct{} `type:"structure" payload:"StreamingDistributionConfigWithTags"`
 
@@ -4453,7 +4453,7 @@ func (s *CreateStreamingDistributionWithTagsInput) SetStreamingDistributionConfi
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionWithTagsResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CreateStreamingDistributionWithTagsResult
 type CreateStreamingDistributionWithTagsOutput struct {
 	_ struct{} `type:"structure" payload:"StreamingDistribution"`
 
@@ -4506,7 +4506,7 @@ func (s *CreateStreamingDistributionWithTagsOutput) SetStreamingDistribution(v *
 // For more information about custom error pages, see Customizing Error Responses
 // (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/custom-error-pages.html)
 // in the Amazon CloudFront Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CustomErrorResponse
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CustomErrorResponse
 type CustomErrorResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -4634,7 +4634,7 @@ func (s *CustomErrorResponse) SetResponsePagePath(v string) *CustomErrorResponse
 // For more information about custom error pages, see Customizing Error Responses
 // (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/custom-error-pages.html)
 // in the Amazon CloudFront Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CustomErrorResponses
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CustomErrorResponses
 type CustomErrorResponses struct {
 	_ struct{} `type:"structure"`
 
@@ -4696,7 +4696,7 @@ func (s *CustomErrorResponses) SetQuantity(v int64) *CustomErrorResponses {
 }
 
 // A complex type that contains the list of Custom Headers for each origin.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CustomHeaders
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CustomHeaders
 type CustomHeaders struct {
 	_ struct{} `type:"structure"`
 
@@ -4757,7 +4757,7 @@ func (s *CustomHeaders) SetQuantity(v int64) *CustomHeaders {
 }
 
 // A customer origin.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CustomOriginConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CustomOriginConfig
 type CustomOriginConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -4872,7 +4872,7 @@ func (s *CustomOriginConfig) SetOriginSslProtocols(v *OriginSslProtocols) *Custo
 // A complex type that describes the default cache behavior if you don't specify
 // a CacheBehavior element or if files don't match any of the values of PathPattern
 // in CacheBehavior elements. You must create exactly one default cache behavior.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DefaultCacheBehavior
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DefaultCacheBehavior
 type DefaultCacheBehavior struct {
 	_ struct{} `type:"structure"`
 
@@ -5118,7 +5118,7 @@ func (s *DefaultCacheBehavior) SetViewerProtocolPolicy(v string) *DefaultCacheBe
 }
 
 // Deletes a origin access identity.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteCloudFrontOriginAccessIdentityRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteCloudFrontOriginAccessIdentityRequest
 type DeleteCloudFrontOriginAccessIdentityInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5167,7 +5167,7 @@ func (s *DeleteCloudFrontOriginAccessIdentityInput) SetIfMatch(v string) *Delete
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteCloudFrontOriginAccessIdentityOutput
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteCloudFrontOriginAccessIdentityOutput
 type DeleteCloudFrontOriginAccessIdentityOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5217,7 +5217,7 @@ func (s DeleteCloudFrontOriginAccessIdentityOutput) GoString() string {
 // For information about deleting a distribution using the CloudFront console,
 // see Deleting a Distribution (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/HowToDeleteDistribution.html)
 // in the Amazon CloudFront Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteDistributionRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteDistributionRequest
 type DeleteDistributionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5266,7 +5266,7 @@ func (s *DeleteDistributionInput) SetIfMatch(v string) *DeleteDistributionInput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteDistributionOutput
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteDistributionOutput
 type DeleteDistributionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5281,7 +5281,7 @@ func (s DeleteDistributionOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRoleRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRoleRequest
 type DeleteServiceLinkedRoleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5318,7 +5318,7 @@ func (s *DeleteServiceLinkedRoleInput) SetRoleName(v string) *DeleteServiceLinke
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRoleOutput
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteServiceLinkedRoleOutput
 type DeleteServiceLinkedRoleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5334,7 +5334,7 @@ func (s DeleteServiceLinkedRoleOutput) GoString() string {
 }
 
 // The request to delete a streaming distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteStreamingDistributionRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteStreamingDistributionRequest
 type DeleteStreamingDistributionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5383,7 +5383,7 @@ func (s *DeleteStreamingDistributionInput) SetIfMatch(v string) *DeleteStreaming
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteStreamingDistributionOutput
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DeleteStreamingDistributionOutput
 type DeleteStreamingDistributionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5399,7 +5399,7 @@ func (s DeleteStreamingDistributionOutput) GoString() string {
 }
 
 // The distribution's information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Distribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Distribution
 type Distribution struct {
 	_ struct{} `type:"structure"`
 
@@ -5514,7 +5514,7 @@ func (s *Distribution) SetStatus(v string) *Distribution {
 }
 
 // A distribution configuration.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DistributionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DistributionConfig
 type DistributionConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -5954,7 +5954,7 @@ func (s *DistributionConfig) SetWebACLId(v string) *DistributionConfig {
 
 // A distribution Configuration and a list of tags to be associated with the
 // distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DistributionConfigWithTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DistributionConfigWithTags
 type DistributionConfigWithTags struct {
 	_ struct{} `type:"structure"`
 
@@ -6018,7 +6018,7 @@ func (s *DistributionConfigWithTags) SetTags(v *Tags) *DistributionConfigWithTag
 }
 
 // A distribution list.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DistributionList
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DistributionList
 type DistributionList struct {
 	_ struct{} `type:"structure"`
 
@@ -6102,7 +6102,7 @@ func (s *DistributionList) SetQuantity(v int64) *DistributionList {
 }
 
 // A summary of the information about a CloudFront distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DistributionSummary
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/DistributionSummary
 type DistributionSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -6408,7 +6408,7 @@ func (s *DistributionSummary) SetWebACLId(v string) *DistributionSummary {
 }
 
 // A complex type that specifies how CloudFront handles query strings and cookies.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ForwardedValues
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ForwardedValues
 type ForwardedValues struct {
 	_ struct{} `type:"structure"`
 
@@ -6524,7 +6524,7 @@ func (s *ForwardedValues) SetQueryStringCacheKeys(v *QueryStringCacheKeys) *Forw
 
 // A complex type that controls the countries in which your content is distributed.
 // CloudFront determines the location of your users using MaxMind GeoIP databases.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GeoRestriction
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GeoRestriction
 type GeoRestriction struct {
 	_ struct{} `type:"structure"`
 
@@ -6612,7 +6612,7 @@ func (s *GeoRestriction) SetRestrictionType(v string) *GeoRestriction {
 
 // The origin access identity's configuration information. For more information,
 // see CloudFrontOriginAccessIdentityConfigComplexType.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityConfigRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityConfigRequest
 type GetCloudFrontOriginAccessIdentityConfigInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6652,7 +6652,7 @@ func (s *GetCloudFrontOriginAccessIdentityConfigInput) SetId(v string) *GetCloud
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityConfigResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityConfigResult
 type GetCloudFrontOriginAccessIdentityConfigOutput struct {
 	_ struct{} `type:"structure" payload:"CloudFrontOriginAccessIdentityConfig"`
 
@@ -6686,7 +6686,7 @@ func (s *GetCloudFrontOriginAccessIdentityConfigOutput) SetETag(v string) *GetCl
 }
 
 // The request to get an origin access identity's information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityRequest
 type GetCloudFrontOriginAccessIdentityInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6726,7 +6726,7 @@ func (s *GetCloudFrontOriginAccessIdentityInput) SetId(v string) *GetCloudFrontO
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetCloudFrontOriginAccessIdentityResult
 type GetCloudFrontOriginAccessIdentityOutput struct {
 	_ struct{} `type:"structure" payload:"CloudFrontOriginAccessIdentity"`
 
@@ -6761,7 +6761,7 @@ func (s *GetCloudFrontOriginAccessIdentityOutput) SetETag(v string) *GetCloudFro
 }
 
 // The request to get a distribution configuration.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionConfigRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionConfigRequest
 type GetDistributionConfigInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6801,7 +6801,7 @@ func (s *GetDistributionConfigInput) SetId(v string) *GetDistributionConfigInput
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionConfigResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionConfigResult
 type GetDistributionConfigOutput struct {
 	_ struct{} `type:"structure" payload:"DistributionConfig"`
 
@@ -6835,7 +6835,7 @@ func (s *GetDistributionConfigOutput) SetETag(v string) *GetDistributionConfigOu
 }
 
 // The request to get a distribution's information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionRequest
 type GetDistributionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6875,7 +6875,7 @@ func (s *GetDistributionInput) SetId(v string) *GetDistributionInput {
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetDistributionResult
 type GetDistributionOutput struct {
 	_ struct{} `type:"structure" payload:"Distribution"`
 
@@ -6909,7 +6909,7 @@ func (s *GetDistributionOutput) SetETag(v string) *GetDistributionOutput {
 }
 
 // The request to get an invalidation's information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetInvalidationRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetInvalidationRequest
 type GetInvalidationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6963,7 +6963,7 @@ func (s *GetInvalidationInput) SetId(v string) *GetInvalidationInput {
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetInvalidationResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetInvalidationResult
 type GetInvalidationOutput struct {
 	_ struct{} `type:"structure" payload:"Invalidation"`
 
@@ -6989,7 +6989,7 @@ func (s *GetInvalidationOutput) SetInvalidation(v *Invalidation) *GetInvalidatio
 }
 
 // To request to get a streaming distribution configuration.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionConfigRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionConfigRequest
 type GetStreamingDistributionConfigInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7029,7 +7029,7 @@ func (s *GetStreamingDistributionConfigInput) SetId(v string) *GetStreamingDistr
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionConfigResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionConfigResult
 type GetStreamingDistributionConfigOutput struct {
 	_ struct{} `type:"structure" payload:"StreamingDistributionConfig"`
 
@@ -7063,7 +7063,7 @@ func (s *GetStreamingDistributionConfigOutput) SetStreamingDistributionConfig(v 
 }
 
 // The request to get a streaming distribution's information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionRequest
 type GetStreamingDistributionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7103,7 +7103,7 @@ func (s *GetStreamingDistributionInput) SetId(v string) *GetStreamingDistributio
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/GetStreamingDistributionResult
 type GetStreamingDistributionOutput struct {
 	_ struct{} `type:"structure" payload:"StreamingDistribution"`
 
@@ -7149,7 +7149,7 @@ func (s *GetStreamingDistributionOutput) SetStreamingDistribution(v *StreamingDi
 // for each header value. For more information about caching based on header
 // values, see How CloudFront Forwards and Caches Headers (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/header-caching.html)
 // in the Amazon CloudFront Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Headers
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Headers
 type Headers struct {
 	_ struct{} `type:"structure"`
 
@@ -7225,7 +7225,7 @@ func (s *Headers) SetQuantity(v int64) *Headers {
 }
 
 // An invalidation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Invalidation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Invalidation
 type Invalidation struct {
 	_ struct{} `type:"structure"`
 
@@ -7286,7 +7286,7 @@ func (s *Invalidation) SetStatus(v string) *Invalidation {
 }
 
 // An invalidation batch.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/InvalidationBatch
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/InvalidationBatch
 type InvalidationBatch struct {
 	_ struct{} `type:"structure"`
 
@@ -7365,7 +7365,7 @@ func (s *InvalidationBatch) SetPaths(v *Paths) *InvalidationBatch {
 // For more information about invalidation, see Invalidating Objects (Web Distributions
 // Only) (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Invalidation.html)
 // in the Amazon CloudFront Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/InvalidationList
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/InvalidationList
 type InvalidationList struct {
 	_ struct{} `type:"structure"`
 
@@ -7449,7 +7449,7 @@ func (s *InvalidationList) SetQuantity(v int64) *InvalidationList {
 }
 
 // A summary of an invalidation request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/InvalidationSummary
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/InvalidationSummary
 type InvalidationSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -7499,7 +7499,7 @@ func (s *InvalidationSummary) SetStatus(v string) *InvalidationSummary {
 // associated with AwsAccountNumber.
 //
 // For more information, see ActiveTrustedSigners.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/KeyPairIds
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/KeyPairIds
 type KeyPairIds struct {
 	_ struct{} `type:"structure"`
 
@@ -7540,7 +7540,7 @@ func (s *KeyPairIds) SetQuantity(v int64) *KeyPairIds {
 }
 
 // A complex type that contains a Lambda function association.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/LambdaFunctionAssociation
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/LambdaFunctionAssociation
 type LambdaFunctionAssociation struct {
 	_ struct{} `type:"structure"`
 
@@ -7608,7 +7608,7 @@ func (s *LambdaFunctionAssociation) SetLambdaFunctionARN(v string) *LambdaFuncti
 //
 // If you don't want to invoke any Lambda functions for the requests that match
 // PathPattern, specify 0 for Quantity and omit Items.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/LambdaFunctionAssociations
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/LambdaFunctionAssociations
 type LambdaFunctionAssociations struct {
 	_ struct{} `type:"structure"`
 
@@ -7658,7 +7658,7 @@ func (s *LambdaFunctionAssociations) SetQuantity(v int64) *LambdaFunctionAssocia
 }
 
 // The request to list origin access identities.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListCloudFrontOriginAccessIdentitiesRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListCloudFrontOriginAccessIdentitiesRequest
 type ListCloudFrontOriginAccessIdentitiesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7696,7 +7696,7 @@ func (s *ListCloudFrontOriginAccessIdentitiesInput) SetMaxItems(v int64) *ListCl
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListCloudFrontOriginAccessIdentitiesResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListCloudFrontOriginAccessIdentitiesResult
 type ListCloudFrontOriginAccessIdentitiesOutput struct {
 	_ struct{} `type:"structure" payload:"CloudFrontOriginAccessIdentityList"`
 
@@ -7722,7 +7722,7 @@ func (s *ListCloudFrontOriginAccessIdentitiesOutput) SetCloudFrontOriginAccessId
 
 // The request to list distributions that are associated with a specified AWS
 // WAF web ACL.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsByWebACLIdRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsByWebACLIdRequest
 type ListDistributionsByWebACLIdInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7788,7 +7788,7 @@ func (s *ListDistributionsByWebACLIdInput) SetWebACLId(v string) *ListDistributi
 
 // The response to a request to list the distributions that are associated with
 // a specified AWS WAF web ACL.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsByWebACLIdResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsByWebACLIdResult
 type ListDistributionsByWebACLIdOutput struct {
 	_ struct{} `type:"structure" payload:"DistributionList"`
 
@@ -7813,7 +7813,7 @@ func (s *ListDistributionsByWebACLIdOutput) SetDistributionList(v *DistributionL
 }
 
 // The request to list your distributions.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsRequest
 type ListDistributionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7851,7 +7851,7 @@ func (s *ListDistributionsInput) SetMaxItems(v int64) *ListDistributionsInput {
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListDistributionsResult
 type ListDistributionsOutput struct {
 	_ struct{} `type:"structure" payload:"DistributionList"`
 
@@ -7876,7 +7876,7 @@ func (s *ListDistributionsOutput) SetDistributionList(v *DistributionList) *List
 }
 
 // The request to list invalidations.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListInvalidationsRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListInvalidationsRequest
 type ListInvalidationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7941,7 +7941,7 @@ func (s *ListInvalidationsInput) SetMaxItems(v int64) *ListInvalidationsInput {
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListInvalidationsResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListInvalidationsResult
 type ListInvalidationsOutput struct {
 	_ struct{} `type:"structure" payload:"InvalidationList"`
 
@@ -7966,7 +7966,7 @@ func (s *ListInvalidationsOutput) SetInvalidationList(v *InvalidationList) *List
 }
 
 // The request to list your streaming distributions.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListStreamingDistributionsRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListStreamingDistributionsRequest
 type ListStreamingDistributionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8000,7 +8000,7 @@ func (s *ListStreamingDistributionsInput) SetMaxItems(v int64) *ListStreamingDis
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListStreamingDistributionsResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListStreamingDistributionsResult
 type ListStreamingDistributionsOutput struct {
 	_ struct{} `type:"structure" payload:"StreamingDistributionList"`
 
@@ -8025,7 +8025,7 @@ func (s *ListStreamingDistributionsOutput) SetStreamingDistributionList(v *Strea
 }
 
 // The request to list tags for a CloudFront resource.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListTagsForResourceRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListTagsForResourceRequest
 type ListTagsForResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8065,7 +8065,7 @@ func (s *ListTagsForResourceInput) SetResource(v string) *ListTagsForResourceInp
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListTagsForResourceResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ListTagsForResourceResult
 type ListTagsForResourceOutput struct {
 	_ struct{} `type:"structure" payload:"Tags"`
 
@@ -8092,7 +8092,7 @@ func (s *ListTagsForResourceOutput) SetTags(v *Tags) *ListTagsForResourceOutput 
 }
 
 // A complex type that controls whether access logs are written for the distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/LoggingConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/LoggingConfig
 type LoggingConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -8193,7 +8193,7 @@ func (s *LoggingConfig) SetPrefix(v string) *LoggingConfig {
 // For the current limit on the number of origins that you can create for a
 // distribution, see Amazon CloudFront Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_cloudfront)
 // in the AWS General Reference.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Origin
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Origin
 type Origin struct {
 	_ struct{} `type:"structure"`
 
@@ -8351,7 +8351,7 @@ func (s *Origin) SetS3OriginConfig(v *S3OriginConfig) *Origin {
 }
 
 // CloudFront origin access identity.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CloudFrontOriginAccessIdentity
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CloudFrontOriginAccessIdentity
 type OriginAccessIdentity struct {
 	_ struct{} `type:"structure"`
 
@@ -8401,7 +8401,7 @@ func (s *OriginAccessIdentity) SetS3CanonicalUserId(v string) *OriginAccessIdent
 
 // Origin access identity configuration. Send a GET request to the /CloudFront
 // API version/CloudFront/identity ID/config resource.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CloudFrontOriginAccessIdentityConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CloudFrontOriginAccessIdentityConfig
 type OriginAccessIdentityConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -8473,7 +8473,7 @@ func (s *OriginAccessIdentityConfig) SetComment(v string) *OriginAccessIdentityC
 // child elements. By default, your entire list of origin access identities
 // is returned in one single page. If the list is long, you can paginate it
 // using the MaxItems and Marker parameters.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CloudFrontOriginAccessIdentityList
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CloudFrontOriginAccessIdentityList
 type OriginAccessIdentityList struct {
 	_ struct{} `type:"structure"`
 
@@ -8562,7 +8562,7 @@ func (s *OriginAccessIdentityList) SetQuantity(v int64) *OriginAccessIdentityLis
 }
 
 // Summary of the information about a CloudFront origin access identity.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CloudFrontOriginAccessIdentitySummary
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/CloudFrontOriginAccessIdentitySummary
 type OriginAccessIdentitySummary struct {
 	_ struct{} `type:"structure"`
 
@@ -8615,7 +8615,7 @@ func (s *OriginAccessIdentitySummary) SetS3CanonicalUserId(v string) *OriginAcce
 
 // A complex type that contains HeaderName and HeaderValue elements, if any,
 // for this distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/OriginCustomHeader
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/OriginCustomHeader
 type OriginCustomHeader struct {
 	_ struct{} `type:"structure"`
 
@@ -8673,7 +8673,7 @@ func (s *OriginCustomHeader) SetHeaderValue(v string) *OriginCustomHeader {
 
 // A complex type that contains information about the SSL/TLS protocols that
 // CloudFront can use when establishing an HTTPS connection with your origin.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/OriginSslProtocols
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/OriginSslProtocols
 type OriginSslProtocols struct {
 	_ struct{} `type:"structure"`
 
@@ -8728,7 +8728,7 @@ func (s *OriginSslProtocols) SetQuantity(v int64) *OriginSslProtocols {
 }
 
 // A complex type that contains information about origins for this distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Origins
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Origins
 type Origins struct {
 	_ struct{} `type:"structure"`
 
@@ -8793,7 +8793,7 @@ func (s *Origins) SetQuantity(v int64) *Origins {
 // to invalidate. For more information, see Specifying the Objects to Invalidate
 // (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Invalidation.html#invalidation-specifying-objects)
 // in the Amazon CloudFront Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Paths
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Paths
 type Paths struct {
 	_ struct{} `type:"structure"`
 
@@ -8841,7 +8841,7 @@ func (s *Paths) SetQuantity(v int64) *Paths {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/QueryStringCacheKeys
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/QueryStringCacheKeys
 type QueryStringCacheKeys struct {
 	_ struct{} `type:"structure"`
 
@@ -8893,7 +8893,7 @@ func (s *QueryStringCacheKeys) SetQuantity(v int64) *QueryStringCacheKeys {
 
 // A complex type that identifies ways in which you want to restrict distribution
 // of your content.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Restrictions
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Restrictions
 type Restrictions struct {
 	_ struct{} `type:"structure"`
 
@@ -8940,7 +8940,7 @@ func (s *Restrictions) SetGeoRestriction(v *GeoRestriction) *Restrictions {
 
 // A complex type that contains information about the Amazon S3 bucket from
 // which you want CloudFront to get your media files for distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/S3Origin
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/S3Origin
 type S3Origin struct {
 	_ struct{} `type:"structure"`
 
@@ -9011,7 +9011,7 @@ func (s *S3Origin) SetOriginAccessIdentity(v string) *S3Origin {
 
 // A complex type that contains information about the Amazon S3 origin. If the
 // origin is a custom origin, use the CustomOriginConfig element instead.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/S3OriginConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/S3OriginConfig
 type S3OriginConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -9074,7 +9074,7 @@ func (s *S3OriginConfig) SetOriginAccessIdentity(v string) *S3OriginConfig {
 
 // A complex type that lists the AWS accounts that were included in the TrustedSigners
 // complex type, as well as their active CloudFront key pair IDs, if any.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Signer
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Signer
 type Signer struct {
 	_ struct{} `type:"structure"`
 
@@ -9114,7 +9114,7 @@ func (s *Signer) SetKeyPairIds(v *KeyPairIds) *Signer {
 }
 
 // A streaming distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingDistribution
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingDistribution
 type StreamingDistribution struct {
 	_ struct{} `type:"structure"`
 
@@ -9216,7 +9216,7 @@ func (s *StreamingDistribution) SetStreamingDistributionConfig(v *StreamingDistr
 }
 
 // The RTMP distribution's configuration information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingDistributionConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingDistributionConfig
 type StreamingDistributionConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -9379,7 +9379,7 @@ func (s *StreamingDistributionConfig) SetTrustedSigners(v *TrustedSigners) *Stre
 
 // A streaming distribution Configuration and a list of tags to be associated
 // with the streaming distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingDistributionConfigWithTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingDistributionConfigWithTags
 type StreamingDistributionConfigWithTags struct {
 	_ struct{} `type:"structure"`
 
@@ -9443,7 +9443,7 @@ func (s *StreamingDistributionConfigWithTags) SetTags(v *Tags) *StreamingDistrib
 }
 
 // A streaming distribution list.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingDistributionList
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingDistributionList
 type StreamingDistributionList struct {
 	_ struct{} `type:"structure"`
 
@@ -9528,7 +9528,7 @@ func (s *StreamingDistributionList) SetQuantity(v int64) *StreamingDistributionL
 }
 
 // A summary of the information for an Amazon CloudFront streaming distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingDistributionSummary
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingDistributionSummary
 type StreamingDistributionSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -9679,7 +9679,7 @@ func (s *StreamingDistributionSummary) SetTrustedSigners(v *TrustedSigners) *Str
 
 // A complex type that controls whether access logs are written for this streaming
 // distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingLoggingConfig
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/StreamingLoggingConfig
 type StreamingLoggingConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -9755,7 +9755,7 @@ func (s *StreamingLoggingConfig) SetPrefix(v string) *StreamingLoggingConfig {
 }
 
 // A complex type that contains Tag key and Tag value.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Tag
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -9813,7 +9813,7 @@ func (s *Tag) SetValue(v string) *Tag {
 }
 
 // A complex type that contains zero or more Tag elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TagKeys
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TagKeys
 type TagKeys struct {
 	_ struct{} `type:"structure"`
 
@@ -9838,7 +9838,7 @@ func (s *TagKeys) SetItems(v []*string) *TagKeys {
 }
 
 // The request to add tags to a CloudFront resource.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TagResourceRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TagResourceRequest
 type TagResourceInput struct {
 	_ struct{} `type:"structure" payload:"Tags"`
 
@@ -9896,7 +9896,7 @@ func (s *TagResourceInput) SetTags(v *Tags) *TagResourceInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TagResourceOutput
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TagResourceOutput
 type TagResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -9912,7 +9912,7 @@ func (s TagResourceOutput) GoString() string {
 }
 
 // A complex type that contains zero or more Tag elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Tags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/Tags
 type Tags struct {
 	_ struct{} `type:"structure"`
 
@@ -9974,7 +9974,7 @@ func (s *Tags) SetItems(v []*Tag) *Tags {
 //
 // For more information about updating the distribution configuration, see DistributionConfig
 // .
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TrustedSigners
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/TrustedSigners
 type TrustedSigners struct {
 	_ struct{} `type:"structure"`
 
@@ -10039,7 +10039,7 @@ func (s *TrustedSigners) SetQuantity(v int64) *TrustedSigners {
 }
 
 // The request to remove tags from a CloudFront resource.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UntagResourceRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UntagResourceRequest
 type UntagResourceInput struct {
 	_ struct{} `type:"structure" payload:"TagKeys"`
 
@@ -10092,7 +10092,7 @@ func (s *UntagResourceInput) SetTagKeys(v *TagKeys) *UntagResourceInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UntagResourceOutput
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UntagResourceOutput
 type UntagResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -10108,7 +10108,7 @@ func (s UntagResourceOutput) GoString() string {
 }
 
 // The request to update an origin access identity.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateCloudFrontOriginAccessIdentityRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateCloudFrontOriginAccessIdentityRequest
 type UpdateCloudFrontOriginAccessIdentityInput struct {
 	_ struct{} `type:"structure" payload:"CloudFrontOriginAccessIdentityConfig"`
 
@@ -10177,7 +10177,7 @@ func (s *UpdateCloudFrontOriginAccessIdentityInput) SetIfMatch(v string) *Update
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateCloudFrontOriginAccessIdentityResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateCloudFrontOriginAccessIdentityResult
 type UpdateCloudFrontOriginAccessIdentityOutput struct {
 	_ struct{} `type:"structure" payload:"CloudFrontOriginAccessIdentity"`
 
@@ -10211,7 +10211,7 @@ func (s *UpdateCloudFrontOriginAccessIdentityOutput) SetETag(v string) *UpdateCl
 }
 
 // The request to update a distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateDistributionRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateDistributionRequest
 type UpdateDistributionInput struct {
 	_ struct{} `type:"structure" payload:"DistributionConfig"`
 
@@ -10280,7 +10280,7 @@ func (s *UpdateDistributionInput) SetIfMatch(v string) *UpdateDistributionInput 
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateDistributionResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateDistributionResult
 type UpdateDistributionOutput struct {
 	_ struct{} `type:"structure" payload:"Distribution"`
 
@@ -10314,7 +10314,7 @@ func (s *UpdateDistributionOutput) SetETag(v string) *UpdateDistributionOutput {
 }
 
 // The request to update a streaming distribution.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateStreamingDistributionRequest
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateStreamingDistributionRequest
 type UpdateStreamingDistributionInput struct {
 	_ struct{} `type:"structure" payload:"StreamingDistributionConfig"`
 
@@ -10383,7 +10383,7 @@ func (s *UpdateStreamingDistributionInput) SetStreamingDistributionConfig(v *Str
 }
 
 // The returned result of the corresponding request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateStreamingDistributionResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/UpdateStreamingDistributionResult
 type UpdateStreamingDistributionOutput struct {
 	_ struct{} `type:"structure" payload:"StreamingDistribution"`
 
@@ -10502,7 +10502,7 @@ func (s *UpdateStreamingDistributionOutput) SetStreamingDistribution(v *Streamin
 //
 // For more information, see Using Alternate Domain Names and HTTPS (http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecureConnections.html#CNAMEsAndHTTPS)
 // in the Amazon CloudFront Developer Guide.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ViewerCertificate
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25/ViewerCertificate
 type ViewerCertificate struct {
 	_ struct{} `type:"structure"`
 
