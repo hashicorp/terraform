@@ -25,7 +25,7 @@ func dataSourceAwsCanonicalUserId() *schema.Resource {
 func dataSourceAwsCanonicalUserIdRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).s3conn
 
-	log.Printf("[DEBUG] Listing S3 buckets.")
+	log.Printf("[DEBUG] Reading S3 Buckets")
 
 	req := &s3.ListBucketsInput{}
 	resp, err := conn.ListBuckets(req)

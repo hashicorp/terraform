@@ -215,11 +215,11 @@ func dataSourceAwsIamPolicyPrincipalSchema() *schema.Schema {
 		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"type": &schema.Schema{
+				"type": {
 					Type:     schema.TypeString,
 					Required: true,
 				},
-				"identifiers": &schema.Schema{
+				"identifiers": {
 					Type:     schema.TypeSet,
 					Required: true,
 					Elem: &schema.Schema{

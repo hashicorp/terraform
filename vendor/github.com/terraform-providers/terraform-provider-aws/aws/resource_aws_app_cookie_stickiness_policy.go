@@ -102,6 +102,7 @@ func resourceAwsAppCookieStickinessPolicyRead(d *schema.ResourceData, meta inter
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok {
 			if ec2err.Code() == "PolicyNotFound" || ec2err.Code() == "LoadBalancerNotFound" {
+				log.Printf("[WARN] Load Balancer / Load Balancer Policy (%s) not found, removing from state", d.Id())
 				d.SetId("")
 			}
 			return nil
@@ -131,8 +132,8 @@ func resourceAwsAppCookieStickinessPolicyRead(d *schema.ResourceData, meta inter
 	if *cookieAttr.AttributeName != "CookieName" {
 		return fmt.Errorf("Unable to find cookie Name.")
 	}
-	d.Set("cookie_name", cookieAttr.AttributeValue)
 
+	d.Set("cookie_name", cookieAttr.AttributeValue)
 	d.Set("name", policyName)
 	d.Set("load_balancer", lbName)
 	d.Set("lb_port", lbPort)

@@ -155,6 +155,12 @@ const (
 	// by using a change token that has already been used.
 	ErrCodeWAFStaleDataException = "WAFStaleDataException"
 
+	// ErrCodeWAFSubscriptionNotFoundException for service response error code
+	// "WAFSubscriptionNotFoundException".
+	//
+	// The specified subscription does not exist.
+	ErrCodeWAFSubscriptionNotFoundException = "WAFSubscriptionNotFoundException"
+
 	// ErrCodeWAFUnavailableEntityException for service response error code
 	// "WAFUnavailableEntityException".
 	//

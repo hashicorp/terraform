@@ -16,24 +16,25 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 func resourceAwsElasticBeanstalkOptionSetting() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"namespace": &schema.Schema{
+			"namespace": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"value": &schema.Schema{
+			"value": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"resource": &schema.Schema{
+			"resource": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -55,35 +56,35 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 		MigrateState:  resourceAwsElasticBeanstalkEnvironmentMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"application": &schema.Schema{
+			"application": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"version_label": &schema.Schema{
+			"version_label": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"cname": &schema.Schema{
+			"cname": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"cname_prefix": &schema.Schema{
+			"cname_prefix": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
 				ForceNew: true,
 			},
-			"tier": &schema.Schema{
+			"tier": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "WebServer",
@@ -100,29 +101,29 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				},
 				ForceNew: true,
 			},
-			"setting": &schema.Schema{
+			"setting": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     resourceAwsElasticBeanstalkOptionSetting(),
 				Set:      optionSettingValueHash,
 			},
-			"all_settings": &schema.Schema{
+			"all_settings": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Elem:     resourceAwsElasticBeanstalkOptionSetting(),
 				Set:      optionSettingValueHash,
 			},
-			"solution_stack_name": &schema.Schema{
+			"solution_stack_name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"template_name"},
 			},
-			"template_name": &schema.Schema{
+			"template_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"wait_for_ready_timeout": &schema.Schema{
+			"wait_for_ready_timeout": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "20m",
@@ -140,7 +141,7 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 					return
 				},
 			},
-			"poll_interval": &schema.Schema{
+			"poll_interval": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
@@ -157,32 +158,32 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 					return
 				},
 			},
-			"autoscaling_groups": &schema.Schema{
+			"autoscaling_groups": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"instances": &schema.Schema{
+			"instances": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"launch_configurations": &schema.Schema{
+			"launch_configurations": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"load_balancers": &schema.Schema{
+			"load_balancers": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"queues": &schema.Schema{
+			"queues": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"triggers": &schema.Schema{
+			"triggers": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -769,7 +770,7 @@ func optionSettingValueHash(v interface{}) int {
 		resourceName = v
 	}
 	value, _ := rd["value"].(string)
-	value, _ = normalizeJsonString(value)
+	value, _ = structure.NormalizeJsonString(value)
 	hk := fmt.Sprintf("%s:%s%s=%s", namespace, optionName, resourceName, sortValues(value))
 	log.Printf("[DEBUG] Elastic Beanstalk optionSettingValueHash(%#v): %s: hk=%s,hc=%d", v, optionName, hk, hashcode.String(hk))
 	return hashcode.String(hk)

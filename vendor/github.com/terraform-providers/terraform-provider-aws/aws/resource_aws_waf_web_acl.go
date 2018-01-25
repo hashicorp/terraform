@@ -119,7 +119,7 @@ func resourceAwsWafWebAclRead(d *schema.ResourceData, meta interface{}) error {
 	resp, err := conn.GetWebACL(params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "WAFNonexistentItemException" {
-			log.Printf("[WARN] WAF ACL (%s) not found, error code (404)", d.Id())
+			log.Printf("[WARN] WAF ACL (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
 		}

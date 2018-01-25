@@ -267,21 +267,52 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.Get("force_detach_policies").(bool) {
-		policiesResp, err := iamconn.ListAttachedRolePolicies(&iam.ListAttachedRolePoliciesInput{
+		// For managed policies
+		managedPolicies := make([]*string, 0)
+		err = iamconn.ListAttachedRolePoliciesPages(&iam.ListAttachedRolePoliciesInput{
 			RoleName: aws.String(d.Id()),
+		}, func(page *iam.ListAttachedRolePoliciesOutput, lastPage bool) bool {
+			for _, v := range page.AttachedPolicies {
+				managedPolicies = append(managedPolicies, v.PolicyArn)
+			}
+			return len(page.AttachedPolicies) > 0
 		})
 		if err != nil {
 			return fmt.Errorf("Error listing Policies for IAM Role (%s) when trying to delete: %s", d.Id(), err)
 		}
-		// Loop and remove the Policies from the Role
-		if len(policiesResp.AttachedPolicies) > 0 {
-			for _, i := range policiesResp.AttachedPolicies {
-				_, err := iamconn.DetachRolePolicy(&iam.DetachRolePolicyInput{
-					PolicyArn: i.PolicyArn,
+		if len(managedPolicies) > 0 {
+			for _, parn := range managedPolicies {
+				_, err = iamconn.DetachRolePolicy(&iam.DetachRolePolicyInput{
+					PolicyArn: parn,
 					RoleName:  aws.String(d.Id()),
 				})
 				if err != nil {
 					return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+				}
+			}
+		}
+
+		// For inline policies
+		inlinePolicies := make([]*string, 0)
+		err = iamconn.ListRolePoliciesPages(&iam.ListRolePoliciesInput{
+			RoleName: aws.String(d.Id()),
+		}, func(page *iam.ListRolePoliciesOutput, lastPage bool) bool {
+			for _, v := range page.PolicyNames {
+				inlinePolicies = append(inlinePolicies, v)
+			}
+			return len(page.PolicyNames) > 0
+		})
+		if err != nil {
+			return fmt.Errorf("Error listing inline Policies for IAM Role (%s) when trying to delete: %s", d.Id(), err)
+		}
+		if len(inlinePolicies) > 0 {
+			for _, pname := range inlinePolicies {
+				_, err := iamconn.DeleteRolePolicy(&iam.DeleteRolePolicyInput{
+					PolicyName: pname,
+					RoleName:   aws.String(d.Id()),
+				})
+				if err != nil {
+					return fmt.Errorf("Error deleting inline policy of IAM Role %s: %s", d.Id(), err)
 				}
 			}
 		}

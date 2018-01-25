@@ -728,9 +728,44 @@ func resourceAwsSpotFleetRequestFulfillmentRefreshFunc(id string, conn *ec2.EC2)
 			return nil, "", nil
 		}
 
-		spotFleetRequest := resp.SpotFleetRequestConfigs[0]
+		cfg := resp.SpotFleetRequestConfigs[0]
+		status := *cfg.ActivityStatus
 
-		return spotFleetRequest, *spotFleetRequest.ActivityStatus, nil
+		var fleetError error
+		if status == ec2.ActivityStatusError {
+			var events []*ec2.HistoryRecord
+
+			// Query "information" events (e.g. launchSpecUnusable b/c low bid price)
+			out, err := conn.DescribeSpotFleetRequestHistory(&ec2.DescribeSpotFleetRequestHistoryInput{
+				EventType:          aws.String("information"),
+				SpotFleetRequestId: aws.String(id),
+				StartTime:          cfg.CreateTime,
+			})
+			if err != nil {
+				log.Printf("[ERROR] Failed to get the reason of 'error' state: %s", err)
+			}
+			if len(out.HistoryRecords) > 0 {
+				events = out.HistoryRecords
+			}
+
+			out, err = conn.DescribeSpotFleetRequestHistory(&ec2.DescribeSpotFleetRequestHistoryInput{
+				EventType:          aws.String(ec2.EventTypeError),
+				SpotFleetRequestId: aws.String(id),
+				StartTime:          cfg.CreateTime,
+			})
+			if err != nil {
+				log.Printf("[ERROR] Failed to get the reason of 'error' state: %s", err)
+			}
+			if len(out.HistoryRecords) > 0 {
+				events = append(events, out.HistoryRecords...)
+			}
+
+			if len(events) > 0 {
+				fleetError = fmt.Errorf("Last events: %v", events)
+			}
+		}
+
+		return cfg, status, fleetError
 	}
 }
 

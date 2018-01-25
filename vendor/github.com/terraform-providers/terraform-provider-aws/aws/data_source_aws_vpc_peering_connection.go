@@ -39,6 +39,11 @@ func dataSourceAwsVpcPeeringConnection() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"region": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"peer_vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -50,6 +55,11 @@ func dataSourceAwsVpcPeeringConnection() *schema.Resource {
 				Computed: true,
 			},
 			"peer_cidr_block": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"peer_region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -103,6 +113,7 @@ func dataSourceAwsVpcPeeringConnectionRead(d *schema.ResourceData, meta interfac
 		req.Filters = nil
 	}
 
+	log.Printf("[DEBUG] Reading VPC Peering Connection: %s", req)
 	resp, err := conn.DescribeVpcPeeringConnections(req)
 	if err != nil {
 		return err
@@ -121,9 +132,11 @@ func dataSourceAwsVpcPeeringConnectionRead(d *schema.ResourceData, meta interfac
 	d.Set("vpc_id", pcx.RequesterVpcInfo.VpcId)
 	d.Set("owner_id", pcx.RequesterVpcInfo.OwnerId)
 	d.Set("cidr_block", pcx.RequesterVpcInfo.CidrBlock)
+	d.Set("region", pcx.RequesterVpcInfo.Region)
 	d.Set("peer_vpc_id", pcx.AccepterVpcInfo.VpcId)
 	d.Set("peer_owner_id", pcx.AccepterVpcInfo.OwnerId)
 	d.Set("peer_cidr_block", pcx.AccepterVpcInfo.CidrBlock)
+	d.Set("peer_region", pcx.AccepterVpcInfo.Region)
 	d.Set("tags", tagsToMap(pcx.Tags))
 
 	if pcx.AccepterVpcInfo.PeeringOptions != nil {

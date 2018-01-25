@@ -111,6 +111,7 @@ func dataSourceAwsEbsSnapshotRead(d *schema.ResourceData, meta interface{}) erro
 		params.SnapshotIds = expandStringList(snapshotIds.([]interface{}))
 	}
 
+	log.Printf("[DEBUG] Reading EBS Snapshot: %s", params)
 	resp, err := conn.DescribeSnapshots(params)
 	if err != nil {
 		return err

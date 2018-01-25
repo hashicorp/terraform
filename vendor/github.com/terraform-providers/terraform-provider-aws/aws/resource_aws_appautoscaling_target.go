@@ -15,20 +15,19 @@ import (
 
 func resourceAwsAppautoscalingTarget() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsAppautoscalingTargetCreate,
+		Create: resourceAwsAppautoscalingTargetPut,
 		Read:   resourceAwsAppautoscalingTargetRead,
+		Update: resourceAwsAppautoscalingTargetPut,
 		Delete: resourceAwsAppautoscalingTargetDelete,
 
 		Schema: map[string]*schema.Schema{
 			"max_capacity": {
 				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: true,
 			},
 			"min_capacity": {
 				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: true,
 			},
 			"resource_id": {
 				Type:     schema.TypeString,
@@ -37,8 +36,8 @@ func resourceAwsAppautoscalingTarget() *schema.Resource {
 			},
 			"role_arn": {
 				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Optional: true,
+				Computed: true,
 			},
 			"scalable_dimension": {
 				Type:         schema.TypeString,
@@ -56,7 +55,7 @@ func resourceAwsAppautoscalingTarget() *schema.Resource {
 	}
 }
 
-func resourceAwsAppautoscalingTargetCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsAppautoscalingTargetPut(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).appautoscalingconn
 
 	var targetOpts applicationautoscaling.RegisterScalableTargetInput
@@ -64,18 +63,21 @@ func resourceAwsAppautoscalingTargetCreate(d *schema.ResourceData, meta interfac
 	targetOpts.MaxCapacity = aws.Int64(int64(d.Get("max_capacity").(int)))
 	targetOpts.MinCapacity = aws.Int64(int64(d.Get("min_capacity").(int)))
 	targetOpts.ResourceId = aws.String(d.Get("resource_id").(string))
-	targetOpts.RoleARN = aws.String(d.Get("role_arn").(string))
 	targetOpts.ScalableDimension = aws.String(d.Get("scalable_dimension").(string))
 	targetOpts.ServiceNamespace = aws.String(d.Get("service_namespace").(string))
 
-	log.Printf("[DEBUG] Application autoscaling target create configuration %#v", targetOpts)
+	if roleArn, exists := d.GetOk("role_arn"); exists {
+		targetOpts.RoleARN = aws.String(roleArn.(string))
+	}
+
+	log.Printf("[DEBUG] Application autoscaling target create configuration %s", targetOpts)
 	var err error
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err = conn.RegisterScalableTarget(&targetOpts)
 
 		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ValidationException" {
-				log.Printf("[DEBUG] Retrying creation of Application Autoscaling Scalable Target due to possible issues with IAM: %s", awsErr)
+			if isAWSErr(err, "ValidationException", "Unable to assume IAM role") {
+				log.Printf("[DEBUG] Retrying creation of Application Autoscaling Scalable Target due to possible issues with IAM: %s", err)
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
@@ -103,7 +105,7 @@ func resourceAwsAppautoscalingTargetRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 	if t == nil {
-		log.Printf("[INFO] Application AutoScaling Target %q not found", d.Id())
+		log.Printf("[WARN] Application AutoScaling Target (%s) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
 	}

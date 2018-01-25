@@ -36,6 +36,9 @@
 //    Automatically with DynamoDB Auto Scaling (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/AutoScaling.html)
 //    in the Amazon DynamoDB Developer Guide.
 //
+//    * Amazon Aurora Replicas. For more information, see Using Application
+//    Auto Scaling with an Amazon Aurora DB Cluster (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Integrating.AutoScaling.html).
+//
 // For a list of supported regions, see AWS Regions and Endpoints: Application
 // Auto Scaling (http://docs.aws.amazon.com/general/latest/gr/rande.html#as-app_region)
 // in the AWS General Reference.

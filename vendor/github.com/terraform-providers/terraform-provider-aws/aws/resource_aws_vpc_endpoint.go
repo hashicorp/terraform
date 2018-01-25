@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 func resourceAwsVpcEndpoint() *schema.Resource {
@@ -28,7 +29,7 @@ func resourceAwsVpcEndpoint() *schema.Resource {
 				Computed:     true,
 				ValidateFunc: validateJsonString,
 				StateFunc: func(v interface{}) string {
-					json, _ := normalizeJsonString(v)
+					json, _ := structure.NormalizeJsonString(v)
 					return json
 				},
 			},
@@ -77,7 +78,7 @@ func resourceAwsVPCEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if v, ok := d.GetOk("policy"); ok {
-		policy, err := normalizeJsonString(v)
+		policy, err := structure.NormalizeJsonString(v)
 		if err != nil {
 			return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
 		}
@@ -150,7 +151,7 @@ func resourceAwsVPCEndpointRead(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("There are multiple prefix lists associated with the service name '%s'. Unexpected", prefixListServiceName)
 	}
 
-	policy, err := normalizeJsonString(*vpce.PolicyDocument)
+	policy, err := structure.NormalizeJsonString(*vpce.PolicyDocument)
 	if err != nil {
 		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
 	}
@@ -191,7 +192,7 @@ func resourceAwsVPCEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if d.HasChange("policy") {
-		policy, err := normalizeJsonString(d.Get("policy"))
+		policy, err := structure.NormalizeJsonString(d.Get("policy"))
 		if err != nil {
 			return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
 		}

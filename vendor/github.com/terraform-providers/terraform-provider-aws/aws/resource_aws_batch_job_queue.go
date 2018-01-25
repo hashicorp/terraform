@@ -160,8 +160,8 @@ func resourceAwsBatchJobQueueDelete(d *schema.ResourceData, meta interface{}) er
 	_, err = conn.DeleteJobQueue(&batch.DeleteJobQueueInput{
 		JobQueue: aws.String(sn),
 	})
-	if err == nil {
-		return nil
+	if err != nil {
+		return err
 	}
 
 	deleteStateConf := &resource.StateChangeConf{

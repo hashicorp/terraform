@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/kms"
 )
 
@@ -25,18 +26,18 @@ func resourceAwsKmsAlias() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc:  validateAwsKmsName,
 			},
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -49,9 +50,13 @@ func resourceAwsKmsAlias() *schema.Resource {
 					return
 				},
 			},
-			"target_key_id": &schema.Schema{
+			"target_key_id": {
 				Type:     schema.TypeString,
 				Required: true,
+			},
+			"target_key_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -113,6 +118,19 @@ func resourceAwsKmsAliasRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("arn", alias.AliasArn)
 	d.Set("target_key_id", alias.TargetKeyId)
 
+	aliasARN, err := arn.Parse(*alias.AliasArn)
+	if err != nil {
+		return err
+	}
+	targetKeyARN := arn.ARN{
+		Partition: aliasARN.Partition,
+		Service:   aliasARN.Service,
+		Region:    aliasARN.Region,
+		AccountID: aliasARN.AccountID,
+		Resource:  fmt.Sprintf("key/%s", *alias.TargetKeyId),
+	}
+	d.Set("target_key_arn", targetKeyARN.String())
+
 	return nil
 }
 
@@ -124,6 +142,7 @@ func resourceAwsKmsAliasUpdate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
+		return resourceAwsKmsAliasRead(d, meta)
 	}
 	return nil
 }
