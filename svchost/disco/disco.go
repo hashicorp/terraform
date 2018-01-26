@@ -25,9 +25,9 @@ import (
 
 const (
 	discoPath        = "/.well-known/terraform.json"
-	maxRedirects     = 3               // arbitrary-but-small number to prevent runaway redirect loops
-	discoTimeout     = 4 * time.Second // arbitrary-but-small time limit to prevent UI "hangs" during discovery
-	maxDiscoDocBytes = 1 * 1024 * 1024 // 1MB - to prevent abusive services from using loads of our memory
+	maxRedirects     = 3                // arbitrary-but-small number to prevent runaway redirect loops
+	discoTimeout     = 11 * time.Second // arbitrary-but-small time limit to prevent UI "hangs" during discovery
+	maxDiscoDocBytes = 1 * 1024 * 1024  // 1MB - to prevent abusive services from using loads of our memory
 )
 
 var userAgent = fmt.Sprintf("Terraform/%s (service discovery)", version.String())
