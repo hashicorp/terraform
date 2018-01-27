@@ -100,14 +100,6 @@ func (c *Lambda) AddPermissionRequest(input *AddPermissionInput) (req *request.R
 //   Lambda function access policy is limited to 20 KB.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/AddPermission
 func (c *Lambda) AddPermission(input *AddPermissionInput) (*AddPermissionOutput, error) {
@@ -205,14 +197,6 @@ func (c *Lambda) CreateAliasRequest(input *CreateAliasInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/CreateAlias
 func (c *Lambda) CreateAlias(input *CreateAliasInput) (*AliasConfiguration, error) {
@@ -326,14 +310,6 @@ func (c *Lambda) CreateEventSourceMappingRequest(input *CreateEventSourceMapping
 //   The resource already exists.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
@@ -440,14 +416,6 @@ func (c *Lambda) CreateFunctionRequest(input *CreateFunctionInput) (req *request
 //   The resource already exists.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
@@ -542,14 +510,6 @@ func (c *Lambda) DeleteAliasRequest(input *DeleteAliasInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteAlias
 func (c *Lambda) DeleteAlias(input *DeleteAliasInput) (*DeleteAliasOutput, error) {
@@ -644,14 +604,6 @@ func (c *Lambda) DeleteEventSourceMappingRequest(input *DeleteEventSourceMapping
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteEventSourceMapping
 func (c *Lambda) DeleteEventSourceMapping(input *DeleteEventSourceMappingInput) (*EventSourceMappingConfiguration, error) {
@@ -751,14 +703,6 @@ func (c *Lambda) DeleteFunctionRequest(input *DeleteFunctionInput) (req *request
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -836,7 +780,8 @@ func (c *Lambda) DeleteFunctionConcurrencyRequest(input *DeleteFunctionConcurren
 
 // DeleteFunctionConcurrency API operation for AWS Lambda.
 //
-// Removes concurrent execution limits from this function.
+// Removes concurrent execution limits from this function. For more information,
+// see concurrent-executions.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -854,14 +799,6 @@ func (c *Lambda) DeleteFunctionConcurrencyRequest(input *DeleteFunctionConcurren
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -951,14 +888,6 @@ func (c *Lambda) GetAccountSettingsRequest(input *GetAccountSettingsInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
@@ -1056,14 +985,6 @@ func (c *Lambda) GetAliasRequest(input *GetAliasInput) (req *request.Request, ou
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetAlias
 func (c *Lambda) GetAlias(input *GetAliasInput) (*AliasConfiguration, error) {
@@ -1157,14 +1078,6 @@ func (c *Lambda) GetEventSourceMappingRequest(input *GetEventSourceMappingInput)
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetEventSourceMapping
 func (c *Lambda) GetEventSourceMapping(input *GetEventSourceMappingInput) (*EventSourceMappingConfiguration, error) {
@@ -1262,14 +1175,6 @@ func (c *Lambda) GetFunctionRequest(input *GetFunctionInput) (req *request.Reque
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1372,14 +1277,6 @@ func (c *Lambda) GetFunctionConfigurationRequest(input *GetFunctionConfiguration
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1477,14 +1374,6 @@ func (c *Lambda) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, 
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1570,6 +1459,13 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 //
 // This operation requires permission for the lambda:InvokeFunction action.
 //
+// The TooManyRequestsException noted below will return the following: ConcurrentInvocationLimitExceeded
+// will be returned if you have no functions with reserved concurrency and have
+// exceeded your account concurrent limit or if a function without reserved
+// concurrency exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
+// will be returned when a function with reserved concurrency exceeds its configured
+// concurrency limit.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -1596,14 +1492,6 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 //   The content type of the Invoke request body is not JSON.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1850,14 +1738,6 @@ func (c *Lambda) ListAliasesRequest(input *ListAliasesInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListAliases
 func (c *Lambda) ListAliases(input *ListAliasesInput) (*ListAliasesOutput, error) {
@@ -1966,14 +1846,6 @@ func (c *Lambda) ListEventSourceMappingsRequest(input *ListEventSourceMappingsIn
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListEventSourceMappings
 func (c *Lambda) ListEventSourceMappings(input *ListEventSourceMappingsInput) (*ListEventSourceMappingsOutput, error) {
@@ -2119,14 +1991,6 @@ func (c *Lambda) ListFunctionsRequest(input *ListFunctionsInput) (req *request.R
 //   The AWS Lambda service encountered an internal error.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -2273,14 +2137,6 @@ func (c *Lambda) ListTagsRequest(input *ListTagsInput) (req *request.Request, ou
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListTags
 func (c *Lambda) ListTags(input *ListTagsInput) (*ListTagsOutput, error) {
@@ -2372,14 +2228,6 @@ func (c *Lambda) ListVersionsByFunctionRequest(input *ListVersionsByFunctionInpu
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListVersionsByFunction
 func (c *Lambda) ListVersionsByFunction(input *ListVersionsByFunctionInput) (*ListVersionsByFunctionOutput, error) {
@@ -2474,14 +2322,6 @@ func (c *Lambda) PublishVersionRequest(input *PublishVersionInput) (req *request
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
@@ -2557,7 +2397,7 @@ func (c *Lambda) PutFunctionConcurrencyRequest(input *PutFunctionConcurrencyInpu
 // Note that Lambda automatically reserves a buffer of 100 concurrent executions
 // for functions without any reserved concurrency limit. This means if your
 // account limit is 1000, you have a total of 900 available to allocate to individual
-// functions.
+// functions. For more information, see concurrent-executions.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2580,14 +2420,6 @@ func (c *Lambda) PutFunctionConcurrencyRequest(input *PutFunctionConcurrencyInpu
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/PutFunctionConcurrency
 func (c *Lambda) PutFunctionConcurrency(input *PutFunctionConcurrencyInput) (*PutFunctionConcurrencyOutput, error) {
@@ -2692,14 +2524,6 @@ func (c *Lambda) RemovePermissionRequest(input *RemovePermissionInput) (req *req
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/RemovePermission
 func (c *Lambda) RemovePermission(input *RemovePermissionInput) (*RemovePermissionOutput, error) {
@@ -2794,14 +2618,6 @@ func (c *Lambda) TagResourceRequest(input *TagResourceInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/TagResource
 func (c *Lambda) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
@@ -2895,14 +2711,6 @@ func (c *Lambda) UntagResourceRequest(input *UntagResourceInput) (req *request.R
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UntagResource
 func (c *Lambda) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
@@ -2997,14 +2805,6 @@ func (c *Lambda) UpdateAliasRequest(input *UpdateAliasInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateAlias
 func (c *Lambda) UpdateAlias(input *UpdateAliasInput) (*AliasConfiguration, error) {
@@ -3111,14 +2911,6 @@ func (c *Lambda) UpdateEventSourceMappingRequest(input *UpdateEventSourceMapping
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
@@ -3220,14 +3012,6 @@ func (c *Lambda) UpdateFunctionCodeRequest(input *UpdateFunctionCodeInput) (req 
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
@@ -3331,14 +3115,6 @@ func (c *Lambda) UpdateFunctionConfigurationRequest(input *UpdateFunctionConfigu
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
@@ -3391,7 +3167,7 @@ type AccountLimit struct {
 	TotalCodeSize *int64 `type:"long"`
 
 	// The number of concurrent executions available to functions that do not have
-	// concurrency limits set.
+	// concurrency limits set. For more information, see concurrent-executions.
 	UnreservedConcurrentExecutions *int64 `type:"integer"`
 }
 
@@ -3738,9 +3514,9 @@ func (s *AliasConfiguration) SetRoutingConfig(v *AliasRoutingConfiguration) *Ali
 type AliasRoutingConfiguration struct {
 	_ struct{} `type:"structure"`
 
-	// Set this property value to dictate what percentage of traffic will invoke
-	// the updated function version. If set to an empty string, 100 percent of traffic
-	// will invoke function-version.
+	// Set this value to dictate what percentage of traffic will invoke the updated
+	// function version. If set to an empty string, 100 percent of traffic will
+	// invoke function-version. For more information, see lambda-traffic-shifting-using-aliases.
 	AdditionalVersionWeights map[string]*float64 `type:"map"`
 }
 
@@ -4368,6 +4144,7 @@ type DeleteFunctionConcurrencyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the function you are removing concurrent execution limits from.
+	// For more information, see concurrent-executions.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -5299,7 +5076,8 @@ type GetFunctionOutput struct {
 	// The object for the Lambda function location.
 	Code *FunctionCodeLocation `type:"structure"`
 
-	// The concurrent execution limit set for this function.
+	// The concurrent execution limit set for this function. For more information,
+	// see concurrent-executions.
 	Concurrency *PutFunctionConcurrencyOutput `type:"structure"`
 
 	// A complex type that describes function metadata.
@@ -5643,7 +5421,7 @@ type InvokeOutput struct {
 	_ struct{} `type:"structure" payload:"Payload"`
 
 	// The function version that has been executed. This value is returned only
-	// if the invocation type is RequestResponse.
+	// if the invocation type is RequestResponse. For more information, see lambda-traffic-shifting-using-aliases.
 	ExecutedVersion *string `location:"header" locationName:"X-Amz-Executed-Version" min:"1" type:"string"`
 
 	// Indicates whether an error occurred while executing the Lambda function.
@@ -6298,11 +6076,13 @@ type PutFunctionConcurrencyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the function you are setting concurrent execution limits on.
+	// For more information, see concurrent-executions.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
 
-	// The concurrent execution limit reserved for this function.
+	// The concurrent execution limit reserved for this function. For more information,
+	// see concurrent-executions.
 	//
 	// ReservedConcurrentExecutions is a required field
 	ReservedConcurrentExecutions *int64 `type:"integer" required:"true"`
@@ -6353,7 +6133,8 @@ func (s *PutFunctionConcurrencyInput) SetReservedConcurrentExecutions(v int64) *
 type PutFunctionConcurrencyOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The number of concurrent executions reserved for this function.
+	// The number of concurrent executions reserved for this function. For more
+	// information, see concurrent-executions.
 	ReservedConcurrentExecutions *int64 `type:"integer"`
 }
 
@@ -7284,8 +7065,14 @@ const (
 	// RuntimeDotnetcore10 is a Runtime enum value
 	RuntimeDotnetcore10 = "dotnetcore1.0"
 
+	// RuntimeDotnetcore20 is a Runtime enum value
+	RuntimeDotnetcore20 = "dotnetcore2.0"
+
 	// RuntimeNodejs43Edge is a Runtime enum value
 	RuntimeNodejs43Edge = "nodejs4.3-edge"
+
+	// RuntimeGo1X is a Runtime enum value
+	RuntimeGo1X = "go1.x"
 )
 
 const (

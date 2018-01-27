@@ -649,6 +649,10 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 			if err != nil {
 				log.Printf("[DEBUG] Received error modifying Lambda Function Configuration %s: %s", d.Id(), err)
 
+				if isAWSErr(err, "InvalidParameterValueException", "The provided execution role does not have permissions") {
+					log.Printf("[DEBUG] Received %s, retrying UpdateFunctionConfiguration", err)
+					return resource.RetryableError(err)
+				}
 				if isAWSErr(err, "InvalidParameterValueException", "Your request has been throttled by EC2, please make sure you have enough API rate limit.") {
 					log.Printf("[DEBUG] Received %s, retrying UpdateFunctionConfiguration", err)
 					return resource.RetryableError(err)

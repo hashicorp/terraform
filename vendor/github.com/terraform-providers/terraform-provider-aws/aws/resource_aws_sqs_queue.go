@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -165,9 +166,9 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 
 	attributes := make(map[string]*string)
 
-	resource := *resourceAwsSqsQueue()
+	queueResource := *resourceAwsSqsQueue()
 
-	for k, s := range resource.Schema {
+	for k, s := range queueResource.Schema {
 		if attrKey, ok := sqsQueueAttributeMap[k]; ok {
 			if value, ok := d.GetOk(k); ok {
 				switch s.Type {
@@ -187,7 +188,18 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 		req.Attributes = attributes
 	}
 
-	output, err := sqsconn.CreateQueue(req)
+	var output *sqs.CreateQueueOutput
+	err := resource.Retry(70*time.Second, func() *resource.RetryError {
+		var err error
+		output, err = sqsconn.CreateQueue(req)
+		if err != nil {
+			if isAWSErr(err, sqs.ErrCodeQueueDeletedRecently, "You must wait 60 seconds after deleting a queue before you can create another with the same name.") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("Error creating SQS queue: %s", err)
 	}
