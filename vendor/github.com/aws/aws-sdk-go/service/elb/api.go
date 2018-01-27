@@ -682,6 +682,9 @@ func (c *ELB) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *re
 //   * ErrCodeUnsupportedProtocolException "UnsupportedProtocol"
 //   The specified protocol or signature version is not supported.
 //
+//   * ErrCodeOperationNotPermittedException "OperationNotPermitted"
+//   This operation is not allowed.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancing-2012-06-01/CreateLoadBalancer
 func (c *ELB) CreateLoadBalancer(input *CreateLoadBalancerInput) (*CreateLoadBalancerOutput, error) {
 	req, out := c.CreateLoadBalancerRequest(input)

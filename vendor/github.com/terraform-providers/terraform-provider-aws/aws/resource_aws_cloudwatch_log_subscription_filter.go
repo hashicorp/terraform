@@ -48,6 +48,10 @@ func resourceAwsCloudwatchLogSubscriptionFilter() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"distribution": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -119,6 +123,10 @@ func getAwsCloudWatchLogsSubscriptionFilterInput(d *schema.ResourceData) cloudwa
 
 	if _, ok := d.GetOk("role_arn"); ok {
 		params.RoleArn = aws.String(d.Get("role_arn").(string))
+	}
+
+	if _, ok := d.GetOk("distribution"); ok {
+		params.Distribution = aws.String(d.Get("distribution").(string))
 	}
 
 	return params

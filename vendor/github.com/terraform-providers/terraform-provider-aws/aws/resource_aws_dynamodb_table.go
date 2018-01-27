@@ -39,6 +39,11 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsDynamoDbTableMigrateState,
 
@@ -846,42 +851,30 @@ func flattenAwsDynamoDbTableResource(d *schema.ResourceData, meta interface{}, t
 func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) error {
 	dynamodbconn := meta.(*AWSClient).dynamodbconn
 
-	if err := waitForTableToBeActive(d.Id(), meta); err != nil {
-		return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
-	}
-
 	log.Printf("[DEBUG] DynamoDB delete table: %s", d.Id())
 
-	_, err := dynamodbconn.DeleteTable(&dynamodb.DeleteTableInput{
-		TableName: aws.String(d.Id()),
-	})
-	if err != nil {
-		return err
-	}
-
-	params := &dynamodb.DescribeTableInput{
-		TableName: aws.String(d.Id()),
-	}
-
-	err = resource.Retry(10*time.Minute, func() *resource.RetryError {
-		t, err := dynamodbconn.DescribeTable(params)
+	err := resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+		_, err := dynamodbconn.DeleteTable(&dynamodb.DeleteTableInput{
+			TableName: aws.String(d.Id()),
+		})
 		if err != nil {
-			if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ResourceNotFoundException" {
+			// Table is already deleted
+			if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "Requested resource not found: Table: ") {
 				return nil
 			}
-			// Didn't recognize the error, so shouldn't retry.
+			// This logic handles multiple scenarios in the DynamoDB API:
+			// 1. Updating a table immediately before deletion may return:
+			//    ResourceInUseException: Attempt to change a resource which is still in use: Table is being updated:
+			// 2. Removing a table from a DynamoDB global table may return:
+			//    ResourceInUseException: Attempt to change a resource which is still in use: Table is being deleted:
+			if isAWSErr(err, dynamodb.ErrCodeResourceInUseException, "") {
+				return resource.RetryableError(err)
+			}
+			// Unknown error
 			return resource.NonRetryableError(err)
 		}
 
-		if t != nil {
-			if t.Table.TableStatus != nil && strings.ToLower(*t.Table.TableStatus) == "deleting" {
-				log.Printf("[DEBUG] AWS Dynamo DB table (%s) is still deleting", d.Id())
-				return resource.RetryableError(fmt.Errorf("still deleting"))
-			}
-		}
-
-		// we should be not found or deleting, so error here
-		return resource.NonRetryableError(err)
+		return nil
 	})
 
 	// check error from retry
@@ -889,7 +882,63 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	return nil
+	log.Println("[INFO] Waiting for DynamoDB Table to be destroyed")
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{
+			dynamodb.TableStatusActive,
+			dynamodb.TableStatusCreating,
+			dynamodb.TableStatusDeleting,
+			dynamodb.TableStatusUpdating,
+		},
+		Target:     []string{},
+		Refresh:    resourceAwsDynamoDbTableStateRefreshFunc(d, meta),
+		Timeout:    d.Timeout(schema.TimeoutDelete),
+		MinTimeout: 10 * time.Second,
+	}
+	_, err = stateConf.WaitForState()
+	return err
+}
+
+func resourceAwsDynamoDbTableRetrieve(d *schema.ResourceData, meta interface{}) (*dynamodb.TableDescription, error) {
+	dynamodbconn := meta.(*AWSClient).dynamodbconn
+
+	input := &dynamodb.DescribeTableInput{
+		TableName: aws.String(d.Id()),
+	}
+
+	log.Printf("[DEBUG] Retrieving DynamoDB Table: %#v", input)
+
+	output, err := dynamodbconn.DescribeTable(input)
+	if err != nil {
+		if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "") {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Error retrieving DynamoDB Table: %s", err)
+	}
+
+	return output.Table, nil
+}
+
+func resourceAwsDynamoDbTableStateRefreshFunc(
+	d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		td, err := resourceAwsDynamoDbTableRetrieve(d, meta)
+
+		if err != nil {
+			log.Printf("Error on retrieving DynamoDB Table when waiting: %s", err)
+			return nil, "", err
+		}
+
+		if td == nil {
+			return nil, "", nil
+		}
+
+		if td.TableStatus != nil {
+			log.Printf("[DEBUG] Status for DynamoDB Table %s: %s", d.Id(), *td.TableStatus)
+		}
+
+		return td, *td.TableStatus, nil
+	}
 }
 
 func createGSIFromData(data *map[string]interface{}) dynamodb.GlobalSecondaryIndex {

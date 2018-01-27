@@ -363,6 +363,94 @@ func (c *Glue) BatchDeleteTableWithContext(ctx aws.Context, input *BatchDeleteTa
 	return out, req.Send()
 }
 
+const opBatchDeleteTableVersion = "BatchDeleteTableVersion"
+
+// BatchDeleteTableVersionRequest generates a "aws/request.Request" representing the
+// client's request for the BatchDeleteTableVersion operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See BatchDeleteTableVersion for more information on using the BatchDeleteTableVersion
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the BatchDeleteTableVersionRequest method.
+//    req, resp := client.BatchDeleteTableVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/BatchDeleteTableVersion
+func (c *Glue) BatchDeleteTableVersionRequest(input *BatchDeleteTableVersionInput) (req *request.Request, output *BatchDeleteTableVersionOutput) {
+	op := &request.Operation{
+		Name:       opBatchDeleteTableVersion,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &BatchDeleteTableVersionInput{}
+	}
+
+	output = &BatchDeleteTableVersionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// BatchDeleteTableVersion API operation for AWS Glue.
+//
+// Deletes a specified batch of versions of a table.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Glue's
+// API operation BatchDeleteTableVersion for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeEntityNotFoundException "EntityNotFoundException"
+//   A specified entity does not exist
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   The input provided was not valid.
+//
+//   * ErrCodeInternalServiceException "InternalServiceException"
+//   An internal service error occurred.
+//
+//   * ErrCodeOperationTimeoutException "OperationTimeoutException"
+//   The operation timed out.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/BatchDeleteTableVersion
+func (c *Glue) BatchDeleteTableVersion(input *BatchDeleteTableVersionInput) (*BatchDeleteTableVersionOutput, error) {
+	req, out := c.BatchDeleteTableVersionRequest(input)
+	return out, req.Send()
+}
+
+// BatchDeleteTableVersionWithContext is the same as BatchDeleteTableVersion with the addition of
+// the ability to pass a context and additional request options.
+//
+// See BatchDeleteTableVersion for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Glue) BatchDeleteTableVersionWithContext(ctx aws.Context, input *BatchDeleteTableVersionInput, opts ...request.Option) (*BatchDeleteTableVersionOutput, error) {
+	req, out := c.BatchDeleteTableVersionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opBatchGetPartition = "BatchGetPartition"
 
 // BatchGetPartitionRequest generates a "aws/request.Request" representing the
@@ -495,7 +583,7 @@ func (c *Glue) BatchStopJobRunRequest(input *BatchStopJobRunInput) (req *request
 
 // BatchStopJobRun API operation for AWS Glue.
 //
-// Stops a batch of job runs for a given job.
+// Stops one or more job runs for a specified Job.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -684,6 +772,9 @@ func (c *Glue) CreateConnectionRequest(input *CreateConnectionInput) (req *reque
 //
 //   * ErrCodeOperationTimeoutException "OperationTimeoutException"
 //   The operation timed out.
+//
+//   * ErrCodeResourceNumberLimitExceededException "ResourceNumberLimitExceededException"
+//   A resource numerical limit was exceeded.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/CreateConnection
 func (c *Glue) CreateConnection(input *CreateConnectionInput) (*CreateConnectionOutput, error) {
@@ -1060,6 +1151,9 @@ func (c *Glue) CreateJobRequest(input *CreateJobInput) (req *request.Request, ou
 //   * ErrCodeResourceNumberLimitExceededException "ResourceNumberLimitExceededException"
 //   A resource numerical limit was exceeded.
 //
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   Two processes are trying to modify a resource simultaneously.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/CreateJob
 func (c *Glue) CreateJob(input *CreateJobInput) (*CreateJobOutput, error) {
 	req, out := c.CreateJobRequest(input)
@@ -1220,7 +1314,7 @@ func (c *Glue) CreateScriptRequest(input *CreateScriptInput) (req *request.Reque
 
 // CreateScript API operation for AWS Glue.
 //
-// Transforms a directed acyclic graph (DAG) into a Python script.
+// Transforms a directed acyclic graph (DAG) into code.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1415,6 +1509,9 @@ func (c *Glue) CreateTriggerRequest(input *CreateTriggerInput) (req *request.Req
 //   * ErrCodeInvalidInputException "InvalidInputException"
 //   The input provided was not valid.
 //
+//   * ErrCodeIdempotentParameterMismatchException "IdempotentParameterMismatchException"
+//   The same unique identifier was associated with two different records.
+//
 //   * ErrCodeInternalServiceException "InternalServiceException"
 //   An internal service error occurred.
 //
@@ -1423,6 +1520,9 @@ func (c *Glue) CreateTriggerRequest(input *CreateTriggerInput) (req *request.Req
 //
 //   * ErrCodeResourceNumberLimitExceededException "ResourceNumberLimitExceededException"
 //   A resource numerical limit was exceeded.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   Two processes are trying to modify a resource simultaneously.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/CreateTrigger
 func (c *Glue) CreateTrigger(input *CreateTriggerInput) (*CreateTriggerOutput, error) {
@@ -1514,6 +1614,9 @@ func (c *Glue) CreateUserDefinedFunctionRequest(input *CreateUserDefinedFunction
 //
 //   * ErrCodeOperationTimeoutException "OperationTimeoutException"
 //   The operation timed out.
+//
+//   * ErrCodeResourceNumberLimitExceededException "ResourceNumberLimitExceededException"
+//   A resource numerical limit was exceeded.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/CreateUserDefinedFunction
 func (c *Glue) CreateUserDefinedFunction(input *CreateUserDefinedFunctionInput) (*CreateUserDefinedFunctionOutput, error) {
@@ -2010,7 +2113,7 @@ func (c *Glue) DeleteJobRequest(input *DeleteJobInput) (req *request.Request, ou
 
 // DeleteJob API operation for AWS Glue.
 //
-// Deletes a specified job.
+// Deletes a specified job. If the job is not found, no exception is thrown.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2227,6 +2330,94 @@ func (c *Glue) DeleteTableWithContext(ctx aws.Context, input *DeleteTableInput, 
 	return out, req.Send()
 }
 
+const opDeleteTableVersion = "DeleteTableVersion"
+
+// DeleteTableVersionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteTableVersion operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteTableVersion for more information on using the DeleteTableVersion
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteTableVersionRequest method.
+//    req, resp := client.DeleteTableVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/DeleteTableVersion
+func (c *Glue) DeleteTableVersionRequest(input *DeleteTableVersionInput) (req *request.Request, output *DeleteTableVersionOutput) {
+	op := &request.Operation{
+		Name:       opDeleteTableVersion,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteTableVersionInput{}
+	}
+
+	output = &DeleteTableVersionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteTableVersion API operation for AWS Glue.
+//
+// Deletes a specified version of a table.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Glue's
+// API operation DeleteTableVersion for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeEntityNotFoundException "EntityNotFoundException"
+//   A specified entity does not exist
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   The input provided was not valid.
+//
+//   * ErrCodeInternalServiceException "InternalServiceException"
+//   An internal service error occurred.
+//
+//   * ErrCodeOperationTimeoutException "OperationTimeoutException"
+//   The operation timed out.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/DeleteTableVersion
+func (c *Glue) DeleteTableVersion(input *DeleteTableVersionInput) (*DeleteTableVersionOutput, error) {
+	req, out := c.DeleteTableVersionRequest(input)
+	return out, req.Send()
+}
+
+// DeleteTableVersionWithContext is the same as DeleteTableVersion with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteTableVersion for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Glue) DeleteTableVersionWithContext(ctx aws.Context, input *DeleteTableVersionInput, opts ...request.Option) (*DeleteTableVersionOutput, error) {
+	req, out := c.DeleteTableVersionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteTrigger = "DeleteTrigger"
 
 // DeleteTriggerRequest generates a "aws/request.Request" representing the
@@ -2271,7 +2462,8 @@ func (c *Glue) DeleteTriggerRequest(input *DeleteTriggerInput) (req *request.Req
 
 // DeleteTrigger API operation for AWS Glue.
 //
-// Deletes a specified trigger.
+// Deletes a specified trigger. If the trigger is not found, no exception is
+// thrown.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2289,6 +2481,9 @@ func (c *Glue) DeleteTriggerRequest(input *DeleteTriggerInput) (req *request.Req
 //
 //   * ErrCodeOperationTimeoutException "OperationTimeoutException"
 //   The operation timed out.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   Two processes are trying to modify a resource simultaneously.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/DeleteTrigger
 func (c *Glue) DeleteTrigger(input *DeleteTriggerInput) (*DeleteTriggerOutput, error) {
@@ -4645,7 +4840,7 @@ func (c *Glue) GetPlanRequest(input *GetPlanInput) (req *request.Request, output
 
 // GetPlan API operation for AWS Glue.
 //
-// Gets a Python script to perform a specified mapping.
+// Gets code to perform a specified mapping.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4769,6 +4964,94 @@ func (c *Glue) GetTable(input *GetTableInput) (*GetTableOutput, error) {
 // for more information on using Contexts.
 func (c *Glue) GetTableWithContext(ctx aws.Context, input *GetTableInput, opts ...request.Option) (*GetTableOutput, error) {
 	req, out := c.GetTableRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetTableVersion = "GetTableVersion"
+
+// GetTableVersionRequest generates a "aws/request.Request" representing the
+// client's request for the GetTableVersion operation. The "output" return
+// value will be populated with the request's response once the request complets
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetTableVersion for more information on using the GetTableVersion
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetTableVersionRequest method.
+//    req, resp := client.GetTableVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/GetTableVersion
+func (c *Glue) GetTableVersionRequest(input *GetTableVersionInput) (req *request.Request, output *GetTableVersionOutput) {
+	op := &request.Operation{
+		Name:       opGetTableVersion,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetTableVersionInput{}
+	}
+
+	output = &GetTableVersionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetTableVersion API operation for AWS Glue.
+//
+// Retrieves a specified version of a table.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Glue's
+// API operation GetTableVersion for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeEntityNotFoundException "EntityNotFoundException"
+//   A specified entity does not exist
+//
+//   * ErrCodeInvalidInputException "InvalidInputException"
+//   The input provided was not valid.
+//
+//   * ErrCodeInternalServiceException "InternalServiceException"
+//   An internal service error occurred.
+//
+//   * ErrCodeOperationTimeoutException "OperationTimeoutException"
+//   The operation timed out.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/GetTableVersion
+func (c *Glue) GetTableVersion(input *GetTableVersionInput) (*GetTableVersionOutput, error) {
+	req, out := c.GetTableVersionRequest(input)
+	return out, req.Send()
+}
+
+// GetTableVersionWithContext is the same as GetTableVersion with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetTableVersion for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Glue) GetTableVersionWithContext(ctx aws.Context, input *GetTableVersionInput, opts ...request.Option) (*GetTableVersionOutput, error) {
+	req, out := c.GetTableVersionRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -6013,7 +6296,8 @@ func (c *Glue) StartTriggerRequest(input *StartTriggerInput) (req *request.Reque
 
 // StartTrigger API operation for AWS Glue.
 //
-// Starts an existing trigger.
+// Starts an existing trigger. See Triggering Jobs (http://docs.aws.amazon.com/glue/latest/dg/trigger-job.html)
+// for information about how different types of trigger are started.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -6305,6 +6589,9 @@ func (c *Glue) StopTriggerRequest(input *StopTriggerInput) (req *request.Request
 //
 //   * ErrCodeOperationTimeoutException "OperationTimeoutException"
 //   The operation timed out.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   Two processes are trying to modify a resource simultaneously.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/StopTrigger
 func (c *Glue) StopTrigger(input *StopTriggerInput) (*StopTriggerOutput, error) {
@@ -6929,6 +7216,9 @@ func (c *Glue) UpdateJobRequest(input *UpdateJobInput) (req *request.Request, ou
 //   * ErrCodeOperationTimeoutException "OperationTimeoutException"
 //   The operation timed out.
 //
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   Two processes are trying to modify a resource simultaneously.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/UpdateJob
 func (c *Glue) UpdateJob(input *UpdateJobInput) (*UpdateJobOutput, error) {
 	req, out := c.UpdateJobRequest(input)
@@ -7108,6 +7398,9 @@ func (c *Glue) UpdateTableRequest(input *UpdateTableInput) (req *request.Request
 //   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   Two processes are trying to modify a resource simultaneously.
 //
+//   * ErrCodeResourceNumberLimitExceededException "ResourceNumberLimitExceededException"
+//   A resource numerical limit was exceeded.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/UpdateTable
 func (c *Glue) UpdateTable(input *UpdateTableInput) (*UpdateTableOutput, error) {
 	req, out := c.UpdateTableRequest(input)
@@ -7195,6 +7488,9 @@ func (c *Glue) UpdateTriggerRequest(input *UpdateTriggerInput) (req *request.Req
 //
 //   * ErrCodeOperationTimeoutException "OperationTimeoutException"
 //   The operation timed out.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   Two processes are trying to modify a resource simultaneously.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/UpdateTrigger
 func (c *Glue) UpdateTrigger(input *UpdateTriggerInput) (*UpdateTriggerOutput, error) {
@@ -7312,6 +7608,17 @@ type Action struct {
 	_ struct{} `type:"structure"`
 
 	// Arguments to be passed to the job.
+	//
+	// You can specify arguments here that your own job-execution script consumes,
+	// as well as arguments that AWS Glue itself consumes.
+	//
+	// For information about how to specify and consume your own Job arguments,
+	// see the Calling AWS Glue APIs in Python (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-calling.html)
+	// topic in the developer guide.
+	//
+	// For information about the key-value pairs that AWS Glue consumes to set up
+	// your job, see the Special Parameters Used by AWS Glue (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-glue-arguments.html)
+	// topic in the developer guide.
 	Arguments map[string]*string `type:"map"`
 
 	// The name of a job to be executed.
@@ -7687,7 +7994,8 @@ type BatchDeleteTableInput struct {
 	// the AWS account ID is used by default.
 	CatalogId *string `min:"1" type:"string"`
 
-	// The name of the catalog database where the tables to delete reside.
+	// The name of the catalog database where the tables to delete reside. For Hive
+	// compatibility, this name is entirely lowercase.
 	//
 	// DatabaseName is a required field
 	DatabaseName *string `min:"1" type:"string" required:"true"`
@@ -7768,6 +8076,117 @@ func (s BatchDeleteTableOutput) GoString() string {
 
 // SetErrors sets the Errors field's value.
 func (s *BatchDeleteTableOutput) SetErrors(v []*TableError) *BatchDeleteTableOutput {
+	s.Errors = v
+	return s
+}
+
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/BatchDeleteTableVersionRequest
+type BatchDeleteTableVersionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Data Catalog where the tables reside. If none is supplied,
+	// the AWS account ID is used by default.
+	CatalogId *string `min:"1" type:"string"`
+
+	// The database in the catalog in which the table resides. For Hive compatibility,
+	// this name is entirely lowercase.
+	//
+	// DatabaseName is a required field
+	DatabaseName *string `min:"1" type:"string" required:"true"`
+
+	// The name of the table. For Hive compatibility, this name is entirely lowercase.
+	//
+	// TableName is a required field
+	TableName *string `min:"1" type:"string" required:"true"`
+
+	// A list of the IDs of versions to be deleted.
+	//
+	// VersionIds is a required field
+	VersionIds []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s BatchDeleteTableVersionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchDeleteTableVersionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchDeleteTableVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchDeleteTableVersionInput"}
+	if s.CatalogId != nil && len(*s.CatalogId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CatalogId", 1))
+	}
+	if s.DatabaseName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DatabaseName"))
+	}
+	if s.DatabaseName != nil && len(*s.DatabaseName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DatabaseName", 1))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 1))
+	}
+	if s.VersionIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("VersionIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCatalogId sets the CatalogId field's value.
+func (s *BatchDeleteTableVersionInput) SetCatalogId(v string) *BatchDeleteTableVersionInput {
+	s.CatalogId = &v
+	return s
+}
+
+// SetDatabaseName sets the DatabaseName field's value.
+func (s *BatchDeleteTableVersionInput) SetDatabaseName(v string) *BatchDeleteTableVersionInput {
+	s.DatabaseName = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *BatchDeleteTableVersionInput) SetTableName(v string) *BatchDeleteTableVersionInput {
+	s.TableName = &v
+	return s
+}
+
+// SetVersionIds sets the VersionIds field's value.
+func (s *BatchDeleteTableVersionInput) SetVersionIds(v []*string) *BatchDeleteTableVersionInput {
+	s.VersionIds = v
+	return s
+}
+
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/BatchDeleteTableVersionResponse
+type BatchDeleteTableVersionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of errors encountered while trying to delete the specified table versions.
+	Errors []*TableVersionError `type:"list"`
+}
+
+// String returns the string representation
+func (s BatchDeleteTableVersionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchDeleteTableVersionOutput) GoString() string {
+	return s.String()
+}
+
+// SetErrors sets the Errors field's value.
+func (s *BatchDeleteTableVersionOutput) SetErrors(v []*TableVersionError) *BatchDeleteTableVersionOutput {
 	s.Errors = v
 	return s
 }
@@ -7902,19 +8321,18 @@ func (s *BatchGetPartitionOutput) SetUnprocessedKeys(v []*PartitionValueList) *B
 	return s
 }
 
-// Details about the job run and the error that occurred while trying to submit
-// it for stopping.
+// Records an error that occurred when attempting to stop a specified JobRun.
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/BatchStopJobRunError
 type BatchStopJobRunError struct {
 	_ struct{} `type:"structure"`
 
-	// The details of the error that occurred.
+	// Specifies details about the error that was encountered.
 	ErrorDetail *ErrorDetail `type:"structure"`
 
-	// The name of the job.
+	// The name of the Job in question.
 	JobName *string `min:"1" type:"string"`
 
-	// The job run Id.
+	// The JobRunId of the JobRun in question.
 	JobRunId *string `min:"1" type:"string"`
 }
 
@@ -7950,12 +8368,12 @@ func (s *BatchStopJobRunError) SetJobRunId(v string) *BatchStopJobRunError {
 type BatchStopJobRunInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the job whose job runs are to be stopped.
+	// The name of the Job in question.
 	//
 	// JobName is a required field
 	JobName *string `min:"1" type:"string" required:"true"`
 
-	// A list of job run Ids of the given job to be stopped.
+	// A list of the JobRunIds that should be stopped for that Job.
 	//
 	// JobRunIds is a required field
 	JobRunIds []*string `min:"1" type:"list" required:"true"`
@@ -8009,11 +8427,11 @@ func (s *BatchStopJobRunInput) SetJobRunIds(v []*string) *BatchStopJobRunInput {
 type BatchStopJobRunOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A list containing the job run Ids and details of the error that occurred
-	// for each job run while submitting to stop.
+	// A list of the errors that were encountered in tryng to stop JobRuns, including
+	// the JobRunId for which each error was encountered and details about the error.
 	Errors []*BatchStopJobRunError `type:"list"`
 
-	// A list of job runs which are successfully submitted for stopping.
+	// A list of the JobRuns that were successfully submitted for stopping.
 	SuccessfulSubmissions []*BatchStopJobRunSuccessfulSubmission `type:"list"`
 }
 
@@ -8039,15 +8457,15 @@ func (s *BatchStopJobRunOutput) SetSuccessfulSubmissions(v []*BatchStopJobRunSuc
 	return s
 }
 
-// Details about the job run which is submitted successfully for stopping.
+// Records a successful request to stop a specified JobRun.
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/BatchStopJobRunSuccessfulSubmission
 type BatchStopJobRunSuccessfulSubmission struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the job.
+	// The Name of the Job in question.
 	JobName *string `min:"1" type:"string"`
 
-	// The job run Id.
+	// The JobRunId of the JobRun in question.
 	JobRunId *string `min:"1" type:"string"`
 }
 
@@ -8505,13 +8923,15 @@ func (s *Column) SetType(v string) *Column {
 type Condition struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the job in question.
+	// The name of the Job to whose JobRuns this condition applies and on which
+	// this trigger waits.
 	JobName *string `min:"1" type:"string"`
 
 	// A logical operator.
 	LogicalOperator *string `type:"string" enum:"LogicalOperator"`
 
-	// The condition state.
+	// The condition state. Currently, the values supported are SUCCEEDED, STOPPED
+	// and FAILED.
 	State *string `type:"string" enum:"JobRunState"`
 }
 
@@ -8661,11 +9081,15 @@ type ConnectionInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of key-value pairs used as parameters for this connection.
-	ConnectionProperties map[string]*string `type:"map"`
+	//
+	// ConnectionProperties is a required field
+	ConnectionProperties map[string]*string `type:"map" required:"true"`
 
 	// The type of the connection. Currently, only JDBC is supported; SFTP is not
 	// supported.
-	ConnectionType *string `type:"string" enum:"ConnectionType"`
+	//
+	// ConnectionType is a required field
+	ConnectionType *string `type:"string" required:"true" enum:"ConnectionType"`
 
 	// Description of the connection.
 	Description *string `type:"string"`
@@ -8674,7 +9098,9 @@ type ConnectionInput struct {
 	MatchCriteria []*string `type:"list"`
 
 	// The name of the connection.
-	Name *string `min:"1" type:"string"`
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
 
 	// A map of physical connection requirements, such as VPC and SecurityGroup,
 	// needed for making this connection successfully.
@@ -8694,6 +9120,15 @@ func (s ConnectionInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *ConnectionInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ConnectionInput"}
+	if s.ConnectionProperties == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConnectionProperties"))
+	}
+	if s.ConnectionType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConnectionType"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
 	if s.Name != nil && len(*s.Name) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
 	}
@@ -8787,6 +9222,9 @@ type Crawler struct {
 	// input format, output format, serde information, and schema from their parent
 	// table, rather than detect this information separately for each partition.
 	// Use the following JSON string to specify that behavior:
+	//
+	// Example: '{ "Version": 1.0, "CrawlerOutput": { "Partitions": { "AddOrUpdateBehavior":
+	// "InheritFromTable" } } }'
 	Configuration *string `type:"string"`
 
 	// If the crawler is running, contains the total time elapsed since the last
@@ -9219,6 +9657,10 @@ type CreateCrawlerInput struct {
 	// You can use this field to force partitions to inherit metadata such as classification,
 	// input format, output format, serde information, and schema from their parent
 	// table, rather than detect this information separately for each partition.
+	// Use the following JSON string to specify that behavior:
+	//
+	// Example: '{ "Version": 1.0, "CrawlerOutput": { "Partitions": { "AddOrUpdateBehavior":
+	// "InheritFromTable" } } }'
 	Configuration *string `type:"string"`
 
 	// The AWS Glue database where results are written, such as: arn:aws:daylight:us-east-1::database/sometable/*.
@@ -9790,7 +10232,11 @@ func (s *CreateGrokClassifierRequest) SetName(v string) *CreateGrokClassifierReq
 type CreateJobInput struct {
 	_ struct{} `type:"structure"`
 
-	// The number of capacity units allocated to this job.
+	// The number of AWS Glue data processing units (DPUs) to allocate to this Job.
+	// From 2 to 100 DPUs can be allocated; the default is 10. A DPU is a relative
+	// measure of processing power that consists of 4 vCPUs of compute capacity
+	// and 16 GB of memory. For more information, see the AWS Glue pricing page
+	// (https://aws.amazon.com/glue/pricing/).
 	AllocatedCapacity *int64 `type:"integer"`
 
 	// The JobCommand that executes this job.
@@ -9801,7 +10247,18 @@ type CreateJobInput struct {
 	// The connections used for this job.
 	Connections *ConnectionsList `type:"structure"`
 
-	// The default parameters for this job.
+	// The default arguments for this job.
+	//
+	// You can specify arguments here that your own job-execution script consumes,
+	// as well as arguments that AWS Glue itself consumes.
+	//
+	// For information about how to specify and consume your own Job arguments,
+	// see the Calling AWS Glue APIs in Python (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-calling.html)
+	// topic in the developer guide.
+	//
+	// For information about the key-value pairs that AWS Glue consumes to set up
+	// your job, see the Special Parameters Used by AWS Glue (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-glue-arguments.html)
+	// topic in the developer guide.
 	DefaultArguments map[string]*string `type:"map"`
 
 	// Description of the job.
@@ -9817,12 +10274,12 @@ type CreateJobInput struct {
 	// The maximum number of times to retry this job if it fails.
 	MaxRetries *int64 `type:"integer"`
 
-	// The name you assign to this job.
+	// The name you assign to this job. It must be unique in your account.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
 
-	// The role associated with this job.
+	// The name of the IAM role associated with this job.
 	//
 	// Role is a required field
 	Role *string `type:"string" required:"true"`
@@ -9924,7 +10381,7 @@ func (s *CreateJobInput) SetRole(v string) *CreateJobInput {
 type CreateJobOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The unique name of the new job that has been created.
+	// The unique name that was provided.
 	Name *string `min:"1" type:"string"`
 }
 
@@ -10059,6 +10516,9 @@ type CreateScriptInput struct {
 
 	// A list of the nodes in the DAG.
 	DagNodes []*CodeGenNode `type:"list"`
+
+	// The programming language of the resulting code from the DAG.
+	Language *string `type:"string" enum:"Language"`
 }
 
 // String returns the string representation
@@ -10113,12 +10573,21 @@ func (s *CreateScriptInput) SetDagNodes(v []*CodeGenNode) *CreateScriptInput {
 	return s
 }
 
+// SetLanguage sets the Language field's value.
+func (s *CreateScriptInput) SetLanguage(v string) *CreateScriptInput {
+	s.Language = &v
+	return s
+}
+
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/CreateScriptResponse
 type CreateScriptOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The Python script generated from the DAG.
 	PythonScript *string `type:"string"`
+
+	// The Scala code generated from the DAG.
+	ScalaCode *string `type:"string"`
 }
 
 // String returns the string representation
@@ -10137,6 +10606,12 @@ func (s *CreateScriptOutput) SetPythonScript(v string) *CreateScriptOutput {
 	return s
 }
 
+// SetScalaCode sets the ScalaCode field's value.
+func (s *CreateScriptOutput) SetScalaCode(v string) *CreateScriptOutput {
+	s.ScalaCode = &v
+	return s
+}
+
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/CreateTableRequest
 type CreateTableInput struct {
 	_ struct{} `type:"structure"`
@@ -10145,7 +10620,8 @@ type CreateTableInput struct {
 	// the AWS account ID is used by default.
 	CatalogId *string `min:"1" type:"string"`
 
-	// The catalog database in which to create the new table.
+	// The catalog database in which to create the new table. For Hive compatibility,
+	// this name is entirely lowercase.
 	//
 	// DatabaseName is a required field
 	DatabaseName *string `min:"1" type:"string" required:"true"`
@@ -10238,18 +10714,22 @@ type CreateTriggerInput struct {
 	// A description of the new trigger.
 	Description *string `type:"string"`
 
-	// The name to assign to the new trigger.
+	// The name of the trigger.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
 
 	// A predicate to specify when the new trigger should fire.
+	//
+	// This field is required when the trigger type is CONDITIONAL.
 	Predicate *Predicate `type:"structure"`
 
 	// A cron expression used to specify the schedule (see Time-Based Schedules
 	// for Jobs and Crawlers (http://docs.aws.amazon.com/glue/latest/dg/monitor-data-warehouse-schedule.html).
 	// For example, to run something every day at 12:15 UTC, you would specify:
 	// cron(15 12 * * ? *).
+	//
+	// This field is required when the trigger type is SCHEDULED.
 	Schedule *string `type:"string"`
 
 	// The type of the new trigger.
@@ -10345,7 +10825,7 @@ func (s *CreateTriggerInput) SetType(v string) *CreateTriggerInput {
 type CreateTriggerOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The name assigned to the new trigger.
+	// The name of the trigger.
 	Name *string `min:"1" type:"string"`
 }
 
@@ -10470,8 +10950,10 @@ type CreateXMLClassifierRequest struct {
 	Name *string `min:"1" type:"string" required:"true"`
 
 	// The XML tag designating the element that contains each record in an XML document
-	// being parsed. Note that this cannot be an empty element. It must contain
-	// child elements representing fields in the record.
+	// being parsed. Note that this cannot identify a self-closing element (closed
+	// by />). An empty row element that contains only attributes can be parsed
+	// as long as it ends with a closing tag (for example, <row item_a="A" item_b="B"></row>
+	// is okay, but <row item_a="A" item_b="B" /> is not).
 	RowTag *string `type:"string"`
 }
 
@@ -10537,7 +11019,8 @@ type Database struct {
 	// The location of the database (for example, an HDFS path).
 	LocationUri *string `min:"1" type:"string"`
 
-	// Name of the database.
+	// Name of the database. For Hive compatibility, this is folded to lowercase
+	// when it is stored.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -10586,7 +11069,7 @@ func (s *Database) SetParameters(v map[string]*string) *Database {
 	return s
 }
 
-// The structure used to create or updata a database.
+// The structure used to create or update a database.
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/DatabaseInput
 type DatabaseInput struct {
 	_ struct{} `type:"structure"`
@@ -10597,7 +11080,8 @@ type DatabaseInput struct {
 	// The location of the database (for example, an HDFS path).
 	LocationUri *string `min:"1" type:"string"`
 
-	// Name of the database.
+	// Name of the database. For Hive compatibility, this is folded to lowercase
+	// when it is stored.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -10851,7 +11335,8 @@ type DeleteDatabaseInput struct {
 	// the AWS account ID is used by default.
 	CatalogId *string `min:"1" type:"string"`
 
-	// The name of the Database to delete.
+	// The name of the Database to delete. For Hive compatibility, this must be
+	// all lowercase.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -11142,12 +11627,14 @@ type DeleteTableInput struct {
 	// the AWS account ID is used by default.
 	CatalogId *string `min:"1" type:"string"`
 
-	// The name of the catalog database in which the table resides.
+	// The name of the catalog database in which the table resides. For Hive compatibility,
+	// this name is entirely lowercase.
 	//
 	// DatabaseName is a required field
 	DatabaseName *string `min:"1" type:"string" required:"true"`
 
-	// The name of the table to be deleted.
+	// The name of the table to be deleted. For Hive compatibility, this name is
+	// entirely lowercase.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -11218,6 +11705,111 @@ func (s DeleteTableOutput) String() string {
 
 // GoString returns the string representation
 func (s DeleteTableOutput) GoString() string {
+	return s.String()
+}
+
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/DeleteTableVersionRequest
+type DeleteTableVersionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Data Catalog where the tables reside. If none is supplied,
+	// the AWS account ID is used by default.
+	CatalogId *string `min:"1" type:"string"`
+
+	// The database in the catalog in which the table resides. For Hive compatibility,
+	// this name is entirely lowercase.
+	//
+	// DatabaseName is a required field
+	DatabaseName *string `min:"1" type:"string" required:"true"`
+
+	// The name of the table. For Hive compatibility, this name is entirely lowercase.
+	//
+	// TableName is a required field
+	TableName *string `min:"1" type:"string" required:"true"`
+
+	// The ID of the table version to be deleted.
+	//
+	// VersionId is a required field
+	VersionId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteTableVersionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteTableVersionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTableVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTableVersionInput"}
+	if s.CatalogId != nil && len(*s.CatalogId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CatalogId", 1))
+	}
+	if s.DatabaseName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DatabaseName"))
+	}
+	if s.DatabaseName != nil && len(*s.DatabaseName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DatabaseName", 1))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 1))
+	}
+	if s.VersionId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VersionId"))
+	}
+	if s.VersionId != nil && len(*s.VersionId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCatalogId sets the CatalogId field's value.
+func (s *DeleteTableVersionInput) SetCatalogId(v string) *DeleteTableVersionInput {
+	s.CatalogId = &v
+	return s
+}
+
+// SetDatabaseName sets the DatabaseName field's value.
+func (s *DeleteTableVersionInput) SetDatabaseName(v string) *DeleteTableVersionInput {
+	s.DatabaseName = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *DeleteTableVersionInput) SetTableName(v string) *DeleteTableVersionInput {
+	s.TableName = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *DeleteTableVersionInput) SetVersionId(v string) *DeleteTableVersionInput {
+	s.VersionId = &v
+	return s
+}
+
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/DeleteTableVersionResponse
+type DeleteTableVersionOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteTableVersionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteTableVersionOutput) GoString() string {
 	return s.String()
 }
 
@@ -11645,7 +12237,9 @@ func (s *ErrorDetail) SetErrorMessage(v string) *ErrorDetail {
 type ExecutionProperty struct {
 	_ struct{} `type:"structure"`
 
-	// The maximum number of concurrent runs allowed for a job.
+	// The maximum number of concurrent runs allowed for a job. The default is 1.
+	// An error is returned when this threshold is reached. The maximum value you
+	// can specify is controlled by a service limit.
 	MaxConcurrentRuns *int64 `type:"integer"`
 }
 
@@ -12332,7 +12926,8 @@ type GetDatabaseInput struct {
 	// the AWS account ID is used by default.
 	CatalogId *string `min:"1" type:"string"`
 
-	// The name of the database to retrieve.
+	// The name of the database to retrieve. For Hive compatibility, this should
+	// be all lowercase.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -12772,7 +13367,7 @@ type GetJobRunInput struct {
 	// JobName is a required field
 	JobName *string `min:"1" type:"string" required:"true"`
 
-	// A list of the predecessor runs to return as well.
+	// True if a list of predecessor runs should be returned.
 	PredecessorsIncluded *bool `type:"boolean"`
 
 	// The ID of the job run.
@@ -13397,6 +13992,9 @@ func (s *GetPartitionsOutput) SetPartitions(v []*Partition) *GetPartitionsOutput
 type GetPlanInput struct {
 	_ struct{} `type:"structure"`
 
+	// The programming language of the code to perform the mapping.
+	Language *string `type:"string" enum:"Language"`
+
 	// Parameters for the mapping.
 	Location *Location `type:"structure"`
 
@@ -13460,6 +14058,12 @@ func (s *GetPlanInput) Validate() error {
 	return nil
 }
 
+// SetLanguage sets the Language field's value.
+func (s *GetPlanInput) SetLanguage(v string) *GetPlanInput {
+	s.Language = &v
+	return s
+}
+
 // SetLocation sets the Location field's value.
 func (s *GetPlanInput) SetLocation(v *Location) *GetPlanInput {
 	s.Location = v
@@ -13490,6 +14094,9 @@ type GetPlanOutput struct {
 
 	// A Python script to perform the mapping.
 	PythonScript *string `type:"string"`
+
+	// Scala code to perform the mapping.
+	ScalaCode *string `type:"string"`
 }
 
 // String returns the string representation
@@ -13508,6 +14115,12 @@ func (s *GetPlanOutput) SetPythonScript(v string) *GetPlanOutput {
 	return s
 }
 
+// SetScalaCode sets the ScalaCode field's value.
+func (s *GetPlanOutput) SetScalaCode(v string) *GetPlanOutput {
+	s.ScalaCode = &v
+	return s
+}
+
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/GetTableRequest
 type GetTableInput struct {
 	_ struct{} `type:"structure"`
@@ -13516,12 +14129,14 @@ type GetTableInput struct {
 	// the AWS account ID is used by default.
 	CatalogId *string `min:"1" type:"string"`
 
-	// The name of the database in the catalog in which the table resides.
+	// The name of the database in the catalog in which the table resides. For Hive
+	// compatibility, this name is entirely lowercase.
 	//
 	// DatabaseName is a required field
 	DatabaseName *string `min:"1" type:"string" required:"true"`
 
-	// The name of the table for which to retrieve the definition.
+	// The name of the table for which to retrieve the definition. For Hive compatibility,
+	// this name is entirely lowercase.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -13604,6 +14219,115 @@ func (s *GetTableOutput) SetTable(v *Table) *GetTableOutput {
 	return s
 }
 
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/GetTableVersionRequest
+type GetTableVersionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the Data Catalog where the tables reside. If none is supplied,
+	// the AWS account ID is used by default.
+	CatalogId *string `min:"1" type:"string"`
+
+	// The database in the catalog in which the table resides. For Hive compatibility,
+	// this name is entirely lowercase.
+	//
+	// DatabaseName is a required field
+	DatabaseName *string `min:"1" type:"string" required:"true"`
+
+	// The name of the table. For Hive compatibility, this name is entirely lowercase.
+	//
+	// TableName is a required field
+	TableName *string `min:"1" type:"string" required:"true"`
+
+	// The ID value of the table version to be retrieved.
+	VersionId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s GetTableVersionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetTableVersionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetTableVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetTableVersionInput"}
+	if s.CatalogId != nil && len(*s.CatalogId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CatalogId", 1))
+	}
+	if s.DatabaseName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DatabaseName"))
+	}
+	if s.DatabaseName != nil && len(*s.DatabaseName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DatabaseName", 1))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 1))
+	}
+	if s.VersionId != nil && len(*s.VersionId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCatalogId sets the CatalogId field's value.
+func (s *GetTableVersionInput) SetCatalogId(v string) *GetTableVersionInput {
+	s.CatalogId = &v
+	return s
+}
+
+// SetDatabaseName sets the DatabaseName field's value.
+func (s *GetTableVersionInput) SetDatabaseName(v string) *GetTableVersionInput {
+	s.DatabaseName = &v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *GetTableVersionInput) SetTableName(v string) *GetTableVersionInput {
+	s.TableName = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *GetTableVersionInput) SetVersionId(v string) *GetTableVersionInput {
+	s.VersionId = &v
+	return s
+}
+
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/GetTableVersionResponse
+type GetTableVersionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The requested table version.
+	TableVersion *TableVersion `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetTableVersionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetTableVersionOutput) GoString() string {
+	return s.String()
+}
+
+// SetTableVersion sets the TableVersion field's value.
+func (s *GetTableVersionOutput) SetTableVersion(v *TableVersion) *GetTableVersionOutput {
+	s.TableVersion = v
+	return s
+}
+
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/GetTableVersionsRequest
 type GetTableVersionsInput struct {
 	_ struct{} `type:"structure"`
@@ -13612,7 +14336,8 @@ type GetTableVersionsInput struct {
 	// the AWS account ID is used by default.
 	CatalogId *string `min:"1" type:"string"`
 
-	// The database in the catalog in which the table resides.
+	// The database in the catalog in which the table resides. For Hive compatibility,
+	// this name is entirely lowercase.
 	//
 	// DatabaseName is a required field
 	DatabaseName *string `min:"1" type:"string" required:"true"`
@@ -13623,7 +14348,7 @@ type GetTableVersionsInput struct {
 	// A continuation token, if this is not the first call.
 	NextToken *string `type:"string"`
 
-	// The name of the table.
+	// The name of the table. For Hive compatibility, this name is entirely lowercase.
 	//
 	// TableName is a required field
 	TableName *string `min:"1" type:"string" required:"true"`
@@ -13739,7 +14464,8 @@ type GetTablesInput struct {
 	// the AWS account ID is used by default.
 	CatalogId *string `min:"1" type:"string"`
 
-	// The database in the catalog whose tables to list.
+	// The database in the catalog whose tables to list. For Hive compatibility,
+	// this name is entirely lowercase.
 	//
 	// DatabaseName is a required field
 	DatabaseName *string `min:"1" type:"string" required:"true"`
@@ -13920,7 +14646,9 @@ func (s *GetTriggerOutput) SetTrigger(v *Trigger) *GetTriggerOutput {
 type GetTriggersInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the job for which to retrieve triggers.
+	// The name of the job for which to retrieve triggers. The trigger that can
+	// start this job will be returned, and if there is no such trigger, all triggers
+	// will be returned.
 	DependentJobName *string `min:"1" type:"string"`
 
 	// The maximum size of the response.
@@ -14416,12 +15144,16 @@ func (s *JdbcTarget) SetPath(v string) *JdbcTarget {
 	return s
 }
 
-// Specifies a job in the Data Catalog.
+// Specifies a job.
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/Job
 type Job struct {
 	_ struct{} `type:"structure"`
 
-	// The number of capacity units allocated to this job.
+	// The number of AWS Glue data processing units (DPUs) allocated to this Job.
+	// From 2 to 100 DPUs can be allocated; the default is 10. A DPU is a relative
+	// measure of processing power that consists of 4 vCPUs of compute capacity
+	// and 16 GB of memory. For more information, see the AWS Glue pricing page
+	// (https://aws.amazon.com/glue/pricing/).
 	AllocatedCapacity *int64 `type:"integer"`
 
 	// The JobCommand that executes this job.
@@ -14433,7 +15165,18 @@ type Job struct {
 	// The time and date that this job specification was created.
 	CreatedOn *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// The default parameters for this job.
+	// The default arguments for this job, specified as name-value pairs.
+	//
+	// You can specify arguments here that your own job-execution script consumes,
+	// as well as arguments that AWS Glue itself consumes.
+	//
+	// For information about how to specify and consume your own Job arguments,
+	// see the Calling AWS Glue APIs in Python (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-calling.html)
+	// topic in the developer guide.
+	//
+	// For information about the key-value pairs that AWS Glue consumes to set up
+	// your job, see the Special Parameters Used by AWS Glue (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-glue-arguments.html)
+	// topic in the developer guide.
 	DefaultArguments map[string]*string `type:"map"`
 
 	// Description of this job.
@@ -14455,7 +15198,7 @@ type Job struct {
 	// The name you assign to this job.
 	Name *string `min:"1" type:"string"`
 
-	// The role associated with this job.
+	// The name of the IAM role associated with this job.
 	Role *string `type:"string"`
 }
 
@@ -14607,10 +15350,10 @@ func (s *JobBookmarkEntry) SetVersion(v int64) *JobBookmarkEntry {
 type JobCommand struct {
 	_ struct{} `type:"structure"`
 
-	// The name of this job command.
+	// The name of the job command: this must be glueetl.
 	Name *string `type:"string"`
 
-	// Specifies the location of a script that executes a job.
+	// Specifies the S3 path to a script that executes a job (required).
 	ScriptLocation *string `type:"string"`
 }
 
@@ -14641,13 +15384,29 @@ func (s *JobCommand) SetScriptLocation(v string) *JobCommand {
 type JobRun struct {
 	_ struct{} `type:"structure"`
 
-	// The amount of infrastructure capacity allocated to this job run.
+	// The number of AWS Glue data processing units (DPUs) allocated to this JobRun.
+	// From 2 to 100 DPUs can be allocated; the default is 10. A DPU is a relative
+	// measure of processing power that consists of 4 vCPUs of compute capacity
+	// and 16 GB of memory. For more information, see the AWS Glue pricing page
+	// (https://aws.amazon.com/glue/pricing/).
 	AllocatedCapacity *int64 `type:"integer"`
 
-	// The job arguments associated with this run.
+	// The job arguments associated with this run. These override equivalent default
+	// arguments set for the job.
+	//
+	// You can specify arguments here that your own job-execution script consumes,
+	// as well as arguments that AWS Glue itself consumes.
+	//
+	// For information about how to specify and consume your own job arguments,
+	// see the Calling AWS Glue APIs in Python (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-calling.html)
+	// topic in the developer guide.
+	//
+	// For information about the key-value pairs that AWS Glue consumes to set up
+	// your job, see the Special Parameters Used by AWS Glue (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-glue-arguments.html)
+	// topic in the developer guide.
 	Arguments map[string]*string `type:"map"`
 
-	// The number or the attempt to run this job.
+	// The number of the attempt to run this job.
 	Attempt *int64 `type:"integer"`
 
 	// The date and time this job run completed.
@@ -14671,13 +15430,14 @@ type JobRun struct {
 	// A list of predecessors to this job run.
 	PredecessorRuns []*Predecessor `type:"list"`
 
-	// The ID of the previous run of this job.
+	// The ID of the previous run of this job. For example, the JobRunId specified
+	// in the StartJobRun action.
 	PreviousRunId *string `min:"1" type:"string"`
 
 	// The date and time at which this job run was started.
 	StartedOn *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// The name of the trigger for this job run.
+	// The name of the trigger that started this job run.
 	TriggerName *string `min:"1" type:"string"`
 }
 
@@ -14769,21 +15529,37 @@ func (s *JobRun) SetTriggerName(v string) *JobRun {
 	return s
 }
 
-// Specifies information used to update an existing job.
+// Specifies information used to update an existing job. Note that the previous
+// job definition will be completely overwritten by this information.
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/JobUpdate
 type JobUpdate struct {
 	_ struct{} `type:"structure"`
 
-	// The number of capacity units allocated to this job.
+	// The number of AWS Glue data processing units (DPUs) to allocate to this Job.
+	// From 2 to 100 DPUs can be allocated; the default is 10. A DPU is a relative
+	// measure of processing power that consists of 4 vCPUs of compute capacity
+	// and 16 GB of memory. For more information, see the AWS Glue pricing page
+	// (https://aws.amazon.com/glue/pricing/).
 	AllocatedCapacity *int64 `type:"integer"`
 
-	// The JobCommand that executes this job.
+	// The JobCommand that executes this job (required).
 	Command *JobCommand `type:"structure"`
 
 	// The connections used for this job.
 	Connections *ConnectionsList `type:"structure"`
 
-	// The default parameters for this job.
+	// The default arguments for this job.
+	//
+	// You can specify arguments here that your own job-execution script consumes,
+	// as well as arguments that AWS Glue itself consumes.
+	//
+	// For information about how to specify and consume your own Job arguments,
+	// see the Calling AWS Glue APIs in Python (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-calling.html)
+	// topic in the developer guide.
+	//
+	// For information about the key-value pairs that AWS Glue consumes to set up
+	// your job, see the Special Parameters Used by AWS Glue (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-glue-arguments.html)
+	// topic in the developer guide.
 	DefaultArguments map[string]*string `type:"map"`
 
 	// Description of the job.
@@ -14799,7 +15575,7 @@ type JobUpdate struct {
 	// The maximum number of times to retry this job if it fails.
 	MaxRetries *int64 `type:"integer"`
 
-	// The role associated with this job.
+	// The name of the IAM role associated with this job (required).
 	Role *string `type:"string"`
 }
 
@@ -15372,7 +16148,7 @@ func (s *PartitionValueList) SetValues(v []*string) *PartitionValueList {
 type PhysicalConnectionRequirements struct {
 	_ struct{} `type:"structure"`
 
-	// The connection's availability zone.
+	// The connection's availability zone. This field is deprecated and has no effect.
 	AvailabilityZone *string `min:"1" type:"string"`
 
 	// The security group ID list used by the connection.
@@ -15426,7 +16202,8 @@ func (s *PhysicalConnectionRequirements) SetSubnetId(v string) *PhysicalConnecti
 	return s
 }
 
-// A job run that preceded this one.
+// A job run that was used in the predicate of a conditional trigger that triggered
+// this job run.
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/Predecessor
 type Predecessor struct {
 	_ struct{} `type:"structure"`
@@ -15434,7 +16211,7 @@ type Predecessor struct {
 	// The name of the predecessor job.
 	JobName *string `min:"1" type:"string"`
 
-	// The job-run ID of the precessor job run.
+	// The job-run ID of the predecessor job run.
 	RunId *string `min:"1" type:"string"`
 }
 
@@ -16012,10 +16789,26 @@ func (s StartCrawlerScheduleOutput) GoString() string {
 type StartJobRunInput struct {
 	_ struct{} `type:"structure"`
 
-	// The infrastructure capacity to allocate to this job.
+	// The number of AWS Glue data processing units (DPUs) to allocate to this JobRun.
+	// From 2 to 100 DPUs can be allocated; the default is 10. A DPU is a relative
+	// measure of processing power that consists of 4 vCPUs of compute capacity
+	// and 16 GB of memory. For more information, see the AWS Glue pricing page
+	// (https://aws.amazon.com/glue/pricing/).
 	AllocatedCapacity *int64 `type:"integer"`
 
-	// Specific arguments for this job run.
+	// The job arguments specifically for this run. They override the equivalent
+	// default arguments set for the job itself.
+	//
+	// You can specify arguments here that your own job-execution script consumes,
+	// as well as arguments that AWS Glue itself consumes.
+	//
+	// For information about how to specify and consume your own Job arguments,
+	// see the Calling AWS Glue APIs in Python (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-calling.html)
+	// topic in the developer guide.
+	//
+	// For information about the key-value pairs that AWS Glue consumes to set up
+	// your job, see the Special Parameters Used by AWS Glue (http://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-glue-arguments.html)
+	// topic in the developer guide.
 	Arguments map[string]*string `type:"map"`
 
 	// The name of the job to start.
@@ -16023,7 +16816,7 @@ type StartJobRunInput struct {
 	// JobName is a required field
 	JobName *string `min:"1" type:"string" required:"true"`
 
-	// The ID of the job run to start.
+	// The ID of a previous JobRun to retry.
 	JobRunId *string `min:"1" type:"string"`
 }
 
@@ -16526,7 +17319,8 @@ type Table struct {
 	// Person or entity who created the table.
 	CreatedBy *string `min:"1" type:"string"`
 
-	// Name of the metadata database where the table metadata resides.
+	// Name of the metadata database where the table metadata resides. For Hive
+	// compatibility, this must be all lowercase.
 	DatabaseName *string `min:"1" type:"string"`
 
 	// Description of the table.
@@ -16539,7 +17333,7 @@ type Table struct {
 	// Last time column statistics were computed for this table.
 	LastAnalyzedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// Name of the table.
+	// Name of the table. For Hive compatibility, this must be entirely lowercase.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -16688,7 +17482,7 @@ type TableError struct {
 	// Detail about the error.
 	ErrorDetail *ErrorDetail `type:"structure"`
 
-	// Name of the table.
+	// Name of the table. For Hive compatibility, this must be entirely lowercase.
 	TableName *string `min:"1" type:"string"`
 }
 
@@ -16728,7 +17522,8 @@ type TableInput struct {
 	// Last time column statistics were computed for this table.
 	LastAnalyzedTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// Name of the table.
+	// Name of the table. For Hive compatibility, this is folded to lowercase when
+	// it is stored.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -16910,6 +17705,49 @@ func (s *TableVersion) SetVersionId(v string) *TableVersion {
 	return s
 }
 
+// An error record for table-version operations.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/TableVersionError
+type TableVersionError struct {
+	_ struct{} `type:"structure"`
+
+	// Detail about the error.
+	ErrorDetail *ErrorDetail `type:"structure"`
+
+	// The name of the table in question.
+	TableName *string `min:"1" type:"string"`
+
+	// The ID value of the version in question.
+	VersionId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s TableVersionError) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TableVersionError) GoString() string {
+	return s.String()
+}
+
+// SetErrorDetail sets the ErrorDetail field's value.
+func (s *TableVersionError) SetErrorDetail(v *ErrorDetail) *TableVersionError {
+	s.ErrorDetail = v
+	return s
+}
+
+// SetTableName sets the TableName field's value.
+func (s *TableVersionError) SetTableName(v string) *TableVersionError {
+	s.TableName = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *TableVersionError) SetVersionId(v string) *TableVersionError {
+	s.VersionId = &v
+	return s
+}
+
 // Information about a specific trigger.
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/Trigger
 type Trigger struct {
@@ -16921,13 +17759,13 @@ type Trigger struct {
 	// A description of this trigger.
 	Description *string `type:"string"`
 
-	// The trigger ID.
+	// Reserved for future use.
 	Id *string `min:"1" type:"string"`
 
 	// Name of the trigger.
 	Name *string `min:"1" type:"string"`
 
-	// The predicate of this trigger.
+	// The predicate of this trigger, which defines when it will fire.
 	Predicate *Predicate `type:"structure"`
 
 	// A cron expression used to specify the schedule (see Time-Based Schedules
@@ -17001,7 +17839,8 @@ func (s *Trigger) SetType(v string) *Trigger {
 	return s
 }
 
-// A structure used to provide information used to updata a trigger.
+// A structure used to provide information used to update a trigger. This object
+// will update the the previous trigger definition by overwriting it completely.
 // See also, https://docs.aws.amazon.com/goto/WebAPI/glue-2017-03-31/TriggerUpdate
 type TriggerUpdate struct {
 	_ struct{} `type:"structure"`
@@ -17012,13 +17851,13 @@ type TriggerUpdate struct {
 	// A description of this trigger.
 	Description *string `type:"string"`
 
-	// The name of the trigger.
+	// Reserved for future use.
 	Name *string `min:"1" type:"string"`
 
 	// The predicate of this trigger, which defines when it will fire.
 	Predicate *Predicate `type:"structure"`
 
-	// An updated cron expression used to specify the schedule (see Time-Based Schedules
+	// A cron expression used to specify the schedule (see Time-Based Schedules
 	// for Jobs and Crawlers (http://docs.aws.amazon.com/glue/latest/dg/monitor-data-warehouse-schedule.html).
 	// For example, to run something every day at 12:15 UTC, you would specify:
 	// cron(15 12 * * ? *).
@@ -17266,6 +18105,9 @@ type UpdateCrawlerInput struct {
 	// input format, output format, serde information, and schema from their parent
 	// table, rather than detect this information separately for each partition.
 	// Use the following JSON string to specify that behavior:
+	//
+	// Example:  '{ "Version": 1.0, "CrawlerOutput": { "Partitions": { "AddOrUpdateBehavior":
+	// "InheritFromTable" } } }'
 	Configuration *string `type:"string"`
 
 	// The AWS Glue database where results are stored, such as: arn:aws:daylight:us-east-1::database/sometable/*.
@@ -17483,7 +18325,8 @@ type UpdateDatabaseInput struct {
 	// DatabaseInput is a required field
 	DatabaseInput *DatabaseInput `type:"structure" required:"true"`
 
-	// The name of the metadata database to update in the catalog.
+	// The name of the database to update in the catalog. For Hive compatibility,
+	// this is folded to lowercase.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -17923,10 +18766,16 @@ type UpdateTableInput struct {
 	// the AWS account ID is used by default.
 	CatalogId *string `min:"1" type:"string"`
 
-	// The name of the catalog database in which the table resides.
+	// The name of the catalog database in which the table resides. For Hive compatibility,
+	// this name is entirely lowercase.
 	//
 	// DatabaseName is a required field
 	DatabaseName *string `min:"1" type:"string" required:"true"`
+
+	// By default, UpdateTable always creates an archived version of the table before
+	// updating it. If skipArchive is set to true, however, UpdateTable does not
+	// create the archived version.
+	SkipArchive *bool `type:"boolean"`
 
 	// An updated TableInput object to define the metadata table in the catalog.
 	//
@@ -17980,6 +18829,12 @@ func (s *UpdateTableInput) SetCatalogId(v string) *UpdateTableInput {
 // SetDatabaseName sets the DatabaseName field's value.
 func (s *UpdateTableInput) SetDatabaseName(v string) *UpdateTableInput {
 	s.DatabaseName = &v
+	return s
+}
+
+// SetSkipArchive sets the SkipArchive field's value.
+func (s *UpdateTableInput) SetSkipArchive(v bool) *UpdateTableInput {
+	s.SkipArchive = &v
 	return s
 }
 
@@ -18209,8 +19064,10 @@ type UpdateXMLClassifierRequest struct {
 	Name *string `min:"1" type:"string" required:"true"`
 
 	// The XML tag designating the element that contains each record in an XML document
-	// being parsed. Note that this cannot be an empty element. It must contain
-	// child elements representing fields in the record.
+	// being parsed. Note that this cannot identify a self-closing element (closed
+	// by />). An empty row element that contains only attributes can be parsed
+	// as long as it ends with a closing tag (for example, <row item_a="A" item_b="B"></row>
+	// is okay, but <row item_a="A" item_b="B" /> is not).
 	RowTag *string `type:"string"`
 }
 
@@ -18440,8 +19297,10 @@ type XMLClassifier struct {
 	Name *string `min:"1" type:"string" required:"true"`
 
 	// The XML tag designating the element that contains each record in an XML document
-	// being parsed. Note that this cannot be an empty element. It must contain
-	// child elements representing fields in the record.
+	// being parsed. Note that this cannot identify a self-closing element (closed
+	// by />). An empty row element that contains only attributes can be parsed
+	// as long as it ends with a closing tag (for example, <row item_a="A" item_b="B"></row>
+	// is okay, but <row item_a="A" item_b="B" /> is not).
 	RowTag *string `type:"string"`
 
 	// The version of this classifier.
@@ -18580,6 +19439,14 @@ const (
 )
 
 const (
+	// LanguagePython is a Language enum value
+	LanguagePython = "PYTHON"
+
+	// LanguageScala is a Language enum value
+	LanguageScala = "SCALA"
+)
+
+const (
 	// LastCrawlStatusSucceeded is a LastCrawlStatus enum value
 	LastCrawlStatusSucceeded = "SUCCEEDED"
 
@@ -18593,6 +19460,9 @@ const (
 const (
 	// LogicalAnd is a Logical enum value
 	LogicalAnd = "AND"
+
+	// LogicalAny is a Logical enum value
+	LogicalAny = "ANY"
 )
 
 const (
