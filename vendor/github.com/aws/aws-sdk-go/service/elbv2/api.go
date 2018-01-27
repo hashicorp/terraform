@@ -245,13 +245,11 @@ func (c *ELBV2) CreateListenerRequest(input *CreateListenerInput) (req *request.
 // Creates a listener for the specified Application Load Balancer or Network
 // Load Balancer.
 //
+// You can create up to 10 listeners per load balancer.
+//
 // To update a listener, use ModifyListener. When you are finished with a listener,
 // you can delete it using DeleteListener. If you are finished with both the
 // listener and the load balancer, you can delete them both using DeleteLoadBalancer.
-//
-// This operation is idempotent, which means that it completes at most one time.
-// If you attempt to create multiple listeners with the same settings, each
-// call succeeds.
 //
 // For more information, see Listeners for Your Application Load Balancers (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html)
 // in the Application Load Balancers Guide and Listeners for Your Network Load
@@ -382,14 +380,12 @@ func (c *ELBV2) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *
 // your current load balancers, see DescribeLoadBalancers. When you are finished
 // with a load balancer, you can delete it using DeleteLoadBalancer.
 //
-// For limit information, see Limits for Your Application Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html)
+// You can create up to 20 load balancers per region per account. You can request
+// an increase for the number of load balancers for your account. For more information,
+// see Limits for Your Application Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html)
 // in the Application Load Balancers Guide and Limits for Your Network Load
 // Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-limits.html)
 // in the Network Load Balancers Guide.
-//
-// This operation is idempotent, which means that it completes at most one time.
-// If you attempt to create multiple load balancers with the same settings,
-// each call succeeds.
 //
 // For more information, see Application Load Balancers (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html)
 // in the Application Load Balancers Guide and Network Load Balancers (http://docs.aws.amazon.com/elasticloadbalancing/latest/network/network-load-balancers.html)
@@ -438,6 +434,9 @@ func (c *ELBV2) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *
 //
 //   * ErrCodeAvailabilityZoneNotSupportedException "AvailabilityZoneNotSupported"
 //   The specified Availability Zone is not supported.
+//
+//   * ErrCodeOperationNotPermittedException "OperationNotPermitted"
+//   This operation is not allowed.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateLoadBalancer
 func (c *ELBV2) CreateLoadBalancer(input *CreateLoadBalancerInput) (*CreateLoadBalancerOutput, error) {
@@ -633,10 +632,6 @@ func (c *ELBV2) CreateTargetGroupRequest(input *CreateTargetGroupInput) (req *re
 // in an action using CreateListener or CreateRule.
 //
 // To delete a target group, use DeleteTargetGroup.
-//
-// This operation is idempotent, which means that it completes at most one time.
-// If you attempt to create multiple target groups with the same settings, each
-// call succeeds.
 //
 // For more information, see Target Groups for Your Application Load Balancers
 // (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html)
@@ -1083,8 +1078,8 @@ func (c *ELBV2) DeregisterTargetsRequest(input *DeregisterTargetsInput) (req *re
 //   The specified target group does not exist.
 //
 //   * ErrCodeInvalidTargetException "InvalidTarget"
-//   The specified target does not exist, is not in the same VPC as the target
-//   group, or has an unsupported instance type.
+//   The specified target does not exist or is not in the same VPC as the target
+//   group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeregisterTargets
 func (c *ELBV2) DeregisterTargets(input *DeregisterTargetsInput) (*DeregisterTargetsOutput, error) {
@@ -2158,8 +2153,8 @@ func (c *ELBV2) DescribeTargetHealthRequest(input *DescribeTargetHealthInput) (r
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidTargetException "InvalidTarget"
-//   The specified target does not exist, is not in the same VPC as the target
-//   group, or has an unsupported instance type.
+//   The specified target does not exist or is not in the same VPC as the target
+//   group.
 //
 //   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
@@ -2743,8 +2738,8 @@ func (c *ELBV2) RegisterTargetsRequest(input *RegisterTargetsInput) (req *reques
 //   You've reached the limit on the number of targets.
 //
 //   * ErrCodeInvalidTargetException "InvalidTarget"
-//   The specified target does not exist, is not in the same VPC as the target
-//   group, or has an unsupported instance type.
+//   The specified target does not exist or is not in the same VPC as the target
+//   group.
 //
 //   * ErrCodeTooManyRegistrationsForTargetIdException "TooManyRegistrationsForTargetId"
 //   You've reached the limit on the number of times a target can be registered
@@ -3821,11 +3816,10 @@ type CreateLoadBalancerInput struct {
 	// one subnet per Availability Zone. You must specify either subnets or subnet
 	// mappings.
 	//
-	// [Application Load Balancers] You must specify subnets from at least two Availability
-	// Zones. You cannot specify Elastic IP addresses for your subnets.
+	// [Network Load Balancers] You can specify one Elastic IP address per subnet.
 	//
-	// [Network Load Balancers] You can specify subnets from one or more Availability
-	// Zones. You can specify one Elastic IP address per subnet.
+	// [Application Load Balancers] You cannot specify Elastic IP addresses for
+	// your subnets.
 	SubnetMappings []*SubnetMapping `type:"list"`
 
 	// The IDs of the subnets to attach to the load balancer. You can specify only
@@ -3833,9 +3827,6 @@ type CreateLoadBalancerInput struct {
 	// mappings.
 	//
 	// [Application Load Balancers] You must specify subnets from at least two Availability
-	// Zones.
-	//
-	// [Network Load Balancers] You can specify subnets from one or more Availability
 	// Zones.
 	Subnets []*string `type:"list"`
 
@@ -5606,10 +5597,6 @@ type Limit struct {
 	//    * target-groups
 	//
 	//    * targets-per-application-load-balancer
-	//
-	//    * targets-per-availability-zone-per-network-load-balancer
-	//
-	//    * targets-per-network-load-balancer
 	Name *string `type:"string"`
 }
 
@@ -7183,7 +7170,8 @@ type SetSubnetsInput struct {
 	// Zones. You can specify only one subnet per Availability Zone. You must specify
 	// either subnets or subnet mappings.
 	//
-	// You cannot specify Elastic IP addresses for your subnets.
+	// The load balancer is allocated one static IP address per subnet. You cannot
+	// specify your own Elastic IP addresses.
 	SubnetMappings []*SubnetMapping `type:"list"`
 
 	// The IDs of the subnets. You must specify subnets from at least two Availability
@@ -7666,9 +7654,6 @@ type TargetGroupAttribute struct {
 	//    Balancing to wait before changing the state of a deregistering target
 	//    from draining to unused. The range is 0-3600 seconds. The default value
 	//    is 300 seconds.
-	//
-	//    * proxy_protocol_v2.enabled - [Network Load Balancers] Indicates whether
-	//    Proxy Protocol version 2 is enabled.
 	//
 	//    * stickiness.enabled - [Application Load Balancers] Indicates whether
 	//    sticky sessions are enabled. The value is true or false.
