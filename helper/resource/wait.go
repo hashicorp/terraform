@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -69,16 +70,26 @@ type RetryError struct {
 // given error.
 func RetryableError(err error) *RetryError {
 	if err == nil {
-		return nil
+		return &RetryError{
+			Err: fmt.Errorf("empty retryable error received. " +
+				"This is a bug with the Terraform provider and should be " +
+				"reported as a GitHub issue in the provider repository."),
+			Retryable: false,
+		}
 	}
 	return &RetryError{Err: err, Retryable: true}
 }
 
-// NonRetryableError is a helper to create a RetryError that's _not)_ retryable
+// NonRetryableError is a helper to create a RetryError that's _not_ retryable
 // from a given error.
 func NonRetryableError(err error) *RetryError {
 	if err == nil {
-		return nil
+		return &RetryError{
+			Err: fmt.Errorf("empty non-retryable error received. " +
+				"This is a bug with the Terraform provider and should be " +
+				"reported as a GitHub issue in the provider repository."),
+			Retryable: false,
+		}
 	}
 	return &RetryError{Err: err, Retryable: false}
 }
