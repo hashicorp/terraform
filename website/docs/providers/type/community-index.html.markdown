@@ -17,7 +17,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 
 ---
 
-[Acme](https://github.com/vancluever/terraform-provider-acme)
+[ACME/Let's Encrypt](https://github.com/vancluever/terraform-provider-acme)
 
 [Active Directory](https://github.com/GSLabDev/terraform-provider-ad)
 
@@ -37,6 +37,8 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 
 [Helm](https://github.com/mcuadros/terraform-provider-helm)
 
+[HTTP File Upload](https://github.com/GSLabDev/terraform-provider-httpfileupload)
+
 [HP OneView](https://github.com/HewlettPackard/terraform-provider-oneview)
 
 [Infoblox](https://github.com/sky-uk/terraform-provider-infoblox)
@@ -50,6 +52,8 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 [Kong](https://github.com/kevholditch/terraform-provider-kong)
 
 [LXD](https://github.com/sl1pm4t/terraform-provider-lxd)
+
+[Sentry](https://github.com/jianyuan/terraform-provider-sentry)
 
 [Microsoft SCVMM](https://github.com/GSLabDev/terraform-provider-scvmm)
 
