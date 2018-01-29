@@ -83,17 +83,11 @@ func (n *NodeApplyableOutput) EvalTree() EvalNode {
 				},
 			},
 			&EvalOpFilter{
-				Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkValidate},
+				Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkValidate, walkDestroy, walkPlanDestroy},
 				Node: &EvalWriteOutput{
 					Name:      n.Config.Name,
 					Sensitive: n.Config.Sensitive,
 					Value:     n.Config.RawConfig,
-				},
-			},
-			&EvalOpFilter{
-				Ops: []walkOperation{walkDestroy, walkPlanDestroy},
-				Node: &EvalDeleteOutput{
-					Name: n.Config.Name,
 				},
 			},
 		},
