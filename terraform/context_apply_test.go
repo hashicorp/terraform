@@ -7623,7 +7623,7 @@ func TestContext2Apply_destroyProvisionerWithLocals(t *testing.T) {
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
-					Path: rootModulePath,
+					Path: []string{"root", "mod"},
 					Resources: map[string]*ResourceState{
 						"aws_instance.foo": resourceState("aws_instance", "1234"),
 					},
@@ -7635,6 +7635,68 @@ func TestContext2Apply_destroyProvisionerWithLocals(t *testing.T) {
 		// node isn't inadvertently pruned because of the wrong evaluation
 		// order.
 		Targets: []string{"aws_instance.foo"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestContext2Apply_destroyProvisionerWithOutput(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-outputs")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	pr := testProvisioner()
+	pr.ApplyFn = func(is *InstanceState, rc *ResourceConfig) error {
+		cmd, ok := rc.Get("command")
+		if !ok || cmd != "3" {
+			fmt.Printf("%#v\n", rc.Config)
+			return fmt.Errorf("provisioner for %s got %v:%s", is.ID, ok, cmd)
+		}
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: []string{"root"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": resourceState("aws_instance", "1"),
+					},
+				},
+				&ModuleState{
+					Path: []string{"root", "mod"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.baz": resourceState("aws_instance", "3"),
+					},
+					// state needs to be properly initialized
+					Outputs: map[string]*OutputState{},
+				},
+				&ModuleState{
+					Path: []string{"root", "mod2"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.bar": resourceState("aws_instance", "2"),
+					},
+				},
+			},
+		},
+		Destroy: true,
 	})
 
 	if _, err := ctx.Plan(); err != nil {
