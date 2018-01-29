@@ -587,9 +587,9 @@ func (p *provisioner) startHabSystemd(o terraform.UIOutput, comm communicator.Co
 	}
 
 	if p.UseSudo {
-		command = fmt.Sprintf("sudo systemctl start %s", p.ServiceName)
+		command = fmt.Sprintf("sudo systemctl enable hab-supervisor && sudo systemctl start hab-supervisor")
 	} else {
-		command = fmt.Sprintf("systemctl start %s", p.ServiceName)
+		command = fmt.Sprintf("systemctl enable hab-supervisor && systemctl start hab-supervisor")
 	}
 	return p.runCommand(o, comm, command)
 }
