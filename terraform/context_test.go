@@ -375,6 +375,9 @@ func resourceState(resourceType, resourceID string) *ResourceState {
 		Type: resourceType,
 		Primary: &InstanceState{
 			ID: resourceID,
+			Attributes: map[string]string{
+				"id": resourceID,
+			},
 		},
 	}
 }
