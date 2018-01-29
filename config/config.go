@@ -352,7 +352,9 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 			if err := reflectwalk.Walk(v.Default, w); err == nil {
 				if interp {
 					diags = diags.Append(fmt.Errorf(
-						"variable %q: default may not contain interpolations",
+						"variable %q: default may not contain interpolations, "+
+							"you can use local values instead: "+
+							"https://www.terraform.io/docs/configuration/locals.html",
 						v.Name,
 					))
 				}
