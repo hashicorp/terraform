@@ -77,15 +77,14 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 }
 
 // DestroyReferenceTransformer is a GraphTransformer that reverses the edges
-// for nodes that depend on an Output or Local value. Output and local nodes are
-// removed during destroy, so anything which depends on them must be evaluated
-// first. These can't be interpolated during destroy, so the stored value must
-// be used anyway hence they don't need to be re-evaluated.
+// for locals and outputs that depend on other nodes which will be
+// removed during destroy. If a destroy node is evaluated before the local or
+// output value, it will be removed from the state, and the later interpolation
+// will fail.
 type DestroyValueReferenceTransformer struct{}
 
 func (t *DestroyValueReferenceTransformer) Transform(g *Graph) error {
 	vs := g.Vertices()
-
 	for _, v := range vs {
 		switch v.(type) {
 		case *NodeApplyableOutput, *NodeLocal:
@@ -94,13 +93,13 @@ func (t *DestroyValueReferenceTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		// reverse any incoming edges so that the value is removed last
-		for _, e := range g.EdgesTo(v) {
-			source := e.Source()
-			log.Printf("[TRACE] output dep: %s", dag.VertexName(source))
+		// reverse any outgoing edges so that the value is evaluated first.
+		for _, e := range g.EdgesFrom(v) {
+			target := e.Target()
+			log.Printf("[TRACE] output dep: %s", dag.VertexName(target))
 
 			g.RemoveEdge(e)
-			g.Connect(&DestroyEdge{S: v, T: source})
+			g.Connect(&DestroyEdge{S: target, T: v})
 		}
 	}
 

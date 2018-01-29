@@ -7594,6 +7594,58 @@ aws_instance.bar:
 	`)
 }
 
+func TestContext2Apply_destroyProvisionerWithLocals(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-locals")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	pr := testProvisioner()
+	pr.ApplyFn = func(_ *InstanceState, rc *ResourceConfig) error {
+		cmd, ok := rc.Get("command")
+		if !ok || cmd != "local" {
+			fmt.Printf("%#v\n", rc.Config)
+			return fmt.Errorf("provisioner got %v:%s", ok, cmd)
+		}
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": resourceState("aws_instance", "1234"),
+					},
+				},
+			},
+		},
+		Destroy: true,
+		// the test works without targeting, but this also tests that the local
+		// node isn't inadvertently pruned because of the wrong evaluation
+		// order.
+		Targets: []string{"aws_instance.foo"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 	m := testModule(t, "apply-destroy-targeted-count")
 	p := testProvider("aws")
@@ -9000,6 +9052,10 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "foo",
+							// FIXME: id should only exist in one place
+							Attributes: map[string]string{
+								"id": "foo",
+							},
 						},
 					},
 				},
