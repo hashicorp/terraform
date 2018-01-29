@@ -96,6 +96,11 @@ func (t *DestroyValueReferenceTransformer) Transform(g *Graph) error {
 		// reverse any outgoing edges so that the value is evaluated first.
 		for _, e := range g.EdgesFrom(v) {
 			target := e.Target()
+			switch target.(type) {
+			case *NodeApplyableOutput, *NodeLocal:
+				// don't reverse other values
+				continue
+			}
 			log.Printf("[TRACE] output dep: %s", dag.VertexName(target))
 
 			g.RemoveEdge(e)
