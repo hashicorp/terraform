@@ -2590,24 +2590,14 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 			&ModuleState{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.b": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "b",
-						},
-					},
+					"aws_instance.b": resourceState("aws_instance", "b"),
 				},
 			},
 
 			&ModuleState{
 				Path: []string{"root", "child"},
 				Resources: map[string]*ResourceState{
-					"aws_instance.a": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "a",
-						},
-					},
+					"aws_instance.a": resourceState("aws_instance", "a"),
 				},
 				Outputs: map[string]*OutputState{
 					"a_output": &OutputState{

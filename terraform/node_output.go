@@ -93,3 +93,55 @@ func (n *NodeApplyableOutput) EvalTree() EvalNode {
 		},
 	}
 }
+
+// NodeDestroyableOutput represents an output that is "destroybale":
+// its application will remove the output from the state.
+type NodeDestroyableOutput struct {
+	PathValue []string
+	Config    *config.Output // Config is the output in the config
+}
+
+func (n *NodeDestroyableOutput) Name() string {
+	result := fmt.Sprintf("output.%s (destroy)", n.Config.Name)
+	if len(n.PathValue) > 1 {
+		result = fmt.Sprintf("%s.%s", modulePrefixStr(n.PathValue), result)
+	}
+
+	return result
+}
+
+// GraphNodeSubPath
+func (n *NodeDestroyableOutput) Path() []string {
+	return n.PathValue
+}
+
+// RemovableIfNotTargeted
+func (n *NodeDestroyableOutput) RemoveIfNotTargeted() bool {
+	// We need to add this so that this node will be removed if
+	// it isn't targeted or a dependency of a target.
+	return true
+}
+
+// GraphNodeReferencer
+func (n *NodeDestroyableOutput) References() []string {
+	var result []string
+	result = append(result, n.Config.DependsOn...)
+	result = append(result, ReferencesFromConfig(n.Config.RawConfig)...)
+	for _, v := range result {
+		split := strings.Split(v, "/")
+		for i, s := range split {
+			split[i] = s + ".destroy"
+		}
+
+		result = append(result, strings.Join(split, "/"))
+	}
+
+	return result
+}
+
+// GraphNodeEvalable
+func (n *NodeDestroyableOutput) EvalTree() EvalNode {
+	return &EvalDeleteOutput{
+		Name: n.Config.Name,
+	}
+}
