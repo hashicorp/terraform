@@ -97,6 +97,8 @@ Options:
                       up Terraform-managed resources. By default it will
                       use the state "terraform.tfstate" if it exists.
 
+  -id=ID              Restricts the output to objects whose id is ID.
+
 `
 	return strings.TrimSpace(helpText)
 }
