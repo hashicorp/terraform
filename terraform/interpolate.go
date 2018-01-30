@@ -518,6 +518,16 @@ func (i *Interpolater) computeResourceVariable(
 		return &v, err
 	}
 
+	// special case for the "id" field which is usually also an attribute
+	if v.Field == "id" && r.Primary.ID != "" {
+		// This is usually pulled from the attributes, but is sometimes missing
+		// during destroy. We can return the ID field in this case.
+		// FIXME: there should only be one ID to rule them all.
+		log.Printf("[WARN] resource %s missing 'id' attribute", v.ResourceId())
+		v, err := hil.InterfaceToVariable(r.Primary.ID)
+		return &v, err
+	}
+
 	// computed list or map attribute
 	_, isList = r.Primary.Attributes[v.Field+".#"]
 	_, isMap = r.Primary.Attributes[v.Field+".%"]
@@ -653,6 +663,11 @@ func (i *Interpolater) computeResourceMultiVariable(
 		if singleAttr, ok := r.Primary.Attributes[v.Field]; ok {
 			values = append(values, singleAttr)
 			continue
+		}
+
+		if v.Field == "id" && r.Primary.ID != "" {
+			log.Printf("[WARN] resource %s missing 'id' attribute", v.ResourceId())
+			values = append(values, r.Primary.ID)
 		}
 
 		// computed list or map attribute
