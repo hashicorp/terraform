@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -7613,7 +7614,7 @@ func TestContext2Apply_destroyProvisionerWithLocals(t *testing.T) {
 		State: &State{
 			Modules: []*ModuleState{
 				&ModuleState{
-					Path: []string{"root", "mod"},
+					Path: []string{"root"},
 					Resources: map[string]*ResourceState{
 						"aws_instance.foo": resourceState("aws_instance", "1234"),
 					},
@@ -7633,6 +7634,75 @@ func TestContext2Apply_destroyProvisionerWithLocals(t *testing.T) {
 
 	if _, err := ctx.Apply(); err != nil {
 		t.Fatal(err)
+	}
+
+	if !pr.ApplyCalled {
+		t.Fatal("provisioner not called")
+	}
+}
+
+func TestContext2Apply_destroyProvisionerWithMultipleLocals(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-multiple-locals")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	pr := testProvisioner()
+	pr.ApplyFn = func(is *InstanceState, rc *ResourceConfig) error {
+		cmd, ok := rc.Get("command")
+		if !ok {
+			return errors.New("no command in provisioner")
+		}
+
+		switch is.ID {
+		case "1234":
+			if cmd != "local" {
+				return fmt.Errorf("provisioner %q got:%q", is.ID, cmd)
+			}
+		case "3456":
+			if cmd != "1234" {
+				return fmt.Errorf("provisioner %q got:%q", is.ID, cmd)
+			}
+		default:
+			t.Fatal("unknown instance")
+		}
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: []string{"root"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": resourceState("aws_instance", "1234"),
+						"aws_instance.bar": resourceState("aws_instance", "3456"),
+					},
+				},
+			},
+		},
+		Destroy: true,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatal(err)
+	}
+
+	if !pr.ApplyCalled {
+		t.Fatal("provisioner not called")
 	}
 }
 
@@ -7695,6 +7765,9 @@ func TestContext2Apply_destroyProvisionerWithOutput(t *testing.T) {
 
 	if _, err := ctx.Apply(); err != nil {
 		t.Fatal(err)
+	}
+	if !pr.ApplyCalled {
+		t.Fatal("provisioner not called")
 	}
 }
 
