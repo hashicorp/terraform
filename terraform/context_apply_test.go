@@ -7641,6 +7641,8 @@ func TestContext2Apply_destroyProvisionerWithLocals(t *testing.T) {
 	}
 }
 
+// this also tests a local value in the config referencing a resource that
+// wasn't in the state during destroy.
 func TestContext2Apply_destroyProvisionerWithMultipleLocals(t *testing.T) {
 	m := testModule(t, "apply-provisioner-destroy-multiple-locals")
 	p := testProvider("aws")
