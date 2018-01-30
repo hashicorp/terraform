@@ -126,6 +126,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			&DestroyValueReferenceTransformer{},
 		),
 
+		GraphTransformIf(
+			func() bool { return b.Destroy },
+			&DestroyOutputTransformer{},
+		),
+
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{},
 
