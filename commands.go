@@ -296,6 +296,14 @@ func initCommands(config *Config) {
 			return &command.StateCommand{}, nil
 		},
 
+		"state edit": func() (cli.Command, error) {
+			return &command.StateEditCommand{
+				StateMeta: command.StateMeta{
+					Meta: meta,
+				},
+			}, nil
+		},
+
 		"state list": func() (cli.Command, error) {
 			return &command.StateListCommand{
 				Meta: meta,
