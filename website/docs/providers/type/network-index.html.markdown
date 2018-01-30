@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "docs"ß
 page_title: "Network Providers"
 sidebar_current: "docs-providers-network"
 description: |-
@@ -28,6 +28,8 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 [HTTP](/docs/providers/http/index.html)
 
 [NS1](/docs/providers/ns1/index.html)
+
+[PANOS](/docs/providers/panos/index.html)
 
 [PowerDNS](/docs/providers/powerdns/index.html)
 
