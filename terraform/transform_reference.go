@@ -112,6 +112,30 @@ func (t *DestroyValueReferenceTransformer) Transform(g *Graph) error {
 	return nil
 }
 
+// PruneUnusedValuesTransformer is s GraphTransformer that removes local and
+// output values which are not referenced in the graph. Since outputs and
+// locals always need to be evaluated, if they reference a resource that is not
+// available in the state the interpolation could fail.
+type PruneUnusedValuesTransformer struct{}
+
+func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
+	vs := g.Vertices()
+	for _, v := range vs {
+		switch v.(type) {
+		case *NodeApplyableOutput, *NodeLocal:
+			// OK
+		default:
+			continue
+		}
+
+		if len(g.EdgesTo(v)) == 0 {
+			g.Remove(v)
+		}
+	}
+
+	return nil
+}
+
 // ReferenceMap is a structure that can be used to efficiently check
 // for references on a graph.
 type ReferenceMap struct {
