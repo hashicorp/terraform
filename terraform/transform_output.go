@@ -1,7 +1,10 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // OutputTransformer is a GraphTransformer that adds all the outputs
@@ -41,11 +44,6 @@ func (t *OutputTransformer) transform(g *Graph, m *module.Tree) error {
 
 	// Add all outputs here
 	for _, o := range os {
-		// Build the node.
-		//
-		// NOTE: For now this is just an "applyable" output. As we build
-		// new graph builders for the other operations I suspect we'll
-		// find a way to parameterize this, require new transforms, etc.
 		node := &NodeApplyableOutput{
 			PathValue: normalizeModulePath(m.Path()),
 			Config:    o,
@@ -55,5 +53,43 @@ func (t *OutputTransformer) transform(g *Graph, m *module.Tree) error {
 		g.Add(node)
 	}
 
+	return nil
+}
+
+// DestroyOutputTransformer is a GraphTransformer that adds nodes to delete
+// outputs during destroy. We need to do this to ensure that no stale outputs
+// are ever left in the state.
+type DestroyOutputTransformer struct {
+}
+
+func (t *DestroyOutputTransformer) Transform(g *Graph) error {
+	for _, v := range g.Vertices() {
+		output, ok := v.(*NodeApplyableOutput)
+		if !ok {
+			continue
+		}
+
+		// create the destroy node for this output
+		node := &NodeDestroyableOutput{
+			PathValue: output.PathValue,
+			Config:    output.Config,
+		}
+
+		log.Printf("[TRACE] creating %s", node.Name())
+		g.Add(node)
+
+		deps, err := g.Descendents(v)
+		if err != nil {
+			return err
+		}
+
+		// the destroy node must depend on the eval node
+		deps.Add(v)
+
+		for _, d := range deps.List() {
+			log.Printf("[TRACE] %s depends on %s", node.Name(), dag.VertexName(d))
+			g.Connect(dag.BasicEdge(node, d))
+		}
+	}
 	return nil
 }

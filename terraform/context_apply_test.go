@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -2590,24 +2591,14 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 			&ModuleState{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_instance.b": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "b",
-						},
-					},
+					"aws_instance.b": resourceState("aws_instance", "b"),
 				},
 			},
 
 			&ModuleState{
 				Path: []string{"root", "child"},
 				Resources: map[string]*ResourceState{
-					"aws_instance.a": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "a",
-						},
-					},
+					"aws_instance.a": resourceState("aws_instance", "a"),
 				},
 				Outputs: map[string]*OutputState{
 					"a_output": &OutputState{
@@ -7594,6 +7585,212 @@ aws_instance.bar:
 	`)
 }
 
+func TestContext2Apply_destroyProvisionerWithLocals(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-locals")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	pr := testProvisioner()
+	pr.ApplyFn = func(_ *InstanceState, rc *ResourceConfig) error {
+		cmd, ok := rc.Get("command")
+		if !ok || cmd != "local" {
+			fmt.Printf("%#v\n", rc.Config)
+			return fmt.Errorf("provisioner got %v:%s", ok, cmd)
+		}
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: []string{"root"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": resourceState("aws_instance", "1234"),
+					},
+				},
+			},
+		},
+		Destroy: true,
+		// the test works without targeting, but this also tests that the local
+		// node isn't inadvertently pruned because of the wrong evaluation
+		// order.
+		Targets: []string{"aws_instance.foo"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatal(err)
+	}
+
+	if !pr.ApplyCalled {
+		t.Fatal("provisioner not called")
+	}
+}
+
+// this also tests a local value in the config referencing a resource that
+// wasn't in the state during destroy.
+func TestContext2Apply_destroyProvisionerWithMultipleLocals(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-multiple-locals")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	pr := testProvisioner()
+	pr.ApplyFn = func(is *InstanceState, rc *ResourceConfig) error {
+		cmd, ok := rc.Get("command")
+		if !ok {
+			return errors.New("no command in provisioner")
+		}
+
+		switch is.ID {
+		case "1234":
+			if cmd != "local" {
+				return fmt.Errorf("provisioner %q got:%q", is.ID, cmd)
+			}
+		case "3456":
+			if cmd != "1234" {
+				return fmt.Errorf("provisioner %q got:%q", is.ID, cmd)
+			}
+		default:
+			t.Fatal("unknown instance")
+		}
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: []string{"root"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": resourceState("aws_instance", "1234"),
+						"aws_instance.bar": resourceState("aws_instance", "3456"),
+					},
+				},
+			},
+		},
+		Destroy: true,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatal(err)
+	}
+
+	if !pr.ApplyCalled {
+		t.Fatal("provisioner not called")
+	}
+}
+
+func TestContext2Apply_destroyProvisionerWithOutput(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-outputs")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	pr := testProvisioner()
+	pr.ApplyFn = func(is *InstanceState, rc *ResourceConfig) error {
+		cmd, ok := rc.Get("command")
+		if !ok || cmd != "3" {
+			fmt.Printf("%#v\n", rc.Config)
+			return fmt.Errorf("provisioner for %s got %v:%s", is.ID, ok, cmd)
+		}
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: []string{"root"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": resourceState("aws_instance", "1"),
+					},
+					Outputs: map[string]*OutputState{
+						"value": {
+							Type:  "string",
+							Value: "3",
+						},
+					},
+				},
+				&ModuleState{
+					Path: []string{"root", "mod"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.baz": resourceState("aws_instance", "3"),
+					},
+					// state needs to be properly initialized
+					Outputs: map[string]*OutputState{},
+				},
+				&ModuleState{
+					Path: []string{"root", "mod2"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.bar": resourceState("aws_instance", "2"),
+					},
+				},
+			},
+		},
+		Destroy: true,
+
+		// targeting the source of the value used by all resources shoudl still
+		// destroy them all.
+		Targets: []string{"module.mod.aws_instance.baz"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatal(err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !pr.ApplyCalled {
+		t.Fatal("provisioner not called")
+	}
+
+	// confirm all outputs were removed too
+	for _, mod := range state.Modules {
+		if len(mod.Outputs) > 0 {
+			t.Fatalf("output left in module state: %#v\n", mod)
+		}
+	}
+}
+
 func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 	m := testModule(t, "apply-destroy-targeted-count")
 	p := testProvider("aws")
@@ -9000,6 +9197,10 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "foo",
+							// FIXME: id should only exist in one place
+							Attributes: map[string]string{
+								"id": "foo",
+							},
 						},
 					},
 				},
