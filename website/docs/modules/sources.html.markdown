@@ -14,19 +14,19 @@ Terraform manages modules for you: it downloads them, organizes them on disk, ch
 
 Terraform supports the following sources:
 
-  * Local file paths
+  * [Local file paths](#local-file-paths)
 
-  * [Terraform Registry](/docs/registry/index.html)
+  * [Terraform Registry](#terraform-registry)
 
-  * GitHub
+  * [GitHub](#github)
 
-  * Bitbucket
+  * [Bitbucket](#bitbucket)
 
-  * Generic Git, Mercurial repositories
+  * Generic [Git](#generic-git-repository), [Mercurial](#generic-mercurial-repository) repositories
 
-  * HTTP URLs
+  * [HTTP URLs](#http-urls)
 
-  * S3 buckets
+  * [S3 buckets](#s3-bucket)
 
 Each is documented further below.
 
@@ -61,7 +61,7 @@ The above example would use the
 from the public registry.
 
 You can learn more about the registry at the
-[Terraform Registry documentation section](/docs/registry/index.html).
+[Terraform Registry documentation](/docs/registry/modules/use.html#using-modules).
 
 ## GitHub
 
@@ -93,7 +93,7 @@ module "consul" {
 
 GitHub source URLs require that Git is installed on your system and that you have access to the repository.
 
-You can use the same parameters to GitHub repositories as you can generic Git repositories (such as tags or branches). See the documentation for generic Git repositories for more information.
+You can use the same parameters to GitHub repositories as you can generic Git repositories (such as tags or branches). See [the documentation for generic Git repositories](#parameters) for more information.
 
 ### Private GitHub Repos
 
@@ -134,7 +134,7 @@ module "consul" {
 Bitbucket URLs will require that Git or Mercurial is installed on your system, depending on the type of repository.
 
 ## Private Bitbucket Repos
-Private bitbucket repositories must be specified similar to the Generic Git Respository section below.
+Private bitbucket repositories must be specified similar to the [Generic Git Repository](#generic-git-repository) section below.
 
 ```hcl
 module "consul" {
@@ -176,6 +176,10 @@ module "ami" {
 
 If you do not specify the type of `source` then Terraform will attempt to use the closest match, for example assuming `https://hashicorp.com/consul.git` is a HTTP URL.
 
+Terraform will cache the module locally by default `terraform get` is run, so successive updates to master or a specified branch will not be factored into future plans. Run `terraform get -update=true` to get the latest version of the branch. This is handy in development, but potentially bothersome in production if you don't have control of the repository.
+
+### Parameters
+
 The URLs for Git repositories support the following query parameters:
 
   * `ref` - The ref to checkout. This can be a branch, tag, commit, etc.
@@ -185,8 +189,6 @@ module "consul" {
   source = "git::https://hashicorp.com/consul.git?ref=master"
 }
 ```
-
-Terraform will cache the module locally by default `terraform get` is run, so successive updates to master or a specified branch will not be factored into future plans. Run `terraform get -update=true` to get the latest version of the branch. This is handy in development, but potentially bothersome in production if you don't have control of the repository.
 
 ## Generic Mercurial Repository
 
@@ -223,7 +225,7 @@ Terraform then looks for the resulting module URL in the following order:
 <meta name="terraform-get" content="github.com/hashicorp/example" />
 ```
 
-### S3 Bucket
+## S3 Bucket
 
 Terraform can also store modules in an S3 bucket. To access the bucket
 you must have appropriate AWS credentials in your configuration or
