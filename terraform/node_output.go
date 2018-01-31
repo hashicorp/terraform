@@ -122,6 +122,12 @@ func (n *NodeDestroyableOutput) RemoveIfNotTargeted() bool {
 	return true
 }
 
+// This will keep the destroy node in the graph if its corresponding output
+// node is also in the destroy graph.
+func (n *NodeDestroyableOutput) TargetDownstream(targetedDeps, untargetedDeps *dag.Set) bool {
+	return true
+}
+
 // GraphNodeReferencer
 func (n *NodeDestroyableOutput) References() []string {
 	var result []string
