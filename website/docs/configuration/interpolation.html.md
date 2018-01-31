@@ -187,6 +187,11 @@ The supported built-in functions are:
 
   * `chomp(string)` - Removes trailing newlines from the given string.
 
+  * `chunklist(list, size)` - Returns the `list` items chunked by `size`.
+    Examples:
+    * `chunklist(aws_subnet.foo.*.id, 1)`: will outputs `[["id1"], ["id2"], ["id3"]]`
+    * `chunklist(var.list_of_strings, 2)`: will outputs `[["id1", "id2"], ["id3", "id4"], ["id5"]]`
+
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. If given host
     number is negative, the count starts from the end of the range.
@@ -236,11 +241,6 @@ The supported built-in functions are:
       This function only works on flat lists. Examples:
       * `element(aws_subnet.foo.*.id, count.index)`
       * `element(var.list_of_strings, 2)`
-
-  * `chunklist(list, size)` - Returns the `list` items chunked by `size`.
-      Examples:
-      * `chunklist(aws_subnet.foo.*.id, 1)`: will outputs `[["id1"], ["id2"], ["id3"]]`
-      * `chunklist(var.list_of_strings, 2)`: will outputs `[["id1", "id2"], ["id3", "id4"], ["id5"]]`
 
   * `file(path)` - Reads the contents of a file into the string. Variables
       in this file are _not_ interpolated. The contents of the file are
