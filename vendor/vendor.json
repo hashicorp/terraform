@@ -1808,44 +1808,6 @@
 			"revisionTime": "2016-08-03T19:07:31Z"
 		},
 		{
-			"checksumSHA1": "NOwNdnb70M6s9LvhaPFabBVwlBs=",
-			"path": "github.com/joyent/gocommon",
-			"revision": "b78708995d1c2ebdb64a3061b0bca5d8ccdf0fc2",
-			"revisionTime": "2016-12-02T19:23:17Z"
-		},
-		{
-			"checksumSHA1": "O0WFPpYSMzeDL11yO84IYBSXrmk=",
-			"path": "github.com/joyent/gocommon/client",
-			"revision": "ade826b8b54e81a779ccb29d358a45ba24b7809c"
-		},
-		{
-			"checksumSHA1": "zH2ph01RwbvMcrHs721PxcrPKAE=",
-			"path": "github.com/joyent/gocommon/errors",
-			"revision": "ade826b8b54e81a779ccb29d358a45ba24b7809c"
-		},
-		{
-			"checksumSHA1": "cz4amcSofbyq0dH1sdOHNUvznWw=",
-			"path": "github.com/joyent/gocommon/http",
-			"revision": "ade826b8b54e81a779ccb29d358a45ba24b7809c"
-		},
-		{
-			"checksumSHA1": "+nMoWlInlUEf1EOzKmUwd8E/qf4=",
-			"path": "github.com/joyent/gocommon/jpc",
-			"revision": "ade826b8b54e81a779ccb29d358a45ba24b7809c"
-		},
-		{
-			"checksumSHA1": "ysHPYOB/xV0dMIAES8ZOQu9KwQQ=",
-			"path": "github.com/joyent/gomanta/manta",
-			"revision": "ece4f0cbe61f600794bbcff71d8f9ee86909b2dc",
-			"revisionTime": "2016-09-13T20:25:01Z"
-		},
-		{
-			"checksumSHA1": "N0NRIcJF7aj1wd56DA1N9GpYq/4=",
-			"path": "github.com/joyent/gosign/auth",
-			"revision": "8978c75ffefb3f63a977ad9cbfce40caeb40177e",
-			"revisionTime": "2016-06-16T18:50:15Z"
-		},
-		{
 			"checksumSHA1": "Lg8OHK87XRGCaipG+5+zFyN8OMw=",
 			"path": "github.com/joyent/triton-go",
 			"revision": "545edbe0d564f075ac576f1ad177f4ff39c9adaf",
