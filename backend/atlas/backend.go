@@ -124,6 +124,12 @@ func (b *Backend) schemaConfigure(ctx context.Context) error {
 
 	// Parse the address
 	addr := d.Get("address").(string)
+
+	// check the address has a prototocol, if not default to https
+	if !strings.HasPrefix("https://", addr) || !strings.HasPrefix("http://", addr) {
+		addr = fmt.Sprintf("https://%s", addr)
+	}
+
 	addrUrl, err := url.Parse(addr)
 	if err != nil {
 		return fmt.Errorf("Error parsing 'address': %s", err)
@@ -159,5 +165,5 @@ var schemaDescriptions = map[string]string{
 		"this will override any saved value for this.",
 	"address": "Address to your Atlas installation. This defaults to the publicly\n" +
 		"hosted version at 'https://atlas.hashicorp.com/'. This address\n" +
-		"should contain the full HTTP scheme to use.",
+		"will default the HTTP scheme to 'https://' if the scheme is not explicitly specified.",
 }
