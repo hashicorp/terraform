@@ -17,3 +17,7 @@ module "mod2" {
   source = "./mod2"
   value = "${module.mod.value}"
 }
+
+output "value" {
+  value = "${local.value}"
+}

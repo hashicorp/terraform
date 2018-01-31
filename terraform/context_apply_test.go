@@ -7741,6 +7741,12 @@ func TestContext2Apply_destroyProvisionerWithOutput(t *testing.T) {
 					Resources: map[string]*ResourceState{
 						"aws_instance.foo": resourceState("aws_instance", "1"),
 					},
+					Outputs: map[string]*OutputState{
+						"value": {
+							Type:  "string",
+							Value: "3",
+						},
+					},
 				},
 				&ModuleState{
 					Path: []string{"root", "mod"},
@@ -7759,17 +7765,29 @@ func TestContext2Apply_destroyProvisionerWithOutput(t *testing.T) {
 			},
 		},
 		Destroy: true,
+
+		// targeting the source of the value used by all resources shoudl still
+		// destroy them all.
+		Targets: []string{"module.mod.aws_instance.baz"},
 	})
 
 	if _, err := ctx.Plan(); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := ctx.Apply(); err != nil {
+	state, err := ctx.Apply()
+	if err != nil {
 		t.Fatal(err)
 	}
 	if !pr.ApplyCalled {
 		t.Fatal("provisioner not called")
+	}
+
+	// confirm all outputs were removed too
+	for _, mod := range state.Modules {
+		if len(mod.Outputs) > 0 {
+			t.Fatalf("output left in module state: %#v\n", mod)
+		}
 	}
 }
 
