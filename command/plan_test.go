@@ -863,6 +863,14 @@ func TestPlan_shutdown(t *testing.T) {
 			shutdownCh <- struct{}{}
 		})
 
+		// Because of the internal lock in the MockProvider, we can't
+		// coordiante directly with the calling of Stop, and making the
+		// MockProvider concurrent is disruptive to a lot of existing tests.
+		// Wait here a moment to help make sure the main goroutine gets to the
+		// Stop call before we exit, or the plan may finish before it can be
+		// canceled.
+		time.Sleep(200 * time.Millisecond)
+
 		return &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
 				"ami": &terraform.ResourceAttrDiff{
@@ -878,7 +886,7 @@ func TestPlan_shutdown(t *testing.T) {
 
 	select {
 	case <-cancelled:
-	case <-time.After(5 * time.Second):
+	default:
 		t.Fatal("command not cancelled")
 	}
 }
