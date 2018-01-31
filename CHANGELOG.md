@@ -1,17 +1,17 @@
-## 0.11.3 (Unreleased)
+## 0.11.3 (January 31, 2018)
 
 IMPROVEMENTS:
 
-* backend/s3: add support for the eu-west-3 region [GH-17193]
+* backend/s3: add support for the eu-west-3 region ([#17193](https://github.com/hashicorp/terraform/issues/17193))
 
 
 BUG FIXES:
 
-* core: fix crash when an error is encountered during refresh [GH-17076]
-* config: fixed crash when module source is invalid [GH-17134]
-* config: allow the count pseudo-attribute of a resource to be interpolated into `provisioner` and `connection` blocks without errors [GH-17133]
-* backend/s3: allow the workspace name to be a prefix of workspace_key_prefix [GH-17086]
-* provisioner/chef: fix crash when validating `use_policyfile` [GH-17147]
+* core: fix crash when an error is encountered during refresh ([#17076](https://github.com/hashicorp/terraform/issues/17076))
+* config: fixed crash when module source is invalid ([#17134](https://github.com/hashicorp/terraform/issues/17134))
+* config: allow the count pseudo-attribute of a resource to be interpolated into `provisioner` and `connection` blocks without errors ([#17133](https://github.com/hashicorp/terraform/issues/17133))
+* backend/s3: allow the workspace name to be a prefix of workspace_key_prefix ([#17086](https://github.com/hashicorp/terraform/issues/17086))
+* provisioner/chef: fix crash when validating `use_policyfile` ([#17147](https://github.com/hashicorp/terraform/issues/17147))
 
 ## 0.11.2 (January 9, 2018)
 
