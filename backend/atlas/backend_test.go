@@ -1,6 +1,7 @@
 package atlas
 
 import (
+	"log"
 	"os"
 	"testing"
 
@@ -27,6 +28,24 @@ func TestConfigure_envAddr(t *testing.T) {
 	}
 
 	if b.stateClient.Server != "http://foo.com" {
+		t.Fatalf("bad: %#v", b.stateClient)
+	}
+}
+
+func TestConfigure_envAddrWithNoProtocolDefaults_https(t *testing.T) {
+	defer os.Setenv("ATLAS_ADDRESS", os.Getenv("ATLAS_ADDRESS"))
+	os.Setenv("ATLAS_ADDRESS", "foo.com")
+
+	b := &Backend{}
+	err := b.Configure(terraform.NewResourceConfig(config.TestRawConfig(t, map[string]interface{}{
+		"name": "foo/bar",
+	})))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if b.stateClient.Server != "https://foo.com" {
+		log.Println(b.stateClient.Server)
 		t.Fatalf("bad: %#v", b.stateClient)
 	}
 }
