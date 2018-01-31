@@ -29,6 +29,8 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [NS1](/docs/providers/ns1/index.html)
 
+[PANOS](/docs/providers/panos/index.html)
+
 [PowerDNS](/docs/providers/powerdns/index.html)
 
 [UltraDNS](/docs/providers/ultradns/index.html)

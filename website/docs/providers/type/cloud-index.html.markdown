@@ -33,7 +33,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [OpenStack](/docs/providers/openstack/index.html)
 
-[OpenTelekomCloud](/docs/providers/opentelekomcloud/index.html">OpenTelekomCloud)
+[OpenTelekomCloud](/docs/providers/opentelekomcloud/index.html)
 
 [OVH](/docs/providers/ovh/index.html)
 
