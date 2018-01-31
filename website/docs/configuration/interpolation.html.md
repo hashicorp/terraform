@@ -189,7 +189,7 @@ The supported built-in functions are:
 
   * `chunklist(list, size)` - Returns the `list` items chunked by `size`.
     Examples:
-    * `chunklist(aws_subnet.foo.*.id, 1)`: will outputs `[["id1"], ["id2"], ["id3"]]`
+    * `chunklist(aws_subnet.foo.*.id, 1)`: will output `[["id1"], ["id2"], ["id3"]]`
     * `chunklist(var.list_of_strings, 2)`: will outputs `[["id1", "id2"], ["id3", "id4"], ["id5"]]`
 
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
