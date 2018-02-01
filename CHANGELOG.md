@@ -1,5 +1,8 @@
 ## 0.11.4 (Unreleased)
 
+BUG FIXES:
+
+* helper/schema: Prevent crash on removal of computed field in CustomizeDiff [GH-17261]
 
 ## 0.11.3 (January 31, 2018)
 
