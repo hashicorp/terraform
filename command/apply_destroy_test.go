@@ -40,7 +40,7 @@ func TestApply_destroy(t *testing.T) {
 
 	// Run the apply command pointing to our existing state
 	args := []string{
-		"-force",
+		"-auto-approve",
 		"-state", statePath,
 		testFixturePath("apply"),
 	}
@@ -130,7 +130,7 @@ func TestApply_destroyLockedState(t *testing.T) {
 
 	// Run the apply command pointing to our existing state
 	args := []string{
-		"-force",
+		"-auto-approve",
 		"-state", statePath,
 		testFixturePath("apply"),
 	}
@@ -206,7 +206,7 @@ func TestApply_destroyTargeted(t *testing.T) {
 
 	// Run the apply command pointing to our existing state
 	args := []string{
-		"-force",
+		"-auto-approve",
 		"-target", "test_instance.foo",
 		"-state", statePath,
 		testFixturePath("apply-destroy-targeted"),
