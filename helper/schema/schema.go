@@ -427,6 +427,13 @@ func (m schemaMap) Diff(
 		}
 	}
 
+	// Remove any nil diffs just to keep things clean
+	for k, v := range result.Attributes {
+		if v == nil {
+			delete(result.Attributes, k)
+		}
+	}
+
 	// If this is a non-destroy diff, call any custom diff logic that has been
 	// defined.
 	if !result.DestroyTainted && customizeDiff != nil {
@@ -519,13 +526,6 @@ func (m schemaMap) Diff(
 
 		// And set the diff!
 		result = result2
-	}
-
-	// Remove any nil diffs just to keep things clean
-	for k, v := range result.Attributes {
-		if v == nil {
-			delete(result.Attributes, k)
-		}
 	}
 
 	// Go through and detect all of the ComputedWhens now that we've
