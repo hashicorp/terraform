@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/configdns-v1"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
+
+var dnsWriteLock sync.Mutex
 
 func resourceFastDNSZone() *schema.Resource {
 	return &schema.Resource{
@@ -710,6 +713,12 @@ func resourceFastDNSZone() *schema.Resource {
 
 // Create a new DNS Record
 func resourceFastDNSZoneCreate(d *schema.ResourceData, meta interface{}) error {
+	// only allow one record to be created at a time
+	// this prevents lost data if you are using a counter/dynamic variables
+	// in your config.tf which might overwrite each other
+	dnsWriteLock.Lock()
+	defer dnsWriteLock.Unlock()
+
 	hostname := d.Get("hostname").(string)
 
 	// First try to get the zone from the API
