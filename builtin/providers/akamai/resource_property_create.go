@@ -17,9 +17,9 @@ func resourceProperty() *schema.Resource {
 		Update: resourcePropertyUpdate,
 		Delete: resourcePropertyDelete,
 		Exists: resourcePropertyExists,
-		// Importer: &schema.ResourceImporter{
-		// State: importRecord,
-		// },
+		Importer: &schema.ResourceImporter{
+			State: resourcePropertyImport,
+		},
 		Schema: akamaiPropertySchema,
 	}
 }
@@ -42,15 +42,32 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
-	cloneFrom, e := getCloneFrom(d, group, contract)
+	cloneFrom, e := getCloneFrom(d)
 	if e != nil {
 		return e
 	}
 
-	property, e := createProperty(contract, group, product, cloneFrom, d)
-	if e != nil {
-		return e
+	var property *papi.Property
+	if property = findProperty(d); property == nil {
+		if group == nil {
+			return errors.New("A group_id must be specified to create a new property")
+		}
+
+		if contract == nil {
+			return errors.New("A contract_id must be specified to create a new property")
+		}
+
+		property, e = createProperty(contract, group, product, cloneFrom, d)
+		if e != nil {
+			return e
+		}
 	}
+
+	err := ensureEditableVersion(property)
+	if err != nil {
+		return err
+	}
+	d.Set("version", property.LatestVersion)
 
 	// The API now has data, so save the partial state
 	d.SetId(property.PropertyID)
@@ -63,7 +80,7 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("clone_from")
 	d.SetPartial("network")
 
-	cpCode, e := createCpCode(contract, group, product, d)
+	cpCode, e := createCpCode(property.Contract, property.Group, product, d)
 	if e != nil {
 		return e
 	}
@@ -79,7 +96,8 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 		return e
 	}
 
-	addStandardBehaviors(rules, cpCode, origin)
+	updateStandardBehaviors(rules, cpCode, origin)
+	fixupPerformanceBehaviors(rules)
 
 	// get rules from the TF config
 	unmarshalRules(d, rules)
@@ -99,7 +117,7 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("origin")
 	d.SetPartial("rule")
 
-	hostnameEdgeHostnameMap, err := createHostnames(contract, group, product, d)
+	hostnameEdgeHostnameMap, err := createHostnames(property, product, d)
 	if err != nil {
 		return err
 	}
@@ -112,31 +130,32 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("ipv6")
 	d.Set("edge_hostname", edgeHostnames)
 
-	activation, err := activateProperty(property, d)
-	if err != nil {
-		return err
-	}
-	d.SetPartial("contact")
+	if d.Get("activate").(bool) {
+		activation, err := activateProperty(property, d)
+		if err != nil {
+			return err
+		}
+		d.SetPartial("contact")
 
-	go activation.PollStatus(property)
+		go activation.PollStatus(property)
 
-	d.Partial(false)
-
-polling:
-	for activation.Status != papi.StatusActive {
-		select {
-		case statusChanged := <-activation.StatusChange:
-			log.Printf("[DEBUG] Property Status: %s\n", activation.Status)
-			if statusChanged == false {
+	polling:
+		for activation.Status != papi.StatusActive {
+			select {
+			case statusChanged := <-activation.StatusChange:
+				log.Printf("[DEBUG] Property Status: %s\n", activation.Status)
+				if statusChanged == false {
+					break polling
+				}
+				continue polling
+			case <-time.After(time.Minute * 90):
+				log.Println("[DEBUG] Activation Timeout (90 minutes)")
 				break polling
 			}
-			continue polling
-		case <-time.After(time.Minute * 90):
-			log.Println("[DEBUG] Activation Timeout (90 minutes)")
-			break polling
 		}
 	}
 
+	d.Partial(false)
 	log.Println("[DEBUG] Done")
 	return nil
 }

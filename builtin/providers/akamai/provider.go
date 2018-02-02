@@ -1,6 +1,8 @@
 package akamai
 
 import (
+	"fmt"
+
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/configdns-v1"
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/edgegrid"
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
@@ -38,43 +40,47 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	err := getConfigDNSV1Service(d)
+	dnsConfig, err := getConfigDNSV1Service(d)
 	if err != nil {
 		return nil, err
 	}
 
-	err = getPAPIV1Service(d)
+	papiConfig, err := getPAPIV1Service(d)
 	if err != nil {
 		return nil, err
+	}
+
+	if dnsConfig == nil && papiConfig == nil {
+		return nil, fmt.Errorf("At least one edgerc section must be defined")
 	}
 
 	return &Config{}, nil
 }
 
-func getConfigDNSV1Service(d *schema.ResourceData) error {
+func getConfigDNSV1Service(d *schema.ResourceData) (*edgegrid.Config, error) {
 	edgerc := d.Get("edgerc").(string)
 	section := d.Get("fastdns_section").(string)
 
 	fastDnsConfig, err := edgegrid.InitEdgeRc(edgerc, section)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	dns.Init(fastDnsConfig)
 
-	return nil
+	return &fastDnsConfig, nil
 }
 
-func getPAPIV1Service(d *schema.ResourceData) error {
+func getPAPIV1Service(d *schema.ResourceData) (*edgegrid.Config, error) {
 	edgerc := d.Get("edgerc").(string)
 	section := d.Get("papi_section").(string)
 
 	papiConfig, err := edgegrid.InitEdgeRc(edgerc, section)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	papi.Init(papiConfig)
 
-	return nil
+	return &papiConfig, nil
 }
