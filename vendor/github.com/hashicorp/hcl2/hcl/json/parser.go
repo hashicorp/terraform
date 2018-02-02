@@ -168,7 +168,7 @@ Token:
 			}
 
 			if colon.Type == tokenEquals {
-				// Possible confusion with native zcl syntax.
+				// Possible confusion with native HCL syntax.
 				return nil, diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Missing attribute value colon",

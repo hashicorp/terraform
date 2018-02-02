@@ -8,7 +8,7 @@ type navigation struct {
 	root *objectVal
 }
 
-// Implementation of zcled.ContextString
+// Implementation of hcled.ContextString
 func (n navigation) ContextString(offset int) string {
 	steps := navigationStepsRev(n.root, offset)
 	if steps == nil {
