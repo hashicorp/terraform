@@ -2102,6 +2102,18 @@
 			"revisionTime": "2016-09-27T10:08:44Z"
 		},
 		{
+			"checksumSHA1": "F3JU4T4XXvZTRAcv6rhTao4QGos=",
+			"path": "github.com/spf13/afero",
+			"revision": "bb8f1927f2a9d3ab41c9340aa034f6b803f4359c",
+			"revisionTime": "2018-01-15T19:27:20Z"
+		},
+		{
+			"checksumSHA1": "X6RueW0rO55PbOQ0sMWSQOxVl4I=",
+			"path": "github.com/spf13/afero/mem",
+			"revision": "bb8f1927f2a9d3ab41c9340aa034f6b803f4359c",
+			"revisionTime": "2018-01-15T19:27:20Z"
+		},
+		{
 			"checksumSHA1": "ajxC5i82d4El7r8PhXLvrm4SvlQ=",
 			"path": "github.com/terraform-providers/terraform-provider-aws",
 			"revision": "0d86b0e55c0cfb54f27d7a7607891423476eea09",
