@@ -435,7 +435,7 @@ Token:
 			})
 
 		case TokenTemplateControl:
-			// if the opener is !{~ then we want to eat any trailing whitespace
+			// if the opener is %{~ then we want to eat any trailing whitespace
 			// in the preceding literal token, assuming it is indeed a literal
 			// token.
 			if canTrimPrev && len(next.Bytes) == 3 && next.Bytes[2] == '~' && len(parts) > 0 {
@@ -452,7 +452,7 @@ Token:
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid template directive",
-						Detail:   "A template directive keyword (\"if\", \"for\", etc) is expected at the beginning of a !{ sequence.",
+						Detail:   "A template directive keyword (\"if\", \"for\", etc) is expected at the beginning of a %{ sequence.",
 						Subject:  &kw.Range,
 						Context:  hcl.RangeBetween(next.Range, kw.Range).Ptr(),
 					})

@@ -156,6 +156,17 @@ func (t Traversal) RootName() string {
 	return t[0].(TraverseRoot).Name
 }
 
+// SourceRange returns the source range for the traversal.
+func (t Traversal) SourceRange() Range {
+	if len(t) == 0 {
+		// Nothing useful to return here, but we'll return something
+		// that's correctly-typed at least.
+		return Range{}
+	}
+
+	return RangeBetween(t[0].SourceRange(), t[len(t)-1].SourceRange())
+}
+
 // TraversalSplit represents a pair of traversals, the first of which is
 // an absolute traversal and the second of which is relative to the first.
 //
@@ -206,6 +217,7 @@ func (t TraversalSplit) RootName() string {
 // A Traverser is a step within a Traversal.
 type Traverser interface {
 	TraversalStep(cty.Value) (cty.Value, Diagnostics)
+	SourceRange() Range
 	isTraverserSigil() isTraverser
 }
 
@@ -229,6 +241,10 @@ type TraverseRoot struct {
 // traversals cannot be directly traversed.
 func (tn TraverseRoot) TraversalStep(cty.Value) (cty.Value, Diagnostics) {
 	panic("Cannot traverse an absolute traversal")
+}
+
+func (tn TraverseRoot) SourceRange() Range {
+	return tn.SrcRange
 }
 
 // TraverseAttr looks up an attribute in its initial value.
@@ -301,6 +317,10 @@ func (tn TraverseAttr) TraversalStep(val cty.Value) (cty.Value, Diagnostics) {
 	}
 }
 
+func (tn TraverseAttr) SourceRange() Range {
+	return tn.SrcRange
+}
+
 // TraverseIndex applies the index operation to its initial value.
 type TraverseIndex struct {
 	isTraverser
@@ -312,6 +332,10 @@ func (tn TraverseIndex) TraversalStep(val cty.Value) (cty.Value, Diagnostics) {
 	return Index(val, tn.Key, &tn.SrcRange)
 }
 
+func (tn TraverseIndex) SourceRange() Range {
+	return tn.SrcRange
+}
+
 // TraverseSplat applies the splat operation to its initial value.
 type TraverseSplat struct {
 	isTraverser
@@ -321,4 +345,8 @@ type TraverseSplat struct {
 
 func (tn TraverseSplat) TraversalStep(val cty.Value) (cty.Value, Diagnostics) {
 	panic("TraverseSplat not yet implemented")
+}
+
+func (tn TraverseSplat) SourceRange() Range {
+	return tn.SrcRange
 }
