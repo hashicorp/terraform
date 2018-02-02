@@ -9,10 +9,10 @@ import (
 )
 
 // Parse attempts to parse the given buffer as JSON and, if successful, returns
-// a hcl.File for the zcl configuration represented by it.
+// a hcl.File for the HCL configuration represented by it.
 //
 // This is not a generic JSON parser. Instead, it deals only with the profile
-// of JSON used to express zcl configuration.
+// of JSON used to express HCL configuration.
 //
 // The returned file is valid only if the returned diagnostics returns false
 // from its HasErrors method. If HasErrors returns true, the file represents
@@ -87,29 +87,4 @@ func ParseFile(filename string) (*hcl.File, hcl.Diagnostics) {
 	}
 
 	return Parse(src, filename)
-}
-
-// ParseWithHIL is like Parse except the returned file will use the HIL
-// template syntax for expressions in strings, rather than the native zcl
-// template syntax.
-//
-// This is intended for providing backward compatibility for applications that
-// used to use HCL/HIL and thus had a JSON-based format with HIL
-// interpolations.
-func ParseWithHIL(src []byte, filename string) (*hcl.File, hcl.Diagnostics) {
-	file, diags := Parse(src, filename)
-	if file != nil && file.Body != nil {
-		file.Body.(*body).useHIL = true
-	}
-	return file, diags
-}
-
-// ParseFileWithHIL is like ParseWithHIL but it reads data from a file before
-// parsing it.
-func ParseFileWithHIL(filename string) (*hcl.File, hcl.Diagnostics) {
-	file, diags := ParseFile(filename)
-	if file != nil && file.Body != nil {
-		file.Body.(*body).useHIL = true
-	}
-	return file, diags
 }

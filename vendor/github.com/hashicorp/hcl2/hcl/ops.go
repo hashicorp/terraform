@@ -8,7 +8,7 @@ import (
 )
 
 // Index is a helper function that performs the same operation as the index
-// operator in the zcl expression language. That is, the result is the
+// operator in the HCL expression language. That is, the result is the
 // same as it would be for collection[key] in a configuration expression.
 //
 // This is exported so that applications can perform indexing in a manner

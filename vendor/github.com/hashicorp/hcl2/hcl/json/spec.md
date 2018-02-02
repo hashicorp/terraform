@@ -3,7 +3,7 @@
 This is the specification for the JSON serialization for hcl. HCL is a system
 for defining configuration languages for applications. The HCL information
 model is designed to support multiple concrete syntaxes for configuration,
-and this JSON-based format complements [the native syntax](../zclsyntax/spec.md)
+and this JSON-based format complements [the native syntax](../hclsyntax/spec.md)
 by being easy to machine-generate, whereas the native syntax is oriented
 towards human authoring and maintenence.
 
