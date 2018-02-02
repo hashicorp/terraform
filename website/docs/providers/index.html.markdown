@@ -104,7 +104,7 @@ down to see all providers.
     <tr>
     <td><a href="/docs/providers/packet/index.html">Packet</a></td>
     <td><a href="/docs/providers/pagerduty/index.html">PagerDuty</a></td>
-    <td><a href="/docs/providers/panos/index.html">PANOS</a></td>
+    <td><a href="/docs/providers/panos/index.html">Palo Alto Networks</a></td>
     </tr>
     <tr>
     <td><a href="/docs/providers/postgresql/index.html">PostgreSQL</a></td>
