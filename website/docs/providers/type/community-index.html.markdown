@@ -17,7 +17,6 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 
 
 <table class="table">
-
     <td><a href="https://github.com/vancluever/terraform-provider-acme">ACME/Let's Encrypt</a></td>
     <td><a href="https://github.com/GSLabDev/terraform-provider-ad">Active Directory</a></td>
     <td><a href="https://github.com/zambien/terraform-provider-apigee">Apigee</a></td>
@@ -34,32 +33,33 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     </tr>
     <tr>
     <td><a href="https://github.com/mcuadros/terraform-provider-helm">Helm</a></td>
+    <td><a href="https://github.com/hetznercloud/terraform-provider-hcloud">Hetzner Cloud</a></td>
     <td><a href="https://github.com/GSLabDev/terraform-provider-httpfileupload">HTTP File Upload</a></td>
-    <td><a href="https://github.com/HewlettPackard/terraform-provider-oneview">HP OneView</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/HewlettPackard/terraform-provider-oneview">HP OneView</a></td>
     <td><a href="https://github.com/sky-uk/terraform-provider-infoblox">Infoblox</a></td>
     <td><a href="https://github.com/anubhavmishra/terraform-provider-jira">Jira</a></td>
-    <td><a href="https://github.com/Mongey/terraform-provider-kafka">Kafka</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/Mongey/terraform-provider-kafka">Kafka</a></td>
     <td><a href="https://github.com/ewilde/terraform-provider-kibana">Kibana</a></td>
     <td><a href="https://github.com/kevholditch/terraform-provider-kong">Kong</a></td>
-    <td><a href="https://github.com/sl1pm4t/terraform-provider-lxd">LXD</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/sl1pm4t/terraform-provider-lxd">LXD</a></td>
     <td><a href="https://github.com/jianyuan/terraform-provider-sentry">Sentry</a></td>
+    <td><a href="https://github.com/Yelp/terraform-provider-signalform">SignalFx</a></td>
+    </tr>
+    <tr>
     <td><a href="https://github.com/GSLabDev/terraform-provider-scvmm">Microsoft SCVMM</a></td>
     <td><a href="https://github.com/GSLabDev/terraform-provider-odl">Open Day Light</a></td>
+    <td><a href="https://github.com/camptocamp/terraform-provider-pass">Pass</a></td>
     </tr>
     <tr>
-    <td><a href="https://github.com/camptocamp/terraform-provider-pass">Pass</a></td>
     <td><a href="https://github.com/camptocamp/terraform-provider-puppetca">Puppet CA</a></td>
     <td><a href="https://github.com/camptocamp/terraform-provider-puppetdb">PuppetDB</a></td>
-    </tr>
-    <tr>
     <td><a href="https://github.com/ewilde/terraform-provider-runscope">Runscope</a></td>
-    <td><a></a></td>
-    <td><a></a></td>
     </tr>
+
 </table>
