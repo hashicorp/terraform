@@ -1,10 +1,12 @@
 package akamai
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/configdns-v1"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -24,7 +26,7 @@ func resourceFastDNSZone() *schema.Resource {
 				Required: true,
 			},
 			"a": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -48,7 +50,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"aaaa": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -72,7 +74,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"afsdb": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -100,7 +102,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"cname": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -124,7 +126,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"dnskey": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -160,7 +162,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"ds": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -196,7 +198,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"hinfo": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -224,7 +226,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"loc": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -248,7 +250,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"mx": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -276,7 +278,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"naptr": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -320,7 +322,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"ns": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -344,7 +346,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"nsec3": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -388,7 +390,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"nsec3param": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -424,7 +426,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"ptr": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -448,7 +450,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"rp": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -476,7 +478,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"rrsig": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -532,8 +534,23 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"soa": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf(
+						"%s-%s-%s-%s-%s-%s-%s",
+						m["ttl"],
+						m["originserver"],
+						m["contact"],
+						m["refresh"],
+						m["retry"],
+						m["expire"],
+						m["minimum"],
+					))
+					return hashcode.String(buf.String())
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ttl": {
@@ -572,7 +589,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"spf": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -596,7 +613,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"srv": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -632,7 +649,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"sshfp": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -664,7 +681,7 @@ func resourceFastDNSZone() *schema.Resource {
 				},
 			},
 			"txt": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -748,7 +765,7 @@ func assignFields(record dns.DNSRecord, d map[string]interface{}) {
 func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 	a, ok := d.GetOk("a")
 	if ok {
-		for _, val := range a.([]interface{}) {
+		for _, val := range a.(*schema.Set).List() {
 			record := dns.NewARecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -757,7 +774,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	aaaa, ok := d.GetOk("aaaa")
 	if ok {
-		for _, val := range aaaa.([]interface{}) {
+		for _, val := range aaaa.(*schema.Set).List() {
 			record := dns.NewAaaaRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -766,7 +783,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	afsdb, ok := d.GetOk("afsdb")
 	if ok {
-		for _, val := range afsdb.([]interface{}) {
+		for _, val := range afsdb.(*schema.Set).List() {
 			record := dns.NewAfsdbRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -775,7 +792,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	cname, ok := d.GetOk("cname")
 	if ok {
-		for _, val := range cname.([]interface{}) {
+		for _, val := range cname.(*schema.Set).List() {
 			record := dns.NewCnameRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -784,7 +801,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	dnskey, ok := d.GetOk("dnskey")
 	if ok {
-		for _, val := range dnskey.([]interface{}) {
+		for _, val := range dnskey.(*schema.Set).List() {
 			record := dns.NewDnskeyRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -793,7 +810,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	ds, ok := d.GetOk("ds")
 	if ok {
-		for _, val := range ds.([]interface{}) {
+		for _, val := range ds.(*schema.Set).List() {
 			record := dns.NewDsRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -802,7 +819,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	hinfo, ok := d.GetOk("hinfo")
 	if ok {
-		for _, val := range hinfo.([]interface{}) {
+		for _, val := range hinfo.(*schema.Set).List() {
 			record := dns.NewHinfoRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -811,7 +828,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	loc, ok := d.GetOk("loc")
 	if ok {
-		for _, val := range loc.([]interface{}) {
+		for _, val := range loc.(*schema.Set).List() {
 			record := dns.NewLocRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -820,7 +837,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	mx, ok := d.GetOk("mx")
 	if ok {
-		for _, val := range mx.([]interface{}) {
+		for _, val := range mx.(*schema.Set).List() {
 			record := dns.NewMxRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -829,7 +846,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	naptr, ok := d.GetOk("naptr")
 	if ok {
-		for _, val := range naptr.([]interface{}) {
+		for _, val := range naptr.(*schema.Set).List() {
 			record := dns.NewNaptrRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -838,7 +855,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	ns, ok := d.GetOk("ns")
 	if ok {
-		for _, val := range ns.([]interface{}) {
+		for _, val := range ns.(*schema.Set).List() {
 			record := dns.NewNsRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -847,7 +864,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	nsec3, ok := d.GetOk("nsec3")
 	if ok {
-		for _, val := range nsec3.([]interface{}) {
+		for _, val := range nsec3.(*schema.Set).List() {
 			record := dns.NewNsec3Record()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -856,7 +873,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	nsec3param, ok := d.GetOk("nsec3param")
 	if ok {
-		for _, val := range nsec3param.([]interface{}) {
+		for _, val := range nsec3param.(*schema.Set).List() {
 			record := dns.NewNsec3paramRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -865,7 +882,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	ptr, ok := d.GetOk("ptr")
 	if ok {
-		for _, val := range ptr.([]interface{}) {
+		for _, val := range ptr.(*schema.Set).List() {
 			record := dns.NewPtrRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -874,7 +891,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	rp, ok := d.GetOk("rp")
 	if ok {
-		for _, val := range rp.([]interface{}) {
+		for _, val := range rp.(*schema.Set).List() {
 			record := dns.NewRpRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -883,7 +900,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	rrsig, ok := d.GetOk("rrsig")
 	if ok {
-		for _, val := range rrsig.([]interface{}) {
+		for _, val := range rrsig.(*schema.Set).List() {
 			record := dns.NewRrsigRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -892,7 +909,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	soa, ok := d.GetOk("soa")
 	if ok {
-		for _, val := range soa.([]interface{}) {
+		for _, val := range soa.(*schema.Set).List() {
 			record := dns.NewSoaRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -901,7 +918,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	spf, ok := d.GetOk("spf")
 	if ok {
-		for _, val := range spf.([]interface{}) {
+		for _, val := range spf.(*schema.Set).List() {
 			record := dns.NewSpfRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -910,7 +927,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	srv, ok := d.GetOk("srv")
 	if ok {
-		for _, val := range srv.([]interface{}) {
+		for _, val := range srv.(*schema.Set).List() {
 			record := dns.NewSrvRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -919,7 +936,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	sshfp, ok := d.GetOk("sshfp")
 	if ok {
-		for _, val := range sshfp.([]interface{}) {
+		for _, val := range sshfp.(*schema.Set).List() {
 			record := dns.NewSshfpRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -928,7 +945,7 @@ func unmarshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 
 	txt, ok := d.GetOk("txt")
 	if ok {
-		for _, val := range txt.([]interface{}) {
+		for _, val := range txt.(*schema.Set).List() {
 			record := dns.NewTxtRecord()
 			assignFields(record, val.(map[string]interface{}))
 			zone.AddRecord(record)
@@ -1073,7 +1090,9 @@ func marshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 	}
 	d.Set("rrsig", rrsig)
 
-	d.Set("soa", zone.Zone.Soa.ToMap())
+	soa := make([]map[string]interface{}, 1)
+	soa[0] = zone.Zone.Soa.ToMap()
+	d.Set("soa", soa)
 
 	spf := make([]map[string]interface{}, len(zone.Zone.Spf))
 	for i, v := range zone.Zone.Spf {
