@@ -28,7 +28,7 @@ func resourcePropertyRead(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
-		
+
 		if len(results.Versions.Items) > 0 {
 			propertyId = results.Versions.Items[0].PropertyID
 		}
