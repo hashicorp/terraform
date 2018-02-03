@@ -49,6 +49,25 @@ resource "akamai_fastdns_zone" "tf_acc_test_zone" {
 }
 `)
 
+var testAccAkamaiFastDNSZoneConfigWithCounter = fmt.Sprintf(`
+provider "akamai" {
+  edgerc = "/Users/Johanna/.edgerc"
+  fastdns_section = "dns"
+}
+
+resource "akamai_fastdns_zone" "tf_acc_test_zone_counter" {
+  count = "3"
+  hostname = "akamaideveloper.net"
+
+  a {
+    name = "www${count.index}"
+    ttl = 900
+    active = true
+    target = "1.2.3.4"
+  }
+}
+`)
+
 func TestAccAkamaiFastDNSZone_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -57,6 +76,22 @@ func TestAccAkamaiFastDNSZone_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAkamaiFastDNSZoneConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAkamaiFastDNSZoneExists,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAkamaiFastDNSZone_counter(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAkamaiFastDNSZoneDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAkamaiFastDNSZoneConfigWithCounter,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAkamaiFastDNSZoneExists,
 				),

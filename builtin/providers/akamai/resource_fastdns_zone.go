@@ -1302,6 +1302,9 @@ func marshalResourceData(d *schema.ResourceData, zone *dns.Zone) {
 }
 
 func resourceFastDNSZoneDelete(d *schema.ResourceData, meta interface{}) error {
+	dnsWriteLock.Lock()
+	defer dnsWriteLock.Unlock()
+
 	hostname := d.Get("hostname").(string)
 
 	// find the zone first
