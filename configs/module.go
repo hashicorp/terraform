@@ -49,7 +49,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 // analysis of individual elements, but must be built into a Module to detect
 // duplicate declarations.
 type File struct {
-	CoreVersionConstraints []*VersionConstraint
+	CoreVersionConstraints []VersionConstraint
 
 	Backends             []*Backend
 	ProviderConfigs      []*Provider
