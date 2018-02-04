@@ -3,21 +3,16 @@ provider "akamai" {
   papi_section = "global"
 }
 
-resource "akamai_property" "akamaidevelopernet" {
-  account_id = "act_B-C-1FRYVMN"
-  contract_id = "ctr_C-1FRYVV3"
-  group_id = "grp_68817"
-  product_id = "prd_SPM"
-  name = "test_property_terraform_jc_copy_from"
-  cp_code = "409449"
-  contact = ["dshafik@akamai.com"]
-  hostname = ["akamaideveloper.net"]
+resource "akamai_property" "akamai_developer" {
+  name = "akamaideveloper.com"
 
-  clone_from {
-    property_id = "prp_410587"
-    version = 1
-    copy_hostnames = true
-  }
+  contact = ["dshafik@akamai.com"]
+
+  account_id = "act_B-F-1ACME"
+  product_id = "prd_SPM"
+  cp_code = "123456"
+
+  hostname = ["akamaideveloper.net"]
 
   origin {
     is_secure = false
@@ -25,7 +20,7 @@ resource "akamai_property" "akamaidevelopernet" {
     forward_hostname = "ORIGIN_HOSTNAME"
   }
 
-  default {
+  rules {
     behavior {
       name = "downstreamCache"
       option {
@@ -33,32 +28,10 @@ resource "akamai_property" "akamaidevelopernet" {
         value = "TUNNEL_ORIGIN"
       }
     }
-  }
-  
-  rule {
-    name = "Uncacheable Responses"
-    comment = "Cache me outside"
-    criteria {
-      name = "cacheability"
-      option {
-        key = "matchOperator"
-        value = "IS_NOT"
-      }
-      option {
-        key = "value"
-        value = "CACHEABLE"
-      }
-    }
-    behavior {
-      name = "downstreamCache"
-      option {
-        key = "behavior"
-        value = "TUNNEL_ORIGIN"
-      }
-    }
+
     rule {
       name = "Uncacheable Responses"
-      comment = "Child rule"
+      comment = "Cache me outside"
       criteria {
         name = "cacheability"
         option {
@@ -75,6 +48,28 @@ resource "akamai_property" "akamaidevelopernet" {
         option {
           key = "behavior"
           value = "TUNNEL_ORIGIN"
+        }
+      }
+      rule {
+        name = "Uncacheable Responses"
+        comment = "Child rule"
+        criteria {
+          name = "cacheability"
+          option {
+            key = "matchOperator"
+            value = "IS_NOT"
+          }
+          option {
+            key = "value"
+            value = "CACHEABLE"
+          }
+        }
+        behavior {
+          name = "downstreamCache"
+          option {
+            key = "behavior"
+            value = "TUNNEL_ORIGIN"
+          }
         }
       }
     }
