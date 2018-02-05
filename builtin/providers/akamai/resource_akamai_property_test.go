@@ -18,7 +18,6 @@ provider "akamai" {
 }
 
 resource "akamai_property" "akamai_developer" {
-  activate = false
   name = "akamaideveloper.com"
 
   contact = ["dshafik@akamai.com"]
