@@ -128,7 +128,10 @@ func resourcePropertyCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.SetPartial("hostname")
 	d.SetPartial("ipv6")
-	d.Set("edge_hostname", edgeHostnames)
+	_, edgeHostnameOk := d.GetOk("edge_hostname")
+	if edgeHostnameOk {
+		d.Set("edge_hostname", edgeHostnames)
+	}
 
 	if d.Get("activate").(bool) {
 		activation, err := activateProperty(property, d)
