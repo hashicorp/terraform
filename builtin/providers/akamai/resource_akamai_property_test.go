@@ -18,6 +18,7 @@ provider "akamai" {
 }
 
 resource "akamai_property" "akamai_developer" {
+  activate = false
   name = "akamaideveloper.com"
 
   contact = ["dshafik@akamai.com"]
@@ -33,6 +34,8 @@ resource "akamai_property" "akamai_developer" {
   network = "STAGING"
 
   rule_format = "v2016-11-15"
+  
+  
 
   origin {
     is_secure = false
