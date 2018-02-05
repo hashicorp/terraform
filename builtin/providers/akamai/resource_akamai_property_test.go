@@ -1,10 +1,23 @@
+package akamai
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
+
+	"github.com/akamai/AkamaiOPEN-edgegrid-golang/client-v1"
+	"github.com/akamai/AkamaiOPEN-edgegrid-golang/papi-v1"
+)
+
+var testAccAkamaiPropertyConfig = fmt.Sprintf(`
 provider "akamai" {
   edgerc = "~/.edgerc"
   papi_section = "global"
 }
 
 resource "akamai_property" "akamai_developer" {
-  activate = false
   name = "akamaideveloper.com"
 
   contact = ["dshafik@akamai.com"]
@@ -20,6 +33,8 @@ resource "akamai_property" "akamai_developer" {
   network = "STAGING"
 
   rule_format = "v2016-11-15"
+  
+  
 
   origin {
     is_secure = false
@@ -102,4 +117,57 @@ resource "akamai_property" "akamai_developer" {
       }
     }
   }
+}
+`)
+
+func TestAccAkamaiPropertyZone_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAkamaiPropertyDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAkamaiPropertyConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAkamaiPropertyExists,
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckAkamaiPropertyDestroy(s *terraform.State) error {
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "akamai_property" {
+			continue
+		}
+
+		property := papi.NewProperty(papi.NewProperties())
+		property.PropertyID = rs.Primary.ID
+		e := property.GetProperty()
+		if e != nil {
+			ee, ok := e.(client.APIError)
+			if ok && ee.Status == 403 {
+				return nil
+			}
+			return e
+		}
+	}
+	return nil
+}
+
+func testAccCheckAkamaiPropertyExists(s *terraform.State) error {
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "akamai_property" {
+			continue
+		}
+
+		property := papi.NewProperty(papi.NewProperties())
+		property.PropertyID = rs.Primary.ID
+		e := property.GetProperty()
+		if e != nil {
+			return e
+		}
+	}
+	return nil
 }

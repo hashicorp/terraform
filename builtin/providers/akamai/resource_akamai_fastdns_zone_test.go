@@ -13,7 +13,7 @@ import (
 
 var testAccAkamaiFastDNSZoneConfig = fmt.Sprintf(`
 provider "akamai" {
-  edgerc = "/Users/Johanna/.edgerc"
+  edgerc = "~/.edgerc"
   fastdns_section = "dns"
 }
 
@@ -41,7 +41,7 @@ resource "akamai_fastdns_zone" "tf_acc_test_zone" {
     target = "5.6.7.8"
   }
   cname {
-    name = "wwwq"
+    name = "www"
     ttl = 600
     active = true
     target = "blog.akamaideveloper.net."
@@ -51,7 +51,7 @@ resource "akamai_fastdns_zone" "tf_acc_test_zone" {
 
 var testAccAkamaiFastDNSZoneConfigWithCounter = fmt.Sprintf(`
 provider "akamai" {
-  edgerc = "/Users/Johanna/.edgerc"
+  edgerc = "~/.edgerc"
   fastdns_section = "dns"
 }
 

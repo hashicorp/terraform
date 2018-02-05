@@ -1,5 +1,5 @@
 provider "akamai" {
-    edgerc = "/Users/Johanna/.edgerc"
+    edgerc = "~/.edgerc"
     fastdns_section = "dns"
 }
 
