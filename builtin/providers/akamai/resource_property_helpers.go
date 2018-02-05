@@ -625,15 +625,15 @@ func findProperty(d *schema.ResourceData) *papi.Property {
 		return nil
 	}
 
-	if len(results.Versions.Items) == 0 {
+	if results == nil || len(results.Versions.Items) == 0 {
 		for _, hostname := range d.Get("hostname").(*schema.Set).List() {
 			results, err = papi.Search(papi.SearchByHostname, hostname.(string))
-			if err == nil && len(results.Versions.Items) != 0 {
+			if err == nil && (results == nil || len(results.Versions.Items) != 0) {
 				break
 			}
 		}
 
-		if err != nil || len(results.Versions.Items) == 0 {
+		if err != nil || (results == nil || len(results.Versions.Items) == 0) {
 			return nil
 		}
 	}
