@@ -2765,7 +2765,7 @@ func (c *DeviceFarm) ListJobsRequest(input *ListJobsInput) (req *request.Request
 
 // ListJobs API operation for AWS Device Farm.
 //
-// Gets information about jobs.
+// Gets information about jobs for a given test run.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3919,7 +3919,7 @@ func (c *DeviceFarm) ListSuitesRequest(input *ListSuitesInput) (req *request.Req
 
 // ListSuites API operation for AWS Device Farm.
 //
-// Gets information about suites.
+// Gets information about test suites for a given job.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4063,7 +4063,7 @@ func (c *DeviceFarm) ListTestsRequest(input *ListTestsInput) (req *request.Reque
 
 // ListTests API operation for AWS Device Farm.
 //
-// Gets information about tests.
+// Gets information about tests in a given test suite.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5885,7 +5885,7 @@ type CreateRemoteAccessSessionInput struct {
 	// Unique identifier for the client. If you want access to multiple devices
 	// on the same client, you should pass the same clientId value in each call
 	// to CreateRemoteAccessSession. This is required only if remoteDebugEnabled
-	// is set to true true.
+	// is set to true.
 	ClientId *string `locationName:"clientId" type:"string"`
 
 	// The configuration information for the remote access session request.
@@ -5896,6 +5896,20 @@ type CreateRemoteAccessSessionInput struct {
 	//
 	// DeviceArn is a required field
 	DeviceArn *string `locationName:"deviceArn" min:"32" type:"string" required:"true"`
+
+	// The interaction mode of the remote access session. Valid values are:
+	//
+	//    * INTERACTIVE: You can interact with the iOS device by viewing, touching,
+	//    and rotating the screen. You cannot run XCUITest framework-based tests
+	//    in this mode.
+	//
+	//    * NO_VIDEO: You are connected to the device but cannot interact with it
+	//    or view the screen. This mode has the fastest test execution speed. You
+	//    can run XCUITest framework-based tests in this mode.
+	//
+	//    * VIDEO_ONLY: You can view the screen but cannot touch or rotate it. You
+	//    can run XCUITest framework-based tests and watch the screen in this mode.
+	InteractionMode *string `locationName:"interactionMode" type:"string" enum:"InteractionMode"`
 
 	// The name of the remote access session that you wish to create.
 	Name *string `locationName:"name" type:"string"`
@@ -5909,6 +5923,13 @@ type CreateRemoteAccessSessionInput struct {
 	// Set to true if you want to access devices remotely for debugging in your
 	// remote access session.
 	RemoteDebugEnabled *bool `locationName:"remoteDebugEnabled" type:"boolean"`
+
+	// The Amazon Resource Name (ARN) for the app to be recorded in the remote access
+	// session.
+	RemoteRecordAppArn *string `locationName:"remoteRecordAppArn" min:"32" type:"string"`
+
+	// Set to true to enable remote recording for the remote access session.
+	RemoteRecordEnabled *bool `locationName:"remoteRecordEnabled" type:"boolean"`
 
 	// The public key of the ssh key pair you want to use for connecting to remote
 	// devices in your remote debugging session. This is only required if remoteDebugEnabled
@@ -5941,6 +5962,9 @@ func (s *CreateRemoteAccessSessionInput) Validate() error {
 	if s.ProjectArn != nil && len(*s.ProjectArn) < 32 {
 		invalidParams.Add(request.NewErrParamMinLen("ProjectArn", 32))
 	}
+	if s.RemoteRecordAppArn != nil && len(*s.RemoteRecordAppArn) < 32 {
+		invalidParams.Add(request.NewErrParamMinLen("RemoteRecordAppArn", 32))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -5966,6 +5990,12 @@ func (s *CreateRemoteAccessSessionInput) SetDeviceArn(v string) *CreateRemoteAcc
 	return s
 }
 
+// SetInteractionMode sets the InteractionMode field's value.
+func (s *CreateRemoteAccessSessionInput) SetInteractionMode(v string) *CreateRemoteAccessSessionInput {
+	s.InteractionMode = &v
+	return s
+}
+
 // SetName sets the Name field's value.
 func (s *CreateRemoteAccessSessionInput) SetName(v string) *CreateRemoteAccessSessionInput {
 	s.Name = &v
@@ -5981,6 +6011,18 @@ func (s *CreateRemoteAccessSessionInput) SetProjectArn(v string) *CreateRemoteAc
 // SetRemoteDebugEnabled sets the RemoteDebugEnabled field's value.
 func (s *CreateRemoteAccessSessionInput) SetRemoteDebugEnabled(v bool) *CreateRemoteAccessSessionInput {
 	s.RemoteDebugEnabled = &v
+	return s
+}
+
+// SetRemoteRecordAppArn sets the RemoteRecordAppArn field's value.
+func (s *CreateRemoteAccessSessionInput) SetRemoteRecordAppArn(v string) *CreateRemoteAccessSessionInput {
+	s.RemoteRecordAppArn = &v
+	return s
+}
+
+// SetRemoteRecordEnabled sets the RemoteRecordEnabled field's value.
+func (s *CreateRemoteAccessSessionInput) SetRemoteRecordEnabled(v bool) *CreateRemoteAccessSessionInput {
+	s.RemoteRecordEnabled = &v
 	return s
 }
 
@@ -6617,6 +6659,9 @@ type Device struct {
 	// The device's model name.
 	Model *string `locationName:"model" type:"string"`
 
+	// The device's model ID.
+	ModelId *string `locationName:"modelId" type:"string"`
+
 	// The device's display name.
 	Name *string `locationName:"name" type:"string"`
 
@@ -6718,6 +6763,12 @@ func (s *Device) SetMemory(v int64) *Device {
 // SetModel sets the Model field's value.
 func (s *Device) SetModel(v string) *Device {
 	s.Model = &v
+	return s
+}
+
+// SetModelId sets the ModelId field's value.
+func (s *Device) SetModelId(v string) *Device {
+	s.ModelId = &v
 	return s
 }
 
@@ -8562,7 +8613,7 @@ func (s *ListDevicesOutput) SetNextToken(v string) *ListDevicesOutput {
 type ListJobsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The jobs' ARNs.
+	// The run's Amazon Resource Name (ARN).
 	//
 	// Arn is a required field
 	Arn *string `locationName:"arn" min:"32" type:"string" required:"true"`
@@ -9344,7 +9395,7 @@ func (s *ListSamplesOutput) SetSamples(v []*Sample) *ListSamplesOutput {
 type ListSuitesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The suites' ARNs.
+	// The job's Amazon Resource Name (ARN).
 	//
 	// Arn is a required field
 	Arn *string `locationName:"arn" min:"32" type:"string" required:"true"`
@@ -9436,7 +9487,7 @@ func (s *ListSuitesOutput) SetSuites(v []*Suite) *ListSuitesOutput {
 type ListTestsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The tests' ARNs.
+	// The test suite's Amazon Resource Name (ARN).
 	//
 	// Arn is a required field
 	Arn *string `locationName:"arn" min:"32" type:"string" required:"true"`
@@ -10543,6 +10594,20 @@ type RemoteAccessSession struct {
 	// Only returned if remote debugging is enabled for the remote access session.
 	HostAddress *string `locationName:"hostAddress" type:"string"`
 
+	// The interaction mode of the remote access session. Valid values are:
+	//
+	//    * INTERACTIVE: You can interact with the iOS device by viewing, touching,
+	//    and rotating the screen. You cannot run XCUITest framework-based tests
+	//    in this mode.
+	//
+	//    * NO_VIDEO: You are connected to the device but cannot interact with it
+	//    or view the screen. This mode has the fastest test execution speed. You
+	//    can run XCUITest framework-based tests in this mode.
+	//
+	//    * VIDEO_ONLY: You can view the screen but cannot touch or rotate it. You
+	//    can run XCUITest framework-based tests and watch the screen in this mode.
+	InteractionMode *string `locationName:"interactionMode" type:"string" enum:"InteractionMode"`
+
 	// A message about the remote access session.
 	Message *string `locationName:"message" type:"string"`
 
@@ -10552,6 +10617,14 @@ type RemoteAccessSession struct {
 	// This flag is set to true if remote debugging is enabled for the remote access
 	// session.
 	RemoteDebugEnabled *bool `locationName:"remoteDebugEnabled" type:"boolean"`
+
+	// The Amazon Resource Name (ARN) for the app to be recorded in the remote access
+	// session.
+	RemoteRecordAppArn *string `locationName:"remoteRecordAppArn" min:"32" type:"string"`
+
+	// This flag is set to true if remote recording is enabled for the remote access
+	// session.
+	RemoteRecordEnabled *bool `locationName:"remoteRecordEnabled" type:"boolean"`
 
 	// The result of the remote access session. Can be any of the following:
 	//
@@ -10662,6 +10735,12 @@ func (s *RemoteAccessSession) SetHostAddress(v string) *RemoteAccessSession {
 	return s
 }
 
+// SetInteractionMode sets the InteractionMode field's value.
+func (s *RemoteAccessSession) SetInteractionMode(v string) *RemoteAccessSession {
+	s.InteractionMode = &v
+	return s
+}
+
 // SetMessage sets the Message field's value.
 func (s *RemoteAccessSession) SetMessage(v string) *RemoteAccessSession {
 	s.Message = &v
@@ -10677,6 +10756,18 @@ func (s *RemoteAccessSession) SetName(v string) *RemoteAccessSession {
 // SetRemoteDebugEnabled sets the RemoteDebugEnabled field's value.
 func (s *RemoteAccessSession) SetRemoteDebugEnabled(v bool) *RemoteAccessSession {
 	s.RemoteDebugEnabled = &v
+	return s
+}
+
+// SetRemoteRecordAppArn sets the RemoteRecordAppArn field's value.
+func (s *RemoteAccessSession) SetRemoteRecordAppArn(v string) *RemoteAccessSession {
+	s.RemoteRecordAppArn = &v
+	return s
+}
+
+// SetRemoteRecordEnabled sets the RemoteRecordEnabled field's value.
+func (s *RemoteAccessSession) SetRemoteRecordEnabled(v bool) *RemoteAccessSession {
+	s.RemoteRecordEnabled = &v
 	return s
 }
 
@@ -10886,6 +10977,9 @@ func (s *Rule) SetValue(v string) *Rule {
 type Run struct {
 	_ struct{} `type:"structure"`
 
+	// An app to upload or that has been uploaded.
+	AppUpload *string `locationName:"appUpload" min:"32" type:"string"`
+
 	// The run's ARN.
 	Arn *string `locationName:"arn" min:"32" type:"string"`
 
@@ -10907,6 +11001,22 @@ type Run struct {
 
 	// Represents the total (metered or unmetered) minutes used by the test run.
 	DeviceMinutes *DeviceMinutes `locationName:"deviceMinutes" type:"structure"`
+
+	// The ARN of the device pool for the run.
+	DevicePoolArn *string `locationName:"devicePoolArn" min:"32" type:"string"`
+
+	// For fuzz tests, this is the number of events, between 1 and 10000, that the
+	// UI fuzz test should perform.
+	EventCount *int64 `locationName:"eventCount" type:"integer"`
+
+	// The number of minutes the job will execute before it times out.
+	JobTimeoutMinutes *int64 `locationName:"jobTimeoutMinutes" type:"integer"`
+
+	// Information about the locale that is used for the run.
+	Locale *string `locationName:"locale" type:"string"`
+
+	// Information about the location that is used for the run.
+	Location *Location `locationName:"location" type:"structure"`
 
 	// A message about the run's result.
 	Message *string `locationName:"message" type:"string"`
@@ -10931,6 +11041,9 @@ type Run struct {
 	//    * IOS: The iOS platform.
 	Platform *string `locationName:"platform" type:"string" enum:"DevicePlatform"`
 
+	// Information about the radio states for the run.
+	Radios *Radios `locationName:"radios" type:"structure"`
+
 	// The run's result.
 	//
 	// Allowed values include:
@@ -10953,6 +11066,10 @@ type Run struct {
 	// Supporting field for the result field. Set only if result is SKIPPED. PARSING_FAILED
 	// if the result is skipped because of test package parsing failure.
 	ResultCode *string `locationName:"resultCode" type:"string" enum:"ExecutionResultCode"`
+
+	// For fuzz tests, this is a seed to use for randomizing the UI fuzz test. Using
+	// the same seed value between tests ensures identical event sequences.
+	Seed *int64 `locationName:"seed" type:"integer"`
 
 	// The run's start time.
 	Started *time.Time `locationName:"started" type:"timestamp" timestampFormat:"unix"`
@@ -11020,6 +11137,10 @@ type Run struct {
 	//
 	//    * XCTEST_UI: The XCode UI test type.
 	Type *string `locationName:"type" type:"string" enum:"TestType"`
+
+	// A pre-signed Amazon S3 URL that can be used with a corresponding GET request
+	// to download the symbol file for the run.
+	WebUrl *string `locationName:"webUrl" type:"string"`
 }
 
 // String returns the string representation
@@ -11030,6 +11151,12 @@ func (s Run) String() string {
 // GoString returns the string representation
 func (s Run) GoString() string {
 	return s.String()
+}
+
+// SetAppUpload sets the AppUpload field's value.
+func (s *Run) SetAppUpload(v string) *Run {
+	s.AppUpload = &v
+	return s
 }
 
 // SetArn sets the Arn field's value.
@@ -11074,6 +11201,36 @@ func (s *Run) SetDeviceMinutes(v *DeviceMinutes) *Run {
 	return s
 }
 
+// SetDevicePoolArn sets the DevicePoolArn field's value.
+func (s *Run) SetDevicePoolArn(v string) *Run {
+	s.DevicePoolArn = &v
+	return s
+}
+
+// SetEventCount sets the EventCount field's value.
+func (s *Run) SetEventCount(v int64) *Run {
+	s.EventCount = &v
+	return s
+}
+
+// SetJobTimeoutMinutes sets the JobTimeoutMinutes field's value.
+func (s *Run) SetJobTimeoutMinutes(v int64) *Run {
+	s.JobTimeoutMinutes = &v
+	return s
+}
+
+// SetLocale sets the Locale field's value.
+func (s *Run) SetLocale(v string) *Run {
+	s.Locale = &v
+	return s
+}
+
+// SetLocation sets the Location field's value.
+func (s *Run) SetLocation(v *Location) *Run {
+	s.Location = v
+	return s
+}
+
 // SetMessage sets the Message field's value.
 func (s *Run) SetMessage(v string) *Run {
 	s.Message = &v
@@ -11104,6 +11261,12 @@ func (s *Run) SetPlatform(v string) *Run {
 	return s
 }
 
+// SetRadios sets the Radios field's value.
+func (s *Run) SetRadios(v *Radios) *Run {
+	s.Radios = v
+	return s
+}
+
 // SetResult sets the Result field's value.
 func (s *Run) SetResult(v string) *Run {
 	s.Result = &v
@@ -11113,6 +11276,12 @@ func (s *Run) SetResult(v string) *Run {
 // SetResultCode sets the ResultCode field's value.
 func (s *Run) SetResultCode(v string) *Run {
 	s.ResultCode = &v
+	return s
+}
+
+// SetSeed sets the Seed field's value.
+func (s *Run) SetSeed(v int64) *Run {
+	s.Seed = &v
 	return s
 }
 
@@ -11143,6 +11312,12 @@ func (s *Run) SetTotalJobs(v int64) *Run {
 // SetType sets the Type field's value.
 func (s *Run) SetType(v string) *Run {
 	s.Type = &v
+	return s
+}
+
+// SetWebUrl sets the WebUrl field's value.
+func (s *Run) SetWebUrl(v string) *Run {
+	s.WebUrl = &v
 	return s
 }
 
@@ -12342,8 +12517,8 @@ func (s *UpdateDevicePoolOutput) SetDevicePool(v *DevicePool) *UpdateDevicePoolO
 type UpdateNetworkProfileInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) of the project that you wish to update network
-	// profile settings.
+	// The Amazon Resource Name (ARN) of the project for which you want to update
+	// network profile settings.
 	//
 	// Arn is a required field
 	Arn *string `locationName:"arn" min:"32" type:"string" required:"true"`
@@ -12955,6 +13130,17 @@ const (
 )
 
 const (
+	// InteractionModeInteractive is a InteractionMode enum value
+	InteractionModeInteractive = "INTERACTIVE"
+
+	// InteractionModeNoVideo is a InteractionMode enum value
+	InteractionModeNoVideo = "NO_VIDEO"
+
+	// InteractionModeVideoOnly is a InteractionMode enum value
+	InteractionModeVideoOnly = "VIDEO_ONLY"
+)
+
+const (
 	// NetworkProfileTypeCurated is a NetworkProfileType enum value
 	NetworkProfileTypeCurated = "CURATED"
 
@@ -13063,6 +13249,9 @@ const (
 	// TestTypeBuiltinExplorer is a TestType enum value
 	TestTypeBuiltinExplorer = "BUILTIN_EXPLORER"
 
+	// TestTypeWebPerformanceProfile is a TestType enum value
+	TestTypeWebPerformanceProfile = "WEB_PERFORMANCE_PROFILE"
+
 	// TestTypeAppiumJavaJunit is a TestType enum value
 	TestTypeAppiumJavaJunit = "APPIUM_JAVA_JUNIT"
 
@@ -13098,6 +13287,12 @@ const (
 
 	// TestTypeXctestUi is a TestType enum value
 	TestTypeXctestUi = "XCTEST_UI"
+
+	// TestTypeRemoteAccessRecord is a TestType enum value
+	TestTypeRemoteAccessRecord = "REMOTE_ACCESS_RECORD"
+
+	// TestTypeRemoteAccessReplay is a TestType enum value
+	TestTypeRemoteAccessReplay = "REMOTE_ACCESS_REPLAY"
 )
 
 const (

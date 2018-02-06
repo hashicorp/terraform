@@ -1,34 +1,37 @@
-## 1.8.0 (Unreleased)
+## 1.8.0 (January 29, 2018)
 
 FEATURES:
 
-* **New Resource:** `aws_dynamodb_global_table` [GH-2517]
-* **New Resource:** `aws_gamelift_build` [GH-2843]
+* **New Resource:** `aws_dynamodb_global_table` ([#2517](https://github.com/terraform-providers/terraform-provider-aws/issues/2517))
+* **New Resource:** `aws_gamelift_build` ([#2843](https://github.com/terraform-providers/terraform-provider-aws/issues/2843))
 
 ENHANCEMENTS:
 
-* data-source/aws_kms_alias: Add target_key_arn attribute [GH-2551]
-* resource/aws_api_gateway_integration: Allow update of content_handling attributes [GH-3123]
-* resource/aws_appautoscaling_target: Support updating max_capacity, min_capacity, and role_arn attributes [GH-2950]
-* resource/aws_cloudwatch_log_subscription_filter: Add support for distribution [GH-3046]
-* resource/aws_cognito_user_pool: support pre_token_generation in lambda_config [GH-3093]
-* resource/aws_elasticsearch_domain: Add support for encrypt_at_rest [GH-2632]
-* resource/aws_emr_cluster: Support CustomAmiId [GH-2766]
-* resource/aws_kms_alias: Add target_key_arn attribute [GH-3096]
-* resource/aws_route: Allow adding IPv6 routes to instances and network interfaces [GH-2265]
-* resource/aws_sqs_queue: Retry queue creation on QueueDeletedRecently error [GH-3113]
-* resource/aws_vpn_connection: Add inside CIDR and pre-shared key attributes [GH-1862]
+* provider: `cn-northwest-1` region is now supported ([#3142](https://github.com/terraform-providers/terraform-provider-aws/issues/3142))
+* data-source/aws_kms_alias: Add target_key_arn attribute ([#2551](https://github.com/terraform-providers/terraform-provider-aws/issues/2551))
+* resource/aws_api_gateway_integration: Allow update of content_handling attributes ([#3123](https://github.com/terraform-providers/terraform-provider-aws/issues/3123))
+* resource/aws_appautoscaling_target: Support updating max_capacity, min_capacity, and role_arn attributes ([#2950](https://github.com/terraform-providers/terraform-provider-aws/issues/2950))
+* resource/aws_cloudwatch_log_subscription_filter: Add support for distribution ([#3046](https://github.com/terraform-providers/terraform-provider-aws/issues/3046))
+* resource/aws_cognito_user_pool: support pre_token_generation in lambda_config ([#3093](https://github.com/terraform-providers/terraform-provider-aws/issues/3093))
+* resource/aws_elasticsearch_domain: Add support for encrypt_at_rest ([#2632](https://github.com/terraform-providers/terraform-provider-aws/issues/2632))
+* resource/aws_emr_cluster: Support CustomAmiId ([#2766](https://github.com/terraform-providers/terraform-provider-aws/issues/2766))
+* resource/aws_kms_alias: Add target_key_arn attribute ([#3096](https://github.com/terraform-providers/terraform-provider-aws/issues/3096))
+* resource/aws_route: Allow adding IPv6 routes to instances and network interfaces ([#2265](https://github.com/terraform-providers/terraform-provider-aws/issues/2265))
+* resource/aws_sqs_queue: Retry queue creation on QueueDeletedRecently error ([#3113](https://github.com/terraform-providers/terraform-provider-aws/issues/3113))
+* resource/aws_vpn_connection: Add inside CIDR and pre-shared key attributes ([#1862](https://github.com/terraform-providers/terraform-provider-aws/issues/1862))
 
 BUG FIXES:
 
-* resource/aws_appautoscaling_policy: Support additional predefined metric types in validation [GH-3122]
-* resource/aws_ebs_snapshot: Fix `kms_key_id` attribute handling [GH-3085]
-* resource/aws_eip_assocation: Retry association for pending instances [GH-3072]
-* resource/aws_kinesis_firehose_delivery_stream: Prevent panic on missing S3 configuration prefix [GH-3073]
-* resource/aws_lambda_function: Retry updates for IAM eventual consistency [GH-3116]
-* resource/aws_route53_record: Suppress uppercase alias name diff [GH-3119]
-* resource/aws_sqs_queue_policy: Prevent missing policy error on read [GH-2739]
-* resource/aws_rds_cluster: Retry deletion on InvalidDBClusterStateFault [GH-3028]
+* resource/aws_appautoscaling_policy: Support additional predefined metric types in validation [[#3122](https://github.com/terraform-providers/terraform-provider-aws/issues/3122)]]
+* resource/aws_dynamodb_table: Recognize changes in `non_key_attributes` ([#3136](https://github.com/terraform-providers/terraform-provider-aws/issues/3136))
+* resource/aws_ebs_snapshot: Fix `kms_key_id` attribute handling ([#3085](https://github.com/terraform-providers/terraform-provider-aws/issues/3085))
+* resource/aws_eip_assocation: Retry association for pending instances ([#3072](https://github.com/terraform-providers/terraform-provider-aws/issues/3072))
+* resource/aws_elastic_beanstalk_application: Prevent crash on reading missing application ([#3171](https://github.com/terraform-providers/terraform-provider-aws/issues/3171))
+* resource/aws_kinesis_firehose_delivery_stream: Prevent panic on missing S3 configuration prefix ([#3073](https://github.com/terraform-providers/terraform-provider-aws/issues/3073))
+* resource/aws_lambda_function: Retry updates for IAM eventual consistency ([#3116](https://github.com/terraform-providers/terraform-provider-aws/issues/3116))
+* resource/aws_route53_record: Suppress uppercase alias name diff ([#3119](https://github.com/terraform-providers/terraform-provider-aws/issues/3119))
+* resource/aws_sqs_queue_policy: Prevent missing policy error on read ([#2739](https://github.com/terraform-providers/terraform-provider-aws/issues/2739))
+* resource/aws_rds_cluster: Retry deletion on InvalidDBClusterStateFault ([#3028](https://github.com/terraform-providers/terraform-provider-aws/issues/3028))
 
 ## 1.7.1 (January 19, 2018)
 
