@@ -64,7 +64,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     </tr>
     <tr>
     <td><a href="https://github.com/ewilde/terraform-provider-runscope">Runscope</a></td>
-    <td><a></a></td>
+    <td><a href="https://github.com/GSLabDev/terraform-provider-vra">vRealize Automation</a></td>
     <td><a></a></td>
     </tr>
 
