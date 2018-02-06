@@ -7,28 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
-// Number of times to retry if a throttling-related exception occurs
-const DYNAMODB_MAX_THROTTLE_RETRIES = 5
-
-// How long to sleep when a throttle-event happens
-const DYNAMODB_THROTTLE_SLEEP = 5 * time.Second
-
-// How long to sleep if a limit-exceeded event happens
-const DYNAMODB_LIMIT_EXCEEDED_SLEEP = 10 * time.Second
-
-// A number of these are marked as computed because if you don't
-// provide a value, DynamoDB will provide you with defaults (which are the
-// default values specified below)
 func resourceAwsDynamoDbTable() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsDynamoDbTableCreate,
@@ -212,498 +197,201 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 }
 
 func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) error {
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
+	conn := meta.(*AWSClient).dynamodbconn
 
-	name := d.Get("name").(string)
-
-	log.Printf("[DEBUG] DynamoDB table create: %s", name)
-
-	throughput := &dynamodb.ProvisionedThroughput{
-		ReadCapacityUnits:  aws.Int64(int64(d.Get("read_capacity").(int))),
-		WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
+	keySchemaMap := map[string]interface{}{
+		"hash_key": d.Get("hash_key").(string),
+	}
+	if v, ok := d.GetOk("range_key"); ok {
+		keySchemaMap["range_key"] = v.(string)
 	}
 
-	hash_key_name := d.Get("hash_key").(string)
-	keyschema := []*dynamodb.KeySchemaElement{
-		{
-			AttributeName: aws.String(hash_key_name),
-			KeyType:       aws.String("HASH"),
-		},
-	}
-
-	if range_key, ok := d.GetOk("range_key"); ok {
-		range_schema_element := &dynamodb.KeySchemaElement{
-			AttributeName: aws.String(range_key.(string)),
-			KeyType:       aws.String("RANGE"),
-		}
-		keyschema = append(keyschema, range_schema_element)
-	}
+	log.Printf("[DEBUG] Creating DynamoDB table with key schema: %#v", keySchemaMap)
 
 	req := &dynamodb.CreateTableInput{
-		TableName:             aws.String(name),
-		ProvisionedThroughput: throughput,
-		KeySchema:             keyschema,
+		TableName: aws.String(d.Get("name").(string)),
+		ProvisionedThroughput: expandDynamoDbProvisionedThroughput(map[string]interface{}{
+			"read_capacity":  d.Get("read_capacity"),
+			"write_capacity": d.Get("write_capacity"),
+		}),
+		KeySchema: expandDynamoDbKeySchema(keySchemaMap),
 	}
 
-	if attributedata, ok := d.GetOk("attribute"); ok {
-		attributes := []*dynamodb.AttributeDefinition{}
-		attributeSet := attributedata.(*schema.Set)
-		for _, attribute := range attributeSet.List() {
-			attr := attribute.(map[string]interface{})
-			attributes = append(attributes, &dynamodb.AttributeDefinition{
-				AttributeName: aws.String(attr["name"].(string)),
-				AttributeType: aws.String(attr["type"].(string)),
-			})
-		}
-
-		req.AttributeDefinitions = attributes
+	if v, ok := d.GetOk("attribute"); ok {
+		aSet := v.(*schema.Set)
+		req.AttributeDefinitions = expandDynamoDbAttributes(aSet.List())
 	}
 
-	if lsidata, ok := d.GetOk("local_secondary_index"); ok {
-		log.Printf("[DEBUG] Adding LSI data to the table")
-
-		lsiSet := lsidata.(*schema.Set)
-		localSecondaryIndexes := []*dynamodb.LocalSecondaryIndex{}
-		for _, lsiObject := range lsiSet.List() {
-			lsi := lsiObject.(map[string]interface{})
-
-			projection := &dynamodb.Projection{
-				ProjectionType: aws.String(lsi["projection_type"].(string)),
-			}
-
-			if lsi["projection_type"] == "INCLUDE" {
-				non_key_attributes := []*string{}
-				for _, attr := range lsi["non_key_attributes"].([]interface{}) {
-					non_key_attributes = append(non_key_attributes, aws.String(attr.(string)))
-				}
-				projection.NonKeyAttributes = non_key_attributes
-			}
-
-			localSecondaryIndexes = append(localSecondaryIndexes, &dynamodb.LocalSecondaryIndex{
-				IndexName: aws.String(lsi["name"].(string)),
-				KeySchema: []*dynamodb.KeySchemaElement{
-					{
-						AttributeName: aws.String(hash_key_name),
-						KeyType:       aws.String("HASH"),
-					},
-					{
-						AttributeName: aws.String(lsi["range_key"].(string)),
-						KeyType:       aws.String("RANGE"),
-					},
-				},
-				Projection: projection,
-			})
-		}
-
-		req.LocalSecondaryIndexes = localSecondaryIndexes
-
-		log.Printf("[DEBUG] Added %d LSI definitions", len(localSecondaryIndexes))
+	if v, ok := d.GetOk("local_secondary_index"); ok {
+		lsiSet := v.(*schema.Set)
+		req.LocalSecondaryIndexes = expandDynamoDbLocalSecondaryIndexes(lsiSet.List(), keySchemaMap)
 	}
 
-	if gsidata, ok := d.GetOk("global_secondary_index"); ok {
+	if v, ok := d.GetOk("global_secondary_index"); ok {
 		globalSecondaryIndexes := []*dynamodb.GlobalSecondaryIndex{}
-
-		gsiSet := gsidata.(*schema.Set)
+		gsiSet := v.(*schema.Set)
 		for _, gsiObject := range gsiSet.List() {
 			gsi := gsiObject.(map[string]interface{})
-			gsiObject := createGSIFromData(&gsi)
-			globalSecondaryIndexes = append(globalSecondaryIndexes, &gsiObject)
+			gsiObject := expandDynamoDbGlobalSecondaryIndex(gsi)
+			globalSecondaryIndexes = append(globalSecondaryIndexes, gsiObject)
 		}
 		req.GlobalSecondaryIndexes = globalSecondaryIndexes
 	}
 
-	if _, ok := d.GetOk("stream_enabled"); ok {
-
+	if v, ok := d.GetOk("stream_enabled"); ok {
 		req.StreamSpecification = &dynamodb.StreamSpecification{
-			StreamEnabled:  aws.Bool(d.Get("stream_enabled").(bool)),
+			StreamEnabled:  aws.Bool(v.(bool)),
 			StreamViewType: aws.String(d.Get("stream_view_type").(string)),
 		}
-
-		log.Printf("[DEBUG] Adding StreamSpecifications to the table")
 	}
 
-	_, timeToLiveOk := d.GetOk("ttl")
-	_, tagsOk := d.GetOk("tags")
-
-	attemptCount := 1
-	for attemptCount <= DYNAMODB_MAX_THROTTLE_RETRIES {
-		output, err := dynamodbconn.CreateTable(req)
+	var output *dynamodb.CreateTableOutput
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		var err error
+		output, err = conn.CreateTable(req)
 		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				switch code := awsErr.Code(); code {
-				case "ThrottlingException":
-					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, DYNAMODB_MAX_THROTTLE_RETRIES)
-					time.Sleep(DYNAMODB_THROTTLE_SLEEP)
-					attemptCount += 1
-				case "LimitExceededException":
-					// If we're at resource capacity, error out without retry. e.g.
-					// Subscriber limit exceeded: There is a limit of 256 tables per subscriber
-					// Do not error out on this similar throttling message:
-					// Subscriber limit exceeded: Only 10 tables can be created, updated, or deleted simultaneously
-					if strings.Contains(awsErr.Message(), "Subscriber limit exceeded:") && !strings.Contains(awsErr.Message(), "can be created, updated, or deleted simultaneously") {
-						return fmt.Errorf("AWS Error creating DynamoDB table: %s", err)
-					}
-					log.Printf("[DEBUG] Limit on concurrent table creations hit, sleeping for a bit")
-					time.Sleep(DYNAMODB_LIMIT_EXCEEDED_SLEEP)
-					attemptCount += 1
-				default:
-					// Some other non-retryable exception occurred
-					return fmt.Errorf("AWS Error creating DynamoDB table: %s", err)
-				}
-			} else {
-				// Non-AWS exception occurred, give up
-				return fmt.Errorf("Error creating DynamoDB table: %s", err)
+			if isAWSErr(err, "ThrottlingException", "") {
+				return resource.RetryableError(err)
 			}
-		} else {
-			// No error, set ID and return
-			d.SetId(*output.TableDescription.TableName)
-			tableArn := *output.TableDescription.TableArn
-			if err := d.Set("arn", tableArn); err != nil {
-				return err
+			if isAWSErr(err, dynamodb.ErrCodeLimitExceededException, "can be created, updated, or deleted simultaneously") {
+				return resource.RetryableError(err)
+			}
+			if isAWSErr(err, dynamodb.ErrCodeLimitExceededException, "indexed tables that can be created simultaneously") {
+				return resource.RetryableError(err)
 			}
 
-			// Wait, till table is active before imitating any TimeToLive changes
-			if err := waitForTableToBeActive(d.Id(), meta); err != nil {
-				log.Printf("[DEBUG] Error waiting for table to be active: %s", err)
-				return err
-			}
-
-			log.Printf("[DEBUG] Setting DynamoDB TimeToLive on arn: %s", tableArn)
-			if timeToLiveOk {
-				if err := updateTimeToLive(d, meta); err != nil {
-					log.Printf("[DEBUG] Error updating table TimeToLive: %s", err)
-					return err
-				}
-			}
-
-			if tagsOk {
-				log.Printf("[DEBUG] Setting DynamoDB Tags on arn: %s", tableArn)
-				if err := createTableTags(d, meta); err != nil {
-					return err
-				}
-			}
-
-			return resourceAwsDynamoDbTableRead(d, meta)
+			return resource.NonRetryableError(err)
 		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
-	// Too many throttling events occurred, give up
-	return fmt.Errorf("Unable to create DynamoDB table '%s' after %d attempts", name, attemptCount)
+	d.SetId(*output.TableDescription.TableName)
+	d.Set("arn", output.TableDescription.TableArn)
+
+	if err := waitForDynamoDbTableToBeActive(d.Id(), 10*time.Minute, conn); err != nil {
+		return err
+	}
+
+	return resourceAwsDynamoDbTableUpdate(d, meta)
 }
 
 func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).dynamodbconn
 
-	log.Printf("[DEBUG] Updating DynamoDB table %s", d.Id())
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
-
-	// Ensure table is active before trying to update
-	if err := waitForTableToBeActive(d.Id(), meta); err != nil {
-		return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
+	// Cannot create or delete index while updating table IOPS
+	// so we update IOPS separately
+	if (d.HasChange("read_capacity") || d.HasChange("write_capacity")) && !d.IsNewResource() {
+		_, err := conn.UpdateTable(&dynamodb.UpdateTableInput{
+			TableName: aws.String(d.Id()),
+			ProvisionedThroughput: expandDynamoDbProvisionedThroughput(map[string]interface{}{
+				"read_capacity":  d.Get("read_capacity"),
+				"write_capacity": d.Get("write_capacity"),
+			}),
+		})
+		if err != nil {
+			return err
+		}
+		if err := waitForDynamoDbTableToBeActive(d.Id(), d.Timeout(schema.TimeoutUpdate), conn); err != nil {
+			return fmt.Errorf("Error waiting for DynamoDB Table update: %s", err)
+		}
 	}
 
-	if d.HasChange("read_capacity") || d.HasChange("write_capacity") {
-		req := &dynamodb.UpdateTableInput{
+	if (d.HasChange("stream_enabled") || d.HasChange("stream_view_type")) && !d.IsNewResource() {
+		input := &dynamodb.UpdateTableInput{
 			TableName: aws.String(d.Id()),
+			StreamSpecification: &dynamodb.StreamSpecification{
+				StreamEnabled:  aws.Bool(d.Get("stream_enabled").(bool)),
+				StreamViewType: aws.String(d.Get("stream_view_type").(string)),
+			},
 		}
-
-		throughput := &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Int64(int64(d.Get("read_capacity").(int))),
-			WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
-		}
-		req.ProvisionedThroughput = throughput
-
-		_, err := dynamodbconn.UpdateTable(req)
-
+		_, err := conn.UpdateTable(input)
 		if err != nil {
 			return err
 		}
 
-		if err := waitForTableToBeActive(d.Id(), meta); err != nil {
-			return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
+		if err := waitForDynamoDbTableToBeActive(d.Id(), d.Timeout(schema.TimeoutUpdate), conn); err != nil {
+			return fmt.Errorf("Error waiting for DynamoDB Table update: %s", err)
 		}
 	}
 
-	if d.HasChange("stream_enabled") || d.HasChange("stream_view_type") {
-		req := &dynamodb.UpdateTableInput{
-			TableName: aws.String(d.Id()),
-		}
-
-		req.StreamSpecification = &dynamodb.StreamSpecification{
-			StreamEnabled:  aws.Bool(d.Get("stream_enabled").(bool)),
-			StreamViewType: aws.String(d.Get("stream_view_type").(string)),
-		}
-
-		_, err := dynamodbconn.UpdateTable(req)
-
-		if err != nil {
-			return err
-		}
-
-		if err := waitForTableToBeActive(d.Id(), meta); err != nil {
-			return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
-		}
-	}
-
-	if d.HasChange("global_secondary_index") {
-		log.Printf("[DEBUG] Changed GSI data")
-		req := &dynamodb.UpdateTableInput{
-			TableName: aws.String(d.Id()),
+	if d.HasChange("global_secondary_index") && !d.IsNewResource() {
+		var attributes []*dynamodb.AttributeDefinition
+		if v, ok := d.GetOk("attribute"); ok {
+			attributes = expandDynamoDbAttributes(v.(*schema.Set).List())
 		}
 
 		o, n := d.GetChange("global_secondary_index")
+		ops, err := diffDynamoDbGSI(o.(*schema.Set).List(), n.(*schema.Set).List())
+		if err != nil {
+			return fmt.Errorf("Computing difference for global_secondary_index failed: %s", err)
+		}
+		log.Printf("[DEBUG] Updating global secondary indexes:\n%s", ops)
 
-		oldSet := o.(*schema.Set)
-		newSet := n.(*schema.Set)
-
-		// Track old names so we can know which ones we need to just update based on
-		// capacity changes, terraform appears to only diff on the set hash, not the
-		// contents so we need to make sure we don't delete any indexes that we
-		// just want to update the capacity for
-		oldGsiNameSet := make(map[string]bool)
-		newGsiNameSet := make(map[string]bool)
-
-		for _, gsidata := range oldSet.List() {
-			gsiName := gsidata.(map[string]interface{})["name"].(string)
-			oldGsiNameSet[gsiName] = true
+		input := &dynamodb.UpdateTableInput{
+			TableName:            aws.String(d.Id()),
+			AttributeDefinitions: attributes,
 		}
 
-		for _, gsidata := range newSet.List() {
-			gsiName := gsidata.(map[string]interface{})["name"].(string)
-			newGsiNameSet[gsiName] = true
-		}
-
-		// First determine what's new
-		for _, newgsidata := range newSet.List() {
-			updates := []*dynamodb.GlobalSecondaryIndexUpdate{}
-			newGsiName := newgsidata.(map[string]interface{})["name"].(string)
-			if _, exists := oldGsiNameSet[newGsiName]; !exists {
-				attributes := []*dynamodb.AttributeDefinition{}
-				gsidata := newgsidata.(map[string]interface{})
-				gsi := createGSIFromData(&gsidata)
-				log.Printf("[DEBUG] Adding GSI %s", *gsi.IndexName)
-				update := &dynamodb.GlobalSecondaryIndexUpdate{
-					Create: &dynamodb.CreateGlobalSecondaryIndexAction{
-						IndexName:             gsi.IndexName,
-						KeySchema:             gsi.KeySchema,
-						ProvisionedThroughput: gsi.ProvisionedThroughput,
-						Projection:            gsi.Projection,
-					},
-				}
-				updates = append(updates, update)
-
-				// Hash key is required, range key isn't
-				hashkey_type, err := getAttributeType(d, *gsi.KeySchema[0].AttributeName)
-				if err != nil {
-					return err
-				}
-
-				attributes = append(attributes, &dynamodb.AttributeDefinition{
-					AttributeName: gsi.KeySchema[0].AttributeName,
-					AttributeType: aws.String(hashkey_type),
-				})
-
-				// If there's a range key, there will be 2 elements in KeySchema
-				if len(gsi.KeySchema) == 2 {
-					rangekey_type, err := getAttributeType(d, *gsi.KeySchema[1].AttributeName)
-					if err != nil {
-						return err
-					}
-
-					attributes = append(attributes, &dynamodb.AttributeDefinition{
-						AttributeName: gsi.KeySchema[1].AttributeName,
-						AttributeType: aws.String(rangekey_type),
-					})
-				}
-
-				req.AttributeDefinitions = attributes
-				req.GlobalSecondaryIndexUpdates = updates
-				_, err = dynamodbconn.UpdateTable(req)
-
-				if err != nil {
-					return err
-				}
-
-				if err := waitForTableToBeActive(d.Id(), meta); err != nil {
-					return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
-				}
-
-				if err := waitForGSIToBeActive(d.Id(), *gsi.IndexName, meta); err != nil {
-					return errwrap.Wrapf("Error waiting for Dynamo DB GSIT to be active: {{err}}", err)
-				}
-
-			}
-		}
-
-		for _, oldgsidata := range oldSet.List() {
-			updates := []*dynamodb.GlobalSecondaryIndexUpdate{}
-			oldGsiName := oldgsidata.(map[string]interface{})["name"].(string)
-			if _, exists := newGsiNameSet[oldGsiName]; !exists {
-				gsidata := oldgsidata.(map[string]interface{})
-				log.Printf("[DEBUG] Deleting GSI %s", gsidata["name"].(string))
-				update := &dynamodb.GlobalSecondaryIndexUpdate{
-					Delete: &dynamodb.DeleteGlobalSecondaryIndexAction{
-						IndexName: aws.String(gsidata["name"].(string)),
-					},
-				}
-				updates = append(updates, update)
-
-				req.GlobalSecondaryIndexUpdates = updates
-				_, err := dynamodbconn.UpdateTable(req)
-
-				if err != nil {
-					return err
-				}
-
-				if err := waitForTableToBeActive(d.Id(), meta); err != nil {
-					return errwrap.Wrapf("Error waiting for Dynamo DB Table update: {{err}}", err)
-				}
-			}
-		}
-	}
-
-	// Update any out-of-date read / write capacity
-	if gsiObjects, ok := d.GetOk("global_secondary_index"); ok {
-		gsiSet := gsiObjects.(*schema.Set)
-		if len(gsiSet.List()) > 0 {
-			log.Printf("Updating capacity as needed!")
-
-			// We can only change throughput, but we need to make sure it's actually changed
-			tableDescription, err := dynamodbconn.DescribeTable(&dynamodb.DescribeTableInput{
-				TableName: aws.String(d.Id()),
-			})
-
+		// Only 1 online index can be created or deleted simultaneously per table
+		for _, op := range ops {
+			input.GlobalSecondaryIndexUpdates = []*dynamodb.GlobalSecondaryIndexUpdate{op}
+			_, err := conn.UpdateTable(input)
 			if err != nil {
 				return err
 			}
-
-			table := tableDescription.Table
-
-			for _, updatedgsidata := range gsiSet.List() {
-				updates := []*dynamodb.GlobalSecondaryIndexUpdate{}
-				gsidata := updatedgsidata.(map[string]interface{})
-				gsiName := gsidata["name"].(string)
-				gsiWriteCapacity := gsidata["write_capacity"].(int)
-				gsiReadCapacity := gsidata["read_capacity"].(int)
-
-				log.Printf("[DEBUG] Updating GSI %s", gsiName)
-				gsi, err := getGlobalSecondaryIndex(gsiName, table.GlobalSecondaryIndexes)
-
-				if err != nil {
-					return err
+			if op.Create != nil {
+				idxName := *op.Create.IndexName
+				if err := waitForDynamoDbGSIToBeActive(d.Id(), idxName, conn); err != nil {
+					return fmt.Errorf("Error waiting for DynamoDB GSI %q to be created: %s", idxName, err)
 				}
-
-				capacityUpdated := false
-
-				if int64(gsiReadCapacity) != *gsi.ProvisionedThroughput.ReadCapacityUnits ||
-					int64(gsiWriteCapacity) != *gsi.ProvisionedThroughput.WriteCapacityUnits {
-					capacityUpdated = true
+			}
+			if op.Update != nil {
+				idxName := *op.Update.IndexName
+				if err := waitForDynamoDbGSIToBeActive(d.Id(), idxName, conn); err != nil {
+					return fmt.Errorf("Error waiting for DynamoDB GSI %q to be updated: %s", idxName, err)
 				}
-
-				if capacityUpdated {
-					update := &dynamodb.GlobalSecondaryIndexUpdate{
-						Update: &dynamodb.UpdateGlobalSecondaryIndexAction{
-							IndexName: aws.String(gsidata["name"].(string)),
-							ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-								WriteCapacityUnits: aws.Int64(int64(gsiWriteCapacity)),
-								ReadCapacityUnits:  aws.Int64(int64(gsiReadCapacity)),
-							},
-						},
-					}
-					updates = append(updates, update)
-
-				}
-
-				if len(updates) > 0 {
-
-					req := &dynamodb.UpdateTableInput{
-						TableName: aws.String(d.Id()),
-					}
-
-					req.GlobalSecondaryIndexUpdates = updates
-
-					log.Printf("[DEBUG] Updating GSI read / write capacity on %s", d.Id())
-					_, err := dynamodbconn.UpdateTable(req)
-
-					if err != nil {
-						log.Printf("[DEBUG] Error updating table: %s", err)
-						return err
-					}
-
-					if err := waitForGSIToBeActive(d.Id(), gsiName, meta); err != nil {
-						return errwrap.Wrapf("Error waiting for Dynamo DB GSI to be active: {{err}}", err)
-					}
+			}
+			if op.Delete != nil {
+				idxName := *op.Delete.IndexName
+				if err := waitForDynamoDbGSIToBeDeleted(d.Id(), idxName, conn); err != nil {
+					return fmt.Errorf("Error waiting for DynamoDB GSI %q to be deleted: %s", idxName, err)
 				}
 			}
 		}
 
+		if err := waitForDynamoDbTableToBeActive(d.Id(), d.Timeout(schema.TimeoutUpdate), conn); err != nil {
+			return fmt.Errorf("Error waiting for DynamoDB Table op: %s", err)
+		}
 	}
 
 	if d.HasChange("ttl") {
-		if err := updateTimeToLive(d, meta); err != nil {
+		if err := updateDynamoDbTimeToLive(d, conn); err != nil {
 			log.Printf("[DEBUG] Error updating table TimeToLive: %s", err)
 			return err
 		}
 	}
 
-	// Update tags
-	if err := setTagsDynamoDb(dynamodbconn, d); err != nil {
-		return err
+	if d.HasChange("tags") {
+		if err := setTagsDynamoDb(conn, d); err != nil {
+			return err
+		}
 	}
 
 	return resourceAwsDynamoDbTableRead(d, meta)
 }
 
-func updateTimeToLive(d *schema.ResourceData, meta interface{}) error {
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
-
-	if ttl, ok := d.GetOk("ttl"); ok {
-
-		timeToLiveSet := ttl.(*schema.Set)
-
-		spec := &dynamodb.TimeToLiveSpecification{}
-
-		timeToLive := timeToLiveSet.List()[0].(map[string]interface{})
-		spec.AttributeName = aws.String(timeToLive["attribute_name"].(string))
-		spec.Enabled = aws.Bool(timeToLive["enabled"].(bool))
-
-		req := &dynamodb.UpdateTimeToLiveInput{
-			TableName:               aws.String(d.Id()),
-			TimeToLiveSpecification: spec,
-		}
-
-		_, err := dynamodbconn.UpdateTimeToLive(req)
-
-		if err != nil {
-			// If ttl was not set within the .tf file before and has now been added we still run this command to update
-			// But there has been no change so lets continue
-			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ValidationException" && awsErr.Message() == "TimeToLive is already disabled" {
-				return nil
-			}
-			log.Printf("[DEBUG] Error updating TimeToLive on table: %s", err)
-			return err
-		}
-
-		log.Printf("[DEBUG] Updated TimeToLive on table")
-
-		if err := waitForTimeToLiveUpdateToBeCompleted(d.Id(), timeToLive["enabled"].(bool), meta); err != nil {
-			return errwrap.Wrapf("Error waiting for Dynamo DB TimeToLive to be updated: {{err}}", err)
-		}
-	}
-
-	return nil
-}
-
 func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) error {
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
-	log.Printf("[DEBUG] Loading data for DynamoDB table '%s'", d.Id())
-	req := &dynamodb.DescribeTableInput{
-		TableName: aws.String(d.Id()),
-	}
+	conn := meta.(*AWSClient).dynamodbconn
 
-	result, err := dynamodbconn.DescribeTable(req)
+	result, err := conn.DescribeTable(&dynamodb.DescribeTableInput{
+		TableName: aws.String(d.Id()),
+	})
 
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" {
+		if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "") {
 			log.Printf("[WARN] Dynamodb Table (%s) not found, error code (404)", d.Id())
 			d.SetId("")
 			return nil
@@ -711,444 +399,265 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	return flattenAwsDynamoDbTableResource(d, meta, result.Table)
-}
-
-func flattenAwsDynamoDbTableResource(d *schema.ResourceData, meta interface{}, table *dynamodb.TableDescription) error {
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
-
-	d.Set("write_capacity", table.ProvisionedThroughput.WriteCapacityUnits)
-	d.Set("read_capacity", table.ProvisionedThroughput.ReadCapacityUnits)
-
-	attributes := []interface{}{}
-	for _, attrdef := range table.AttributeDefinitions {
-		attribute := map[string]string{
-			"name": *attrdef.AttributeName,
-			"type": *attrdef.AttributeType,
-		}
-		attributes = append(attributes, attribute)
-		log.Printf("[DEBUG] Added Attribute: %s", attribute["name"])
-	}
-
-	d.Set("attribute", attributes)
-	d.Set("name", table.TableName)
-
-	for _, attribute := range table.KeySchema {
-		if *attribute.KeyType == "HASH" {
-			d.Set("hash_key", attribute.AttributeName)
-		}
-
-		if *attribute.KeyType == "RANGE" {
-			d.Set("range_key", attribute.AttributeName)
-		}
-	}
-
-	lsiList := make([]map[string]interface{}, 0, len(table.LocalSecondaryIndexes))
-	for _, lsiObject := range table.LocalSecondaryIndexes {
-		lsi := map[string]interface{}{
-			"name":            *lsiObject.IndexName,
-			"projection_type": *lsiObject.Projection.ProjectionType,
-		}
-
-		for _, attribute := range lsiObject.KeySchema {
-
-			if *attribute.KeyType == "RANGE" {
-				lsi["range_key"] = *attribute.AttributeName
-			}
-		}
-		nkaList := make([]string, len(lsiObject.Projection.NonKeyAttributes))
-		for _, nka := range lsiObject.Projection.NonKeyAttributes {
-			nkaList = append(nkaList, *nka)
-		}
-		lsi["non_key_attributes"] = nkaList
-
-		lsiList = append(lsiList, lsi)
-	}
-
-	err := d.Set("local_secondary_index", lsiList)
+	err = flattenAwsDynamoDbTableResource(d, result.Table)
 	if err != nil {
 		return err
 	}
 
-	gsiList := make([]map[string]interface{}, 0, len(table.GlobalSecondaryIndexes))
-	for _, gsiObject := range table.GlobalSecondaryIndexes {
-		gsi := map[string]interface{}{
-			"write_capacity": *gsiObject.ProvisionedThroughput.WriteCapacityUnits,
-			"read_capacity":  *gsiObject.ProvisionedThroughput.ReadCapacityUnits,
-			"name":           *gsiObject.IndexName,
-		}
-
-		for _, attribute := range gsiObject.KeySchema {
-			if *attribute.KeyType == "HASH" {
-				gsi["hash_key"] = *attribute.AttributeName
-			}
-
-			if *attribute.KeyType == "RANGE" {
-				gsi["range_key"] = *attribute.AttributeName
-			}
-		}
-
-		gsi["projection_type"] = *(gsiObject.Projection.ProjectionType)
-
-		nonKeyAttrs := make([]string, 0, len(gsiObject.Projection.NonKeyAttributes))
-		for _, nonKeyAttr := range gsiObject.Projection.NonKeyAttributes {
-			nonKeyAttrs = append(nonKeyAttrs, *nonKeyAttr)
-		}
-		gsi["non_key_attributes"] = nonKeyAttrs
-
-		gsiList = append(gsiList, gsi)
-		log.Printf("[DEBUG] Added GSI: %s - Read: %d / Write: %d", gsi["name"], gsi["read_capacity"], gsi["write_capacity"])
-	}
-
-	if table.StreamSpecification != nil {
-		d.Set("stream_view_type", table.StreamSpecification.StreamViewType)
-		d.Set("stream_enabled", table.StreamSpecification.StreamEnabled)
-		d.Set("stream_arn", table.LatestStreamArn)
-		d.Set("stream_label", table.LatestStreamLabel)
-	}
-
-	err = d.Set("global_secondary_index", gsiList)
-	if err != nil {
-		return err
-	}
-
-	d.Set("arn", table.TableArn)
-
-	timeToLiveReq := &dynamodb.DescribeTimeToLiveInput{
+	ttlOut, err := conn.DescribeTimeToLive(&dynamodb.DescribeTimeToLiveInput{
 		TableName: aws.String(d.Id()),
-	}
-	timeToLiveOutput, err := dynamodbconn.DescribeTimeToLive(timeToLiveReq)
+	})
 	if err != nil {
 		return err
 	}
-
-	if timeToLiveOutput.TimeToLiveDescription != nil && timeToLiveOutput.TimeToLiveDescription.AttributeName != nil {
-		timeToLiveList := []interface{}{
-			map[string]interface{}{
-				"attribute_name": *timeToLiveOutput.TimeToLiveDescription.AttributeName,
-				"enabled":        (*timeToLiveOutput.TimeToLiveDescription.TimeToLiveStatus == dynamodb.TimeToLiveStatusEnabled),
-			},
-		}
-		err := d.Set("ttl", timeToLiveList)
+	if ttlOut.TimeToLiveDescription != nil {
+		err := d.Set("ttl", flattenDynamoDbTtl(ttlOut.TimeToLiveDescription))
 		if err != nil {
 			return err
 		}
-
-		log.Printf("[DEBUG] Loaded TimeToLive data for DynamoDB table '%s'", d.Id())
 	}
 
-	tags, err := readTableTags(d, meta)
+	tags, err := readDynamoDbTableTags(d.Get("arn").(string), conn)
 	if err != nil {
 		return err
 	}
-	if len(tags) != 0 {
-		d.Set("tags", tags)
-	}
+	d.Set("tags", tags)
 
 	return nil
 }
 
 func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) error {
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
+	conn := meta.(*AWSClient).dynamodbconn
 
 	log.Printf("[DEBUG] DynamoDB delete table: %s", d.Id())
 
-	err := resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		_, err := dynamodbconn.DeleteTable(&dynamodb.DeleteTableInput{
-			TableName: aws.String(d.Id()),
-		})
-		if err != nil {
-			// Table is already deleted
-			if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "Requested resource not found: Table: ") {
-				return nil
-			}
-			// This logic handles multiple scenarios in the DynamoDB API:
-			// 1. Updating a table immediately before deletion may return:
-			//    ResourceInUseException: Attempt to change a resource which is still in use: Table is being updated:
-			// 2. Removing a table from a DynamoDB global table may return:
-			//    ResourceInUseException: Attempt to change a resource which is still in use: Table is being deleted:
-			if isAWSErr(err, dynamodb.ErrCodeResourceInUseException, "") {
-				return resource.RetryableError(err)
-			}
-			// Unknown error
-			return resource.NonRetryableError(err)
-		}
-
-		return nil
+	_, err := conn.DeleteTable(&dynamodb.DeleteTableInput{
+		TableName: aws.String(d.Id()),
 	})
-
-	// check error from retry
 	if err != nil {
+		if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "Requested resource not found: Table: ") {
+			return nil
+		}
 		return err
 	}
 
-	log.Println("[INFO] Waiting for DynamoDB Table to be destroyed")
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{
 			dynamodb.TableStatusActive,
-			dynamodb.TableStatusCreating,
 			dynamodb.TableStatusDeleting,
-			dynamodb.TableStatusUpdating,
 		},
-		Target:     []string{},
-		Refresh:    resourceAwsDynamoDbTableStateRefreshFunc(d, meta),
-		Timeout:    d.Timeout(schema.TimeoutDelete),
-		MinTimeout: 10 * time.Second,
+		Target:  []string{},
+		Timeout: d.Timeout(schema.TimeoutDelete),
+		Refresh: func() (interface{}, string, error) {
+			out, err := conn.DescribeTable(&dynamodb.DescribeTableInput{
+				TableName: aws.String(d.Id()),
+			})
+			if err != nil {
+				if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "") {
+					return nil, "", nil
+				}
+
+				return 42, "", err
+			}
+			table := out.Table
+
+			return table, *table.TableStatus, nil
+		},
 	}
 	_, err = stateConf.WaitForState()
 	return err
 }
 
-func resourceAwsDynamoDbTableRetrieve(d *schema.ResourceData, meta interface{}) (*dynamodb.TableDescription, error) {
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
+func updateDynamoDbTimeToLive(d *schema.ResourceData, conn *dynamodb.DynamoDB) error {
+	toBeEnabled := false
+	attributeName := ""
 
-	input := &dynamodb.DescribeTableInput{
-		TableName: aws.String(d.Id()),
+	o, n := d.GetChange("ttl")
+	newTtl, ok := n.(*schema.Set)
+	blockExists := ok && newTtl.Len() > 0
+
+	if blockExists {
+		ttlList := newTtl.List()
+		ttlMap := ttlList[0].(map[string]interface{})
+		attributeName = ttlMap["attribute_name"].(string)
+		toBeEnabled = ttlMap["enabled"].(bool)
+
+	} else if !d.IsNewResource() {
+		oldTtlList := o.(*schema.Set).List()
+		ttlMap := oldTtlList[0].(map[string]interface{})
+		attributeName = ttlMap["attribute_name"].(string)
+		toBeEnabled = false
 	}
 
-	log.Printf("[DEBUG] Retrieving DynamoDB Table: %#v", input)
-
-	output, err := dynamodbconn.DescribeTable(input)
-	if err != nil {
-		if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "") {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("Error retrieving DynamoDB Table: %s", err)
-	}
-
-	return output.Table, nil
-}
-
-func resourceAwsDynamoDbTableStateRefreshFunc(
-	d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		td, err := resourceAwsDynamoDbTableRetrieve(d, meta)
-
+	if attributeName != "" {
+		_, err := conn.UpdateTimeToLive(&dynamodb.UpdateTimeToLiveInput{
+			TableName: aws.String(d.Id()),
+			TimeToLiveSpecification: &dynamodb.TimeToLiveSpecification{
+				AttributeName: aws.String(attributeName),
+				Enabled:       aws.Bool(toBeEnabled),
+			},
+		})
 		if err != nil {
-			log.Printf("Error on retrieving DynamoDB Table when waiting: %s", err)
-			return nil, "", err
-		}
-
-		if td == nil {
-			return nil, "", nil
-		}
-
-		if td.TableStatus != nil {
-			log.Printf("[DEBUG] Status for DynamoDB Table %s: %s", d.Id(), *td.TableStatus)
-		}
-
-		return td, *td.TableStatus, nil
-	}
-}
-
-func createGSIFromData(data *map[string]interface{}) dynamodb.GlobalSecondaryIndex {
-
-	projection := &dynamodb.Projection{
-		ProjectionType: aws.String((*data)["projection_type"].(string)),
-	}
-
-	if (*data)["projection_type"] == "INCLUDE" {
-		non_key_attributes := []*string{}
-		for _, attr := range (*data)["non_key_attributes"].([]interface{}) {
-			non_key_attributes = append(non_key_attributes, aws.String(attr.(string)))
-		}
-		projection.NonKeyAttributes = non_key_attributes
-	}
-
-	writeCapacity := (*data)["write_capacity"].(int)
-	readCapacity := (*data)["read_capacity"].(int)
-
-	key_schema := []*dynamodb.KeySchemaElement{
-		{
-			AttributeName: aws.String((*data)["hash_key"].(string)),
-			KeyType:       aws.String("HASH"),
-		},
-	}
-
-	range_key_name := (*data)["range_key"]
-	if range_key_name != "" {
-		range_key_element := &dynamodb.KeySchemaElement{
-			AttributeName: aws.String(range_key_name.(string)),
-			KeyType:       aws.String("RANGE"),
-		}
-
-		key_schema = append(key_schema, range_key_element)
-	}
-
-	return dynamodb.GlobalSecondaryIndex{
-		IndexName:  aws.String((*data)["name"].(string)),
-		KeySchema:  key_schema,
-		Projection: projection,
-		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-			WriteCapacityUnits: aws.Int64(int64(writeCapacity)),
-			ReadCapacityUnits:  aws.Int64(int64(readCapacity)),
-		},
-	}
-}
-
-func getGlobalSecondaryIndex(indexName string, indexList []*dynamodb.GlobalSecondaryIndexDescription) (*dynamodb.GlobalSecondaryIndexDescription, error) {
-	for _, gsi := range indexList {
-		if *gsi.IndexName == indexName {
-			return gsi, nil
-		}
-	}
-
-	return &dynamodb.GlobalSecondaryIndexDescription{}, fmt.Errorf("Can't find a GSI by that name...")
-}
-
-func getAttributeType(d *schema.ResourceData, attributeName string) (string, error) {
-	if attributedata, ok := d.GetOk("attribute"); ok {
-		attributeSet := attributedata.(*schema.Set)
-		for _, attribute := range attributeSet.List() {
-			attr := attribute.(map[string]interface{})
-			if attr["name"] == attributeName {
-				return attr["type"].(string), nil
+			if isAWSErr(err, "ValidationException", "TimeToLive is already disabled") {
+				return nil
 			}
-		}
-	}
-
-	return "", fmt.Errorf("Unable to find an attribute named %s", attributeName)
-}
-
-func waitForGSIToBeActive(tableName string, gsiName string, meta interface{}) error {
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
-	req := &dynamodb.DescribeTableInput{
-		TableName: aws.String(tableName),
-	}
-
-	activeIndex := false
-
-	for activeIndex == false {
-
-		result, err := dynamodbconn.DescribeTable(req)
-
-		if err != nil {
 			return err
 		}
 
-		table := result.Table
-		var targetGSI *dynamodb.GlobalSecondaryIndexDescription = nil
-
-		for _, gsi := range table.GlobalSecondaryIndexes {
-			if *gsi.IndexName == gsiName {
-				targetGSI = gsi
-			}
-		}
-
-		if targetGSI != nil {
-			activeIndex = *targetGSI.IndexStatus == "ACTIVE"
-
-			if !activeIndex {
-				log.Printf("[DEBUG] Sleeping for 5 seconds for %s GSI to become active", gsiName)
-				time.Sleep(5 * time.Second)
-			}
-		} else {
-			log.Printf("[DEBUG] GSI %s did not exist, giving up", gsiName)
-			break
+		err = waitForDynamoDbTtlUpdateToBeCompleted(d.Id(), toBeEnabled, conn)
+		if err != nil {
+			return fmt.Errorf("Error waiting for DynamoDB TimeToLive to be updated: %s", err)
 		}
 	}
 
 	return nil
-
 }
 
-func waitForTableToBeActive(tableName string, meta interface{}) error {
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
-	req := &dynamodb.DescribeTableInput{
-		TableName: aws.String(tableName),
-	}
-
-	activeState := false
-
-	for activeState == false {
-		result, err := dynamodbconn.DescribeTable(req)
-
-		if err != nil {
-			return err
-		}
-
-		activeState = *result.Table.TableStatus == "ACTIVE"
-
-		// Wait for a few seconds
-		if !activeState {
-			log.Printf("[DEBUG] Sleeping for 5 seconds for table to become active")
-			time.Sleep(5 * time.Second)
-		}
-	}
-
-	return nil
-
-}
-
-func waitForTimeToLiveUpdateToBeCompleted(tableName string, enabled bool, meta interface{}) error {
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
-	req := &dynamodb.DescribeTimeToLiveInput{
-		TableName: aws.String(tableName),
-	}
-
-	stateMatched := false
-	for stateMatched == false {
-		result, err := dynamodbconn.DescribeTimeToLive(req)
-
-		if err != nil {
-			return err
-		}
-
-		if enabled {
-			stateMatched = *result.TimeToLiveDescription.TimeToLiveStatus == dynamodb.TimeToLiveStatusEnabled
-		} else {
-			stateMatched = *result.TimeToLiveDescription.TimeToLiveStatus == dynamodb.TimeToLiveStatusDisabled
-		}
-
-		// Wait for a few seconds, this may take a long time...
-		if !stateMatched {
-			log.Printf("[DEBUG] Sleeping for 5 seconds before checking TimeToLive state again")
-			time.Sleep(5 * time.Second)
-		}
-	}
-
-	log.Printf("[DEBUG] TimeToLive update complete")
-
-	return nil
-
-}
-
-func createTableTags(d *schema.ResourceData, meta interface{}) error {
-	// DynamoDB Table has to be in the ACTIVE state in order to tag the resource
-	if err := waitForTableToBeActive(d.Id(), meta); err != nil {
-		return err
-	}
-	tags := d.Get("tags").(map[string]interface{})
-	arn := d.Get("arn").(string)
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
-	req := &dynamodb.TagResourceInput{
+func readDynamoDbTableTags(arn string, conn *dynamodb.DynamoDB) (map[string]string, error) {
+	output, err := conn.ListTagsOfResource(&dynamodb.ListTagsOfResourceInput{
 		ResourceArn: aws.String(arn),
-		Tags:        tagsFromMapDynamoDb(tags),
-	}
-	_, err := dynamodbconn.TagResource(req)
-	if err != nil {
-		return fmt.Errorf("Error tagging dynamodb resource: %s", err)
-	}
-	return nil
-}
-
-func readTableTags(d *schema.ResourceData, meta interface{}) (map[string]string, error) {
-	if err := waitForTableToBeActive(d.Id(), meta); err != nil {
-		return nil, err
-	}
-	arn := d.Get("arn").(string)
-	//result := make(map[string]string)
-
-	dynamodbconn := meta.(*AWSClient).dynamodbconn
-	req := &dynamodb.ListTagsOfResourceInput{
-		ResourceArn: aws.String(arn),
-	}
-
-	output, err := dynamodbconn.ListTagsOfResource(req)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("Error reading tags from dynamodb resource: %s", err)
 	}
+
 	result := tagsToMapDynamoDb(output.Tags)
-	// TODO Read NextToken if avail
+
+	// TODO Read NextToken if available
+
 	return result, nil
+}
+
+// Waiters
+
+func waitForDynamoDbGSIToBeActive(tableName string, gsiName string, conn *dynamodb.DynamoDB) error {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{
+			dynamodb.IndexStatusCreating,
+			dynamodb.IndexStatusUpdating,
+		},
+		Target:  []string{dynamodb.IndexStatusActive},
+		Timeout: 10 * time.Minute,
+		Refresh: func() (interface{}, string, error) {
+			result, err := conn.DescribeTable(&dynamodb.DescribeTableInput{
+				TableName: aws.String(tableName),
+			})
+			if err != nil {
+				return 42, "", err
+			}
+
+			table := result.Table
+
+			// Find index
+			var targetGSI *dynamodb.GlobalSecondaryIndexDescription
+			for _, gsi := range table.GlobalSecondaryIndexes {
+				if *gsi.IndexName == gsiName {
+					targetGSI = gsi
+				}
+			}
+
+			if targetGSI != nil {
+				return table, *targetGSI.IndexStatus, nil
+			}
+
+			return nil, "", nil
+		},
+	}
+	_, err := stateConf.WaitForState()
+	return err
+}
+
+func waitForDynamoDbGSIToBeDeleted(tableName string, gsiName string, conn *dynamodb.DynamoDB) error {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{
+			dynamodb.IndexStatusActive,
+			dynamodb.IndexStatusDeleting,
+		},
+		Target:  []string{},
+		Timeout: 10 * time.Minute,
+		Refresh: func() (interface{}, string, error) {
+			result, err := conn.DescribeTable(&dynamodb.DescribeTableInput{
+				TableName: aws.String(tableName),
+			})
+			if err != nil {
+				return 42, "", err
+			}
+
+			table := result.Table
+
+			// Find index
+			var targetGSI *dynamodb.GlobalSecondaryIndexDescription
+			for _, gsi := range table.GlobalSecondaryIndexes {
+				if *gsi.IndexName == gsiName {
+					targetGSI = gsi
+				}
+			}
+
+			if targetGSI == nil {
+				return nil, "", nil
+			}
+
+			return targetGSI, *targetGSI.IndexStatus, nil
+		},
+	}
+	_, err := stateConf.WaitForState()
+	return err
+}
+
+func waitForDynamoDbTableToBeActive(tableName string, timeout time.Duration, conn *dynamodb.DynamoDB) error {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{dynamodb.TableStatusCreating, dynamodb.TableStatusUpdating},
+		Target:  []string{dynamodb.TableStatusActive},
+		Timeout: timeout,
+		Refresh: func() (interface{}, string, error) {
+			result, err := conn.DescribeTable(&dynamodb.DescribeTableInput{
+				TableName: aws.String(tableName),
+			})
+			if err != nil {
+				return 42, "", err
+			}
+
+			return result, *result.Table.TableStatus, nil
+		},
+	}
+	_, err := stateConf.WaitForState()
+
+	return err
+}
+
+func waitForDynamoDbTtlUpdateToBeCompleted(tableName string, toEnable bool, conn *dynamodb.DynamoDB) error {
+	pending := []string{
+		dynamodb.TimeToLiveStatusEnabled,
+		dynamodb.TimeToLiveStatusDisabling,
+	}
+	target := []string{dynamodb.TimeToLiveStatusDisabled}
+
+	if toEnable {
+		pending = []string{
+			dynamodb.TimeToLiveStatusDisabled,
+			dynamodb.TimeToLiveStatusEnabling,
+		}
+		target = []string{dynamodb.TimeToLiveStatusEnabled}
+	}
+
+	stateConf := &resource.StateChangeConf{
+		Pending: pending,
+		Target:  target,
+		Timeout: 10 * time.Second,
+		Refresh: func() (interface{}, string, error) {
+			result, err := conn.DescribeTimeToLive(&dynamodb.DescribeTimeToLiveInput{
+				TableName: aws.String(tableName),
+			})
+			if err != nil {
+				return 42, "", err
+			}
+
+			ttlDesc := result.TimeToLiveDescription
+
+			return result, *ttlDesc.TimeToLiveStatus, nil
+		},
+	}
+
+	_, err := stateConf.WaitForState()
+	return err
 }
