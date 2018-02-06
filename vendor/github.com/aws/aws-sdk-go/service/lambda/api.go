@@ -100,14 +100,11 @@ func (c *Lambda) AddPermissionRequest(input *AddPermissionInput) (req *request.R
 //   Lambda function access policy is limited to 20 KB.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
+//
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/AddPermission
 func (c *Lambda) AddPermission(input *AddPermissionInput) (*AddPermissionOutput, error) {
@@ -205,14 +202,6 @@ func (c *Lambda) CreateAliasRequest(input *CreateAliasInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/CreateAlias
 func (c *Lambda) CreateAlias(input *CreateAliasInput) (*AliasConfiguration, error) {
@@ -326,14 +315,6 @@ func (c *Lambda) CreateEventSourceMappingRequest(input *CreateEventSourceMapping
 //   The resource already exists.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
@@ -440,14 +421,6 @@ func (c *Lambda) CreateFunctionRequest(input *CreateFunctionInput) (req *request
 //   The resource already exists.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
@@ -542,14 +515,6 @@ func (c *Lambda) DeleteAliasRequest(input *DeleteAliasInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteAlias
 func (c *Lambda) DeleteAlias(input *DeleteAliasInput) (*DeleteAliasOutput, error) {
@@ -644,14 +609,6 @@ func (c *Lambda) DeleteEventSourceMappingRequest(input *DeleteEventSourceMapping
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteEventSourceMapping
 func (c *Lambda) DeleteEventSourceMapping(input *DeleteEventSourceMappingInput) (*EventSourceMappingConfiguration, error) {
@@ -751,14 +708,6 @@ func (c *Lambda) DeleteFunctionRequest(input *DeleteFunctionInput) (req *request
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -836,7 +785,8 @@ func (c *Lambda) DeleteFunctionConcurrencyRequest(input *DeleteFunctionConcurren
 
 // DeleteFunctionConcurrency API operation for AWS Lambda.
 //
-// Removes concurrent execution limits from this function.
+// Removes concurrent execution limits from this function. For more information,
+// see concurrent-executions.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -854,14 +804,6 @@ func (c *Lambda) DeleteFunctionConcurrencyRequest(input *DeleteFunctionConcurren
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -951,14 +893,6 @@ func (c *Lambda) GetAccountSettingsRequest(input *GetAccountSettingsInput) (req 
 //
 // Returned Error Codes:
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
@@ -1056,14 +990,6 @@ func (c *Lambda) GetAliasRequest(input *GetAliasInput) (req *request.Request, ou
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetAlias
 func (c *Lambda) GetAlias(input *GetAliasInput) (*AliasConfiguration, error) {
@@ -1157,14 +1083,6 @@ func (c *Lambda) GetEventSourceMappingRequest(input *GetEventSourceMappingInput)
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetEventSourceMapping
 func (c *Lambda) GetEventSourceMapping(input *GetEventSourceMappingInput) (*EventSourceMappingConfiguration, error) {
@@ -1262,14 +1180,6 @@ func (c *Lambda) GetFunctionRequest(input *GetFunctionInput) (req *request.Reque
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1372,14 +1282,6 @@ func (c *Lambda) GetFunctionConfigurationRequest(input *GetFunctionConfiguration
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1477,14 +1379,6 @@ func (c *Lambda) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, 
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1570,6 +1464,13 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 //
 // This operation requires permission for the lambda:InvokeFunction action.
 //
+// The TooManyRequestsException noted below will return the following: ConcurrentInvocationLimitExceeded
+// will be returned if you have no functions with reserved concurrency and have
+// exceeded your account concurrent limit or if a function without reserved
+// concurrency exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
+// will be returned when a function with reserved concurrency exceeds its configured
+// concurrency limit.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -1596,14 +1497,6 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 //   The content type of the Invoke request body is not JSON.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -1850,14 +1743,6 @@ func (c *Lambda) ListAliasesRequest(input *ListAliasesInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListAliases
 func (c *Lambda) ListAliases(input *ListAliasesInput) (*ListAliasesOutput, error) {
@@ -1966,14 +1851,6 @@ func (c *Lambda) ListEventSourceMappingsRequest(input *ListEventSourceMappingsIn
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListEventSourceMappings
 func (c *Lambda) ListEventSourceMappings(input *ListEventSourceMappingsInput) (*ListEventSourceMappingsOutput, error) {
@@ -2119,14 +1996,6 @@ func (c *Lambda) ListFunctionsRequest(input *ListFunctionsInput) (req *request.R
 //   The AWS Lambda service encountered an internal error.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
@@ -2273,14 +2142,6 @@ func (c *Lambda) ListTagsRequest(input *ListTagsInput) (req *request.Request, ou
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListTags
 func (c *Lambda) ListTags(input *ListTagsInput) (*ListTagsOutput, error) {
@@ -2372,14 +2233,6 @@ func (c *Lambda) ListVersionsByFunctionRequest(input *ListVersionsByFunctionInpu
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListVersionsByFunction
 func (c *Lambda) ListVersionsByFunction(input *ListVersionsByFunctionInput) (*ListVersionsByFunctionOutput, error) {
@@ -2474,17 +2327,14 @@ func (c *Lambda) PublishVersionRequest(input *PublishVersionInput) (req *request
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
+//
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/PublishVersion
 func (c *Lambda) PublishVersion(input *PublishVersionInput) (*FunctionConfiguration, error) {
@@ -2557,7 +2407,7 @@ func (c *Lambda) PutFunctionConcurrencyRequest(input *PutFunctionConcurrencyInpu
 // Note that Lambda automatically reserves a buffer of 100 concurrent executions
 // for functions without any reserved concurrency limit. This means if your
 // account limit is 1000, you have a total of 900 available to allocate to individual
-// functions.
+// functions. For more information, see concurrent-executions.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2580,14 +2430,6 @@ func (c *Lambda) PutFunctionConcurrencyRequest(input *PutFunctionConcurrencyInpu
 //   specified in the request does not exist.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/PutFunctionConcurrency
 func (c *Lambda) PutFunctionConcurrency(input *PutFunctionConcurrencyInput) (*PutFunctionConcurrencyOutput, error) {
@@ -2692,14 +2534,11 @@ func (c *Lambda) RemovePermissionRequest(input *RemovePermissionInput) (req *req
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
+//
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/RemovePermission
 func (c *Lambda) RemovePermission(input *RemovePermissionInput) (*RemovePermissionOutput, error) {
@@ -2794,14 +2633,6 @@ func (c *Lambda) TagResourceRequest(input *TagResourceInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/TagResource
 func (c *Lambda) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
@@ -2895,14 +2726,6 @@ func (c *Lambda) UntagResourceRequest(input *UntagResourceInput) (req *request.R
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UntagResource
 func (c *Lambda) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
@@ -2997,14 +2820,11 @@ func (c *Lambda) UpdateAliasRequest(input *UpdateAliasInput) (req *request.Reque
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
+//
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateAlias
 func (c *Lambda) UpdateAlias(input *UpdateAliasInput) (*AliasConfiguration, error) {
@@ -3111,14 +2931,6 @@ func (c *Lambda) UpdateEventSourceMappingRequest(input *UpdateEventSourceMapping
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
@@ -3220,17 +3032,14 @@ func (c *Lambda) UpdateFunctionCodeRequest(input *UpdateFunctionCodeInput) (req 
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
+//
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateFunctionCode
 func (c *Lambda) UpdateFunctionCode(input *UpdateFunctionCodeInput) (*FunctionConfiguration, error) {
@@ -3331,17 +3140,14 @@ func (c *Lambda) UpdateFunctionConfigurationRequest(input *UpdateFunctionConfigu
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
-//   You will get this exception for the following reasons. ConcurrentInvocationLimitExceeded
-//   is returned if you have no functions with reserved-concurrency and have exceeded
-//   your account concurrent limit or if a function without reserved concurrency
-//   exceeds the account's unreserved concurrency limit. ReservedFunctionConcurrentInvocationLimitExceeded
-//   is returned when a function with reserved concurrency exceeds its configured
-//   concurrent limit. CallerRateLimitExceeded is returned when your account limit
-//   is exceeded and you have not reserved concurrency on any function. For more
-//   information, see concurrent-executions
 //
 //   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
+//
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateFunctionConfiguration
 func (c *Lambda) UpdateFunctionConfiguration(input *UpdateFunctionConfigurationInput) (*FunctionConfiguration, error) {
@@ -3391,7 +3197,7 @@ type AccountLimit struct {
 	TotalCodeSize *int64 `type:"long"`
 
 	// The number of concurrent executions available to functions that do not have
-	// concurrency limits set.
+	// concurrency limits set. For more information, see concurrent-executions.
 	UnreservedConcurrentExecutions *int64 `type:"integer"`
 }
 
@@ -3527,6 +3333,13 @@ type AddPermissionInput struct {
 	// arn:aws:lambda:aws-region:acct-id:function:function-name
 	Qualifier *string `location:"querystring" locationName:"Qualifier" min:"1" type:"string"`
 
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `type:"string"`
+
 	// This parameter is used for S3 and SES. The AWS account ID (without a hyphen)
 	// of the source owner. For example, if the SourceArn identifies a bucket, then
 	// this is the bucket owner's account ID. You can use this additional condition
@@ -3623,6 +3436,12 @@ func (s *AddPermissionInput) SetQualifier(v string) *AddPermissionInput {
 	return s
 }
 
+// SetRevisionId sets the RevisionId field's value.
+func (s *AddPermissionInput) SetRevisionId(v string) *AddPermissionInput {
+	s.RevisionId = &v
+	return s
+}
+
 // SetSourceAccount sets the SourceAccount field's value.
 func (s *AddPermissionInput) SetSourceAccount(v string) *AddPermissionInput {
 	s.SourceAccount = &v
@@ -3686,6 +3505,9 @@ type AliasConfiguration struct {
 	// Alias name.
 	Name *string `min:"1" type:"string"`
 
+	// Represents the latest updated revision of the function or alias.
+	RevisionId *string `type:"string"`
+
 	// Specifies an additional function versions the alias points to, allowing you
 	// to dictate what percentage of traffic will invoke each version. For more
 	// information, see lambda-traffic-shifting-using-aliases.
@@ -3726,6 +3548,12 @@ func (s *AliasConfiguration) SetName(v string) *AliasConfiguration {
 	return s
 }
 
+// SetRevisionId sets the RevisionId field's value.
+func (s *AliasConfiguration) SetRevisionId(v string) *AliasConfiguration {
+	s.RevisionId = &v
+	return s
+}
+
 // SetRoutingConfig sets the RoutingConfig field's value.
 func (s *AliasConfiguration) SetRoutingConfig(v *AliasRoutingConfiguration) *AliasConfiguration {
 	s.RoutingConfig = v
@@ -3738,9 +3566,9 @@ func (s *AliasConfiguration) SetRoutingConfig(v *AliasRoutingConfiguration) *Ali
 type AliasRoutingConfiguration struct {
 	_ struct{} `type:"structure"`
 
-	// Set this property value to dictate what percentage of traffic will invoke
-	// the updated function version. If set to an empty string, 100 percent of traffic
-	// will invoke function-version.
+	// Set this value to dictate what percentage of traffic will invoke the updated
+	// function version. If set to an empty string, 100 percent of traffic will
+	// invoke function-version. For more information, see lambda-traffic-shifting-using-aliases.
 	AdditionalVersionWeights map[string]*float64 `type:"map"`
 }
 
@@ -4057,7 +3885,7 @@ type CreateFunctionInput struct {
 	// Node v0.10.42 is currently marked as deprecated. You must migrate existing
 	// functions to the newer Node.js runtime versions available on AWS Lambda (nodejs4.3
 	// or nodejs6.10) as soon as possible. Failure to do so will result in an invalid
-	// parmaeter error being returned. Note that you will have to follow this procedure
+	// parameter error being returned. Note that you will have to follow this procedure
 	// for each region that contains functions written in the Node v0.10.42 runtime.
 	//
 	// Runtime is a required field
@@ -4368,6 +4196,7 @@ type DeleteFunctionConcurrencyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the function you are removing concurrent execution limits from.
+	// For more information, see concurrent-executions.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -4865,6 +4694,9 @@ type FunctionConfiguration struct {
 	// of 64 MB.
 	MemorySize *int64 `min:"128" type:"integer"`
 
+	// Represents the latest updated revision of the function or alias.
+	RevisionId *string `type:"string"`
+
 	// The Amazon Resource Name (ARN) of the IAM role that Lambda assumes when it
 	// executes your function to access any other Amazon Web Services (AWS) resources.
 	Role *string `type:"string"`
@@ -4966,6 +4798,12 @@ func (s *FunctionConfiguration) SetMasterArn(v string) *FunctionConfiguration {
 // SetMemorySize sets the MemorySize field's value.
 func (s *FunctionConfiguration) SetMemorySize(v int64) *FunctionConfiguration {
 	s.MemorySize = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *FunctionConfiguration) SetRevisionId(v string) *FunctionConfiguration {
+	s.RevisionId = &v
 	return s
 }
 
@@ -5299,7 +5137,8 @@ type GetFunctionOutput struct {
 	// The object for the Lambda function location.
 	Code *FunctionCodeLocation `type:"structure"`
 
-	// The concurrent execution limit set for this function.
+	// The concurrent execution limit set for this function. For more information,
+	// see concurrent-executions.
 	Concurrency *PutFunctionConcurrencyOutput `type:"structure"`
 
 	// A complex type that describes function metadata.
@@ -5417,6 +5256,9 @@ type GetPolicyOutput struct {
 	// returns the same as a string using a backslash ("\") as an escape character
 	// in the JSON.
 	Policy *string `type:"string"`
+
+	// Represents the latest updated revision of the function or alias.
+	RevisionId *string `type:"string"`
 }
 
 // String returns the string representation
@@ -5432,6 +5274,12 @@ func (s GetPolicyOutput) GoString() string {
 // SetPolicy sets the Policy field's value.
 func (s *GetPolicyOutput) SetPolicy(v string) *GetPolicyOutput {
 	s.Policy = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *GetPolicyOutput) SetRevisionId(v string) *GetPolicyOutput {
+	s.RevisionId = &v
 	return s
 }
 
@@ -5643,7 +5491,7 @@ type InvokeOutput struct {
 	_ struct{} `type:"structure" payload:"Payload"`
 
 	// The function version that has been executed. This value is returned only
-	// if the invocation type is RequestResponse.
+	// if the invocation type is RequestResponse. For more information, see lambda-traffic-shifting-using-aliases.
 	ExecutedVersion *string `location:"header" locationName:"X-Amz-Executed-Version" min:"1" type:"string"`
 
 	// Indicates whether an error occurred while executing the Lambda function.
@@ -6247,6 +6095,13 @@ type PublishVersionInput struct {
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
+
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `type:"string"`
 }
 
 // String returns the string representation
@@ -6293,16 +6148,24 @@ func (s *PublishVersionInput) SetFunctionName(v string) *PublishVersionInput {
 	return s
 }
 
+// SetRevisionId sets the RevisionId field's value.
+func (s *PublishVersionInput) SetRevisionId(v string) *PublishVersionInput {
+	s.RevisionId = &v
+	return s
+}
+
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/PutFunctionConcurrencyRequest
 type PutFunctionConcurrencyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the function you are setting concurrent execution limits on.
+	// For more information, see concurrent-executions.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
 
-	// The concurrent execution limit reserved for this function.
+	// The concurrent execution limit reserved for this function. For more information,
+	// see concurrent-executions.
 	//
 	// ReservedConcurrentExecutions is a required field
 	ReservedConcurrentExecutions *int64 `type:"integer" required:"true"`
@@ -6353,7 +6216,8 @@ func (s *PutFunctionConcurrencyInput) SetReservedConcurrentExecutions(v int64) *
 type PutFunctionConcurrencyOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The number of concurrent executions reserved for this function.
+	// The number of concurrent executions reserved for this function. For more
+	// information, see concurrent-executions.
 	ReservedConcurrentExecutions *int64 `type:"integer"`
 }
 
@@ -6393,6 +6257,13 @@ type RemovePermissionInput struct {
 	// parameter, the API removes permission associated with the unqualified function
 	// ARN.
 	Qualifier *string `location:"querystring" locationName:"Qualifier" min:"1" type:"string"`
+
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `location:"querystring" locationName:"RevisionId" type:"string"`
 
 	// Statement ID of the permission to remove.
 	//
@@ -6444,6 +6315,12 @@ func (s *RemovePermissionInput) SetFunctionName(v string) *RemovePermissionInput
 // SetQualifier sets the Qualifier field's value.
 func (s *RemovePermissionInput) SetQualifier(v string) *RemovePermissionInput {
 	s.Qualifier = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *RemovePermissionInput) SetRevisionId(v string) *RemovePermissionInput {
+	s.RevisionId = &v
 	return s
 }
 
@@ -6681,6 +6558,13 @@ type UpdateAliasInput struct {
 	// Name is a required field
 	Name *string `location:"uri" locationName:"Name" min:"1" type:"string" required:"true"`
 
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `type:"string"`
+
 	// Specifies an additional version your alias can point to, allowing you to
 	// dictate what percentage of traffic will invoke each version. For more information,
 	// see lambda-traffic-shifting-using-aliases.
@@ -6743,6 +6627,12 @@ func (s *UpdateAliasInput) SetFunctionVersion(v string) *UpdateAliasInput {
 // SetName sets the Name field's value.
 func (s *UpdateAliasInput) SetName(v string) *UpdateAliasInput {
 	s.Name = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *UpdateAliasInput) SetRevisionId(v string) *UpdateAliasInput {
+	s.RevisionId = &v
 	return s
 }
 
@@ -6867,6 +6757,13 @@ type UpdateFunctionCodeInput struct {
 	// function and publish a version as an atomic operation.
 	Publish *bool `type:"boolean"`
 
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `type:"string"`
+
 	// Amazon S3 bucket name where the .zip file containing your deployment package
 	// is stored. This bucket must reside in the same AWS Region where you are creating
 	// the Lambda function.
@@ -6942,6 +6839,12 @@ func (s *UpdateFunctionCodeInput) SetPublish(v bool) *UpdateFunctionCodeInput {
 	return s
 }
 
+// SetRevisionId sets the RevisionId field's value.
+func (s *UpdateFunctionCodeInput) SetRevisionId(v string) *UpdateFunctionCodeInput {
+	s.RevisionId = &v
+	return s
+}
+
 // SetS3Bucket sets the S3Bucket field's value.
 func (s *UpdateFunctionCodeInput) SetS3Bucket(v string) *UpdateFunctionCodeInput {
 	s.S3Bucket = &v
@@ -7008,6 +6911,13 @@ type UpdateFunctionConfigurationInput struct {
 	// function. The default value is 128 MB. The value must be a multiple of 64
 	// MB.
 	MemorySize *int64 `min:"128" type:"integer"`
+
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `type:"string"`
 
 	// The Amazon Resource Name (ARN) of the IAM role that Lambda will assume when
 	// it executes your function.
@@ -7114,6 +7024,12 @@ func (s *UpdateFunctionConfigurationInput) SetKMSKeyArn(v string) *UpdateFunctio
 // SetMemorySize sets the MemorySize field's value.
 func (s *UpdateFunctionConfigurationInput) SetMemorySize(v int64) *UpdateFunctionConfigurationInput {
 	s.MemorySize = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *UpdateFunctionConfigurationInput) SetRevisionId(v string) *UpdateFunctionConfigurationInput {
+	s.RevisionId = &v
 	return s
 }
 
@@ -7284,8 +7200,14 @@ const (
 	// RuntimeDotnetcore10 is a Runtime enum value
 	RuntimeDotnetcore10 = "dotnetcore1.0"
 
+	// RuntimeDotnetcore20 is a Runtime enum value
+	RuntimeDotnetcore20 = "dotnetcore2.0"
+
 	// RuntimeNodejs43Edge is a Runtime enum value
 	RuntimeNodejs43Edge = "nodejs4.3-edge"
+
+	// RuntimeGo1X is a Runtime enum value
+	RuntimeGo1X = "go1.x"
 )
 
 const (
