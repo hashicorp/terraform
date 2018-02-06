@@ -101,6 +101,11 @@ func (c *Lambda) AddPermissionRequest(input *AddPermissionInput) (req *request.R
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/AddPermission
 func (c *Lambda) AddPermission(input *AddPermissionInput) (*AddPermissionOutput, error) {
 	req, out := c.AddPermissionRequest(input)
@@ -2326,6 +2331,11 @@ func (c *Lambda) PublishVersionRequest(input *PublishVersionInput) (req *request
 //   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
 //
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/PublishVersion
 func (c *Lambda) PublishVersion(input *PublishVersionInput) (*FunctionConfiguration, error) {
 	req, out := c.PublishVersionRequest(input)
@@ -2524,6 +2534,11 @@ func (c *Lambda) RemovePermissionRequest(input *RemovePermissionInput) (req *req
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/RemovePermission
 func (c *Lambda) RemovePermission(input *RemovePermissionInput) (*RemovePermissionOutput, error) {
@@ -2806,6 +2821,11 @@ func (c *Lambda) UpdateAliasRequest(input *UpdateAliasInput) (req *request.Reque
 //
 //   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateAlias
 func (c *Lambda) UpdateAlias(input *UpdateAliasInput) (*AliasConfiguration, error) {
 	req, out := c.UpdateAliasRequest(input)
@@ -3016,6 +3036,11 @@ func (c *Lambda) UpdateFunctionCodeRequest(input *UpdateFunctionCodeInput) (req 
 //   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
 //
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateFunctionCode
 func (c *Lambda) UpdateFunctionCode(input *UpdateFunctionCodeInput) (*FunctionConfiguration, error) {
 	req, out := c.UpdateFunctionCodeRequest(input)
@@ -3118,6 +3143,11 @@ func (c *Lambda) UpdateFunctionConfigurationRequest(input *UpdateFunctionConfigu
 //
 //   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
+//
+//   * ErrCodePreconditionFailedException "PreconditionFailedException"
+//   The RevisionId provided does not match the latest RevisionId for the Lambda
+//   function or alias. Call the GetFunction or the GetAlias API to retrieve the
+//   latest RevisionId for your resource.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateFunctionConfiguration
 func (c *Lambda) UpdateFunctionConfiguration(input *UpdateFunctionConfigurationInput) (*FunctionConfiguration, error) {
@@ -3303,6 +3333,13 @@ type AddPermissionInput struct {
 	// arn:aws:lambda:aws-region:acct-id:function:function-name
 	Qualifier *string `location:"querystring" locationName:"Qualifier" min:"1" type:"string"`
 
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `type:"string"`
+
 	// This parameter is used for S3 and SES. The AWS account ID (without a hyphen)
 	// of the source owner. For example, if the SourceArn identifies a bucket, then
 	// this is the bucket owner's account ID. You can use this additional condition
@@ -3399,6 +3436,12 @@ func (s *AddPermissionInput) SetQualifier(v string) *AddPermissionInput {
 	return s
 }
 
+// SetRevisionId sets the RevisionId field's value.
+func (s *AddPermissionInput) SetRevisionId(v string) *AddPermissionInput {
+	s.RevisionId = &v
+	return s
+}
+
 // SetSourceAccount sets the SourceAccount field's value.
 func (s *AddPermissionInput) SetSourceAccount(v string) *AddPermissionInput {
 	s.SourceAccount = &v
@@ -3462,6 +3505,9 @@ type AliasConfiguration struct {
 	// Alias name.
 	Name *string `min:"1" type:"string"`
 
+	// Represents the latest updated revision of the function or alias.
+	RevisionId *string `type:"string"`
+
 	// Specifies an additional function versions the alias points to, allowing you
 	// to dictate what percentage of traffic will invoke each version. For more
 	// information, see lambda-traffic-shifting-using-aliases.
@@ -3499,6 +3545,12 @@ func (s *AliasConfiguration) SetFunctionVersion(v string) *AliasConfiguration {
 // SetName sets the Name field's value.
 func (s *AliasConfiguration) SetName(v string) *AliasConfiguration {
 	s.Name = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *AliasConfiguration) SetRevisionId(v string) *AliasConfiguration {
+	s.RevisionId = &v
 	return s
 }
 
@@ -3833,7 +3885,7 @@ type CreateFunctionInput struct {
 	// Node v0.10.42 is currently marked as deprecated. You must migrate existing
 	// functions to the newer Node.js runtime versions available on AWS Lambda (nodejs4.3
 	// or nodejs6.10) as soon as possible. Failure to do so will result in an invalid
-	// parmaeter error being returned. Note that you will have to follow this procedure
+	// parameter error being returned. Note that you will have to follow this procedure
 	// for each region that contains functions written in the Node v0.10.42 runtime.
 	//
 	// Runtime is a required field
@@ -4642,6 +4694,9 @@ type FunctionConfiguration struct {
 	// of 64 MB.
 	MemorySize *int64 `min:"128" type:"integer"`
 
+	// Represents the latest updated revision of the function or alias.
+	RevisionId *string `type:"string"`
+
 	// The Amazon Resource Name (ARN) of the IAM role that Lambda assumes when it
 	// executes your function to access any other Amazon Web Services (AWS) resources.
 	Role *string `type:"string"`
@@ -4743,6 +4798,12 @@ func (s *FunctionConfiguration) SetMasterArn(v string) *FunctionConfiguration {
 // SetMemorySize sets the MemorySize field's value.
 func (s *FunctionConfiguration) SetMemorySize(v int64) *FunctionConfiguration {
 	s.MemorySize = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *FunctionConfiguration) SetRevisionId(v string) *FunctionConfiguration {
+	s.RevisionId = &v
 	return s
 }
 
@@ -5195,6 +5256,9 @@ type GetPolicyOutput struct {
 	// returns the same as a string using a backslash ("\") as an escape character
 	// in the JSON.
 	Policy *string `type:"string"`
+
+	// Represents the latest updated revision of the function or alias.
+	RevisionId *string `type:"string"`
 }
 
 // String returns the string representation
@@ -5210,6 +5274,12 @@ func (s GetPolicyOutput) GoString() string {
 // SetPolicy sets the Policy field's value.
 func (s *GetPolicyOutput) SetPolicy(v string) *GetPolicyOutput {
 	s.Policy = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *GetPolicyOutput) SetRevisionId(v string) *GetPolicyOutput {
+	s.RevisionId = &v
 	return s
 }
 
@@ -6025,6 +6095,13 @@ type PublishVersionInput struct {
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
+
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `type:"string"`
 }
 
 // String returns the string representation
@@ -6068,6 +6145,12 @@ func (s *PublishVersionInput) SetDescription(v string) *PublishVersionInput {
 // SetFunctionName sets the FunctionName field's value.
 func (s *PublishVersionInput) SetFunctionName(v string) *PublishVersionInput {
 	s.FunctionName = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *PublishVersionInput) SetRevisionId(v string) *PublishVersionInput {
+	s.RevisionId = &v
 	return s
 }
 
@@ -6175,6 +6258,13 @@ type RemovePermissionInput struct {
 	// ARN.
 	Qualifier *string `location:"querystring" locationName:"Qualifier" min:"1" type:"string"`
 
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `location:"querystring" locationName:"RevisionId" type:"string"`
+
 	// Statement ID of the permission to remove.
 	//
 	// StatementId is a required field
@@ -6225,6 +6315,12 @@ func (s *RemovePermissionInput) SetFunctionName(v string) *RemovePermissionInput
 // SetQualifier sets the Qualifier field's value.
 func (s *RemovePermissionInput) SetQualifier(v string) *RemovePermissionInput {
 	s.Qualifier = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *RemovePermissionInput) SetRevisionId(v string) *RemovePermissionInput {
+	s.RevisionId = &v
 	return s
 }
 
@@ -6462,6 +6558,13 @@ type UpdateAliasInput struct {
 	// Name is a required field
 	Name *string `location:"uri" locationName:"Name" min:"1" type:"string" required:"true"`
 
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `type:"string"`
+
 	// Specifies an additional version your alias can point to, allowing you to
 	// dictate what percentage of traffic will invoke each version. For more information,
 	// see lambda-traffic-shifting-using-aliases.
@@ -6524,6 +6627,12 @@ func (s *UpdateAliasInput) SetFunctionVersion(v string) *UpdateAliasInput {
 // SetName sets the Name field's value.
 func (s *UpdateAliasInput) SetName(v string) *UpdateAliasInput {
 	s.Name = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *UpdateAliasInput) SetRevisionId(v string) *UpdateAliasInput {
+	s.RevisionId = &v
 	return s
 }
 
@@ -6648,6 +6757,13 @@ type UpdateFunctionCodeInput struct {
 	// function and publish a version as an atomic operation.
 	Publish *bool `type:"boolean"`
 
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `type:"string"`
+
 	// Amazon S3 bucket name where the .zip file containing your deployment package
 	// is stored. This bucket must reside in the same AWS Region where you are creating
 	// the Lambda function.
@@ -6723,6 +6839,12 @@ func (s *UpdateFunctionCodeInput) SetPublish(v bool) *UpdateFunctionCodeInput {
 	return s
 }
 
+// SetRevisionId sets the RevisionId field's value.
+func (s *UpdateFunctionCodeInput) SetRevisionId(v string) *UpdateFunctionCodeInput {
+	s.RevisionId = &v
+	return s
+}
+
 // SetS3Bucket sets the S3Bucket field's value.
 func (s *UpdateFunctionCodeInput) SetS3Bucket(v string) *UpdateFunctionCodeInput {
 	s.S3Bucket = &v
@@ -6789,6 +6911,13 @@ type UpdateFunctionConfigurationInput struct {
 	// function. The default value is 128 MB. The value must be a multiple of 64
 	// MB.
 	MemorySize *int64 `min:"128" type:"integer"`
+
+	// An optional value you can use to ensure you are updating the latest update
+	// of the function version or alias. If the RevisionID you pass doesn't match
+	// the latest RevisionId of the function or alias, it will fail with an error
+	// message, advising you to retrieve the latest function version or alias RevisionID
+	// using either or .
+	RevisionId *string `type:"string"`
 
 	// The Amazon Resource Name (ARN) of the IAM role that Lambda will assume when
 	// it executes your function.
@@ -6895,6 +7024,12 @@ func (s *UpdateFunctionConfigurationInput) SetKMSKeyArn(v string) *UpdateFunctio
 // SetMemorySize sets the MemorySize field's value.
 func (s *UpdateFunctionConfigurationInput) SetMemorySize(v int64) *UpdateFunctionConfigurationInput {
 	s.MemorySize = &v
+	return s
+}
+
+// SetRevisionId sets the RevisionId field's value.
+func (s *UpdateFunctionConfigurationInput) SetRevisionId(v string) *UpdateFunctionConfigurationInput {
+	s.RevisionId = &v
 	return s
 }
 

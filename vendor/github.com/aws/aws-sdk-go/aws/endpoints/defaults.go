@@ -52,6 +52,7 @@ const (
 	Appstream2ServiceID                   = "appstream2"                   // Appstream2.
 	AthenaServiceID                       = "athena"                       // Athena.
 	AutoscalingServiceID                  = "autoscaling"                  // Autoscaling.
+	AutoscalingPlansServiceID             = "autoscaling-plans"            // AutoscalingPlans.
 	BatchServiceID                        = "batch"                        // Batch.
 	BudgetsServiceID                      = "budgets"                      // Budgets.
 	ClouddirectoryServiceID               = "clouddirectory"               // Clouddirectory.
@@ -370,6 +371,22 @@ var awsPartition = partition{
 				"us-west-2":      endpoint{},
 			},
 		},
+		"autoscaling-plans": service{
+			Defaults: endpoint{
+				Hostname:  "autoscaling.{region}.amazonaws.com",
+				Protocols: []string{"http", "https"},
+				CredentialScope: credentialScope{
+					Service: "autoscaling-plans",
+				},
+			},
+			Endpoints: endpoints{
+				"ap-southeast-1": endpoint{},
+				"eu-west-1":      endpoint{},
+				"us-east-1":      endpoint{},
+				"us-east-2":      endpoint{},
+				"us-west-2":      endpoint{},
+			},
+		},
 		"batch": service{
 
 			Endpoints: endpoints{
@@ -459,7 +476,11 @@ var awsPartition = partition{
 			},
 		},
 		"cloudhsmv2": service{
-
+			Defaults: endpoint{
+				CredentialScope: credentialScope{
+					Service: "cloudhsm",
+				},
+			},
 			Endpoints: endpoints{
 				"ap-northeast-1": endpoint{},
 				"ap-south-1":     endpoint{},
@@ -2428,6 +2449,12 @@ var awsusgovPartition = partition{
 					Hostname:  "169.254.169.254/latest",
 					Protocols: []string{"http"},
 				},
+			},
+		},
+		"ecs": service{
+
+			Endpoints: endpoints{
+				"us-gov-west-1": endpoint{},
 			},
 		},
 		"elasticache": service{
