@@ -3475,6 +3475,59 @@ func (s AcceptInvitationOutput) GoString() string {
 	return s.String()
 }
 
+// The IAM access key details (IAM user information) of a user that engaged
+// in the activity that prompted GuardDuty to generate a finding.
+// See also, https://docs.aws.amazon.com/goto/WebAPI/guardduty-2017-11-28/AccessKeyDetails
+type AccessKeyDetails struct {
+	_ struct{} `type:"structure"`
+
+	// Access key ID of the user.
+	AccessKeyId *string `locationName:"accessKeyId" type:"string"`
+
+	// The principal ID of the user.
+	PrincipalId *string `locationName:"principalId" type:"string"`
+
+	// The name of the user.
+	UserName *string `locationName:"userName" type:"string"`
+
+	// The type of the user.
+	UserType *string `locationName:"userType" type:"string"`
+}
+
+// String returns the string representation
+func (s AccessKeyDetails) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AccessKeyDetails) GoString() string {
+	return s.String()
+}
+
+// SetAccessKeyId sets the AccessKeyId field's value.
+func (s *AccessKeyDetails) SetAccessKeyId(v string) *AccessKeyDetails {
+	s.AccessKeyId = &v
+	return s
+}
+
+// SetPrincipalId sets the PrincipalId field's value.
+func (s *AccessKeyDetails) SetPrincipalId(v string) *AccessKeyDetails {
+	s.PrincipalId = &v
+	return s
+}
+
+// SetUserName sets the UserName field's value.
+func (s *AccessKeyDetails) SetUserName(v string) *AccessKeyDetails {
+	s.UserName = &v
+	return s
+}
+
+// SetUserType sets the UserType field's value.
+func (s *AccessKeyDetails) SetUserType(v string) *AccessKeyDetails {
+	s.UserType = &v
+	return s
+}
+
 // An object containing the member's accountId and email address.
 // See also, https://docs.aws.amazon.com/goto/WebAPI/guardduty-2017-11-28/AccountDetail
 type AccountDetail struct {
@@ -7028,6 +7081,10 @@ func (s *RemotePortDetails) SetPortName(v string) *RemotePortDetails {
 type Resource struct {
 	_ struct{} `type:"structure"`
 
+	// The IAM access key details (IAM user information) of a user that engaged
+	// in the activity that prompted GuardDuty to generate a finding.
+	AccessKeyDetails *AccessKeyDetails `locationName:"accessKeyDetails" type:"structure"`
+
 	// The information about the EC2 instance associated with the activity that
 	// prompted GuardDuty to generate a finding.
 	InstanceDetails *InstanceDetails `locationName:"instanceDetails" type:"structure"`
@@ -7044,6 +7101,12 @@ func (s Resource) String() string {
 // GoString returns the string representation
 func (s Resource) GoString() string {
 	return s.String()
+}
+
+// SetAccessKeyDetails sets the AccessKeyDetails field's value.
+func (s *Resource) SetAccessKeyDetails(v *AccessKeyDetails) *Resource {
+	s.AccessKeyDetails = v
+	return s
 }
 
 // SetInstanceDetails sets the InstanceDetails field's value.

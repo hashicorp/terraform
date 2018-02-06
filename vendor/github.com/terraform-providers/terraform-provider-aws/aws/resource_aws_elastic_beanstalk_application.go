@@ -99,14 +99,20 @@ func resourceAwsElasticBeanstalkApplicationRead(d *schema.ResourceData, meta int
 		}
 
 		if app == nil {
+			err = fmt.Errorf("Elastic Beanstalk Application %q not found", d.Id())
 			if d.IsNewResource() {
-				return resource.RetryableError(fmt.Errorf("Elastic Beanstalk Application %q not found.", d.Id()))
+				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
 		}
 		return nil
 	})
 	if err != nil {
+		if app == nil {
+			log.Printf("[WARN] %s, removing from state", err)
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
