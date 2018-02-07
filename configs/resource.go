@@ -31,6 +31,10 @@ type ManagedResource struct {
 	TypeRange hcl.Range
 }
 
+func (r *ManagedResource) moduleUniqueKey() string {
+	return fmt.Sprintf("%s.%s", r.Name, r.Type)
+}
+
 func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 	r := &ManagedResource{
 		Type:      block.Labels[0],
@@ -168,6 +172,10 @@ type DataResource struct {
 
 	DeclRange hcl.Range
 	TypeRange hcl.Range
+}
+
+func (r *DataResource) moduleUniqueKey() string {
+	return fmt.Sprintf("data.%s.%s", r.Name, r.Type)
 }
 
 func decodeDataBlock(block *hcl.Block) (*DataResource, hcl.Diagnostics) {
