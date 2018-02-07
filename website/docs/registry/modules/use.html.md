@@ -21,20 +21,21 @@ terms. On the results page, filters can be used further refine search results.
 
 By default, only [verified modules](/docs/registry/modules/verified.html)
 are shown in search results. Verified modules are reviewed by HashiCorp to
-ensure stability and compatibility. By using the filters, you may view unverified
+ensure stability and compatibility. By using the filters, you can view unverified
 modules as well.
 
 ## Using Modules
 
 The Terraform Registry is integrated directly into Terraform. This makes
 it easy to reference any module in the registry. The syntax for referencing
-a registry module is `namespace/name/provider`. For example:
+a registry module is `<NAMESPACE>/<NAME>/<PROVIDER>`. For example:
 `hashicorp/consul/aws`.
 
 ~> **Note:** Module registry integration was added in Terraform v0.10.6, and full versioning support in v0.11.0.
 
 When viewing a module on the registry on a tablet or desktop, usage instructions
-are shown on the right side. You can copy and paste this to get started with any module. Some modules may
+are shown on the right side.
+You can copy and paste this to get started with any module. Some modules
 have required inputs you must set before being able to use the module.
 
 ```hcl
@@ -43,6 +44,30 @@ module "consul" {
   version = "0.1.0"
 }
 ```
+
+The `terraform init` command will download and cache any modules referenced by
+a configuration.
+
+### Private Registry Module Sources
+
+You can also use modules from a private registry, like the one provided by
+Terraform Enterprise. Private registry modules have source strings of the form
+`<HOSTNAME>/<NAMESPACE>/<NAME>/<PROVIDER>`. This is the same format as the
+public registry, but with an added hostname prefix.
+
+```hcl
+module "vpc" {
+  source = "app.terraform.io/example_corp/vpc/aws"
+  version = "0.9.3"
+}
+```
+
+Depending on the registry you're using, you might also need to configure
+credentials to access modules. See your registry's documentation for details.
+[Terraform Enterprise's private registry is documented here.](/docs/enterprise/registry/index.html)
+
+Private registry module sources are supported in Terraform v0.11.0 and
+newer.
 
 ## Module Versions
 
@@ -54,6 +79,6 @@ Terraform since version 0.11 will resolve any provided
 [module version constraints](/docs/modules/usage.html#module-versions) and
 using them is highly recommended to avoid pulling in breaking changes.
 
-Terraform from version 10.6 through to 0.11 had partial support for the registry
-protocol, however will not honor version constraints and always download the
-latest version.
+Terraform versions after 0.10.6 but before 0.11 have partial support for the registry
+protocol, but always download the latest version instead of honoring version
+constraints.
