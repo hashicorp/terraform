@@ -57,6 +57,13 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	return provider, diags
 }
 
+func (p *Provider) moduleUniqueKey() string {
+	if p.Alias != "" {
+		return fmt.Sprintf("%s.%s", p.Name, p.Alias)
+	}
+	return p.Name
+}
+
 // ProviderRequirement represents a declaration of a dependency on a particular
 // provider version without actually configuring that provider. This is used in
 // child modules that expect a provider to be passed in from their parent.
