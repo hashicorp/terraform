@@ -12,6 +12,7 @@ type ModuleCall struct {
 
 	SourceAddr      string
 	SourceAddrRange hcl.Range
+	SourceSet       bool
 
 	Config hcl.Body
 
@@ -25,13 +26,18 @@ type ModuleCall struct {
 	DeclRange hcl.Range
 }
 
-func decodeModuleBlock(block *hcl.Block) (*ModuleCall, hcl.Diagnostics) {
+func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagnostics) {
 	mc := &ModuleCall{
 		Name:      block.Labels[0],
 		DeclRange: block.DefRange,
 	}
 
-	content, remain, diags := block.Body.PartialContent(moduleBlockSchema)
+	schema := moduleBlockSchema
+	if override {
+		schema = schemaForOverrides(schema)
+	}
+
+	content, remain, diags := block.Body.PartialContent(schema)
 	mc.Config = remain
 
 	if !hclsyntax.ValidIdentifier(mc.Name) {
@@ -47,6 +53,7 @@ func decodeModuleBlock(block *hcl.Block) (*ModuleCall, hcl.Diagnostics) {
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &mc.SourceAddr)
 		diags = append(diags, valDiags...)
 		mc.SourceAddrRange = attr.Expr.Range()
+		mc.SourceSet = true
 	}
 
 	if attr, exists := content.Attributes["version"]; exists {

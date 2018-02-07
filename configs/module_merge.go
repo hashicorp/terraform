@@ -45,8 +45,9 @@ func mergeProviderVersionConstraints(recv map[string][]VersionConstraint, ovrd [
 func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	if ov.Description != "" {
+	if ov.DescriptionSet {
 		v.Description = ov.Description
+		v.DescriptionSet = ov.DescriptionSet
 	}
 	if ov.Default != cty.NilVal {
 		v.Default = ov.Default
@@ -80,10 +81,9 @@ func (o *Output) merge(oo *Output) hcl.Diagnostics {
 	if oo.Expr != nil {
 		o.Expr = oo.Expr
 	}
-	if oo.Sensitive {
-		// Since this is just a bool, we can't distinguish false from unset
-		// and so the override can only make the output _more_ sensitive.
+	if oo.SensitiveSet {
 		o.Sensitive = oo.Sensitive
+		o.SensitiveSet = oo.SensitiveSet
 	}
 
 	// We don't allow depends_on to be overridden because that is likely to
@@ -103,9 +103,10 @@ func (o *Output) merge(oo *Output) hcl.Diagnostics {
 func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	if omc.SourceAddr != "" {
+	if omc.SourceSet {
 		mc.SourceAddr = omc.SourceAddr
 		mc.SourceAddrRange = omc.SourceAddrRange
+		mc.SourceSet = omc.SourceSet
 	}
 
 	if omc.Count != nil {
@@ -145,9 +146,9 @@ func (r *ManagedResource) merge(or *ManagedResource) hcl.Diagnostics {
 	if or.Count != nil {
 		r.Count = or.Count
 	}
-	if or.CreateBeforeDestroy {
-		// We can't distinguish false from unset here
+	if or.CreateBeforeDestroySet {
 		r.CreateBeforeDestroy = or.CreateBeforeDestroy
+		r.CreateBeforeDestroySet = or.CreateBeforeDestroySet
 	}
 	if or.ForEach != nil {
 		r.ForEach = or.ForEach
@@ -155,9 +156,9 @@ func (r *ManagedResource) merge(or *ManagedResource) hcl.Diagnostics {
 	if len(or.IgnoreChanges) != 0 {
 		r.IgnoreChanges = or.IgnoreChanges
 	}
-	if or.PreventDestroy {
-		// We can't distinguish false from unset here
+	if or.PreventDestroySet {
 		r.PreventDestroy = or.PreventDestroy
+		r.PreventDestroySet = or.PreventDestroySet
 	}
 	if or.ProviderConfigRef != nil {
 		r.ProviderConfigRef = or.ProviderConfigRef
