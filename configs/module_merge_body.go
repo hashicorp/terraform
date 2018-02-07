@@ -31,15 +31,89 @@ type mergeBody struct {
 var _ hcl.Body = mergeBody{}
 
 func (b mergeBody) Content(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Diagnostics) {
-	panic("mergeBody.Content not yet implemented")
+	var diags hcl.Diagnostics
+	oSchema := schemaForOverrides(schema)
+
+	baseContent, cDiags := b.Base.Content(schema)
+	diags = append(diags, cDiags...)
+	overrideContent, cDiags := b.Override.Content(oSchema)
+	diags = append(diags, cDiags...)
+
+	content := b.prepareContent(baseContent, overrideContent)
+
+	return content, diags
 }
 
 func (b mergeBody) PartialContent(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Body, hcl.Diagnostics) {
-	panic("mergeBody.Content not yet implemented")
+	var diags hcl.Diagnostics
+	oSchema := schemaForOverrides(schema)
+
+	baseContent, baseRemain, cDiags := b.Base.PartialContent(schema)
+	diags = append(diags, cDiags...)
+	overrideContent, overrideRemain, cDiags := b.Override.PartialContent(oSchema)
+	diags = append(diags, cDiags...)
+
+	content := b.prepareContent(baseContent, overrideContent)
+
+	remain := mergeBodies(baseRemain, overrideRemain)
+
+	return content, remain, diags
+}
+
+func (b mergeBody) prepareContent(base *hcl.BodyContent, override *hcl.BodyContent) *hcl.BodyContent {
+	content := &hcl.BodyContent{
+		Attributes: make(hcl.Attributes),
+	}
+
+	// For attributes we just assign from each map in turn and let the override
+	// map clobber any matching entries from base.
+	for k, a := range base.Attributes {
+		content.Attributes[k] = a
+	}
+	for k, a := range override.Attributes {
+		content.Attributes[k] = a
+	}
+
+	// Things are a little more interesting for blocks because they arrive
+	// as a flat list. Our merging semantics call for us to suppress blocks
+	// from base if at least one block of the same type appears in override.
+	// We explicitly do not try to correlate and deeply merge nested blocks,
+	// since we don't have enough context here to infer user intent.
+
+	overriddenBlockTypes := make(map[string]bool)
+	for _, block := range override.Blocks {
+		overriddenBlockTypes[block.Type] = true
+	}
+	for _, block := range base.Blocks {
+		if overriddenBlockTypes[block.Type] {
+			continue
+		}
+		content.Blocks = append(content.Blocks, block)
+	}
+	for _, block := range override.Blocks {
+		content.Blocks = append(content.Blocks, block)
+	}
+
+	return content
 }
 
 func (b mergeBody) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
-	panic("mergeBody.JustAttributes not yet implemented")
+	var diags hcl.Diagnostics
+	ret := make(hcl.Attributes)
+
+	baseAttrs, aDiags := b.Base.JustAttributes()
+	diags = append(diags, aDiags...)
+	overrideAttrs, aDiags := b.Override.JustAttributes()
+	diags = append(diags, aDiags...)
+
+	for k, a := range baseAttrs {
+		ret[k] = a
+	}
+	for k, a := range overrideAttrs {
+		ret[k] = a
+	}
+
+	return ret, diags
 }
 
 func (b mergeBody) MissingItemRange() hcl.Range {
