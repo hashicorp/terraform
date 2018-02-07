@@ -93,3 +93,7 @@ func assertResultDeepEqual(t *testing.T, got, want interface{}) bool {
 	}
 	return false
 }
+
+func stringPtr(s string) *string {
+	return &s
+}
