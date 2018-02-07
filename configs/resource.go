@@ -27,6 +27,9 @@ type ManagedResource struct {
 	PreventDestroy      bool
 	IgnoreChanges       []hcl.Traversal
 
+	CreateBeforeDestroySet bool
+	PreventDestroySet      bool
+
 	DeclRange hcl.Range
 	TypeRange hcl.Range
 }
@@ -105,11 +108,13 @@ func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 			if attr, exists := lcContent.Attributes["create_before_destroy"]; exists {
 				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.CreateBeforeDestroy)
 				diags = append(diags, valDiags...)
+				r.CreateBeforeDestroySet = true
 			}
 
 			if attr, exists := lcContent.Attributes["prevent_destroy"]; exists {
 				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.PreventDestroy)
 				diags = append(diags, valDiags...)
+				r.PreventDestroySet = true
 			}
 
 			if attr, exists := lcContent.Attributes["ignore_changes"]; exists {

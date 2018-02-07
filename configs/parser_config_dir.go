@@ -33,9 +33,9 @@ func (p *Parser) LoadConfigDir(path string) (*Module, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	primary, fDiags := p.loadFiles(primaryPaths)
+	primary, fDiags := p.loadFiles(primaryPaths, false)
 	diags = append(diags, fDiags...)
-	override, fDiags := p.loadFiles(overridePaths)
+	override, fDiags := p.loadFiles(overridePaths, true)
 	diags = append(diags, fDiags...)
 
 	mod, modDiags := NewModule(primary, override)
@@ -52,12 +52,18 @@ func (p *Parser) IsConfigDir(path string) bool {
 	return (len(primaryPaths) + len(overridePaths)) > 0
 }
 
-func (p *Parser) loadFiles(paths []string) ([]*File, hcl.Diagnostics) {
+func (p *Parser) loadFiles(paths []string, override bool) ([]*File, hcl.Diagnostics) {
 	var files []*File
 	var diags hcl.Diagnostics
 
 	for _, path := range paths {
-		f, fDiags := p.LoadConfigFile(path)
+		var f *File
+		var fDiags hcl.Diagnostics
+		if override {
+			f, fDiags = p.LoadConfigFileOverride(path)
+		} else {
+			f, fDiags = p.LoadConfigFile(path)
+		}
 		diags = append(diags, fDiags...)
 		if f != nil {
 			files = append(files, f)

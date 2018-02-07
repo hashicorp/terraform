@@ -19,6 +19,18 @@ import (
 // This method wraps LoadHCLFile, and so it inherits the syntax selection
 // behaviors documented for that method.
 func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
+	return p.loadConfigFile(path, false)
+}
+
+// LoadConfigFileOverride is the same as LoadConfigFile except that it relaxes
+// certain required attribute constraints in order to interpret the given
+// file as an overrides file.
+func (p *Parser) LoadConfigFileOverride(path string) (*File, hcl.Diagnostics) {
+	return p.loadConfigFile(path, true)
+}
+
+func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnostics) {
+
 	body, diags := p.LoadHCLFile(path)
 	if body == nil {
 		return nil, diags
@@ -86,14 +98,14 @@ func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
 			file.Locals = append(file.Locals, defs...)
 
 		case "output":
-			cfg, cfgDiags := decodeOutputBlock(block)
+			cfg, cfgDiags := decodeOutputBlock(block, override)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.Outputs = append(file.Outputs, cfg)
 			}
 
 		case "module":
-			cfg, cfgDiags := decodeModuleBlock(block)
+			cfg, cfgDiags := decodeModuleBlock(block, override)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.ModuleCalls = append(file.ModuleCalls, cfg)

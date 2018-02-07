@@ -19,6 +19,8 @@ type Variable struct {
 	Default     cty.Value
 	TypeHint    VariableTypeHint
 
+	DescriptionSet bool
+
 	DeclRange hcl.Range
 }
 
@@ -56,6 +58,7 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 	if attr, exists := content.Attributes["description"]; exists {
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Description)
 		diags = append(diags, valDiags...)
+		v.DescriptionSet = true
 	}
 
 	if attr, exists := content.Attributes["default"]; exists {
@@ -106,16 +109,24 @@ type Output struct {
 	DependsOn   []hcl.Traversal
 	Sensitive   bool
 
+	DescriptionSet bool
+	SensitiveSet   bool
+
 	DeclRange hcl.Range
 }
 
-func decodeOutputBlock(block *hcl.Block) (*Output, hcl.Diagnostics) {
+func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostics) {
 	o := &Output{
 		Name:      block.Labels[0],
 		DeclRange: block.DefRange,
 	}
 
-	content, diags := block.Body.Content(outputBlockSchema)
+	schema := outputBlockSchema
+	if override {
+		schema = schemaForOverrides(schema)
+	}
+
+	content, diags := block.Body.Content(schema)
 
 	if !hclsyntax.ValidIdentifier(o.Name) {
 		diags = append(diags, &hcl.Diagnostic{
@@ -129,6 +140,7 @@ func decodeOutputBlock(block *hcl.Block) (*Output, hcl.Diagnostics) {
 	if attr, exists := content.Attributes["description"]; exists {
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &o.Description)
 		diags = append(diags, valDiags...)
+		o.DescriptionSet = true
 	}
 
 	if attr, exists := content.Attributes["value"]; exists {
@@ -138,6 +150,7 @@ func decodeOutputBlock(block *hcl.Block) (*Output, hcl.Diagnostics) {
 	if attr, exists := content.Attributes["sensitive"]; exists {
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &o.Sensitive)
 		diags = append(diags, valDiags...)
+		o.SensitiveSet = true
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {
