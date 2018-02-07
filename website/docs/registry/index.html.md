@@ -9,7 +9,7 @@ description: |-
 # Terraform Registry
 
 The [Terraform Registry](https://registry.terraform.io) is a repository
-of modules written by the Terraform community. The registry can be used to
+of modules written by the Terraform community. The registry can
 help you get started with Terraform more quickly, see examples of how
 Terraform is written, and find pre-made modules for infrastructure components
 you require.

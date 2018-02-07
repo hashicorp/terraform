@@ -47,12 +47,16 @@ Updates for file paths are automatic: when "downloading" the module using the [g
 The [Terraform Registry](https://registry.terraform.io) is an index of modules
 written by the Terraform community.
 The Terraform Registry is the easiest
-way to get started with Terraform and to find modules to start with.
-The registry is integrated directly into Terraform:
+way to get started with Terraform and to find modules.
+
+The registry is integrated directly into Terraform. You can reference any
+registry module with a source string of `<NAMESPACE>/<NAME>/<PROVIDER>`. Each
+module's information page on the registry includes its source string.
 
 ```hcl
 module "consul" {
   source = "hashicorp/consul/aws"
+  version = "0.1.0"
 }
 ```
 
@@ -60,8 +64,32 @@ The above example would use the
 [Consul module for AWS](https://registry.terraform.io/modules/hashicorp/consul/aws)
 from the public registry.
 
+Registry modules support versioning. You can provide a specific version, or use
+flexible [version constraints](/docs/modules/usage.html#module-versions).
+
 You can learn more about the registry at the
 [Terraform Registry documentation](/docs/registry/modules/use.html#using-modules).
+
+## Private Registries
+
+[Terraform Enterprise](https://www.hashicorp.com/products/terraform) provides a
+[private module registry](/docs/enterprise/registry/index.html), to help
+you share code within your organization. Other services can also provide
+private registries by implementing [Terraform's registry API](/docs/registry/api.html).
+
+Source strings for private registry modules are similar to public modules, but
+also include a hostname. They should follow the format
+`<HOSTNAME>/<NAMESPACE>/<NAME>/<PROVIDER>`.
+
+```hcl
+module "vpc" {
+  source = "app.terraform.io/example_corp/vpc/aws"
+  version = "0.9.3"
+}
+```
+
+Modules from private registries support versioning, just like modules from the
+public Terraform Registry.
 
 ## GitHub
 
@@ -100,7 +128,9 @@ You can use the same parameters to GitHub repositories as you can generic Git re
 If you need Terraform to fetch modules from private GitHub repos, you must provide Terraform with credentials to authenticate as a user with read access to those repos.
 
 - If you run Terraform only on your local machine, you can specify the module source as an SSH URI (like `git@github.com:hashicorp/example.git`) and Terraform will use your default SSH key to authenticate.
-- If you use Terraform Enterprise, you can use SSH URIs. You'll need to add an SSH private key to your organization and assign it to any workspace that fetches modules from private repos. [See the Terraform Enterprise docs about SSH keys for cloning modules.](/docs/enterprise/workspaces/ssh-keys.html)
+- If you use Terraform Enterprise, consider using the private module registry. It makes handling credentials easier, and provides full versioning support. (See [Private Registries](#private-registries) above for more info.)
+
+    If you need to use modules directly from Git, you can use SSH URIs with Terraform Enterprise. You'll need to add an SSH private key to your organization and assign it to any workspace that fetches modules from private repos. [See the Terraform Enterprise docs about SSH keys for cloning modules.](/docs/enterprise/workspaces/ssh-keys.html)
 - If you need to run Terraform on a remote machine like a CI worker, you either need to write an SSH key to disk and set the `GIT_SSH_COMMAND` environment variable appropriately during the worker's provisioning process, or create a [GitHub machine user](https://developer.github.com/guides/managing-deploy-keys/#machine-users) with read access to the repos in question and embed its credentials into the modules' `source` parameters:
 
     ```hcl

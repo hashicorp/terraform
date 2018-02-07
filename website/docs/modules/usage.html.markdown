@@ -36,9 +36,11 @@ The only required configuration key for a module is the `source` parameter. The
 value of this tells Terraform where to download the module's source code.
 Terraform comes with support for a variety of module sources.
 
-The recommended source for external modules is a
-[Terraform Registry](/docs/registry/index.html), which provides the full
-capabilities of modules such as version constraints.
+We recommend using modules from the public [Terraform Registry](/docs/registry/index.html)
+or from [Terraform Enterprise's private module registry](/docs/enterprise/registry/index.html).
+These sources support version constraints for a more reliable experience, and
+provide a searchable marketplace for finding the modules you need.
+
 Registry modules are specified using a simple slash-separated path like the
 `hashicorp/consul/aws` path used in the above example. The full source string
 for each registry module can be found from the registry website.
@@ -72,11 +74,10 @@ a newer version will be used only if it is within the given constraint.
 
 ## Module Versions
 
-It is recommended to explicitly constrain the acceptable version numbers for
-each external module so that upstream changes aren't automatically adopted,
-since this may result in unexpected or unwanted changes changes.
+We recommend explicitly constraining the acceptable version numbers for
+each external module to avoid unexpected or unwanted changes.
 
-The `version` attribute within the `module` block is used for this purpose:
+Use the `version` attribute in the `module` block to specify versions:
 
 ```shell
 module "consul" {
@@ -105,12 +106,13 @@ may be appropriate if a semantic versioning methodology is used consistently
 or if there is a well-defined release process that avoids unwanted updates.
 
 Version constraints are supported only for modules installed from a module
-registry, such as the [Terraform Registry](https://registry.terraform.io/).
-Other module sources may provide their own versioning mechanisms within the
-source string itself, or they may not support versions at all. In particular,
-modules whose sources are local file paths do not support `version` because
-they are constrained to share the same version as their caller by being
-obtained by the same source repository.
+registry, such as the [Terraform Registry](https://registry.terraform.io/) or
+[Terraform Enterprise's private module registry](/docs/enterprise/registry/index.html).
+Other module sources can provide their own versioning mechanisms within the
+source string itself, or might not support versions at all. In particular,
+modules sourced from local file paths do not support `version`; since
+they're loaded from the same source repository, they always share the same
+version as their caller.
 
 ## Configuration
 
