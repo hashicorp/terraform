@@ -1,0 +1,3 @@
+output "hello" {
+  value = "hello"
+}
