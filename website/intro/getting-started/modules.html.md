@@ -38,7 +38,7 @@ larger building-blocks for your infrastructure.
 In this example, we're going to use
 [the Consul Terraform module for AWS](https://registry.terraform.io/modules/hashicorp/consul/aws),
 which will set up a complete [Consul](https://www.consul.io) cluster.
-This and other modules can found via the search feature on the Terraform
+This and other modules can be found via the search feature on the Terraform
 Registry site.
 
 Create a configuration file with the following contents:
