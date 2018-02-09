@@ -18,9 +18,10 @@ Public modules are managed via Git and GitHub. Publishing a module takes only
 a few minutes. Once a module is published, you can release a new version of
 a module by simply pushing a properly formed Git tag.
 
-The registry extracts the name of the module, the provider, the documentation,
-inputs/outputs, and more directly from the source of the module. No manual
-annotations are required.
+The registry extracts information about the module from the module's source.
+The module name, provider, documentation, inputs/outputs, and dependencies are
+all parsed and available via the UI or API, as well as the same information for
+any submodules or examples in the module's source repository.
 
 ## Requirements
 
@@ -46,7 +47,7 @@ one sentence description of the module.
 - **Standard module structure.** The module must adhere to the
 [standard module structure](/docs/modules/create.html#standard-module-structure).
 This allows the registry to inspect your module and generate documentation,
-track resource usage, and more.
+track resource usage, parse submodules and examples, and more.
 
 - **`x.y.z` tags for releases.** The registry uses tags to identify module
 versions. Release tag names must be a [semantic version](http://semver.org),
