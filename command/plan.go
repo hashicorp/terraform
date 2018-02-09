@@ -1,10 +1,8 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
@@ -108,43 +106,9 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.Type = backend.OperationTypePlan
 
 	// Perform the operation
-	op, err := b.Operation(context.Background(), opReq)
+	op, err := c.RunOperation(b, opReq)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
-		return 1
-	}
-
-	select {
-	case <-c.ShutdownCh:
-		// Cancel our context so we can start gracefully exiting
-		op.Stop()
-
-		// Notify the user
-		c.Ui.Output(outputInterrupt)
-
-		// Still get the result, since there is still one
-		select {
-		case <-c.ShutdownCh:
-			c.Ui.Error(
-				"Two interrupts received. Exiting immediately")
-
-			// cancel the operation completely
-			op.Cancel()
-
-			// the operation should return asap
-			// but timeout just in case
-			select {
-			case <-op.Done():
-			case <-time.After(5 * time.Second):
-			}
-
-			return 1
-		case <-op.Done():
-		}
-	case <-op.Done():
-		if err := op.Err; err != nil {
-			diags = diags.Append(err)
-		}
+		diags = diags.Append(err)
 	}
 
 	c.showDiagnostics(diags)
