@@ -17,7 +17,8 @@ import (
 )
 
 func (b *Local) opRefresh(
-	ctx context.Context,
+	stopCtx context.Context,
+	cancelCtx context.Context,
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
 	// Check if our state exists if we're performing a refresh operation. We
@@ -53,7 +54,7 @@ func (b *Local) opRefresh(
 	}
 
 	if op.LockState {
-		lockCtx, cancel := context.WithTimeout(ctx, op.StateLockTimeout)
+		lockCtx, cancel := context.WithTimeout(stopCtx, op.StateLockTimeout)
 		defer cancel()
 
 		lockInfo := state.NewLockInfo()
@@ -91,7 +92,7 @@ func (b *Local) opRefresh(
 	}()
 
 	select {
-	case <-ctx.Done():
+	case <-stopCtx.Done():
 		if b.CLI != nil {
 			b.CLI.Output("stopping refresh operation...")
 		}
@@ -99,8 +100,18 @@ func (b *Local) opRefresh(
 		// Stop execution
 		go tfCtx.Stop()
 
-		// Wait for completion still
-		<-doneCh
+		select {
+		case <-cancelCtx.Done():
+			log.Println("[WARN] running operation canceled")
+			// if the operation was canceled, we need to return immediately
+			return
+		case <-doneCh:
+		}
+	case <-cancelCtx.Done():
+		// this should not be called without first attempting to stop the
+		// operation
+		log.Println("[ERROR] running operation canceled without Stop")
+		return
 	case <-doneCh:
 	}
 

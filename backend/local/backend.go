@@ -224,7 +224,7 @@ func (b *Local) State(name string) (state.State, error) {
 // name conflicts, assume that the field is overwritten if set.
 func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
 	// Determine the function to call for our operation
-	var f func(context.Context, *backend.Operation, *backend.RunningOperation)
+	var f func(context.Context, context.Context, *backend.Operation, *backend.RunningOperation)
 	switch op.Type {
 	case backend.OperationTypeRefresh:
 		f = b.opRefresh
@@ -244,14 +244,29 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	b.opLock.Lock()
 
 	// Build our running operation
-	runningCtx, runningCtxCancel := context.WithCancel(context.Background())
-	runningOp := &backend.RunningOperation{Context: runningCtx}
+	// the runninCtx is only used to block until the operation returns.
+	runningCtx, done := context.WithCancel(context.Background())
+	runningOp := &backend.RunningOperation{
+		Context: runningCtx,
+	}
+
+	// stopCtx wraps the context passed in, and is used to signal a graceful Stop.
+	stopCtx, stop := context.WithCancel(ctx)
+	runningOp.Stop = stop
+
+	// cancelCtx is used to cancel the operation immediately, usually
+	// indicating that the process is exiting.
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	runningOp.Cancel = cancel
 
 	// Do it
 	go func() {
+		defer done()
+		defer stop()
+		defer cancel()
+
 		defer b.opLock.Unlock()
-		defer runningCtxCancel()
-		f(ctx, op, runningOp)
+		f(stopCtx, cancelCtx, op, runningOp)
 	}()
 
 	// Return
