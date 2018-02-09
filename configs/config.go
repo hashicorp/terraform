@@ -1,8 +1,6 @@
 package configs
 
 import (
-	"fmt"
-
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl2/hcl"
 )
@@ -25,6 +23,17 @@ type Config struct {
 	// ParentModule points to the Config for the module that directly calls
 	// this module. If this is the root module then this field is nil.
 	Parent *Config
+
+	// Path is a sequence of module logical names that traverse from the root
+	// module to this config. Path is empty for the root module.
+	//
+	// This should not be used to display a path to the end-user, since
+	// our UI conventions call for us to return a module address string in that
+	// case, and a module address string ought to be built from the dynamic
+	// module tree (resulting from evaluating "count" and "for_each" arguments
+	// on our calls to produce potentially multiple child instances per call)
+	// rather than from our static module tree.
+	Path []string
 
 	// ChildModules points to the Config for each of the direct child modules
 	// called from this module. The keys in this map match the keys in
@@ -62,56 +71,6 @@ type Config struct {
 	// This field is meaningless for the root module, where it will always
 	// be nil.
 	Version *version.Version
-}
-
-// Path returns the path of logical names that lead to this Config from its
-// root.
-//
-// This function should not be used to display a path to the end-user, since
-// our UI conventions call for us to return a module address string in that
-// case, and a module address string ought to be built from the dynamic
-// module tree (resulting from evaluating "count" and "for_each" arguments
-// on our calls to produce potentially multiple child instances per call)
-// rather than from our static module tree.
-//
-// This function will panic if called on a config that is not part of a
-// wholesome config tree, e.g. because it has incorrectly-built Children
-// maps, missing node pointers, etc. However, it should work as expected
-// for any tree constructed by BuildConfig and not subsequently modified.
-func (c *Config) Path() []string {
-	// The implementation here is not especially efficient, but we don't
-	// care too much because module trees are shallow and narrow in all
-	// reasonable configurations.
-
-	// We'll build our path in reverse here, since we're starting at the
-	// leafiest node, and then we'll flip it before we return.
-	path := make([]string, 0, c.Depth())
-
-	this := c
-	for this.Parent != nil {
-		parent := this.Parent
-		var name string
-		for candidate, ref := range parent.Children {
-			if ref == this {
-				name = candidate
-			}
-		}
-		if name == "" {
-			panic(fmt.Errorf(
-				"Config %p does not appear in the child table for its parent %p: %#v",
-				this, parent, parent.Children,
-			))
-		}
-		path = append(path, name)
-		this = parent
-	}
-
-	// reverse the items
-	for i := 0; i < len(path)/2; i++ {
-		j := len(path) - i - 1
-		path[i], path[j] = path[j], path[i]
-	}
-	return path
 }
 
 // Depth returns the number of "hops" the receiver is from the root of its

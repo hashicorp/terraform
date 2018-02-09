@@ -44,7 +44,7 @@ func TestBuildConfig(t *testing.T) {
 
 	var got []string
 	cfg.DeepEach(func(c *Config) {
-		got = append(got, fmt.Sprintf("%s %s", strings.Join(c.Path(), "."), c.Version))
+		got = append(got, fmt.Sprintf("%s %s", strings.Join(c.Path, "."), c.Version))
 	})
 	sort.Strings(got)
 	want := []string{
