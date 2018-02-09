@@ -29,8 +29,13 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 	calls := parent.Module.ModuleCalls
 
 	for _, call := range calls {
+		path := make([]string, len(parent.Path)+1)
+		copy(path, parent.Path)
+		path[len(path)-1] = call.Name
+
 		req := ModuleRequest{
 			Name:              call.Name,
+			Path:              path,
 			SourceAddr:        call.SourceAddr,
 			SourceAddrRange:   call.SourceAddrRange,
 			VersionConstraint: call.Version,
@@ -50,6 +55,7 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 		child := &Config{
 			Parent:          parent,
 			Root:            parent.Root,
+			Path:            path,
 			Module:          mod,
 			CallRange:       call.DeclRange,
 			SourceAddr:      call.SourceAddr,
@@ -101,6 +107,12 @@ type ModuleRequest struct {
 	// opaque string. It is guaranteed to have already been validated as an
 	// HCL identifier and UTF-8 encoded.
 	Name string
+
+	// Path is a list of logical names that traverse from the root module to
+	// this module. This can be used, for example, to form a lookup key for
+	// each distinct module call in a configuration, allowing for multiple
+	// calls with the same name at different points in the tree.
+	Path []string
 
 	// SourceAddr is the source address string provided by the user in
 	// configuration.
