@@ -19,7 +19,8 @@ import (
 )
 
 func (b *Local) opApply(
-	ctx context.Context,
+	stopCtx context.Context,
+	cancelCtx context.Context,
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
 	log.Printf("[INFO] backend/local: starting Apply operation")
@@ -55,7 +56,7 @@ func (b *Local) opApply(
 	}
 
 	if op.LockState {
-		lockCtx, cancel := context.WithTimeout(ctx, op.StateLockTimeout)
+		lockCtx, cancel := context.WithTimeout(stopCtx, op.StateLockTimeout)
 		defer cancel()
 
 		lockInfo := state.NewLockInfo()
@@ -157,7 +158,7 @@ func (b *Local) opApply(
 	// we can handle it properly.
 	err = nil
 	select {
-	case <-ctx.Done():
+	case <-stopCtx.Done():
 		if b.CLI != nil {
 			b.CLI.Output("stopping apply operation...")
 		}
@@ -176,8 +177,18 @@ func (b *Local) opApply(
 		// Stop execution
 		go tfCtx.Stop()
 
-		// Wait for completion still
-		<-doneCh
+		select {
+		case <-cancelCtx.Done():
+			log.Println("[WARN] running operation canceled")
+			// if the operation was canceled, we need to return immediately
+			return
+		case <-doneCh:
+		}
+	case <-cancelCtx.Done():
+		// this should not be called without first attempting to stop the
+		// operation
+		log.Println("[ERROR] running operation canceled without Stop")
+		return
 	case <-doneCh:
 	}
 

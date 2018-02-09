@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
@@ -82,10 +83,40 @@ func (c *RefreshCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Wait for the operation to complete
-	<-op.Done()
-	if err := op.Err; err != nil {
-		diags = diags.Append(err)
+	// Wait for the operation to complete or an interrupt to occur
+	select {
+	case <-c.ShutdownCh:
+		// gracefully stop the operation
+		op.Stop()
+
+		// Notify the user
+		c.Ui.Output(outputInterrupt)
+
+		// Still get the result, since there is still one
+		select {
+		case <-c.ShutdownCh:
+			c.Ui.Error(
+				"Two interrupts received. Exiting immediately. Note that data\n" +
+					"loss may have occurred.")
+
+			// cancel the operation completely
+			op.Cancel()
+
+			// the operation should return asap
+			// but timeout just in case
+			select {
+			case <-op.Done():
+			case <-time.After(5 * time.Second):
+			}
+
+			return 1
+
+		case <-op.Done():
+		}
+	case <-op.Done():
+		if err := op.Err; err != nil {
+			diags = diags.Append(err)
+		}
 	}
 
 	c.showDiagnostics(diags)
