@@ -35,6 +35,12 @@ type Config struct {
 	// various elements (variables, resources, etc) defined by this module.
 	Module *Module
 
+	// CallRange is the source range for the header of the module block that
+	// requested this module.
+	//
+	// This field is meaningless for the root module, where its contents are undefined.
+	CallRange hcl.Range
+
 	// SourceAddr is the source address that the referenced module was requested
 	// from, as specified in configuration.
 	//
@@ -50,7 +56,11 @@ type Config struct {
 	// Version is the specific version that was selected for this module,
 	// based on version constraints given in configuration.
 	//
-	// This field is meaningless for the root module, where its contents are undefined.
+	// This field is nil if the module was loaded from a non-registry source,
+	// since versions are not supported for other sources.
+	//
+	// This field is meaningless for the root module, where it will always
+	// be nil.
 	Version *version.Version
 }
 
