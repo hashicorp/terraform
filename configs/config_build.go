@@ -30,11 +30,12 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 
 	for _, call := range calls {
 		req := ModuleRequest{
-			Name:               call.Name,
-			SourceAddr:         call.SourceAddr,
-			SourceAddrRange:    call.SourceAddrRange,
-			VersionConstraints: []VersionConstraint{call.Version},
-			Parent:             parent,
+			Name:              call.Name,
+			SourceAddr:        call.SourceAddr,
+			SourceAddrRange:   call.SourceAddrRange,
+			VersionConstraint: call.Version,
+			Parent:            parent,
+			CallRange:         call.DeclRange,
 		}
 
 		mod, ver, modDiags := walker.LoadModule(&req)
@@ -50,6 +51,7 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 			Parent:          parent,
 			Root:            parent.Root,
 			Module:          mod,
+			CallRange:       call.DeclRange,
 			SourceAddr:      call.SourceAddr,
 			SourceAddrRange: call.SourceAddrRange,
 			Version:         ver,
@@ -110,12 +112,12 @@ type ModuleRequest struct {
 	// to a non-existent object, etc.
 	SourceAddrRange hcl.Range
 
-	// VersionConstraints are the constraints applied to the module in
+	// VersionConstraint is the version constraint applied to the module in
 	// configuration. This data structure includes the source range for
-	// each constraint, which can and should be used to generate diagnostics
+	// the constraint, which can and should be used to generate diagnostics
 	// about constraint-related issues, such as constraints that eliminate all
 	// available versions of a module whose source is otherwise valid.
-	VersionConstraints []VersionConstraint
+	VersionConstraint VersionConstraint
 
 	// Parent is the partially-constructed module tree node that the loaded
 	// module will be added to. Callers may refer to any field of this
@@ -124,4 +126,10 @@ type ModuleRequest struct {
 	// The main reason this is provided is so that full module paths can
 	// be constructed for uniqueness.
 	Parent *Config
+
+	// CallRange is the source range for the header of the "module" block
+	// in configuration that prompted this request. This can be used as the
+	// subject of an error diagnostic that relates to the module call itself,
+	// rather than to either its source address or its version number.
+	CallRange hcl.Range
 }
