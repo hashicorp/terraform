@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
@@ -107,10 +108,7 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.Type = backend.OperationTypePlan
 
 	// Perform the operation
-	ctx, ctxCancel := context.WithCancel(context.Background())
-	defer ctxCancel()
-
-	op, err := b.Operation(ctx, opReq)
+	op, err := b.Operation(context.Background(), opReq)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
 		return 1
@@ -119,7 +117,7 @@ func (c *PlanCommand) Run(args []string) int {
 	select {
 	case <-c.ShutdownCh:
 		// Cancel our context so we can start gracefully exiting
-		ctxCancel()
+		op.Stop()
 
 		// Notify the user
 		c.Ui.Output(outputInterrupt)
@@ -129,6 +127,17 @@ func (c *PlanCommand) Run(args []string) int {
 		case <-c.ShutdownCh:
 			c.Ui.Error(
 				"Two interrupts received. Exiting immediately")
+
+			// cancel the operation completely
+			op.Cancel()
+
+			// the operation should return asap
+			// but timeout just in case
+			select {
+			case <-op.Done():
+			case <-time.After(5 * time.Second):
+			}
+
 			return 1
 		case <-op.Done():
 		}

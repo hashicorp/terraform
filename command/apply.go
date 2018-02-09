@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/tfdiags"
 
@@ -159,10 +160,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.DestroyForce = destroyForce
 
 	// Perform the operation
-	ctx, ctxCancel := context.WithCancel(context.Background())
-	defer ctxCancel()
-
-	op, err := b.Operation(ctx, opReq)
+	op, err := b.Operation(context.Background(), opReq)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
 		return 1
@@ -171,8 +169,8 @@ func (c *ApplyCommand) Run(args []string) int {
 	// Wait for the operation to complete or an interrupt to occur
 	select {
 	case <-c.ShutdownCh:
-		// Cancel our context so we can start gracefully exiting
-		ctxCancel()
+		// gracefully stop the operation
+		op.Stop()
 
 		// Notify the user
 		c.Ui.Output(outputInterrupt)
@@ -183,7 +181,19 @@ func (c *ApplyCommand) Run(args []string) int {
 			c.Ui.Error(
 				"Two interrupts received. Exiting immediately. Note that data\n" +
 					"loss may have occurred.")
+
+			// cancel the operation completely
+			op.Cancel()
+
+			// the operation should return asap
+			// but timeout just in case
+			select {
+			case <-op.Done():
+			case <-time.After(5 * time.Second):
+			}
+
 			return 1
+
 		case <-op.Done():
 		}
 	case <-op.Done():
