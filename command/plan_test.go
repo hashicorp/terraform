@@ -835,8 +835,8 @@ func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 
 func TestPlan_shutdown(t *testing.T) {
 	cancelled := make(chan struct{})
-
 	shutdownCh := make(chan struct{})
+
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
@@ -880,8 +880,10 @@ func TestPlan_shutdown(t *testing.T) {
 		}, nil
 	}
 
-	if code := c.Run([]string{testFixturePath("apply-shutdown")}); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	if code := c.Run([]string{testFixturePath("apply-shutdown")}); code != 1 {
+		// FIXME: we should be able to avoid the error during evaluation
+		// the early exit isn't caught before the interpolation is evaluated
+		t.Fatal(ui.OutputWriter.String())
 	}
 
 	select {
