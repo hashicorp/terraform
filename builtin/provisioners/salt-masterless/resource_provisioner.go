@@ -11,8 +11,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -140,9 +142,12 @@ func applyFn(ctx context.Context) error {
 			Command: fmt.Sprintf("curl -L https://bootstrap.saltstack.com -o /tmp/install_salt.sh || wget -O /tmp/install_salt.sh https://bootstrap.saltstack.com"),
 		}
 		o.Output(fmt.Sprintf("Downloading saltstack bootstrap to /tmp/install_salt.sh"))
-		if err = comm.Start(cmd); err != nil {
-			err = fmt.Errorf("Unable to download Salt: %s", err)
-		}
+		err = retryFunc(ctx, comm.Timeout(), func() error {
+			if err = comm.Start(cmd); err != nil {
+				return fmt.Errorf("Unable to download Salt: %s", err)
+			}
+			return nil
+		})
 
 		if err == nil {
 			cmd.Wait()
@@ -164,9 +169,12 @@ func applyFn(ctx context.Context) error {
 		}
 
 		o.Output(fmt.Sprintf("Installing Salt with command %s", cmd.Command))
-		if err = comm.Start(cmd); err != nil {
-			err = fmt.Errorf("Unable to install Salt: %s", err)
-		}
+		err = retryFunc(ctx, comm.Timeout(), func() error {
+			if err = comm.Start(cmd); err != nil {
+				return fmt.Errorf("Unable to install Salt: %s", err)
+			}
+			return nil
+		})
 
 		if err == nil {
 			cmd.Wait()
@@ -530,4 +538,35 @@ func copyOutput(
 	for line := range lr.Ch {
 		o.Output(line)
 	}
+}
+
+// retryFunc is used to eliminate rece between ssh command
+// and vm in booting process
+func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error {
+	//wrap current context with local timeout
+	ctx, done := context.WithTimeout(ctx, timeout)
+	var err error = nil
+	defer done()
+
+	for {
+		err = f()
+		if err == nil {
+			break
+		}
+		log.Printf("[WARN] salt-masterless retry: %v", err)
+
+		select {
+		case <-ctx.Done():
+			break
+		case <-time.After(3 * time.Second):
+		}
+	}
+
+	switch ctx.Err() {
+	case context.Canceled:
+		return fmt.Errorf("salt interrupted")
+	case context.DeadlineExceeded:
+		return fmt.Errorf("salt timeout")
+	}
+	return err
 }
