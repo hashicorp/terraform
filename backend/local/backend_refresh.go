@@ -91,28 +91,8 @@ func (b *Local) opRefresh(
 		log.Printf("[INFO] backend/local: refresh calling Refresh")
 	}()
 
-	select {
-	case <-stopCtx.Done():
-		if b.CLI != nil {
-			b.CLI.Output("stopping refresh operation...")
-		}
-
-		// Stop execution
-		go tfCtx.Stop()
-
-		select {
-		case <-cancelCtx.Done():
-			log.Println("[WARN] running operation canceled")
-			// if the operation was canceled, we need to return immediately
-			return
-		case <-doneCh:
-		}
-	case <-cancelCtx.Done():
-		// this should not be called without first attempting to stop the
-		// operation
-		log.Println("[ERROR] running operation canceled without Stop")
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
 		return
-	case <-doneCh:
 	}
 
 	// write the resulting state to the running op
