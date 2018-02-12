@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -271,6 +272,53 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 
 	// Return
 	return runningOp, nil
+}
+
+// opWait wats for the operation to complete, and a stop signal or a
+// cancelation signal.
+func (b *Local) opWait(
+	doneCh <-chan struct{},
+	stopCtx context.Context,
+	cancelCtx context.Context,
+	tfCtx *terraform.Context,
+	opState state.State) (canceled bool) {
+	// Wait for the operation to finish or for us to be interrupted so
+	// we can handle it properly.
+	select {
+	case <-stopCtx.Done():
+		if b.CLI != nil {
+			b.CLI.Output("stopping operation...")
+		}
+
+		// try to force a PersistState just in case the process is terminated
+		// before we can complete.
+		if err := opState.PersistState(); err != nil {
+			// We can't error out from here, but warn the user if there was an error.
+			// If this isn't transient, we will catch it again below, and
+			// attempt to save the state another way.
+			if b.CLI != nil {
+				b.CLI.Error(fmt.Sprintf(earlyStateWriteErrorFmt, err))
+			}
+		}
+
+		// Stop execution
+		go tfCtx.Stop()
+
+		select {
+		case <-cancelCtx.Done():
+			log.Println("[WARN] running operation canceled")
+			// if the operation was canceled, we need to return immediately
+			canceled = true
+		case <-doneCh:
+		}
+	case <-cancelCtx.Done():
+		// this should not be called without first attempting to stop the
+		// operation
+		log.Println("[ERROR] running operation canceled without Stop")
+		canceled = true
+	case <-doneCh:
+	}
+	return
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing
