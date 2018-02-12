@@ -112,28 +112,8 @@ func (b *Local) opPlan(
 		plan, planErr = tfCtx.Plan()
 	}()
 
-	select {
-	case <-stopCtx.Done():
-		if b.CLI != nil {
-			b.CLI.Output("stopping plan operation...")
-		}
-
-		// Stop execution
-		go tfCtx.Stop()
-
-		select {
-		case <-cancelCtx.Done():
-			log.Println("[WARN] running operation canceled")
-			// if the operation was canceled, we need to return immediately
-			return
-		case <-doneCh:
-		}
-	case <-cancelCtx.Done():
-		// this should not be called without first attempting to stop the
-		// operation
-		log.Println("[ERROR] running operation canceled without Stop")
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
 		return
-	case <-doneCh:
 	}
 
 	if planErr != nil {
