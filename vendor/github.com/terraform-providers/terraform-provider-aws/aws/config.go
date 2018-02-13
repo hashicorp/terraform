@@ -12,6 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acm"
@@ -20,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/batch"
+	"github.com/aws/aws-sdk-go/service/cloud9"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
@@ -137,6 +139,7 @@ type Config struct {
 
 type AWSClient struct {
 	cfconn                *cloudformation.CloudFormation
+	cloud9conn            *cloud9.Cloud9
 	cloudfrontconn        *cloudfront.CloudFront
 	cloudtrailconn        *cloudtrail.CloudTrail
 	cloudwatchconn        *cloudwatch.CloudWatch
@@ -216,20 +219,13 @@ func (c *AWSClient) DynamoDB() *dynamodb.DynamoDB {
 }
 
 func (c *AWSClient) IsGovCloud() bool {
-	if c.region == "us-gov-west-1" {
-		return true
-	}
-	return false
+	_, isGovCloud := endpoints.PartitionForRegion([]endpoints.Partition{endpoints.AwsUsGovPartition()}, c.region)
+	return isGovCloud
 }
 
 func (c *AWSClient) IsChinaCloud() bool {
-	if c.region == "cn-north-1" {
-		return true
-	}
-	if c.region == "cn-northwest-1" {
-		return true
-	}
-	return false
+	_, isChinaCloud := endpoints.PartitionForRegion([]endpoints.Partition{endpoints.AwsCnPartition()}, c.region)
+	return isChinaCloud
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -370,11 +366,15 @@ func (c *Config) Client() (interface{}, error) {
 		}
 	}
 
+	// Infer AWS partition from configured region
+	if partition, ok := endpoints.PartitionForRegion(endpoints.DefaultPartitions(), client.region); ok {
+		client.partition = partition.ID()
+	}
+
 	if !c.SkipRequestingAccountId {
-		partition, accountId, err := GetAccountInfo(client.iamconn, client.stsconn, cp.ProviderName)
+		accountID, err := GetAccountID(client.iamconn, client.stsconn, cp.ProviderName)
 		if err == nil {
-			client.partition = partition
-			client.accountid = accountId
+			client.accountid = accountID
 		}
 	}
 
@@ -400,6 +400,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.apigateway = apigateway.New(awsApigatewaySess)
 	client.appautoscalingconn = applicationautoscaling.New(sess)
 	client.autoscalingconn = autoscaling.New(sess)
+	client.cloud9conn = cloud9.New(sess)
 	client.cfconn = cloudformation.New(awsCfSess)
 	client.cloudfrontconn = cloudfront.New(sess)
 	client.cloudtrailconn = cloudtrail.New(sess)
@@ -486,6 +487,29 @@ func (c *Config) Client() (interface{}, error) {
 		}
 	})
 
+	// See https://github.com/aws/aws-sdk-go/pull/1276
+	client.dynamodbconn.Handlers.Retry.PushBack(func(r *request.Request) {
+		if r.Operation.Name != "PutItem" && r.Operation.Name != "UpdateItem" && r.Operation.Name != "DeleteItem" {
+			return
+		}
+		if isAWSErr(r.Error, dynamodb.ErrCodeLimitExceededException, "Subscriber limit exceeded:") {
+			r.Retryable = aws.Bool(true)
+		}
+	})
+
+	client.kinesisconn.Handlers.Retry.PushBack(func(r *request.Request) {
+		if r.Operation.Name == "CreateStream" {
+			if isAWSErr(r.Error, kinesis.ErrCodeLimitExceededException, "simultaneously be in CREATING or DELETING") {
+				r.Retryable = aws.Bool(true)
+			}
+		}
+		if r.Operation.Name == "CreateStream" || r.Operation.Name == "DeleteStream" {
+			if isAWSErr(r.Error, kinesis.ErrCodeLimitExceededException, "Rate exceeded for stream") {
+				r.Retryable = aws.Bool(true)
+			}
+		}
+	})
+
 	return &client, nil
 }
 
@@ -501,32 +525,14 @@ func hasEc2Classic(platforms []string) bool {
 // ValidateRegion returns an error if the configured region is not a
 // valid aws region and nil otherwise.
 func (c *Config) ValidateRegion() error {
-	var regions = []string{
-		"ap-northeast-1",
-		"ap-northeast-2",
-		"ap-south-1",
-		"ap-southeast-1",
-		"ap-southeast-2",
-		"ca-central-1",
-		"cn-north-1",
-		"cn-northwest-1",
-		"eu-central-1",
-		"eu-west-1",
-		"eu-west-2",
-		"eu-west-3",
-		"sa-east-1",
-		"us-east-1",
-		"us-east-2",
-		"us-gov-west-1",
-		"us-west-1",
-		"us-west-2",
-	}
-
-	for _, valid := range regions {
-		if c.Region == valid {
-			return nil
+	for _, partition := range endpoints.DefaultPartitions() {
+		for _, region := range partition.Regions() {
+			if c.Region == region.ID() {
+				return nil
+			}
 		}
 	}
+
 	return fmt.Errorf("Not a valid region: %s", c.Region)
 }
 

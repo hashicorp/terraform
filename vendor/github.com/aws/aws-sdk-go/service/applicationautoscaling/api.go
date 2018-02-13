@@ -1196,7 +1196,6 @@ func (c *ApplicationAutoScaling) RegisterScalableTargetWithContext(ctx aws.Conte
 }
 
 // Represents a CloudWatch alarm associated with a scaling policy.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/Alarm
 type Alarm struct {
 	_ struct{} `type:"structure"`
 
@@ -1234,7 +1233,6 @@ func (s *Alarm) SetAlarmName(v string) *Alarm {
 }
 
 // Configures a customized metric for a target tracking policy.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/CustomizedMetricSpecification
 type CustomizedMetricSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -1329,7 +1327,6 @@ func (s *CustomizedMetricSpecification) SetUnit(v string) *CustomizedMetricSpeci
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScalingPolicyRequest
 type DeleteScalingPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1467,7 +1464,6 @@ func (s *DeleteScalingPolicyInput) SetServiceNamespace(v string) *DeleteScalingP
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScalingPolicyResponse
 type DeleteScalingPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1482,7 +1478,6 @@ func (s DeleteScalingPolicyOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScheduledActionRequest
 type DeleteScheduledActionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1615,7 +1610,6 @@ func (s *DeleteScheduledActionInput) SetServiceNamespace(v string) *DeleteSchedu
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScheduledActionResponse
 type DeleteScheduledActionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1630,7 +1624,6 @@ func (s DeleteScheduledActionOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeregisterScalableTargetRequest
 type DeregisterScalableTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1751,7 +1744,6 @@ func (s *DeregisterScalableTargetInput) SetServiceNamespace(v string) *Deregiste
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeregisterScalableTargetResponse
 type DeregisterScalableTargetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1766,7 +1758,6 @@ func (s DeregisterScalableTargetOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalableTargetsRequest
 type DescribeScalableTargetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1900,7 +1891,6 @@ func (s *DescribeScalableTargetsInput) SetServiceNamespace(v string) *DescribeSc
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalableTargetsResponse
 type DescribeScalableTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1934,7 +1924,6 @@ func (s *DescribeScalableTargetsOutput) SetScalableTargets(v []*ScalableTarget) 
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingActivitiesRequest
 type DescribeScalingActivitiesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2071,7 +2060,6 @@ func (s *DescribeScalingActivitiesInput) SetServiceNamespace(v string) *Describe
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingActivitiesResponse
 type DescribeScalingActivitiesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2105,7 +2093,6 @@ func (s *DescribeScalingActivitiesOutput) SetScalingActivities(v []*ScalingActiv
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingPoliciesRequest
 type DescribeScalingPoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2251,7 +2238,6 @@ func (s *DescribeScalingPoliciesInput) SetServiceNamespace(v string) *DescribeSc
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingPoliciesResponse
 type DescribeScalingPoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2285,7 +2271,6 @@ func (s *DescribeScalingPoliciesOutput) SetScalingPolicies(v []*ScalingPolicy) *
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScheduledActionsRequest
 type DescribeScheduledActionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2431,7 +2416,6 @@ func (s *DescribeScheduledActionsInput) SetServiceNamespace(v string) *DescribeS
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScheduledActionsResponse
 type DescribeScheduledActionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2466,7 +2450,6 @@ func (s *DescribeScheduledActionsOutput) SetScheduledActions(v []*ScheduledActio
 }
 
 // Describes the dimension of a metric.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/MetricDimension
 type MetricDimension struct {
 	_ struct{} `type:"structure"`
 
@@ -2520,7 +2503,6 @@ func (s *MetricDimension) SetValue(v string) *MetricDimension {
 }
 
 // Configures a predefined metric for a target tracking policy.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PredefinedMetricSpecification
 type PredefinedMetricSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -2583,7 +2565,6 @@ func (s *PredefinedMetricSpecification) SetResourceLabel(v string) *PredefinedMe
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScalingPolicyRequest
 type PutScalingPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2768,7 +2749,6 @@ func (s *PutScalingPolicyInput) SetTargetTrackingScalingPolicyConfiguration(v *T
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScalingPolicyResponse
 type PutScalingPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2803,7 +2783,6 @@ func (s *PutScalingPolicyOutput) SetPolicyARN(v string) *PutScalingPolicyOutput 
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScheduledActionRequest
 type PutScheduledActionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2993,7 +2972,6 @@ func (s *PutScheduledActionInput) SetStartTime(v time.Time) *PutScheduledActionI
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScheduledActionResponse
 type PutScheduledActionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3008,7 +2986,6 @@ func (s PutScheduledActionOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/RegisterScalableTargetRequest
 type RegisterScalableTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3167,7 +3144,6 @@ func (s *RegisterScalableTargetInput) SetServiceNamespace(v string) *RegisterSca
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/RegisterScalableTargetResponse
 type RegisterScalableTargetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3183,7 +3159,6 @@ func (s RegisterScalableTargetOutput) GoString() string {
 }
 
 // Represents a scalable target.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/ScalableTarget
 type ScalableTarget struct {
 	_ struct{} `type:"structure"`
 
@@ -3328,7 +3303,6 @@ func (s *ScalableTarget) SetServiceNamespace(v string) *ScalableTarget {
 }
 
 // Represents the minimum and maximum capacity for a scheduled action.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/ScalableTargetAction
 type ScalableTargetAction struct {
 	_ struct{} `type:"structure"`
 
@@ -3362,7 +3336,6 @@ func (s *ScalableTargetAction) SetMinCapacity(v int64) *ScalableTargetAction {
 }
 
 // Represents a scaling activity.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/ScalingActivity
 type ScalingActivity struct {
 	_ struct{} `type:"structure"`
 
@@ -3544,7 +3517,6 @@ func (s *ScalingActivity) SetStatusMessage(v string) *ScalingActivity {
 }
 
 // Represents a scaling policy.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/ScalingPolicy
 type ScalingPolicy struct {
 	_ struct{} `type:"structure"`
 
@@ -3715,7 +3687,6 @@ func (s *ScalingPolicy) SetTargetTrackingScalingPolicyConfiguration(v *TargetTra
 }
 
 // Represents a scheduled action.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/ScheduledAction
 type ScheduledAction struct {
 	_ struct{} `type:"structure"`
 
@@ -3928,7 +3899,6 @@ func (s *ScheduledAction) SetStartTime(v time.Time) *ScheduledAction {
 //    with a null upper bound.
 //
 //    * The upper and lower bound can't be null in the same step adjustment.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/StepAdjustment
 type StepAdjustment struct {
 	_ struct{} `type:"structure"`
 
@@ -3999,7 +3969,6 @@ func (s *StepAdjustment) SetScalingAdjustment(v int64) *StepAdjustment {
 }
 
 // Represents a step scaling policy configuration.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/StepScalingPolicyConfiguration
 type StepScalingPolicyConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -4105,7 +4074,6 @@ func (s *StepScalingPolicyConfiguration) SetStepAdjustments(v []*StepAdjustment)
 }
 
 // Represents a target tracking scaling policy configuration.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/TargetTrackingScalingPolicyConfiguration
 type TargetTrackingScalingPolicyConfiguration struct {
 	_ struct{} `type:"structure"`
 
