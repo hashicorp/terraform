@@ -54,6 +54,7 @@ type provisioner struct {
 	SkipInstall      bool
 	UseSudo          bool
 	ServiceType      string
+	ServiceName      string
 	URL              string
 	Channel          string
 	Events           string
@@ -78,6 +79,11 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "systemd",
+			},
+			"service_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "hab-supervisor",
 			},
 			"use_sudo": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -344,6 +350,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		Services:         getServices(d.Get("service").(*schema.Set).List()),
 		UseSudo:          d.Get("use_sudo").(bool),
 		ServiceType:      d.Get("service_type").(string),
+		ServiceName:      d.Get("service_name").(string),
 		RingKey:          d.Get("ring_key").(string),
 		RingKeyContent:   d.Get("ring_key_content").(string),
 		PermanentPeer:    d.Get("permanent_peer").(bool),
@@ -569,9 +576,9 @@ func (p *provisioner) startHabSystemd(o terraform.UIOutput, comm communicator.Co
 
 	var command string
 	if p.UseSudo {
-		command = fmt.Sprintf("sudo echo '%s' | sudo tee /etc/systemd/system/hab-supervisor.service > /dev/null", &buf)
+		command = fmt.Sprintf("sudo echo '%s' | sudo tee /etc/systemd/system/%s.service > /dev/null", &buf, p.ServiceName)
 	} else {
-		command = fmt.Sprintf("echo '%s' | tee /etc/systemd/system/hab-supervisor.service > /dev/null", &buf)
+		command = fmt.Sprintf("echo '%s' | tee /etc/systemd/system/%s.service > /dev/null", &buf, p.ServiceName)
 	}
 
 	if err := p.runCommand(o, comm, command); err != nil {
@@ -579,9 +586,9 @@ func (p *provisioner) startHabSystemd(o terraform.UIOutput, comm communicator.Co
 	}
 
 	if p.UseSudo {
-		command = fmt.Sprintf("sudo systemctl start hab-supervisor")
+		command = fmt.Sprintf("sudo systemctl start %s", p.ServiceName)
 	} else {
-		command = fmt.Sprintf("systemctl start hab-supervisor")
+		command = fmt.Sprintf("systemctl start %s", p.ServiceName)
 	}
 	return p.runCommand(o, comm, command)
 }
