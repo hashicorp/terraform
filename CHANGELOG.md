@@ -1,5 +1,9 @@
 ## 0.11.4 (Unreleased)
 
+IMPROVEMENTS:
+
+* backend/s3: add support for the cn-northwest-1 region [GH-17216]
+
 BUG FIXES:
 
 * helper/schema: Prevent crash on removal of computed field in CustomizeDiff [GH-17261]
