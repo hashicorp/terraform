@@ -49,7 +49,8 @@ output "addresses" {
 The `output` block configures a single output variable. Multiple
 output variables can be configured with multiple output blocks.
 The `NAME` given to the output block is the name used to reference
-the output variable.
+the output variable. It must conform to Terraform variable naming
+conventions if it is to be used as an input to other modules.
 
 Within the block (the `{ }`) is configuration for the output.
 These are the parameters that can be set:
