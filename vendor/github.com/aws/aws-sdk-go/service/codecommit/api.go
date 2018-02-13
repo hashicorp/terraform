@@ -4584,7 +4584,6 @@ func (c *CodeCommit) UpdateRepositoryNameWithContext(ctx aws.Context, input *Upd
 }
 
 // Represents the input of a batch get repositories operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/BatchGetRepositoriesInput
 type BatchGetRepositoriesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4624,7 +4623,6 @@ func (s *BatchGetRepositoriesInput) SetRepositoryNames(v []*string) *BatchGetRep
 }
 
 // Represents the output of a batch get repositories operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/BatchGetRepositoriesOutput
 type BatchGetRepositoriesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4658,7 +4656,6 @@ func (s *BatchGetRepositoriesOutput) SetRepositoriesNotFound(v []*string) *Batch
 }
 
 // Returns information about a specific Git blob object.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/BlobMetadata
 type BlobMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -4709,7 +4706,6 @@ func (s *BlobMetadata) SetPath(v string) *BlobMetadata {
 }
 
 // Returns information about a branch.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/BranchInfo
 type BranchInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -4743,7 +4739,6 @@ func (s *BranchInfo) SetCommitId(v string) *BranchInfo {
 }
 
 // Returns information about a specific comment.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/Comment
 type Comment struct {
 	_ struct{} `type:"structure"`
 
@@ -4834,7 +4829,6 @@ func (s *Comment) SetLastModifiedDate(v time.Time) *Comment {
 }
 
 // Returns information about comments on the comparison between two commits.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CommentsForComparedCommit
 type CommentsForComparedCommit struct {
 	_ struct{} `type:"structure"`
 
@@ -4916,7 +4910,6 @@ func (s *CommentsForComparedCommit) SetRepositoryName(v string) *CommentsForComp
 }
 
 // Returns information about comments on a pull request.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CommentsForPullRequest
 type CommentsForPullRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -5012,7 +5005,6 @@ func (s *CommentsForPullRequest) SetRepositoryName(v string) *CommentsForPullReq
 }
 
 // Returns information about a specific commit.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/Commit
 type Commit struct {
 	_ struct{} `type:"structure"`
 
@@ -5100,7 +5092,6 @@ func (s *Commit) SetTreeId(v string) *Commit {
 }
 
 // Represents the input of a create branch operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CreateBranchInput
 type CreateBranchInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5173,7 +5164,6 @@ func (s *CreateBranchInput) SetRepositoryName(v string) *CreateBranchInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CreateBranchOutput
 type CreateBranchOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5188,7 +5178,6 @@ func (s CreateBranchOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CreatePullRequestInput
 type CreatePullRequestInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5279,7 +5268,6 @@ func (s *CreatePullRequestInput) SetTitle(v string) *CreatePullRequestInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CreatePullRequestOutput
 type CreatePullRequestOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5306,7 +5294,6 @@ func (s *CreatePullRequestOutput) SetPullRequest(v *PullRequest) *CreatePullRequ
 }
 
 // Represents the input of a create repository operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CreateRepositoryInput
 type CreateRepositoryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5370,7 +5357,6 @@ func (s *CreateRepositoryInput) SetRepositoryName(v string) *CreateRepositoryInp
 }
 
 // Represents the output of a create repository operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CreateRepositoryOutput
 type CreateRepositoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5395,7 +5381,6 @@ func (s *CreateRepositoryOutput) SetRepositoryMetadata(v *RepositoryMetadata) *C
 }
 
 // Represents the input of a delete branch operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteBranchInput
 type DeleteBranchInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5455,7 +5440,6 @@ func (s *DeleteBranchInput) SetRepositoryName(v string) *DeleteBranchInput {
 }
 
 // Represents the output of a delete branch operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteBranchOutput
 type DeleteBranchOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5480,7 +5464,6 @@ func (s *DeleteBranchOutput) SetDeletedBranch(v *BranchInfo) *DeleteBranchOutput
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteCommentContentInput
 type DeleteCommentContentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5520,7 +5503,6 @@ func (s *DeleteCommentContentInput) SetCommentId(v string) *DeleteCommentContent
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteCommentContentOutput
 type DeleteCommentContentOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5545,7 +5527,6 @@ func (s *DeleteCommentContentOutput) SetComment(v *Comment) *DeleteCommentConten
 }
 
 // Represents the input of a delete repository operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteRepositoryInput
 type DeleteRepositoryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5588,7 +5569,6 @@ func (s *DeleteRepositoryInput) SetRepositoryName(v string) *DeleteRepositoryInp
 }
 
 // Represents the output of a delete repository operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteRepositoryOutput
 type DeleteRepositoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5612,7 +5592,6 @@ func (s *DeleteRepositoryOutput) SetRepositoryId(v string) *DeleteRepositoryOutp
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DescribePullRequestEventsInput
 type DescribePullRequestEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5692,7 +5671,6 @@ func (s *DescribePullRequestEventsInput) SetPullRequestId(v string) *DescribePul
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DescribePullRequestEventsOutput
 type DescribePullRequestEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5729,7 +5707,6 @@ func (s *DescribePullRequestEventsOutput) SetPullRequestEvents(v []*PullRequestE
 }
 
 // Returns information about a set of differences for a commit specifier.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/Difference
 type Difference struct {
 	_ struct{} `type:"structure"`
 
@@ -5775,7 +5752,6 @@ func (s *Difference) SetChangeType(v string) *Difference {
 }
 
 // Represents the input of a get blob operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetBlobInput
 type GetBlobInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5832,7 +5808,6 @@ func (s *GetBlobInput) SetRepositoryName(v string) *GetBlobInput {
 }
 
 // Represents the output of a get blob operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetBlobOutput
 type GetBlobOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5861,7 +5836,6 @@ func (s *GetBlobOutput) SetContent(v []byte) *GetBlobOutput {
 }
 
 // Represents the input of a get branch operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetBranchInput
 type GetBranchInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5912,7 +5886,6 @@ func (s *GetBranchInput) SetRepositoryName(v string) *GetBranchInput {
 }
 
 // Represents the output of a get branch operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetBranchOutput
 type GetBranchOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5936,7 +5909,6 @@ func (s *GetBranchOutput) SetBranch(v *BranchInfo) *GetBranchOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetCommentInput
 type GetCommentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5976,7 +5948,6 @@ func (s *GetCommentInput) SetCommentId(v string) *GetCommentInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetCommentOutput
 type GetCommentOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6000,7 +5971,6 @@ func (s *GetCommentOutput) SetComment(v *Comment) *GetCommentOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetCommentsForComparedCommitInput
 type GetCommentsForComparedCommitInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6087,7 +6057,6 @@ func (s *GetCommentsForComparedCommitInput) SetRepositoryName(v string) *GetComm
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetCommentsForComparedCommitOutput
 type GetCommentsForComparedCommitOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6121,7 +6090,6 @@ func (s *GetCommentsForComparedCommitOutput) SetNextToken(v string) *GetComments
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetCommentsForPullRequestInput
 type GetCommentsForPullRequestInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6213,7 +6181,6 @@ func (s *GetCommentsForPullRequestInput) SetRepositoryName(v string) *GetComment
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetCommentsForPullRequestOutput
 type GetCommentsForPullRequestOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6248,7 +6215,6 @@ func (s *GetCommentsForPullRequestOutput) SetNextToken(v string) *GetCommentsFor
 }
 
 // Represents the input of a get commit operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetCommitInput
 type GetCommitInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6305,7 +6271,6 @@ func (s *GetCommitInput) SetRepositoryName(v string) *GetCommitInput {
 }
 
 // Represents the output of a get commit operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetCommitOutput
 type GetCommitOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6331,7 +6296,6 @@ func (s *GetCommitOutput) SetCommit(v *Commit) *GetCommitOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetDifferencesInput
 type GetDifferencesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6443,7 +6407,6 @@ func (s *GetDifferencesInput) SetRepositoryName(v string) *GetDifferencesInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetDifferencesOutput
 type GetDifferencesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6478,7 +6441,6 @@ func (s *GetDifferencesOutput) SetNextToken(v string) *GetDifferencesOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetMergeConflictsInput
 type GetMergeConflictsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6565,7 +6527,6 @@ func (s *GetMergeConflictsInput) SetSourceCommitSpecifier(v string) *GetMergeCon
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetMergeConflictsOutput
 type GetMergeConflictsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6615,7 +6576,6 @@ func (s *GetMergeConflictsOutput) SetSourceCommitId(v string) *GetMergeConflicts
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetPullRequestInput
 type GetPullRequestInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6654,7 +6614,6 @@ func (s *GetPullRequestInput) SetPullRequestId(v string) *GetPullRequestInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetPullRequestOutput
 type GetPullRequestOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6681,7 +6640,6 @@ func (s *GetPullRequestOutput) SetPullRequest(v *PullRequest) *GetPullRequestOut
 }
 
 // Represents the input of a get repository operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetRepositoryInput
 type GetRepositoryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6724,7 +6682,6 @@ func (s *GetRepositoryInput) SetRepositoryName(v string) *GetRepositoryInput {
 }
 
 // Represents the output of a get repository operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetRepositoryOutput
 type GetRepositoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6749,7 +6706,6 @@ func (s *GetRepositoryOutput) SetRepositoryMetadata(v *RepositoryMetadata) *GetR
 }
 
 // Represents the input of a get repository triggers operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetRepositoryTriggersInput
 type GetRepositoryTriggersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6792,7 +6748,6 @@ func (s *GetRepositoryTriggersInput) SetRepositoryName(v string) *GetRepositoryT
 }
 
 // Represents the output of a get repository triggers operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetRepositoryTriggersOutput
 type GetRepositoryTriggersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6826,7 +6781,6 @@ func (s *GetRepositoryTriggersOutput) SetTriggers(v []*RepositoryTrigger) *GetRe
 }
 
 // Represents the input of a list branches operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/ListBranchesInput
 type ListBranchesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6878,7 +6832,6 @@ func (s *ListBranchesInput) SetRepositoryName(v string) *ListBranchesInput {
 }
 
 // Represents the output of a list branches operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/ListBranchesOutput
 type ListBranchesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6911,7 +6864,6 @@ func (s *ListBranchesOutput) SetNextToken(v string) *ListBranchesOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/ListPullRequestsInput
 type ListPullRequestsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6993,7 +6945,6 @@ func (s *ListPullRequestsInput) SetRepositoryName(v string) *ListPullRequestsInp
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/ListPullRequestsOutput
 type ListPullRequestsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7030,7 +6981,6 @@ func (s *ListPullRequestsOutput) SetPullRequestIds(v []*string) *ListPullRequest
 }
 
 // Represents the input of a list repositories operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/ListRepositoriesInput
 type ListRepositoriesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7076,7 +7026,6 @@ func (s *ListRepositoriesInput) SetSortBy(v string) *ListRepositoriesInput {
 }
 
 // Represents the output of a list repositories operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/ListRepositoriesOutput
 type ListRepositoriesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7114,7 +7063,6 @@ func (s *ListRepositoriesOutput) SetRepositories(v []*RepositoryNameIdPair) *Lis
 
 // Returns information about the location of a change or comment in the comparison
 // between two commits or a pull request.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/Location
 type Location struct {
 	_ struct{} `type:"structure"`
 
@@ -7160,7 +7108,6 @@ func (s *Location) SetRelativeFileVersion(v string) *Location {
 
 // Returns information about a merge or potential merge between a source reference
 // and a destination reference in a pull request.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/MergeMetadata
 type MergeMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -7193,7 +7140,6 @@ func (s *MergeMetadata) SetMergedBy(v string) *MergeMetadata {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/MergePullRequestByFastForwardInput
 type MergePullRequestByFastForwardInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7260,7 +7206,6 @@ func (s *MergePullRequestByFastForwardInput) SetSourceCommitId(v string) *MergeP
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/MergePullRequestByFastForwardOutput
 type MergePullRequestByFastForwardOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7285,7 +7230,6 @@ func (s *MergePullRequestByFastForwardOutput) SetPullRequest(v *PullRequest) *Me
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PostCommentForComparedCommitInput
 type PostCommentForComparedCommitInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7388,7 +7332,6 @@ func (s *PostCommentForComparedCommitInput) SetRepositoryName(v string) *PostCom
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PostCommentForComparedCommitOutput
 type PostCommentForComparedCommitOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7469,7 +7412,6 @@ func (s *PostCommentForComparedCommitOutput) SetRepositoryName(v string) *PostCo
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PostCommentForPullRequestInput
 type PostCommentForPullRequestInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7592,7 +7534,6 @@ func (s *PostCommentForPullRequestInput) SetRepositoryName(v string) *PostCommen
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PostCommentForPullRequestOutput
 type PostCommentForPullRequestOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7682,7 +7623,6 @@ func (s *PostCommentForPullRequestOutput) SetRepositoryName(v string) *PostComme
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PostCommentReplyInput
 type PostCommentReplyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7748,7 +7688,6 @@ func (s *PostCommentReplyInput) SetInReplyTo(v string) *PostCommentReplyInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PostCommentReplyOutput
 type PostCommentReplyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7773,7 +7712,6 @@ func (s *PostCommentReplyOutput) SetComment(v *Comment) *PostCommentReplyOutput 
 }
 
 // Returns information about a pull request.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PullRequest
 type PullRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -7878,7 +7816,6 @@ func (s *PullRequest) SetTitle(v string) *PullRequest {
 }
 
 // Returns information about a pull request event.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PullRequestEvent
 type PullRequestEvent struct {
 	_ struct{} `type:"structure"`
 
@@ -7961,7 +7898,6 @@ func (s *PullRequestEvent) SetPullRequestStatusChangedEventMetadata(v *PullReque
 
 // Returns information about the change in the merge state for a pull request
 // event.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PullRequestMergedStateChangedEventMetadata
 type PullRequestMergedStateChangedEventMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -8004,7 +7940,6 @@ func (s *PullRequestMergedStateChangedEventMetadata) SetRepositoryName(v string)
 }
 
 // Information about an update to the source branch of a pull request.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PullRequestSourceReferenceUpdatedEventMetadata
 type PullRequestSourceReferenceUpdatedEventMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -8049,7 +7984,6 @@ func (s *PullRequestSourceReferenceUpdatedEventMetadata) SetRepositoryName(v str
 }
 
 // Information about a change to the status of a pull request.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PullRequestStatusChangedEventMetadata
 type PullRequestStatusChangedEventMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -8074,7 +8008,6 @@ func (s *PullRequestStatusChangedEventMetadata) SetPullRequestStatus(v string) *
 }
 
 // Returns information about a pull request target.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PullRequestTarget
 type PullRequestTarget struct {
 	_ struct{} `type:"structure"`
 
@@ -8151,7 +8084,6 @@ func (s *PullRequestTarget) SetSourceReference(v string) *PullRequestTarget {
 }
 
 // Represents the input ofa put repository triggers operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PutRepositoryTriggersInput
 type PutRepositoryTriggersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8218,7 +8150,6 @@ func (s *PutRepositoryTriggersInput) SetTriggers(v []*RepositoryTrigger) *PutRep
 }
 
 // Represents the output of a put repository triggers operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PutRepositoryTriggersOutput
 type PutRepositoryTriggersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8243,7 +8174,6 @@ func (s *PutRepositoryTriggersOutput) SetConfigurationId(v string) *PutRepositor
 }
 
 // Information about a repository.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/RepositoryMetadata
 type RepositoryMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -8349,7 +8279,6 @@ func (s *RepositoryMetadata) SetRepositoryName(v string) *RepositoryMetadata {
 }
 
 // Information about a repository name and ID.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/RepositoryNameIdPair
 type RepositoryNameIdPair struct {
 	_ struct{} `type:"structure"`
 
@@ -8383,7 +8312,6 @@ func (s *RepositoryNameIdPair) SetRepositoryName(v string) *RepositoryNameIdPair
 }
 
 // Information about a trigger for a repository.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/RepositoryTrigger
 type RepositoryTrigger struct {
 	_ struct{} `type:"structure"`
 
@@ -8478,7 +8406,6 @@ func (s *RepositoryTrigger) SetName(v string) *RepositoryTrigger {
 }
 
 // A trigger failed to run.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/RepositoryTriggerExecutionFailure
 type RepositoryTriggerExecutionFailure struct {
 	_ struct{} `type:"structure"`
 
@@ -8512,7 +8439,6 @@ func (s *RepositoryTriggerExecutionFailure) SetTrigger(v string) *RepositoryTrig
 }
 
 // Returns information about a target for a pull request.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/Target
 type Target struct {
 	_ struct{} `type:"structure"`
 
@@ -8580,7 +8506,6 @@ func (s *Target) SetSourceReference(v string) *Target {
 }
 
 // Represents the input of a test repository triggers operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/TestRepositoryTriggersInput
 type TestRepositoryTriggersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8647,7 +8572,6 @@ func (s *TestRepositoryTriggersInput) SetTriggers(v []*RepositoryTrigger) *TestR
 }
 
 // Represents the output of a test repository triggers operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/TestRepositoryTriggersOutput
 type TestRepositoryTriggersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8682,7 +8606,6 @@ func (s *TestRepositoryTriggersOutput) SetSuccessfulExecutions(v []*string) *Tes
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateCommentInput
 type UpdateCommentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8737,7 +8660,6 @@ func (s *UpdateCommentInput) SetContent(v string) *UpdateCommentInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateCommentOutput
 type UpdateCommentOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8762,7 +8684,6 @@ func (s *UpdateCommentOutput) SetComment(v *Comment) *UpdateCommentOutput {
 }
 
 // Represents the input of an update default branch operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateDefaultBranchInput
 type UpdateDefaultBranchInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8821,7 +8742,6 @@ func (s *UpdateDefaultBranchInput) SetRepositoryName(v string) *UpdateDefaultBra
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateDefaultBranchOutput
 type UpdateDefaultBranchOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8836,7 +8756,6 @@ func (s UpdateDefaultBranchOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdatePullRequestDescriptionInput
 type UpdatePullRequestDescriptionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8890,7 +8809,6 @@ func (s *UpdatePullRequestDescriptionInput) SetPullRequestId(v string) *UpdatePu
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdatePullRequestDescriptionOutput
 type UpdatePullRequestDescriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8916,7 +8834,6 @@ func (s *UpdatePullRequestDescriptionOutput) SetPullRequest(v *PullRequest) *Upd
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdatePullRequestStatusInput
 type UpdatePullRequestStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8970,7 +8887,6 @@ func (s *UpdatePullRequestStatusInput) SetPullRequestStatus(v string) *UpdatePul
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdatePullRequestStatusOutput
 type UpdatePullRequestStatusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8996,7 +8912,6 @@ func (s *UpdatePullRequestStatusOutput) SetPullRequest(v *PullRequest) *UpdatePu
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdatePullRequestTitleInput
 type UpdatePullRequestTitleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -9049,7 +8964,6 @@ func (s *UpdatePullRequestTitleInput) SetTitle(v string) *UpdatePullRequestTitle
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdatePullRequestTitleOutput
 type UpdatePullRequestTitleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -9076,7 +8990,6 @@ func (s *UpdatePullRequestTitleOutput) SetPullRequest(v *PullRequest) *UpdatePul
 }
 
 // Represents the input of an update repository description operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateRepositoryDescriptionInput
 type UpdateRepositoryDescriptionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -9128,7 +9041,6 @@ func (s *UpdateRepositoryDescriptionInput) SetRepositoryName(v string) *UpdateRe
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateRepositoryDescriptionOutput
 type UpdateRepositoryDescriptionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -9144,7 +9056,6 @@ func (s UpdateRepositoryDescriptionOutput) GoString() string {
 }
 
 // Represents the input of an update repository description operation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateRepositoryNameInput
 type UpdateRepositoryNameInput struct {
 	_ struct{} `type:"structure"`
 
@@ -9203,7 +9114,6 @@ func (s *UpdateRepositoryNameInput) SetOldName(v string) *UpdateRepositoryNameIn
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateRepositoryNameOutput
 type UpdateRepositoryNameOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -9219,7 +9129,6 @@ func (s UpdateRepositoryNameOutput) GoString() string {
 }
 
 // Information about the user who made a specified commit.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UserInfo
 type UserInfo struct {
 	_ struct{} `type:"structure"`
 

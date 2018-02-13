@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -26,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/iot"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/mq"
@@ -2424,6 +2426,227 @@ func expandCognitoUserPoolPasswordPolicy(config map[string]interface{}) *cognito
 	return configs
 }
 
+func flattenIoTRuleCloudWatchAlarmActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.CloudwatchAlarm
+		if v != nil {
+			result["alarm_name"] = *v.AlarmName
+			result["role_arn"] = *v.RoleArn
+			result["state_reason"] = *v.StateReason
+			result["state_value"] = *v.StateValue
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleCloudWatchMetricActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.CloudwatchMetric
+		if v != nil {
+			result["metric_name"] = *v.MetricName
+			result["role_arn"] = *v.RoleArn
+			result["metric_namespace"] = *v.MetricNamespace
+			result["metric_unit"] = *v.MetricUnit
+			result["metric_value"] = *v.MetricValue
+
+			if v.MetricTimestamp != nil {
+				result["metric_timestamp"] = *v.MetricTimestamp
+			}
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleDynamoDbActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.DynamoDB
+		if v != nil {
+			result["hash_key_field"] = *v.HashKeyField
+			result["hash_key_value"] = *v.HashKeyValue
+			result["range_key_field"] = *v.RangeKeyField
+			result["range_key_value"] = *v.RangeKeyValue
+			result["role_arn"] = *v.RoleArn
+			result["table_name"] = *v.TableName
+
+			if v.HashKeyType != nil {
+				result["hash_key_type"] = *v.HashKeyType
+			}
+
+			if v.PayloadField != nil {
+				result["payload_field"] = *v.PayloadField
+			}
+
+			if v.RangeKeyType != nil {
+				result["range_key_type"] = *v.RangeKeyType
+			}
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleElasticSearchActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Elasticsearch
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["endpoint"] = *v.Endpoint
+			result["id"] = *v.Id
+			result["index"] = *v.Index
+			result["type"] = *v.Type
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleFirehoseActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Firehose
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["delivery_stream_name"] = *v.DeliveryStreamName
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleKinesisActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Kinesis
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["stream_name"] = *v.StreamName
+
+			if v.PartitionKey != nil {
+				result["partition_key"] = *v.PartitionKey
+			}
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleLambdaActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Lambda
+		if v != nil {
+			result["function_arn"] = *v.FunctionArn
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleRepublishActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Republish
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["topic"] = *v.Topic
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleS3Actions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.S3
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["bucket_name"] = *v.BucketName
+			result["key"] = *v.Key
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleSnsActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Sns
+		if v != nil {
+			result["message_format"] = *v.MessageFormat
+			result["role_arn"] = *v.RoleArn
+			result["target_arn"] = *v.TargetArn
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleSqsActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Sqs
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["use_base64"] = *v.UseBase64
+			result["queue_url"] = *v.QueueUrl
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
 func flattenCognitoUserPoolPasswordPolicy(s *cognitoidentityprovider.PasswordPolicyType) []map[string]interface{} {
 	m := map[string]interface{}{}
 
@@ -3287,9 +3510,13 @@ func flattenAwsDynamoDbTableResource(d *schema.ResourceData, table *dynamodb.Tab
 	if table.StreamSpecification != nil {
 		d.Set("stream_view_type", table.StreamSpecification.StreamViewType)
 		d.Set("stream_enabled", table.StreamSpecification.StreamEnabled)
-		d.Set("stream_arn", table.LatestStreamArn)
-		d.Set("stream_label", table.LatestStreamLabel)
+	} else {
+		d.Set("stream_view_type", "")
+		d.Set("stream_enabled", false)
 	}
+
+	d.Set("stream_arn", table.LatestStreamArn)
+	d.Set("stream_label", table.LatestStreamLabel)
 
 	err = d.Set("global_secondary_index", gsiList)
 	if err != nil {
@@ -3382,4 +3609,61 @@ func expandDynamoDbKeySchema(data map[string]interface{}) []*dynamodb.KeySchemaE
 	}
 
 	return keySchema
+}
+
+func flattenVpcEndpointServiceAllowedPrincipals(allowedPrincipals []*ec2.AllowedPrincipal) []string {
+	result := make([]string, 0, len(allowedPrincipals))
+	for _, allowedPrincipal := range allowedPrincipals {
+		if allowedPrincipal.Principal != nil {
+			result = append(result, *allowedPrincipal.Principal)
+		}
+	}
+	return result
+}
+
+func expandDynamoDbTableItemAttributes(input string) (map[string]*dynamodb.AttributeValue, error) {
+	var attributes map[string]*dynamodb.AttributeValue
+
+	dec := json.NewDecoder(strings.NewReader(input))
+	err := dec.Decode(&attributes)
+	if err != nil {
+		return nil, fmt.Errorf("Decoding failed: %s", err)
+	}
+
+	return attributes, nil
+}
+
+func flattenDynamoDbTableItemAttributes(attrs map[string]*dynamodb.AttributeValue) (string, error) {
+	buf := bytes.NewBufferString("")
+	encoder := json.NewEncoder(buf)
+	err := encoder.Encode(attrs)
+	if err != nil {
+		return "", fmt.Errorf("Encoding failed: %s", err)
+	}
+
+	var rawData map[string]map[string]interface{}
+
+	// Reserialize so we get rid of the nulls
+	decoder := json.NewDecoder(strings.NewReader(buf.String()))
+	err = decoder.Decode(&rawData)
+	if err != nil {
+		return "", fmt.Errorf("Decoding failed: %s", err)
+	}
+
+	for _, value := range rawData {
+		for typeName, typeVal := range value {
+			if typeVal == nil {
+				delete(value, typeName)
+			}
+		}
+	}
+
+	rawBuffer := bytes.NewBufferString("")
+	rawEncoder := json.NewEncoder(rawBuffer)
+	err = rawEncoder.Encode(rawData)
+	if err != nil {
+		return "", fmt.Errorf("Re-encoding failed: %s", err)
+	}
+
+	return rawBuffer.String(), nil
 }

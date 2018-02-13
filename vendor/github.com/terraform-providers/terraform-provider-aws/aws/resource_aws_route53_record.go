@@ -900,12 +900,9 @@ func nilString(s string) *string {
 }
 
 func normalizeAwsAliasName(alias interface{}) string {
-	input := alias.(string)
-	output := strings.ToLower(input)
-	if strings.HasPrefix(output, "dualstack.") {
-		output = strings.TrimLeft(output, "dualstack.")
-	}
-	return strings.TrimRight(output, ".")
+	input := strings.ToLower(alias.(string))
+	output := strings.TrimPrefix(input, "dualstack.")
+	return strings.TrimSuffix(output, ".")
 }
 
 func parseRecordId(id string) [4]string {

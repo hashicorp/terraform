@@ -8663,7 +8663,6 @@ func (c *WAFRegional) UpdateXssMatchSetWithContext(ctx aws.Context, input *waf.U
 	return out, req.Send()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/AssociateWebACLRequest
 type AssociateWebACLInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8722,7 +8721,6 @@ func (s *AssociateWebACLInput) SetWebACLId(v string) *AssociateWebACLInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/AssociateWebACLResponse
 type AssociateWebACLOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8737,7 +8735,6 @@ func (s AssociateWebACLOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/DisassociateWebACLRequest
 type DisassociateWebACLInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8780,7 +8777,6 @@ func (s *DisassociateWebACLInput) SetResourceArn(v string) *DisassociateWebACLIn
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/DisassociateWebACLResponse
 type DisassociateWebACLOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8795,7 +8791,6 @@ func (s DisassociateWebACLOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetWebACLForResourceRequest
 type GetWebACLForResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8837,7 +8832,6 @@ func (s *GetWebACLForResourceInput) SetResourceArn(v string) *GetWebACLForResour
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/GetWebACLForResourceResponse
 type GetWebACLForResourceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8862,7 +8856,6 @@ func (s *GetWebACLForResourceOutput) SetWebACLSummary(v *waf.WebACLSummary) *Get
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/ListResourcesForWebACLRequest
 type ListResourcesForWebACLInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8905,7 +8898,6 @@ func (s *ListResourcesForWebACLInput) SetWebACLId(v string) *ListResourcesForWeb
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/waf-regional-2016-11-28/ListResourcesForWebACLResponse
 type ListResourcesForWebACLOutput struct {
 	_ struct{} `type:"structure"`
 
