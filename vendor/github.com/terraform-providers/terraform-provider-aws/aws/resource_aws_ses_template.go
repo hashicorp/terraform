@@ -110,10 +110,19 @@ func resourceAwsSesTemplateUpdate(d *schema.ResourceData, meta interface{}) erro
 	templateName := d.Id()
 
 	template := ses.Template{
-		HtmlPart:     aws.String(d.Get("html").(string)),
 		TemplateName: aws.String(templateName),
-		SubjectPart:  aws.String(d.Get("subject").(string)),
-		TextPart:     aws.String(d.Get("text").(string)),
+	}
+
+	if v, ok := d.GetOk("html"); ok {
+		template.HtmlPart = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("subject"); ok {
+		template.SubjectPart = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("text"); ok {
+		template.TextPart = aws.String(v.(string))
 	}
 
 	input := ses.UpdateTemplateInput{

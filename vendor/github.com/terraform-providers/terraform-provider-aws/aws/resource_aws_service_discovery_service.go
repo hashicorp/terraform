@@ -17,6 +17,10 @@ func resourceAwsServiceDiscoveryService() *schema.Resource {
 		Update: resourceAwsServiceDiscoveryServiceUpdate,
 		Delete: resourceAwsServiceDiscoveryServiceDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,

@@ -1496,47 +1496,34 @@ func readVolumeTags(conn *ec2.EC2, d *schema.ResourceData) error {
 
 // Determine whether we're referring to security groups with
 // IDs or names. We use a heuristic to figure this out. By default,
-// we use IDs if we're in a VPC. However, if we previously had an
-// all-name list of security groups, we use names. Or, if we had any
-// IDs, we use IDs.
+// we use IDs if we're in a VPC, and names otherwise (EC2-Classic).
+// However, the default VPC accepts either, so store them both here and let the
+// config determine which one to use in Plan and Apply.
 func readSecurityGroups(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.EC2) error {
+	// An instance with a subnet is in a VPC; an instance without a subnet is in EC2-Classic.
 	hasSubnet := instance.SubnetId != nil && *instance.SubnetId != ""
-	useID := hasSubnet
+	useID, useName := hasSubnet, !hasSubnet
 
-	// We have no resource data (security_groups) during import
-	// so knowing which VPC is the instance part is useful
-	out, err := conn.DescribeVpcs(&ec2.DescribeVpcsInput{
-		VpcIds: []*string{instance.VpcId},
-	})
-	if err != nil {
-		log.Printf("[WARN] Unable to describe VPC %q: %s", *instance.VpcId, err)
-	} else if len(out.Vpcs) == 0 {
-		// This may happen in Eucalyptus Cloud
-		log.Printf("[WARN] Unable to retrieve VPCs")
-	} else {
-		isInDefaultVpc := *out.Vpcs[0].IsDefault
-		useID = !isInDefaultVpc
-	}
-
-	if v := d.Get("security_groups"); v != nil {
-		match := useID
-		sgs := v.(*schema.Set).List()
-		if len(sgs) > 0 {
-			match = false
-			for _, v := range v.(*schema.Set).List() {
-				if strings.HasPrefix(v.(string), "sg-") {
-					match = true
-					break
-				}
-			}
+	// If the instance is in a VPC, find out if that VPC is Default to determine
+	// whether to store names.
+	if instance.VpcId != nil && *instance.VpcId != "" {
+		out, err := conn.DescribeVpcs(&ec2.DescribeVpcsInput{
+			VpcIds: []*string{instance.VpcId},
+		})
+		if err != nil {
+			log.Printf("[WARN] Unable to describe VPC %q: %s", *instance.VpcId, err)
+		} else if len(out.Vpcs) == 0 {
+			// This may happen in Eucalyptus Cloud
+			log.Printf("[WARN] Unable to retrieve VPCs")
+		} else {
+			isInDefaultVpc := *out.Vpcs[0].IsDefault
+			useName = isInDefaultVpc
 		}
-
-		useID = match
 	}
 
 	// Build up the security groups
-	sgs := make([]string, 0, len(instance.SecurityGroups))
 	if useID {
+		sgs := make([]string, 0, len(instance.SecurityGroups))
 		for _, sg := range instance.SecurityGroups {
 			sgs = append(sgs, *sg.GroupId)
 		}
@@ -1544,10 +1531,13 @@ func readSecurityGroups(d *schema.ResourceData, instance *ec2.Instance, conn *ec
 		if err := d.Set("vpc_security_group_ids", sgs); err != nil {
 			return err
 		}
-		if err := d.Set("security_groups", []string{}); err != nil {
+	} else {
+		if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
 			return err
 		}
-	} else {
+	}
+	if useName {
+		sgs := make([]string, 0, len(instance.SecurityGroups))
 		for _, sg := range instance.SecurityGroups {
 			sgs = append(sgs, *sg.GroupName)
 		}
@@ -1555,7 +1545,8 @@ func readSecurityGroups(d *schema.ResourceData, instance *ec2.Instance, conn *ec
 		if err := d.Set("security_groups", sgs); err != nil {
 			return err
 		}
-		if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
+	} else {
+		if err := d.Set("security_groups", []string{}); err != nil {
 			return err
 		}
 	}

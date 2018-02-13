@@ -25,8 +25,13 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 		},
 
 		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 			Update: schema.DefaultTimeout(10 * time.Minute),
+		},
+
+		CustomizeDiff: func(diff *schema.ResourceDiff, v interface{}) error {
+			return validateDynamoDbStreamSpec(diff)
 		},
 
 		SchemaVersion: 1,
@@ -70,8 +75,9 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 							Required: true,
 						},
 						"type": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateDynamoAttributeType,
 						},
 					},
 				},
@@ -171,7 +177,6 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 			"stream_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
 			},
 			"stream_view_type": {
 				Type:     schema.TypeString,
@@ -271,7 +276,7 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 	d.SetId(*output.TableDescription.TableName)
 	d.Set("arn", output.TableDescription.TableArn)
 
-	if err := waitForDynamoDbTableToBeActive(d.Id(), 10*time.Minute, conn); err != nil {
+	if err := waitForDynamoDbTableToBeActive(d.Id(), d.Timeout(schema.TimeoutCreate), conn); err != nil {
 		return err
 	}
 
@@ -300,12 +305,16 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if (d.HasChange("stream_enabled") || d.HasChange("stream_view_type")) && !d.IsNewResource() {
+		toEnable := d.Get("stream_enabled").(bool)
+		streamSpec := dynamodb.StreamSpecification{
+			StreamEnabled: aws.Bool(toEnable),
+		}
+		if toEnable {
+			streamSpec.StreamViewType = aws.String(d.Get("stream_view_type").(string))
+		}
 		input := &dynamodb.UpdateTableInput{
-			TableName: aws.String(d.Id()),
-			StreamSpecification: &dynamodb.StreamSpecification{
-				StreamEnabled:  aws.Bool(d.Get("stream_enabled").(bool)),
-				StreamViewType: aws.String(d.Get("stream_view_type").(string)),
-			},
+			TableName:           aws.String(d.Id()),
+			StreamSpecification: &streamSpec,
 		}
 		_, err := conn.UpdateTable(input)
 		if err != nil {

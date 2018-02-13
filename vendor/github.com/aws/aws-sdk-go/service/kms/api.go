@@ -4186,7 +4186,6 @@ func (c *KMS) UpdateKeyDescriptionWithContext(ctx aws.Context, input *UpdateKeyD
 }
 
 // Contains information about an alias.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/AliasListEntry
 type AliasListEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -4228,7 +4227,6 @@ func (s *AliasListEntry) SetTargetKeyId(v string) *AliasListEntry {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/CancelKeyDeletionRequest
 type CancelKeyDeletionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4281,7 +4279,6 @@ func (s *CancelKeyDeletionInput) SetKeyId(v string) *CancelKeyDeletionInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/CancelKeyDeletionResponse
 type CancelKeyDeletionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4305,7 +4302,6 @@ func (s *CancelKeyDeletionOutput) SetKeyId(v string) *CancelKeyDeletionOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/CreateAliasRequest
 type CreateAliasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4377,7 +4373,6 @@ func (s *CreateAliasInput) SetTargetKeyId(v string) *CreateAliasInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/CreateAliasOutput
 type CreateAliasOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4392,7 +4387,6 @@ func (s CreateAliasOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/CreateGrantRequest
 type CreateGrantInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4552,7 +4546,6 @@ func (s *CreateGrantInput) SetRetiringPrincipal(v string) *CreateGrantInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/CreateGrantResponse
 type CreateGrantOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4590,7 +4583,6 @@ func (s *CreateGrantOutput) SetGrantToken(v string) *CreateGrantOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/CreateKeyRequest
 type CreateKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4736,7 +4728,6 @@ func (s *CreateKeyInput) SetTags(v []*Tag) *CreateKeyInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/CreateKeyResponse
 type CreateKeyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4760,7 +4751,6 @@ func (s *CreateKeyOutput) SetKeyMetadata(v *KeyMetadata) *CreateKeyOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DecryptRequest
 type DecryptInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4827,7 +4817,6 @@ func (s *DecryptInput) SetGrantTokens(v []*string) *DecryptInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DecryptResponse
 type DecryptOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4864,7 +4853,6 @@ func (s *DecryptOutput) SetPlaintext(v []byte) *DecryptOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DeleteAliasRequest
 type DeleteAliasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4907,7 +4895,6 @@ func (s *DeleteAliasInput) SetAliasName(v string) *DeleteAliasInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DeleteAliasOutput
 type DeleteAliasOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4922,7 +4909,6 @@ func (s DeleteAliasOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DeleteImportedKeyMaterialRequest
 type DeleteImportedKeyMaterialInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4975,7 +4961,6 @@ func (s *DeleteImportedKeyMaterialInput) SetKeyId(v string) *DeleteImportedKeyMa
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DeleteImportedKeyMaterialOutput
 type DeleteImportedKeyMaterialOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4990,7 +4975,6 @@ func (s DeleteImportedKeyMaterialOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DescribeKeyRequest
 type DescribeKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5061,7 +5045,6 @@ func (s *DescribeKeyInput) SetKeyId(v string) *DescribeKeyInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DescribeKeyResponse
 type DescribeKeyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5085,7 +5068,6 @@ func (s *DescribeKeyOutput) SetKeyMetadata(v *KeyMetadata) *DescribeKeyOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DisableKeyRequest
 type DisableKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5137,7 +5119,6 @@ func (s *DisableKeyInput) SetKeyId(v string) *DisableKeyInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DisableKeyOutput
 type DisableKeyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5152,7 +5133,6 @@ func (s DisableKeyOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DisableKeyRotationRequest
 type DisableKeyRotationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5204,7 +5184,6 @@ func (s *DisableKeyRotationInput) SetKeyId(v string) *DisableKeyRotationInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/DisableKeyRotationOutput
 type DisableKeyRotationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5219,7 +5198,6 @@ func (s DisableKeyRotationOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/EnableKeyRequest
 type EnableKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5271,7 +5249,6 @@ func (s *EnableKeyInput) SetKeyId(v string) *EnableKeyInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/EnableKeyOutput
 type EnableKeyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5286,7 +5263,6 @@ func (s EnableKeyOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/EnableKeyRotationRequest
 type EnableKeyRotationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5338,7 +5314,6 @@ func (s *EnableKeyRotationInput) SetKeyId(v string) *EnableKeyRotationInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/EnableKeyRotationOutput
 type EnableKeyRotationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5353,7 +5328,6 @@ func (s EnableKeyRotationOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/EncryptRequest
 type EncryptInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5455,7 +5429,6 @@ func (s *EncryptInput) SetPlaintext(v []byte) *EncryptInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/EncryptResponse
 type EncryptOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5491,7 +5464,6 @@ func (s *EncryptOutput) SetKeyId(v string) *EncryptOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GenerateDataKeyRequest
 type GenerateDataKeyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5600,7 +5572,6 @@ func (s *GenerateDataKeyInput) SetNumberOfBytes(v int64) *GenerateDataKeyInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GenerateDataKeyResponse
 type GenerateDataKeyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5650,7 +5621,6 @@ func (s *GenerateDataKeyOutput) SetPlaintext(v []byte) *GenerateDataKeyOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GenerateDataKeyWithoutPlaintextRequest
 type GenerateDataKeyWithoutPlaintextInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5759,7 +5729,6 @@ func (s *GenerateDataKeyWithoutPlaintextInput) SetNumberOfBytes(v int64) *Genera
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GenerateDataKeyWithoutPlaintextResponse
 type GenerateDataKeyWithoutPlaintextOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5796,7 +5765,6 @@ func (s *GenerateDataKeyWithoutPlaintextOutput) SetKeyId(v string) *GenerateData
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GenerateRandomRequest
 type GenerateRandomInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5833,7 +5801,6 @@ func (s *GenerateRandomInput) SetNumberOfBytes(v int64) *GenerateRandomInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GenerateRandomResponse
 type GenerateRandomOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5860,7 +5827,6 @@ func (s *GenerateRandomOutput) SetPlaintext(v []byte) *GenerateRandomOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GetKeyPolicyRequest
 type GetKeyPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5930,7 +5896,6 @@ func (s *GetKeyPolicyInput) SetPolicyName(v string) *GetKeyPolicyInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GetKeyPolicyResponse
 type GetKeyPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5954,7 +5919,6 @@ func (s *GetKeyPolicyOutput) SetPolicy(v string) *GetKeyPolicyOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GetKeyRotationStatusRequest
 type GetKeyRotationStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6007,7 +5971,6 @@ func (s *GetKeyRotationStatusInput) SetKeyId(v string) *GetKeyRotationStatusInpu
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GetKeyRotationStatusResponse
 type GetKeyRotationStatusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6031,7 +5994,6 @@ func (s *GetKeyRotationStatusOutput) SetKeyRotationEnabled(v bool) *GetKeyRotati
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GetParametersForImportRequest
 type GetParametersForImportInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6116,7 +6078,6 @@ func (s *GetParametersForImportInput) SetWrappingKeySpec(v string) *GetParameter
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GetParametersForImportResponse
 type GetParametersForImportOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6187,7 +6148,6 @@ func (s *GetParametersForImportOutput) SetPublicKey(v []byte) *GetParametersForI
 // context as input. A grant that allows the Encrypt operation does so only
 // when the encryption context of the Encrypt operation satisfies the grant
 // constraints.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GrantConstraints
 type GrantConstraints struct {
 	_ struct{} `type:"structure"`
 
@@ -6229,7 +6189,6 @@ func (s *GrantConstraints) SetEncryptionContextSubset(v map[string]*string) *Gra
 }
 
 // Contains information about an entry in a list of grants.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GrantListEntry
 type GrantListEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -6328,7 +6287,6 @@ func (s *GrantListEntry) SetRetiringPrincipal(v string) *GrantListEntry {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ImportKeyMaterialRequest
 type ImportKeyMaterialInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6446,7 +6404,6 @@ func (s *ImportKeyMaterialInput) SetValidTo(v time.Time) *ImportKeyMaterialInput
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ImportKeyMaterialResponse
 type ImportKeyMaterialOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6462,7 +6419,6 @@ func (s ImportKeyMaterialOutput) GoString() string {
 }
 
 // Contains information about each entry in the key list.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/KeyListEntry
 type KeyListEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -6499,7 +6455,6 @@ func (s *KeyListEntry) SetKeyId(v string) *KeyListEntry {
 //
 // This data type is used as a response element for the CreateKey and DescribeKey
 // operations.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/KeyMetadata
 type KeyMetadata struct {
 	_ struct{} `type:"structure"`
 
@@ -6652,7 +6607,6 @@ func (s *KeyMetadata) SetValidTo(v time.Time) *KeyMetadata {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListAliasesRequest
 type ListAliasesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6708,7 +6662,6 @@ func (s *ListAliasesInput) SetMarker(v string) *ListAliasesInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListAliasesResponse
 type ListAliasesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6754,7 +6707,6 @@ func (s *ListAliasesOutput) SetTruncated(v bool) *ListAliasesOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListGrantsRequest
 type ListGrantsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6838,7 +6790,6 @@ func (s *ListGrantsInput) SetMarker(v string) *ListGrantsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListGrantsResponse
 type ListGrantsResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -6884,7 +6835,6 @@ func (s *ListGrantsResponse) SetTruncated(v bool) *ListGrantsResponse {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListKeyPoliciesRequest
 type ListKeyPoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6969,7 +6919,6 @@ func (s *ListKeyPoliciesInput) SetMarker(v string) *ListKeyPoliciesInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListKeyPoliciesResponse
 type ListKeyPoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7016,7 +6965,6 @@ func (s *ListKeyPoliciesOutput) SetTruncated(v bool) *ListKeyPoliciesOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListKeysRequest
 type ListKeysInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7072,7 +7020,6 @@ func (s *ListKeysInput) SetMarker(v string) *ListKeysInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListKeysResponse
 type ListKeysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7118,7 +7065,6 @@ func (s *ListKeysOutput) SetTruncated(v bool) *ListKeysOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListResourceTagsRequest
 type ListResourceTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7204,7 +7150,6 @@ func (s *ListResourceTagsInput) SetMarker(v string) *ListResourceTagsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListResourceTagsResponse
 type ListResourceTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7252,7 +7197,6 @@ func (s *ListResourceTagsOutput) SetTruncated(v bool) *ListResourceTagsOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListRetirableGrantsRequest
 type ListRetirableGrantsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7332,7 +7276,6 @@ func (s *ListRetirableGrantsInput) SetRetiringPrincipal(v string) *ListRetirable
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/PutKeyPolicyRequest
 type PutKeyPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7458,7 +7401,6 @@ func (s *PutKeyPolicyInput) SetPolicyName(v string) *PutKeyPolicyInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/PutKeyPolicyOutput
 type PutKeyPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7473,7 +7415,6 @@ func (s PutKeyPolicyOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ReEncryptRequest
 type ReEncryptInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7582,7 +7523,6 @@ func (s *ReEncryptInput) SetSourceEncryptionContext(v map[string]*string) *ReEnc
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ReEncryptResponse
 type ReEncryptOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7627,7 +7567,6 @@ func (s *ReEncryptOutput) SetSourceKeyId(v string) *ReEncryptOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/RetireGrantRequest
 type RetireGrantInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7693,7 +7632,6 @@ func (s *RetireGrantInput) SetKeyId(v string) *RetireGrantInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/RetireGrantOutput
 type RetireGrantOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7708,7 +7646,6 @@ func (s RetireGrantOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/RevokeGrantRequest
 type RevokeGrantInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7778,7 +7715,6 @@ func (s *RevokeGrantInput) SetKeyId(v string) *RevokeGrantInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/RevokeGrantOutput
 type RevokeGrantOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7793,7 +7729,6 @@ func (s RevokeGrantOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ScheduleKeyDeletionRequest
 type ScheduleKeyDeletionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7861,7 +7796,6 @@ func (s *ScheduleKeyDeletionInput) SetPendingWindowInDays(v int64) *ScheduleKeyD
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ScheduleKeyDeletionResponse
 type ScheduleKeyDeletionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7901,7 +7835,6 @@ func (s *ScheduleKeyDeletionOutput) SetKeyId(v string) *ScheduleKeyDeletionOutpu
 // For information about the rules that apply to tag keys and tag values, see
 // User-Defined Tag Restrictions (http://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/allocation-tag-restrictions.html)
 // in the AWS Billing and Cost Management User Guide.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -7957,7 +7890,6 @@ func (s *Tag) SetTagValue(v string) *Tag {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/TagResourceRequest
 type TagResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8033,7 +7965,6 @@ func (s *TagResourceInput) SetTags(v []*Tag) *TagResourceInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/TagResourceOutput
 type TagResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8048,7 +7979,6 @@ func (s TagResourceOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/UntagResourceRequest
 type UntagResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8114,7 +8044,6 @@ func (s *UntagResourceInput) SetTagKeys(v []*string) *UntagResourceInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/UntagResourceOutput
 type UntagResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8129,7 +8058,6 @@ func (s UntagResourceOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/UpdateAliasRequest
 type UpdateAliasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8202,7 +8130,6 @@ func (s *UpdateAliasInput) SetTargetKeyId(v string) *UpdateAliasInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/UpdateAliasOutput
 type UpdateAliasOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8217,7 +8144,6 @@ func (s UpdateAliasOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/UpdateKeyDescriptionRequest
 type UpdateKeyDescriptionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8283,7 +8209,6 @@ func (s *UpdateKeyDescriptionInput) SetKeyId(v string) *UpdateKeyDescriptionInpu
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/UpdateKeyDescriptionOutput
 type UpdateKeyDescriptionOutput struct {
 	_ struct{} `type:"structure"`
 }

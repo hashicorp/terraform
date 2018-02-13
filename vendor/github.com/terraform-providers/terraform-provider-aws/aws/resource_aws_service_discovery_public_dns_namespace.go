@@ -16,6 +16,10 @@ func resourceAwsServiceDiscoveryPublicDnsNamespace() *schema.Resource {
 		Read:   resourceAwsServiceDiscoveryPublicDnsNamespaceRead,
 		Delete: resourceAwsServiceDiscoveryPublicDnsNamespaceDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -89,6 +93,7 @@ func resourceAwsServiceDiscoveryPublicDnsNamespaceRead(d *schema.ResourceData, m
 		return err
 	}
 
+	d.Set("name", resp.Namespace.Name)
 	d.Set("description", resp.Namespace.Description)
 	d.Set("arn", resp.Namespace.Arn)
 	if resp.Namespace.Properties != nil {
