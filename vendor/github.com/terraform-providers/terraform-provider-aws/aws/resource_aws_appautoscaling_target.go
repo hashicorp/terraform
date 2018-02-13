@@ -40,16 +40,14 @@ func resourceAwsAppautoscalingTarget() *schema.Resource {
 				Computed: true,
 			},
 			"scalable_dimension": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateAppautoscalingScalableDimension,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"service_namespace": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateAppautoscalingServiceNamespace,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 		},
 	}

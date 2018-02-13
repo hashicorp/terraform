@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -24,6 +23,9 @@ func resourceAwsEcsService() *schema.Resource {
 		Read:   resourceAwsEcsServiceRead,
 		Update: resourceAwsEcsServiceUpdate,
 		Delete: resourceAwsEcsServiceDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsEcsServiceImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -133,6 +135,11 @@ func resourceAwsEcsService() *schema.Resource {
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
+						"assign_public_ip": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
 					},
 				},
 			},
@@ -201,6 +208,26 @@ func resourceAwsEcsService() *schema.Resource {
 	}
 }
 
+func resourceAwsEcsServiceImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	if len(strings.Split(d.Id(), "/")) != 2 {
+		return []*schema.ResourceData{}, fmt.Errorf("[ERR] Wrong format of resource: %s. Please follow 'cluster-name/service-name'", d.Id())
+	}
+	cluster := strings.Split(d.Id(), "/")[0]
+	name := strings.Split(d.Id(), "/")[1]
+	log.Printf("[DEBUG] Importing ECS service %s from cluster %s", name, cluster)
+
+	d.SetId(name)
+	clusterArn := arnString(
+		meta.(*AWSClient).partition,
+		meta.(*AWSClient).region,
+		"ecs",
+		meta.(*AWSClient).accountid,
+		fmt.Sprintf("cluster/%s", cluster),
+	)
+	d.Set("cluster", clusterArn)
+	return []*schema.ResourceData{d}, nil
+}
+
 func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ecsconn
 
@@ -236,7 +263,7 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		input.Role = aws.String(v.(string))
 	}
 
-	input.NetworkConfiguration = expandEcsNetworkConfigration(d.Get("network_configuration").([]interface{}))
+	input.NetworkConfiguration = expandEcsNetworkConfiguration(d.Get("network_configuration").([]interface{}))
 
 	strategies := d.Get("placement_strategy").(*schema.Set).List()
 	if len(strategies) > 0 {
@@ -287,21 +314,12 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		out, err = conn.CreateService(&input)
 
 		if err != nil {
-			awsErr, ok := err.(awserr.Error)
-			if !ok {
-				return resource.NonRetryableError(err)
-			}
-			if awsErr.Code() == "InvalidParameterException" {
-				log.Printf("[DEBUG] Trying to create ECS service again: %q",
-					awsErr.Message())
+			if isAWSErr(err, ecs.ErrCodeClusterNotFoundException, "") {
 				return resource.RetryableError(err)
 			}
-			if awsErr.Code() == "ClusterNotFoundException" {
-				log.Printf("[DEBUG] Trying to create ECS service again: %q",
-					awsErr.Message())
+			if isAWSErr(err, ecs.ErrCodeInvalidParameterException, "Please verify that the ECS service role being passed has the proper permissions.") {
 				return resource.RetryableError(err)
 			}
-
 			return resource.NonRetryableError(err)
 		}
 
@@ -316,7 +334,7 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] ECS service created: %s", *service.ServiceArn)
 	d.SetId(*service.ServiceArn)
 
-	return resourceAwsEcsServiceUpdate(d, meta)
+	return resourceAwsEcsServiceRead(d, meta)
 }
 
 func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
@@ -328,7 +346,18 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		Cluster:  aws.String(d.Get("cluster").(string)),
 	}
 
-	out, err := conn.DescribeServices(&input)
+	var out *ecs.DescribeServicesOutput
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		var err error
+		out, err = conn.DescribeServices(&input)
+		if err != nil {
+			if d.IsNewResource() && isAWSErr(err, ecs.ErrCodeServiceNotFoundException, "") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -399,24 +428,30 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[ERR] Error setting placement_constraints for (%s): %s", d.Id(), err)
 	}
 
-	if err := d.Set("network_configuration", flattenEcsNetworkConfigration(service.NetworkConfiguration)); err != nil {
+	if err := d.Set("network_configuration", flattenEcsNetworkConfiguration(service.NetworkConfiguration)); err != nil {
 		return fmt.Errorf("[ERR] Error setting network_configuration for (%s): %s", d.Id(), err)
 	}
 
 	return nil
 }
 
-func flattenEcsNetworkConfigration(nc *ecs.NetworkConfiguration) []interface{} {
+func flattenEcsNetworkConfiguration(nc *ecs.NetworkConfiguration) []interface{} {
 	if nc == nil {
 		return nil
 	}
+
 	result := make(map[string]interface{})
 	result["security_groups"] = schema.NewSet(schema.HashString, flattenStringList(nc.AwsvpcConfiguration.SecurityGroups))
 	result["subnets"] = schema.NewSet(schema.HashString, flattenStringList(nc.AwsvpcConfiguration.Subnets))
+
+	if nc.AwsvpcConfiguration.AssignPublicIp != nil {
+		result["assign_public_ip"] = *nc.AwsvpcConfiguration.AssignPublicIp == ecs.AssignPublicIpEnabled
+	}
+
 	return []interface{}{result}
 }
 
-func expandEcsNetworkConfigration(nc []interface{}) *ecs.NetworkConfiguration {
+func expandEcsNetworkConfiguration(nc []interface{}) *ecs.NetworkConfiguration {
 	if len(nc) == 0 {
 		return nil
 	}
@@ -426,6 +461,13 @@ func expandEcsNetworkConfigration(nc []interface{}) *ecs.NetworkConfiguration {
 		awsVpcConfig.SecurityGroups = expandStringSet(val.(*schema.Set))
 	}
 	awsVpcConfig.Subnets = expandStringSet(raw["subnets"].(*schema.Set))
+	if val, ok := raw["assign_public_ip"].(bool); ok {
+		awsVpcConfig.AssignPublicIp = aws.String(ecs.AssignPublicIpDisabled)
+		if val {
+			awsVpcConfig.AssignPublicIp = aws.String(ecs.AssignPublicIpEnabled)
+		}
+	}
+
 	return &ecs.NetworkConfiguration{AwsvpcConfiguration: awsVpcConfig}
 }
 
@@ -495,24 +537,17 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if d.HasChange("network_configration") {
-		input.NetworkConfiguration = expandEcsNetworkConfigration(d.Get("network_configuration").([]interface{}))
+	if d.HasChange("network_configuration") {
+		input.NetworkConfiguration = expandEcsNetworkConfiguration(d.Get("network_configuration").([]interface{}))
 	}
 
-	// Retry due to IAM & ECS eventual consistency
+	// Retry due to IAM eventual consistency
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 		out, err := conn.UpdateService(&input)
 		if err != nil {
-			awsErr, ok := err.(awserr.Error)
-			if ok && awsErr.Code() == "InvalidParameterException" {
-				log.Printf("[DEBUG] Trying to update ECS service again: %#v", err)
+			if isAWSErr(err, ecs.ErrCodeInvalidParameterException, "Please verify that the ECS service role being passed has the proper permissions.") {
 				return resource.RetryableError(err)
 			}
-			if ok && awsErr.Code() == "ServiceNotFoundException" {
-				log.Printf("[DEBUG] Trying to update ECS service again: %#v", err)
-				return resource.RetryableError(err)
-			}
-
 			return resource.NonRetryableError(err)
 		}
 
@@ -535,11 +570,17 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 		Cluster:  aws.String(d.Get("cluster").(string)),
 	})
 	if err != nil {
+		if isAWSErr(err, ecs.ErrCodeServiceNotFoundException, "") {
+			log.Printf("[DEBUG] Removing ECS Service from state, %q is already gone", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
 	if len(resp.Services) == 0 {
-		log.Printf("[DEBUG] ECS Service %q is already gone", d.Id())
+		log.Printf("[DEBUG] Removing ECS Service from state, %q is already gone", d.Id())
+		d.SetId("")
 		return nil
 	}
 
@@ -562,33 +603,23 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
+	input := ecs.DeleteServiceInput{
+		Service: aws.String(d.Id()),
+		Cluster: aws.String(d.Get("cluster").(string)),
+	}
 	// Wait until the ECS service is drained
 	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-		input := ecs.DeleteServiceInput{
-			Service: aws.String(d.Id()),
-			Cluster: aws.String(d.Get("cluster").(string)),
-		}
-
 		log.Printf("[DEBUG] Trying to delete ECS service %s", input)
 		_, err := conn.DeleteService(&input)
-		if err == nil {
-			return nil
-		}
-
-		ec2err, ok := err.(awserr.Error)
-		if !ok {
+		if err != nil {
+			if isAWSErr(err, ecs.ErrCodeInvalidParameterException, "The service cannot be stopped while deployments are active.") {
+				return resource.RetryableError(err)
+			}
 			return resource.NonRetryableError(err)
 		}
-		if ec2err.Code() == "InvalidParameterException" {
-			// Prevent "The service cannot be stopped while deployments are active."
-			log.Printf("[DEBUG] Trying to delete ECS service again: %q",
-				ec2err.Message())
-			return resource.RetryableError(err)
-		}
-
-		return resource.NonRetryableError(err)
-
+		return nil
 	})
+
 	if err != nil {
 		return err
 	}

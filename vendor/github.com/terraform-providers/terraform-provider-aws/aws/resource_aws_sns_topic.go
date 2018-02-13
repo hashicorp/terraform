@@ -9,17 +9,29 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
 )
 
 // Mutable attributes
 var SNSAttributeMap = map[string]string{
-	"arn":             "TopicArn",
-	"display_name":    "DisplayName",
-	"policy":          "Policy",
-	"delivery_policy": "DeliveryPolicy",
-}
+	"arn":                                      "TopicArn",
+	"display_name":                             "DisplayName",
+	"policy":                                   "Policy",
+	"delivery_policy":                          "DeliveryPolicy",
+	"application_success_feedback_role_arn":    "ApplicationSuccessFeedbackRoleArn",
+	"application_success_feedback_sample_rate": "ApplicationSuccessFeedbackSampleRate",
+	"application_failure_feedback_role_arn":    "ApplicationFailureFeedbackRoleArn",
+	"http_success_feedback_role_arn":           "HTTPSuccessFeedbackRoleArn",
+	"http_success_feedback_sample_rate":        "HTTPSuccessFeedbackSampleRate",
+	"http_failure_feedback_role_arn":           "HTTPFailureFeedbackRoleArn",
+	"lambda_success_feedback_role_arn":         "LambdaSuccessFeedbackRoleArn",
+	"lambda_success_feedback_sample_rate":      "LambdaSuccessFeedbackSampleRate",
+	"lambda_failure_feedback_role_arn":         "LambdaFailureFeedbackRoleArn",
+	"sqs_success_feedback_role_arn":            "SQSSuccessFeedbackRoleArn",
+	"sqs_success_feedback_sample_rate":         "SQSSuccessFeedbackSampleRate",
+	"sqs_failure_feedback_role_arn":            "SQSFailureFeedbackRoleArn"}
 
 func resourceAwsSnsTopic() *schema.Resource {
 	return &schema.Resource{
@@ -33,8 +45,15 @@ func resourceAwsSnsTopic() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+			},
+			"name_prefix": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"display_name": &schema.Schema{
@@ -64,6 +83,58 @@ func resourceAwsSnsTopic() *schema.Resource {
 					return json
 				},
 			},
+			"application_success_feedback_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"application_success_feedback_sample_rate": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateIntegerInRange(0, 100),
+			},
+			"application_failure_feedback_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"http_success_feedback_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"http_success_feedback_sample_rate": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateIntegerInRange(0, 100),
+			},
+			"http_failure_feedback_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"lambda_success_feedback_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"lambda_success_feedback_sample_rate": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateIntegerInRange(0, 100),
+			},
+			"lambda_failure_feedback_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"sqs_success_feedback_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"sqs_success_feedback_sample_rate": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateIntegerInRange(0, 100),
+			},
+			"sqs_failure_feedback_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -75,7 +146,14 @@ func resourceAwsSnsTopic() *schema.Resource {
 func resourceAwsSnsTopicCreate(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
 
-	name := d.Get("name").(string)
+	var name string
+	if v, ok := d.GetOk("name"); ok {
+		name = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		name = resource.PrefixedUniqueId(v.(string))
+	} else {
+		name = resource.UniqueId()
+	}
 
 	log.Printf("[DEBUG] SNS create topic: %s", name)
 
@@ -110,7 +188,7 @@ func resourceAwsSnsTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 					req := sns.SetTopicAttributesInput{
 						TopicArn:       aws.String(d.Id()),
 						AttributeName:  aws.String(attrKey),
-						AttributeValue: aws.String(n.(string)),
+						AttributeValue: aws.String(fmt.Sprintf("%v", n)),
 					}
 					conn := meta.(*AWSClient).snsconn
 					// Retry the update in the event of an eventually consistent style of

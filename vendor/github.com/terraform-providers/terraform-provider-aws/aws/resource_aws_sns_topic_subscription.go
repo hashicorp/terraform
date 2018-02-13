@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -24,6 +25,7 @@ var SNSSubscriptionAttributeMap = map[string]string{
 	"endpoint":             "Endpoint",
 	"protocol":             "Protocol",
 	"raw_message_delivery": "RawMessageDelivery",
+	"filter_policy":        "FilterPolicy",
 }
 
 func resourceAwsSnsTopicSubscription() *schema.Resource {
@@ -76,6 +78,16 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"filter_policy": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentJsonDiffs,
+				StateFunc: func(v interface{}) string {
+					json, _ := structure.NormalizeJsonString(v)
+					return json
+				},
+			},
 		},
 	}
 }
@@ -127,6 +139,22 @@ func resourceAwsSnsTopicSubscriptionUpdate(d *schema.ResourceData, meta interfac
 		}
 	}
 
+	if d.HasChange("filter_policy") {
+		_, n := d.GetChange("filter_policy")
+
+		attrValue := n.(string)
+
+		req := &sns.SetSubscriptionAttributesInput{
+			SubscriptionArn: aws.String(d.Id()),
+			AttributeName:   aws.String("FilterPolicy"),
+			AttributeValue:  aws.String(attrValue),
+		}
+		_, err := snsconn.SetSubscriptionAttributes(req)
+
+		if err != nil {
+			return fmt.Errorf("Unable to set filter policy attribute on subscription: %s", err)
+		}
+	}
 	return resourceAwsSnsTopicSubscriptionRead(d, meta)
 }
 
