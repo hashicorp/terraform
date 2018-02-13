@@ -145,14 +145,22 @@ type Operation struct {
 
 // RunningOperation is the result of starting an operation.
 type RunningOperation struct {
-	// Context should be used to track Done and Err for errors.
-	//
 	// For implementers of a backend, this context should not wrap the
 	// passed in context. Otherwise, canceling the parent context will
 	// immediately mark this context as "done" but those aren't the semantics
 	// we want: we want this context to be done only when the operation itself
 	// is fully done.
 	context.Context
+
+	// Stop requests the operation to complete early, by calling Stop on all
+	// the plugins. If the process needs to terminate immediately, call Cancel.
+	Stop context.CancelFunc
+
+	// Cancel is the context.CancelFunc associated with the embedded context,
+	// and can be called to terminate the operation early.
+	// Once Cancel is called, the operation should return as soon as possible
+	// to avoid running operations during process exit.
+	Cancel context.CancelFunc
 
 	// Err is the error of the operation. This is populated after
 	// the operation has completed.
