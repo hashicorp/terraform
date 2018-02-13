@@ -2,7 +2,6 @@ package command
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"os"
 	"sort"
@@ -158,38 +157,9 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.AutoApprove = autoApprove
 	opReq.DestroyForce = destroyForce
 
-	// Perform the operation
-	ctx, ctxCancel := context.WithCancel(context.Background())
-	defer ctxCancel()
-
-	op, err := b.Operation(ctx, opReq)
+	op, err := c.RunOperation(b, opReq)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
-		return 1
-	}
-
-	// Wait for the operation to complete or an interrupt to occur
-	select {
-	case <-c.ShutdownCh:
-		// Cancel our context so we can start gracefully exiting
-		ctxCancel()
-
-		// Notify the user
-		c.Ui.Output(outputInterrupt)
-
-		// Still get the result, since there is still one
-		select {
-		case <-c.ShutdownCh:
-			c.Ui.Error(
-				"Two interrupts received. Exiting immediately. Note that data\n" +
-					"loss may have occurred.")
-			return 1
-		case <-op.Done():
-		}
-	case <-op.Done():
-		if err := op.Err; err != nil {
-			diags = diags.Append(err)
-		}
+		diags = diags.Append(err)
 	}
 
 	c.showDiagnostics(diags)

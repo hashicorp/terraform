@@ -3,6 +3,7 @@ package command
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -257,6 +258,54 @@ func (m *Meta) StdinPiped() bool {
 	}
 
 	return fi.Mode()&os.ModeNamedPipe != 0
+}
+
+func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*backend.RunningOperation, error) {
+	op, err := b.Operation(context.Background(), opReq)
+	if err != nil {
+		return nil, fmt.Errorf("error starting operation: %s", err)
+	}
+
+	// Wait for the operation to complete or an interrupt to occur
+	select {
+	case <-m.ShutdownCh:
+		// gracefully stop the operation
+		op.Stop()
+
+		// Notify the user
+		m.Ui.Output(outputInterrupt)
+
+		// Still get the result, since there is still one
+		select {
+		case <-m.ShutdownCh:
+			m.Ui.Error(
+				"Two interrupts received. Exiting immediately. Note that data\n" +
+					"loss may have occurred.")
+
+			// cancel the operation completely
+			op.Cancel()
+
+			// the operation should return asap
+			// but timeout just in case
+			select {
+			case <-op.Done():
+			case <-time.After(5 * time.Second):
+			}
+
+			return nil, errors.New("operation canceled")
+
+		case <-op.Done():
+			// operation completed after Stop
+		}
+	case <-op.Done():
+		// operation completed normally
+	}
+
+	if op.Err != nil {
+		return op, op.Err
+	}
+
+	return op, nil
 }
 
 const (

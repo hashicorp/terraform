@@ -19,7 +19,8 @@ import (
 )
 
 func (b *Local) opPlan(
-	ctx context.Context,
+	stopCtx context.Context,
+	cancelCtx context.Context,
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
 	log.Printf("[INFO] backend/local: starting Plan operation")
@@ -62,7 +63,7 @@ func (b *Local) opPlan(
 	}
 
 	if op.LockState {
-		lockCtx, cancel := context.WithTimeout(ctx, op.StateLockTimeout)
+		lockCtx, cancel := context.WithTimeout(stopCtx, op.StateLockTimeout)
 		defer cancel()
 
 		lockInfo := state.NewLockInfo()
@@ -111,18 +112,8 @@ func (b *Local) opPlan(
 		plan, planErr = tfCtx.Plan()
 	}()
 
-	select {
-	case <-ctx.Done():
-		if b.CLI != nil {
-			b.CLI.Output("stopping plan operation...")
-		}
-
-		// Stop execution
-		go tfCtx.Stop()
-
-		// Wait for completion still
-		<-doneCh
-	case <-doneCh:
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+		return
 	}
 
 	if planErr != nil {
