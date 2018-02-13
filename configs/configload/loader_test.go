@@ -4,10 +4,41 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/spf13/afero"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/zclconf/go-cty/cty"
 )
+
+// newTestLoader is like NewLoader but it uses a copy-on-write overlay filesystem
+// over the real filesystem so that any files that are created cannot persist
+// between test runs.
+//
+// It will also panic if there are any errors creating the loader, since
+// these should never happen in a testing scenario.
+func newTestLoader(dir string) *Loader {
+	realFS := afero.NewOsFs()
+	overlayFS := afero.NewMemMapFs()
+	fs := afero.NewCopyOnWriteFs(realFS, overlayFS)
+	parser := configs.NewParser(fs)
+	reg := registry.NewClient(nil, nil, nil)
+	ret := &Loader{
+		parser: parser,
+		modules: moduleMgr{
+			FS:       afero.Afero{fs},
+			Dir:      dir,
+			Registry: reg,
+		},
+	}
+	err := ret.modules.readModuleManifestSnapshot()
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
 
 func assertNoDiagnostics(t *testing.T, diags hcl.Diagnostics) bool {
 	t.Helper()
