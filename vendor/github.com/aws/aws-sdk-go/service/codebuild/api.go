@@ -1247,7 +1247,6 @@ func (c *CodeBuild) UpdateProjectWithContext(ctx aws.Context, input *UpdateProje
 	return out, req.Send()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/BatchDeleteBuildsInput
 type BatchDeleteBuildsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1289,7 +1288,6 @@ func (s *BatchDeleteBuildsInput) SetIds(v []*string) *BatchDeleteBuildsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/BatchDeleteBuildsOutput
 type BatchDeleteBuildsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1322,7 +1320,6 @@ func (s *BatchDeleteBuildsOutput) SetBuildsNotDeleted(v []*BuildNotDeleted) *Bat
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/BatchGetBuildsInput
 type BatchGetBuildsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1364,7 +1361,6 @@ func (s *BatchGetBuildsInput) SetIds(v []*string) *BatchGetBuildsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/BatchGetBuildsOutput
 type BatchGetBuildsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1397,7 +1393,6 @@ func (s *BatchGetBuildsOutput) SetBuildsNotFound(v []*string) *BatchGetBuildsOut
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/BatchGetProjectsInput
 type BatchGetProjectsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1439,7 +1434,6 @@ func (s *BatchGetProjectsInput) SetNames(v []*string) *BatchGetProjectsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/BatchGetProjectsOutput
 type BatchGetProjectsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1473,7 +1467,6 @@ func (s *BatchGetProjectsOutput) SetProjectsNotFound(v []*string) *BatchGetProje
 }
 
 // Information about a build.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/Build
 type Build struct {
 	_ struct{} `type:"structure"`
 
@@ -1686,7 +1679,6 @@ func (s *Build) SetVpcConfig(v *VpcConfig) *Build {
 }
 
 // Information about build output artifacts.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/BuildArtifacts
 type BuildArtifacts struct {
 	_ struct{} `type:"structure"`
 
@@ -1741,7 +1733,6 @@ func (s *BuildArtifacts) SetSha256sum(v string) *BuildArtifacts {
 }
 
 // Information about a build that could not be successfully deleted.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/BuildNotDeleted
 type BuildNotDeleted struct {
 	_ struct{} `type:"structure"`
 
@@ -1775,7 +1766,6 @@ func (s *BuildNotDeleted) SetStatusCode(v string) *BuildNotDeleted {
 }
 
 // Information about a stage for a build.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/BuildPhase
 type BuildPhase struct {
 	_ struct{} `type:"structure"`
 
@@ -1879,7 +1869,6 @@ func (s *BuildPhase) SetStartTime(v time.Time) *BuildPhase {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/CreateProjectInput
 type CreateProjectInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2092,7 +2081,6 @@ func (s *CreateProjectInput) SetVpcConfig(v *VpcConfig) *CreateProjectInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/CreateProjectOutput
 type CreateProjectOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2116,7 +2104,6 @@ func (s *CreateProjectOutput) SetProject(v *Project) *CreateProjectOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/CreateWebhookInput
 type CreateWebhookInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2158,7 +2145,6 @@ func (s *CreateWebhookInput) SetProjectName(v string) *CreateWebhookInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/CreateWebhookOutput
 type CreateWebhookOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2183,7 +2169,6 @@ func (s *CreateWebhookOutput) SetWebhook(v *Webhook) *CreateWebhookOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/DeleteProjectInput
 type DeleteProjectInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2225,7 +2210,6 @@ func (s *DeleteProjectInput) SetName(v string) *DeleteProjectInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/DeleteProjectOutput
 type DeleteProjectOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2240,7 +2224,6 @@ func (s DeleteProjectOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/DeleteWebhookInput
 type DeleteWebhookInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2282,7 +2265,6 @@ func (s *DeleteWebhookInput) SetProjectName(v string) *DeleteWebhookInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/DeleteWebhookOutput
 type DeleteWebhookOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2298,7 +2280,6 @@ func (s DeleteWebhookOutput) GoString() string {
 }
 
 // Information about a Docker image that is managed by AWS CodeBuild.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/EnvironmentImage
 type EnvironmentImage struct {
 	_ struct{} `type:"structure"`
 
@@ -2342,7 +2323,6 @@ func (s *EnvironmentImage) SetVersions(v []*string) *EnvironmentImage {
 
 // A set of Docker images that are related by programming language and are managed
 // by AWS CodeBuild.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/EnvironmentLanguage
 type EnvironmentLanguage struct {
 	_ struct{} `type:"structure"`
 
@@ -2377,7 +2357,6 @@ func (s *EnvironmentLanguage) SetLanguage(v string) *EnvironmentLanguage {
 
 // A set of Docker images that are related by platform and are managed by AWS
 // CodeBuild.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/EnvironmentPlatform
 type EnvironmentPlatform struct {
 	_ struct{} `type:"structure"`
 
@@ -2411,7 +2390,6 @@ func (s *EnvironmentPlatform) SetPlatform(v string) *EnvironmentPlatform {
 }
 
 // Information about an environment variable for a build project or a build.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/EnvironmentVariable
 type EnvironmentVariable struct {
 	_ struct{} `type:"structure"`
 
@@ -2486,7 +2464,6 @@ func (s *EnvironmentVariable) SetValue(v string) *EnvironmentVariable {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/InvalidateProjectCacheInput
 type InvalidateProjectCacheInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2528,7 +2505,6 @@ func (s *InvalidateProjectCacheInput) SetProjectName(v string) *InvalidateProjec
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/InvalidateProjectCacheOutput
 type InvalidateProjectCacheOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2543,7 +2519,6 @@ func (s InvalidateProjectCacheOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ListBuildsForProjectInput
 type ListBuildsForProjectInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2612,7 +2587,6 @@ func (s *ListBuildsForProjectInput) SetSortOrder(v string) *ListBuildsForProject
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ListBuildsForProjectOutput
 type ListBuildsForProjectOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2649,7 +2623,6 @@ func (s *ListBuildsForProjectOutput) SetNextToken(v string) *ListBuildsForProjec
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ListBuildsInput
 type ListBuildsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2691,7 +2664,6 @@ func (s *ListBuildsInput) SetSortOrder(v string) *ListBuildsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ListBuildsOutput
 type ListBuildsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2727,7 +2699,6 @@ func (s *ListBuildsOutput) SetNextToken(v string) *ListBuildsOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ListCuratedEnvironmentImagesInput
 type ListCuratedEnvironmentImagesInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2742,7 +2713,6 @@ func (s ListCuratedEnvironmentImagesInput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ListCuratedEnvironmentImagesOutput
 type ListCuratedEnvironmentImagesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2767,7 +2737,6 @@ func (s *ListCuratedEnvironmentImagesOutput) SetPlatforms(v []*EnvironmentPlatfo
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ListProjectsInput
 type ListProjectsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2844,7 +2813,6 @@ func (s *ListProjectsInput) SetSortOrder(v string) *ListProjectsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ListProjectsOutput
 type ListProjectsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2882,7 +2850,6 @@ func (s *ListProjectsOutput) SetProjects(v []*string) *ListProjectsOutput {
 }
 
 // Information about build logs in Amazon CloudWatch Logs.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/LogsLocation
 type LogsLocation struct {
 	_ struct{} `type:"structure"`
 
@@ -2925,7 +2892,6 @@ func (s *LogsLocation) SetStreamName(v string) *LogsLocation {
 }
 
 // Describes a network interface.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/NetworkInterface
 type NetworkInterface struct {
 	_ struct{} `type:"structure"`
 
@@ -2960,7 +2926,6 @@ func (s *NetworkInterface) SetSubnetId(v string) *NetworkInterface {
 
 // Additional information about a build phase that has an error. You can use
 // this information to help troubleshoot a failed build.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/PhaseContext
 type PhaseContext struct {
 	_ struct{} `type:"structure"`
 
@@ -2995,7 +2960,6 @@ func (s *PhaseContext) SetStatusCode(v string) *PhaseContext {
 }
 
 // Information about a build project.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/Project
 type Project struct {
 	_ struct{} `type:"structure"`
 
@@ -3168,7 +3132,6 @@ func (s *Project) SetWebhook(v *Webhook) *Project {
 }
 
 // Information about the build output artifacts for the build project.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ProjectArtifacts
 type ProjectArtifacts struct {
 	_ struct{} `type:"structure"`
 
@@ -3333,7 +3296,6 @@ func (s *ProjectArtifacts) SetType(v string) *ProjectArtifacts {
 }
 
 // Information about the build badge for the build project.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ProjectBadge
 type ProjectBadge struct {
 	_ struct{} `type:"structure"`
 
@@ -3369,7 +3331,6 @@ func (s *ProjectBadge) SetBadgeRequestUrl(v string) *ProjectBadge {
 }
 
 // Information about the cache for the build project.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ProjectCache
 type ProjectCache struct {
 	_ struct{} `type:"structure"`
 
@@ -3426,7 +3387,6 @@ func (s *ProjectCache) SetType(v string) *ProjectCache {
 }
 
 // Information about the build environment of the build project.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ProjectEnvironment
 type ProjectEnvironment struct {
 	_ struct{} `type:"structure"`
 
@@ -3556,7 +3516,6 @@ func (s *ProjectEnvironment) SetType(v string) *ProjectEnvironment {
 }
 
 // Information about the build input source code for the build project.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/ProjectSource
 type ProjectSource struct {
 	_ struct{} `type:"structure"`
 
@@ -3711,7 +3670,6 @@ func (s *ProjectSource) SetType(v string) *ProjectSource {
 // This information is for the AWS CodeBuild console's use only. Your code should
 // not get or set this information directly (unless the build project's source
 // type value is BITBUCKET or GITHUB).
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/SourceAuth
 type SourceAuth struct {
 	_ struct{} `type:"structure"`
 
@@ -3760,7 +3718,6 @@ func (s *SourceAuth) SetType(v string) *SourceAuth {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/StartBuildInput
 type StartBuildInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3897,7 +3854,6 @@ func (s *StartBuildInput) SetTimeoutInMinutesOverride(v int64) *StartBuildInput 
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/StartBuildOutput
 type StartBuildOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3921,7 +3877,6 @@ func (s *StartBuildOutput) SetBuild(v *Build) *StartBuildOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/StopBuildInput
 type StopBuildInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3963,7 +3918,6 @@ func (s *StopBuildInput) SetId(v string) *StopBuildInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/StopBuildOutput
 type StopBuildOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3990,7 +3944,6 @@ func (s *StopBuildOutput) SetBuild(v *Build) *StopBuildOutput {
 // A tag, consisting of a key and a value.
 //
 // This tag is available for use by AWS services that support tags in AWS CodeBuild.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -4039,7 +3992,6 @@ func (s *Tag) SetValue(v string) *Tag {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/UpdateProjectInput
 type UpdateProjectInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4240,7 +4192,6 @@ func (s *UpdateProjectInput) SetVpcConfig(v *VpcConfig) *UpdateProjectInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/UpdateProjectOutput
 type UpdateProjectOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4265,7 +4216,6 @@ func (s *UpdateProjectOutput) SetProject(v *Project) *UpdateProjectOutput {
 }
 
 // Information about the VPC configuration that AWS CodeBuild will access.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/VpcConfig
 type VpcConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -4322,7 +4272,6 @@ func (s *VpcConfig) SetVpcId(v string) *VpcConfig {
 
 // Information about a webhook in GitHub that connects repository events to
 // a build project in AWS CodeBuild.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06/Webhook
 type Webhook struct {
 	_ struct{} `type:"structure"`
 

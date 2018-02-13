@@ -1033,9 +1033,11 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Add the hosted zone ID for this bucket's region as an attribute
-	hostedZoneID := HostedZoneIDForRegion(region)
-	if err := d.Set("hosted_zone_id", hostedZoneID); err != nil {
-		return err
+	hostedZoneID, err := HostedZoneIDForRegion(region)
+	if err != nil {
+		log.Printf("[WARN] %s", err)
+	} else {
+		d.Set("hosted_zone_id", hostedZoneID)
 	}
 
 	// Add website_endpoint as an attribute

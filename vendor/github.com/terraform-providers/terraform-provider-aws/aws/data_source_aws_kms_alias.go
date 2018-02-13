@@ -64,20 +64,25 @@ func dataSourceAwsKmsAliasRead(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(time.Now().UTC().String())
 	d.Set("arn", alias.AliasArn)
 
-	aliasARN, err := arn.Parse(*alias.AliasArn)
-	if err != nil {
-		return err
-	}
-	targetKeyARN := arn.ARN{
-		Partition: aliasARN.Partition,
-		Service:   aliasARN.Service,
-		Region:    aliasARN.Region,
-		AccountID: aliasARN.AccountID,
-		Resource:  fmt.Sprintf("key/%s", *alias.TargetKeyId),
-	}
-	d.Set("target_key_arn", targetKeyARN.String())
+	// Some aliases do not return TargetKeyId (e.g. aliases for AWS services or
+	// aliases not associated with a Customer Managed Key (CMK))
+	// https://docs.aws.amazon.com/kms/latest/APIReference/API_ListAliases.html
+	if alias.TargetKeyId != nil {
+		aliasARN, err := arn.Parse(*alias.AliasArn)
+		if err != nil {
+			return err
+		}
+		targetKeyARN := arn.ARN{
+			Partition: aliasARN.Partition,
+			Service:   aliasARN.Service,
+			Region:    aliasARN.Region,
+			AccountID: aliasARN.AccountID,
+			Resource:  fmt.Sprintf("key/%s", *alias.TargetKeyId),
+		}
+		d.Set("target_key_arn", targetKeyARN.String())
 
-	d.Set("target_key_id", alias.TargetKeyId)
+		d.Set("target_key_id", alias.TargetKeyId)
+	}
 
 	return nil
 }

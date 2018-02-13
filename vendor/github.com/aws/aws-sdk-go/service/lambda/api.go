@@ -3173,7 +3173,6 @@ func (c *Lambda) UpdateFunctionConfigurationWithContext(ctx aws.Context, input *
 
 // Provides limits of code size and concurrency associated with the current
 // account and region.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/AccountLimit
 type AccountLimit struct {
 	_ struct{} `type:"structure"`
 
@@ -3243,7 +3242,6 @@ func (s *AccountLimit) SetUnreservedConcurrentExecutions(v int64) *AccountLimit 
 
 // Provides code size usage and function count associated with the current account
 // and region.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/AccountUsage
 type AccountUsage struct {
 	_ struct{} `type:"structure"`
 
@@ -3276,7 +3274,6 @@ func (s *AccountUsage) SetTotalCodeSize(v int64) *AccountUsage {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/AddPermissionRequest
 type AddPermissionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3460,7 +3457,6 @@ func (s *AddPermissionInput) SetStatementId(v string) *AddPermissionInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/AddPermissionResponse
 type AddPermissionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3487,7 +3483,6 @@ func (s *AddPermissionOutput) SetStatement(v string) *AddPermissionOutput {
 }
 
 // Provides configuration information about a Lambda function version alias.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/AliasConfiguration
 type AliasConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -3562,7 +3557,6 @@ func (s *AliasConfiguration) SetRoutingConfig(v *AliasRoutingConfiguration) *Ali
 
 // The parent object that implements what percentage of traffic will invoke
 // each function version. For more information, see lambda-traffic-shifting-using-aliases.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/AliasRoutingConfiguration
 type AliasRoutingConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -3588,7 +3582,6 @@ func (s *AliasRoutingConfiguration) SetAdditionalVersionWeights(v map[string]*fl
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/CreateAliasRequest
 type CreateAliasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3686,7 +3679,6 @@ func (s *CreateAliasInput) SetRoutingConfig(v *AliasRoutingConfiguration) *Creat
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/CreateEventSourceMappingRequest
 type CreateEventSourceMappingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3814,7 +3806,6 @@ func (s *CreateEventSourceMappingInput) SetStartingPositionTimestamp(v time.Time
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/CreateFunctionRequest
 type CreateFunctionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4050,7 +4041,6 @@ func (s *CreateFunctionInput) SetVpcConfig(v *VpcConfig) *CreateFunctionInput {
 
 // The parent object that contains the target ARN (Amazon Resource Name) of
 // an Amazon SQS queue or Amazon SNS topic.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeadLetterConfig
 type DeadLetterConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -4075,7 +4065,6 @@ func (s *DeadLetterConfig) SetTargetArn(v string) *DeadLetterConfig {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteAliasRequest
 type DeleteAliasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4137,7 +4126,6 @@ func (s *DeleteAliasInput) SetName(v string) *DeleteAliasInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteAliasOutput
 type DeleteAliasOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4152,7 +4140,6 @@ func (s DeleteAliasOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteEventSourceMappingRequest
 type DeleteEventSourceMappingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4191,7 +4178,6 @@ func (s *DeleteEventSourceMappingInput) SetUUID(v string) *DeleteEventSourceMapp
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteFunctionConcurrencyRequest
 type DeleteFunctionConcurrencyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4234,7 +4220,6 @@ func (s *DeleteFunctionConcurrencyInput) SetFunctionName(v string) *DeleteFuncti
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteFunctionConcurrencyOutput
 type DeleteFunctionConcurrencyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4249,7 +4234,6 @@ func (s DeleteFunctionConcurrencyOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteFunctionRequest
 type DeleteFunctionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4324,7 +4308,6 @@ func (s *DeleteFunctionInput) SetQualifier(v string) *DeleteFunctionInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/DeleteFunctionOutput
 type DeleteFunctionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4340,7 +4323,6 @@ func (s DeleteFunctionOutput) GoString() string {
 }
 
 // The parent object that contains your environment's configuration settings.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/Environment
 type Environment struct {
 	_ struct{} `type:"structure"`
 
@@ -4366,7 +4348,6 @@ func (s *Environment) SetVariables(v map[string]*string) *Environment {
 
 // The parent object that contains error information associated with your configuration
 // settings.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/EnvironmentError
 type EnvironmentError struct {
 	_ struct{} `type:"structure"`
 
@@ -4401,7 +4382,6 @@ func (s *EnvironmentError) SetMessage(v string) *EnvironmentError {
 
 // The parent object returned that contains your environment's configuration
 // settings or any error information associated with your configuration settings.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/EnvironmentResponse
 type EnvironmentResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -4437,7 +4417,6 @@ func (s *EnvironmentResponse) SetVariables(v map[string]*string) *EnvironmentRes
 }
 
 // Describes mapping between an Amazon Kinesis stream and a Lambda function.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/EventSourceMappingConfiguration
 type EventSourceMappingConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -4530,7 +4509,6 @@ func (s *EventSourceMappingConfiguration) SetUUID(v string) *EventSourceMappingC
 }
 
 // The code for the Lambda function.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/FunctionCode
 type FunctionCode struct {
 	_ struct{} `type:"structure"`
 
@@ -4610,7 +4588,6 @@ func (s *FunctionCode) SetZipFile(v []byte) *FunctionCode {
 }
 
 // The object for the Lambda function location.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/FunctionCodeLocation
 type FunctionCodeLocation struct {
 	_ struct{} `type:"structure"`
 
@@ -4645,7 +4622,6 @@ func (s *FunctionCodeLocation) SetRepositoryType(v string) *FunctionCodeLocation
 }
 
 // A complex type that describes function metadata.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/FunctionConfiguration
 type FunctionConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -4843,7 +4819,6 @@ func (s *FunctionConfiguration) SetVpcConfig(v *VpcConfigResponse) *FunctionConf
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetAccountSettingsRequest
 type GetAccountSettingsInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4858,7 +4833,6 @@ func (s GetAccountSettingsInput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetAccountSettingsResponse
 type GetAccountSettingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4893,7 +4867,6 @@ func (s *GetAccountSettingsOutput) SetAccountUsage(v *AccountUsage) *GetAccountS
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetAliasRequest
 type GetAliasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4956,7 +4929,6 @@ func (s *GetAliasInput) SetName(v string) *GetAliasInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetEventSourceMappingRequest
 type GetEventSourceMappingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4995,7 +4967,6 @@ func (s *GetEventSourceMappingInput) SetUUID(v string) *GetEventSourceMappingInp
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetFunctionConfigurationRequest
 type GetFunctionConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5063,7 +5034,6 @@ func (s *GetFunctionConfigurationInput) SetQualifier(v string) *GetFunctionConfi
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetFunctionRequest
 type GetFunctionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5130,7 +5100,6 @@ func (s *GetFunctionInput) SetQualifier(v string) *GetFunctionInput {
 }
 
 // This response contains the object for the Lambda function location (see FunctionCodeLocation.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetFunctionResponse
 type GetFunctionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5182,7 +5151,6 @@ func (s *GetFunctionOutput) SetTags(v map[string]*string) *GetFunctionOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetPolicyRequest
 type GetPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5248,7 +5216,6 @@ func (s *GetPolicyInput) SetQualifier(v string) *GetPolicyInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/GetPolicyResponse
 type GetPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5283,7 +5250,6 @@ func (s *GetPolicyOutput) SetRevisionId(v string) *GetPolicyOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/InvokeAsyncRequest
 type InvokeAsyncInput struct {
 	_ struct{} `deprecated:"true" type:"structure" payload:"InvokeArgs"`
 
@@ -5342,7 +5308,6 @@ func (s *InvokeAsyncInput) SetInvokeArgs(v io.ReadSeeker) *InvokeAsyncInput {
 }
 
 // Upon success, it returns empty response. Otherwise, throws an exception.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/InvokeAsyncResponse
 type InvokeAsyncOutput struct {
 	_ struct{} `deprecated:"true" type:"structure"`
 
@@ -5366,7 +5331,6 @@ func (s *InvokeAsyncOutput) SetStatus(v int64) *InvokeAsyncOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/InvocationRequest
 type InvokeInput struct {
 	_ struct{} `type:"structure" payload:"Payload"`
 
@@ -5486,7 +5450,6 @@ func (s *InvokeInput) SetQualifier(v string) *InvokeInput {
 }
 
 // Upon success, returns an empty response. Otherwise, throws an exception.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/InvocationResponse
 type InvokeOutput struct {
 	_ struct{} `type:"structure" payload:"Payload"`
 
@@ -5562,7 +5525,6 @@ func (s *InvokeOutput) SetStatusCode(v int64) *InvokeOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListAliasesRequest
 type ListAliasesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5643,7 +5605,6 @@ func (s *ListAliasesInput) SetMaxItems(v int64) *ListAliasesInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListAliasesResponse
 type ListAliasesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5676,7 +5637,6 @@ func (s *ListAliasesOutput) SetNextMarker(v string) *ListAliasesOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListEventSourceMappingsRequest
 type ListEventSourceMappingsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5757,7 +5717,6 @@ func (s *ListEventSourceMappingsInput) SetMaxItems(v int64) *ListEventSourceMapp
 }
 
 // Contains a list of event sources (see EventSourceMappingConfiguration)
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListEventSourceMappingsResponse
 type ListEventSourceMappingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5790,7 +5749,6 @@ func (s *ListEventSourceMappingsOutput) SetNextMarker(v string) *ListEventSource
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListFunctionsRequest
 type ListFunctionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5872,7 +5830,6 @@ func (s *ListFunctionsInput) SetMaxItems(v int64) *ListFunctionsInput {
 }
 
 // Contains a list of AWS Lambda function configurations (see FunctionConfiguration.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListFunctionsResponse
 type ListFunctionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5905,7 +5862,6 @@ func (s *ListFunctionsOutput) SetNextMarker(v string) *ListFunctionsOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListTagsRequest
 type ListTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5944,7 +5900,6 @@ func (s *ListTagsInput) SetResource(v string) *ListTagsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListTagsResponse
 type ListTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5968,7 +5923,6 @@ func (s *ListTagsOutput) SetTags(v map[string]*string) *ListTagsOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListVersionsByFunctionRequest
 type ListVersionsByFunctionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6038,7 +5992,6 @@ func (s *ListVersionsByFunctionInput) SetMaxItems(v int64) *ListVersionsByFuncti
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/ListVersionsByFunctionResponse
 type ListVersionsByFunctionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6071,7 +6024,6 @@ func (s *ListVersionsByFunctionOutput) SetVersions(v []*FunctionConfiguration) *
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/PublishVersionRequest
 type PublishVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6154,7 +6106,6 @@ func (s *PublishVersionInput) SetRevisionId(v string) *PublishVersionInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/PutFunctionConcurrencyRequest
 type PutFunctionConcurrencyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6212,7 +6163,6 @@ func (s *PutFunctionConcurrencyInput) SetReservedConcurrentExecutions(v int64) *
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/Concurrency
 type PutFunctionConcurrencyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6237,7 +6187,6 @@ func (s *PutFunctionConcurrencyOutput) SetReservedConcurrentExecutions(v int64) 
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/RemovePermissionRequest
 type RemovePermissionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6330,7 +6279,6 @@ func (s *RemovePermissionInput) SetStatementId(v string) *RemovePermissionInput 
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/RemovePermissionOutput
 type RemovePermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6345,7 +6293,6 @@ func (s RemovePermissionOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/TagResourceRequest
 type TagResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6398,7 +6345,6 @@ func (s *TagResourceInput) SetTags(v map[string]*string) *TagResourceInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/TagResourceOutput
 type TagResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6414,7 +6360,6 @@ func (s TagResourceOutput) GoString() string {
 }
 
 // The parent object that contains your function's tracing settings.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/TracingConfig
 type TracingConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -6443,7 +6388,6 @@ func (s *TracingConfig) SetMode(v string) *TracingConfig {
 }
 
 // Parent object of the tracing information associated with your Lambda function.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/TracingConfigResponse
 type TracingConfigResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -6467,7 +6411,6 @@ func (s *TracingConfigResponse) SetMode(v string) *TracingConfigResponse {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UntagResourceRequest
 type UntagResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6520,7 +6463,6 @@ func (s *UntagResourceInput) SetTagKeys(v []*string) *UntagResourceInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UntagResourceOutput
 type UntagResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6535,7 +6477,6 @@ func (s UntagResourceOutput) GoString() string {
 	return s.String()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateAliasRequest
 type UpdateAliasInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6642,7 +6583,6 @@ func (s *UpdateAliasInput) SetRoutingConfig(v *AliasRoutingConfiguration) *Updat
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateEventSourceMappingRequest
 type UpdateEventSourceMappingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6730,7 +6670,6 @@ func (s *UpdateEventSourceMappingInput) SetUUID(v string) *UpdateEventSourceMapp
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateFunctionCodeRequest
 type UpdateFunctionCodeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6869,7 +6808,6 @@ func (s *UpdateFunctionCodeInput) SetZipFile(v []byte) *UpdateFunctionCodeInput 
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/UpdateFunctionConfigurationRequest
 type UpdateFunctionConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7067,7 +7005,6 @@ func (s *UpdateFunctionConfigurationInput) SetVpcConfig(v *VpcConfig) *UpdateFun
 // identifying the list of security group IDs and subnet IDs. These must belong
 // to the same VPC. You must provide at least one security group and one subnet
 // ID.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/VpcConfig
 type VpcConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -7101,7 +7038,6 @@ func (s *VpcConfig) SetSubnetIds(v []*string) *VpcConfig {
 }
 
 // VPC configuration associated with your Lambda function.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/lambda-2015-03-31/VpcConfigResponse
 type VpcConfigResponse struct {
 	_ struct{} `type:"structure"`
 

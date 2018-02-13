@@ -14,23 +14,27 @@ func resourceAwsAthenaNamedQuery() *schema.Resource {
 		Read:   resourceAwsAthenaNamedQueryRead,
 		Delete: resourceAwsAthenaNamedQueryDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"query": &schema.Schema{
+			"query": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"database": &schema.Schema{
+			"database": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -66,7 +70,7 @@ func resourceAwsAthenaNamedQueryRead(d *schema.ResourceData, meta interface{}) e
 		NamedQueryId: aws.String(d.Id()),
 	}
 
-	_, err := conn.GetNamedQuery(input)
+	resp, err := conn.GetNamedQuery(input)
 	if err != nil {
 		if isAWSErr(err, athena.ErrCodeInvalidRequestException, d.Id()) {
 			log.Printf("[WARN] Athena Named Query (%s) not found, removing from state", d.Id())
@@ -75,6 +79,11 @@ func resourceAwsAthenaNamedQueryRead(d *schema.ResourceData, meta interface{}) e
 		}
 		return err
 	}
+
+	d.Set("name", resp.NamedQuery.Name)
+	d.Set("query", resp.NamedQuery.QueryString)
+	d.Set("database", resp.NamedQuery.Database)
+	d.Set("description", resp.NamedQuery.Description)
 	return nil
 }
 
@@ -89,6 +98,6 @@ func resourceAwsAthenaNamedQueryDelete(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return err
 	}
-	d.SetId("")
+
 	return nil
 }
