@@ -88,6 +88,7 @@ To make a resource importable, please see the
 * aws_redshift_subnet_group
 * aws_route53_delegation_set
 * aws_route53_health_check
+* aws_route53_record
 * aws_route53_zone
 * aws_route_table
 * aws_s3_bucket
