@@ -3,6 +3,8 @@
 IMPROVEMENTS:
 
 * backend/s3: add support for the cn-northwest-1 region [GH-17216]
+* provisioner/habitat: Detect if hab user exists and only create if necessary [GH-17195]
+* provisioner/habitat: Allow custom service name [GH-17196]
 
 BUG FIXES:
 
