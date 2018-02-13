@@ -30,7 +30,7 @@ type moduleRecord struct {
 	// VersionStr is the version specifier string. This is used only for
 	// serialization in snapshots and should not be accessed or updated
 	// by any other codepaths; use "Version" instead.
-	VersionStr string `json:"Version"`
+	VersionStr string `json:"Version,omitempty"`
 
 	// Dir is the path to the local directory where the module is installed.
 	Dir string `json:"Dir"`
@@ -115,7 +115,11 @@ func (m *moduleMgr) writeModuleManifestSnapshot() error {
 	for _, record := range m.manifest {
 		// Make sure VersionStr is in sync with Version, since we encourage
 		// callers to manipulate Version and ignore VersionStr.
-		record.VersionStr = record.Version.String()
+		if record.Version != nil {
+			record.VersionStr = record.Version.String()
+		} else {
+			record.VersionStr = ""
+		}
 		write.Records = append(write.Records, record)
 	}
 
