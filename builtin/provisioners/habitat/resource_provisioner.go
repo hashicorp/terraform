@@ -594,7 +594,8 @@ func (p *provisioner) startHabSystemd(o terraform.UIOutput, comm communicator.Co
 }
 
 func (p *provisioner) createHabUser(o terraform.UIOutput, comm communicator.Communicator) error {
-	// Create the hab user
+	addUser := false
+	// Install busybox to get us the user tools we need
 	command := fmt.Sprintf("env HAB_NONINTERACTIVE=true hab install core/busybox")
 	if p.UseSudo {
 		command = fmt.Sprintf("sudo %s", command)
@@ -603,11 +604,25 @@ func (p *provisioner) createHabUser(o terraform.UIOutput, comm communicator.Comm
 		return err
 	}
 
-	command = fmt.Sprintf("hab pkg exec core/busybox adduser -D -g \"\" hab")
+	// Check for existing hab user
+	command = fmt.Sprintf("hab pkg exec core/busybox id hab")
 	if p.UseSudo {
 		command = fmt.Sprintf("sudo %s", command)
 	}
-	return p.runCommand(o, comm, command)
+	if err := p.runCommand(o, comm, command); err != nil {
+		o.Output("No existing hab user detected, creating...")
+		addUser = true
+	}
+
+	if addUser {
+		command = fmt.Sprintf("hab pkg exec core/busybox adduser -D -g \"\" hab")
+		if p.UseSudo {
+			command = fmt.Sprintf("sudo %s", command)
+		}
+		return p.runCommand(o, comm, command)
+	}
+
+	return nil
 }
 
 func (p *provisioner) startHabService(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
