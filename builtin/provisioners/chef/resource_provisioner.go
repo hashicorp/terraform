@@ -87,6 +87,7 @@ type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 
 type provisioner struct {
 	Attributes            map[string]interface{}
+	Channel               string
 	ClientOptions         []string
 	DisableReporting      bool
 	Environment           string
@@ -149,6 +150,11 @@ func Provisioner() terraform.ResourceProvisioner {
 			"attributes_json": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"channel": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "stable",
 			},
 			"client_options": &schema.Schema{
 				Type:     schema.TypeList,
@@ -737,6 +743,7 @@ func retryFunc(timeout time.Duration, f func() error) error {
 
 func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	p := &provisioner{
+		Channel:               d.Get("channel").(string),
 		ClientOptions:         getStringList(d.Get("client_options")),
 		DisableReporting:      d.Get("disable_reporting").(bool),
 		Environment:           d.Get("environment").(string),
