@@ -185,6 +185,50 @@ func TestProvisionerPrepare_MinionConfig(t *testing.T) {
 	}
 }
 
+func TestProvisionerPrepare_GrainsFile(t *testing.T) {
+	dir, err := ioutil.TempDir("", "_terraform_saltmasterless_test")
+	if err != nil {
+		t.Fatalf("Error when creating temp dir: %v", err)
+	}
+
+	defer os.RemoveAll(dir) // clean up
+
+	c := testConfig(t, map[string]interface{}{
+		"local_state_tree": dir,
+		"grains_file":      "i/dont/exist",
+	})
+
+	warns, errs := Provisioner().Validate(c)
+
+	if len(warns) > 0 {
+		t.Fatalf("Warnings: %v", warns)
+	}
+	if len(errs) == 0 {
+		t.Fatalf("Should have error")
+	}
+
+	tf, err := ioutil.TempFile("", "grains")
+	if err != nil {
+		t.Fatalf("error tempfile: %s", err)
+	}
+
+	defer os.Remove(tf.Name())
+
+	c = testConfig(t, map[string]interface{}{
+		"local_state_tree": dir,
+		"grains_file":      tf.Name(),
+	})
+
+	warns, errs = Provisioner().Validate(c)
+
+	if len(warns) > 0 {
+		t.Fatalf("Warnings: %v", warns)
+	}
+	if len(errs) > 0 {
+		t.Fatalf("errs: %s", errs)
+	}
+}
+
 func TestProvisionerPrepare_MinionConfig_RemoteStateTree(t *testing.T) {
 	dir, err := ioutil.TempDir("", "_terraform_saltmasterless_test")
 	if err != nil {
