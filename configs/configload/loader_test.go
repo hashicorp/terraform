@@ -1,43 +1,90 @@
 package configload
 
 import (
-	"reflect"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/spf13/afero"
-
-	"github.com/davecgh/go-spew/spew"
+	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/registry"
 	"github.com/zclconf/go-cty/cty"
 )
 
-// newTestLoader is like NewLoader but it uses a copy-on-write overlay filesystem
-// over the real filesystem so that any files that are created cannot persist
-// between test runs.
+// tempChdir copies the contents of the given directory to a temporary
+// directory and changes the test process's current working directory to
+// point to that directory. Also returned is a function that should be
+// called at the end of the test (e.g. via "defer") to restore the previous
+// working directory.
 //
-// It will also panic if there are any errors creating the loader, since
-// these should never happen in a testing scenario.
-func newTestLoader(dir string) *Loader {
-	realFS := afero.NewOsFs()
-	overlayFS := afero.NewMemMapFs()
-	fs := afero.NewCopyOnWriteFs(realFS, overlayFS)
-	parser := configs.NewParser(fs)
-	reg := registry.NewClient(nil, nil, nil)
-	ret := &Loader{
-		parser: parser,
-		modules: moduleMgr{
-			FS:       afero.Afero{fs},
-			Dir:      dir,
-			Registry: reg,
-		},
-	}
-	err := ret.modules.readModuleManifestSnapshot()
+// Tests using this helper cannot safely be run in parallel with other tests.
+func tempChdir(t *testing.T, sourceDir string) (string, func()) {
+	t.Helper()
+
+	tmpDir, err := ioutil.TempDir("", "terraform-configload")
 	if err != nil {
-		panic(err)
+		t.Fatalf("failed to create temporary directory: %s", err)
+		return "", nil
 	}
-	return ret
+
+	if err := copyDir(tmpDir, sourceDir); err != nil {
+		t.Fatalf("failed to copy fixture to temporary directory: %s", err)
+		return "", nil
+	}
+
+	oldDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to determine current working directory: %s", err)
+		return "", nil
+	}
+
+	err = os.Chdir(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to switch to temp dir %s: %s", tmpDir, err)
+		return "", nil
+	}
+
+	t.Logf("tempChdir switched to %s after copying from %s", tmpDir, sourceDir)
+
+	return tmpDir, func() {
+		err := os.Chdir(oldDir)
+		if err != nil {
+			panic(fmt.Errorf("failed to restore previous working directory %s: %s", oldDir, err))
+		}
+
+		if os.Getenv("TF_CONFIGLOAD_TEST_KEEP_TMP") == "" {
+			os.RemoveAll(tmpDir)
+		}
+	}
+}
+
+// tempChdirLoader is a wrapper around tempChdir that also returns a Loader
+// whose modules directory is at the conventional location within the
+// created temporary directory.
+func tempChdirLoader(t *testing.T, sourceDir string) (*Loader, func()) {
+	t.Helper()
+
+	_, done := tempChdir(t, sourceDir)
+	modulesDir := filepath.Clean(".terraform/modules")
+
+	err := os.MkdirAll(modulesDir, os.ModePerm)
+	if err != nil {
+		done() // undo the chdir in tempChdir so we can safely run other tests
+		t.Fatalf("failed to create modules directory: %s", err)
+		return nil, nil
+	}
+
+	loader, err := NewLoader(&Config{
+		ModulesDir: modulesDir,
+	})
+	if err != nil {
+		done() // undo the chdir in tempChdir so we can safely run other tests
+		t.Fatalf("failed to create loader: %s", err)
+		return nil, nil
+	}
+
+	return loader, done
 }
 
 func assertNoDiagnostics(t *testing.T, diags hcl.Diagnostics) bool {
@@ -75,8 +122,10 @@ func assertDiagnosticSummary(t *testing.T, diags hcl.Diagnostics, want string) b
 
 func assertResultDeepEqual(t *testing.T, got, want interface{}) bool {
 	t.Helper()
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("wrong result\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
+	if diff := deep.Equal(got, want); diff != nil {
+		for _, problem := range diff {
+			t.Errorf("%s", problem)
+		}
 		return true
 	}
 	return false

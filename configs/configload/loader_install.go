@@ -10,6 +10,7 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/registry/regsrc"
 )
 
@@ -154,15 +155,16 @@ func (l *Loader) InstallModules(rootDir string, upgrade bool, hooks InstallHooks
 				}
 				log.Printf("[TRACE] %s is a registry module at %s", key, addr)
 
-				// TODO: Implement
-				panic("registry source installation not yet implemented")
+				mod, v, mDiags := l.installRegistryModule(req, key, instPath, addr, hooks)
+				diags = append(diags, mDiags...)
+				return mod, v, diags
 
 			default:
-				log.Printf("[TRACE] %s address %q will be interpreted with go-getter", key, req.SourceAddr)
+				log.Printf("[TRACE] %s address %q will be handled by go-getter", key, req.SourceAddr)
 
-				// TODO: Implement
-				panic("fallback source installation not yet implemented")
-
+				mod, mDiags := l.installGoGetterModule(req, key, instPath, hooks)
+				diags = append(diags, mDiags...)
+				return mod, nil, diags
 			}
 
 		},
@@ -226,8 +228,263 @@ func (l *Loader) installLocalModule(req *configs.ModuleRequest, key string, hook
 		Dir:        newDir,
 		SourceAddr: req.SourceAddr,
 	}
-	log.Printf("[TRACE] Module installer: %s installed at %s", key, newDir)
+	log.Printf("[DEBUG] Module installer: %s installed at %s", key, newDir)
 	hooks.Install(key, nil, newDir)
+
+	return mod, diags
+}
+
+func (l *Loader) installRegistryModule(req *configs.ModuleRequest, key string, instPath string, addr *regsrc.Module, hooks InstallHooks) (*configs.Module, *version.Version, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	hostname, err := addr.SvcHost()
+	if err != nil {
+		// If it looks like the user was trying to use punycode then we'll generate
+		// a specialized error for that case. We require the unicode form of
+		// hostname so that hostnames are always human-readable in configuration
+		// and punycode can't be used to hide a malicious module hostname.
+		if strings.HasPrefix(addr.RawHost.Raw, "xn--") {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid module registry hostname",
+				Detail:   "The hostname portion of this source address is not an acceptable hostname. Internationalized domain names must be given in unicode form rather than ASCII (\"punycode\") form.",
+				Subject:  &req.SourceAddrRange,
+			})
+		} else {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid module registry hostname",
+				Detail:   "The hostname portion of this source address is not a valid hostname.",
+				Subject:  &req.SourceAddrRange,
+			})
+		}
+		return nil, nil, diags
+	}
+
+	reg := l.modules.Registry
+
+	log.Printf("[DEBUG] %s listing available versions of %s at %s", key, addr, hostname)
+	resp, err := reg.Versions(addr)
+	if err != nil {
+		if registry.IsModuleNotFound(err) {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Module not found",
+				Detail:   fmt.Sprintf("The specified module could not be found in the module registry at %s.", hostname),
+				Subject:  &req.SourceAddrRange,
+			})
+		} else {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Error accessing remote module registry",
+				Detail:   fmt.Sprintf("Failed to retrieve available versions for this module from %s: %s.", hostname, err),
+				Subject:  &req.SourceAddrRange,
+			})
+		}
+		return nil, nil, diags
+	}
+
+	// The response might contain information about dependencies to allow us
+	// to potentially optimize future requests, but we don't currently do that
+	// and so for now we'll just take the first item which is guaranteed to
+	// be the address we requested.
+	if len(resp.Modules) < 1 {
+		// Should never happen, but since this is a remote service that may
+		// be implemented by third-parties we will handle it gracefully.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid response from remote module registry",
+			Detail:   fmt.Sprintf("The registry at %s returned an invalid response when Terraform requested available versions for this module.", hostname),
+			Subject:  &req.SourceAddrRange,
+		})
+		return nil, nil, diags
+	}
+
+	modMeta := resp.Modules[0]
+
+	var latestMatch *version.Version
+	var latestVersion *version.Version
+	for _, mv := range modMeta.Versions {
+		v, err := version.NewVersion(mv.Version)
+		if err != nil {
+			// Should never happen if the registry server is compliant with
+			// the protocol, but we'll warn if not to assist someone who
+			// might be developing a module registry server.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Invalid response from remote module registry",
+				Detail:   fmt.Sprintf("The registry at %s returned an invalid version string %q for this module, which Terraform ignored.", hostname, mv.Version),
+				Subject:  &req.SourceAddrRange,
+			})
+			continue
+		}
+
+		// If we've found a pre-release version then we'll ignore it unless
+		// it was exactly requested.
+		if v.Prerelease() != "" && req.VersionConstraint.Required.String() != v.String() {
+			log.Printf("[TRACE] %s ignoring %s because it is a pre-release and was not requested exactly", key, v)
+			continue
+		}
+
+		if latestVersion == nil || v.GreaterThan(latestVersion) {
+			latestVersion = v
+		}
+
+		if req.VersionConstraint.Required.Check(v) {
+			if latestMatch == nil || v.GreaterThan(latestMatch) {
+				latestMatch = v
+			}
+		}
+	}
+
+	if latestVersion == nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Module has no versions",
+			Detail:   fmt.Sprintf("The specified module does not have any available versions."),
+			Subject:  &req.SourceAddrRange,
+		})
+		return nil, nil, diags
+	}
+
+	if latestMatch == nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unresolvable module version constraint",
+			Detail:   fmt.Sprintf("There is no available version of %q that matches the given version constraint. The newest available version is %s.", addr, latestVersion),
+			Subject:  &req.VersionConstraint.DeclRange,
+		})
+		return nil, nil, diags
+	}
+
+	// Report up to the caller that we're about to start downloading.
+	packageAddr, _ := splitAddrSubdir(req.SourceAddr)
+	hooks.Download(key, packageAddr, latestMatch)
+
+	// If we manage to get down here then we've found a suitable version to
+	// install, so we need to ask the registry where we should download it from.
+	// The response to this is a go-getter-style address string.
+	dlAddr, err := reg.Location(addr, latestMatch.String())
+	if err != nil {
+		log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid response from remote module registry",
+			Detail:   fmt.Sprintf("The remote registry at %s failed to return a download URL for %s %s.", hostname, addr, latestMatch),
+			Subject:  &req.VersionConstraint.DeclRange,
+		})
+		return nil, nil, diags
+	}
+
+	log.Printf("[TRACE] %s %s %s is available at %q", key, addr, latestMatch, dlAddr)
+
+	modDir, err := getWithGoGetter(instPath, dlAddr)
+	if err != nil {
+		// Errors returned by go-getter have very inconsistent quality as
+		// end-user error messages, but for now we're accepting that because
+		// we have no way to recognize any specific errors to improve them
+		// and masking the error entirely would hide valuable diagnostic
+		// information from the user.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to download module",
+			Detail:   fmt.Sprintf("Error attempting to download module source code from %q: %s", dlAddr, err),
+			Subject:  &req.CallRange,
+		})
+		return nil, nil, diags
+	}
+
+	log.Printf("[TRACE] %s %q was downloaded to %s", key, dlAddr, modDir)
+
+	if addr.RawSubmodule != "" {
+		// Append the user's requested subdirectory to any subdirectory that
+		// was implied by any of the nested layers we expanded within go-getter.
+		modDir = filepath.Join(modDir, addr.RawSubmodule)
+	}
+
+	log.Printf("[TRACE] %s should now be at %s", key, modDir)
+
+	// Finally we are ready to try actually loading the module.
+	mod, mDiags := l.parser.LoadConfigDir(modDir)
+	if mod == nil {
+		// nil indicates missing or unreadable directory, so we'll
+		// discard the returned diags and return a more specific
+		// error message here. For registry modules this actually
+		// indicates a bug in the code above, since it's not the
+		// user's responsibility to create the directory in this case.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unreadable module directory",
+			Detail:   fmt.Sprintf("The directory %s could not be read. This is a bug in Terraform and should be reported.", modDir),
+			Subject:  &req.CallRange,
+		})
+	} else {
+		diags = append(diags, mDiags...)
+	}
+
+	// Note the local location in our manifest.
+	l.modules.manifest[key] = moduleRecord{
+		Key:        key,
+		Version:    latestMatch,
+		Dir:        modDir,
+		SourceAddr: req.SourceAddr,
+	}
+	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
+	hooks.Install(key, latestMatch, modDir)
+
+	return mod, latestMatch, diags
+}
+
+func (l *Loader) installGoGetterModule(req *configs.ModuleRequest, key string, instPath string, hooks InstallHooks) (*configs.Module, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	// Report up to the caller that we're about to start downloading.
+	packageAddr, _ := splitAddrSubdir(req.SourceAddr)
+	hooks.Download(key, packageAddr, nil)
+
+	modDir, err := getWithGoGetter(instPath, req.SourceAddr)
+	if err != nil {
+		// Errors returned by go-getter have very inconsistent quality as
+		// end-user error messages, but for now we're accepting that because
+		// we have no way to recognize any specific errors to improve them
+		// and masking the error entirely would hide valuable diagnostic
+		// information from the user.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to download module",
+			Detail:   fmt.Sprintf("Error attempting to download module source code from %q: %s", packageAddr, err),
+			Subject:  &req.SourceAddrRange,
+		})
+		return nil, diags
+	}
+
+	log.Printf("[TRACE] %s %q was downloaded to %s", key, req.SourceAddr, modDir)
+
+	mod, mDiags := l.parser.LoadConfigDir(modDir)
+	if mod == nil {
+		// nil indicates missing or unreadable directory, so we'll
+		// discard the returned diags and return a more specific
+		// error message here. For registry modules this actually
+		// indicates a bug in the code above, since it's not the
+		// user's responsibility to create the directory in this case.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unreadable module directory",
+			Detail:   fmt.Sprintf("The directory %s could not be read. This is a bug in Terraform and should be reported.", modDir),
+			Subject:  &req.CallRange,
+		})
+	} else {
+		diags = append(diags, mDiags...)
+	}
+
+	// Note the local location in our manifest.
+	l.modules.manifest[key] = moduleRecord{
+		Key:        key,
+		Dir:        modDir,
+		SourceAddr: req.SourceAddr,
+	}
+	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
+	hooks.Install(key, nil, modDir)
 
 	return mod, diags
 }
