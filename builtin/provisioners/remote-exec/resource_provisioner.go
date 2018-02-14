@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator"
@@ -159,7 +158,7 @@ func runScripts(
 	scripts []io.ReadCloser) error {
 	// Wrap out context in a cancelation function that we use to
 	// kill the connection.
-	ctx, cancelFunc := context.WithCancel(ctx)
+	ctx, cancelFunc := context.WithTimeout(ctx, comm.Timeout())
 	defer cancelFunc()
 
 	// Wait for the context to end and then disconnect
@@ -169,7 +168,7 @@ func runScripts(
 	}()
 
 	// Wait and retry until we establish the connection
-	err := retryFunc(ctx, comm.Timeout(), func() error {
+	err := communicator.Retry(ctx, func() error {
 		err := comm.Connect(o)
 		return err
 	})
@@ -187,7 +186,8 @@ func runScripts(
 		go copyOutput(o, errR, errDoneCh)
 
 		remotePath := comm.ScriptPath()
-		err = retryFunc(ctx, comm.Timeout(), func() error {
+
+		err = communicator.Retry(ctx, func() error {
 			if err := comm.UploadScript(remotePath, script); err != nil {
 				return fmt.Errorf("Failed to upload script: %v", err)
 			}
@@ -247,76 +247,4 @@ func copyOutput(
 	for line := range lr.Ch {
 		o.Output(line)
 	}
-}
-
-// retryFunc is used to retry a function for a given duration
-func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error {
-	// Build a new context with the timeout
-	ctx, done := context.WithTimeout(ctx, timeout)
-	defer done()
-
-	// container for atomic error value
-	type errWrap struct {
-		E error
-	}
-
-	// Try the function in a goroutine
-	var errVal atomic.Value
-	doneCh := make(chan struct{})
-	go func() {
-		defer close(doneCh)
-
-		delay := time.Duration(0)
-		for {
-			// If our context ended, we want to exit right away.
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(delay):
-			}
-
-			// Try the function call
-			err := f()
-			errVal.Store(&errWrap{err})
-
-			if err == nil {
-				return
-			}
-
-			log.Printf("[WARN] retryable error: %v", err)
-
-			delay *= 2
-
-			if delay == 0 {
-				delay = initialBackoffDelay
-			}
-
-			if delay > maxBackoffDelay {
-				delay = maxBackoffDelay
-			}
-
-			log.Printf("[INFO] sleeping for %s", delay)
-		}
-	}()
-
-	// Wait for completion
-	select {
-	case <-ctx.Done():
-	case <-doneCh:
-	}
-
-	// Check if we have a context error to check if we're interrupted or timeout
-	switch ctx.Err() {
-	case context.Canceled:
-		return fmt.Errorf("interrupted")
-	case context.DeadlineExceeded:
-		return fmt.Errorf("timeout")
-	}
-
-	// Check if we got an error executing
-	if ev, ok := errVal.Load().(errWrap); ok {
-		return ev.E
-	}
-
-	return nil
 }
