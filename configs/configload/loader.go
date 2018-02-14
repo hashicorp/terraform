@@ -59,11 +59,12 @@ func NewLoader(config *Config) (*Loader, error) {
 	ret := &Loader{
 		parser: parser,
 		modules: moduleMgr{
-			FS:       afero.Afero{fs},
-			Dir:      config.ModulesDir,
-			Services: config.Services,
-			Creds:    config.Creds,
-			Registry: reg,
+			FS:         afero.Afero{Fs: fs},
+			CanInstall: true,
+			Dir:        config.ModulesDir,
+			Services:   config.Services,
+			Creds:      config.Creds,
+			Registry:   reg,
 		},
 	}
 
