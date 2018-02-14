@@ -1,6 +1,8 @@
 package configs
 
 import (
+	"sort"
+
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl2/hcl"
 )
@@ -28,7 +30,16 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 
 	calls := parent.Module.ModuleCalls
 
-	for _, call := range calls {
+	// We'll sort the calls by their local names so that they'll appear in a
+	// predictable order in any logging that's produced during the walk.
+	callNames := make([]string, 0, len(calls))
+	for k := range calls {
+		callNames = append(callNames, k)
+	}
+	sort.Strings(callNames)
+
+	for _, callName := range callNames {
+		call := calls[callName]
 		path := make([]string, len(parent.Path)+1)
 		copy(path, parent.Path)
 		path[len(path)-1] = call.Name
