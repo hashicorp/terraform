@@ -14,10 +14,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	linereader "github.com/mitchellh/go-linereader"
@@ -129,6 +129,7 @@ func applyFn(ctx context.Context) error {
 
 	// Get a new communicator
 	comm, err := communicator.New(connState)
+
 	if err != nil {
 		return err
 	}
@@ -141,19 +142,12 @@ func applyFn(ctx context.Context) error {
 			// Fallback on wget if curl failed for any reason (such as not being installed)
 			Command: fmt.Sprintf("curl -L https://bootstrap.saltstack.com -o /tmp/install_salt.sh || wget -O /tmp/install_salt.sh https://bootstrap.saltstack.com"),
 		}
-		o.Output(fmt.Sprintf("Downloading saltstack bootstrap to /tmp/install_salt.sh"))
-		err = retryFunc(ctx, comm.Timeout(), func() error {
-			if err = comm.Start(cmd); err != nil {
-				return fmt.Errorf("Unable to download Salt: %s", err)
-			}
-			return nil
-		})
 
-		if err == nil {
-			cmd.Wait()
-			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
-			}
+		o.Output(fmt.Sprintf("Downloading saltstack bootstrap to /tmp/install_salt.sh"))
+
+		err = retrySaltstackCmd(comm, cmd)
+		if err != nil {
+			return err
 		}
 
 		outR, outW := io.Pipe()
@@ -162,26 +156,15 @@ func applyFn(ctx context.Context) error {
 		errDoneCh := make(chan struct{})
 		go copyOutput(o, outR, outDoneCh)
 		go copyOutput(o, errR, errDoneCh)
+
 		cmd = &remote.Cmd{
 			Command: fmt.Sprintf("%s /tmp/install_salt.sh %s", p.sudo("sh"), p.BootstrapArgs),
 			Stdout:  outW,
 			Stderr:  errW,
 		}
 
-		o.Output(fmt.Sprintf("Installing Salt with command %s", cmd.Command))
-		err = retryFunc(ctx, comm.Timeout(), func() error {
-			if err = comm.Start(cmd); err != nil {
-				return fmt.Errorf("Unable to install Salt: %s", err)
-			}
-			return nil
-		})
+		err = retrySaltstackCmd(comm, cmd)
 
-		if err == nil {
-			cmd.Wait()
-			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
-			}
-		}
 		// Wait for output to clean up
 		outW.Close()
 		errW.Close()
@@ -540,33 +523,21 @@ func copyOutput(
 	}
 }
 
-// retryFunc is used to eliminate rece between ssh command
-// and vm in booting process
-func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error {
-	//wrap current context with local timeout
-	ctx, done := context.WithTimeout(ctx, timeout)
-	var err error = nil
-	defer done()
+func retrySaltstackCmd(comm communicator.Communicator, cmd *remote.Cmd) error {
+	log.Printf("[DEBUG] Try'n execute %s with timeout %s", cmd.Command, comm.Timeout().String())
 
-	for {
-		err = f()
-		if err == nil {
-			break
+	return resource.Retry(comm.Timeout(), func() *resource.RetryError {
+
+		cmderr := comm.Start(cmd)
+		if cmderr != nil {
+			return resource.RetryableError(cmderr)
 		}
-		log.Printf("[WARN] salt-masterless retry: %v", err)
 
-		select {
-		case <-ctx.Done():
-			break
-		case <-time.After(3 * time.Second):
+		cmd.Wait()
+		if cmd.ExitStatus != 0 {
+			resource.NonRetryableError(fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus))
 		}
-	}
 
-	switch ctx.Err() {
-	case context.Canceled:
-		return fmt.Errorf("salt interrupted")
-	case context.DeadlineExceeded:
-		return fmt.Errorf("salt timeout")
-	}
-	return err
+		return nil
+	})
 }
