@@ -38,7 +38,16 @@ import (
 // may have wholly or partially completed. Modules must be loaded in order
 // to find their dependencies, so this function does many of the same checks
 // as LoadConfig as a side-effect.
+//
+// This function will panic if called on a loader that cannot install modules.
+// Use CanInstallModules to determine if a loader can install modules, or
+// refer to the documentation for that method for situations where module
+// installation capability is guaranteed.
 func (l *Loader) InstallModules(rootDir string, upgrade bool, hooks InstallHooks) hcl.Diagnostics {
+	if !l.CanInstallModules() {
+		panic(fmt.Errorf("InstallModules called on loader that cannot install modules"))
+	}
+
 	rootMod, diags := l.parser.LoadConfigDir(rootDir)
 	if rootMod == nil {
 		return diags
@@ -181,6 +190,16 @@ func (l *Loader) InstallModules(rootDir string, upgrade bool, hooks InstallHooks
 	}
 
 	return diags
+}
+
+// CanInstallModules returns true if InstallModules can be used with this
+// loader.
+//
+// Loaders created with NewLoader can always install modules. Loaders created
+// from plan files (where the configuration is embedded in the plan file itself)
+// cannot install modules, because the plan file is read-only.
+func (l *Loader) CanInstallModules() bool {
+	return l.modules.CanInstall
 }
 
 func (l *Loader) installLocalModule(req *configs.ModuleRequest, key string, hooks InstallHooks) (*configs.Module, hcl.Diagnostics) {

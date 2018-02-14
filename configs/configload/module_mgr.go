@@ -10,6 +10,13 @@ import (
 type moduleMgr struct {
 	FS afero.Afero
 
+	// CanInstall is true for a module manager that can support installation.
+	//
+	// This must be set only if FS is an afero.OsFs, because the installer
+	// (which uses go-getter) is not aware of the virtual filesystem
+	// abstraction and will always write into the "real" filesystem.
+	CanInstall bool
+
 	// Dir is the path where descendent modules are (or will be) installed.
 	Dir string
 
