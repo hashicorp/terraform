@@ -2258,6 +2258,12 @@
 			"revisionTime": "2017-02-08T20:51:15Z"
 		},
 		{
+			"checksumSHA1": "hfABw6DX9B4Ma+88qDDGz9qY45s=",
+			"path": "golang.org/x/crypto/internal/chacha20",
+			"revision": "9de5f2eaf759b4c4550b3db39fed2e9e5f86f45c",
+			"revisionTime": "2018-02-11T11:39:43Z"
+		},
+		{
 			"checksumSHA1": "MCeXr2RNeiG1XG6V+er1OR0qyeo=",
 			"path": "golang.org/x/crypto/md4",
 			"revision": "eb71ad9bd329b5ac0fd0148dd99bd62e8be8e035",
@@ -2300,10 +2306,16 @@
 			"revisionTime": "2017-02-08T20:51:15Z"
 		},
 		{
-			"checksumSHA1": "pySTR3iSeU7FhjbBnQPNxgyIa4I=",
+			"checksumSHA1": "kVKE0OX1Xdw5mG7XKT86DLLKE2I=",
+			"path": "golang.org/x/crypto/poly1305",
+			"revision": "9de5f2eaf759b4c4550b3db39fed2e9e5f86f45c",
+			"revisionTime": "2018-02-11T11:39:43Z"
+		},
+		{
+			"checksumSHA1": "ZK4HWtg3hJzayz0RRcc6qHpkums=",
 			"path": "golang.org/x/crypto/ssh",
-			"revision": "d585fd2cc9195196078f516b69daff6744ef5e84",
-			"revisionTime": "2017-12-16T04:08:15Z",
+			"revision": "9de5f2eaf759b4c4550b3db39fed2e9e5f86f45c",
+			"revisionTime": "2018-02-11T11:39:43Z",
 			"version": "master",
 			"versionExact": "master"
 		},
@@ -2312,6 +2324,14 @@
 			"path": "golang.org/x/crypto/ssh/agent",
 			"revision": "d585fd2cc9195196078f516b69daff6744ef5e84",
 			"revisionTime": "2017-12-16T04:08:15Z",
+			"version": "master",
+			"versionExact": "master"
+		},
+		{
+			"checksumSHA1": "He3gVAAa2cym6sK3f2tgZoCMdOk=",
+			"path": "golang.org/x/crypto/ssh/knownhosts",
+			"revision": "650f4a345ab4e5b245a3034b110ebc7299e68186",
+			"revisionTime": "2017-09-27T09:16:38Z",
 			"version": "master",
 			"versionExact": "master"
 		},
