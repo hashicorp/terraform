@@ -115,7 +115,7 @@ func (c *Client) Versions(module *regsrc.Module) (*response.ModuleVersions, erro
 	case http.StatusOK:
 		// OK
 	case http.StatusNotFound:
-		return nil, fmt.Errorf("module %q not found", module.String())
+		return nil, &errModuleNotFound{addr: module}
 	default:
 		return nil, fmt.Errorf("error looking up module versions: %s", resp.Status)
 	}
