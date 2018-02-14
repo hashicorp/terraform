@@ -15,7 +15,6 @@ import (
 	"strings"
 	"sync"
 	"text/template"
-	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -307,8 +306,11 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	defer cancel()
+
 	// Wait and retry until we establish the connection
-	err = retryFunc(comm.Timeout(), func() error {
+	err = communicator.Retry(ctx, func() error {
 		return comm.Connect(o)
 	})
 	if err != nil {
@@ -714,24 +716,6 @@ func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<
 	lr := linereader.New(r)
 	for line := range lr.Ch {
 		o.Output(line)
-	}
-}
-
-// retryFunc is used to retry a function for a given duration
-func retryFunc(timeout time.Duration, f func() error) error {
-	finish := time.After(timeout)
-	for {
-		err := f()
-		if err == nil {
-			return nil
-		}
-		log.Printf("Retryable error: %v", err)
-
-		select {
-		case <-finish:
-			return err
-		case <-time.After(3 * time.Second):
-		}
 	}
 }
 
