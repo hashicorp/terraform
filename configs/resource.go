@@ -26,6 +26,7 @@ type ManagedResource struct {
 	CreateBeforeDestroy bool
 	PreventDestroy      bool
 	IgnoreChanges       []hcl.Traversal
+	IgnoreAllChanges    bool
 
 	CreateBeforeDestroySet bool
 	PreventDestroySet      bool
@@ -118,19 +119,66 @@ func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 			}
 
 			if attr, exists := lcContent.Attributes["ignore_changes"]; exists {
-				exprs, listDiags := hcl.ExprList(attr.Expr)
-				diags = append(diags, listDiags...)
 
-				for _, expr := range exprs {
-					expr, shimDiags := shimTraversalInString(expr, false)
-					diags = append(diags, shimDiags...)
+				// ignore_changes can either be a list of relative traversals
+				// or it can be just the keyword "all" to ignore changes to this
+				// resource entirely.
+				//   ignore_changes = [ami, instance_type]
+				//   ignore_changes = all
+				// We also allow two legacy forms for compatibility with earlier
+				// versions:
+				//   ignore_changes = ["ami", "instance_type"]
+				//   ignore_changes = ["*"]
 
-					traversal, travDiags := hcl.RelTraversalForExpr(expr)
-					diags = append(diags, travDiags...)
-					if len(traversal) != 0 {
-						r.IgnoreChanges = append(r.IgnoreChanges, traversal)
+				kw := hcl.ExprAsKeyword(attr.Expr)
+
+				switch {
+				case kw == "all":
+					r.IgnoreAllChanges = true
+				default:
+					exprs, listDiags := hcl.ExprList(attr.Expr)
+					diags = append(diags, listDiags...)
+
+					var ignoreAllRange hcl.Range
+
+					for _, expr := range exprs {
+
+						// our expr might be the literal string "*", which
+						// we accept as a deprecated way of saying "all".
+						if shimIsIgnoreChangesStar(expr) {
+							r.IgnoreAllChanges = true
+							ignoreAllRange = expr.Range()
+							diags = append(diags, &hcl.Diagnostic{
+								Severity: hcl.DiagWarning,
+								Summary:  "Deprecated ignore_changes wildcard",
+								Detail:   "The [\"*\"] form of ignore_changes wildcard is reprecated. Use \"ignore_changes = all\" to ignore changes to all attributes.",
+								Subject:  attr.Expr.Range().Ptr(),
+							})
+							continue
+						}
+
+						expr, shimDiags := shimTraversalInString(expr, false)
+						diags = append(diags, shimDiags...)
+
+						traversal, travDiags := hcl.RelTraversalForExpr(expr)
+						diags = append(diags, travDiags...)
+						if len(traversal) != 0 {
+							r.IgnoreChanges = append(r.IgnoreChanges, traversal)
+						}
 					}
+
+					if r.IgnoreAllChanges && len(r.IgnoreChanges) != 0 {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid ignore_changes ruleset",
+							Detail:   "Cannot mix wildcard string \"*\" with non-wildcard references.",
+							Subject:  &ignoreAllRange,
+							Context:  attr.Expr.Range().Ptr(),
+						})
+					}
+
 				}
+
 			}
 
 		case "connection":
