@@ -3,6 +3,7 @@ package configs
 import (
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // -------------------------------------------------------------------------
@@ -78,4 +79,21 @@ func shimTraversalInString(expr hcl.Expression, wantKeyword bool) (hcl.Expressio
 		Traversal: traversal,
 		SrcRange:  srcRange,
 	}, diags
+}
+
+// shimIsIgnoreChangesStar returns true if the given expression seems to be
+// a string literal whose value is "*". This is used to support a legacy
+// form of ignore_changes = all .
+//
+// This function does not itself emit any diagnostics, so it's the caller's
+// responsibility to emit a warning diagnostic when this function returns true.
+func shimIsIgnoreChangesStar(expr hcl.Expression) bool {
+	val, valDiags := expr.Value(nil)
+	if valDiags.HasErrors() {
+		return false
+	}
+	if val.Type() != cty.String || val.IsNull() || !val.IsKnown() {
+		return false
+	}
+	return val.AsString() == "*"
 }

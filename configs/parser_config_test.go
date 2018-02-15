@@ -130,6 +130,16 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 			"Quoted references are deprecated",
 		},
 		{
+			"valid-files/resources-ignorechanges-all-legacy.tf",
+			hcl.DiagWarning,
+			"Deprecated ignore_changes wildcard",
+		},
+		{
+			"valid-files/resources-ignorechanges-all-legacy.tf.json",
+			hcl.DiagWarning,
+			"Deprecated ignore_changes wildcard",
+		},
+		{
 			"valid-files/resources-provisioner-when-quoted.tf",
 			hcl.DiagWarning,
 			"Quoted keywords are deprecated",
