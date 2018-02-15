@@ -82,8 +82,14 @@ vet:
 # generate runs `go generate` to build the dynamically generated
 # source files.
 generate:
-	@which stringer > /dev/null; if [ $$? -ne 0 ]; then \
+	@if [ ! -x $(GOPATH)/bin/stringer ]; then \
 	  go get -u golang.org/x/tools/cmd/stringer; \
+	fi
+	@which stringer > /dev/null; if [ $$? -ne 0 ]; then \
+		echo ""; \
+		echo "stringer was installed but the executable could not be found."; \
+		echo "Check to see if GOPATH/bin is in your PATH."; \
+		exit 1; \
 	fi
 	go generate ./...
 	@go fmt command/internal_plugin_list.go > /dev/null
