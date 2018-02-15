@@ -63,6 +63,14 @@ type sshConfig struct {
 	sshAgent *sshAgent
 }
 
+type fatalError struct {
+	error
+}
+
+func (e fatalError) FatalError() error {
+	return e.error
+}
+
 // New creates a new communicator implementation over SSH.
 func New(s *terraform.InstanceState) (*Communicator, error) {
 	connInfo, err := parseConnectionInfo(s)
@@ -159,8 +167,8 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	host := fmt.Sprintf("%s:%d", c.connInfo.Host, c.connInfo.Port)
 	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, host, c.config.config)
 	if err != nil {
-		log.Printf("handshake error: %s", err)
-		return err
+		log.Printf("fatal handshake error: %s", err)
+		return fatalError{err}
 	}
 
 	c.client = ssh.NewClient(sshConn, sshChan, req)
@@ -168,7 +176,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	if c.config.sshAgent != nil {
 		log.Printf("[DEBUG] Telling SSH config to forward to agent")
 		if err := c.config.sshAgent.ForwardToAgent(c.client); err != nil {
-			return err
+			return fatalError{err}
 		}
 
 		log.Printf("[DEBUG] Setting up a session to request agent forwarding")

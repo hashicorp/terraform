@@ -6,12 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/url"
 	"path"
 	"strings"
 	"text/template"
-	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -233,10 +231,13 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
-	err = retryFunc(comm.Timeout(), func() error {
-		err = comm.Connect(o)
-		return err
+	ctx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	defer cancel()
+
+	err = communicator.Retry(ctx, func() error {
+		return comm.Connect(o)
 	})
+
 	if err != nil {
 		return err
 	}
@@ -726,24 +727,6 @@ func (p *provisioner) uploadUserTOML(o terraform.UIOutput, comm communicator.Com
 
 	return comm.Upload(path.Join(destDir, "user.toml"), userToml)
 
-}
-
-func retryFunc(timeout time.Duration, f func() error) error {
-	finish := time.After(timeout)
-
-	for {
-		err := f()
-		if err == nil {
-			return nil
-		}
-		log.Printf("Retryable error: %v", err)
-
-		select {
-		case <-finish:
-			return err
-		case <-time.After(3 * time.Second):
-		}
-	}
 }
 
 func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
