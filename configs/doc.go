@@ -11,4 +11,9 @@
 // of types from the HCL API, including raw HCL diagnostic messages. Such
 // diagnostics can be converted into Terraform-flavored diagnostics, if needed,
 // using functions in the sibling package tfdiags.
+//
+// The Parser type is the main entry-point into this package. The LoadConfigDir
+// method can be used to load a single module directory, and then a full
+// configuration (including any descendent modules) can be produced using
+// the top-level BuildConfig method.
 package configs
