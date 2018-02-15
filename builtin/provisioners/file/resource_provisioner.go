@@ -101,13 +101,18 @@ func getSrc(data *schema.ResourceData) (string, bool, error) {
 func copyFiles(ctx context.Context, comm communicator.Communicator, src, dst string) error {
 	// Wait and retry until we establish the connection
 	err := communicator.Retry(ctx, func() error {
-		err := comm.Connect(nil)
-		return err
+		return comm.Connect(nil)
 	})
 	if err != nil {
 		return err
 	}
-	defer comm.Disconnect()
+
+	// disconnect when the context is canceled, which will close this after
+	// Apply as well.
+	go func() {
+		<-ctx.Done()
+		comm.Disconnect()
+	}()
 
 	info, err := os.Stat(src)
 	if err != nil {

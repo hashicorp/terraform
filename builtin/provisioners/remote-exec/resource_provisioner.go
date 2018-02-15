@@ -171,57 +171,40 @@ func runScripts(
 	err := communicator.Retry(ctx, func() error {
 		return comm.Connect(o)
 	})
-
 	if err != nil {
 		return err
 	}
 
 	for _, script := range scripts {
 		var cmd *remote.Cmd
+
 		outR, outW := io.Pipe()
 		errR, errW := io.Pipe()
-		outDoneCh := make(chan struct{})
-		errDoneCh := make(chan struct{})
-		go copyOutput(o, outR, outDoneCh)
-		go copyOutput(o, errR, errDoneCh)
+		defer outW.Close()
+		defer errW.Close()
+
+		go copyOutput(o, outR)
+		go copyOutput(o, errR)
 
 		remotePath := comm.ScriptPath()
 
-		err = communicator.Retry(ctx, func() error {
-			if err := comm.UploadScript(remotePath, script); err != nil {
-				return fmt.Errorf("Failed to upload script: %v", err)
-			}
-
-			cmd = &remote.Cmd{
-				Command: remotePath,
-				Stdout:  outW,
-				Stderr:  errW,
-			}
-			if err := comm.Start(cmd); err != nil {
-				return fmt.Errorf("Error starting script: %v", err)
-			}
-
-			return nil
-		})
-		if err == nil {
-			cmd.Wait()
-			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
-			}
+		if err := comm.UploadScript(remotePath, script); err != nil {
+			return fmt.Errorf("Failed to upload script: %v", err)
 		}
 
-		// If we have an error, end our context so the disconnect happens.
-		// This has to happen before the output cleanup below since during
-		// an interrupt this will cause the outputs to end.
-		if err != nil {
-			cancelFunc()
+		cmd = &remote.Cmd{
+			Command: remotePath,
+			Stdout:  outW,
+			Stderr:  errW,
+		}
+		if err := comm.Start(cmd); err != nil {
+			return fmt.Errorf("Error starting script: %v", err)
 		}
 
-		// Wait for output to clean up
-		outW.Close()
-		errW.Close()
-		<-outDoneCh
-		<-errDoneCh
+		cmd.Wait()
+		if cmd.ExitStatus != 0 {
+			err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+		}
 
 		// Upload a blank follow up file in the same path to prevent residual
 		// script contents from remaining on remote machine
@@ -230,19 +213,13 @@ func runScripts(
 			// This feature is best-effort.
 			log.Printf("[WARN] Failed to upload empty follow up script: %v", err)
 		}
-
-		// If we have an error, return it out now that we've cleaned up
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
 }
 
 func copyOutput(
-	o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
-	defer close(doneCh)
+	o terraform.UIOutput, r io.Reader) {
 	lr := linereader.New(r)
 	for line := range lr.Ch {
 		o.Output(line)
