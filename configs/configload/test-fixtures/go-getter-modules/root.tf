@@ -3,6 +3,11 @@
 # ...and expects its v0.0.1 tag to be pointing at the following commit:
 #     d676ab2559d4e0621d59e3c3c4cbb33958ac4608
 
+variable "v" {
+  description = "in local caller for go-getter-modules"
+  default     = ""
+}
+
 module "acctest_root" {
   source = "github.com/hashicorp/terraform-aws-module-installer-acctest?ref=v0.0.1"
 }

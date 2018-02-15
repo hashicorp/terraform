@@ -3,9 +3,11 @@ package configload
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform/configs"
 )
 
 func TestLoaderInstallModules_local(t *testing.T) {
@@ -39,8 +41,25 @@ func TestLoaderInstallModules_local(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	_, loadDiags := loader.LoadConfig(".")
+	config, loadDiags := loader.LoadConfig(".")
 	assertNoDiagnostics(t, loadDiags)
+
+	wantTraces := map[string]string{
+		"":                "in root module",
+		"child_a":         "in child_a module",
+		"child_a.child_b": "in child_b module",
+	}
+	gotTraces := map[string]string{}
+	config.DeepEach(func(c *configs.Config) {
+		path := strings.Join(c.Path, ".")
+		if c.Module.Variables["v"] == nil {
+			gotTraces[path] = "<missing>"
+			return
+		}
+		varDesc := c.Module.Variables["v"].Description
+		gotTraces[path] = varDesc
+	})
+	assertResultDeepEqual(t, gotTraces, wantTraces)
 }
 
 func TestLoaderInstallModules_registry(t *testing.T) {
@@ -136,8 +155,30 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	_, loadDiags := loader.LoadConfig(".")
+	config, loadDiags := loader.LoadConfig(".")
 	assertNoDiagnostics(t, loadDiags)
+
+	wantTraces := map[string]string{
+		"":                             "in local caller for registry-modules",
+		"acctest_root":                 "in root module",
+		"acctest_root.child_a":         "in child_a module",
+		"acctest_root.child_a.child_b": "in child_b module",
+		"acctest_child_a":              "in child_a module",
+		"acctest_child_a.child_b":      "in child_b module",
+		"acctest_child_b":              "in child_b module",
+	}
+	gotTraces := map[string]string{}
+	config.DeepEach(func(c *configs.Config) {
+		path := strings.Join(c.Path, ".")
+		if c.Module.Variables["v"] == nil {
+			gotTraces[path] = "<missing>"
+			return
+		}
+		varDesc := c.Module.Variables["v"].Description
+		gotTraces[path] = varDesc
+	})
+	assertResultDeepEqual(t, gotTraces, wantTraces)
+
 }
 
 func TestLoaderInstallModules_goGetter(t *testing.T) {
@@ -225,8 +266,30 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	_, loadDiags := loader.LoadConfig(".")
+	config, loadDiags := loader.LoadConfig(".")
 	assertNoDiagnostics(t, loadDiags)
+
+	wantTraces := map[string]string{
+		"":                             "in local caller for go-getter-modules",
+		"acctest_root":                 "in root module",
+		"acctest_root.child_a":         "in child_a module",
+		"acctest_root.child_a.child_b": "in child_b module",
+		"acctest_child_a":              "in child_a module",
+		"acctest_child_a.child_b":      "in child_b module",
+		"acctest_child_b":              "in child_b module",
+	}
+	gotTraces := map[string]string{}
+	config.DeepEach(func(c *configs.Config) {
+		path := strings.Join(c.Path, ".")
+		if c.Module.Variables["v"] == nil {
+			gotTraces[path] = "<missing>"
+			return
+		}
+		varDesc := c.Module.Variables["v"].Description
+		gotTraces[path] = varDesc
+	})
+	assertResultDeepEqual(t, gotTraces, wantTraces)
+
 }
 
 type testInstallHooks struct {
