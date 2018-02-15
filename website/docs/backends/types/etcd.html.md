@@ -10,7 +10,7 @@ description: |-
 
 **Kind: Standard (with no locking)**
 
-Stores the state in [etcd](https://coreos.com/etcd/) at a given path.
+Stores the state in [etcd 2.x](https://coreos.com/etcd/docs/latest/v2/README.html) at a given path.
 
 ## Example Configuration
 
