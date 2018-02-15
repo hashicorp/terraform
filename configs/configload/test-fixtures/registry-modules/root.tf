@@ -11,6 +11,12 @@
 #     853d03855b3290a3ca491d4c3a7684572dd42237
 # (this particular assumption is encoded in the tests that use this fixture)
 
+
+variable "v" {
+  description = "in local caller for registry-modules"
+  default     = ""
+}
+
 module "acctest_root" {
   source  = "hashicorp/module-installer-acctest/aws"
   version = "0.0.1"
