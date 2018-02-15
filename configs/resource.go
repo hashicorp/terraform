@@ -122,6 +122,9 @@ func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 				diags = append(diags, listDiags...)
 
 				for _, expr := range exprs {
+					expr, shimDiags := shimTraversalInString(expr, false)
+					diags = append(diags, shimDiags...)
+
 					traversal, travDiags := hcl.RelTraversalForExpr(expr)
 					diags = append(diags, travDiags...)
 					if len(traversal) != 0 {
@@ -257,7 +260,11 @@ type ProviderConfigRef struct {
 
 func decodeProviderConfigRef(attr *hcl.Attribute) (*ProviderConfigRef, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	traversal, travDiags := hcl.AbsTraversalForExpr(attr.Expr)
+
+	expr, shimDiags := shimTraversalInString(attr.Expr, false)
+	diags = append(diags, shimDiags...)
+
+	traversal, travDiags := hcl.AbsTraversalForExpr(expr)
 
 	// AbsTraversalForExpr produces only generic errors, so we'll discard
 	// the errors given and produce our own with extra context. If we didn't
@@ -277,7 +284,7 @@ func decodeProviderConfigRef(attr *hcl.Attribute) (*ProviderConfigRef, hcl.Diagn
 				Severity: hcl.DiagError,
 				Summary:  "Invalid provider configuration reference",
 				Detail:   "A provider configuration reference must not be given in quotes.",
-				Subject:  attr.Expr.Range().Ptr(),
+				Subject:  expr.Range().Ptr(),
 			})
 			return nil, diags
 		}
@@ -286,7 +293,7 @@ func decodeProviderConfigRef(attr *hcl.Attribute) (*ProviderConfigRef, hcl.Diagn
 			Severity: hcl.DiagError,
 			Summary:  "Invalid provider configuration reference",
 			Detail:   fmt.Sprintf("The %s argument requires a provider type name, optionally followed by a period and then a configuration alias.", attr.Name),
-			Subject:  attr.Expr.Range().Ptr(),
+			Subject:  expr.Range().Ptr(),
 		})
 		return nil, diags
 	}

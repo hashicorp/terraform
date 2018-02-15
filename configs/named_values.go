@@ -68,7 +68,10 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 	}
 
 	if attr, exists := content.Attributes["type"]; exists {
-		switch hcl.ExprAsKeyword(attr.Expr) {
+		expr, shimDiags := shimTraversalInString(attr.Expr, true)
+		diags = append(diags, shimDiags...)
+
+		switch hcl.ExprAsKeyword(expr) {
 		case "string":
 			v.TypeHint = TypeHintString
 		case "list":
@@ -76,25 +79,12 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 		case "map":
 			v.TypeHint = TypeHintMap
 		default:
-			// In our legacy configuration format these keywords would've been
-			// provided as quoted strings, so we'll generate a special error
-			// message for that to help those who find outdated examples and
-			// would otherwise be confused.
-			if exprIsNativeQuotedString(attr.Expr) {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid variable type hint",
-					Detail:   "The type hint keyword must not be given in quotes.",
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			} else {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid variable type hint",
-					Detail:   "The type argument requires one of the following keywords: string, list, or map.",
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			}
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid variable type hint",
+				Detail:   "The type argument requires one of the following keywords: string, list, or map.",
+				Subject:  expr.Range().Ptr(),
+			})
 		}
 	}
 

@@ -33,52 +33,40 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 	pv.Config = config
 
 	if attr, exists := content.Attributes["when"]; exists {
-		switch hcl.ExprAsKeyword(attr.Expr) {
+		expr, shimDiags := shimTraversalInString(attr.Expr, true)
+		diags = append(diags, shimDiags...)
+
+		switch hcl.ExprAsKeyword(expr) {
 		case "create":
 			pv.When = ProvisionerWhenCreate
 		case "destroy":
 			pv.When = ProvisionerWhenDestroy
 		default:
-			if exprIsNativeQuotedString(attr.Expr) {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid \"when\" keyword",
-					Detail:   "The \"when\" argument keyword must not be given in quotes.",
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			} else {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid \"when\" keyword",
-					Detail:   "The \"when\" argument requires one of the following keywords: create or destroy.",
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			}
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid \"when\" keyword",
+				Detail:   "The \"when\" argument requires one of the following keywords: create or destroy.",
+				Subject:  expr.Range().Ptr(),
+			})
 		}
 	}
 
 	if attr, exists := content.Attributes["on_failure"]; exists {
-		switch hcl.ExprAsKeyword(attr.Expr) {
+		expr, shimDiags := shimTraversalInString(attr.Expr, true)
+		diags = append(diags, shimDiags...)
+
+		switch hcl.ExprAsKeyword(expr) {
 		case "continue":
 			pv.OnFailure = ProvisionerOnFailureContinue
 		case "fail":
 			pv.OnFailure = ProvisionerOnFailureFail
 		default:
-			if exprIsNativeQuotedString(attr.Expr) {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid \"on_failure\" keyword",
-					Detail:   "The \"on_failure\" argument keyword must not be given in quotes.",
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			} else {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid \"on_failure\" keyword",
-					Detail:   "The \"on_failure\" argument requires one of the following keywords: continue or fail.",
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			}
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid \"on_failure\" keyword",
+				Detail:   "The \"on_failure\" argument requires one of the following keywords: continue or fail.",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
 		}
 	}
 
