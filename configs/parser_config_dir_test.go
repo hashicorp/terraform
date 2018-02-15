@@ -60,8 +60,8 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 			})
 
 			_, diags := parser.LoadConfigDir("mod")
-			if len(diags) != 0 {
-				t.Errorf("unexpected diagnostics")
+			if diags.HasErrors() {
+				t.Errorf("unexpected error diagnostics")
 				for _, diag := range diags {
 					t.Logf("- %s", diag)
 				}

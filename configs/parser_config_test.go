@@ -34,8 +34,8 @@ func TestParserLoadConfigFileSuccess(t *testing.T) {
 			})
 
 			_, diags := parser.LoadConfigFile(name)
-			if len(diags) != 0 {
-				t.Errorf("unexpected diagnostics")
+			if diags.HasErrors() {
+				t.Errorf("unexpected error diagnostics")
 				for _, diag := range diags {
 					t.Logf("- %s", diag)
 				}
@@ -85,38 +85,65 @@ func TestParserLoadConfigFileFailure(t *testing.T) {
 // file produces the expected diagnostic summary.
 func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 	tests := []struct {
-		Filename  string
-		WantError string
+		Filename     string
+		WantSeverity hcl.DiagnosticSeverity
+		WantDiag     string
 	}{
 		{
-			"data-resource-lifecycle.tf",
+			"invalid-files/data-resource-lifecycle.tf",
+			hcl.DiagError,
 			"Unsupported lifecycle block",
 		},
 		{
-			"variable-type-unknown.tf",
+			"invalid-files/variable-type-unknown.tf",
+			hcl.DiagError,
 			"Invalid variable type hint",
 		},
 		{
-			"variable-type-quoted.tf",
-			"Invalid variable type hint",
+			"valid-files/variable-type-quoted.tf",
+			hcl.DiagWarning,
+			"Quoted keywords are deprecated",
 		},
 		{
-			"unexpected-attr.tf",
+			"invalid-files/unexpected-attr.tf",
+			hcl.DiagError,
 			"Unsupported attribute",
 		},
 		{
-			"unexpected-block.tf",
+			"invalid-files/unexpected-block.tf",
+			hcl.DiagError,
 			"Unsupported block type",
 		},
 		{
-			"resource-lifecycle-badbool.tf",
+			"invalid-files/resource-lifecycle-badbool.tf",
+			hcl.DiagError,
 			"Unsuitable value type",
+		},
+		{
+			"valid-files/resources-dependson-quoted.tf",
+			hcl.DiagWarning,
+			"Quoted references are deprecated",
+		},
+		{
+			"valid-files/resources-ignorechanges-quoted.tf",
+			hcl.DiagWarning,
+			"Quoted references are deprecated",
+		},
+		{
+			"valid-files/resources-provisioner-when-quoted.tf",
+			hcl.DiagWarning,
+			"Quoted keywords are deprecated",
+		},
+		{
+			"valid-files/resources-provisioner-onfailure-quoted.tf",
+			hcl.DiagWarning,
+			"Quoted keywords are deprecated",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Filename, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("test-fixtures/invalid-files", test.Filename))
+			src, err := ioutil.ReadFile(filepath.Join("test-fixtures", test.Filename))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -133,11 +160,11 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 				}
 				return
 			}
-			if diags[0].Severity != hcl.DiagError {
-				t.Errorf("Wrong diagnostic severity %s; want %s", diags[0].Severity, hcl.DiagError)
+			if diags[0].Severity != test.WantSeverity {
+				t.Errorf("Wrong diagnostic severity %#v; want %#v", diags[0].Severity, test.WantSeverity)
 			}
-			if diags[0].Summary != test.WantError {
-				t.Errorf("Wrong diagnostic summary\ngot:  %s\nwant: %s", diags[0].Summary, test.WantError)
+			if diags[0].Summary != test.WantDiag {
+				t.Errorf("Wrong diagnostic summary\ngot:  %s\nwant: %s", diags[0].Summary, test.WantDiag)
 			}
 		})
 	}
