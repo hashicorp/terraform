@@ -53,6 +53,15 @@ func (l *Loader) InstallModules(rootDir string, upgrade bool, hooks InstallHooks
 		return diags
 	}
 
+	instDiags := l.installDescendentModules(rootMod, rootDir, upgrade, hooks)
+	diags = append(diags, instDiags...)
+
+	return diags
+}
+
+func (l *Loader) installDescendentModules(rootMod *configs.Module, rootDir string, upgrade bool, hooks InstallHooks) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
 	if hooks == nil {
 		// Use our no-op implementation as a placeholder
 		hooks = InstallHooksImpl{}
