@@ -55,14 +55,17 @@ func New(s *terraform.InstanceState) (Communicator, error) {
 	}
 }
 
-// maxBackoffDealy is the maximum delay between retry attempts
-var maxBackoffDelay = 10 * time.Second
+// maxBackoffDelay is the maximum delay between retry attempts
+var maxBackoffDelay = 20 * time.Second
 var initialBackoffDelay = time.Second
 
+// Fatal is an interface that error values can return to halt Retry
 type Fatal interface {
 	FatalError() error
 }
 
+// Retry retries the function f until it returns a nil error, a Fatal error, or
+// the context expires.
 func Retry(ctx context.Context, f func() error) error {
 	// container for atomic error value
 	type errWrap struct {
@@ -97,7 +100,7 @@ func Retry(ctx context.Context, f func() error) error {
 				done = true
 			}
 
-			errVal.Store(&errWrap{err})
+			errVal.Store(errWrap{err})
 
 			if done {
 				return
