@@ -169,9 +169,9 @@ func runScripts(
 
 	// Wait and retry until we establish the connection
 	err := communicator.Retry(ctx, func() error {
-		err := comm.Connect(o)
-		return err
+		return comm.Connect(o)
 	})
+
 	if err != nil {
 		return err
 	}
