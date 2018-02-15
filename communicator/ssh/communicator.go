@@ -125,11 +125,13 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 				"  User: %s\n"+
 				"  Password: %t\n"+
 				"  Private key: %t\n"+
-				"  SSH Agent: %t",
+				"  SSH Agent: %t\n"+
+				"  Checking Host Key: %t",
 			c.connInfo.Host, c.connInfo.User,
 			c.connInfo.Password != "",
 			c.connInfo.PrivateKey != "",
 			c.connInfo.Agent,
+			c.connInfo.HostKey != "",
 		))
 
 		if c.connInfo.BastionHost != "" {
@@ -139,11 +141,13 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 					"  User: %s\n"+
 					"  Password: %t\n"+
 					"  Private key: %t\n"+
-					"  SSH Agent: %t",
+					"  SSH Agent: %t\n"+
+					"  Checking Host Key: %t",
 				c.connInfo.BastionHost, c.connInfo.BastionUser,
 				c.connInfo.BastionPassword != "",
 				c.connInfo.BastionPrivateKey != "",
 				c.connInfo.Agent,
+				c.connInfo.BastionHostKey != "",
 			))
 		}
 	}
