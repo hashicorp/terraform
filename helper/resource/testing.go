@@ -1144,6 +1144,10 @@ func modulePrimaryInstanceState(s *terraform.State, ms *terraform.ModuleState, n
 // given resource name in a given module path.
 func modulePathPrimaryInstanceState(s *terraform.State, mp []string, name string) (*terraform.InstanceState, error) {
 	ms := s.ModuleByPath(mp)
+	if ms == nil {
+		return nil, fmt.Errorf("No module found at: %s", mp)
+	}
+
 	return modulePrimaryInstanceState(s, ms, name)
 }
 
