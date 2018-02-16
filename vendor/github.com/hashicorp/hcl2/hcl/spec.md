@@ -7,7 +7,7 @@ concrete syntaxes for configuration, each with a mapping to the model defined
 in this specification.
 
 The two primary syntaxes intended for use in conjunction with this model are
-[the HCL native syntax](./zclsyntax/spec.md) and [the JSON syntax](./json/spec.md).
+[the HCL native syntax](./hclsyntax/spec.md) and [the JSON syntax](./json/spec.md).
 In principle other syntaxes are possible as long as either their language model
 is sufficiently rich to express the concepts described in this specification
 or the language targets a well-defined subset of the specification.
@@ -159,7 +159,7 @@ a computation in terms of literal values, variables, and functions.
 Each syntax defines its own representation of expressions. For syntaxes based
 in languages that do not have any non-literal expression syntax, it is
 recommended to embed the template language from
-[the native syntax](./zclsyntax/spec.md) e.g. as a post-processing step on
+[the native syntax](./hclsyntax/spec.md) e.g. as a post-processing step on
 string literals.
 
 ### Expression Evaluation
