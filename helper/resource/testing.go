@@ -310,6 +310,11 @@ type TestStep struct {
 	// no-op plans
 	PlanOnly bool
 
+	// PreventDiskCleanup can be set to true for testing terraform modules which
+	// require access to disk at runtime. Note that this will leave files in the
+	// temp folder
+	PreventDiskCleanup bool
+
 	// PreventPostDestroyRefresh can be set to true for cases where data sources
 	// are tested alongside real resources
 	PreventPostDestroyRefresh bool
@@ -564,6 +569,7 @@ func Test(t TestT, c TestCase) {
 			Config:                    lastStep.Config,
 			Check:                     c.CheckDestroy,
 			Destroy:                   true,
+			PreventDiskCleanup:        lastStep.PreventDiskCleanup,
 			PreventPostDestroyRefresh: c.PreventPostDestroyRefresh,
 		}
 
@@ -730,9 +736,7 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	return nil
 }
 
-func testModule(
-	opts terraform.ContextOpts,
-	step TestStep) (*module.Tree, error) {
+func testModule(opts terraform.ContextOpts, step TestStep) (*module.Tree, error) {
 	if step.PreConfig != nil {
 		step.PreConfig()
 	}
@@ -742,7 +746,12 @@ func testModule(
 		return nil, fmt.Errorf(
 			"Error creating temporary directory for config: %s", err)
 	}
-	defer os.RemoveAll(cfgPath)
+
+	if step.PreventDiskCleanup {
+		log.Printf("[INFO] Skipping defer os.RemoveAll call")
+	} else {
+		defer os.RemoveAll(cfgPath)
+	}
 
 	// Write the configuration
 	cfgF, err := os.Create(filepath.Join(cfgPath, "main.tf"))
