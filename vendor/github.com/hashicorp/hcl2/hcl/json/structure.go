@@ -3,8 +3,8 @@ package json
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -17,12 +17,6 @@ type body struct {
 	// be treated as non-existing. This is used when Body.PartialContent is
 	// called, to produce the "remaining content" Body.
 	hiddenAttrs map[string]struct{}
-
-	// If set, string values are turned into expressions using HIL's template
-	// language, rather than the native zcl language. This is intended to
-	// allow applications moving from HCL to zcl to continue to parse the
-	// JSON variant of their config that HCL handled previously.
-	useHIL bool
 }
 
 // expression is the implementation of "Expression" used for files processed
@@ -133,7 +127,6 @@ func (b *body) PartialContent(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Bod
 	unusedBody := &body{
 		obj:         b.obj,
 		hiddenAttrs: usedNames,
-		useHIL:      b.useHIL,
 	}
 
 	return content, unusedBody, diags
@@ -219,8 +212,7 @@ func (b *body) unpackBlock(v node, typeName string, typeRange *hcl.Range, labels
 			Type:   typeName,
 			Labels: labels,
 			Body: &body{
-				obj:    tv,
-				useHIL: b.useHIL,
+				obj: tv,
 			},
 
 			DefRange:    tv.OpenRange,
@@ -245,8 +237,7 @@ func (b *body) unpackBlock(v node, typeName string, typeRange *hcl.Range, labels
 				Type:   typeName,
 				Labels: labels,
 				Body: &body{
-					obj:    ov,
-					useHIL: b.useHIL,
+					obj: ov,
 				},
 
 				DefRange:    tv.OpenRange,
@@ -269,7 +260,7 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	switch v := e.src.(type) {
 	case *stringVal:
 		if ctx != nil {
-			// Parse string contents as a zcl native language expression.
+			// Parse string contents as a HCL native language expression.
 			// We only do this if we have a context, so passing a nil context
 			// is how the caller specifies that interpolations are not allowed
 			// and that the string should just be returned verbatim.
@@ -279,7 +270,7 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 				v.SrcRange.Filename,
 
 				// This won't produce _exactly_ the right result, since
-				// the zclsyntax parser can't "see" any escapes we removed
+				// the hclsyntax parser can't "see" any escapes we removed
 				// while parsing JSON, but it's better than nothing.
 				hcl.Pos{
 					Line: v.SrcRange.Start.Line,
@@ -297,8 +288,6 @@ func (e *expression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 			return val, diags
 		}
 
-		// FIXME: Once the native zcl template language parser is implemented,
-		// parse string values as templates and evaluate them.
 		return cty.StringVal(v.Value), nil
 	case *numberVal:
 		return cty.NumberVal(v.Value), nil
@@ -330,8 +319,26 @@ func (e *expression) Variables() []hcl.Traversal {
 
 	switch v := e.src.(type) {
 	case *stringVal:
-		// FIXME: Once the native zcl template language parser is implemented,
-		// parse with that and look for variables in there too,
+		templateSrc := v.Value
+		expr, diags := hclsyntax.ParseTemplate(
+			[]byte(templateSrc),
+			v.SrcRange.Filename,
+
+			// This won't produce _exactly_ the right result, since
+			// the hclsyntax parser can't "see" any escapes we removed
+			// while parsing JSON, but it's better than nothing.
+			hcl.Pos{
+				Line: v.SrcRange.Start.Line,
+
+				// skip over the opening quote mark
+				Byte:   v.SrcRange.Start.Byte + 1,
+				Column: v.SrcRange.Start.Column + 1,
+			},
+		)
+		if diags.HasErrors() {
+			return vars
+		}
+		return expr.Variables()
 
 	case *arrayVal:
 		for _, jsonVal := range v.Values {
@@ -352,4 +359,35 @@ func (e *expression) Range() hcl.Range {
 
 func (e *expression) StartRange() hcl.Range {
 	return e.src.StartRange()
+}
+
+// Implementation for hcl.AbsTraversalForExpr.
+func (e *expression) AsTraversal() hcl.Traversal {
+	// In JSON-based syntax a traversal is given as a string containing
+	// traversal syntax as defined by hclsyntax.ParseTraversalAbs.
+
+	switch v := e.src.(type) {
+	case *stringVal:
+		traversal, diags := hclsyntax.ParseTraversalAbs([]byte(v.Value), v.SrcRange.Filename, v.SrcRange.Start)
+		if diags.HasErrors() {
+			return nil
+		}
+		return traversal
+	default:
+		return nil
+	}
+}
+
+// Implementation for hcl.ExprList.
+func (e *expression) ExprList() []hcl.Expression {
+	switch v := e.src.(type) {
+	case *arrayVal:
+		ret := make([]hcl.Expression, len(v.Values))
+		for i, node := range v.Values {
+			ret[i] = &expression{src: node}
+		}
+		return ret
+	default:
+		return nil
+	}
 }

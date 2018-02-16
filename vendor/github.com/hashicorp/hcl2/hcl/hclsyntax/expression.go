@@ -9,7 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 )
 
-// Expression is the abstract type for nodes that behave as zcl expressions.
+// Expression is the abstract type for nodes that behave as HCL expressions.
 type Expression interface {
 	Node
 
@@ -68,6 +68,11 @@ func (e *ScopeTraversalExpr) Range() hcl.Range {
 
 func (e *ScopeTraversalExpr) StartRange() hcl.Range {
 	return e.SrcRange
+}
+
+// Implementation for hcl.AbsTraversalForExpr.
+func (e *ScopeTraversalExpr) AsTraversal() hcl.Traversal {
+	return e.Traversal
 }
 
 // RelativeTraversalExpr is an Expression that retrieves a value from another
@@ -537,6 +542,15 @@ func (e *TupleConsExpr) Range() hcl.Range {
 
 func (e *TupleConsExpr) StartRange() hcl.Range {
 	return e.OpenRange
+}
+
+// Implementation for hcl.ExprList
+func (e *TupleConsExpr) ExprList() []hcl.Expression {
+	ret := make([]hcl.Expression, len(e.Exprs))
+	for i, expr := range e.Exprs {
+		ret[i] = expr
+	}
+	return ret
 }
 
 type ObjectConsExpr struct {
