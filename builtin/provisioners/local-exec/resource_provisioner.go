@@ -34,6 +34,11 @@ func Provisioner() terraform.ResourceProvisioner {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
+
+			"working_dir": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 
 		ApplyFunc: applyFn,
@@ -69,6 +74,8 @@ func applyFn(ctx context.Context) error {
 	}
 	cmdargs = append(cmdargs, command)
 
+	workingdir := data.Get("working_dir").(string)
+
 	// Setup the reader that will read the output from the command.
 	// We use an os.Pipe so that the *os.File can be passed directly to the
 	// process, and not rely on goroutines copying the data which may block.
@@ -82,6 +89,10 @@ func applyFn(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, cmdargs[0], cmdargs[1:]...)
 	cmd.Stderr = pw
 	cmd.Stdout = pw
+	// Dir specifies the working directory of the command.
+	// If Dir is the empty string (this is default), runs the command
+	// in the calling process's current directory.
+	cmd.Dir = workingdir
 
 	output, _ := circbuf.NewBuffer(maxBufSize)
 
