@@ -1,0 +1,118 @@
+ignored = ["github.com/hashicorp/terraform/github.com/hashicorp/nomad*"]
+
+[[constraint]]
+  name = "github.com/Azure/azure-sdk-for-go"
+  version = "10.3.0-beta"
+
+[[constraint]]
+  name = "github.com/Azure/go-autorest"
+  version = "8.3.1"
+
+[[constraint]]
+  name = "github.com/agext/levenshtein"
+  version = "1.2.1"
+
+[[constraint]]
+  name = "github.com/apparentlymart/go-cidr"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/armon/circbuf"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/aws/aws-sdk-go"
+  version = "1.12.73"
+
+[[constraint]]
+  name = "github.com/davecgh/go-spew"
+  version = "1.1.0"
+
+[[constraint]]
+  name = "github.com/dylanmei/winrmtest"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/go-test/deep"
+  version = "1.0.1"
+
+[[constraint]]
+  name = "github.com/hashicorp/errwrap"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/hashicorp/go-checkpoint"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/hashicorp/go-rootcerts"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/hashicorp/go-version"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/hashicorp/hil"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/hashicorp/logutils"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/masterzen/winrm"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/mattn/go-shellwords"
+  version = "1.0.1"
+
+[[constraint]]
+  name = "github.com/mitchellh/colorstring"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/mitchellh/go-homedir"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/mitchellh/go-linereader"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/mitchellh/go-wordwrap"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/mitchellh/prefixedio"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/posener/complete"
+  version = "1.1.0"
+
+[[constraint]]
+  name = "github.com/spf13/afero"
+  version = "1.0.2"
+
+[[constraint]]
+  name = "github.com/terraform-providers/terraform-provider-aws"
+  version = "1.9.0"
+
+[[constraint]]
+  name = "github.com/xanzy/ssh-agent"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/zclconf/go-cty"
+  branch = "master"
+
+[[constraint]]
+  name = "golang.org/x/crypto"
+  branch = "master"
+
+[prune]
+  go-tests = true
+  non-go = true
+  unused-packages = true

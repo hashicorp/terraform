@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 
 	"google.golang.org/appengine/internal"
@@ -19,26 +18,8 @@ func Namespace(c context.Context, namespace string) (context.Context, error) {
 	if !validNamespace.MatchString(namespace) {
 		return nil, fmt.Errorf("appengine: namespace %q does not match /%s/", namespace, validNamespace)
 	}
-	n := &namespacedContext{
-		ctx:       c,
-		namespace: namespace,
-	}
-	return internal.WithNamespace(internal.WithCallOverride(c, n.call), namespace), nil
+	return internal.NamespacedContext(c, namespace), nil
 }
 
 // validNamespace matches valid namespace names.
 var validNamespace = regexp.MustCompile(`^[0-9A-Za-z._-]{0,100}$`)
-
-// namespacedContext wraps a Context to support namespaces.
-type namespacedContext struct {
-	ctx       context.Context
-	namespace string
-}
-
-func (n *namespacedContext) call(_ context.Context, service, method string, in, out proto.Message) error {
-	// Apply any namespace mods.
-	if mod, ok := internal.NamespaceMods[service]; ok {
-		mod(in, n.namespace)
-	}
-	return internal.Call(n.ctx, service, method, in, out)
-}

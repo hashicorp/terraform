@@ -20,7 +20,6 @@ package optional
 import (
 	"fmt"
 	"strings"
-	"time"
 )
 
 type (
@@ -38,9 +37,6 @@ type (
 
 	// Float64 is either a float64 or nil.
 	Float64 interface{}
-
-	// Duration is either a time.Duration or nil.
-	Duration interface{}
 )
 
 // ToBool returns its argument as a bool.
@@ -89,16 +85,6 @@ func ToFloat64(v Float64) float64 {
 	x, ok := v.(float64)
 	if !ok {
 		doPanic("Float64", v)
-	}
-	return x
-}
-
-// ToDuration returns its argument as a time.Duration.
-// It panics if its argument is nil or not a time.Duration.
-func ToDuration(v Duration) time.Duration {
-	x, ok := v.(time.Duration)
-	if !ok {
-		doPanic("Duration", v)
 	}
 	return x
 }

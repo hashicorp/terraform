@@ -72,7 +72,7 @@ $ make plugin-dev PLUGIN=provider-test
 
 ### Dependencies
 
-Terraform stores its dependencies under `vendor/`, which [Go 1.6+ will automatically recognize and load](https://golang.org/cmd/go/#hdr-Vendor_Directories). We use [`govendor`](https://github.com/kardianos/govendor) to manage the vendored dependencies.
+Terraform stores its dependencies under `vendor/`, which [Go 1.6+ will automatically recognize and load](https://golang.org/cmd/go/#hdr-Vendor_Directories). We use [`dep`](https://github.com/golang/dep) to manage the vendored dependencies.
 
 If you're developing Terraform, there are a few tasks you might need to perform.
 
@@ -82,33 +82,61 @@ If you're adding a dependency, you'll need to vendor it in the same Pull Request
 
 To add a dependency:
 
-Assuming your work is on a branch called `my-feature-branch`, the steps look like this:
+1. Start using the dependency in your code.
 
-1. Add the new package to your GOPATH:
-
-    ```bash
-    go get github.com/hashicorp/my-project
+    ```go
+    import "github.com/foo/bar"
     ```
 
-2.  Add the new package to your `vendor/` directory:
+2. Add a [version or branch constraint](https://golang.github.io/dep/docs/Gopkg.toml.html#version-rules) to `Gopkg.toml`.
 
-    ```bash
-    govendor add github.com/hashicorp/my-project/package
+    ```toml
+    [[constraint]]
+      name = "github.com/foo/bar"
+      branch = "master"
     ```
 
-3. Review the changes in git and commit them.
+3. Run `dep ensure -v` to download the new dependency to `vendor/`. Pay attention to the output. Is the correct version of the new dependency being fetched?
 
-#### Updating a dependency
-
-To update a dependency:
-
-1. Fetch the dependency:
-
-    ```bash
-    govendor fetch github.com/hashicorp/my-project
+    ```sh
+    dep ensure -v
     ```
 
 2. Review the changes in git and commit them.
+
+#### Updating a dependency
+
+When a dependency is updated, it can affect lots of other packages in the project. To maintain correctness, a new solution to the dependency graph has to be computed. This means packages in `vendor/` can't really be updated in isolation. They have to be updated _together_.
+
+If you're lucky, your update will only affect a single package. If you're unlucky, it could affect dozens of packages. The good news is that `dep` does most of the hard work for you. Don't be afraid! If `dep ensure` succeeds, the project will remain in a buildable state no matter how many packages are updated.
+
+To update a dependency:
+
+1. Edit the version or branch constraints in `Gopkg.toml` if necessary.
+
+    ```toml
+    [[constraint]]
+      name = "github.com/foo/bar"
+      version = "^1.0"  # >= 1.0.0, < 2.0.0
+    ```
+
+   Now ensure `vendor/` obeys the new constraints. Pay attention to the output. Did `dep` vendor the version you intended?
+
+    ```sh
+    dep ensure -v
+    ```
+
+   If `dep` succeeds and you're satisfied with the updated package, proceed directly to step 3.
+
+2. If Step 1 doesn't work, you'll need to update _all_ the dependencies together.
+
+    ```sh
+    dep ensure -v -update
+    ```
+
+    This could produce a lot of code churn. You need to test thoroughly. If tests start failing, figure out which dependency changes caused the failures and lock down their versions in `Gopkg.toml`.
+
+3. Review the changes in git and commit them.
 
 ### Acceptance Tests
 

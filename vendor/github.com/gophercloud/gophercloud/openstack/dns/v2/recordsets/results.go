@@ -20,11 +20,6 @@ func (r commonResult) Extract() (*RecordSet, error) {
 	return s, err
 }
 
-// CreateResult is the deferred result of a Create call.
-type CreateResult struct {
-	commonResult
-}
-
 // GetResult is the deferred result of a Get call.
 type GetResult struct {
 	commonResult
@@ -33,16 +28,6 @@ type GetResult struct {
 // RecordSetPage is a single page of RecordSet results.
 type RecordSetPage struct {
 	pagination.LinkedPageBase
-}
-
-// UpdateResult is the deferred result of an Update call.
-type UpdateResult struct {
-	commonResult
-}
-
-// DeleteResult is the deferred result of an Delete call.
-type DeleteResult struct {
-	gophercloud.ErrResult
 }
 
 // IsEmpty returns true if the page contains no results.

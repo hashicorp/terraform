@@ -1,3 +1,7 @@
+// Copyright 2015 Google Inc. All rights reserved.
+// Use of this source code is governed by the Apache 2.0
+// license that can be found in the LICENSE file.
+
 package internal
 
 import (
@@ -5,12 +9,31 @@ import (
 	netcontext "golang.org/x/net/context"
 )
 
-type callOverrideFunc func(ctx netcontext.Context, service, method string, in, out proto.Message) error
+type CallOverrideFunc func(ctx netcontext.Context, service, method string, in, out proto.Message) error
 
-var callOverrideKey = "holds a callOverrideFunc"
+var callOverrideKey = "holds []CallOverrideFunc"
 
-func WithCallOverride(ctx netcontext.Context, f callOverrideFunc) netcontext.Context {
-	return netcontext.WithValue(ctx, &callOverrideKey, f)
+func WithCallOverride(ctx netcontext.Context, f CallOverrideFunc) netcontext.Context {
+	// We avoid appending to any existing call override
+	// so we don't risk overwriting a popped stack below.
+	var cofs []CallOverrideFunc
+	if uf, ok := ctx.Value(&callOverrideKey).([]CallOverrideFunc); ok {
+		cofs = append(cofs, uf...)
+	}
+	cofs = append(cofs, f)
+	return netcontext.WithValue(ctx, &callOverrideKey, cofs)
+}
+
+func callOverrideFromContext(ctx netcontext.Context) (CallOverrideFunc, netcontext.Context, bool) {
+	cofs, _ := ctx.Value(&callOverrideKey).([]CallOverrideFunc)
+	if len(cofs) == 0 {
+		return nil, nil, false
+	}
+	// We found a list of overrides; grab the last, and reconstitute a
+	// context that will hide it.
+	f := cofs[len(cofs)-1]
+	ctx = netcontext.WithValue(ctx, &callOverrideKey, cofs[:len(cofs)-1])
+	return f, ctx, true
 }
 
 type logOverrideFunc func(level int64, format string, args ...interface{})
@@ -29,7 +52,7 @@ func WithAppIDOverride(ctx netcontext.Context, appID string) netcontext.Context 
 
 var namespaceKey = "holds the namespace string"
 
-func WithNamespace(ctx netcontext.Context, ns string) netcontext.Context {
+func withNamespace(ctx netcontext.Context, ns string) netcontext.Context {
 	return netcontext.WithValue(ctx, &namespaceKey, ns)
 }
 
@@ -55,4 +78,9 @@ func Logf(ctx netcontext.Context, level int64, format string, args ...interface{
 		return
 	}
 	logf(fromContext(ctx), level, format, args...)
+}
+
+// NamespacedContext wraps a Context to support namespaces.
+func NamespacedContext(ctx netcontext.Context, namespace string) netcontext.Context {
+	return withNamespace(ctx, namespace)
 }
