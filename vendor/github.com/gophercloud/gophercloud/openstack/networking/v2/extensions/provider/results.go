@@ -49,16 +49,6 @@ type NetworkExtAttrs struct {
 	// instance, if network_type is vlan, then this is a vlan identifier;
 	// otherwise, if network_type is gre, then this will be a gre key.
 	SegmentationID string `json:"provider:segmentation_id"`
-
-	// Segments is an array of Segment which defines multiple physical bindings to logical networks.
-	Segments []Segment `json:"segments"`
-}
-
-// Segment defines a physical binding to a logical network.
-type Segment struct {
-	PhysicalNetwork string `json:"provider:physical_network"`
-	NetworkType     string `json:"provider:network_type"`
-	SegmentationID  int    `json:"provider:segmentation_id"`
 }
 
 func (n *NetworkExtAttrs) UnmarshalJSON(b []byte) error {

@@ -1,10 +1,9 @@
 TEST?=./...
-GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
+GOFMT_FILES?=$$(find . -name '*.go' | grep -v /vendor/)
 
 default: test vet
 
 tools:
-	go get -u github.com/kardianos/govendor
 	go get -u golang.org/x/tools/cmd/stringer
 	go get -u golang.org/x/tools/cmd/cover
 
@@ -95,7 +94,7 @@ fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
 vendor-status:
-	@govendor status
+	@dep status
 
 # disallow any parallelism (-j) for Make. This is necessary since some
 # commands during the build process create temporary files that collide

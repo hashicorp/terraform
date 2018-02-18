@@ -12,11 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package storage contains a Google Cloud Storage client.
+//
+// This package is experimental and may make backwards-incompatible changes.
 package storage
 
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	"golang.org/x/net/context"
 	raw "google.golang.org/api/storage/v1"
@@ -25,9 +29,6 @@ import (
 // CopierFrom creates a Copier that can copy src to dst.
 // You can immediately call Run on the returned Copier, or
 // you can configure it first.
-//
-// For Requester Pays buckets, the user project of dst is billed, unless it is empty,
-// in which case the user project of src is billed.
 func (dst *ObjectHandle) CopierFrom(src *ObjectHandle) *Copier {
 	return &Copier{dst: dst, src: src}
 }
@@ -45,7 +46,7 @@ type Copier struct {
 	RewriteToken string
 
 	// ProgressFunc can be used to monitor the progress of a multi-RPC copy
-	// operation. If ProgressFunc is not nil and copying requires multiple
+	// operation. If ProgressFunc is not nil and CopyFrom requires multiple
 	// calls to the underlying service (see
 	// https://cloud.google.com/storage/docs/json_api/v1/objects/rewrite), then
 	// ProgressFunc will be invoked after each call with the number of bytes of
@@ -70,27 +71,34 @@ func (c *Copier) Run(ctx context.Context) (*ObjectAttrs, error) {
 	if err := c.dst.validate(); err != nil {
 		return nil, err
 	}
-	// Convert destination attributes to raw form, omitting the bucket.
-	// If the bucket is included but name or content-type aren't, the service
-	// returns a 400 with "Required" as the only message. Omitting the bucket
-	// does not cause any problems.
-	rawObject := c.ObjectAttrs.toRawObject("")
+	var rawObject *raw.Object
+	// If any attribute was set, then we make sure the name matches the destination
+	// name, and we check that ContentType is non-empty so we can provide a better
+	// error message than the service.
+	if !reflect.DeepEqual(c.ObjectAttrs, ObjectAttrs{}) {
+		c.ObjectAttrs.Name = c.dst.object
+		if c.ObjectAttrs.ContentType == "" {
+			return nil, errors.New("storage: Copier.ContentType must be non-empty")
+		}
+		rawObject = c.ObjectAttrs.toRawObject(c.dst.bucket)
+	}
 	for {
-		res, err := c.callRewrite(ctx, rawObject)
+		res, err := c.callRewrite(ctx, c.src, rawObject)
 		if err != nil {
 			return nil, err
 		}
 		if c.ProgressFunc != nil {
-			c.ProgressFunc(uint64(res.TotalBytesRewritten), uint64(res.ObjectSize))
+			c.ProgressFunc(res.TotalBytesRewritten, res.ObjectSize)
 		}
 		if res.Done { // Finished successfully.
 			return newObject(res.Resource), nil
 		}
 	}
+	return nil, nil
 }
 
-func (c *Copier) callRewrite(ctx context.Context, rawObj *raw.Object) (*raw.RewriteResponse, error) {
-	call := c.dst.c.raw.Objects.Rewrite(c.src.bucket, c.src.object, c.dst.bucket, c.dst.object, rawObj)
+func (c *Copier) callRewrite(ctx context.Context, src *ObjectHandle, rawObj *raw.Object) (*raw.RewriteResponse, error) {
+	call := c.dst.c.raw.Objects.Rewrite(src.bucket, src.object, c.dst.bucket, c.dst.object, rawObj)
 
 	call.Context(ctx).Projection("full")
 	if c.RewriteToken != "" {
@@ -98,11 +106,6 @@ func (c *Copier) callRewrite(ctx context.Context, rawObj *raw.Object) (*raw.Rewr
 	}
 	if err := applyConds("Copy destination", c.dst.gen, c.dst.conds, call); err != nil {
 		return nil, err
-	}
-	if c.dst.userProject != "" {
-		call.UserProject(c.dst.userProject)
-	} else if c.src.userProject != "" {
-		call.UserProject(c.src.userProject)
 	}
 	if err := applySourceConds(c.src.gen, c.src.conds, call); err != nil {
 		return nil, err
@@ -115,7 +118,6 @@ func (c *Copier) callRewrite(ctx context.Context, rawObj *raw.Object) (*raw.Rewr
 	}
 	var res *raw.RewriteResponse
 	var err error
-	setClientHeader(call.Header())
 	err = runWithRetry(ctx, func() error { res, err = call.Do(); return err })
 	if err != nil {
 		return nil, err
@@ -136,8 +138,6 @@ func (dst *ObjectHandle) ComposerFrom(srcs ...*ObjectHandle) *Composer {
 }
 
 // A Composer composes source objects into a destination object.
-//
-// For Requester Pays buckets, the user project of dst is billed.
 type Composer struct {
 	// ObjectAttrs are optional attributes to set on the destination object.
 	// Any attributes must be initialized before any calls on the Composer. Nil
@@ -184,15 +184,11 @@ func (c *Composer) Run(ctx context.Context) (*ObjectAttrs, error) {
 	if err := applyConds("ComposeFrom destination", c.dst.gen, c.dst.conds, call); err != nil {
 		return nil, err
 	}
-	if c.dst.userProject != "" {
-		call.UserProject(c.dst.userProject)
-	}
 	if err := setEncryptionHeaders(call.Header(), c.dst.encryptionKey, false); err != nil {
 		return nil, err
 	}
 	var obj *raw.Object
 	var err error
-	setClientHeader(call.Header())
 	err = runWithRetry(ctx, func() error { obj, err = call.Do(); return err })
 	if err != nil {
 		return nil, err

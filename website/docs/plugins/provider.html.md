@@ -10,7 +10,7 @@ description: |-
 
 ~> **Advanced topic!** Plugin development is a highly advanced
 topic in Terraform, and is not required knowledge for day-to-day usage.
-If you don't plan on writing any plugins, this section of the documentation is 
+If you don't plan on writing any plugins, this section of the documentation is
 not necessary to read. For general use of Terraform, please see our
 [Intro to Terraform](/intro/index.html) and [Getting
 Started](/intro/getting-started/install.html) guides.
@@ -83,7 +83,7 @@ When making changes only to files within the provider repository, it is _not_
 necessary to re-build the main Terraform executable. Note that some packages
 from the Terraform repository are used as library dependencies by providers,
 such as `github.com/hashicorp/terraform/helper/schema`; it is recommended to
-use `govendor` to create a local vendor copy of the relevant packages in the
+use `dep` to create a local vendor copy of the relevant packages in the
 provider repository, as can be seen in the repositories within the
 `terraform-providers` GitHub organization.
 
