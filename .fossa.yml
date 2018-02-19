@@ -1,0 +1,8 @@
+cli:
+  project: github.com/hashicorp/terraform
+
+analyze:
+  modules:
+    - name: terraform
+      path: github.com/hashicorp/terraform
+      type: gopackage
