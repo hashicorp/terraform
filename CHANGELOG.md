@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 
+* core: https URLs are now supported in the HTTP_PROXY environment variable [go1.10:net/http](https://golang.org/doc/go1.10#net/http)
 * connection/ssh: Add support for host key verifiation [GH-17354}
 * backend/s3: add support for the cn-northwest-1 region [GH-17216]
 * provisioner/habitat: Detect if hab user exists and only create if necessary [GH-17195]
