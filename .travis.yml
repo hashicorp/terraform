@@ -2,7 +2,7 @@ dist: trusty
 sudo: false
 language: go
 go:
-- 1.9.1
+- "1.10"
 
 # add TF_CONSUL_TEST=1 to run consul tests
 # they were causing timouts in travis
@@ -34,7 +34,6 @@ script:
 - make vendor-status
 - make test
 - make e2etest
-- make vet
 - GOOS=windows go build
 branches:
   only:
