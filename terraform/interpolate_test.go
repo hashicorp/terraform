@@ -348,8 +348,8 @@ func TestInterpolater_resourceVariableMissingDuringInput(t *testing.T) {
 			&ModuleState{
 				Path:      rootModulePath,
 				Resources: map[string]*ResourceState{
-				// No resources at all yet, because we're still dealing
-				// with input and so the resources haven't been created.
+					// No resources at all yet, because we're still dealing
+					// with input and so the resources haven't been created.
 				},
 			},
 		},
