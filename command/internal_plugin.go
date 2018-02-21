@@ -33,7 +33,24 @@ func BuildPluginCommandString(pluginType, pluginName string) (string, error) {
 	return strings.Join(parts, TFSPACE), nil
 }
 
+// Internal plugins do not support any CLI args, but we do receive flags that
+// main.go:mergeEnvArgs has merged in from EnvCLI. Instead of making main.go
+// aware of this exception, we strip all flags from our args. Flags are easily
+// identified by the '-' prefix, ensured by the cli package used.
+func StripArgFlags(args []string) []string {
+	argsNoFlags := []string{}
+	for i := range args {
+		if !strings.HasPrefix(args[i], "-") {
+			argsNoFlags = append(argsNoFlags, args[i])
+		}
+	}
+	return argsNoFlags
+}
+
 func (c *InternalPluginCommand) Run(args []string) int {
+	// strip flags from args, only use subcommands.
+	args = StripArgFlags(args)
+
 	if len(args) != 2 {
 		log.Printf("Wrong number of args; expected: terraform internal-plugin pluginType pluginName")
 		return 1
