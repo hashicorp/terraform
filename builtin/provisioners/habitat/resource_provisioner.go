@@ -179,6 +179,7 @@ func Provisioner() terraform.ResourceProvisioner {
 							Optional: true,
 						},
 						"channel": &schema.Schema{
+
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -626,22 +627,36 @@ func (p *provisioner) createHabUser(o terraform.UIOutput, comm communicator.Comm
 	return nil
 }
 
-func (p *provisioner) startHabService(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
+// In the future we'll remove the dedicated install once the synchronous load feature in hab-sup is
+// available. Until then we install here to provide output and a noisy failure mechanism because
+// if you install with the pkg load, it occurs asynchronously and fails quietly.
+func (p *provisioner) installHabPackage(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
 	var command string
+	options := ""
+	if service.Channel != "" {
+		options += fmt.Sprintf(" --channel %s", service.Channel)
+	}
+
+	if service.URL != "" {
+		options += fmt.Sprintf(" --url %s", service.URL)
+	}
 	if p.UseSudo {
-		command = fmt.Sprintf("env HAB_NONINTERACTIVE=true sudo -E hab pkg install %s", service.Name)
+		command = fmt.Sprintf("env HAB_NONINTERACTIVE=true sudo -E hab pkg install %s %s", service.Name, options)
 	} else {
-		command = fmt.Sprintf("env HAB_NONINTERACTIVE=true hab pkg install %s", service.Name)
+		command = fmt.Sprintf("env HAB_NONINTERACTIVE=true hab pkg install %s %s", service.Name, options)
 	}
 
 	if p.BuilderAuthToken != "" {
 		command = fmt.Sprintf("env HAB_AUTH_TOKEN=%s %s", p.BuilderAuthToken, command)
 	}
+	return p.runCommand(o, comm, command)
+}
 
-	if err := p.runCommand(o, comm, command); err != nil {
+func (p *provisioner) startHabService(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
+	var command string
+	if err := p.installHabPackage(o, comm, service); err != nil {
 		return err
 	}
-
 	if err := p.uploadUserTOML(o, comm, service); err != nil {
 		return err
 	}
