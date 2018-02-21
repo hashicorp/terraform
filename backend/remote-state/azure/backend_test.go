@@ -64,7 +64,7 @@ func TestBackend(t *testing.T) {
 		"access_key":           res.accessKey,
 	}).(*Backend)
 
-	backend.TestBackend(t, b, nil)
+	backend.TestBackendStates(t, b)
 }
 
 func TestBackendLocked(t *testing.T) {
@@ -88,7 +88,8 @@ func TestBackendLocked(t *testing.T) {
 		"access_key":           res.accessKey,
 	}).(*Backend)
 
-	backend.TestBackend(t, b1, b2)
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
 type testResources struct {
