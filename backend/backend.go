@@ -9,7 +9,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -135,10 +134,6 @@ type Operation struct {
 	// If LockState is true, the Operation must Lock any
 	// state.Lockers for its duration, and Unlock when complete.
 	LockState bool
-
-	// StateLocker is used to lock the state while providing UI feedback to the
-	// user. This will be supplied by the Backend itself.
-	StateLocker clistate.Locker
 
 	// The duration to retry obtaining a State lock.
 	StateLockTimeout time.Duration
