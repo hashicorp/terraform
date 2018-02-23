@@ -59,18 +59,13 @@ func (b *Local) opApply(
 		lockCtx, cancel := context.WithTimeout(stopCtx, op.StateLockTimeout)
 		defer cancel()
 
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = op.Type.String()
-		lockID, err := clistate.Lock(lockCtx, opState, lockInfo, b.CLI, b.Colorize())
+		unlock, err := clistate.Lock(lockCtx, opState, op.Type.String(), "", b.CLI, b.Colorize())
 		if err != nil {
 			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
 			return
 		}
-
 		defer func() {
-			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
-				runningOp.Err = multierror.Append(runningOp.Err, err)
-			}
+			runningOp.Err = unlock(runningOp.Err)
 		}()
 	}
 

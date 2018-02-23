@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/state"
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 )
@@ -114,10 +113,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
 		defer cancel()
 
-		// Lock the state if we can
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = "workspace delete"
-		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, c.Ui, c.Colorize())
+		unlock, err := clistate.Lock(lockCtx, sMgr, "workspace delete", "", c.Ui, c.Colorize())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
@@ -132,7 +128,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		// state deletion, i.e. in a CI environment. Adding Delete() as a
 		// required method of States would allow the removal of the resource to
 		// be delegated from the Backend to the State itself.
-		clistate.Unlock(sMgr, lockID, c.Ui, c.Colorize())
+		unlock(nil)
 	}
 
 	err = b.DeleteState(delEnv)
