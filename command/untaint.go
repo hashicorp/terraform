@@ -71,12 +71,15 @@ func (c *UntaintCommand) Run(args []string) int {
 	}
 
 	if c.stateLock {
-		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(st, "untaint"); err != nil {
+		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
+		defer cancel()
+
+		unlock, err := clistate.Lock(lockCtx, st, "untaint", "", c.Ui, c.Colorize())
+		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
-		defer stateLocker.Unlock(nil)
+		defer unlock(nil)
 	}
 
 	// Get the actual state structure
