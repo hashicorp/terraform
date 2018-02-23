@@ -236,17 +236,25 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
 		defer cancel()
 
-		unlockOne, err := clistate.Lock(lockCtx, stateOne, "migration", "source state", m.Ui, m.Colorize())
+		lockInfoOne := state.NewLockInfo()
+		lockInfoOne.Operation = "migration"
+		lockInfoOne.Info = "source state"
+
+		lockIDOne, err := clistate.Lock(lockCtx, stateOne, lockInfoOne, m.Ui, m.Colorize())
 		if err != nil {
 			return fmt.Errorf("Error locking source state: %s", err)
 		}
-		defer unlockOne(nil)
+		defer clistate.Unlock(stateOne, lockIDOne, m.Ui, m.Colorize())
 
-		unlockTwo, err := clistate.Lock(lockCtx, stateTwo, "migration", "destination state", m.Ui, m.Colorize())
+		lockInfoTwo := state.NewLockInfo()
+		lockInfoTwo.Operation = "migration"
+		lockInfoTwo.Info = "destination state"
+
+		lockIDTwo, err := clistate.Lock(lockCtx, stateTwo, lockInfoTwo, m.Ui, m.Colorize())
 		if err != nil {
 			return fmt.Errorf("Error locking destination state: %s", err)
 		}
-		defer unlockTwo(nil)
+		defer clistate.Unlock(stateTwo, lockIDTwo, m.Ui, m.Colorize())
 
 		// We now own a lock, so double check that we have the version
 		// corresponding to the lock.

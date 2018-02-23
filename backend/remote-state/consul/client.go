@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"runtime/debug"
 	"sync"
 	"time"
 
@@ -81,9 +80,6 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	}
 
 	c.modifyIndex = pair.ModifyIndex
-
-	log.Println("[XXXX] GOT STATE WITH INDEX:", c.modifyIndex)
-	log.Println(string(debug.Stack()))
 
 	payload := pair.Value
 	// If the payload starts with 0x1f, it's gzip, not json
@@ -284,7 +280,6 @@ func (c *RemoteClient) lock() (string, error) {
 		return "", lockErr
 	}
 
-	defer log.Println("[XXXX] OBTAINED CONSUL LOCK")
 	c.lockCh = lockCh
 
 	err = c.putLockInfo(c.info)
