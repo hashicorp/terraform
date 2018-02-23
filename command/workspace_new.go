@@ -114,12 +114,15 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	if c.stateLock {
-		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(sMgr, "workspace_delete"); err != nil {
+		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
+		defer cancel()
+
+		unlock, err := clistate.Lock(lockCtx, sMgr, "workspace_new", "", c.Ui, c.Colorize())
+		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
-		defer stateLocker.Unlock(nil)
+		defer unlock(nil)
 	}
 
 	// read the existing state file
