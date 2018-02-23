@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
@@ -52,6 +53,20 @@ func (b *Local) opApply(
 	if err != nil {
 		runningOp.Err = err
 		return
+	}
+
+	if op.LockState {
+		lockCtx, cancel := context.WithTimeout(stopCtx, op.StateLockTimeout)
+		defer cancel()
+
+		unlock, err := clistate.Lock(lockCtx, opState, op.Type.String(), "", b.CLI, b.Colorize())
+		if err != nil {
+			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
+			return
+		}
+		defer func() {
+			runningOp.Err = unlock(runningOp.Err)
+		}()
 	}
 
 	// Setup the state
