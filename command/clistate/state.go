@@ -8,11 +8,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/errwrap"
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/slowmessage"
 	"github.com/hashicorp/terraform/state"
 	"github.com/mitchellh/cli"
@@ -50,119 +48,47 @@ that no one else is holding a lock.
 `
 )
 
-// Locker allows for more convenient locking, by creating the timeout context
-// and LockInfo for the caller, while storing any related data required for
-// Unlock.
-type Locker interface {
-	// Lock the provided state, storing the reason string in the LockInfo.
-	Lock(s state.State, reason string) error
-	// Unlock the previously locked state.
-	// An optional error can be passed in, and will be combined with any error
-	// from the Unlock operation.
-	Unlock(error) error
-}
-
-type locker struct {
-	mu      sync.Mutex
-	ctx     context.Context
-	timeout time.Duration
-	state   state.State
-	ui      cli.Ui
-	color   *colorstring.Colorize
-	lockID  string
-}
-
-// Create a new Locker.
-// The provided context will be used for lock cancellation, and combined with
-// the timeout duration. Lock progress will be be reported to the user through
-// the provided UI.
-func NewLocker(
-	ctx context.Context,
-	timeout time.Duration,
-	ui cli.Ui,
-	color *colorstring.Colorize) Locker {
-
-	l := &locker{
-		ctx:     ctx,
-		timeout: timeout,
-		ui:      ui,
-		color:   color,
-	}
-	return l
-}
-
-// Locker locks the given state and outputs to the user if locking is taking
-// longer than the threshold. The lock is retried until the context is
-// cancelled.
-func (l *locker) Lock(s state.State, reason string) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	l.state = s
-
-	ctx, cancel := context.WithTimeout(l.ctx, l.timeout)
-	defer cancel()
-
-	lockInfo := state.NewLockInfo()
-	lockInfo.Operation = reason
+// Lock locks the given state and outputs to the user if locking
+// is taking longer than the threshold.  The lock is retried until the context
+// is cancelled.
+func Lock(ctx context.Context, s state.State, info *state.LockInfo, ui cli.Ui, color *colorstring.Colorize) (string, error) {
+	var lockID string
 
 	err := slowmessage.Do(LockThreshold, func() error {
-		id, err := state.LockWithContext(ctx, s, lockInfo)
-		l.lockID = id
+		id, err := state.LockWithContext(ctx, s, info)
+		lockID = id
 		return err
 	}, func() {
-		if l.ui != nil {
-			l.ui.Output(l.color.Color(LockMessage))
+		if ui != nil {
+			ui.Output(color.Color(LockMessage))
 		}
 	})
 
 	if err != nil {
-		return errwrap.Wrapf(strings.TrimSpace(LockErrorMessage), err)
+		err = errwrap.Wrapf(strings.TrimSpace(LockErrorMessage), err)
 	}
 
-	return nil
+	return lockID, err
 }
 
-func (l *locker) Unlock(parentErr error) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	if l.lockID == "" {
-		return parentErr
-	}
-
+// Unlock unlocks the given state and outputs to the user if the
+// unlock fails what can be done.
+func Unlock(s state.State, id string, ui cli.Ui, color *colorstring.Colorize) error {
 	err := slowmessage.Do(LockThreshold, func() error {
-		return l.state.Unlock(l.lockID)
+		return s.Unlock(id)
 	}, func() {
-		if l.ui != nil {
-			l.ui.Output(l.color.Color(UnlockMessage))
+		if ui != nil {
+			ui.Output(color.Color(UnlockMessage))
 		}
 	})
 
 	if err != nil {
-		l.ui.Output(l.color.Color(fmt.Sprintf(
+		ui.Output(color.Color(fmt.Sprintf(
 			"\n"+strings.TrimSpace(UnlockErrorMessage)+"\n", err)))
 
-		if parentErr != nil {
-			parentErr = multierror.Append(parentErr, err)
-		}
+		err = fmt.Errorf(
+			"Error releasing the state lock. Please see the longer error message above.")
 	}
 
-	return parentErr
-
-}
-
-type noopLocker struct{}
-
-// NewNoopLocker returns a valid Locker that does nothing.
-func NewNoopLocker() Locker {
-	return noopLocker{}
-}
-
-func (l noopLocker) Lock(state.State, string) error {
-	return nil
-}
-
-func (l noopLocker) Unlock(err error) error {
 	return err
 }
