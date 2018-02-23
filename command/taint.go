@@ -83,16 +83,12 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	if c.stateLock {
-		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
-		defer cancel()
-
-		unlock, err := clistate.Lock(lockCtx, st, "taint", "", c.Ui, c.Colorize())
-		if err != nil {
+		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
+		if err := stateLocker.Lock(st, "taint"); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
-
-		defer unlock(nil)
+		defer stateLocker.Unlock(nil)
 	}
 
 	// Get the actual state structure
