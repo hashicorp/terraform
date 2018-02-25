@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/configservice"
+	"github.com/aws/aws-sdk-go/service/dax"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -849,6 +850,16 @@ func flattenElastiCacheSecurityGroupIds(securityGroups []*elasticache.SecurityGr
 	for _, sg := range securityGroups {
 		if sg.SecurityGroupId != nil {
 			result = append(result, *sg.SecurityGroupId)
+		}
+	}
+	return result
+}
+
+func flattenDaxSecurityGroupIds(securityGroups []*dax.SecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.SecurityGroupIdentifier != nil {
+			result = append(result, *sg.SecurityGroupIdentifier)
 		}
 	}
 	return result
@@ -3666,4 +3677,31 @@ func flattenDynamoDbTableItemAttributes(attrs map[string]*dynamodb.AttributeValu
 	}
 
 	return rawBuffer.String(), nil
+}
+
+func expandIotThingTypeProperties(config map[string]interface{}) *iot.ThingTypeProperties {
+	properties := &iot.ThingTypeProperties{
+		SearchableAttributes: expandStringList(config["searchable_attributes"].(*schema.Set).List()),
+	}
+
+	if v, ok := config["description"]; ok && v.(string) != "" {
+		properties.ThingTypeDescription = aws.String(v.(string))
+	}
+
+	return properties
+}
+
+func flattenIotThingTypeProperties(s *iot.ThingTypeProperties) []map[string]interface{} {
+	m := map[string]interface{}{}
+
+	if s == nil {
+		return nil
+	}
+
+	if s.ThingTypeDescription != nil {
+		m["description"] = *s.ThingTypeDescription
+	}
+	m["searchable_attributes"] = flattenStringList(s.SearchableAttributes)
+
+	return []map[string]interface{}{m}
 }

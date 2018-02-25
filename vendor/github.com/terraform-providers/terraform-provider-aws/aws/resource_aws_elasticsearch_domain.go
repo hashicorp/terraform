@@ -405,6 +405,9 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 			if isAWSErr(err, "ValidationException", "enable a service-linked role to give Amazon ES permissions") {
 				return resource.RetryableError(err)
 			}
+			if isAWSErr(err, "ValidationException", "Domain is still being deleted") {
+				return resource.RetryableError(err)
+			}
 
 			return resource.NonRetryableError(err)
 		}

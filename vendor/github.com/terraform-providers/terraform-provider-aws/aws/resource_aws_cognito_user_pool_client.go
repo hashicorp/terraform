@@ -53,6 +53,7 @@ func resourceAwsCognitoUserPoolClient() *schema.Resource {
 					ValidateFunc: validation.StringInSlice([]string{
 						cognitoidentityprovider.ExplicitAuthFlowsTypeAdminNoSrpAuth,
 						cognitoidentityprovider.ExplicitAuthFlowsTypeCustomAuthFlowOnly,
+						cognitoidentityprovider.ExplicitAuthFlowsTypeUserPasswordAuth,
 					}, false),
 				},
 			},

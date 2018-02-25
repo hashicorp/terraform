@@ -24,9 +24,10 @@ import (
 
 func validateInstanceUserDataSize(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
+	length := len(value)
 
-	if len(value) > 16384 {
-		errors = append(errors, fmt.Errorf("%q cannot be longer than 16384 bytes", k))
+	if length > 16384 {
+		errors = append(errors, fmt.Errorf("%q is %d bytes, cannot be longer than 16384 bytes", k, length))
 	}
 	return
 }
@@ -80,8 +81,8 @@ func validateRdsEngine(v interface{}, k string) (ws []string, errors []error) {
 
 	if _, ok := validTypes[value]; !ok {
 		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid engine type %q. Valid types are either %q or %q.",
-			k, value, "aurora", "aurora-postgresql"))
+			"%q contains an invalid engine type %q. Valid types are either %q, %q or %q.",
+			k, value, "aurora", "aurora-mysql", "aurora-postgresql"))
 	}
 	return
 }
@@ -135,9 +136,9 @@ func validateTagFilters(v interface{}, k string) (ws []string, errors []error) {
 
 func validateDbParamGroupName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9a-z-_]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters, underscores and hyphens allowed in %q", k))
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
 	}
 	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -146,10 +147,6 @@ func validateDbParamGroupName(v interface{}, k string) (ws []string, errors []er
 	if regexp.MustCompile(`--`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot contain two consecutive hyphens", k))
-	}
-	if regexp.MustCompile(`__`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot contain two consecutive underscores", k))
 	}
 	if regexp.MustCompile(`-$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -790,7 +787,19 @@ func validateApiGatewayIntegrationContentHandling(v interface{}, k string) (ws [
 	return
 }
 
-func validateSQSQueueName(v interface{}, k string) (errors []error) {
+func validateSQSQueueName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
+	}
+
+	if !regexp.MustCompile(`^[0-9A-Za-z-_]+(\.fifo)?$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	return
+}
+
+func validateSQSNonFifoQueueName(v interface{}, k string) (errors []error) {
 	value := v.(string)
 	if len(value) > 80 {
 		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
@@ -1878,8 +1887,9 @@ func validateSecurityGroupRuleDescription(v interface{}, k string) (ws []string,
 			"%q cannot be longer than 255 characters: %q", k, value))
 	}
 
-	// https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpRange.html
-	pattern := `^[A-Za-z0-9 \.\_\-\:\/\(\)\#\,\@\[\]\+\=\;\{\}\!\$\*]+$`
+	// https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpRange.html. Note that
+	// "" is an allowable description value.
+	pattern := `^[A-Za-z0-9 \.\_\-\:\/\(\)\#\,\@\[\]\+\=\;\{\}\!\$\*]*$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q doesn't comply with restrictions (%q): %q",
@@ -2147,30 +2157,6 @@ func validateAwsElastiCacheReplicationGroupAuthToken(v interface{}, k string) (w
 	return
 }
 
-func validateServiceDiscoveryServiceDnsRecordsType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	validType := []string{"SRV", "A", "AAAA"}
-	for _, str := range validType {
-		if value == str {
-			return
-		}
-	}
-	errors = append(errors, fmt.Errorf("expected %s to be one of %v, got %s", k, validType, value))
-	return
-}
-
-func validateServiceDiscoveryServiceHealthCheckConfigType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	validType := []string{"HTTP", "HTTPS", "TCP"}
-	for _, str := range validType {
-		if value == str {
-			return
-		}
-	}
-	errors = append(errors, fmt.Errorf("expected %s to be one of %v, got %s", k, validType, value))
-	return
-}
-
 func validateGameliftOperatingSystem(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	operatingSystems := map[string]bool{
@@ -2268,6 +2254,41 @@ func validateAmazonSideAsn(v interface{}, k string) (ws []string, errors []error
 
 	if (asn < 64512) || (asn > 65534 && asn < 4200000000) || (asn > 4294967294) {
 		errors = append(errors, fmt.Errorf("%q (%q) must be in the range 64512 to 65534 or 4200000000 to 4294967294", k, v))
+	}
+	return
+}
+
+func validateIotThingTypeName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`[a-zA-Z0-9:_-]+`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters, colons, underscores and hyphens allowed in %q", k))
+	}
+	return
+}
+
+func validateIotThingTypeDescription(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 2028 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 2028 characters", k))
+	}
+	if !regexp.MustCompile(`[\\p{Graph}\\x20]*`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must match pattern [\\p{Graph}\\x20]*", k))
+	}
+	return
+}
+
+func validateIotThingTypeSearchableAttribute(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 128 characters", k))
+	}
+	if !regexp.MustCompile(`[a-zA-Z0-9_.,@/:#-]+`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters, underscores, dots, commas, arobases, slashes, colons, hashes and hyphens allowed in %q", k))
 	}
 	return
 }
