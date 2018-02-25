@@ -83,7 +83,7 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 		s.state.Serial = s.readState.Serial
 	}
 
-	if _, err := s.stateFileOut.Seek(0, os.SEEK_SET); err != nil {
+	if _, err := s.stateFileOut.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
 	if err := s.stateFileOut.Truncate(0); err != nil {
@@ -144,7 +144,7 @@ func (s *LocalState) RefreshState() error {
 		}
 
 		// we have a state file, make sure we're at the start
-		s.stateFileOut.Seek(0, os.SEEK_SET)
+		s.stateFileOut.Seek(0, io.SeekStart)
 		reader = s.stateFileOut
 	}
 
