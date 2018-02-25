@@ -330,7 +330,11 @@ func resourceAwsLbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		})
 	}
 
-	if d.HasChange("stickiness") {
+	// In CustomizeDiff we allow LB stickiness to be declared for TCP target
+	// groups, so long as it's not enabled. This allows for better support for
+	// modules, but also means we need to completely skip sending the data to the
+	// API if it's defined on a TCP target group.
+	if d.HasChange("stickiness") && d.Get("protocol") != "TCP" {
 		stickinessBlocks := d.Get("stickiness").([]interface{})
 		if len(stickinessBlocks) == 1 {
 			stickiness := stickinessBlocks[0].(map[string]interface{})
@@ -541,8 +545,45 @@ func flattenAwsLbTargetGroupResource(d *schema.ResourceData, meta interface{}, t
 		return errwrap.Wrapf("Error retrieving Target Group Attributes: {{err}}", err)
 	}
 
+	// We only read in the stickiness attributes if the target group is not
+	// TCP-based. This ensures we don't end up causing a spurious diff if someone
+	// has defined the stickiness block on a TCP target group (albeit with
+	// false), for which this update would clobber the state coming from config
+	// for.
+	//
+	// This is a workaround to support module design where the module needs to
+	// support HTTP and TCP target groups.
+	switch {
+	case *targetGroup.Protocol != "TCP":
+		if err = flattenAwsLbTargetGroupStickiness(d, attrResp.Attributes); err != nil {
+			return err
+		}
+	case *targetGroup.Protocol == "TCP" && len(d.Get("stickiness").([]interface{})) < 1:
+		if err = d.Set("stickiness", []interface{}{}); err != nil {
+			return err
+		}
+	}
+
+	tagsResp, err := elbconn.DescribeTags(&elbv2.DescribeTagsInput{
+		ResourceArns: []*string{aws.String(d.Id())},
+	})
+	if err != nil {
+		return errwrap.Wrapf("Error retrieving Target Group Tags: {{err}}", err)
+	}
+	for _, t := range tagsResp.TagDescriptions {
+		if *t.ResourceArn == d.Id() {
+			if err := d.Set("tags", tagsToMapELBv2(t.Tags)); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func flattenAwsLbTargetGroupStickiness(d *schema.ResourceData, attributes []*elbv2.TargetGroupAttribute) error {
 	stickinessMap := map[string]interface{}{}
-	for _, attr := range attrResp.Attributes {
+	for _, attr := range attributes {
 		switch *attr.Key {
 		case "stickiness.enabled":
 			enabled, err := strconv.ParseBool(*attr.Value)
@@ -574,21 +615,6 @@ func flattenAwsLbTargetGroupResource(d *schema.ResourceData, meta interface{}, t
 	if err := d.Set("stickiness", setStickyMap); err != nil {
 		return err
 	}
-
-	tagsResp, err := elbconn.DescribeTags(&elbv2.DescribeTagsInput{
-		ResourceArns: []*string{aws.String(d.Id())},
-	})
-	if err != nil {
-		return errwrap.Wrapf("Error retrieving Target Group Tags: {{err}}", err)
-	}
-	for _, t := range tagsResp.TagDescriptions {
-		if *t.ResourceArn == d.Id() {
-			if err := d.Set("tags", tagsToMapELBv2(t.Tags)); err != nil {
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -596,9 +622,11 @@ func resourceAwsLbTargetGroupCustomizeDiff(diff *schema.ResourceDiff, v interfac
 	protocol := diff.Get("protocol").(string)
 	if protocol == "TCP" {
 		// TCP load balancers do not support stickiness
-		stickinessBlocks := diff.Get("stickiness").([]interface{})
-		if len(stickinessBlocks) != 0 {
-			return fmt.Errorf("Network Load Balancers do not support Stickiness")
+		if stickinessBlocks := diff.Get("stickiness").([]interface{}); len(stickinessBlocks) == 1 {
+			stickiness := stickinessBlocks[0].(map[string]interface{})
+			if val := stickiness["enabled"].(bool); val {
+				return fmt.Errorf("Network Load Balancers do not support Stickiness")
+			}
 		}
 	}
 

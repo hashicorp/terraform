@@ -6,9 +6,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
@@ -16,22 +14,23 @@ import (
 
 // Mutable attributes
 var SNSAttributeMap = map[string]string{
-	"arn":                                      "TopicArn",
-	"display_name":                             "DisplayName",
-	"policy":                                   "Policy",
-	"delivery_policy":                          "DeliveryPolicy",
+	"application_failure_feedback_role_arn":    "ApplicationFailureFeedbackRoleArn",
 	"application_success_feedback_role_arn":    "ApplicationSuccessFeedbackRoleArn",
 	"application_success_feedback_sample_rate": "ApplicationSuccessFeedbackSampleRate",
-	"application_failure_feedback_role_arn":    "ApplicationFailureFeedbackRoleArn",
-	"http_success_feedback_role_arn":           "HTTPSuccessFeedbackRoleArn",
-	"http_success_feedback_sample_rate":        "HTTPSuccessFeedbackSampleRate",
-	"http_failure_feedback_role_arn":           "HTTPFailureFeedbackRoleArn",
-	"lambda_success_feedback_role_arn":         "LambdaSuccessFeedbackRoleArn",
-	"lambda_success_feedback_sample_rate":      "LambdaSuccessFeedbackSampleRate",
-	"lambda_failure_feedback_role_arn":         "LambdaFailureFeedbackRoleArn",
-	"sqs_success_feedback_role_arn":            "SQSSuccessFeedbackRoleArn",
-	"sqs_success_feedback_sample_rate":         "SQSSuccessFeedbackSampleRate",
-	"sqs_failure_feedback_role_arn":            "SQSFailureFeedbackRoleArn"}
+	"arn":                                 "TopicArn",
+	"delivery_policy":                     "DeliveryPolicy",
+	"display_name":                        "DisplayName",
+	"http_failure_feedback_role_arn":      "HTTPFailureFeedbackRoleArn",
+	"http_success_feedback_role_arn":      "HTTPSuccessFeedbackRoleArn",
+	"http_success_feedback_sample_rate":   "HTTPSuccessFeedbackSampleRate",
+	"lambda_failure_feedback_role_arn":    "LambdaFailureFeedbackRoleArn",
+	"lambda_success_feedback_role_arn":    "LambdaSuccessFeedbackRoleArn",
+	"lambda_success_feedback_sample_rate": "LambdaSuccessFeedbackSampleRate",
+	"policy":                           "Policy",
+	"sqs_failure_feedback_role_arn":    "SQSFailureFeedbackRoleArn",
+	"sqs_success_feedback_role_arn":    "SQSSuccessFeedbackRoleArn",
+	"sqs_success_feedback_sample_rate": "SQSSuccessFeedbackSampleRate",
+}
 
 func resourceAwsSnsTopic() *schema.Resource {
 	return &schema.Resource{
@@ -44,24 +43,23 @@ func resourceAwsSnsTopic() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
 			},
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"display_name": &schema.Schema{
+			"display_name": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: false,
 			},
-			"policy": &schema.Schema{
+			"policy": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
@@ -72,7 +70,7 @@ func resourceAwsSnsTopic() *schema.Resource {
 					return json
 				},
 			},
-			"delivery_policy": &schema.Schema{
+			"delivery_policy": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				ForceNew:         false,
@@ -135,7 +133,7 @@ func resourceAwsSnsTopic() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -168,37 +166,18 @@ func resourceAwsSnsTopicCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(*output.TopicArn)
 
-	// Write the ARN to the 'arn' field for export
-	d.Set("arn", *output.TopicArn)
-
 	return resourceAwsSnsTopicUpdate(d, meta)
 }
 
 func resourceAwsSnsTopicUpdate(d *schema.ResourceData, meta interface{}) error {
-	r := *resourceAwsSnsTopic()
+	conn := meta.(*AWSClient).snsconn
 
-	for k, _ := range r.Schema {
-		if attrKey, ok := SNSAttributeMap[k]; ok {
-			if d.HasChange(k) {
-				log.Printf("[DEBUG] Updating %s", attrKey)
-				_, n := d.GetChange(k)
-				// Ignore an empty policy
-				if !(k == "policy" && n == "") {
-					// Make API call to update attributes
-					req := sns.SetTopicAttributesInput{
-						TopicArn:       aws.String(d.Id()),
-						AttributeName:  aws.String(attrKey),
-						AttributeValue: aws.String(fmt.Sprintf("%v", n)),
-					}
-					conn := meta.(*AWSClient).snsconn
-					// Retry the update in the event of an eventually consistent style of
-					// error, where say an IAM resource is successfully created but not
-					// actually available. See https://github.com/hashicorp/terraform/issues/3660
-					_, err := retryOnAwsCode("InvalidParameter", func() (interface{}, error) {
-						return conn.SetTopicAttributes(&req)
-					})
-					return err
-				}
+	for terraformAttrName, snsAttrName := range SNSAttributeMap {
+		if d.HasChange(terraformAttrName) {
+			_, terraformAttrValue := d.GetChange(terraformAttrName)
+			err := updateAwsSnsTopicAttribute(d.Id(), snsAttrName, terraformAttrValue, conn)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -209,11 +188,12 @@ func resourceAwsSnsTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
 
+	log.Printf("[DEBUG] Reading SNS Topic Attributes for %s", d.Id())
 	attributeOutput, err := snsconn.GetTopicAttributes(&sns.GetTopicAttributesInput{
 		TopicArn: aws.String(d.Id()),
 	})
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFound" {
+		if isAWSErr(err, sns.ErrCodeNotFoundException, "") {
 			log.Printf("[WARN] SNS Topic (%s) not found, error code (404)", d.Id())
 			d.SetId("")
 			return nil
@@ -224,28 +204,12 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 
 	if attributeOutput.Attributes != nil && len(attributeOutput.Attributes) > 0 {
 		attrmap := attributeOutput.Attributes
-		resource := *resourceAwsSnsTopic()
-		// iKey = internal struct key, oKey = AWS Attribute Map key
-		for iKey, oKey := range SNSAttributeMap {
-			log.Printf("[DEBUG] Reading %s => %s", iKey, oKey)
-
-			if attrmap[oKey] != nil {
-				// Some of the fetched attributes are stateful properties such as
-				// the number of subscriptions, the owner, etc. skip those
-				if resource.Schema[iKey] != nil {
-					var value string
-					if iKey == "policy" {
-						value, err = structure.NormalizeJsonString(*attrmap[oKey])
-						if err != nil {
-							return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
-						}
-					} else {
-						value = *attrmap[oKey]
-					}
-					log.Printf("[DEBUG] Reading %s => %s -> %s", iKey, oKey, value)
-					d.Set(iKey, value)
-				}
-			}
+		for terraformAttrName, snsAttrName := range SNSAttributeMap {
+			d.Set(terraformAttrName, attrmap[snsAttrName])
+		}
+	} else {
+		for terraformAttrName, _ := range SNSAttributeMap {
+			d.Set(terraformAttrName, "")
 		}
 	}
 
@@ -269,6 +233,32 @@ func resourceAwsSnsTopicDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] SNS Delete Topic: %s", d.Id())
 	_, err := snsconn.DeleteTopic(&sns.DeleteTopicInput{
 		TopicArn: aws.String(d.Id()),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateAwsSnsTopicAttribute(topicArn, name string, value interface{}, conn *sns.SNS) error {
+	// Ignore an empty policy
+	if name == "Policy" && value == "" {
+		return nil
+	}
+	log.Printf("[DEBUG] Updating SNS Topic Attribute: %s", name)
+
+	// Make API call to update attributes
+	req := sns.SetTopicAttributesInput{
+		TopicArn:       aws.String(topicArn),
+		AttributeName:  aws.String(name),
+		AttributeValue: aws.String(fmt.Sprintf("%v", value)),
+	}
+
+	// Retry the update in the event of an eventually consistent style of
+	// error, where say an IAM resource is successfully created but not
+	// actually available. See https://github.com/hashicorp/terraform/issues/3660
+	_, err := retryOnAwsCode(sns.ErrCodeInvalidParameterException, func() (interface{}, error) {
+		return conn.SetTopicAttributes(&req)
 	})
 	if err != nil {
 		return err
