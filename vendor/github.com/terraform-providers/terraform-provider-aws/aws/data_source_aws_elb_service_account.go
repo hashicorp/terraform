@@ -23,7 +23,7 @@ var elbAccountIdPerRegionMap = map[string]string{
 	"sa-east-1":      "507241528517",
 	"us-east-1":      "127311923021",
 	"us-east-2":      "033677994240",
-	"us-gov-west":    "048591011584",
+	"us-gov-west-1":  "048591011584",
 	"us-west-1":      "027434742980",
 	"us-west-2":      "797873946194",
 }

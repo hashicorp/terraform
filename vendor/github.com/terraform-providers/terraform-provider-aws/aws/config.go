@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go/service/appsync"
 	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/batch"
@@ -36,6 +37,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
+	"github.com/aws/aws-sdk-go/service/dax"
 	"github.com/aws/aws-sdk-go/service/devicefarm"
 	"github.com/aws/aws-sdk-go/service/directconnect"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
@@ -148,6 +150,7 @@ type AWSClient struct {
 	cognitoconn           *cognitoidentity.CognitoIdentity
 	cognitoidpconn        *cognitoidentityprovider.CognitoIdentityProvider
 	configconn            *configservice.ConfigService
+	daxconn               *dax.DAX
 	devicefarmconn        *devicefarm.DeviceFarm
 	dmsconn               *databasemigrationservice.DatabaseMigrationService
 	dsconn                *directoryservice.DirectoryService
@@ -208,6 +211,7 @@ type AWSClient struct {
 	athenaconn            *athena.Athena
 	dxconn                *directconnect.DirectConnect
 	mediastoreconn        *mediastore.MediaStore
+	appsyncconn           *appsync.AppSync
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -413,8 +417,9 @@ func (c *Config) Client() (interface{}, error) {
 	client.configconn = configservice.New(sess)
 	client.cognitoconn = cognitoidentity.New(sess)
 	client.cognitoidpconn = cognitoidentityprovider.New(sess)
-	client.dmsconn = databasemigrationservice.New(sess)
 	client.codepipelineconn = codepipeline.New(sess)
+	client.daxconn = dax.New(awsDynamoSess)
+	client.dmsconn = databasemigrationservice.New(sess)
 	client.dsconn = directoryservice.New(sess)
 	client.dynamodbconn = dynamodb.New(awsDynamoSess)
 	client.ecrconn = ecr.New(awsEcrSess)
@@ -458,6 +463,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.athenaconn = athena.New(sess)
 	client.dxconn = directconnect.New(sess)
 	client.mediastoreconn = mediastore.New(sess)
+	client.appsyncconn = appsync.New(sess)
 
 	// Workaround for https://github.com/aws/aws-sdk-go/issues/1376
 	client.kinesisconn.Handlers.Retry.PushBack(func(r *request.Request) {

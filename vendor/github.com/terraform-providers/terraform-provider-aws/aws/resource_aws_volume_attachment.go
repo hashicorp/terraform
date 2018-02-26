@@ -82,7 +82,7 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"pending", "stopping"},
 			Target:     []string{"running", "stopped"},
-			Refresh:    InstanceStateRefreshFunc(conn, iID, "terminated"),
+			Refresh:    InstanceStateRefreshFunc(conn, iID, []string{"terminated"}),
 			Timeout:    10 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
