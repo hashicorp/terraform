@@ -19,6 +19,7 @@ type PlanCommand struct {
 func (c *PlanCommand) Run(args []string) int {
 	var destroy, refresh, detailed bool
 	var outPath string
+	var diffPath string
 	var moduleDepth int
 
 	args, err := c.Meta.process(args, true)
@@ -31,6 +32,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.StringVar(&outPath, "out", "", "path")
+	cmdFlags.StringVar(&diffPath, "diff", "", "path")
 	cmdFlags.IntVar(
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
@@ -103,6 +105,7 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.Plan = plan
 	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
+	opReq.PlanDiffPath = diffPath
 	opReq.Type = backend.OperationTypePlan
 
 	// Perform the operation
@@ -147,6 +150,8 @@ Options:
                       0 - Succeeded, diff is empty (no changes)
                       1 - Errored
                       2 - Succeeded, there is a diff
+
+  -diff=path          Write a plan diff file to the given path.
 
   -input=true         Ask for input for variables if not directly set.
 

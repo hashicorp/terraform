@@ -3,6 +3,7 @@ package local
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -174,6 +175,26 @@ func (b *Local) opPlan(
 			}
 
 		}
+
+		// Save the diff to disk
+		if diffPath := op.PlanDiffPath; diffPath != "" {
+			log.Printf("[INFO] backend/local: writing diff output to: %s", diffPath)
+			f, diffErr := os.Create(diffPath)
+			if diffErr == nil {
+				diffJson, diffErr := json.MarshalIndent(plan.Diff, "", "\t")
+				if diffErr == nil {
+					fmt.Fprint(f, string(diffJson))
+				}
+			}
+			f.Close()
+
+			if diffErr != nil {
+				runningOp.Err = fmt.Errorf("Error writing diff file: %s", diffErr)
+				return
+			} else {
+				b.CLI.Output(fmt.Sprintf("\n"+strings.TrimSpace(diffHeaderOutput)+"\n", diffPath))
+			}
+		}
 	}
 }
 
@@ -238,6 +259,10 @@ This plan was saved to: %s
 
 To perform exactly these actions, run the following command to apply:
     terraform apply %q
+`
+
+const diffHeaderOutput = `
+This plan diff was saved to: %s
 `
 
 const planNoChanges = `
