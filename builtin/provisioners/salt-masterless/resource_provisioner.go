@@ -131,6 +131,24 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
+	ctx, cancelFunc := context.WithTimeout(ctx, comm.Timeout())
+	defer cancelFunc()
+
+	// Wait for the context to end and then disconnect
+	go func() {
+		<-ctx.Done()
+		comm.Disconnect()
+	}()
+
+	// Wait and retry until we establish the connection
+	err = communicator.Retry(ctx, func() error {
+		return comm.Connect(o)
+	})
+
+	if err != nil {
+		return err
+	}
+
 	var src, dst string
 
 	o.Output("Provisioning with Salt...")
@@ -147,7 +165,7 @@ func applyFn(ctx context.Context) error {
 		if err == nil {
 			cmd.Wait()
 			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+				err = fmt.Errorf("Curl exited with non-zero exit status: %d", cmd.ExitStatus)
 			}
 		}
 
@@ -171,7 +189,7 @@ func applyFn(ctx context.Context) error {
 		if err == nil {
 			cmd.Wait()
 			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+				err = fmt.Errorf("install_salt.sh exited with non-zero exit status: %d", cmd.ExitStatus)
 			}
 		}
 		// Wait for output to clean up
