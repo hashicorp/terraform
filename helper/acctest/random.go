@@ -37,7 +37,7 @@ func RandIntRange(min int, max int) int {
 	source := rand.New(rand.NewSource(time.Now().UnixNano()))
 	rangeMax := max - min
 
-	return int(source.Int31n(int32(rangeMax)))
+	return int(source.Int31n(int32(rangeMax))) + min
 }
 
 // RandString generates a random alphanumeric string of the length specified
