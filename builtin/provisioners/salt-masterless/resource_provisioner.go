@@ -140,16 +140,18 @@ func applyFn(ctx context.Context) error {
 			Command: fmt.Sprintf("curl -L https://bootstrap.saltstack.com -o /tmp/install_salt.sh || wget -O /tmp/install_salt.sh https://bootstrap.saltstack.com"),
 		}
 		o.Output(fmt.Sprintf("Downloading saltstack bootstrap to /tmp/install_salt.sh"))
-		if err = comm.Start(cmd); err != nil {
-			err = fmt.Errorf("Unable to download Salt: %s", err)
-		}
 
-		if err == nil {
+		err = communicator.Retry(ctx, func() error {
+			if err = comm.Start(cmd); err != nil {
+				return fmt.Errorf("Unable to download Salt: %s", err)
+			}
+
 			cmd.Wait()
 			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+				return fmt.Errorf("Curl exited with non-zero exit status: %d", cmd.ExitStatus)
 			}
-		}
+			return nil
+		})
 
 		outR, outW := io.Pipe()
 		errR, errW := io.Pipe()
@@ -164,16 +166,17 @@ func applyFn(ctx context.Context) error {
 		}
 
 		o.Output(fmt.Sprintf("Installing Salt with command %s", cmd.Command))
-		if err = comm.Start(cmd); err != nil {
-			err = fmt.Errorf("Unable to install Salt: %s", err)
-		}
+		err = communicator.Retry(ctx, func() error {
+			if err = comm.Start(cmd); err != nil {
+				return fmt.Errorf("Unable to install Salt: %s", err)
+			}
 
-		if err == nil {
 			cmd.Wait()
 			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+				return fmt.Errorf("Salt install script exited with non-zero exit status: %d", cmd.ExitStatus)
 			}
-		}
+			return nil
+		})
 		// Wait for output to clean up
 		outW.Close()
 		errW.Close()
