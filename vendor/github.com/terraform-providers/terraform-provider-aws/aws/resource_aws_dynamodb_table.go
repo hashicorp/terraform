@@ -440,9 +440,7 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] DynamoDB delete table: %s", d.Id())
 
-	_, err := conn.DeleteTable(&dynamodb.DeleteTableInput{
-		TableName: aws.String(d.Id()),
-	})
+	err := deleteAwsDynamoDbTable(d.Id(), conn)
 	if err != nil {
 		if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "Requested resource not found: Table: ") {
 			return nil
@@ -475,6 +473,35 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 	}
 	_, err = stateConf.WaitForState()
 	return err
+}
+
+func deleteAwsDynamoDbTable(tableName string, conn *dynamodb.DynamoDB) error {
+	input := &dynamodb.DeleteTableInput{
+		TableName: aws.String(tableName),
+	}
+
+	return resource.Retry(1*time.Minute, func() *resource.RetryError {
+		_, err := conn.DeleteTable(input)
+		if err != nil {
+			// Subscriber limit exceeded: Only 10 tables can be created, updated, or deleted simultaneously
+			if isAWSErr(err, dynamodb.ErrCodeLimitExceededException, "simultaneously") {
+				return resource.RetryableError(err)
+			}
+			// This handles multiple scenarios in the DynamoDB API:
+			// 1. Updating a table immediately before deletion may return:
+			//    ResourceInUseException: Attempt to change a resource which is still in use: Table is being updated:
+			// 2. Removing a table from a DynamoDB global table may return:
+			//    ResourceInUseException: Attempt to change a resource which is still in use: Table is being deleted:
+			if isAWSErr(err, dynamodb.ErrCodeResourceInUseException, "") {
+				return resource.RetryableError(err)
+			}
+			if isAWSErr(err, dynamodb.ErrCodeResourceNotFoundException, "Requested resource not found: Table: ") {
+				return resource.NonRetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 }
 
 func updateDynamoDbTimeToLive(d *schema.ResourceData, conn *dynamodb.DynamoDB) error {

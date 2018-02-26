@@ -3,13 +3,12 @@ package aws
 import (
 	"fmt"
 	"log"
-	"reflect"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/acm"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -59,7 +58,7 @@ func resourceAwsAcmCertificateValidationCreate(d *schema.ResourceData, meta inte
 	}
 
 	if validation_record_fqdns, ok := d.GetOk("validation_record_fqdns"); ok {
-		err := resourceAwsAcmCertificateCheckValidationRecords(validation_record_fqdns.(*schema.Set).List(), resp.Certificate)
+		err := resourceAwsAcmCertificateCheckValidationRecords(validation_record_fqdns.(*schema.Set).List(), resp.Certificate, acmconn)
 		if err != nil {
 			return err
 		}
@@ -83,28 +82,52 @@ func resourceAwsAcmCertificateValidationCreate(d *schema.ResourceData, meta inte
 	})
 }
 
-func resourceAwsAcmCertificateCheckValidationRecords(validation_record_fqdns []interface{}, cert *acm.CertificateDetail) error {
-	expected_fqdns := make([]string, len(cert.DomainValidationOptions))
-	for i, v := range cert.DomainValidationOptions {
-		if *v.ValidationMethod == acm.ValidationMethodDns {
-			expected_fqdns[i] = strings.TrimSuffix(*v.ResourceRecord.Name, ".")
+func resourceAwsAcmCertificateCheckValidationRecords(validationRecordFqdns []interface{}, cert *acm.CertificateDetail, conn *acm.ACM) error {
+	expectedFqdns := make(map[string]*acm.DomainValidation)
+
+	if len(cert.DomainValidationOptions) == 0 {
+		input := &acm.DescribeCertificateInput{
+			CertificateArn: cert.CertificateArn,
+		}
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			log.Printf("[DEBUG] Certificate domain validation options empty for %q, retrying", cert.CertificateArn)
+			output, err := conn.DescribeCertificate(input)
+			if err != nil {
+				return resource.NonRetryableError(err)
+			}
+			if len(output.Certificate.DomainValidationOptions) == 0 {
+				return resource.RetryableError(fmt.Errorf("Certificate domain validation options empty for %s", *cert.CertificateArn))
+			}
+			cert = output.Certificate
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+	for _, v := range cert.DomainValidationOptions {
+		if v.ValidationMethod != nil {
+			if *v.ValidationMethod != acm.ValidationMethodDns {
+				return fmt.Errorf("validation_record_fqdns is only valid for DNS validation")
+			}
+			newExpectedFqdn := strings.TrimSuffix(*v.ResourceRecord.Name, ".")
+			expectedFqdns[newExpectedFqdn] = v
+		} else if len(v.ValidationEmails) > 0 {
+			// ACM API sometimes is not sending ValidationMethod for EMAIL validation
+			return fmt.Errorf("validation_record_fqdns is only valid for DNS validation")
 		}
 	}
 
-	actual_validation_record_fqdns := make([]string, 0, len(validation_record_fqdns))
-
-	for _, v := range validation_record_fqdns {
-		val := v.(string)
-		actual_validation_record_fqdns = append(actual_validation_record_fqdns, strings.TrimSuffix(val, "."))
+	for _, v := range validationRecordFqdns {
+		delete(expectedFqdns, strings.TrimSuffix(v.(string), "."))
 	}
 
-	sort.Strings(expected_fqdns)
-	sort.Strings(actual_validation_record_fqdns)
-
-	log.Printf("[DEBUG] Checking validation_record_fqdns. Expected: %v, Actual: %v", expected_fqdns, actual_validation_record_fqdns)
-
-	if !reflect.DeepEqual(expected_fqdns, actual_validation_record_fqdns) {
-		return fmt.Errorf("Certificate needs %v to be set but only %v was passed to validation_record_fqdns", expected_fqdns, actual_validation_record_fqdns)
+	if len(expectedFqdns) > 0 {
+		var errors error
+		for expectedFqdn, domainValidation := range expectedFqdns {
+			errors = multierror.Append(errors, fmt.Errorf("missing %s DNS validation record: %s", *domainValidation.DomainName, expectedFqdn))
+		}
+		return errors
 	}
 
 	return nil

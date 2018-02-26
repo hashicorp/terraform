@@ -181,6 +181,33 @@ func resourceAwsCodeBuildProject() *schema.Resource {
 				ValidateFunc: validateAwsCodeBuildTimeout,
 			},
 			"tags": tagsSchema(),
+			"vpc_config": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"vpc_id": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"subnets": {
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							// Set:      schema.HashString,
+							MaxItems: 16,
+						},
+						"security_group_ids": {
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							// Set:      schema.HashString,
+							MaxItems: 5,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -215,6 +242,10 @@ func resourceAwsCodeBuildProjectCreate(d *schema.ResourceData, meta interface{})
 		params.TimeoutInMinutes = aws.Int64(int64(v.(int)))
 	}
 
+	if v, ok := d.GetOk("vpc_config"); ok {
+		params.VpcConfig = expandCodeBuildVpcConfig(v.([]interface{}))
+	}
+
 	if v, ok := d.GetOk("tags"); ok {
 		params.Tags = tagsFromMapCodeBuild(v.(map[string]interface{}))
 	}
@@ -227,6 +258,10 @@ func resourceAwsCodeBuildProjectCreate(d *schema.ResourceData, meta interface{})
 		if err != nil {
 			// Work around eventual consistency of IAM
 			if isAWSErr(err, "InvalidInputException", "CodeBuild is not authorized to perform") {
+				return resource.RetryableError(err)
+			}
+
+			if isAWSErr(err, "InvalidInputException", "Not authorized to perform DescribeSecurityGroups") {
 				return resource.RetryableError(err)
 			}
 
@@ -326,6 +361,21 @@ func expandProjectEnvironment(d *schema.ResourceData) *codebuild.ProjectEnvironm
 	return projectEnv
 }
 
+func expandCodeBuildVpcConfig(rawVpcConfig []interface{}) *codebuild.VpcConfig {
+	vpcConfig := codebuild.VpcConfig{}
+	if len(rawVpcConfig) == 0 {
+		return &vpcConfig
+	} else {
+
+		data := rawVpcConfig[0].(map[string]interface{})
+		vpcConfig.VpcId = aws.String(data["vpc_id"].(string))
+		vpcConfig.Subnets = expandStringList(data["subnets"].(*schema.Set).List())
+		vpcConfig.SecurityGroupIds = expandStringList(data["security_group_ids"].(*schema.Set).List())
+
+		return &vpcConfig
+	}
+}
+
 func expandProjectSource(d *schema.ResourceData) codebuild.ProjectSource {
 	configs := d.Get("source").(*schema.Set).List()
 	projectSource := codebuild.ProjectSource{}
@@ -380,15 +430,19 @@ func resourceAwsCodeBuildProjectRead(d *schema.ResourceData, meta interface{}) e
 
 	project := resp.Projects[0]
 
-	if err := d.Set("artifacts", flattenAwsCodebuildProjectArtifacts(project.Artifacts)); err != nil {
+	if err := d.Set("artifacts", flattenAwsCodeBuildProjectArtifacts(project.Artifacts)); err != nil {
 		return err
 	}
 
-	if err := d.Set("environment", schema.NewSet(resourceAwsCodeBuildProjectEnvironmentHash, flattenAwsCodebuildProjectEnvironment(project.Environment))); err != nil {
+	if err := d.Set("environment", schema.NewSet(resourceAwsCodeBuildProjectEnvironmentHash, flattenAwsCodeBuildProjectEnvironment(project.Environment))); err != nil {
 		return err
 	}
 
-	if err := d.Set("source", flattenAwsCodebuildProjectSource(project.Source)); err != nil {
+	if err := d.Set("source", flattenAwsCodeBuildProjectSource(project.Source)); err != nil {
+		return err
+	}
+
+	if err := d.Set("vpc_config", flattenAwsCodeBuildVpcConfig(project.VpcConfig)); err != nil {
 		return err
 	}
 
@@ -425,6 +479,10 @@ func resourceAwsCodeBuildProjectUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("artifacts") {
 		projectArtifacts := expandProjectArtifacts(d)
 		params.Artifacts = &projectArtifacts
+	}
+
+	if d.HasChange("vpc_config") {
+		params.VpcConfig = expandCodeBuildVpcConfig(d.Get("vpc_config").([]interface{}))
 	}
 
 	if d.HasChange("description") {
@@ -474,7 +532,7 @@ func resourceAwsCodeBuildProjectDelete(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func flattenAwsCodebuildProjectArtifacts(artifacts *codebuild.ProjectArtifacts) *schema.Set {
+func flattenAwsCodeBuildProjectArtifacts(artifacts *codebuild.ProjectArtifacts) *schema.Set {
 
 	artifactSet := schema.Set{
 		F: resourceAwsCodeBuildProjectArtifactsHash,
@@ -509,7 +567,7 @@ func flattenAwsCodebuildProjectArtifacts(artifacts *codebuild.ProjectArtifacts) 
 	return &artifactSet
 }
 
-func flattenAwsCodebuildProjectEnvironment(environment *codebuild.ProjectEnvironment) []interface{} {
+func flattenAwsCodeBuildProjectEnvironment(environment *codebuild.ProjectEnvironment) []interface{} {
 	envConfig := map[string]interface{}{}
 
 	envConfig["type"] = *environment.Type
@@ -525,7 +583,7 @@ func flattenAwsCodebuildProjectEnvironment(environment *codebuild.ProjectEnviron
 
 }
 
-func flattenAwsCodebuildProjectSource(source *codebuild.ProjectSource) []interface{} {
+func flattenAwsCodeBuildProjectSource(source *codebuild.ProjectSource) []interface{} {
 	l := make([]interface{}, 1)
 	m := map[string]interface{}{}
 
@@ -546,6 +604,19 @@ func flattenAwsCodebuildProjectSource(source *codebuild.ProjectSource) []interfa
 	l[0] = m
 
 	return l
+}
+
+func flattenAwsCodeBuildVpcConfig(vpcConfig *codebuild.VpcConfig) []interface{} {
+	if vpcConfig != nil {
+		values := map[string]interface{}{}
+
+		values["vpc_id"] = *vpcConfig.VpcId
+		values["subnets"] = schema.NewSet(schema.HashString, flattenStringList(vpcConfig.Subnets))
+		values["security_group_ids"] = schema.NewSet(schema.HashString, flattenStringList(vpcConfig.SecurityGroupIds))
+
+		return []interface{}{values}
+	}
+	return nil
 }
 
 func resourceAwsCodeBuildProjectArtifactsHash(v interface{}) int {

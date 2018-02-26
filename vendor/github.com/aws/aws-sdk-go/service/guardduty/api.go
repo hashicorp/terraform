@@ -3573,6 +3573,9 @@ type Action struct {
 
 	// Information about the NETWORK_CONNECTION action described in this finding.
 	NetworkConnectionAction *NetworkConnectionAction `locationName:"networkConnectionAction" type:"structure"`
+
+	// Information about the PORT_PROBE action described in this finding.
+	PortProbeAction *PortProbeAction `locationName:"portProbeAction" type:"structure"`
 }
 
 // String returns the string representation
@@ -3606,6 +3609,12 @@ func (s *Action) SetDnsRequestAction(v *DnsRequestAction) *Action {
 // SetNetworkConnectionAction sets the NetworkConnectionAction field's value.
 func (s *Action) SetNetworkConnectionAction(v *NetworkConnectionAction) *Action {
 	s.NetworkConnectionAction = v
+	return s
+}
+
+// SetPortProbeAction sets the PortProbeAction field's value.
+func (s *Action) SetPortProbeAction(v *PortProbeAction) *Action {
+	s.PortProbeAction = v
 	return s
 }
 
@@ -6827,6 +6836,72 @@ func (s *Organization) SetIsp(v string) *Organization {
 // SetOrg sets the Org field's value.
 func (s *Organization) SetOrg(v string) *Organization {
 	s.Org = &v
+	return s
+}
+
+// Information about the PORT_PROBE action described in this finding.
+type PortProbeAction struct {
+	_ struct{} `type:"structure"`
+
+	// Port probe blocked information.
+	Blocked *bool `locationName:"blocked" type:"boolean"`
+
+	// A list of port probe details objects.
+	PortProbeDetails []*PortProbeDetail `locationName:"portProbeDetails" type:"list"`
+}
+
+// String returns the string representation
+func (s PortProbeAction) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PortProbeAction) GoString() string {
+	return s.String()
+}
+
+// SetBlocked sets the Blocked field's value.
+func (s *PortProbeAction) SetBlocked(v bool) *PortProbeAction {
+	s.Blocked = &v
+	return s
+}
+
+// SetPortProbeDetails sets the PortProbeDetails field's value.
+func (s *PortProbeAction) SetPortProbeDetails(v []*PortProbeDetail) *PortProbeAction {
+	s.PortProbeDetails = v
+	return s
+}
+
+// Details about the port probe finding.
+type PortProbeDetail struct {
+	_ struct{} `type:"structure"`
+
+	// Local port information of the connection.
+	LocalPortDetails *LocalPortDetails `locationName:"localPortDetails" type:"structure"`
+
+	// Remote IP information of the connection.
+	RemoteIpDetails *RemoteIpDetails `locationName:"remoteIpDetails" type:"structure"`
+}
+
+// String returns the string representation
+func (s PortProbeDetail) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PortProbeDetail) GoString() string {
+	return s.String()
+}
+
+// SetLocalPortDetails sets the LocalPortDetails field's value.
+func (s *PortProbeDetail) SetLocalPortDetails(v *LocalPortDetails) *PortProbeDetail {
+	s.LocalPortDetails = v
+	return s
+}
+
+// SetRemoteIpDetails sets the RemoteIpDetails field's value.
+func (s *PortProbeDetail) SetRemoteIpDetails(v *RemoteIpDetails) *PortProbeDetail {
+	s.RemoteIpDetails = v
 	return s
 }
 

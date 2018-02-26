@@ -3468,6 +3468,9 @@ func (c *KMS) RetireGrantRequest(input *RetireGrantInput) (req *request.Request,
 // API operation RetireGrant for usage and error information.
 //
 // Returned Error Codes:
+//   * ErrCodeInvalidArnException "InvalidArnException"
+//   The request was rejected because a specified ARN was not valid.
+//
 //   * ErrCodeInvalidGrantTokenException "InvalidGrantTokenException"
 //   The request was rejected because the specified grant token is not valid.
 //
