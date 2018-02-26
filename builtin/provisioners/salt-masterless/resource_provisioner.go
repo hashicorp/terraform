@@ -11,11 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	linereader "github.com/mitchellh/go-linereader"
@@ -127,6 +129,7 @@ func applyFn(ctx context.Context) error {
 
 	// Get a new communicator
 	comm, err := communicator.New(connState)
+
 	if err != nil {
 		return err
 	}
@@ -139,17 +142,20 @@ func applyFn(ctx context.Context) error {
 			// Fallback on wget if curl failed for any reason (such as not being installed)
 			Command: fmt.Sprintf("curl -L https://bootstrap.saltstack.com -o /tmp/install_salt.sh || wget -O /tmp/install_salt.sh https://bootstrap.saltstack.com"),
 		}
-		o.Output(fmt.Sprintf("Downloading saltstack bootstrap to /tmp/install_salt.sh"))
-		if err = comm.Start(cmd); err != nil {
-			err = fmt.Errorf("Unable to download Salt: %s", err)
-		}
 
-		if err == nil {
+		o.Output(fmt.Sprintf("Downloading saltstack bootstrap to /tmp/install_salt.sh"))
+
+		err = communicator.Retry(ctx, func() error {
+			if err = comm.Start(cmd); err != nil {
+				return fmt.Errorf("Unable to download Salt: %s", err)
+			}
+
 			cmd.Wait()
 			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+				return fmt.Errorf("Curl exited with non-zero exit status: %d", cmd.ExitStatus)
 			}
-		}
+			return nil
+		})
 
 		outR, outW := io.Pipe()
 		errR, errW := io.Pipe()
@@ -157,6 +163,7 @@ func applyFn(ctx context.Context) error {
 		errDoneCh := make(chan struct{})
 		go copyOutput(o, outR, outDoneCh)
 		go copyOutput(o, errR, errDoneCh)
+
 		cmd = &remote.Cmd{
 			Command: fmt.Sprintf("%s /tmp/install_salt.sh %s", p.sudo("sh"), p.BootstrapArgs),
 			Stdout:  outW,
@@ -164,16 +171,18 @@ func applyFn(ctx context.Context) error {
 		}
 
 		o.Output(fmt.Sprintf("Installing Salt with command %s", cmd.Command))
-		if err = comm.Start(cmd); err != nil {
-			err = fmt.Errorf("Unable to install Salt: %s", err)
-		}
+		err = communicator.Retry(ctx, func() error {
+			if err = comm.Start(cmd); err != nil {
+				return fmt.Errorf("Unable to install Salt: %s", err)
+			}
 
-		if err == nil {
 			cmd.Wait()
 			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+				return fmt.Errorf("Salt install script exited with non-zero exit status: %d", cmd.ExitStatus)
 			}
-		}
+			return nil
+		})
+
 		// Wait for output to clean up
 		outW.Close()
 		errW.Close()
@@ -530,4 +539,23 @@ func copyOutput(
 	for line := range lr.Ch {
 		o.Output(line)
 	}
+}
+
+func retrySaltstackCmd(comm communicator.Communicator, cmd *remote.Cmd) error {
+	log.Printf("[DEBUG] Try'n execute %s with timeout %s", cmd.Command, comm.Timeout().String())
+
+	return resource.Retry(comm.Timeout(), func() *resource.RetryError {
+
+		cmderr := comm.Start(cmd)
+		if cmderr != nil {
+			return resource.RetryableError(cmderr)
+		}
+
+		cmd.Wait()
+		if cmd.ExitStatus != 0 {
+			resource.NonRetryableError(fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus))
+		}
+
+		return nil
+	})
 }
