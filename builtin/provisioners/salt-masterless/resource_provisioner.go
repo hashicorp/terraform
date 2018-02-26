@@ -131,6 +131,24 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
+	ctx, cancelFunc := context.WithTimeout(ctx, comm.Timeout())
+	defer cancelFunc()
+
+	// Wait for the context to end and then disconnect
+	go func() {
+		<-ctx.Done()
+		comm.Disconnect()
+	}()
+
+	// Wait and retry until we establish the connection
+	err = communicator.Retry(ctx, func() error {
+		return comm.Connect(o)
+	})
+
+	if err != nil {
+		return err
+	}
+
 	var src, dst string
 
 	o.Output("Provisioning with Salt...")
@@ -140,18 +158,16 @@ func applyFn(ctx context.Context) error {
 			Command: fmt.Sprintf("curl -L https://bootstrap.saltstack.com -o /tmp/install_salt.sh || wget -O /tmp/install_salt.sh https://bootstrap.saltstack.com"),
 		}
 		o.Output(fmt.Sprintf("Downloading saltstack bootstrap to /tmp/install_salt.sh"))
+		if err = comm.Start(cmd); err != nil {
+			err = fmt.Errorf("Unable to download Salt: %s", err)
+		}
 
-		err = communicator.Retry(ctx, func() error {
-			if err = comm.Start(cmd); err != nil {
-				return fmt.Errorf("Unable to download Salt: %s", err)
-			}
-
+		if err == nil {
 			cmd.Wait()
 			if cmd.ExitStatus != 0 {
-				return fmt.Errorf("Curl exited with non-zero exit status: %d", cmd.ExitStatus)
+				err = fmt.Errorf("Curl exited with non-zero exit status: %d", cmd.ExitStatus)
 			}
-			return nil
-		})
+		}
 
 		outR, outW := io.Pipe()
 		errR, errW := io.Pipe()
@@ -166,17 +182,16 @@ func applyFn(ctx context.Context) error {
 		}
 
 		o.Output(fmt.Sprintf("Installing Salt with command %s", cmd.Command))
-		err = communicator.Retry(ctx, func() error {
-			if err = comm.Start(cmd); err != nil {
-				return fmt.Errorf("Unable to install Salt: %s", err)
-			}
+		if err = comm.Start(cmd); err != nil {
+			err = fmt.Errorf("Unable to install Salt: %s", err)
+		}
 
+		if err == nil {
 			cmd.Wait()
 			if cmd.ExitStatus != 0 {
-				return fmt.Errorf("Salt install script exited with non-zero exit status: %d", cmd.ExitStatus)
+				err = fmt.Errorf("install_salt.sh exited with non-zero exit status: %d", cmd.ExitStatus)
 			}
-			return nil
-		})
+		}
 		// Wait for output to clean up
 		outW.Close()
 		errW.Close()
