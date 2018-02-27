@@ -269,6 +269,63 @@ func TestInterpolateFuncMax(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncSum(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${sum()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${sum("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${sum( list( -1.0 ) )}`,
+				nil,
+				true,
+			},
+
+			{
+				`${sum( list( 1.0 ) )}`,
+				nil,
+				true,
+			},
+
+			{
+				`${sum( list( 0, 1, 2, 1.0 ) )}`,
+				nil,
+				true,
+			},
+
+			{
+				`${sum( var.list )}`,
+				"3",
+				false,
+			},
+		},
+		Vars: map[string]ast.Variable{
+			"var.list": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeInt,
+						Value: 1,
+					},
+					{
+						Type:  ast.TypeInt,
+						Value: 2,
+					},
+				},
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncMin(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{

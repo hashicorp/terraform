@@ -115,6 +115,7 @@ func Funcs() map[string]ast.Function {
 		"sort":         interpolationFuncSort(),
 		"split":        interpolationFuncSplit(),
 		"substr":       interpolationFuncSubstr(),
+		"sum":          interpolationFuncSum(),
 		"timestamp":    interpolationFuncTimestamp(),
 		"timeadd":      interpolationFuncTimeAdd(),
 		"title":        interpolationFuncTitle(),
@@ -1722,6 +1723,36 @@ func interpolationFuncRsaDecrypt() ast.Function {
 			}
 
 			return string(out), nil
+		},
+	}
+}
+
+/**
+ * Computes the sum of a list of floats or ints.
+ */
+func interpolationFuncSum() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeList},
+		ReturnType: ast.TypeInt,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			subject := args[0]
+
+			switch typedSubject := subject.(type) {
+			case []ast.Variable:
+				theSum := 0
+				for _, item := range typedSubject {
+					switch item.Type {
+					case ast.TypeInt:
+						theSum += item.Value.(int)
+					default:
+						return 0, fmt.Errorf("list argument to sum() must consist only of integer elements")
+					}
+				}
+				return theSum, nil
+			}
+
+			return 0, fmt.Errorf("arguments to sum() must be a list")
 		},
 	}
 }
