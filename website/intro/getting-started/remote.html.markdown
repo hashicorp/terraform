@@ -10,12 +10,14 @@ description: |-
 
 We've now seen how to build, change, and destroy infrastructure
 from a local machine. This is great for testing and development,
-however in production environments it is more responsible to run
-Terraform remotely and store a master Terraform state remotely.
+but in production environments it is more responsible to share responsibility
+for infrastructure. The best way to do this is by running Terraform in a remote
+environment with shared access to state.
 
-Terraform supports a feature known as [remote backends](/docs/backends)
-to support this. Backends are the recommended way to use Terraform in
-a team environment.
+Terraform supports team-based workflows with a feature known as [remote
+backends](/docs/backends). Remote backends allow Terraform to use a shared
+storage space for state data, so any member of your team can use Terraform to
+manage the same infrastructure.
 
 Depending on the features you wish to use, Terraform has multiple remote
 backend options. You could use Consul for state storage, locking, and
@@ -31,7 +33,7 @@ When a proposed change is accepted, the Terraform logs are stored,
 resulting in a linear history of infrastructure states to
 help with auditing and policy enforcement. Additional benefits to
 running Terraform remotely include moving access
-credentials off of developer machines and releasing local machines
+credentials off of developer machines and freeing local machines
 from long-running Terraform processes.
 
 ## How to Store State Remotely
@@ -90,75 +92,15 @@ once again ask if you want to migrate your state back to local.
 
 ## Terraform Enterprise
 
-HashiCorp (the makers of Terraform) also provide a commercial solution which
-functions as a Terraform backend as well as enabling many other features such
-as remote apply, run history, state history, state diffing, and more.
+[Terraform Enterprise](https://www.hashicorp.com/products/terraform/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform) is a commercial solution which combines a predictable and reliable shared run environment with tools to help you work together on Terraform configurations and modules.
 
-This section will guide you through a demo of Terraform Enterprise. Note that
-this is commercial software. If you are not interested at this time, you may
-skip this section.
+Although Terraform Enterprise can act as a standard remote backend to support Terraform runs on local machines, it works even better as a remote run environment. It supports two main workflows for performing Terraform runs:
 
-First, [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform) unless you already have one.
+- A VCS-driven workflow, in which it automatically queues plans whenever changes are committed to your configuration's VCS repo.
+- An API-driven workflow, in which a CI pipeline or other automated tool can upload configurations directly.
 
-Terraform uses your access token to securely communicate with Terraform
-Enterprise. To generate a token: select your username in the left side
-navigation menu, click "Accounts Settings", "click "Tokens", then click
-"Generate".
+For a hands-on introduction to Terraform Enterprise, [follow the Terraform Enterprise getting started guide](/docs/enterprise/getting-started/index.html).
 
-For the purposes of this tutorial you can use this token by exporting it to
-your local shell session:
-
-```
-$ export ATLAS_TOKEN=ATLAS_ACCESS_TOKEN
-```
-
-Replace `ATLAS_ACCESS_TOKEN` with the token generated earlier. Next,
-configure the Terraform Enterprise backend:
-
-```hcl
-terraform {
-  backend "atlas" {
-    name = "USERNAME/getting-started"
-  }
-}
-```
-
-Replace `USERNAME` with your Terraform Enterprise username. Note that the
-backend name is "atlas" for legacy reasons and will be renamed soon.
-
-Remember to run `terraform init`. At this point, Terraform is using Terraform
-Enterprise for everything shown before with Consul. Next, we'll show you some
-additional functionality Terraform Enterprise enables.
-
-Before you [push](/docs/commands/push.html) your Terraform configuration to
-Terraform Enterprise you'll need to start a local version control system with
-at least one commit. Here is an example using `git`.
-
-```
-$ git init
-$ git add example.tf
-$ git commit -m "init commit"
-```
-
-Next, [push](/docs/commands/push.html) your Terraform configuration:
-
-```
-$ terraform push
-```
-
-This will automatically trigger a `terraform plan`, which you can
-review in the [Terraform page](https://atlas.hashicorp.com/terraform).
-If the plan looks correct, hit "Confirm & Apply" to execute the
-infrastructure changes.
-
-Running Terraform in Terraform Enterprise creates a complete history of
-infrastructure changes, a sort of version control
-for infrastructure. Similar to application version control
-systems such as Git or Subversion, this makes changes to
-infrastructure an auditable, repeatable,
-and collaborative process. With so much relying on the
-stability of your infrastructure, version control is a
-responsible choice for minimizing downtime.
 
 ## Next
 You now know how to create, modify, destroy, version, and
