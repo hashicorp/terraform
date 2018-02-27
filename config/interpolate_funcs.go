@@ -91,6 +91,7 @@ func Funcs() map[string]ast.Function {
 		"formatlist":   interpolationFuncFormatList(),
 		"indent":       interpolationFuncIndent(),
 		"index":        interpolationFuncIndex(),
+		"intsum":       interpolationFuncIntSum(),
 		"join":         interpolationFuncJoin(),
 		"jsonencode":   interpolationFuncJSONEncode(),
 		"length":       interpolationFuncLength(),
@@ -115,7 +116,6 @@ func Funcs() map[string]ast.Function {
 		"sort":         interpolationFuncSort(),
 		"split":        interpolationFuncSplit(),
 		"substr":       interpolationFuncSubstr(),
-		"sum":          interpolationFuncSum(),
 		"timestamp":    interpolationFuncTimestamp(),
 		"timeadd":      interpolationFuncTimeAdd(),
 		"title":        interpolationFuncTitle(),
@@ -1728,9 +1728,9 @@ func interpolationFuncRsaDecrypt() ast.Function {
 }
 
 /**
- * Computes the sum of a list of floats or ints.
+ * Computes the sum of a list of floats or ints as an integer sum
  */
-func interpolationFuncSum() ast.Function {
+func interpolationFuncIntSum() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeList},
 		ReturnType: ast.TypeInt,
@@ -1745,8 +1745,16 @@ func interpolationFuncSum() ast.Function {
 					switch item.Type {
 					case ast.TypeInt:
 						theSum += item.Value.(int)
+					case ast.TypeFloat:
+						theSum += int(item.Value.(float64))
+					case ast.TypeString:
+						val, err := strconv.ParseInt(item.Value.(string), 10, 8)
+						if err != nil {
+							return 0, fmt.Errorf("list item to sum() not parsed as integer: %v", item.Value)
+						}
+						theSum += int(val)
 					default:
-						return 0, fmt.Errorf("list argument to sum() must consist only of integer elements")
+						return 0, fmt.Errorf("list item to sum() must consist only of integer, float or parseable string elements, Found: %d, %v", item.Type, item.Value)
 					}
 				}
 				return theSum, nil

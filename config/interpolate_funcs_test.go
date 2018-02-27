@@ -269,41 +269,41 @@ func TestInterpolateFuncMax(t *testing.T) {
 	})
 }
 
-func TestInterpolateFuncSum(t *testing.T) {
+func TestInterpolateFuncIntSum(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
 			{
-				`${sum()}`,
+				`${intsum()}`,
 				nil,
 				true,
 			},
 
 			{
-				`${sum("")}`,
+				`${intsum("")}`,
 				nil,
 				true,
 			},
 
 			{
-				`${sum( list( -1.0 ) )}`,
+				`${intsum( list( -1.0 ) )}`,
 				nil,
 				true,
 			},
 
 			{
-				`${sum( list( 1.0 ) )}`,
+				`${intsum( list( 1.0 ) )}`,
 				nil,
 				true,
 			},
 
 			{
-				`${sum( list( 0, 1, 2, 1.0 ) )}`,
+				`${intsum( list( 0, 1, 2, 1.0 ) )}`,
 				nil,
 				true,
 			},
 
 			{
-				`${sum( var.list )}`,
+				`${intsum( var.list )}`,
 				"3",
 				false,
 			},
