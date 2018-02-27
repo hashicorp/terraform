@@ -400,10 +400,11 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	// build the command line args to pass onto salt
 	var cmdArgs bytes.Buffer
 
-	if p.CustomState != "" {
+	if p.CustomState != "state.highstate" {
 		cmdArgs.WriteString(" state.sls ")
-		cmdArgs.WriteString(p.CustomState)
 	}
+
+	cmdArgs.WriteString(p.CustomState)
 
 	if p.MinionConfig == "" {
 		// pass --file-root and --pillar-root if no minion_config_file is supplied
