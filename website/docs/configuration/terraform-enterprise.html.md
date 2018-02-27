@@ -1,42 +1,38 @@
 ---
 layout: "docs"
-page_title: "Configuring Terraform Enterprise"
-sidebar_current: "docs-config-terraform-enterprise"
+page_title: "Configuring Terraform Push"
+sidebar_current: "docs-config-push"
 description: |-
-  Terraform Enterprise is the ideal way to use Terraform in a team environment. Terraform Enterprise will run Terraform for you, safely handle parallelization across different team members, save run history along with plans, and more.
+  Terraform's push command was a way to interact with the legacy version of Terraform Enterprise. It is not supported in the current version of Terraform Enterprise.
 ---
 
-# Terraform Enterprise Configuration
+# Terraform Push Configuration
 
-Terraform can be configured to be able to upload to HashiCorp's
-[Terraform Enterprise](https://www.hashicorp.com/products/terraform/). This configuration doesn't change
-the behavior of Terraform itself, it only configures your Terraform
-configuration to support being uploaded to Terraform Enterprise via the
-[push command](/docs/commands/push.html).
+~> **Important:** The `terraform push` command is deprecated, and only works with [the legacy version of Terraform Enterprise](/docs/enterprise-legacy/index.html). In the current version of Terraform Enterprise, you can upload configurations using the API. See [the docs about API-driven runs](/docs/enterprise/workspaces/run-api.html) for more details.
 
-For more information on the benefits of uploading your Terraform
-configuration to Terraform Enterprise, please see the
-[push command documentation](/docs/commands/push.html).
+The [`terraform push` command](/docs/commands/push.html) uploads a configuration to a Terraform Enterprise (legacy) environment. The name of the environment (and the organization it's in) can be specified on the command line, or as part of the Terraform configuration in an `atlas` block.
+
+The `atlas` block does not configure remote state; it only configures the push command. For remote state, [use a `terraform { backend "<NAME>" {...} }` block](/docs/backends/config.html).
 
 This page assumes you're familiar with the
 [configuration syntax](/docs/configuration/syntax.html)
 already.
 
-~> **Why is this called "atlas"?** Atlas was previously a commercial offering
-from HashiCorp that included a full suite of enterprise products. The products
-have since been broken apart into their individual products, like **Terraform
-Enterprise**. While this transition is in progress, you may see references to
-"atlas" in the documentation. We apologize for the inconvenience.
-
 ## Example
 
-Terraform Enterprise configuration looks like the following:
+Terraform push configuration looks like the following:
 
 ```hcl
 atlas {
   name = "mitchellh/production-example"
 }
 ```
+
+~> **Why is this called "atlas"?** Atlas was previously a commercial offering
+from HashiCorp that included a full suite of enterprise products. The products
+have since been broken apart into their individual products, like **Terraform
+Enterprise**. While this transition is in progress, you may see references to
+"atlas" in the documentation. We apologize for the inconvenience.
 
 ## Description
 
