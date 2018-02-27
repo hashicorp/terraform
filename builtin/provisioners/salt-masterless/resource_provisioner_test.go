@@ -76,6 +76,32 @@ func TestResourceProvider_Validate_LocalStateTree_doesnt_exist(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_Validate_LocalStateTree_empty_value(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"local_state_tree": "",
+	})
+	warn, errs := Provisioner().Validate(c)
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+	if len(errs) == 0 {
+		t.Fatalf("Should have errors")
+	}
+}
+
+func TestResourceProvider_Validate_LocalPillarRoot_empty_value(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"local_pillar_roots": "",
+	})
+	warn, errs := Provisioner().Validate(c)
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+	if len(errs) == 0 {
+		t.Fatalf("Should have errors")
+	}
+}
+
 func TestResourceProvisioner_Validate_invalid(t *testing.T) {
 	dir, err := ioutil.TempDir("", "_terraform_saltmasterless_test")
 	if err != nil {

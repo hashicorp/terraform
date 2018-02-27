@@ -8,7 +8,6 @@ package saltmasterless
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -40,28 +39,31 @@ type provisioner struct {
 	CmdArgs           string
 }
 
-const DefaultStateTreeDir = "/srv/salt"
-const DefaultPillarRootDir = "/srv/pillar"
-
 // Provisioner returns a salt-masterless provisioner
 func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
 			"local_state_tree": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateSaltDirectory,
 			},
 			"local_pillar_roots": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateSaltDirectory,
 			},
 			"remote_state_tree": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Default:       "/srv/salt",
+				ConflictsWith: []string{"minion_config_file"},
 			},
 			"remote_pillar_roots": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Default:       "/srv/pillar",
+				ConflictsWith: []string{"minion_config_file"},
 			},
 			"temp_config_dir": &schema.Schema{
 				Type:     schema.TypeString,
@@ -87,10 +89,12 @@ func Provisioner() terraform.ResourceProvisioner {
 			"custom_state": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "state.highstate",
 			},
 			"minion_config_file": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateSaltFile,
 			},
 			"cmd_args": &schema.Schema{
 				Type:     schema.TypeString,
@@ -103,11 +107,11 @@ func Provisioner() terraform.ResourceProvisioner {
 			"log_level": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "info",
 			},
 		},
 
-		ApplyFunc:    applyFn,
-		ValidateFunc: validateFn,
+		ApplyFunc: applyFn,
 	}
 }
 
@@ -308,36 +312,6 @@ func (p *provisioner) sudo(cmd string) string {
 	return "sudo " + cmd
 }
 
-func validateDirConfig(path string, name string, required bool) error {
-	if required == true && path == "" {
-		return fmt.Errorf("%s cannot be empty", name)
-	} else if required == false && path == "" {
-		return nil
-	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return fmt.Errorf("%s: path '%s' is invalid: %s", name, path, err)
-	} else if !info.IsDir() {
-		return fmt.Errorf("%s: path '%s' must point to a directory", name, path)
-	}
-	return nil
-}
-
-func validateFileConfig(path string, name string, required bool) error {
-	if required == true && path == "" {
-		return fmt.Errorf("%s cannot be empty", name)
-	} else if required == false && path == "" {
-		return nil
-	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return fmt.Errorf("%s: path '%s' is invalid: %s", name, path, err)
-	} else if info.IsDir() {
-		return fmt.Errorf("%s: path '%s' must point to a file", name, path)
-	}
-	return nil
-}
-
 func (p *provisioner) uploadFile(o terraform.UIOutput, comm communicator.Communicator, dst, src string) error {
 	f, err := os.Open(src)
 	if err != nil {
@@ -405,75 +379,6 @@ func (p *provisioner) uploadDir(o terraform.UIOutput, comm communicator.Communic
 	return comm.UploadDir(dst, src)
 }
 
-// Validate checks if the required arguments are configured
-func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
-	// require a salt state tree
-	localStateTreeTmp, ok := c.Get("local_state_tree")
-	var localStateTree string
-	if !ok {
-		es = append(es,
-			errors.New("Required local_state_tree is not set"))
-	} else {
-		localStateTree = localStateTreeTmp.(string)
-	}
-	err := validateDirConfig(localStateTree, "local_state_tree", true)
-	if err != nil {
-		es = append(es, err)
-	}
-
-	var localPillarRoots string
-	localPillarRootsTmp, ok := c.Get("local_pillar_roots")
-	if !ok {
-		localPillarRoots = ""
-	} else {
-		localPillarRoots = localPillarRootsTmp.(string)
-	}
-
-	err = validateDirConfig(localPillarRoots, "local_pillar_roots", false)
-	if err != nil {
-		es = append(es, err)
-	}
-
-	var minionConfig string
-	minionConfigTmp, ok := c.Get("minion_config_file")
-	if !ok {
-		minionConfig = ""
-	} else {
-		minionConfig = minionConfigTmp.(string)
-	}
-	err = validateFileConfig(minionConfig, "minion_config_file", false)
-	if err != nil {
-		es = append(es, err)
-	}
-
-	var remoteStateTree string
-	remoteStateTreeTmp, ok := c.Get("remote_state_tree")
-	if !ok {
-		remoteStateTree = ""
-	} else {
-		remoteStateTree = remoteStateTreeTmp.(string)
-	}
-
-	var remotePillarRoots string
-	remotePillarRootsTmp, ok := c.Get("remote_pillar_roots")
-	if !ok {
-		remotePillarRoots = ""
-	} else {
-		remotePillarRoots = remotePillarRootsTmp.(string)
-	}
-
-	if minionConfig != "" && (remoteStateTree != "" || remotePillarRoots != "") {
-		es = append(es,
-			errors.New("remote_state_tree and remote_pillar_roots only apply when minion_config_file is not used"))
-	}
-
-	if len(es) > 0 {
-		return ws, es
-	}
-
-	return ws, es
-}
-
 func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	p := &provisioner{
 		LocalStateTree:    d.Get("local_state_tree").(string),
@@ -495,41 +400,26 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	// build the command line args to pass onto salt
 	var cmdArgs bytes.Buffer
 
-	if p.CustomState == "" {
-		cmdArgs.WriteString(" state.highstate")
-	} else {
+	if p.CustomState != "" {
 		cmdArgs.WriteString(" state.sls ")
 		cmdArgs.WriteString(p.CustomState)
 	}
 
 	if p.MinionConfig == "" {
 		// pass --file-root and --pillar-root if no minion_config_file is supplied
-		if p.RemoteStateTree != "" {
-			cmdArgs.WriteString(" --file-root=")
-			cmdArgs.WriteString(p.RemoteStateTree)
-		} else {
-			cmdArgs.WriteString(" --file-root=")
-			cmdArgs.WriteString(DefaultStateTreeDir)
-		}
-		if p.RemotePillarRoots != "" {
-			cmdArgs.WriteString(" --pillar-root=")
-			cmdArgs.WriteString(p.RemotePillarRoots)
-		} else {
-			cmdArgs.WriteString(" --pillar-root=")
-			cmdArgs.WriteString(DefaultPillarRootDir)
-		}
+		cmdArgs.WriteString(" --file-root=")
+		cmdArgs.WriteString(p.RemoteStateTree)
+
+		cmdArgs.WriteString(" --pillar-root=")
+		cmdArgs.WriteString(p.RemotePillarRoots)
 	}
 
 	if !p.NoExitOnFailure {
 		cmdArgs.WriteString(" --retcode-passthrough")
 	}
 
-	if p.LogLevel == "" {
-		cmdArgs.WriteString(" -l info")
-	} else {
-		cmdArgs.WriteString(" -l ")
-		cmdArgs.WriteString(p.LogLevel)
-	}
+	cmdArgs.WriteString(" -l ")
+	cmdArgs.WriteString(p.LogLevel)
 
 	if p.SaltCallArgs != "" {
 		cmdArgs.WriteString(" ")
@@ -548,4 +438,28 @@ func copyOutput(
 	for line := range lr.Ch {
 		o.Output(line)
 	}
+}
+
+func validateSaltDirectory(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	info, err := os.Stat(value)
+	if err != nil {
+		errors = append(errors, fmt.Errorf("%s: path '%s' is invalid: %s", k, value, err))
+	} else if !info.IsDir() {
+		errors = append(errors, fmt.Errorf("%s: path '%s' must point to a directory", k, value))
+	}
+
+	return
+}
+
+func validateSaltFile(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	info, err := os.Stat(value)
+	if err != nil {
+		errors = append(errors, fmt.Errorf("%s: path '%s' is invalid: %s", k, value, err))
+	} else if info.IsDir() {
+		errors = append(errors, fmt.Errorf("%s: path '%s' must point to a file", k, value))
+	}
+
+	return
 }
