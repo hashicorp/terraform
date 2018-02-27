@@ -1748,7 +1748,7 @@ func interpolationFuncIntSum() ast.Function {
 					case ast.TypeFloat:
 						theSum += int(item.Value.(float64))
 					case ast.TypeString:
-						val, err := strconv.ParseInt(item.Value.(string), 10, 8)
+						val, err := strconv.ParseInt(item.Value.(string), 0, 0)
 						if err != nil {
 							return 0, fmt.Errorf("list item to sum() not parsed as integer: %v", item.Value)
 						}
