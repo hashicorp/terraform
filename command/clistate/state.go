@@ -50,9 +50,15 @@ that no one else is holding a lock.
 `
 )
 
-// Locker allows for more convenient locking, by creating the timeout context
-// and LockInfo for the caller, while storing any related data required for
-// Unlock.
+// Locker allows for more convenient usage of the lower-level state.Locker
+// implementations.
+// The state.Locker API requires passing in a state.LockInfo struct. Locker
+// implementations are expected to create the required LockInfo struct when
+// Lock is called, populate the Operation field with the "reason" string
+// provided, and pass that on to the underlying state.Locker.
+// Locker implementations are also expected to store any state required to call
+// Unlock, which is at a minimum the LockID string returned by the
+// state.Locker.
 type Locker interface {
 	// Lock the provided state, storing the reason string in the LockInfo.
 	Lock(s state.State, reason string) error
@@ -73,9 +79,9 @@ type locker struct {
 }
 
 // Create a new Locker.
-// The provided context will be used for lock cancellation, and combined with
-// the timeout duration. Lock progress will be be reported to the user through
-// the provided UI.
+// This Locker uses state.LockWithContext to retry the lock until the provided
+// timeout is reached, or the context is canceled. Lock progress will be be
+// reported to the user through the provided UI.
 func NewLocker(
 	ctx context.Context,
 	timeout time.Duration,
