@@ -307,6 +307,18 @@ func TestInterpolateFuncIntSum(t *testing.T) {
 				"3",
 				false,
 			},
+
+			{
+				`${intsum( var.mixedlist )}`,
+				"3",
+				false,
+			},
+
+			{
+				`${intsum( var.floatstringlist )}`,
+				"3",
+				false,
+			},
 		},
 		Vars: map[string]ast.Variable{
 			"var.list": {
@@ -319,6 +331,32 @@ func TestInterpolateFuncIntSum(t *testing.T) {
 					{
 						Type:  ast.TypeInt,
 						Value: 2,
+					},
+				},
+			},
+			"var.mixedlist": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "1",
+					},
+					{
+						Type:  ast.TypeInt,
+						Value: 2,
+					},
+				},
+			},
+			"var.floatstringlist": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeFloat,
+						Value: 1.0,
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "2",
 					},
 				},
 			},
