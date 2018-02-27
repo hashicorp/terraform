@@ -103,10 +103,10 @@ func (c *OutputCommand) Run(args []string) int {
 				return 1
 			}
 
-			c.Ui.Output(string(jsonOutputs))
+			c.Ui.Output(c.Colorize().Color(string(jsonOutputs)))
 			return 0
 		} else {
-			c.Ui.Output(outputsAsString(state, modPath, nil, false))
+			c.Ui.Output(c.Colorize().Color(outputsAsString(state, modPath, nil, false)))
 			return 0
 		}
 	}
@@ -127,17 +127,17 @@ func (c *OutputCommand) Run(args []string) int {
 			return 1
 		}
 
-		c.Ui.Output(string(jsonOutputs))
+		c.Ui.Output(c.Colorize().Color(string(jsonOutputs)))
 	} else {
 		switch output := v.Value.(type) {
 		case string:
-			c.Ui.Output(output)
+			c.Ui.Output(c.Colorize().Color(output))
 			return 0
 		case []interface{}:
-			c.Ui.Output(formatListOutput("", "", output))
+			c.Ui.Output(c.Colorize().Color(formatListOutput("", "", output)))
 			return 0
 		case map[string]interface{}:
-			c.Ui.Output(formatMapOutput("", "", output))
+			c.Ui.Output(c.Colorize().Color(formatMapOutput("", "", output)))
 			return 0
 		default:
 			c.Ui.Error(fmt.Sprintf("Unknown output type: %T", v.Type))
