@@ -55,7 +55,7 @@ func NewClient(services *disco.Disco, creds auth.CredentialsSource, client *http
 		client.Timeout = requestTimeout
 	}
 
-	services.Transport = client.Transport.(*http.Transport)
+	services.Transport = client.Transport
 
 	return &Client{
 		client:   client,

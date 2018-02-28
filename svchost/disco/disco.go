@@ -40,9 +40,9 @@ type Disco struct {
 	hostCache map[svchost.Hostname]Host
 	credsSrc  auth.CredentialsSource
 
-	// Transport is a custom http.Transport to use.
+	// Transport is a custom http.RoundTripper to use.
 	// A package default is used if this is nil.
-	Transport *http.Transport
+	Transport http.RoundTripper
 }
 
 func NewDisco() *Disco {
