@@ -230,6 +230,45 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 	}
 }
 
+func TestLocal_planDiff(t *testing.T) {
+	b := TestLocal(t)
+	p := TestLocalProvider(t, b, "test")
+
+	mod, modCleanup := module.TestTree(t, "./test-fixtures/plan")
+	defer modCleanup()
+
+	outDir := testTempDir(t)
+	defer os.RemoveAll(outDir)
+	diffPath := filepath.Join(outDir, "diff.json")
+
+	b.CLI = cli.NewMockUi()
+	{
+		op := testOperationPlan()
+		op.Module = mod
+		op.PlanRefresh = true
+		op.PlanDiffPath = diffPath
+
+		run, err := b.Operation(context.Background(), op)
+		if err != nil {
+			t.Fatalf("bad: %s", err)
+		}
+		<-run.Done()
+		if run.Err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !p.DiffCalled {
+			t.Fatal("diff should be called")
+		}
+
+		f, err := os.Open(diffPath)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		defer f.Close()
+	}
+}
+
 // TestLocal_planScaleOutNoDupeCount tests a Refresh/Plan sequence when a
 // resource count is scaled out. The scaled out node needs to exist in the
 // graph and run through a plan-style sequence during the refresh phase, but

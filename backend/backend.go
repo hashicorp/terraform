@@ -111,6 +111,7 @@ type Operation struct {
 	PlanId         string
 	PlanRefresh    bool   // PlanRefresh will do a refresh before a plan
 	PlanOutPath    string // PlanOutPath is the path to save the plan
+	PlanDiffPath   string // PlanDiffPath is the path to save the plan diff
 	PlanOutBackend *terraform.BackendState
 
 	// Module settings specify the root module to use for operations.
