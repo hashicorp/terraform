@@ -92,9 +92,10 @@ func Provisioner() terraform.ResourceProvisioner {
 				Default:  "state.highstate",
 			},
 			"minion_config_file": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateSaltFile,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ValidateFunc:  validateSaltFile,
+				ConflictsWith: []string{"remote_state_tree", "remote_pillar_roots"},
 			},
 			"cmd_args": &schema.Schema{
 				Type:     schema.TypeString,

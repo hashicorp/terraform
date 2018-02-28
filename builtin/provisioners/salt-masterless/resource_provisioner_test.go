@@ -102,6 +102,50 @@ func TestResourceProvider_Validate_LocalPillarRoot_empty_value(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_Validate_MinionCfg_conflict(t *testing.T) {
+	mcf, err := ioutil.TempFile("", "minion_cfg_conflict")
+	if err != nil {
+		t.Fatalf("Error when creating temp config file: %v", err)
+	}
+	defer os.Remove(mcf.Name())
+
+	dir, err := ioutil.TempDir("", "_terraform_saltmasterless_test")
+	if err != nil {
+		t.Fatalf("Error when creating temp dir: %v", err)
+	}
+	defer os.RemoveAll(dir) // clean up
+
+	c := testConfig(t, map[string]interface{}{
+		"local_state_tree":    dir,
+		"remote_pillar_roots": "/foo/p",
+		"remote_state_tree":   "/bar/s",
+		"minion_config_file":  mcf.Name(),
+	})
+
+	warn, errs := Provisioner().Validate(c)
+
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+
+	if len(errs) == 0 {
+		t.Fatalf("Should have errors")
+	}
+
+	check := func() bool {
+		for _, val := range errs {
+			if strings.Contains(val.Error(), "conflicts with") {
+				return true
+			}
+		}
+		return false
+	}()
+
+	if !check {
+		t.Fatalf("Conflict not found")
+	}
+}
+
 func TestResourceProvisioner_Validate_invalid(t *testing.T) {
 	dir, err := ioutil.TempDir("", "_terraform_saltmasterless_test")
 	if err != nil {
