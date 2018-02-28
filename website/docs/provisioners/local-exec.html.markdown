@@ -30,6 +30,17 @@ resource "aws_instance" "web" {
 }
 ```
 
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "local-exec" {
+    command = "echo ${aws_instance.web.private_ip} >> private_ips.txt"
+    when = "create"
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -50,6 +61,11 @@ The following arguments are supported:
   appended prior to the command.  This allows building command lines of the
   form "/bin/bash", "-c", "echo foo". If `interpreter` is unspecified,
   sensible defaults will be chosen based on the system OS.
+  
+* `when` - (Optional) If provided you can set at which stage the provisioner
+  will run. It takes the following stages `create` and `destroy`. This is useful
+  when a command needs to be run as a resource is being torn down. `create` is the 
+  default.
 
 ### Interpreter Examples
 
