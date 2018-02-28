@@ -8,7 +8,6 @@ package disco
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -20,7 +19,6 @@ import (
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/svchost"
 	"github.com/hashicorp/terraform/svchost/auth"
-	"github.com/hashicorp/terraform/version"
 )
 
 const (
@@ -30,7 +28,6 @@ const (
 	maxDiscoDocBytes = 1 * 1024 * 1024  // 1MB - to prevent abusive services from using loads of our memory
 )
 
-var userAgent = fmt.Sprintf("Terraform/%s (service discovery)", version.String())
 var httpTransport = cleanhttp.DefaultPooledTransport() // overridden during tests, to skip TLS verification
 
 // Disco is the main type in this package, which allows discovery on given
@@ -142,13 +139,9 @@ func (d *Disco) discover(host svchost.Hostname) Host {
 		},
 	}
 
-	var header = http.Header{}
-	header.Set("User-Agent", userAgent)
-
 	req := &http.Request{
 		Method: "GET",
 		URL:    discoURL,
-		Header: header,
 	}
 
 	if d.credsSrc != nil {
