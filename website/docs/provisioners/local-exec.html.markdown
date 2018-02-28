@@ -37,6 +37,7 @@ resource "aws_instance" "web" {
   provisioner "local-exec" {
     command = "echo ${aws_instance.web.private_ip} >> private_ips.txt"
     when = "create"
+    on_failure = "continue"
   }
 }
 ```
@@ -66,6 +67,9 @@ The following arguments are supported:
   will run. It takes the following stages `create` and `destroy`. This is useful
   when a command needs to be run as a resource is being torn down. `create` is the 
   default.
+
+* `on_failure` - (Optional) If provided it will give directions the provisioner to 
+  make an apply fail or not.
 
 ### Interpreter Examples
 
