@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
 	"github.com/hashicorp/terraform/svchost"
@@ -51,7 +51,7 @@ func NewClient(services *disco.Disco, creds auth.CredentialsSource, client *http
 	services.SetCredentialsSource(creds)
 
 	if client == nil {
-		client = cleanhttp.DefaultPooledClient()
+		client = httpclient.New()
 		client.Timeout = requestTimeout
 	}
 
