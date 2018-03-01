@@ -31,7 +31,8 @@ func (m *Meta) Input() bool {
 	return true
 }
 
-// Module loads the module tree for the given root path.
+// Module loads the module tree for the given root path using the legacy
+// configuration loader.
 //
 // It expects the modules to already be downloaded. This will never
 // download any modules.
@@ -65,8 +66,11 @@ func (m *Meta) Module(path string) (*module.Tree, tfdiags.Diagnostics) {
 	return mod, diags
 }
 
-// Config loads the root config for the path specified. Path may be a directory
-// or file. The absence of configuration is not an error and returns a nil Config.
+// Config loads the root config for the path specified, using the legacy
+// configuration loader.
+//
+// Path may be a directory or file. The absence of configuration is not an
+// error and returns a nil Config.
 func (m *Meta) Config(path string) (*config.Config, error) {
 	// If no explicit path was given then it is okay for there to be
 	// no backend configuration found.
