@@ -50,22 +50,27 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <tr>
     <td><a href="https://github.com/kevholditch/terraform-provider-kong">Kong</a></td>
     <td><a href="https://github.com/sl1pm4t/terraform-provider-lxd">LXD</a></td>
-    <td><a href="https://github.com/GSLabDev/terraform-provider-odl">Open Day Light</a></td>
+    <td><a href="https://github.com/akshaykarle/terraform-provider-mongodbatlas">MongoDB Atlas</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/GSLabDev/terraform-provider-odl">Open Day Light</a></td>
     <td><a href="https://github.com/camptocamp/terraform-provider-pass">Pass</a></td>
     <td><a href="https://github.com/camptocamp/terraform-provider-puppetca">Puppet CA</a></td>
-    <td><a href="https://github.com/camptocamp/terraform-provider-puppetdb">PuppetDB</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/camptocamp/terraform-provider-puppetdb">PuppetDB</a></td>
     <td><a href="https://github.com/ewilde/terraform-provider-runscope">Runscope</a></td>
     <td><a href="https://github.com/sacloud/terraform-provider-sakuracloud">SakuraCloud</a></td>
-    <td><a href="https://github.com/jianyuan/terraform-provider-sentry">Sentry</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/jianyuan/terraform-provider-sentry">Sentry</a></td>
     <td><a href="https://github.com/Yelp/terraform-provider-signalform">SignalFx</a></td>
     <td><a href="https://github.com/GSLabDev/terraform-provider-scvmm">SCVMM</a></td>
+    </tr>
+    <tr>
     <td><a href="https://github.com/GSLabDev/terraform-provider-vra">vRealize Automation</a></td>
+    <td><a></a></td>
+    <td><a></a></td>
     </tr>
 
 </table>
