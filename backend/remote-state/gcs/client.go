@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strconv"
+	"time"
 
 	"cloud.google.com/go/storage"
 	multierror "github.com/hashicorp/go-multierror"
@@ -23,7 +25,11 @@ type remoteClient struct {
 	stateFilePath  string
 	lockFilePath   string
 	encryptionKey  []byte
+	ticker         *time.Ticker
 }
+
+var tickInterval = 1 * time.Minute
+var minMissesUntilStale = 4
 
 func (c *remoteClient) Get() (payload *remote.Payload, err error) {
 	stateFileReader, err := c.stateFile().NewReader(c.storageContext)
@@ -77,6 +83,58 @@ func (c *remoteClient) Delete() error {
 	return nil
 }
 
+// createLockFile writes to a lock file, ensuring file creation. Returns the
+// generation number.
+func (c *remoteClient) createLockFile(lockFile *storage.ObjectHandle, infoJson []byte) (int64, error) {
+	w := lockFile.If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
+	if _, err := w.Write(infoJson); err != nil {
+		return 0, err
+	}
+	if err := w.Close(); err != nil {
+		return 0, err
+	}
+
+	return w.Attrs().Generation, nil
+}
+
+// unlockIfStale force-unlocks the lock file if it is stale. Returns true if a
+// stale lock was removed (and therefore a retry makes sense), otherwise false.
+func (c *remoteClient) unlockIfStale(lockFile *storage.ObjectHandle) bool {
+	if attrs, err := lockFile.Attrs(c.storageContext); err == nil {
+		age := time.Now().Sub(attrs.Updated)
+		if age > time.Duration(int64(minMissesUntilStale)*tickInterval.Nanoseconds()) {
+			if err := c.Unlock(strconv.FormatInt(attrs.Generation, 10)); err != nil {
+				log.Printf("[WARN] failed to release stale lock: %s", err)
+			} else {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// updateLockFile periodically updates the "updated" timestamp of the lock
+// file until the lock is released in Unlock().
+func (c *remoteClient) updateLockFile(lockFile *storage.ObjectHandle, generation int64) {
+	for _ = range c.ticker.C {
+		if attrs, err := lockFile.Attrs(c.storageContext); err == nil {
+			if attrs.Generation != generation {
+				// This is no longer the lock file that we started with. Stop updating.
+				c.ticker.Stop()
+				return
+			}
+
+			// Update the "updated" timestamp by removing non-existent metadata.
+			uattrs := storage.ObjectAttrsToUpdate{Metadata: make(map[string]string)}
+			uattrs.Metadata["x-goog-meta-terraform-state-heartbeat"] = ""
+			if _, err := lockFile.Update(c.storageContext, uattrs); err != nil {
+				log.Printf("[WARN] failed to update lock: %s", err)
+			}
+		}
+	}
+}
+
 // Lock writes to a lock file, ensuring file creation. Returns the generation
 // number, which must be passed to Unlock().
 func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
@@ -90,19 +148,21 @@ func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
 	}
 
 	lockFile := c.lockFile()
-	w := lockFile.If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
-	err = func() error {
-		if _, err := w.Write(infoJson); err != nil {
-			return err
-		}
-		return w.Close()
-	}()
 
+	generation, err := c.createLockFile(lockFile, infoJson)
 	if err != nil {
-		return "", c.lockError(fmt.Errorf("writing %q failed: %v", c.lockFileURL(), err))
+		if c.unlockIfStale(lockFile) {
+			generation, err = c.createLockFile(lockFile, infoJson)
+		}
+	}
+	if err != nil {
+		return "", c.lockError(fmt.Errorf("failed to create lock file %q: %v", c.lockFileURL(), err))
 	}
 
-	info.ID = strconv.FormatInt(w.Attrs().Generation, 10)
+	info.ID = strconv.FormatInt(generation, 10)
+
+	c.ticker = time.NewTicker(tickInterval)
+	go c.updateLockFile(lockFile, generation)
 
 	return info.ID, nil
 }
@@ -111,6 +171,10 @@ func (c *remoteClient) Unlock(id string) error {
 	gen, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return err
+	}
+
+	if c.ticker != nil {
+		c.ticker.Stop()
 	}
 
 	if err := c.lockFile().If(storage.Conditions{GenerationMatch: gen}).Delete(c.storageContext); err != nil {

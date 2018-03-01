@@ -10,6 +10,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 )
 
@@ -139,6 +140,7 @@ func TestBackend(t *testing.T) {
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
 	backend.TestBackendStateForceUnlock(t, be0, be1)
+	testStaleLocks(t, be0, be1)
 }
 
 func TestBackendWithPrefix(t *testing.T) {
@@ -167,6 +169,69 @@ func TestBackendWithEncryption(t *testing.T) {
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
+}
+
+func testStaleLocks(t *testing.T, b1, b2 backend.Backend) {
+	t.Helper()
+
+	// Get the default state for each
+	b1StateMgr, err := b1.State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	if err := b1StateMgr.RefreshState(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	b2StateMgr, err := b2.State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	if err := b2StateMgr.RefreshState(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Reassign so its obvious whats happening
+	lockerA := b1StateMgr.(state.Locker)
+	lockerB := b2StateMgr.(state.Locker)
+
+	infoA := state.NewLockInfo()
+	infoA.Operation = "test"
+	infoA.Who = "clientA"
+
+	infoB := state.NewLockInfo()
+	infoB.Operation = "test"
+	infoB.Who = "clientB"
+
+	// Reduce tick interval for faster tests
+	tickInterval = 5 * time.Second
+
+	lockIDA, err := lockerA.Lock(infoA)
+	if err != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+
+	// stop updating the "updated" timestamp. Eventually, the lock will become stale.
+	lockerA.(*remote.State).Client.(*remoteClient).ticker.Stop()
+
+	// lock is still held by A after 10 seconds.
+	time.Sleep(10 * time.Second)
+	_, err = lockerB.Lock(infoB)
+	if err == nil {
+		lockerA.Unlock(lockIDA)
+		t.Fatal("client B obtained lock while held by client A")
+	}
+
+	// wait a bit longer and the lock will become stale.
+	time.Sleep(20 * time.Second)
+	lockIDB, err := lockerB.Lock(infoB)
+	if err != nil {
+		t.Fatal("client B failed to obtain lock that was previously held by client A but that went stale")
+	}
+
+	if err := lockerB.Unlock(lockIDB); err != nil {
+		t.Fatal("error unlocking client B", err)
+	}
 }
 
 // setupBackend returns a new GCS backend.
