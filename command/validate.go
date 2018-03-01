@@ -6,9 +6,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/tfdiags"
-
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 // ValidateCommand is a Command implementation that validates the terraform files
@@ -23,10 +20,8 @@ func (c *ValidateCommand) Run(args []string) int {
 	if err != nil {
 		return 1
 	}
-	var checkVars bool
 
 	cmdFlags := c.Meta.flagSet("validate")
-	cmdFlags.BoolVar(&checkVars, "check-variables", true, "check-variables")
 	cmdFlags.Usage = func() {
 		c.Ui.Error(c.Help())
 	}
@@ -54,7 +49,7 @@ func (c *ValidateCommand) Run(args []string) int {
 		return 1
 	}
 
-	rtnCode := c.validate(dir, checkVars)
+	rtnCode := c.validate(dir)
 
 	return rtnCode
 }
@@ -67,77 +62,75 @@ func (c *ValidateCommand) Help() string {
 	helpText := `
 Usage: terraform validate [options] [dir]
 
-  Validate the terraform files in a directory. Validation includes a
-  basic check of syntax as well as checking that all variables declared
-  in the configuration are specified in one of the possible ways:
+  Validate the configuration files in a directory, referring only to the
+  configuration and not accessing any remote services such as remote state,
+  provider APIs, etc.
 
-      -var foo=...
-      -var-file=foo.vars
-      TF_VAR_foo environment variable
-      terraform.tfvars
-      default value
+  Validate runs checks that verify whether a configuration is
+  internally-consistent, regardless of any provided variables or existing
+  state. It is thus primarily useful for general verification of reusable
+  modules, including correctness of attribute names and value types.
+
+  To verify configuration in the context of a particular run (a particular
+  target workspace, operation variables, etc), use the following command
+  instead:
+      terraform plan -validate-only
+
+  It is safe to run this command automatically, for example as a post-save
+  check in a text editor or as a test step for a re-usable module in a CI
+  system.
+
+  Validation requires an initialized working directory with any referenced
+  plugins and modules installed. To initialize a working directory for
+  validation without accessing any configured remote backend, use:
+      terraform init -backend=false
 
   If dir is not specified, then the current directory will be used.
 
 Options:
 
-  -check-variables=true If set to true (default), the command will check
-                        whether all required variables have been specified.
-
-  -no-color             If specified, output won't contain any color.
-
-  -var 'foo=bar'        Set a variable in the Terraform configuration. This
-                        flag can be set multiple times.
-
-  -var-file=foo         Set variables in the Terraform configuration from
-                        a file. If "terraform.tfvars" is present, it will be
-                        automatically loaded if this flag is not specified.
+  -no-color    If specified, output won't contain any color.
 `
 	return strings.TrimSpace(helpText)
 }
 
-func (c *ValidateCommand) validate(dir string, checkVars bool) int {
+func (c *ValidateCommand) validate(dir string) int {
 	var diags tfdiags.Diagnostics
 
-	cfg, err := config.LoadDir(dir)
-	if err != nil {
-		diags = diags.Append(err)
-		c.showDiagnostics(err)
-		return 1
-	}
-
-	diags = diags.Append(cfg.Validate())
+	_, cfgDiags := c.loadConfig(dir)
+	diags = diags.Append(cfgDiags)
 
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	if checkVars {
-		mod, modDiags := c.Module(dir)
-		diags = diags.Append(modDiags)
-		if modDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-
-		opts := c.contextOpts()
-		opts.Module = mod
-
-		tfCtx, err := terraform.NewContext(opts)
-		if err != nil {
-			diags = diags.Append(err)
-			c.showDiagnostics(diags)
-			return 1
-		}
-
-		diags = diags.Append(tfCtx.Validate())
+	// TODO: run a validation walk once terraform.NewContext is updated
+	// to support new-style configuration.
+	/* old implementation of validation....
+	mod, modDiags := c.Module(dir)
+	diags = diags.Append(modDiags)
+	if modDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
+
+	opts := c.contextOpts()
+	opts.Module = mod
+
+	tfCtx, err := terraform.NewContext(opts)
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	diags = diags.Append(tfCtx.Validate())
+	*/
 
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
-
 	return 0
 }
