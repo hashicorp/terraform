@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
@@ -97,6 +98,11 @@ type Meta struct {
 	//----------------------------------------------------------
 	// Private: do not set these
 	//----------------------------------------------------------
+
+	// configLoader is a shared configuration loader that is used by
+	// LoadConfig and other commands that access configuration files.
+	// It is initialized on first use.
+	configLoader *configload.Loader
 
 	// backendState is the currently active backend state
 	backendState *terraform.BackendState
@@ -542,7 +548,7 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 		// For now, we don't have easy access to the writer that
 		// ui.Error (etc) are writing to and thus can't interrogate
 		// to see if it's a terminal and what size it is.
-		msg := format.Diagnostic(diag, nil, m.Colorize(), 78)
+		msg := format.Diagnostic(diag, m.configSources(), m.Colorize(), 78)
 		switch diag.Severity() {
 		case tfdiags.Error:
 			m.Ui.Error(msg)
