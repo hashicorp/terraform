@@ -149,61 +149,66 @@ func (c *InitCommand) Run(args []string) int {
 
 	var back backend.Backend
 
-	// If we're performing a get or loading the backend, then we perform
-	// some extra tasks.
-	if flagGet || flagBackend {
-		conf, err := c.Config(path)
-		if err != nil {
+	if flagGet {
+		rootMod, diags := c.loadSingleModule(path)
+		if diags.HasErrors() {
 			// Since this may be the user's first ever interaction with Terraform,
 			// we'll provide some additional context in this case.
 			c.Ui.Error(strings.TrimSpace(errInitConfigError))
-			c.showDiagnostics(err)
+			c.showDiagnostics(diags)
 			return 1
 		}
 
-		// If we requested downloading modules and have modules in the config
-		if flagGet && len(conf.Modules) > 0 {
+		if len(rootMod.ModuleCalls) > 0 {
 			header = true
-
-			getMode := module.GetModeGet
 			if flagUpgrade {
-				getMode = module.GetModeUpdate
 				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
 					"[reset][bold]Upgrading modules...")))
 			} else {
 				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
 					"[reset][bold]Initializing modules...")))
 			}
-
-			if err := getModules(&c.Meta, path, getMode); err != nil {
-				c.Ui.Error(fmt.Sprintf(
-					"Error downloading modules: %s", err))
+			instHooks := uiModuleInstallHooks{
+				ShowLocalPaths: true,
+				Ui:             c.Ui,
+			}
+			diags := c.installModules(path, flagUpgrade, instHooks)
+			if diags.HasErrors() {
+				c.showDiagnostics(diags)
 				return 1
 			}
 		}
+	}
 
-		// If we're requesting backend configuration or looking for required
-		// plugins, load the backend
-		if flagBackend {
-			header = true
+	if flagBackend {
+		rootMod, diags := c.loadSingleModule(path)
+		if diags.HasErrors() {
+			// Since this may be the user's first ever interaction with Terraform,
+			// we'll provide some additional context in this case.
+			c.Ui.Error(strings.TrimSpace(errInitConfigError))
+			c.showDiagnostics(diags)
+			return 1
+		}
 
-			// Only output that we're initializing a backend if we have
-			// something in the config. We can be UNSETTING a backend as well
-			// in which case we choose not to show this.
-			if conf.Terraform != nil && conf.Terraform.Backend != nil {
-				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-					"\n[reset][bold]Initializing the backend...")))
-			}
+		header = true
 
-			opts := &BackendOpts{
-				Config:      conf,
-				ConfigExtra: flagConfigExtra,
-				Init:        true,
-			}
-			if back, err = c.Backend(opts); err != nil {
-				c.Ui.Error(err.Error())
-				return 1
-			}
+		// Only output that we're initializing a backend if we have
+		// something in the config. We can be UNSETTING a backend as well
+		// in which case we choose not to show this.
+		if rootMod.Backend != nil {
+			c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+				"\n[reset][bold]Initializing the backend...")))
+		}
+
+		opts := &BackendOpts{
+			ConfigBlock: rootMod.Backend,
+			ConfigExtra: flagConfigExtra,
+			Init:        true,
+		}
+		if back, err = c.Backend(opts); err != nil {
+			diags = diags.Append(err)
+			c.showDiagnostics(diags)
+			return 1
 		}
 	}
 

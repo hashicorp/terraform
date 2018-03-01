@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
@@ -27,8 +28,14 @@ import (
 
 // BackendOpts are the options used to initialize a backend.Backend.
 type BackendOpts struct {
-	// Module is the root module from which we will extract the terraform and
-	// backend configuration.
+	// ConfigBlock is an object representing the backend block given in
+	// the root module configuration, if any.
+	ConfigBlock *configs.Backend
+
+	// Config is used when configuration is loaded with the legacy configuration
+	// loader, as an alternative to ConfigBlock. In this case, the object
+	// represents the entire root module configuration rather than just
+	// the backend configuration.
 	Config *config.Config
 
 	// ConfigFile is a path to a file that contains configuration that
@@ -178,6 +185,11 @@ func (m *Meta) Operation() *backend.Operation {
 
 // backendConfig returns the local configuration for the backend
 func (m *Meta) backendConfig(opts *BackendOpts) (*config.Backend, error) {
+	if opts.ConfigBlock != nil {
+		// FIXME: Implement this
+		return nil, fmt.Errorf("backend initialization for new-style configuration loader is not yet implemented")
+	}
+
 	if opts.Config == nil {
 		// check if the config was missing, or just not required
 		conf, err := m.Config(".")

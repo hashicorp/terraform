@@ -45,6 +45,17 @@ func init() {
 	}
 }
 
+// NewConstraints creates a new Constraints based on the given
+// version.Constraints.
+//
+// The caller must not modify the slice's backing array after passing it to
+// this function.
+func NewConstraints(c version.Constraints) Constraints {
+	return Constraints{
+		raw: c,
+	}
+}
+
 // Allows returns true if the given version permitted by the receiving
 // constraints set.
 func (s Constraints) Allows(v Version) bool {

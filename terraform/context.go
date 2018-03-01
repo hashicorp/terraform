@@ -8,7 +8,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
@@ -55,7 +57,7 @@ type ContextOpts struct {
 	Destroy            bool
 	Diff               *Diff
 	Hooks              []Hook
-	Module             *module.Tree
+	Config             *configs.Config
 	Parallelism        int
 	State              *State
 	StateFutureAllowed bool
@@ -63,7 +65,7 @@ type ContextOpts struct {
 	Provisioners       map[string]ResourceProvisionerFactory
 	Shadow             bool
 	Targets            []string
-	Variables          map[string]interface{}
+	Variables          map[string]cty.Value
 
 	// If non-nil, will apply as additional constraints on the provider
 	// plugins that will be requested from the provider resolver.
@@ -97,14 +99,14 @@ type Context struct {
 	diffLock   sync.RWMutex
 	hooks      []Hook
 	meta       *ContextMeta
-	module     *module.Tree
+	config     *configs.Config
 	sh         *stopHook
 	shadow     bool
 	state      *State
 	stateLock  sync.RWMutex
 	targets    []string
 	uiInput    UIInput
-	variables  map[string]interface{}
+	variables  map[string]cty.Value
 
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
@@ -124,9 +126,9 @@ type Context struct {
 // the values themselves.
 func NewContext(opts *ContextOpts) (*Context, error) {
 	// Validate the version requirement if it is given
-	if opts.Module != nil {
-		if err := CheckRequiredVersion(opts.Module); err != nil {
-			return nil, err
+	if opts.Config != nil {
+		if diags := CheckRequiredVersion(opts.Config); diags.HasErrors() {
+			return nil, diags.Err()
 		}
 	}
 
@@ -162,19 +164,9 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 		par = 10
 	}
 
-	// Set up the variables in the following sequence:
-	//    0 - Take default values from the configuration
-	//    1 - Take values from TF_VAR_x environment variables
-	//    2 - Take values specified in -var flags, overriding values
-	//        set by environment variables if necessary. This includes
-	//        values taken from -var-file in addition.
-	variables := make(map[string]interface{})
-	if opts.Module != nil {
-		var err error
-		variables, err = Variables(opts.Module, opts.Variables)
-		if err != nil {
-			return nil, err
-		}
+	variables := opts.Variables
+	if variables == nil {
+		variables = make(map[string]cty.Value)
 	}
 
 	// Bind available provider plugins to the constraints in config
@@ -208,7 +200,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 		diff:      diff,
 		hooks:     hooks,
 		meta:      opts.Meta,
-		module:    opts.Module,
+		config:    opts.Config,
 		shadow:    opts.Shadow,
 		state:     state,
 		targets:   opts.Targets,

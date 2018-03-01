@@ -2,7 +2,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
@@ -12,11 +12,7 @@ import (
 //
 // Both configuration and state are required because there can be resources
 // implied by instances in the state that no longer exist in config.
-//
-// This function will panic if any invalid version constraint strings are
-// present in the configuration. This is guaranteed not to happen for any
-// configuration that has passed a call to Config.Validate().
-func ModuleTreeDependencies(root *module.Tree, state *State) *moduledeps.Module {
+func ModuleTreeDependencies(root *configs.Config, state *State) *moduledeps.Module {
 	// First we walk the configuration tree to build the overall structure
 	// and capture the explicit/implicit/inherited provider dependencies.
 	deps := moduleTreeConfigDependencies(root, nil)
@@ -30,7 +26,7 @@ func ModuleTreeDependencies(root *module.Tree, state *State) *moduledeps.Module 
 	return deps
 }
 
-func moduleTreeConfigDependencies(root *module.Tree, inheritProviders map[string]*config.ProviderConfig) *moduledeps.Module {
+func moduleTreeConfigDependencies(root *configs.Config, inheritProviders map[string]*config.ProviderConfig) *moduledeps.Module {
 	if root == nil {
 		// If no config is provided, we'll make a synthetic root.
 		// This isn't necessarily correct if we're called with a nil that
@@ -44,8 +40,8 @@ func moduleTreeConfigDependencies(root *module.Tree, inheritProviders map[string
 		Name: root.Name(),
 	}
 
-	cfg := root.Config()
-	providerConfigs := cfg.ProviderConfigsByFullName()
+	module := root.Module
+	providerConfigs := module.ProviderConfigs
 
 	// Provider dependencies
 	{

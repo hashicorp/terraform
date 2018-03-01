@@ -2,6 +2,7 @@ package moduledeps
 
 import (
 	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // Providers describes a set of provider dependencies for a given module.
@@ -15,6 +16,7 @@ type Providers map[ProviderInstance]ProviderDependency
 type ProviderDependency struct {
 	Constraints discovery.Constraints
 	Reason      ProviderDependencyReason
+	SourceRange tfdiags.SourceRange
 }
 
 // ProviderDependencyReason is an enumeration of reasons why a dependency might be
