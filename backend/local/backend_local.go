@@ -120,7 +120,10 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 						continue
 					}
 					if b.CLI != nil {
-						b.CLI.Warn(format.Diagnostic(diag, b.Colorize(), 72))
+						// FIXME: We don't have access to the source code cache
+						// in here, so we can't produce source code snippets
+						// from this codepath.
+						b.CLI.Warn(format.Diagnostic(diag, nil, b.Colorize(), 72))
 					} else {
 						desc := diag.Description()
 						log.Printf("[WARN] backend/local: %s", desc.Summary)
