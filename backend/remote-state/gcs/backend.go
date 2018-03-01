@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/httpclient"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
 )
@@ -156,7 +156,7 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
 	}
 
-	opts = append(opts, option.WithUserAgent(terraform.UserAgentString()))
+	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
 	client, err := storage.NewClient(b.storageContext, opts...)
 	if err != nil {
 		return fmt.Errorf("storage.NewClient() failed: %v", err)
