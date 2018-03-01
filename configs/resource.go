@@ -63,7 +63,7 @@ func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 			Severity: hcl.DiagError,
 			Summary:  "Invalid resource name",
 			Detail:   badIdentifierDetail,
-			Subject:  &block.LabelRanges[0],
+			Subject:  &block.LabelRanges[1],
 		})
 	}
 
@@ -258,7 +258,7 @@ func decodeDataBlock(block *hcl.Block) (*DataResource, hcl.Diagnostics) {
 			Severity: hcl.DiagError,
 			Summary:  "Invalid data resource name",
 			Detail:   badIdentifierDetail,
-			Subject:  &block.LabelRanges[0],
+			Subject:  &block.LabelRanges[1],
 		})
 	}
 
