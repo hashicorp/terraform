@@ -1,8 +1,8 @@
-resource "test_instance" "foo" {
+resorce "test_instance" "foo" { # Intentional typo to test error reporting
     ami = "bar"
 
     network_interface {
       device_index = 0
-      description = "Main network interface ${var.this_is_an_error}"
+      description = "Main network interface"
     }
 }
