@@ -47,7 +47,11 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	name := args[0]
-	resourceAddressStr = "module.root." + name
+	if module == "" {
+		resourceAddressStr = "module.root." + name
+	} else {
+		resourceAddressStr = "module.root.module." + module + "." + name
+	}
 
 	// get the resource address from name
 	rsa, err := terraform.ParseResourceAddress(resourceAddressStr)
