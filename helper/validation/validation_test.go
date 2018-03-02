@@ -144,6 +144,58 @@ func TestValidationRegexp(t *testing.T) {
 	})
 }
 
+func TestValidateRFC3339TimeString(t *testing.T) {
+	runTestCases(t, []testCase{
+		{
+			val: "2018-03-01T00:00:00Z",
+			f:   ValidateRFC3339TimeString,
+		},
+		{
+			val: "2018-03-01T00:00:00-05:00",
+			f:   ValidateRFC3339TimeString,
+		},
+		{
+			val: "2018-03-01T00:00:00+05:00",
+			f:   ValidateRFC3339TimeString,
+		},
+		{
+			val:         "03/01/2018",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`cannot parse "1/2018" as "2006"`)),
+		},
+		{
+			val:         "03-01-2018",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`cannot parse "1-2018" as "2006"`)),
+		},
+		{
+			val:         "2018-03-01",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`cannot parse "" as "T"`)),
+		},
+		{
+			val:         "2018-03-01T",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`cannot parse "" as "15"`)),
+		},
+		{
+			val:         "2018-03-01T00:00:00",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`cannot parse "" as "Z07:00"`)),
+		},
+		{
+			val:         "2018-03-01T00:00:00Z05:00",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`extra text: 05:00`)),
+		},
+		{
+			val:         "2018-03-01T00:00:00Z-05:00",
+			f:           ValidateRFC3339TimeString,
+			expectedErr: regexp.MustCompile(regexp.QuoteMeta(`extra text: -05:00`)),
+		},
+	})
+}
+
 func TestValidateJsonString(t *testing.T) {
 	type testCases struct {
 		Value    string
