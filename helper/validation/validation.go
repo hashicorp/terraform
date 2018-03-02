@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
@@ -206,6 +207,15 @@ func ValidateListUniqueStrings(v interface{}, k string) (ws []string, errors []e
 // supplied string is a valid regular expression.
 func ValidateRegexp(v interface{}, k string) (ws []string, errors []error) {
 	if _, err := regexp.Compile(v.(string)); err != nil {
+		errors = append(errors, fmt.Errorf("%q: %s", k, err))
+	}
+	return
+}
+
+// ValidateRFC3339TimeString is a ValidateFunc that ensures a string parses
+// as time.RFC3339 format
+func ValidateRFC3339TimeString(v interface{}, k string) (ws []string, errors []error) {
+	if _, err := time.Parse(time.RFC3339, v.(string)); err != nil {
 		errors = append(errors, fmt.Errorf("%q: %s", k, err))
 	}
 	return
