@@ -8,8 +8,8 @@ description: |-
 
 #Cloud Providers
 
-This group include cloud providers offering a range of services including IaaS,
-SaaS, and PaaS offerings.  This group of cloud providers include some smaller
+This group includes cloud providers offering a range of services including IaaS,
+SaaS, and PaaS offerings. This group of cloud providers includes some smaller
 scale clouds or ones with more specialized offerings. The Terraform provider
 and associated resources for these clouds are primarily supported by the cloud
 vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
