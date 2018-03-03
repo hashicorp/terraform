@@ -12,7 +12,6 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -129,9 +128,16 @@ func (c *InitCommand) Run(args []string) int {
 		)))
 		header = true
 
-		s := module.NewStorage("", c.Services, c.Credentials)
-		if err := s.GetModule(path, src); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error copying source module: %s", err))
+		instHooks := uiModuleInstallHooks{
+			ShowLocalPaths: false,
+			Ui:             c.Ui,
+		}
+		diags := c.initDirFromModule(path, src, instHooks)
+		if diags.HasErrors() {
+			// Since this may be the user's first ever interaction with Terraform,
+			// we'll provide some additional context in this case.
+			c.Ui.Error(strings.TrimSpace(errInitConfigError))
+			c.showDiagnostics(diags)
 			return 1
 		}
 	}
@@ -278,6 +284,10 @@ func (c *InitCommand) Run(args []string) int {
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
 func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade bool) error {
+	// FIXME: Temporarily disabled until we can update to the new config
+	// loader and associated models.
+	return nil
+
 	mod, diags := c.Module(path)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -290,11 +300,14 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		return err
 	}
 
-	if err := terraform.CheckRequiredVersion(mod); err != nil {
-		diags = diags.Append(err)
-		c.showDiagnostics(diags)
-		return err
-	}
+	// TODO: Update for new version models
+	/*if versionDiags := terraform.CheckRequiredVersion(cfg); len(versionDiags) != 0 {
+		diags = diags.Append(versionDiags)
+		if versionDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return diags.Err()
+		}
+	}*/
 
 	var available discovery.PluginMetaSet
 	if upgrade {

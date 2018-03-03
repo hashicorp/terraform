@@ -3,10 +3,9 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
-
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -17,55 +16,30 @@ import (
 // from child modules.
 //
 // This is tested in context_test.go.
-func CheckRequiredVersion(m *module.Tree) error {
-	// Check any children
-	for _, c := range m.Children() {
-		if err := CheckRequiredVersion(c); err != nil {
-			return err
+func CheckRequiredVersion(cfg *configs.Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, constraint := range cfg.Module.CoreVersionConstraints {
+		if !constraint.Required.Check(tfversion.SemVer) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unmet Terraform version requirement",
+				Detail:   fmt.Sprintf(checkRequiredVersionDetailFormat, tfversion.SemVer),
+				Subject:  &constraint.DeclRange,
+			})
 		}
 	}
 
-	var tf *config.Terraform
-	if c := m.Config(); c != nil {
-		tf = c.Terraform
+	for _, child := range cfg.Children {
+		childDiags := CheckRequiredVersion(child)
+		diags = diags.Append(childDiags)
 	}
 
-	// If there is no Terraform config or the required version isn't set,
-	// we move on.
-	if tf == nil || tf.RequiredVersion == "" {
-		return nil
-	}
-
-	// Path for errors
-	module := "root"
-	if path := normalizeModulePath(m.Path()); len(path) > 1 {
-		module = modulePrefixStr(path)
-	}
-
-	// Check this version requirement of this module
-	cs, err := version.NewConstraint(tf.RequiredVersion)
-	if err != nil {
-		return fmt.Errorf(
-			"%s: terraform.required_version %q syntax error: %s",
-			module,
-			tf.RequiredVersion, err)
-	}
-
-	if !cs.Check(tfversion.SemVer) {
-		return fmt.Errorf(
-			"The currently running version of Terraform doesn't meet the\n"+
-				"version requirements explicitly specified by the configuration.\n"+
-				"Please use the required version or update the configuration.\n"+
-				"Note that version requirements are usually set for a reason, so\n"+
-				"we recommend verifying with whoever set the version requirements\n"+
-				"prior to making any manual changes.\n\n"+
-				"  Module: %s\n"+
-				"  Required version: %s\n"+
-				"  Current version: %s",
-			module,
-			tf.RequiredVersion,
-			tfversion.SemVer)
-	}
-
-	return nil
+	return diags
 }
+
+const checkRequiredVersionDetailFormat = `Your current Terraform Core version %s does not meet this version constraint.
+
+To proceed, either switch to an allowed version or update the configuration to permit your current version.
+
+Version requirements are usually set for a good reason, so check with whoever set this version constraint before adjusting it.`
