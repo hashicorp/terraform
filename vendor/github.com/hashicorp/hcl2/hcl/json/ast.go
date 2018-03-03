@@ -12,7 +12,7 @@ type node interface {
 }
 
 type objectVal struct {
-	Attrs      map[string]*objectAttr
+	Attrs      []*objectAttr
 	SrcRange   hcl.Range // range of the entire object, brace-to-brace
 	OpenRange  hcl.Range // range of the opening brace
 	CloseRange hcl.Range // range of the closing brace
