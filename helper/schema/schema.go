@@ -1374,14 +1374,19 @@ func (m schemaMap) validateMap(
 		return nil, []error{fmt.Errorf("%s: should be a map", k)}
 	}
 
+	var validatableMap map[string]interface{}
+
 	// If it is not a slice, validate directly
 	if rawV.Kind() != reflect.Slice {
 		mapIface := rawV.Interface()
-		if _, errs := validateMapValues(k, mapIface.(map[string]interface{}), schema); len(errs) > 0 {
+
+		var errs []error
+		validatableMap, errs = decodeMapValues(k, mapIface.(map[string]interface{}), schema)
+		if len(errs) > 0 {
 			return nil, errs
 		}
 		if schema.ValidateFunc != nil {
-			return schema.ValidateFunc(mapIface, k)
+			return schema.ValidateFunc(validatableMap, k)
 		}
 		return nil, nil
 	}
@@ -1399,26 +1404,24 @@ func (m schemaMap) validateMap(
 				"%s: should be a map", k)}
 		}
 		mapIface := v.Interface()
-		if _, errs := validateMapValues(k, mapIface.(map[string]interface{}), schema); len(errs) > 0 {
+
+		var errs []error
+		validatableMap, errs = decodeMapValues(k, mapIface.(map[string]interface{}), schema)
+		if len(errs) > 0 {
 			return nil, errs
 		}
 	}
 
 	if schema.ValidateFunc != nil {
-		validatableMap := make(map[string]interface{})
-		for _, raw := range raws {
-			for k, v := range raw.(map[string]interface{}) {
-				validatableMap[k] = v
-			}
-		}
-
 		return schema.ValidateFunc(validatableMap, k)
 	}
 
 	return nil, nil
 }
 
-func validateMapValues(k string, m map[string]interface{}, schema *Schema) ([]string, []error) {
+func decodeMapValues(k string, m map[string]interface{}, schema *Schema) (map[string]interface{}, []error) {
+	decodedMap := make(map[string]interface{}, len(m))
+
 	for key, raw := range m {
 		valueType, err := getValueType(k, schema)
 		if err != nil {
@@ -1431,26 +1434,30 @@ func validateMapValues(k string, m map[string]interface{}, schema *Schema) ([]st
 			if err := mapstructure.WeakDecode(raw, &n); err != nil {
 				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
 			}
+			decodedMap[key] = n
 		case TypeInt:
 			var n int
 			if err := mapstructure.WeakDecode(raw, &n); err != nil {
 				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
 			}
+			decodedMap[key] = n
 		case TypeFloat:
 			var n float64
 			if err := mapstructure.WeakDecode(raw, &n); err != nil {
 				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
 			}
+			decodedMap[key] = n
 		case TypeString:
 			var n string
 			if err := mapstructure.WeakDecode(raw, &n); err != nil {
 				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
 			}
+			decodedMap[key] = n
 		default:
 			panic(fmt.Sprintf("Unknown validation type: %#v", schema.Type))
 		}
 	}
-	return nil, nil
+	return decodedMap, nil
 }
 
 func getValueType(k string, schema *Schema) (ValueType, error) {

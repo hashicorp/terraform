@@ -4966,6 +4966,88 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: false,
 		},
 
+		"ValidateFunc on TypeMap receives properly casted value type per Elem": {
+			Schema: map[string]*Schema{
+				"validate_me": &Schema{
+					Type:     TypeMap,
+					Required: true,
+					Elem:     TypeString,
+					ValidateFunc: func(value interface{}, k string) (ws []string, es []error) {
+						m := value.(map[string]interface{})
+						for k, v := range m {
+							_, isString := v.(string)
+							if !isString {
+								es = append(es, fmt.Errorf("Expected string for %q, given: %#v", k, v))
+							}
+						}
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"validate_me": map[string]interface{}{
+					"one":     "one",
+					"bool":    true,
+					"integer": 12,
+				},
+			},
+
+			Err: false,
+		},
+
+		"ValidateFunc on TypeMap receives properly casted value type per Elem #2 (no Elem, defaults to string)": {
+			Schema: map[string]*Schema{
+				"validate_me": &Schema{
+					Type:     TypeMap,
+					Required: true,
+					ValidateFunc: func(value interface{}, k string) (ws []string, es []error) {
+						m := value.(map[string]interface{})
+						for k, v := range m {
+							_, isString := v.(string)
+							if !isString {
+								es = append(es, fmt.Errorf("Expected string for %q, given: %#v", k, v))
+							}
+						}
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"validate_me": map[string]interface{}{
+					"one":     "one",
+					"bool":    true,
+					"integer": 12,
+				},
+			},
+
+			Err: false,
+		},
+
+		"ValidateFunc on TypeMap receives properly casted value type per Elem #3": {
+			Schema: map[string]*Schema{
+				"string_to_bool": &Schema{
+					Type:     TypeMap,
+					Required: true,
+					Elem:     TypeBool,
+					ValidateFunc: func(value interface{}, k string) (ws []string, es []error) {
+						m := value.(map[string]interface{})
+						v := m["b"].(bool)
+						if !v {
+							es = append(es, fmt.Errorf("Expected %q to be %t", "b", true))
+						}
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"string_to_bool": map[string]interface{}{
+					"b": "foo",
+				},
+			},
+
+			Err: true,
+		},
+
 		"special timeouts field": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
