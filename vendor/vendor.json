@@ -1944,9 +1944,10 @@
 			"revisionTime": "2016-10-04T15:35:44Z"
 		},
 		{
-			"checksumSHA1": "7iMOW6SxJFNH0/m1tjjCXVZl+Z8=",
-			"path": "github.com/lusis/go-artifactory/src/artifactory.v401",
-			"revision": "7e4ce345df825841661d1b3ffbb1327083d4a22f"
+			"checksumSHA1": "Om5vsBeqDjW4lkyHYpOUGm6tyAg=",
+			"path": "github.com/lusis/go-artifactory/artifactory.v54",
+			"revision": "4e343997db2c930481bf0d04cfb1a8df05dafeed",
+			"revisionTime": "2018-03-05T19:41:52Z"
 		},
 		{
 			"checksumSHA1": "DlpjiTUHFFoU39yh4FIKS8g7L7A=",
