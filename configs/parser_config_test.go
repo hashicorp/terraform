@@ -97,7 +97,7 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 		{
 			"invalid-files/variable-type-unknown.tf",
 			hcl.DiagError,
-			"Invalid variable type hint",
+			"Invalid type specification",
 		},
 		{
 			"invalid-files/unexpected-attr.tf",

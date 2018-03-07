@@ -22,7 +22,8 @@ func TestModuleOverrideVariable(t *testing.T) {
 			Description:    "b_override description",
 			DescriptionSet: true,
 			Default:        cty.StringVal("b_override"),
-			TypeHint:       TypeHintString,
+			Type:           cty.String,
+			ParsingMode:    VariableParseLiteral,
 			DeclRange: hcl.Range{
 				Filename: "test-fixtures/valid-modules/override-variable/primary.tf",
 				Start: hcl.Pos{
@@ -42,7 +43,8 @@ func TestModuleOverrideVariable(t *testing.T) {
 			Description:    "base description",
 			DescriptionSet: true,
 			Default:        cty.StringVal("b_override partial"),
-			TypeHint:       TypeHintString,
+			Type:           cty.String,
+			ParsingMode:    VariableParseLiteral,
 			DeclRange: hcl.Range{
 				Filename: "test-fixtures/valid-modules/override-variable/primary.tf",
 				Start: hcl.Pos{
