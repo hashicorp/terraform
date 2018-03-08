@@ -59,8 +59,17 @@ func NumberFloatVal(v float64) Value {
 func StringVal(v string) Value {
 	return Value{
 		ty: String,
-		v:  norm.NFC.String(v),
+		v:  NormalizeString(v),
 	}
+}
+
+// NormalizeString applies the same normalization that cty applies when
+// constructing string values.
+//
+// A return value from this function can be meaningfully compared byte-for-byte
+// with a Value.AsString result.
+func NormalizeString(s string) string {
+	return norm.NFC.String(s)
 }
 
 // ObjectVal returns a Value of an object type whose structure is defined
@@ -70,6 +79,7 @@ func ObjectVal(attrs map[string]Value) Value {
 	attrVals := make(map[string]interface{}, len(attrs))
 
 	for attr, val := range attrs {
+		attr = NormalizeString(attr)
 		attrTypes[attr] = val.ty
 		attrVals[attr] = val.v
 	}
@@ -162,7 +172,7 @@ func MapVal(vals map[string]Value) Value {
 			))
 		}
 
-		rawMap[key] = val.v
+		rawMap[NormalizeString(key)] = val.v
 	}
 
 	return Value{
@@ -210,6 +220,21 @@ func SetVal(vals []Value) Value {
 
 	return Value{
 		ty: Set(elementType),
+		v:  rawVal,
+	}
+}
+
+// SetValFromValueSet returns a Value of set type based on an already-constructed
+// ValueSet.
+//
+// The element type of the returned value is the element type of the given
+// set.
+func SetValFromValueSet(s ValueSet) Value {
+	ety := s.ElementType()
+	rawVal := s.s.Copy() // copy so caller can't mutate what we wrap
+
+	return Value{
+		ty: Set(ety),
 		v:  rawVal,
 	}
 }
