@@ -63,6 +63,20 @@ func TestState_complexOutputs(t *testing.T) {
 	})
 }
 
+// outputs should never have a null value, but don't crash if we ever encounter
+// them.
+func TestState_nullOutputs(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccState_nullOutputs,
+			},
+		},
+	})
+}
+
 func TestEmptyState_defaults(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -139,6 +153,15 @@ resource "terraform_remote_state" "foo" {
 
 	config {
 		path = "./test-fixtures/complex_outputs.tfstate"
+	}
+}`
+
+const testAccState_nullOutputs = `
+resource "terraform_remote_state" "foo" {
+	backend = "local"
+
+	config {
+		path = "./test-fixtures/null_outputs.tfstate"
 	}
 }`
 
