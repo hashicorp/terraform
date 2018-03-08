@@ -1,7 +1,7 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -11,8 +11,8 @@ import (
 // Planning a pure destroy operation is simple because we can ignore most
 // ordering configuration and simply reverse the state.
 type DestroyPlanGraphBuilder struct {
-	// Module is the root module for the graph to build.
-	Module *module.Tree
+	// Config is the configuration for the graph to build.
+	Config *configs.Config
 
 	// State is the current state
 	State *State

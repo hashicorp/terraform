@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -21,8 +21,8 @@ import (
 //     create-before-destroy can be completely ignored.
 //
 type RefreshGraphBuilder struct {
-	// Module is the root module for the graph to build.
-	Module *module.Tree
+	// Config is the configuration for the graph to build.
+	Config *configs.Config
 
 	// State is the current state
 	State *State

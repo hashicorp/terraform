@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/moduledeps"
@@ -41,21 +42,48 @@ func moduleTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 	}
 
 	module := root.Module
-	providerConfigs := module.ProviderConfigs
 
 	// Provider dependencies
+	// FIXME: The structs used here were designed before we were able to retain
+	// source location information for provider dependencies, and so we lose
+	// our source location information here. At some point we should try to
+	// rework this so that we can retain the location of each constraint and
+	// then produce a contextual diagnostic if any of the requirements can't
+	// be met.
 	{
 		providers := make(moduledeps.Providers, len(providerConfigs))
+
+		// A module can declare an explicit provider dependency without
+		// actually configuring the requested provider, under the assumption
+		// that a configuration will be passed by the caller.
+		for name, required := range module.ProviderRequirements {
+			inst := moduledeps.ProviderInstance(name)
+			var rawConstraints version.Constraints
+			for _, constraint := range required {
+				rawConstraints = append(rawConstraints, constraint.Required...)
+			}
+			providers[inst] = moduledeps.ProviderDependency{
+				Constraints: discovery.NewConstraints(rawConstraints),
+				Reason:      moduledeps.ProviderDependencyExplicit,
+			}
+		}
 
 		// Any providerConfigs elements are *explicit* provider dependencies,
 		// which is the only situation where the user might provide an actual
 		// version constraint. We'll take care of these first.
-		for fullName, pCfg := range providerConfigs {
+		for fullName, pCfg := range module.ProviderConfigs {
 			inst := moduledeps.ProviderInstance(fullName)
 			versionSet := discovery.AllVersions
 			if pCfg.Version != "" {
 				versionSet = discovery.ConstraintStr(pCfg.Version).MustParse()
 			}
+			if existing, exists := providers[inst]; exists {
+				// Explicit dependency already present, so we'll append our
+				// new constraints into it.
+				existing.Constraints = append(existing.Constraints, versionSet...)
+				continue
+			}
+
 			providers[inst] = moduledeps.ProviderDependency{
 				Constraints: versionSet,
 				Reason:      moduledeps.ProviderDependencyExplicit,
@@ -65,8 +93,26 @@ func moduleTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// Each resource in the configuration creates an *implicit* provider
 		// dependency, though we'll only record it if there isn't already
 		// an explicit dependency on the same provider.
-		for _, rc := range cfg.Resources {
-			fullName := rc.ProviderFullName()
+		for _, rc := range module.ManagedResources {
+			fullName := rc.ProviderConfigFullName()
+			inst := moduledeps.ProviderInstance(fullName)
+			if _, exists := providers[inst]; exists {
+				// Explicit dependency already present
+				continue
+			}
+
+			reason := moduledeps.ProviderDependencyImplicit
+			if _, inherited := inheritProviders[fullName]; inherited {
+				reason = moduledeps.ProviderDependencyInherited
+			}
+
+			providers[inst] = moduledeps.ProviderDependency{
+				Constraints: discovery.AllVersions,
+				Reason:      reason,
+			}
+		}
+		for _, rc := range module.DataResources {
+			fullName := rc.ProviderConfigFullName()
 			inst := moduledeps.ProviderInstance(fullName)
 			if _, exists := providers[inst]; exists {
 				// Explicit dependency already present

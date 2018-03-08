@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
@@ -15,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func (b *Local) opApply(
@@ -24,10 +24,18 @@ func (b *Local) opApply(
 	runningOp *backend.RunningOperation) {
 	log.Printf("[INFO] backend/local: starting Apply operation")
 
+	var diags tfdiags.Diagnostics
+
 	// If we have a nil module at this point, then set it to an empty tree
 	// to avoid any potential crashes.
 	if op.Plan == nil && op.Module == nil && !op.Destroy {
-		runningOp.Err = fmt.Errorf(strings.TrimSpace(applyErrNoConfig))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No configuration files found",
+			applyErrNoConfig,
+		))
+		b.showDiagnostics(diags)
+		runningOp.Err = diags.Err()
 		return
 	}
 
@@ -48,9 +56,11 @@ func (b *Local) opApply(
 	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook)
 
 	// Get our context
-	tfCtx, opState, err := b.context(op)
-	if err != nil {
-		runningOp.Err = err
+	tfCtx, opState, ctxDiags := b.context(op)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		runningOp.Err = diags.Err()
+		b.showDiagnostics(diags)
 		return
 	}
 
@@ -59,12 +69,14 @@ func (b *Local) opApply(
 
 	// If we weren't given a plan, then we refresh/plan
 	if op.Plan == nil {
-		// If we're refreshing before apply, perform that
+		// If we're refreshing before plan, perform that
 		if op.PlanRefresh {
 			log.Printf("[INFO] backend/local: apply calling Refresh")
 			_, err := tfCtx.Refresh()
 			if err != nil {
-				runningOp.Err = errwrap.Wrapf("Error refreshing state: {{err}}", err)
+				diags = diags.Append(errwrap.Wrapf("Error refreshing state: {{err}}", err))
+				runningOp.Err = diags.Err()
+				b.showDiagnostics(diags)
 				return
 			}
 		}
@@ -73,7 +85,9 @@ func (b *Local) opApply(
 		log.Printf("[INFO] backend/local: apply calling Plan")
 		plan, err := tfCtx.Plan()
 		if err != nil {
-			runningOp.Err = errwrap.Wrapf("Error running plan: {{err}}", err)
+			diags = diags.Append(errwrap.Wrapf("Error running plan: {{err}}", err))
+			runningOp.Err = diags.Err()
+			b.showDiagnostics(diags)
 			return
 		}
 
@@ -106,7 +120,9 @@ func (b *Local) opApply(
 				Description: desc,
 			})
 			if err != nil {
-				runningOp.Err = errwrap.Wrapf("Error asking for approval: {{err}}", err)
+				diags = diags.Append(errwrap.Wrapf("Error asking for approval: {{err}}", err))
+				runningOp.Err = diags.Err()
+				b.showDiagnostics(diags)
 				return
 			}
 			if v != "yes" {
@@ -229,14 +245,7 @@ func (b *Local) backupStateForError(applyState *terraform.State, err error) erro
 	return errors.New(stateWriteBackedUpError)
 }
 
-const applyErrNoConfig = `
-No configuration files found!
-
-Apply requires configuration to be present. Applying without a configuration
-would mark everything for destruction, which is normally not what is desired.
-If you would like to destroy everything, please run 'terraform destroy' instead
-which does not require any configuration files.
-`
+const applyErrNoConfig = `Apply requires configuration to be present. Applying without a configuration would mark everything for destruction, which is normally not what is desired. If you would like to destroy everything, please run "terraform destroy" instead.`
 
 const stateWriteBackedUpError = `Failed to persist state to backend.
 

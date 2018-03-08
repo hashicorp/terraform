@@ -8,6 +8,7 @@ import (
 func (b *Local) CLIInit(opts *backend.CLIOpts) error {
 	b.CLI = opts.CLI
 	b.CLIColor = opts.CLIColor
+	b.showDiagnostics = opts.ShowDiagnostics
 	b.ContextOpts = opts.ContextOpts
 	b.OpInput = opts.Input
 	b.OpValidation = opts.Validation

@@ -89,6 +89,10 @@ type Local struct {
 	// exact commands that are being run.
 	RunningInAutomation bool
 
+	// showDiagnostics is a callback function passed in by the caller
+	// (via CLIInit) that we can use to print diagnostics to the user.
+	showDiagnostics func(vals ...interface{})
+
 	schema *schema.Backend
 	opLock sync.Mutex
 	once   sync.Once

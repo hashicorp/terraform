@@ -105,6 +105,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 	cliOpts := &backend.CLIOpts{
 		CLI:                 m.Ui,
 		CLIColor:            m.Colorize(),
+		ShowDiagnostics:     m.showDiagnostics,
 		StatePath:           m.statePath,
 		StateOutPath:        m.stateOutPath,
 		StateBackupPath:     m.backupPath,

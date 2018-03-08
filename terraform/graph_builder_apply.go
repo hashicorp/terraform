@@ -1,7 +1,7 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -13,8 +13,8 @@ import (
 // that aren't explicitly in the diff. There are other scenarios where the
 // diff can be deviated, so this is just one layer of protection.
 type ApplyGraphBuilder struct {
-	// Module is the root module for the graph to build.
-	Module *module.Tree
+	// Config is the configuration for the graph to build.
+	Config *configs.Config
 
 	// Diff is the diff to apply.
 	Diff *Diff

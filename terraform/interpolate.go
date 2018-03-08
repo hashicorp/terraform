@@ -11,8 +11,9 @@ import (
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/flatmap"
+	"github.com/zclconf/go-cty/cty"
 )
 
 const (
@@ -26,10 +27,10 @@ const (
 type Interpolater struct {
 	Operation          walkOperation
 	Meta               *ContextMeta
-	Module             *module.Tree
+	Config             *configs.Config
 	State              *State
 	StateLock          *sync.RWMutex
-	VariableValues     map[string]interface{}
+	VariableValues     map[string]cty.Value
 	VariableValuesLock *sync.Mutex
 }
 

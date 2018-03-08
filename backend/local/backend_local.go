@@ -28,10 +28,11 @@ func (b *Local) Context(op *backend.Operation) (*terraform.Context, state.State,
 		op.StateLocker = clistate.NewNoopLocker()
 	}
 
-	return b.context(op)
+	ctx, state, diags := b.context(op)
+	return ctx, state, diags.Err()
 }
 
-func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State, error) {
+func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State, tfdiags.Diagnostics) {
 	// Get the state.
 	s, err := b.State(op.Workspace)
 	if err != nil {

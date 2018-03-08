@@ -65,7 +65,16 @@ type ContextOpts struct {
 	Provisioners       map[string]ResourceProvisionerFactory
 	Shadow             bool
 	Targets            []string
-	Variables          map[string]cty.Value
+
+	// Variables is a map of all of the values for variables in the root
+	// module. The caller is required to ensure the completeness of this
+	// map, with a value assigned to each of the variables declared in
+	// the configuration.
+	//
+	// If a variable with no default has no value provided by the user,
+	// pass an unknown value of the expected type here and the input phase
+	// will, if possible, replace these with user-provided values.
+	Variables map[string]cty.Value
 
 	// If non-nil, will apply as additional constraints on the provider
 	// plugins that will be requested from the provider resolver.
@@ -173,7 +182,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 	var providers map[string]ResourceProviderFactory
 	if opts.ProviderResolver != nil {
 		var err error
-		deps := ModuleTreeDependencies(opts.Module, state)
+		deps := ModuleTreeDependencies(opts.Config, state)
 		reqd := deps.AllPluginRequirements()
 		if opts.ProviderSHA256s != nil && !opts.SkipProviderVerify {
 			reqd.LockExecutables(opts.ProviderSHA256s)
@@ -234,7 +243,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 	switch typ {
 	case GraphTypeApply:
 		return (&ApplyGraphBuilder{
-			Module:       c.module,
+			Config:       c.config,
 			Diff:         c.diff,
 			State:        c.state,
 			Providers:    c.components.ResourceProviders(),
@@ -253,7 +262,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 	case GraphTypePlan:
 		// Create the plan graph builder
 		p := &PlanGraphBuilder{
-			Module:    c.module,
+			Config:    c.config,
 			State:     c.state,
 			Providers: c.components.ResourceProviders(),
 			Targets:   c.targets,
@@ -276,7 +285,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
-			Module:   c.module,
+			Config:   c.config,
 			State:    c.state,
 			Targets:  c.targets,
 			Validate: opts.Validate,
@@ -284,7 +293,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 
 	case GraphTypeRefresh:
 		return (&RefreshGraphBuilder{
-			Module:    c.module,
+			Config:    c.config,
 			State:     c.state,
 			Providers: c.components.ResourceProviders(),
 			Targets:   c.targets,
@@ -337,7 +346,7 @@ func (c *Context) Interpolater() *Interpolater {
 	return &Interpolater{
 		Operation:          walkApply,
 		Meta:               c.meta,
-		Module:             c.module,
+		Config:             c.config,
 		State:              c.state.DeepCopy(),
 		StateLock:          &stateLock,
 		VariableValues:     c.variables,
@@ -354,19 +363,17 @@ func (c *Context) Input(mode InputMode) error {
 	if mode&InputModeVar != 0 {
 		// Walk the variables first for the root module. We walk them in
 		// alphabetical order for UX reasons.
-		rootConf := c.module.Config()
-		names := make([]string, len(rootConf.Variables))
-		m := make(map[string]*config.Variable)
-		for i, v := range rootConf.Variables {
-			names[i] = v.Name
-			m[v.Name] = v
+		module := c.config.Module
+		names := make([]string, 0, len(module.Variables))
+		for name := range module.Variables {
+			names = append(names, name)
 		}
 		sort.Strings(names)
 		for _, n := range names {
 			// If we only care about unset variables, then if the variable
 			// is set, continue on.
 			if mode&InputModeVarUnset != 0 {
-				if _, ok := c.variables[n]; ok {
+				if val, ok := c.variables[n]; ok && val.IsKnown() {
 					continue
 				}
 			}

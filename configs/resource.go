@@ -2,6 +2,7 @@ package configs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
@@ -37,6 +38,13 @@ type ManagedResource struct {
 
 func (r *ManagedResource) moduleUniqueKey() string {
 	return fmt.Sprintf("%s.%s", r.Name, r.Type)
+}
+
+// ProviderConfigFullName returns the full name of the provider config for this
+// resource, which may either be specified explicitly using the "provider"
+// meta-argument or implied by the prefix on the resource type name.
+func (r *ManagedResource) ProviderConfigFullName() string {
+	return resourceProviderConfigName(r.Type, r.ProviderConfigRef)
 }
 
 func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
@@ -234,6 +242,13 @@ func (r *DataResource) moduleUniqueKey() string {
 	return fmt.Sprintf("data.%s.%s", r.Name, r.Type)
 }
 
+// ProviderConfigFullName returns the full name of the provider config for this
+// resource, which may either be specified explicitly using the "provider"
+// meta-argument or implied by the prefix on the resource type name.
+func (r *DataResource) ProviderConfigFullName() string {
+	return resourceProviderConfigName(r.Type, r.ProviderConfigRef)
+}
+
 func decodeDataBlock(block *hcl.Block) (*DataResource, hcl.Diagnostics) {
 	r := &DataResource{
 		Type:      block.Labels[0],
@@ -322,21 +337,6 @@ func decodeProviderConfigRef(attr *hcl.Attribute) (*ProviderConfigRef, hcl.Diagn
 	}
 
 	if len(traversal) < 1 && len(traversal) > 2 {
-		// A provider reference was given as a string literal in the legacy
-		// configuration language and there are lots of examples out there
-		// showing that usage, so we'll sniff for that situation here and
-		// produce a specialized error message for it to help users find
-		// the new correct form.
-		if exprIsNativeQuotedString(attr.Expr) {
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid provider configuration reference",
-				Detail:   "A provider configuration reference must not be given in quotes.",
-				Subject:  expr.Range().Ptr(),
-			})
-			return nil, diags
-		}
-
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid provider configuration reference",
@@ -368,6 +368,30 @@ func decodeProviderConfigRef(attr *hcl.Attribute) (*ProviderConfigRef, hcl.Diagn
 	}
 
 	return ret, diags
+}
+
+// resourceProviderConfigName returns the full (dependable) name of the
+// provider configuration for a hypothetical resource with the given resource
+// type and optional explicit config reference. If the explicit reference is
+// nil then the provider name is inferred from the resource type name.
+func resourceProviderConfigName(typeName string, configRef *ProviderConfigRef) string {
+	if configRef != nil {
+		switch {
+		case configRef.Alias == "":
+			return configRef.Name
+		default:
+			return fmt.Sprintf("%s.%s", configRef.Name, configRef.Alias)
+		}
+	}
+
+	idx := strings.IndexRune(typeName, '_')
+	if idx == -1 {
+		// If no underscores, the resource name is assumed to be
+		// also the provider name, e.g. if the provider exposes
+		// only a single resource of each type.
+		return typeName
+	}
+	return typeName[:idx]
 }
 
 var commonResourceAttributes = []hcl.AttributeSchema{
