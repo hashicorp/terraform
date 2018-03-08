@@ -118,7 +118,9 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 		log.Println("[DEBUG] empty remote state")
 	} else {
 		for key, val := range remoteState.RootModule().Outputs {
-			outputMap[key] = val.Value
+			if val.Value != nil {
+				outputMap[key] = val.Value
+			}
 		}
 	}
 
