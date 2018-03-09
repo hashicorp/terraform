@@ -9,7 +9,7 @@ IMPROVEMENTS:
 * provisioner/local-exec: Allow setting custom environment variables when running commands [GH-13880]
 * provisioner/habitat: Detect if hab user exists and only create if necessary [GH-17195]
 * provisioner/habitat: Allow custom service name [GH-17196]
-* general: https URLs are now supported in the HTTP_PROXY environment variable [go1.10:net/http](https://golang.org/doc/go1.10#net/http)
+* general: https URLs are now supported in the HTTP_PROXY environment variable for URLs interpreted by Terraform Core. (This will not immediately be true for all Terraform provider plugins, since each must upgrade its own HTTP client.) [go1.10:net/http](https://golang.org/doc/go1.10#net/http)
 
 BUG FIXES:
 
