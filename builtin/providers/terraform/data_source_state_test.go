@@ -129,6 +129,27 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 	}
 }
 
+// make sure that the deprecated environment field isn't overridden by the
+// default value for workspace.
+func TestState_deprecatedEnvironment(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccState_deprecatedEnvironment,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue(
+						// if the workspace default value overrides the
+						// environment, this will get the foo value from the
+						// default state.
+						"data.terraform_remote_state.foo", "foo", ""),
+				),
+			},
+		},
+	})
+}
+
 const testAccState_basic = `
 data "terraform_remote_state" "foo" {
 	backend = "local"
@@ -188,5 +209,15 @@ data "terraform_remote_state" "foo" {
 
 	defaults {
 		foo = "not bar"
+	}
+}`
+
+const testAccState_deprecatedEnvironment = `
+data "terraform_remote_state" "foo" {
+	backend = "local"
+	environment = "deprecated"
+
+	config {
+		path = "./test-fixtures/basic.tfstate"
 	}
 }`
