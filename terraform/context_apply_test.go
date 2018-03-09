@@ -9472,5 +9472,72 @@ func TestContext2Apply_providersFromState(t *testing.T) {
 
 		})
 	}
+}
 
+func TestContext2Apply_plannedInterpolatedCount(t *testing.T) {
+	m := testModule(t, "apply-interpolated-count")
+
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	providerResolver := ResourceProviderResolverFixed(
+		map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	)
+
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.test": {
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Provider: "provider.aws",
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:           m,
+		ProviderResolver: providerResolver,
+		State:            s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("plan failed: %s", err)
+	}
+
+	// We'll marshal and unmarshal the plan here, to ensure that we have
+	// a clean new context as would be created if we separately ran
+	// terraform plan -out=tfplan && terraform apply tfplan
+	var planBuf bytes.Buffer
+	err = WritePlan(plan, &planBuf)
+	if err != nil {
+		t.Fatalf("failed to write plan: %s", err)
+	}
+	plan, err = ReadPlan(&planBuf)
+	if err != nil {
+		t.Fatalf("failed to read plan: %s", err)
+	}
+
+	ctx, err = plan.Context(&ContextOpts{
+		ProviderResolver: providerResolver,
+	})
+	if err != nil {
+		t.Fatalf("failed to create context for plan: %s", err)
+	}
+
+	// Applying the plan should now succeed
+	_, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("apply failed: %s", err)
+	}
 }
