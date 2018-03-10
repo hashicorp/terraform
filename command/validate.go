@@ -1,6 +1,7 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -21,7 +22,10 @@ func (c *ValidateCommand) Run(args []string) int {
 		return 1
 	}
 
+	var jsonOutput bool
+
 	cmdFlags := c.Meta.flagSet("validate")
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
 	cmdFlags.Usage = func() {
 		c.Ui.Error(c.Help())
 	}
@@ -29,6 +33,12 @@ func (c *ValidateCommand) Run(args []string) int {
 		return 1
 	}
 
+	// After this point, we must only produce JSON output if JSON mode is
+	// enabled, so all errors should be accumulated into diags and we'll
+	// print out a suitable result at the end, depending on the format
+	// selection. All returns from this point on must be tail-calls into
+	// c.showResults in order to produce the expected output.
+	var diags tfdiags.Diagnostics
 	args = cmdFlags.Args()
 
 	var dirPath string
@@ -39,19 +49,20 @@ func (c *ValidateCommand) Run(args []string) int {
 	}
 	dir, err := filepath.Abs(dirPath)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Unable to locate directory %v\n", err.Error()))
+		diags = diags.Append(fmt.Errorf("unable to locate module: %s", err))
+		return c.showResults(diags, jsonOutput)
 	}
 
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
-		return 1
+		diags = diags.Append(fmt.Errorf("error loading plugin path: %s", err))
+		return c.showResults(diags, jsonOutput)
 	}
 
-	rtnCode := c.validate(dir)
+	validateDiags := c.validate(dir)
+	diags = diags.Append(validateDiags)
 
-	return rtnCode
+	return c.showResults(diags, jsonOutput)
 }
 
 func (c *ValidateCommand) Synopsis() string {
@@ -89,20 +100,22 @@ Usage: terraform validate [options] [dir]
 
 Options:
 
+  -json        Produce output in a machine-readable JSON format, suitable for
+               use in e.g. text editor integrations.
+
   -no-color    If specified, output won't contain any color.
 `
 	return strings.TrimSpace(helpText)
 }
 
-func (c *ValidateCommand) validate(dir string) int {
+func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	_, cfgDiags := c.loadConfig(dir)
 	diags = diags.Append(cfgDiags)
 
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
+		return diags
 	}
 
 	// TODO: run a validation walk once terraform.NewContext is updated
@@ -128,7 +141,99 @@ func (c *ValidateCommand) validate(dir string) int {
 	diags = diags.Append(tfCtx.Validate())
 	*/
 
-	c.showDiagnostics(diags)
+	return diags
+}
+
+func (c *ValidateCommand) showResults(diags tfdiags.Diagnostics, jsonOutput bool) int {
+	switch {
+	case jsonOutput:
+		// FIXME: Eventually we'll probably want to factor this out somewhere
+		// to support machine-readable outputs for other commands too, but for
+		// now it's simplest to do this inline here.
+		type Pos struct {
+			Line   int `json:"line"`
+			Column int `json:"column"`
+			Byte   int `json:"byte"`
+		}
+		type Range struct {
+			Filename string `json:"filename"`
+			Start    Pos    `json:"start"`
+			End      Pos    `json:"end"`
+		}
+		type Diagnostic struct {
+			Severity string `json:"severity,omitempty"`
+			Summary  string `json:"summary,omitempty"`
+			Detail   string `json:"detail,omitempty"`
+			Range    *Range `json:"range,omitempty"`
+		}
+		type Output struct {
+			// We include some summary information that is actually redundant
+			// with the detailed diagnostics, but avoids the need for callers
+			// to re-implement our logic for deciding these.
+			Valid        bool         `json:"valid"`
+			ErrorCount   int          `json:"error_count"`
+			WarningCount int          `json:"warning_count"`
+			Diagnostics  []Diagnostic `json:"diagnostics"`
+		}
+
+		var output Output
+		output.Valid = true // until proven otherwise
+		for _, diag := range diags {
+			var jsonDiag Diagnostic
+			switch diag.Severity() {
+			case tfdiags.Error:
+				jsonDiag.Severity = "error"
+				output.ErrorCount++
+				output.Valid = false
+			case tfdiags.Warning:
+				jsonDiag.Severity = "warning"
+				output.WarningCount++
+			}
+
+			desc := diag.Description()
+			jsonDiag.Summary = desc.Summary
+			jsonDiag.Detail = desc.Detail
+
+			ranges := diag.Source()
+			if ranges.Subject != nil {
+				subj := ranges.Subject
+				jsonDiag.Range = &Range{
+					Filename: subj.Filename,
+					Start: Pos{
+						Line:   subj.Start.Line,
+						Column: subj.Start.Column,
+						Byte:   subj.Start.Byte,
+					},
+					End: Pos{
+						Line:   subj.End.Line,
+						Column: subj.End.Column,
+						Byte:   subj.End.Byte,
+					},
+				}
+			}
+
+			output.Diagnostics = append(output.Diagnostics, jsonDiag)
+		}
+
+		j, err := json.MarshalIndent(&output, "", "  ")
+		if err != nil {
+			// Should never happen because we fully-control the input here
+			panic(err)
+		}
+		c.Ui.Output(string(j))
+
+	default:
+		if len(diags) == 0 {
+			c.Ui.Output(c.Colorize().Color("[green][bold]Success![reset] The configuration is valid.\n"))
+		} else {
+			c.showDiagnostics(diags)
+
+			if !diags.HasErrors() {
+				c.Ui.Output(c.Colorize().Color("[green][bold]Success![reset] The configuration is valid, but there were some validation warnings as shown above.\n"))
+			}
+		}
+	}
+
 	if diags.HasErrors() {
 		return 1
 	}
