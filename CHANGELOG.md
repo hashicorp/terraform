@@ -16,6 +16,7 @@ BUG FIXES:
 * core: Halt on fatal provisioner errors, rather than retrying until a timeout [GH-17359]
 * core: When handling a forced exit due to multiple interrupts, prevent the process from exiting while the state is being written [GH-17323]
 * core: Fix handling of locals and outputs at destroy time [GH-17241]
+* core: Fix regression in handling of `count` arguments that refer to `count` attributes from other resources. [GH-17548]
 * helper/schema: Prevent crash on removal of computed field in CustomizeDiff [GH-17261]
 
 ## 0.11.3 (January 31, 2018)
