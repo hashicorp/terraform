@@ -123,6 +123,7 @@ func Funcs() map[string]ast.Function {
 		"upper":        interpolationFuncUpper(),
 		"urlencode":    interpolationFuncURLEncode(),
 		"zipmap":       interpolationFuncZipMap(),
+		"zipmapset":    interpolationFuncZipMapSet(),
 	}
 }
 
@@ -599,6 +600,48 @@ func interpolationFuncZipMap() ast.Function {
 			}
 
 			return result, nil
+		},
+	}
+}
+
+func interpolationFuncZipMapSet() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeList},
+		ReturnType:   ast.TypeList,
+		Variadic:     true,
+		VariadicType: ast.TypeList,
+		Callback: func(args []interface{}) (interface{}, error) {
+			var values = []ast.Variable{}
+
+			keys := args[0].([]ast.Variable)
+			if len(args)-1 != len(keys) {
+				return nil, fmt.Errorf("format parameter array must match number of given arrays")
+			}
+
+			varargs := make([]interface{}, len(args)-1)
+			copy(varargs, args[1:])
+
+			count := len(varargs[0].([]ast.Variable))
+
+			for i := 1; i < len(varargs); i++ {
+				if count != len(varargs[i].([]ast.Variable)) {
+					return nil, fmt.Errorf("number of elements in all given arrays must match")
+				}
+			}
+
+			for i := 0; i < count; i++ {
+				var v = make(map[string]ast.Variable)
+				for j, arg := range varargs {
+					v[keys[j].Value.(string)] = ast.Variable{
+						Type:  ast.TypeString,
+						Value: arg.([]ast.Variable)[i].Value.(string),
+					}
+				}
+
+				values = append(values, ast.Variable{Type: ast.TypeMap, Value: v})
+			}
+
+			return values, nil
 		},
 	}
 }
