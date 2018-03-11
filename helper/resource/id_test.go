@@ -32,7 +32,7 @@ func TestUniqueId(t *testing.T) {
 		rest := strings.TrimPrefix(id, UniqueIdPrefix)
 
 		if len(rest) != UniqueIDSuffixLength {
-			t.Fatalf("Post-prefix part has wrong length! %s", rest)
+			t.Fatalf("PrefixedUniqueId is out of sync with UniqueIDSuffixLength, post-prefix part has wrong length! %s", rest)
 		}
 
 		timestamp, increment := split(rest)
