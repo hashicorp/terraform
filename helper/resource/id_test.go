@@ -15,8 +15,6 @@ func TestUniqueId(t *testing.T) {
 		return rest[:18], rest[18:]
 	}
 
-	const prefix = "terraform-"
-
 	iterations := 10000
 	ids := make(map[string]struct{})
 	var id, lastId string
@@ -27,13 +25,13 @@ func TestUniqueId(t *testing.T) {
 			t.Fatalf("Got duplicated id! %s", id)
 		}
 
-		if !strings.HasPrefix(id, prefix) {
+		if !strings.HasPrefix(id, UniqueIdPrefix) {
 			t.Fatalf("Unique ID didn't have terraform- prefix! %s", id)
 		}
 
-		rest := strings.TrimPrefix(id, prefix)
+		rest := strings.TrimPrefix(id, UniqueIdPrefix)
 
-		if len(rest) != 26 {
+		if len(rest) != UniqueIDSuffixLength {
 			t.Fatalf("Post-prefix part has wrong length! %s", rest)
 		}
 
@@ -58,8 +56,8 @@ func TestUniqueId(t *testing.T) {
 	id1 := UniqueId()
 	time.Sleep(time.Millisecond)
 	id2 := UniqueId()
-	timestamp1, _ := split(strings.TrimPrefix(id1, prefix))
-	timestamp2, _ := split(strings.TrimPrefix(id2, prefix))
+	timestamp1, _ := split(strings.TrimPrefix(id1, UniqueIdPrefix))
+	timestamp2, _ := split(strings.TrimPrefix(id2, UniqueIdPrefix))
 
 	if timestamp1 == timestamp2 {
 		t.Fatalf("Timestamp part should update at least once a millisecond %s %s",
