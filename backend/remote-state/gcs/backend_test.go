@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state/remote"
 )
@@ -186,20 +185,9 @@ func setupBackend(t *testing.T, bucket, prefix, key string) backend.Backend {
 	be := b.(*gcsBackend)
 
 	// create the bucket if it doesn't exist
-	bkt := be.storageClient.Bucket(bucket)
-	_, err := bkt.Attrs(be.storageContext)
+	err := createBucketIfNotExist(be)
 	if err != nil {
-		if err != storage.ErrBucketNotExist {
-			t.Fatal(err)
-		}
-
-		attrs := &storage.BucketAttrs{
-			Location: be.region,
-		}
-		err := bkt.Create(be.storageContext, be.projectID, attrs)
-		if err != nil {
-			t.Fatal(err)
-		}
+		t.Fatal(err)
 	}
 
 	return b

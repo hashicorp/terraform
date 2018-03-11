@@ -164,6 +164,15 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 
 	b.storageClient = client
 
+	// If projectID is provider we will check and create the bucket if it does not exists.
+	// projectID is only used when creating a new bucket during initialization.
+	if b.projectID != "" {
+		err = createBucketIfNotExist(b)
+		if err != nil {
+			return err
+		}
+	}
+
 	key := data.Get("encryption_key").(string)
 	if key == "" {
 		key = os.Getenv("GOOGLE_ENCRYPTION_KEY")
@@ -188,6 +197,25 @@ func (b *gcsBackend) configure(ctx context.Context) error {
 		b.encryptionKey = k
 	}
 
+	return nil
+}
+
+func createBucketIfNotExist(b *gcsBackend) error {
+	bkt := b.storageClient.Bucket(b.bucketName)
+	_, err := bkt.Attrs(b.storageContext)
+	if err != nil {
+		if err != storage.ErrBucketNotExist {
+			return fmt.Errorf("Bucket %q is not accessible: %v", b.bucketName, err)
+		}
+
+		attrs := &storage.BucketAttrs{
+			Location: b.region,
+		}
+		err := bkt.Create(b.storageContext, b.projectID, attrs)
+		if err != nil {
+			return fmt.Errorf("Bucket %q didn't exist and creating it failed: %v", b.bucketName, err)
+		}
+	}
 	return nil
 }
 
