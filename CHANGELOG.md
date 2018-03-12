@@ -3163,7 +3163,7 @@ IMPROVEMENTS:
  * provider/vsphere: Virtual Machine and File resources handle Read errors properly ([#7220](https://github.com/hashicorp/terraform/issues/7220))
  * provider/vsphere: set uuid as `vsphere_virtual_machine` output ([#4382](https://github.com/hashicorp/terraform/issues/4382))
  * provider/vsphere: Add support for `keep_on_remove` to `vsphere_virtual_machine` ([#7169](https://github.com/hashicorp/terraform/issues/7169))
- * provider/vsphere: Add support for additional `vsphere_virtial_machine` SCSI controller types ([#7525](https://github.com/hashicorp/terraform/issues/7525))
+ * provider/vsphere: Add support for additional `vsphere_virtual_machine` SCSI controller types ([#7525](https://github.com/hashicorp/terraform/issues/7525))
  * provisioner/file: File provisioners may now have file content set as an attribute ([#7561](https://github.com/hashicorp/terraform/issues/7561))
 
 BUG FIXES:
