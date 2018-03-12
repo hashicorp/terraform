@@ -214,7 +214,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 
 		log.Println("[DEBUG] adding missing provider:", p)
 
-		// create the misisng top-level provider
+		// create the missing top-level provider
 		provider = t.Concrete(&NodeAbstractProvider{
 			NameValue: p,
 		}).(dag.Vertex)
