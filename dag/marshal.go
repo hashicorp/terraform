@@ -314,7 +314,7 @@ func (e *encoder) RemoveEdge(edge Edge) {
 }
 
 // BeginOperation marks the start of set of graph transformations, and returns
-// an EndDebugOperation func to be called once the opration is complete.
+// an EndDebugOperation func to be called once the operation is complete.
 func (e *encoder) BeginOperation(op string, info string) DebugOperationEnd {
 	if e == nil {
 		return func(string) {}
