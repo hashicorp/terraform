@@ -3436,7 +3436,7 @@ BUG FIXES:
  * provider/aws: Fix potential crash when receiving malformed `aws_route` API responses ([#5867](https://github.com/hashicorp/terraform/issues/5867))
  * provider/aws: Guard against empty responses from Lambda Permissions ([#5838](https://github.com/hashicorp/terraform/issues/5838))
  * provider/aws: Normalize and compact SQS Redrive, Policy JSON ([#5888](https://github.com/hashicorp/terraform/issues/5888))
- * provider/aws: Fix issue updating ElasticBeanstalk Configuraiton Templates ([#6307](https://github.com/hashicorp/terraform/issues/6307))
+ * provider/aws: Fix issue updating ElasticBeanstalk Configuration Templates ([#6307](https://github.com/hashicorp/terraform/issues/6307))
  * provider/aws: Remove CloudTrail Trail from state if not found ([#6024](https://github.com/hashicorp/terraform/issues/6024))
  * provider/aws: Fix crash in AWS S3 Bucket when website index/error is empty ([#6269](https://github.com/hashicorp/terraform/issues/6269))
  * provider/aws: Report better error message in `aws_route53_record` when `set_identifier` is required ([#5777](https://github.com/hashicorp/terraform/issues/5777))
