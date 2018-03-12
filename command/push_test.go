@@ -124,7 +124,7 @@ func TestPush_goodBackendInit(t *testing.T) {
 
 		// this config contains no plugins
 		// TODO: we should add one or more plugins to this test config, just to
-		// verfy the pushed data. The expected additional files are listed below:
+		// verify the pushed data. The expected additional files are listed below:
 		//
 		//".terraform/plugins/",
 		//fmt.Sprintf(".terraform/plugins/%s_%s/", runtime.GOOS, runtime.GOARCH),
