@@ -2403,7 +2403,7 @@ func TestContext2Plan_hook(t *testing.T) {
 
 func TestContext2Plan_closeProvider(t *testing.T) {
 	// this fixture only has an aliased provider located in the module, to make
-	// sure that the provier name contains a path more complex than
+	// sure that the provider name contains a path more complex than
 	// "provider.aws".
 	m := testModule(t, "plan-close-module-provider")
 	p := testProvider("aws")
