@@ -129,7 +129,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		case fooState.Lineage == barLineage:
 			t.Fatalf("bar lineage read from foo: %#v", fooState)
 		case fooState.Lineage != fooLineage:
-			t.Fatal("foo lineage alterred")
+			t.Fatal("foo lineage altered")
 		}
 
 		// fetch foo again from the backend
