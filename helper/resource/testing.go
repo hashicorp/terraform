@@ -827,7 +827,7 @@ func ComposeTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 // As a user testing their provider, this lets you decompose your checks
 // into smaller pieces more easily.
 //
-// Unlike ComposeTestCheckFunc, ComposeAggergateTestCheckFunc runs _all_ of the
+// Unlike ComposeTestCheckFunc, ComposeAggregateTestCheckFunc runs _all_ of the
 // TestCheckFuncs and aggregates failures.
 func ComposeAggregateTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 	return func(s *terraform.State) error {
