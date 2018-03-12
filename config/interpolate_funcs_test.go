@@ -615,7 +615,7 @@ func TestInterpolateFuncCompact(t *testing.T) {
 				false,
 			},
 
-			// errrors on list of lists
+			// errors on list of lists
 			{
 				`${compact(list(list("a"), list("b")))}`,
 				nil,
