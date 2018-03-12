@@ -1809,7 +1809,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
- * core: Improve validation for provider aliases to allow inheritance in moduels. ([#10807](https://github.com/hashicorp/terraform/issues/10807))
+ * core: Improve validation for provider aliases to allow inheritance in modules. ([#10807](https://github.com/hashicorp/terraform/issues/10807))
  * core: Math operations always prefer floating point if an argument is floating point. ([#10886](https://github.com/hashicorp/terraform/issues/10886))
  * core: Strings are implicitly converted to integers/floats for comparison. ([#10886](https://github.com/hashicorp/terraform/issues/10886))
  * provider/aws: Fixed crash in `data_source_ami` with empty `owner` value ([#10763](https://github.com/hashicorp/terraform/issues/10763))
