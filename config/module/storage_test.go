@@ -54,7 +54,7 @@ func TestGetModule(t *testing.T) {
 
 // GitHub archives always contain the module source in a single subdirectory,
 // so the registry will return a path with with a `//*` suffix. We need to make
-// sure this doesn't intefere with our internal handling of `//` subdir.
+// sure this doesn't interfere with our internal handling of `//` subdir.
 func TestRegistryGitHubArchive(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()
