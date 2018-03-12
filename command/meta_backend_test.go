@@ -2618,7 +2618,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 		t.Fatalf("state should be nil: %#v", state)
 	}
 
-	// Verify the default path doens't exist
+	// Verify the default path doesn't exist
 	if !isEmptyState(DefaultStateFilename) {
 		t.Fatal("expected empty state")
 	}
