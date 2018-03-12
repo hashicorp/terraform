@@ -3493,7 +3493,7 @@ BUG FIXES:
   * core: Address some issues with ignore_changes ([#5635](https://github.com/hashicorp/terraform/issues/5635))
   * core: Add a lock to fix an interpolation issue caught by the Go 1.6 concurrent map access detector ([#5772](https://github.com/hashicorp/terraform/issues/5772))
   * provider/aws: Fix crash when an `aws_rds_cluster_instance` is removed outside of Terraform ([#5717](https://github.com/hashicorp/terraform/issues/5717))
-  * provider/aws: `aws_cloudformation_stack` use `timeout_in_minutes` for retry timeout to prevent unecessary timeouts ([#5712](https://github.com/hashicorp/terraform/issues/5712))
+  * provider/aws: `aws_cloudformation_stack` use `timeout_in_minutes` for retry timeout to prevent unnecessary timeouts ([#5712](https://github.com/hashicorp/terraform/issues/5712))
   * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform ([#5668](https://github.com/hashicorp/terraform/issues/5668))
   * provider/aws: `aws_vpn_connection` resources deleted via the console on longer cause a crash ([#5747](https://github.com/hashicorp/terraform/issues/5747))
   * provider/aws: Fix crasher in Elastic Beanstalk Configuration when using options ([#5756](https://github.com/hashicorp/terraform/issues/5756))
