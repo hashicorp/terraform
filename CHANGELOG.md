@@ -4363,7 +4363,7 @@ BUG FIXES:
   * core: fix `-no-color` flag in subcommands ([#2414](https://github.com/hashicorp/terraform/issues/2414))
   * core: Fix error of 'attribute not found for variable' when a computed
       resource attribute is used as a parameter to a module ([#2477](https://github.com/hashicorp/terraform/issues/2477))
-  * core: moduled orphans will properly inherit provider configs ([#2476](https://github.com/hashicorp/terraform/issues/2476))
+  * core: module orphans will properly inherit provider configs ([#2476](https://github.com/hashicorp/terraform/issues/2476))
   * core: modules with provider aliases work properly if the parent
       doesn't implement those aliases ([#2475](https://github.com/hashicorp/terraform/issues/2475))
   * core: unknown resource attributes passed in as parameters to modules
