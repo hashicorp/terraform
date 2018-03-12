@@ -137,7 +137,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	for _, v := range pm {
 		p := v.(GraphNodeProvider)
 
-		// get the close provider of this type if we alread created it
+		// get the close provider of this type if we already created it
 		closer := cpm[p.Name()]
 
 		if closer == nil {
