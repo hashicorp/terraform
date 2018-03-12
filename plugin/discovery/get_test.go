@@ -25,7 +25,7 @@ func testListingHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func testChecksumHandler(w http.ResponseWriter, r *http.Request) {
-	// this exact plugin has a signnature and checksum file
+	// this exact plugin has a signature and checksum file
 	if r.URL.Path == "/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS" {
 		http.ServeFile(w, r, "testdata/terraform-provider-template_0.1.0_SHA256SUMS")
 		return
@@ -45,7 +45,7 @@ func testChecksumHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Error(w, "signtaure files not found", http.StatusNotFound)
+	http.Error(w, "signature files not found", http.StatusNotFound)
 }
 
 // returns a 200 for a valid provider url, using the patch number for the
