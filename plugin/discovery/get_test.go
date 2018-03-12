@@ -300,7 +300,7 @@ func TestProviderChecksumBadSignature(t *testing.T) {
 	// we only need the checksum, as getter is doing the actual file comparison.
 	sha256sum, err := i.getProviderChecksum("badsig", "0.1.0")
 	if err == nil {
-		t.Fatal("expcted error")
+		t.Fatal("expected error")
 	}
 
 	if !strings.Contains(err.Error(), "signature") {

@@ -647,7 +647,7 @@ func TestTreeLoad_changeIntermediateSource(t *testing.T) {
 			res := gc.config.Resources[0]
 			expected := "c-b"
 			if res.Name != expected {
-				t.Fatalf("expexted resource %q, got %q", expected, res.Name)
+				t.Fatalf("expected resource %q, got %q", expected, res.Name)
 			}
 		}
 	}

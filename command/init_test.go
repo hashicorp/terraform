@@ -884,7 +884,7 @@ func TestInit_getProviderMissing(t *testing.T) {
 
 	args := []string{}
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("expceted error, got output: \n%s", ui.OutputWriter.String())
+		t.Fatalf("expected error, got output: \n%s", ui.OutputWriter.String())
 	}
 
 	if !strings.Contains(ui.ErrorWriter.String(), "no suitable version for provider") {
@@ -918,7 +918,7 @@ func TestInit_getProviderHaveLegacyVersion(t *testing.T) {
 
 	args := []string{}
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("expceted error, got output: \n%s", ui.OutputWriter.String())
+		t.Fatalf("expected error, got output: \n%s", ui.OutputWriter.String())
 	}
 
 	if !strings.Contains(ui.ErrorWriter.String(), "EXPECTED PROVIDER ERROR test") {
