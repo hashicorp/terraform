@@ -15,7 +15,7 @@ type GraphWalker interface {
 	ExitEvalTree(dag.Vertex, interface{}, error) error
 }
 
-// GrpahWalkerPanicwrapper can be optionally implemented to catch panics
+// GraphWalkerPanicwrapper can be optionally implemented to catch panics
 // that occur while walking the graph. This is not generally recommended
 // since panics should crash Terraform and result in a bug report. However,
 // this is particularly useful for situations like the shadow graph where
