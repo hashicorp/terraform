@@ -18,7 +18,7 @@ import (
 	"github.com/mitchellh/go-linereader"
 )
 
-// maxBackoffDealy is the maximum delay between retry attempts
+// maxBackoffDelay is the maximum delay between retry attempts
 var maxBackoffDelay = 10 * time.Second
 var initialBackoffDelay = time.Second
 
