@@ -3379,7 +3379,7 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 	}
 }
 
-// when confniguring a default local state, don't delete local state
+// when configuring a default local state, don't delete local state
 func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
