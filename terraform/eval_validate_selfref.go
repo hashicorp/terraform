@@ -45,7 +45,7 @@ func (n *EvalValidateResourceSelfRef) Eval(ctx EvalContext) (interface{}, error)
 			varAddr.Index = addr.Index
 		}
 
-		// This is a weird thing where ResourceAddres has index "-1" when
+		// This is a weird thing where ResourceAddress has index "-1" when
 		// index isn't set at all. This means index "0" for resource access.
 		// So, if we have this scenario, just set our varAddr to -1 so it
 		// matches.
