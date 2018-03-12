@@ -99,7 +99,7 @@ func TestRegistryGitHubArchive(t *testing.T) {
 }
 
 // Test that the //subdir notation can be used with registry modules
-func TestRegisryModuleSubdir(t *testing.T) {
+func TestRegistryModuleSubdir(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()
 

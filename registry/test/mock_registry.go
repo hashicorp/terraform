@@ -169,7 +169,7 @@ func mockRegHandler() http.Handler {
 		}
 
 		// only adding the single requested module for now
-		// this is the minimal that any regisry is expected to support
+		// this is the minimal that any registry is expected to support
 		mpvs := &response.ModuleProviderVersions{
 			Source: name,
 		}
