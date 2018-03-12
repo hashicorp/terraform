@@ -50,7 +50,7 @@ func LogOutput() (logOutput io.Writer, err error) {
 
 // SetOutput checks for a log destination with LogOutput, and calls
 // log.SetOutput with the result. If LogOutput returns nil, SetOutput uses
-// ioutil.Discard. Any error from LogOutout is fatal.
+// ioutil.Discard. Any error from LogOutput is fatal.
 func SetOutput() {
 	out, err := LogOutput()
 	if err != nil {
