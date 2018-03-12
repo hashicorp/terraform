@@ -54,7 +54,7 @@ var (
 	})
 )
 
-// All the locationes from the mockRegistry start with a file:// scheme. If
+// All the locations from the mockRegistry start with a file:// scheme. If
 // the the location string here doesn't have a scheme, the mockRegistry will
 // find the absolute path and return a complete URL.
 var testMods = map[string][]testMod{
