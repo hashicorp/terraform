@@ -58,7 +58,7 @@ var (
 // Global variables this package uses because we are a package
 // with global state.
 var (
-	// all is the list of all experiements. Do not modify this.
+	// all is the list of all experiments. Do not modify this.
 	All []ID
 
 	// enabled keeps track of what flags have been enabled

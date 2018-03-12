@@ -270,7 +270,7 @@ func (r *RawConfig) init() error {
 
 func (r *RawConfig) interpolate(fn interpolationWalkerFunc) error {
 	if r.Body != nil {
-		// For RawConfigs created for the HCL2 experiement, callers must
+		// For RawConfigs created for the HCL2 experiment, callers must
 		// use the HCL2 Body API directly rather than interpolating via
 		// the RawConfig.
 		return errors.New("this feature is not yet supported under the HCL2 experiment")
