@@ -1311,6 +1311,36 @@ func TestResourceDataGetOkExists(t *testing.T) {
 			Value: true,
 			Ok:    true,
 		},
+
+		{
+			Name: "non-empty-state",
+			Schema: map[string]*Schema{
+				"compression_size": {
+					Type:     TypeInt,
+					Optional: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"compression_size": "4",
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"compression_size": {
+						Old:        "4",
+						New:        "0",
+						NewRemoved: true,
+					},
+				},
+			},
+
+			Key:   "compression_size",
+			Value: 0,
+			Ok:    false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -1326,10 +1356,10 @@ func TestResourceDataGetOkExists(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(v, tc.Value) {
-				t.Fatalf("Bad %s: \n%#v", tc.Name, v)
+				t.Fatalf("%s: Wrong value. Expected: %#v, given: %#v", tc.Name, tc.Value, v)
 			}
 			if ok != tc.Ok {
-				t.Fatalf("%s: expected ok: %t, got: %t", tc.Name, tc.Ok, ok)
+				t.Fatalf("%s: expected existence: %t, got: %t", tc.Name, tc.Ok, ok)
 			}
 		})
 	}
