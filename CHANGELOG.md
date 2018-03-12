@@ -4,7 +4,7 @@ IMPROVEMENTS:
 
 * cli: `terraform state list` now accepts a new argument `-id=...` for filtering resources for display by their remote ids [GH-17221]
 * cli: `terraform destroy` now uses the option `-auto-approve` instead of `-force`, for consistency with `terraform apply`. The old flag is preserved for backward-compatibility, but is now deprecated; it will be retained for at least one major release. [GH-17218]
-* connection/ssh: Add support for host key verifiation [GH-17354]
+* connection/ssh: Add support for host key verification [GH-17354]
 * backend/s3: add support for the cn-northwest-1 region [GH-17216]
 * provisioner/local-exec: Allow setting custom environment variables when running commands [GH-13880]
 * provisioner/habitat: Detect if hab user exists and only create if necessary [GH-17195]
