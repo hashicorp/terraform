@@ -19,7 +19,7 @@ func TestDiagnosticsForRPC(t *testing.T) {
 	diags = diags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  "bad bad bad",
-		Detail:   "badily bad bad",
+		Detail:   "badly bad bad",
 		Subject: &hcl.Range{
 			Filename: "foo",
 		},
@@ -56,7 +56,7 @@ func TestDiagnosticsForRPC(t *testing.T) {
 		&rpcFriendlyDiag{
 			Severity_: Error,
 			Summary_:  "bad bad bad",
-			Detail_:   "badily bad bad",
+			Detail_:   "badly bad bad",
 			Subject_: &SourceRange{
 				Filename: "foo",
 			},
