@@ -1936,7 +1936,7 @@ IMPROVEMENTS:
  * provider/aws: Added s3 bucket region attribute management ([#10482](https://github.com/hashicorp/terraform/issues/10482))
  * provider/aws: Added SQS FIFO queues ([#10614](https://github.com/hashicorp/terraform/issues/10614))
  * provider/aws: Addition of suspended_processes to aws_autoscaling_group ([#10096](https://github.com/hashicorp/terraform/issues/10096))
- * provider/aws: added auto_minor_version_upgrade on aws_rds_cluster_insstance ([#10284](https://github.com/hashicorp/terraform/issues/10284))
+ * provider/aws: added auto_minor_version_upgrade on aws_rds_cluster_instance ([#10284](https://github.com/hashicorp/terraform/issues/10284))
  * provider/aws: Add JSON validation to the aws_iam_policy resource ([#10239](https://github.com/hashicorp/terraform/issues/10239))
  * provider/aws: Support MFA delete for s3 bucket versioning ([#10020](https://github.com/hashicorp/terraform/issues/10020))
  * provider/aws: Enable DeleteOnTermination in ENI when created by spot fleet ([#9922](https://github.com/hashicorp/terraform/issues/9922))
@@ -2195,7 +2195,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/aws: Addition of suspended_processes to aws_autoscaling_group ([#10096](https://github.com/hashicorp/terraform/issues/10096))
- * provider/aws: added auto_minor_version_upgrade on aws_rds_cluster_insstance ([#10284](https://github.com/hashicorp/terraform/issues/10284))
+ * provider/aws: added auto_minor_version_upgrade on aws_rds_cluster_instance ([#10284](https://github.com/hashicorp/terraform/issues/10284))
  * provider/aws: Add JSON validation to the aws_iam_policy resource ([#10239](https://github.com/hashicorp/terraform/issues/10239))
  * provider/azurerm: enable import of more resources ([#10195](https://github.com/hashicorp/terraform/issues/10195))
  * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file ([#10105](https://github.com/hashicorp/terraform/issues/10105))
