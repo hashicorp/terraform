@@ -549,7 +549,7 @@ func TestTreeValidate_unknownModule(t *testing.T) {
 
 func TestTreeLoad_conflictingSubmoduleNames(t *testing.T) {
 	storage := testStorage(t, nil)
-	tree := NewTree("", testConfig(t, "conficting-submodule-names"))
+	tree := NewTree("", testConfig(t, "conflicting-submodule-names"))
 
 	storage.Mode = GetModeGet
 	if err := tree.Load(storage); err != nil {
