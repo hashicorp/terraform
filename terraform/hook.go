@@ -54,7 +54,7 @@ type Hook interface {
 	PostStateUpdate(*State) (HookAction, error)
 
 	// PreImportState and PostImportState are called before and after
-	// a single resource's state is being improted.
+	// a single resource's state is being imported.
 	PreImportState(*InstanceInfo, string) (HookAction, error)
 	PostImportState(*InstanceInfo, []*InstanceState) (HookAction, error)
 }
