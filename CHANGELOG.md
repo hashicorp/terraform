@@ -334,7 +334,7 @@ BUG FIXES:
 * cli: the state `rm` and `mv` commands were always loading a state from a Backend, and ignoring the `-state` flag ([#15388](https://github.com/hashicorp/terraform/issues/15388))
 * cli: certain prompts in `terraform init` were respecting `-input=false` but not the `TF_INPUT` environment variable ([#15391](https://github.com/hashicorp/terraform/issues/15391))
 * state: Further work, building on [#15423](https://github.com/hashicorp/terraform/issues/15423), to improve the internal design of the state managers to make this code more maintainable and reduce the risk of regressions; this may lead to slight changes to the number of times Terraform writes to remote state and how the serial is implemented with respect to those writes, which does not affect outward functionality but is worth noting if you log or inspect state updates for debugging purposes.
-* config: Interpolation function `cidrhost` was not correctly calcluating host addresses under IPv6 CIDR prefixes ([#15321](https://github.com/hashicorp/terraform/issues/15321))
+* config: Interpolation function `cidrhost` was not correctly calculating host addresses under IPv6 CIDR prefixes ([#15321](https://github.com/hashicorp/terraform/issues/15321))
 * provisioner/chef: Prevent a panic while trying to read the connection info ([#15271](https://github.com/hashicorp/terraform/issues/15271))
 * provisioner/file: Refactor the provisioner validation function to prevent false positives ([#15273](https://github.com/hashicorp/terraform/issues/15273))
 
@@ -432,7 +432,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* config: Interpolation function `cidrhost` was not correctly calcluating host addresses under IPv6 CIDR prefixes ([#15321](https://github.com/hashicorp/terraform/issues/15321))
+* config: Interpolation function `cidrhost` was not correctly calculating host addresses under IPv6 CIDR prefixes ([#15321](https://github.com/hashicorp/terraform/issues/15321))
 * provisioner/chef: Prevent a panic while trying to read the connection info ([#15271](https://github.com/hashicorp/terraform/issues/15271))
 * provisioner/file: Refactor the provisioner validation function to prevent false positives ([#15273](https://github.com/hashicorp/terraform/issues/15273))
 
