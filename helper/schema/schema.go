@@ -747,7 +747,7 @@ func isValidFieldName(name string) bool {
 }
 
 // resourceDiffer is an interface that is used by the private diff functions.
-// This helps facilitate diff logic for both ResourceData and ResoureDiff with
+// This helps facilitate diff logic for both ResourceData and ResourceDiff with
 // minimal divergence in code.
 type resourceDiffer interface {
 	diffChange(string) (interface{}, interface{}, bool, bool, bool)

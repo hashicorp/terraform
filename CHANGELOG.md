@@ -1985,7 +1985,7 @@ BUG FIXES:
  * core: Maps in outputs with computed values are no longer removed. ([#9549](https://github.com/hashicorp/terraform/issues/9549))
  * core: Direct indexing into a computed list no longer errors. ([#10657](https://github.com/hashicorp/terraform/issues/10657))
  * core: Validate fails on invalid keys in `variable` blocks. ([#10658](https://github.com/hashicorp/terraform/issues/10658))
- * core: Validate that only a single `lifecycle` block exists per rource. ([#10656](https://github.com/hashicorp/terraform/issues/10656))
+ * core: Validate that only a single `lifecycle` block exists per resource. ([#10656](https://github.com/hashicorp/terraform/issues/10656))
  * core: When destroying, the resources of a provider that depends on another resource are destroyed first. ([#10659](https://github.com/hashicorp/terraform/issues/10659))
  * core: Catch parse errors for null characters mid-file ([#9134](https://github.com/hashicorp/terraform/issues/9134))
  * core: Remove extra dot from state command backup files ([#10300](https://github.com/hashicorp/terraform/issues/10300))
@@ -2068,7 +2068,7 @@ BUG FIXES:
 
  * core: Direct indexing into a computed list no longer errors. ([#10657](https://github.com/hashicorp/terraform/issues/10657))
  * core: Validate fails on invalid keys in `variable` blocks. ([#10658](https://github.com/hashicorp/terraform/issues/10658))
- * core: Validate that only a single `lifecycle` block exists per rource. ([#10656](https://github.com/hashicorp/terraform/issues/10656))
+ * core: Validate that only a single `lifecycle` block exists per resource. ([#10656](https://github.com/hashicorp/terraform/issues/10656))
  * core: When destroying, the resources of a provider that depends on another resource are destroyed first. ([#10659](https://github.com/hashicorp/terraform/issues/10659))
  * provider/aws: Added Lambda function guard when needed attributes are not set ([#10663](https://github.com/hashicorp/terraform/issues/10663))
  * provider/aws: Allow import of aws_security_groups with more than one source_security_group_id rule ([#9477](https://github.com/hashicorp/terraform/issues/9477))

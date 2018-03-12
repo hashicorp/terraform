@@ -123,7 +123,7 @@ func (n *EvalInputProvider) Eval(ctx EvalContext) (interface{}, error) {
 	// config for other providers.
 	confMap := make(map[string]interface{})
 	if config != nil && len(config.Config) > 0 {
-		// any values that weren't in the original ResourcConfig will be cached
+		// any values that weren't in the original ResourceConfig will be cached
 		for k, v := range config.Config {
 			if _, ok := orig.Config[k]; !ok {
 				confMap[k] = v

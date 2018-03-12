@@ -85,7 +85,7 @@ type EvalDiff struct {
 
 	// Stub is used to flag the generated InstanceDiff as a stub. This is used to
 	// ensure that the node exists to perform interpolations and generate
-	// computed paths off of, but not as an actual diff where resouces should be
+	// computed paths off of, but not as an actual diff where resources should be
 	// counted, and not as a diff that should be acted on.
 	Stub bool
 }
