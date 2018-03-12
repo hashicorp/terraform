@@ -523,7 +523,7 @@ IMPROVEMENTS:
 * provider/openstack: Add support for FWaaS routerinsertion extension ([#12589](https://github.com/hashicorp/terraform/issues/12589))
 * provider/openstack: Add Terraform version to UserAgent string ([#14955](https://github.com/hashicorp/terraform/issues/14955))
 * provider/openstack: Optimize the printing of debug output ([#15086](https://github.com/hashicorp/terraform/issues/15086))
-* provisioner/chef: Use `helpers.shema.Provisoner` in Chef provisioner V2 ([#14681](https://github.com/hashicorp/terraform/issues/14681))
+* provisioner/chef: Use `helpers.shema.Provisioner` in Chef provisioner V2 ([#14681](https://github.com/hashicorp/terraform/issues/14681))
 
 BUG FIXES:
 
