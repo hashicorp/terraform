@@ -27,7 +27,7 @@ func TestResourceBuilder_attrSetComputed(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if diff == nil {
-		t.Fatal("diff shold not be nil")
+		t.Fatal("diff should not be nil")
 	}
 
 	actual := testResourceDiffStr(diff)
@@ -61,7 +61,7 @@ func TestResourceBuilder_attrSetComputedComplex(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if diff != nil {
-		t.Fatalf("diff shold be nil: %#v", diff)
+		t.Fatalf("diff should be nil: %#v", diff)
 	}
 }
 
@@ -192,7 +192,7 @@ func TestResourceBuilder_computedAttrsUpdate(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if diff == nil {
-		t.Fatal("diff shold not be nil")
+		t.Fatal("diff should not be nil")
 	}
 
 	actual := testResourceDiffStr(diff)
@@ -254,7 +254,7 @@ func TestResourceBuilder_preProcess(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if diff == nil {
-		t.Fatal("diff shold not be nil")
+		t.Fatal("diff should not be nil")
 	}
 
 	actual := testResourceDiffStr(diff)
@@ -295,7 +295,7 @@ func TestResourceBuilder_preProcessUnknown(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if diff == nil {
-		t.Fatal("diff shold not be nil")
+		t.Fatal("diff should not be nil")
 	}
 
 	actual := testResourceDiffStr(diff)

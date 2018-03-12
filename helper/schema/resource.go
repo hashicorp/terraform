@@ -170,7 +170,7 @@ func (r *Resource) Apply(
 		return s, err
 	}
 
-	// Instance Diff shoould have the timeout info, need to copy it over to the
+	// Instance Diff should have the timeout info, need to copy it over to the
 	// ResourceData meta
 	rt := ResourceTimeout{}
 	if _, ok := d.Meta[TimeoutKey]; ok {

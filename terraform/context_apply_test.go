@@ -7766,7 +7766,7 @@ func TestContext2Apply_destroyProvisionerWithOutput(t *testing.T) {
 		},
 		Destroy: true,
 
-		// targeting the source of the value used by all resources shoudl still
+		// targeting the source of the value used by all resources should still
 		// destroy them all.
 		Targets: []string{"module.mod.aws_instance.baz"},
 	})
