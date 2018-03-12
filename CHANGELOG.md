@@ -1521,7 +1521,7 @@ Bug FIXES:
  * provider/aws: Bump Create and Delete timeouts to 60 mins on directory_service ([#11793](https://github.com/hashicorp/terraform/issues/11793))
  * provider/aws: aws_codecommit_trigger fix typo that causes serialization to fail when events is non-empty ([#11839](https://github.com/hashicorp/terraform/issues/11839))
  * provider/aws: Fix bug to allow update of maintenance_window in elasticache_replication_group ([#11850](https://github.com/hashicorp/terraform/issues/11850))
- * provider/azurerm: Don't push an empty set of ssh keys to virtual machine or they cannot be ammended ([#11804](https://github.com/hashicorp/terraform/issues/11804))
+ * provider/azurerm: Don't push an empty set of ssh keys to virtual machine or they cannot be amended ([#11804](https://github.com/hashicorp/terraform/issues/11804))
  * provider/azurerm: Refresh from state when VM Extension Resource not found ([#11894](https://github.com/hashicorp/terraform/issues/11894))
  * provider/cloudstack: Ensure consistent hashes of `cloudstack_port_forward` forward items. ([#11546](https://github.com/hashicorp/terraform/issues/11546))
  * provider/google: set additional_zones to computed and disallow the original zone from appearing in the list ([#11650](https://github.com/hashicorp/terraform/issues/11650))
