@@ -1066,7 +1066,7 @@ func (m *Meta) backend_C_r_S_changed(
 	return b, nil
 }
 
-// Initiailizing an unchanged saved backend
+// Initializing an unchanged saved backend
 func (m *Meta) backend_C_r_S_unchanged(
 	c *config.Backend, sMgr state.State) (backend.Backend, error) {
 	s := sMgr.State()
@@ -1105,7 +1105,7 @@ func (m *Meta) backend_C_r_S_unchanged(
 	return b, nil
 }
 
-// Initiailizing a changed saved backend with legacy remote state.
+// Initializing a changed saved backend with legacy remote state.
 func (m *Meta) backend_C_R_S_changed(
 	c *config.Backend, sMgr state.State) (backend.Backend, error) {
 	// Notify the user
@@ -1132,7 +1132,7 @@ func (m *Meta) backend_C_R_S_changed(
 	return b, nil
 }
 
-// Initiailizing an unchanged saved backend with legacy remote state.
+// Initializing an unchanged saved backend with legacy remote state.
 func (m *Meta) backend_C_R_S_unchanged(
 	c *config.Backend, sMgr state.State, output bool) (backend.Backend, error) {
 	if output {

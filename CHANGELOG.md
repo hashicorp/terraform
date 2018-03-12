@@ -2021,7 +2021,7 @@ BUG FIXES:
  * provider/azurerm: fix servicebus_topic max_size_in_megabytes for premium namespaces ([#10611](https://github.com/hashicorp/terraform/issues/10611))
  * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine ([#10340](https://github.com/hashicorp/terraform/issues/10340))
  * provider/datadog: Refactor monitor tags to a list instead of a map. ([#10570](https://github.com/hashicorp/terraform/issues/10570))
- * provider/datadog 9869: Validate credentials when initialising client. ([#10567](https://github.com/hashicorp/terraform/issues/10567))
+ * provider/datadog 9869: Validate credentials when initializing client. ([#10567](https://github.com/hashicorp/terraform/issues/10567))
  * provider/openstack: More Import and Region Fixes ([#10662](https://github.com/hashicorp/terraform/issues/10662))
  * provider/openstack: Fix Ordering of Port Allowed Address Pairs ([#10250](https://github.com/hashicorp/terraform/issues/10250))
  * provider/template: No file path error when setting template to `/` ([#10297](https://github.com/hashicorp/terraform/issues/10297))
@@ -2126,7 +2126,7 @@ BUG FIXES:
   * provider/azurem: azurerm_availability_set not is ForceNew for UpdateDomain and FaultDomain ([#10545](https://github.com/hashicorp/terraform/issues/10545))
   * provider/azurerm: fix servicebus_topic max_size_in_megabytes for premium namespaces ([#10611](https://github.com/hashicorp/terraform/issues/10611))
   * provider/datadog: Refactor monitor tags to a list instead of a map. ([#10570](https://github.com/hashicorp/terraform/issues/10570))
-  * provider/datadog 9869: Validate credentials when initialising client. ([#10567](https://github.com/hashicorp/terraform/issues/10567))
+  * provider/datadog 9869: Validate credentials when initializing client. ([#10567](https://github.com/hashicorp/terraform/issues/10567))
   * provider/openstack: Fix Ordering of Port Allowed Address Pairs ([#10250](https://github.com/hashicorp/terraform/issues/10250))
 
 ## 0.8.0-rc2 (December 2, 2016)
