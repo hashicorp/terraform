@@ -241,6 +241,6 @@ func HCL2TypeForHILType(hilType ast.Type) cty.Type {
 	case ast.TypeMap:
 		return cty.Map(cty.DynamicPseudoType)
 	default:
-		return cty.NilType // equilvalent to ast.TypeInvalid
+		return cty.NilType // equivalent to ast.TypeInvalid
 	}
 }
