@@ -2003,7 +2003,7 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 		}
 	}
 
-	// catch any unitialized fields in the state
+	// catch any uninitialized fields in the state
 	state.init()
 
 	// Sort it
@@ -2038,7 +2038,7 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 		}
 	}
 
-	// catch any unitialized fields in the state
+	// catch any uninitialized fields in the state
 	state.init()
 
 	// Sort it
