@@ -4383,7 +4383,7 @@ BUG FIXES:
   * provider/aws: fix issue preventing destruction of IAM Roles ([#2177](https://github.com/hashicorp/terraform/issues/2177))
   * provider/aws: fix issue where Security Group Rules could collide and fail
       to save to the state file correctly ([#2376](https://github.com/hashicorp/terraform/issues/2376))
-  * provider/aws: fix issue preventing destruction self referencing Securtity
+  * provider/aws: fix issue preventing destruction self referencing Security
      Group Rules ([#2305](https://github.com/hashicorp/terraform/issues/2305))
   * provider/aws: fix issue causing perpetual diff on ELB listeners
       when non-lowercase protocol strings were used ([#2246](https://github.com/hashicorp/terraform/issues/2246))
