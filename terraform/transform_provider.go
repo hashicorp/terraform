@@ -412,7 +412,7 @@ type ProviderConfigTransformer struct {
 	// each provider node is stored here so that the proxy nodes can look up
 	// their targets by name.
 	providers map[string]GraphNodeProvider
-	// record providers that can be overriden with a proxy
+	// record providers that can be overridden with a proxy
 	proxiable map[string]bool
 
 	// Module is the module to add resources from.

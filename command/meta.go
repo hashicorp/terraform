@@ -129,7 +129,7 @@ type Meta struct {
 	//
 	// stateOutPath is used to override the output path for the state.
 	// If not provided, the StatePath is used causing the old state to
-	// be overriden.
+	// be overridden.
 	//
 	// backupPath is used to backup the state file before writing a modified
 	// version. It defaults to stateOutPath + DefaultBackupExtension
