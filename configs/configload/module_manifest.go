@@ -48,7 +48,7 @@ func manifestKey(path []string) string {
 }
 
 // manifestSnapshotFile is an internal struct used only to assist in our JSON
-// serializtion of manifest snapshots. It should not be used for any other
+// serialization of manifest snapshots. It should not be used for any other
 // purposes.
 type manifestSnapshotFile struct {
 	Records []moduleRecord `json:"Modules"`
