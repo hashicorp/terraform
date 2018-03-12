@@ -764,7 +764,7 @@ func (m *Meta) backend_c_R_S(
 	// Get the backend type for later
 	backendType := sMgr.State().Backend.Type
 
-	// First, perform the configured => local tranasition
+	// First, perform the configured => local transition
 	if _, err := m.backend_c_r_S(c, sMgr, false); err != nil {
 		return nil, err
 	}
