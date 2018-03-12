@@ -251,7 +251,7 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 		// out all the empty and computed attributes. There may be a bunch of
 		// extraneous attribute diffs for the other non-requires-new attributes
 		// going from "" -> "configval" or "" -> "<computed>".
-		// We must make sure any flatmapped containers are filterred (or not) as a
+		// We must make sure any flatmapped containers are filtered (or not) as a
 		// whole.
 		containers := groupContainers(diff)
 		keep := map[string]bool{}
