@@ -271,7 +271,7 @@ func (r *ConfigFieldReader) readSet(
 		return FieldReadResult{Value: set}, nil
 	}
 
-	// If the list is computed, the set is necessarilly computed
+	// If the list is computed, the set is necessarily computed
 	if raw.Computed {
 		return FieldReadResult{
 			Value:    set,
