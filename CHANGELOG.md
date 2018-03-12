@@ -1058,7 +1058,7 @@ IMPROVEMENTS:
 
  * core: fix interpolation error when referencing computed values from an `aws_instance` `cidr_block` ([#13046](https://github.com/hashicorp/terraform/issues/13046))
  * core: fix `ignore_changes` causing fields to be removed during apply ([#12897](https://github.com/hashicorp/terraform/issues/12897))
- * core: add `-force-copy` option to `terraform init` to supress prompts for copying state ([#12939](https://github.com/hashicorp/terraform/issues/12939))
+ * core: add `-force-copy` option to `terraform init` to suppress prompts for copying state ([#12939](https://github.com/hashicorp/terraform/issues/12939))
  * helper/acctest: Add NewSSHKeyPair function ([#12894](https://github.com/hashicorp/terraform/issues/12894))
  * provider/alicloud: simplify validators ([#12982](https://github.com/hashicorp/terraform/issues/12982))
  * provider/aws: Added support for EMR AutoScalingRole ([#12823](https://github.com/hashicorp/terraform/issues/12823))
