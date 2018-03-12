@@ -536,7 +536,7 @@ func interpolationFuncCeil() ast.Function {
 	}
 }
 
-// interpolationFuncLog returns the logarithnm.
+// interpolationFuncLog returns the logarithm.
 func interpolationFuncLog() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeFloat, ast.TypeFloat},
