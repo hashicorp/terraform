@@ -157,7 +157,7 @@ func TestApply_parallelism(t *testing.T) {
 
 	par := 4
 
-	// This blocks all the appy functions. We close it when we exit so
+	// This blocks all the apply functions. We close it when we exit so
 	// they end quickly after this test finishes.
 	block := make(chan struct{})
 	// signal how many goroutines have started
