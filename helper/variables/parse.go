@@ -19,7 +19,7 @@ func ParseInput(value string) (interface{}, error) {
 
 	// If the value is a simple number, don't parse it as hcl because the
 	// variable type may actually be a string, and HCL will convert it to the
-	// numberic value. We could check this in the validation later, but the
+	// numeric value. We could check this in the validation later, but the
 	// conversion may alter the string value.
 	if _, err := strconv.ParseInt(trimmed, 10, 64); err == nil {
 		return value, nil
