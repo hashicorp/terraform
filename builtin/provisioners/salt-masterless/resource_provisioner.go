@@ -1,7 +1,7 @@
 // This package implements a provisioner for Terraform that executes a
 // saltstack state within the remote machine
 //
-// Adapted from gitub.com/hashicorp/packer/provisioner/salt-masterless
+// Adapted from github.com/hashicorp/packer/provisioner/salt-masterless
 
 package saltmasterless
 
