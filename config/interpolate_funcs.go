@@ -760,7 +760,7 @@ func interpolationFuncDistinct() ast.Function {
 	}
 }
 
-// helper function to add an element to a list, if it does not already exsit
+// helper function to add an element to a list, if it does not already exist
 func appendIfMissing(slice []string, element string) []string {
 	for _, ele := range slice {
 		if ele == element {
