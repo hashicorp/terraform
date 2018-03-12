@@ -318,7 +318,7 @@ func TestStateDeepCopy(t *testing.T) {
 			actual := tc.State.DeepCopy()
 			expected := tc.State
 			if !reflect.DeepEqual(actual, expected) {
-				t.Fatalf("Expected: %#v\nRecevied: %#v\n", expected, actual)
+				t.Fatalf("Expected: %#v\nReceived: %#v\n", expected, actual)
 			}
 		})
 	}

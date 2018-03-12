@@ -139,7 +139,7 @@ func filterSweepers(f string, source map[string]*Sweeper) map[string]*Sweeper {
 	return sweepers
 }
 
-// runSweeperWithRegion recieves a sweeper and a region, and recursively calls
+// runSweeperWithRegion receives a sweeper and a region, and recursively calls
 // itself with that region for every dependency found for that sweeper. If there
 // are no dependencies, invoke the contained sweeper fun with the region, and
 // add the success/fail status to the sweeperRunList.

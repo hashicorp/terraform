@@ -25,7 +25,7 @@ type VariableTypeHint rune
 // ambiguous contexts will be treated as literal strings, as if TypeHintString
 // were selected, but no runtime value checks will be applied. This is reasonable
 // type hint for a module that is never intended to be used at the top-level
-// of a configuration, since descendent modules never recieve values from
+// of a configuration, since descendent modules never receive values from
 // ambiguous contexts.
 const TypeHintNone VariableTypeHint = 0
 
