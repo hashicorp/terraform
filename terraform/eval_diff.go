@@ -263,7 +263,7 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 					keep[k] = true
 					// this key may have been added by the user to ignore, but
 					// if it's a subkey in a container, we need to un-ignore it
-					// to keep the complete containter.
+					// to keep the complete container.
 					delete(ignorableAttrKeys, k)
 				}
 			}
