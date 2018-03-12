@@ -80,7 +80,7 @@ func Sources(nodes []Node) []Node {
 // Unreachable starts at a given start node, performs
 // a DFS from there, and returns the set of unreachable nodes.
 func Unreachable(start Node, nodes []Node) []Node {
-	// DFS from the start ndoe
+	// DFS from the start node
 	frontier := []Node{start}
 	seen := make(map[Node]struct{})
 	for len(frontier) > 0 {
