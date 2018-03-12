@@ -2525,7 +2525,7 @@ BUG FIXES:
  * provider/aws: Allow zero value for `scaling_adjustment` in `aws_autoscaling_policy` when using `SimpleScaling` ([#8893](https://github.com/hashicorp/terraform/issues/8893))
  * provider/aws: Increase ECS service drain timeout ([#9521](https://github.com/hashicorp/terraform/issues/9521))
  * provider/aws: Remove VPC Endpoint from state if it's not found ([#9561](https://github.com/hashicorp/terraform/issues/9561))
- * provider/aws: Delete Loging Profile from IAM User on force_destroy ([#9583](https://github.com/hashicorp/terraform/issues/9583))
+ * provider/aws: Delete Logging Profile from IAM User on force_destroy ([#9583](https://github.com/hashicorp/terraform/issues/9583))
  * provider/aws: Exposed aws_api_gw_domain_name.certificate_upload_date attribute ([#9533](https://github.com/hashicorp/terraform/issues/9533))
  * provider/aws: fix aws_elasticache_replication_group for Redis in cluster mode ([#9601](https://github.com/hashicorp/terraform/issues/9601))
  * provider/aws: Validate regular expression passed via the ami data_source `name_regex` attribute. ([#9622](https://github.com/hashicorp/terraform/issues/9622))
