@@ -528,7 +528,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * provider/alicloud: set `alicloud_nat_gateway` zone to be Computed to avoid perpetual diffs ([#15050](https://github.com/hashicorp/terraform/issues/15050))
-* provider/alicloud: set provider to read env vars for access key and secrey key if empty strings ([#15050](https://github.com/hashicorp/terraform/issues/15050))
+* provider/alicloud: set provider to read env vars for access key and secret key if empty strings ([#15050](https://github.com/hashicorp/terraform/issues/15050))
 * provider/alicloud: Fix vpc and vswitch bugs while creating vpc and vswitch ([#15082](https://github.com/hashicorp/terraform/issues/15082))
 * provider/alicloud: Fix allocating public ip bug ([#15049](https://github.com/hashicorp/terraform/issues/15049))
 * provider/alicloud: Fix security group rules nic_type bug ([#15114](https://github.com/hashicorp/terraform/issues/15114))
