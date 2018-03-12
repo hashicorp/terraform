@@ -24,7 +24,7 @@ type GraphWalkerPanicwrapper interface {
 	GraphWalker
 
 	// Panic is called when a panic occurs. This will halt the panic from
-	// propogating so if the walker wants it to crash still it should panic
+	// propagating so if the walker wants it to crash still it should panic
 	// again. This is called from within a defer so runtime/debug.Stack can
 	// be used to get the stack trace of the panic.
 	Panic(dag.Vertex, interface{})
