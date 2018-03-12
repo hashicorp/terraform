@@ -234,7 +234,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 		w.edges.Add(raw)
 	}
 
-	// Process reoved edges
+	// Process removed edges
 	for _, raw := range oldEdges.List() {
 		edge := raw.(Edge)
 		waiter, dep := w.edgeParts(edge)
