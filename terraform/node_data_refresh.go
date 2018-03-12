@@ -92,7 +92,7 @@ type NodeRefreshableDataResourceInstance struct {
 	*NodeAbstractResource
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 	addr := n.NodeAbstractResource.Addr
 

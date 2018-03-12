@@ -29,7 +29,7 @@ func (n *NodeOutputOrphan) Path() []string {
 	return n.PathValue
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeOutputOrphan) EvalTree() EvalNode {
 	return &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh, walkApply, walkDestroy},

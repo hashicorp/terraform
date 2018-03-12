@@ -38,7 +38,7 @@ func (n *NodeProvisioner) ProvisionerName() string {
 	return n.NameValue
 }
 
-// GraphNodeEvalable impl.
+// GraphNodeEvaluable impl.
 func (n *NodeProvisioner) EvalTree() EvalNode {
 	return &EvalInitProvisioner{Name: n.NameValue}
 }

@@ -12,7 +12,7 @@ type NodeAbstractCountResource struct {
 	Validate bool
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeAbstractCountResource) EvalTree() EvalNode {
 	// We only check if the count is computed if we're not validating.
 	// If we're validating we allow computed counts since they just turn

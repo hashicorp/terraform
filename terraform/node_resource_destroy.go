@@ -123,7 +123,7 @@ func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	return b.Build(ctx.Path())
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeDestroyResource) EvalTree() EvalNode {
 	// stateId is the ID to put into the state
 	stateId := n.Addr.stateId()

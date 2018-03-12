@@ -15,7 +15,7 @@ func (n *NodeDisabledProvider) Name() string {
 	return fmt.Sprintf("%s (disabled)", n.NodeAbstractProvider.Name())
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeDisabledProvider) EvalTree() EvalNode {
 	var resourceConfig *ResourceConfig
 	return &EvalSequence{

@@ -74,7 +74,7 @@ func (n *graphNodeDeposedResource) SetProvider(p string) {
 	n.ResolvedProvider = p
 }
 
-// GraphNodeEvalable impl.
+// GraphNodeEvaluable impl.
 func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 	var provider ResourceProvider
 	var state *InstanceState

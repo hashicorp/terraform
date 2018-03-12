@@ -339,7 +339,7 @@ func (n *graphNodeCloseProvider) Name() string {
 	return n.ProviderNameValue + " (close)"
 }
 
-// GraphNodeEvalable impl.
+// GraphNodeEvaluable impl.
 func (n *graphNodeCloseProvider) EvalTree() EvalNode {
 	return CloseProviderEvalTree(n.ProviderNameValue)
 }

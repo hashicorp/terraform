@@ -8,7 +8,7 @@ func (n *NodeCountBoundary) Name() string {
 	return "meta.count-boundary (count boundary fixup)"
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeCountBoundary) EvalTree() EvalNode {
 	return &EvalCountFixZeroOneBoundaryGlobal{}
 }
