@@ -1018,7 +1018,7 @@ func interpolationFuncSlice() ast.Function {
 	}
 }
 
-// interpolationFuncSort sorts a list of a strings lexographically
+// interpolationFuncSort sorts a list of a strings lexicographically
 func interpolationFuncSort() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeList},
