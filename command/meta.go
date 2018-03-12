@@ -385,7 +385,7 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	errScanner := bufio.NewScanner(errR)
 	go func() {
 		// This only needs to be alive long enough to write the help info if
-		// there is a flag error. Kill the scanner after a short duriation to
+		// there is a flag error. Kill the scanner after a short duration to
 		// prevent these from accumulating during tests, and cluttering up the
 		// stack traces.
 		time.AfterFunc(2*time.Second, func() {
