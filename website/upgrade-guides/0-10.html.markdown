@@ -55,7 +55,7 @@ of plugins from being automatically installed in future.
 ### Third-party Provider Plugins
 
 This initial release of separated provider plugins applies only to the
-providers that are packaged and released by Hashicorp. The goal is to
+providers that are packaged and released by HashiCorp. The goal is to
 eventually support a similar approach for third-party plugins, but we wish
 to ensure the robustness of the installation and versioning mechanisms before
 generalizing this feature.

@@ -311,7 +311,7 @@ be used to prevent Terraform from automatically downloading additional plugins.
 
 ## Terraform Enterprise
 
-As an alternative to home-grown automation solutions, Hashicorp offers
+As an alternative to home-grown automation solutions, HashiCorp offers
 [Terraform Enterprise](https://www.hashicorp.com/products/terraform/).
 
 Internally, Terraform Enterprise runs the same Terraform CLI commands
