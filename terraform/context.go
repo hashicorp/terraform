@@ -911,10 +911,10 @@ func parseVariableAsHCL(name string, input string, targetType config.VariableTyp
 	}
 
 	const sentinelValue = "SENTINEL_TERRAFORM_VAR_OVERRIDE_KEY"
-	inputWithSentinal := fmt.Sprintf("%s = %s", sentinelValue, input)
+	inputWithSentinel := fmt.Sprintf("%s = %s", sentinelValue, input)
 
 	var decoded map[string]interface{}
-	err := hcl.Decode(&decoded, inputWithSentinal)
+	err := hcl.Decode(&decoded, inputWithSentinel)
 	if err != nil {
 		return nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL: %s", name, input, err)
 	}
