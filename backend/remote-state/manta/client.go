@@ -67,6 +67,7 @@ func (c *RemoteClient) Put(data []byte) error {
 		ContentLength: uint64(contentLength),
 		ObjectPath:    path.Join(mantaDefaultRootStore, c.directoryName, c.keyName),
 		ObjectReader:  bytes.NewReader(data),
+		ForceInsert:   true,
 	}
 
 	log.Printf("[DEBUG] Uploading remote state to Manta: %#v", params)
@@ -102,24 +103,6 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		return "", err
 	}
 
-	//firstly we want to check that a lock doesn't already exist
-	lockErr := &state.LockError{}
-	lockInfo, err := c.getLockInfo()
-	if err != nil {
-		if tritonErrors.IsResourceNotFound(err) {
-			lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
-			return "", lockErr
-		}
-	}
-
-	if lockInfo != nil {
-		lockErr := &state.LockError{
-			Err:  fmt.Errorf("A lock is already acquired"),
-			Info: lockInfo,
-		}
-		return "", lockErr
-	}
-
 	info.Path = path.Join(c.directoryName, lockFileName)
 
 	if info.ID == "" {
@@ -136,16 +119,23 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	contentType := "application/json"
 	contentLength := int64(len(data))
 
-	params := &storage.PutObjectInput{
+	p := &storage.PutObjectInput{
 		ContentType:   contentType,
 		ContentLength: uint64(contentLength),
 		ObjectPath:    path.Join(mantaDefaultRootStore, c.directoryName, lockFileName),
 		ObjectReader:  bytes.NewReader(data),
 	}
 
-	log.Printf("[DEBUG] Creating manta state lock: %#v", params)
-	err = c.storageClient.Objects().Put(context.Background(), params)
+	log.Printf("[DEBUG] Creating manta state lock: %#v", p)
+	err = c.storageClient.Objects().Put(context.Background(), p)
 	if err != nil {
+		lockErr := &state.LockError{}
+		lockInfo, err := c.getLockInfo()
+		if err != nil {
+			lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
+			lockErr.Info = lockInfo
+			return "", lockErr
+		}
 		return "", err
 	}
 
