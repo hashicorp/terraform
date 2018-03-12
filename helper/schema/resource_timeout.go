@@ -100,7 +100,7 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 						timeout = t.Default
 					}
 
-					// If the resource has not delcared this in the definition, then error
+					// If the resource has not declared this in the definition, then error
 					// with an unsupported message
 					if timeout == nil {
 						return unsupportedTimeoutKeyError(timeKey)
