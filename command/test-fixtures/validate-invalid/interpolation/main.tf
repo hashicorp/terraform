@@ -2,7 +2,7 @@ variable "otherresourcename" {
   default = "aws_instance.web1"
 }
 
-variable "vairable_with_interpolation" {
+variable "variable_with_interpolation" {
   default = "${var.otherresourcename}"
 }
 

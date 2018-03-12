@@ -142,7 +142,7 @@ func TestWronglyUsedInterpolationShouldFail(t *testing.T) {
 	if !strings.Contains(ui.ErrorWriter.String(), "depends on value cannot contain interpolations") {
 		t.Fatalf("Should have failed: %d\n\n'%s'", code, ui.ErrorWriter.String())
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), "variable \"vairable_with_interpolation\": default may not contain interpolations") {
+	if !strings.Contains(ui.ErrorWriter.String(), "variable \"variable_with_interpolation\": default may not contain interpolations") {
 		t.Fatalf("Should have failed: %d\n\n'%s'", code, ui.ErrorWriter.String())
 	}
 }
