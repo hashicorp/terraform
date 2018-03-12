@@ -3575,7 +3575,7 @@ BUG FIXES:
   * provider/aws: Fix a bug where AWS Kinesis Stream includes closed shards in the shard_count ([#5401](https://github.com/hashicorp/terraform/issues/5401))
   * provider/aws: Fix a bug where ElasticSearch Domain tags were not being set correctly ([#5361](https://github.com/hashicorp/terraform/issues/5361))
   * provider/aws: Fix a bug where `aws_route` would show continual changes in the plan when not computed ([#5321](https://github.com/hashicorp/terraform/issues/5321))
-  * provider/aws: Fix a bug where `publicly_assessible` wasn't being set to state in `aws_db_instance` ([#5535](https://github.com/hashicorp/terraform/issues/5535))
+  * provider/aws: Fix a bug where `publicly_accessible` wasn't being set to state in `aws_db_instance` ([#5535](https://github.com/hashicorp/terraform/issues/5535))
   * provider/aws: Fix a bug where listener protocol on `aws_elb` resources was case insensitive ([#5376](https://github.com/hashicorp/terraform/issues/5376))
   * provider/aws: Fix a bug which caused panics creating rules on security groups in EC2 Classic ([#5329](https://github.com/hashicorp/terraform/issues/5329))
   * provider/aws: Fix crash when `aws_lambda_function` VpcId is nil ([#5182](https://github.com/hashicorp/terraform/issues/5182))
