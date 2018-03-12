@@ -21,7 +21,7 @@ type VariableTypeHint rune
 
 //go:generate stringer -type VariableTypeHint
 
-// TypeHintNone indicates the absense of a type hint. Values specified in
+// TypeHintNone indicates the absence of a type hint. Values specified in
 // ambiguous contexts will be treated as literal strings, as if TypeHintString
 // were selected, but no runtime value checks will be applied. This is reasonable
 // type hint for a module that is never intended to be used at the top-level
