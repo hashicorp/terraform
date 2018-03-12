@@ -1035,7 +1035,7 @@ func TestResourceDataGetOk(t *testing.T) {
 			Ok:    false,
 		},
 
-		// Further illustrates and clarifiies the GetOk semantics from #933, and
+		// Further illustrates and clarifies the GetOk semantics from #933, and
 		// highlights the limitation that zero-value config is currently
 		// indistinguishable from unset config.
 		{
