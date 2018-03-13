@@ -1,7 +1,7 @@
 TEST?=$$(go list ./... |grep -Ev 'vendor|examples|testutils')
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 
-default: vet errcheck test
+default: vet fmtcheck errcheck test
 
 tools:: ## Download and install all dev/code tools
 	@echo "==> Installing dev tools"
@@ -29,16 +29,16 @@ vet:: ## Check for unwanted code constructs
 	fi
 
 lint:: ## Lint and vet code by common Go standards
-	@bash $(CURDIR)/scripts/lint.sh
+	@./scripts/lint.sh
 
 fmt:: ## Format as canonical Go code
 	gofmt -w $(GOFMT_FILES)
 
 fmtcheck:: ## Check if code format is canonical Go
-	@bash $(CURDIR)/scripts/gofmtcheck.sh
+	@./scripts/gofmtcheck.sh
 
 errcheck:: ## Check for unhandled errors
-	@bash $(CURDIR)/scripts/errcheck.sh
+	@./scripts/errcheck.sh
 
 .PHONY: help
 help:: ## Display this help message
