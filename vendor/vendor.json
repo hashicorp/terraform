@@ -1860,34 +1860,44 @@
 			"revisionTime": "2016-08-03T19:07:31Z"
 		},
 		{
-			"checksumSHA1": "Lg8OHK87XRGCaipG+5+zFyN8OMw=",
+			"checksumSHA1": "hnUvydIu2VnSjYP/ROo1SLNlLv4=",
 			"path": "github.com/joyent/triton-go",
-			"revision": "545edbe0d564f075ac576f1ad177f4ff39c9adaf",
-			"revisionTime": "2018-01-16T16:57:42Z"
+			"revision": "d8f9c031492688b4b62b7fd29b1edd9897400c4e",
+			"revisionTime": "2018-03-13T10:08:02Z",
+			"version": "1.1.1",
+			"versionExact": "1.1.1"
 		},
 		{
-			"checksumSHA1": "Y03+L+I0FVZ2bMGWt1MHTDEyWM4=",
+			"checksumSHA1": "yNrArK8kjkVkU0bunKlemd6dFkE=",
 			"path": "github.com/joyent/triton-go/authentication",
-			"revision": "545edbe0d564f075ac576f1ad177f4ff39c9adaf",
-			"revisionTime": "2018-01-16T16:57:42Z"
+			"revision": "d8f9c031492688b4b62b7fd29b1edd9897400c4e",
+			"revisionTime": "2018-03-13T10:08:02Z",
+			"version": "1.1.1",
+			"versionExact": "1.1.1"
 		},
 		{
-			"checksumSHA1": "MuJsGBr6HlXQYxZY9cM5rBk+Lns=",
+			"checksumSHA1": "WBCMeFCM9qif0JwcGQL72SG7yJM=",
 			"path": "github.com/joyent/triton-go/client",
-			"revision": "545edbe0d564f075ac576f1ad177f4ff39c9adaf",
-			"revisionTime": "2018-01-16T16:57:42Z"
+			"revision": "d8f9c031492688b4b62b7fd29b1edd9897400c4e",
+			"revisionTime": "2018-03-13T10:08:02Z",
+			"version": "1.1.1",
+			"versionExact": "1.1.1"
 		},
 		{
 			"checksumSHA1": "d/Py6j/uMgOAFNFGpsQrNnSsO+k=",
 			"path": "github.com/joyent/triton-go/errors",
-			"revision": "545edbe0d564f075ac576f1ad177f4ff39c9adaf",
-			"revisionTime": "2018-01-16T16:57:42Z"
+			"revision": "d8f9c031492688b4b62b7fd29b1edd9897400c4e",
+			"revisionTime": "2018-03-13T10:08:02Z",
+			"version": "1.1.1",
+			"versionExact": "1.1.1"
 		},
 		{
-			"checksumSHA1": "5v533ELM047YOiwHsyMaVzITpR0=",
+			"checksumSHA1": "MAjG3M0OLUJ3hdNZLHHpXdl1THQ=",
 			"path": "github.com/joyent/triton-go/storage",
-			"revision": "545edbe0d564f075ac576f1ad177f4ff39c9adaf",
-			"revisionTime": "2018-01-16T16:57:42Z"
+			"revision": "d8f9c031492688b4b62b7fd29b1edd9897400c4e",
+			"revisionTime": "2018-03-13T10:08:02Z",
+			"version": "1.1.1",
+			"versionExact": "1.1.1"
 		},
 		{
 			"checksumSHA1": "g+afVQQVopBLiLB5pFZp/8s6aBs=",
