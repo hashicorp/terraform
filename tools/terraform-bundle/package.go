@@ -2,14 +2,14 @@ package main
 
 import (
 	"archive/zip"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
-
-	"flag"
 
 	"io"
 
@@ -23,10 +23,66 @@ type PackageCommand struct {
 	ui cli.Ui
 }
 
+// shameless stackoverflow copy + pasta https://stackoverflow.com/questions/21060945/simple-way-to-copy-a-file-in-golang
+func CopyFile(src, dst string) (err error) {
+	sfi, err := os.Stat(src)
+	if err != nil {
+		return
+	}
+	if !sfi.Mode().IsRegular() {
+		// cannot copy non-regular files (e.g., directories,
+		// symlinks, devices, etc.)
+		return fmt.Errorf("CopyFile: non-regular source file %s (%q)", sfi.Name(), sfi.Mode().String())
+	}
+	dfi, err := os.Stat(dst)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return
+		}
+	} else {
+		if !(dfi.Mode().IsRegular()) {
+			return fmt.Errorf("CopyFile: non-regular destination file %s (%q)", dfi.Name(), dfi.Mode().String())
+		}
+		if os.SameFile(sfi, dfi) {
+			return
+		}
+	}
+	if err = os.Link(src, dst); err == nil {
+		return
+	}
+	err = copyFileContents(src, dst)
+	return
+}
+
+// see above
+func copyFileContents(src, dst string) (err error) {
+	in, err := os.Open(src)
+	if err != nil {
+		return
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return
+	}
+	defer func() {
+		cerr := out.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+	if _, err = io.Copy(out, in); err != nil {
+		return
+	}
+	err = out.Sync()
+	return
+}
+
 func (c *PackageCommand) Run(args []string) int {
 	flags := flag.NewFlagSet("package", flag.ExitOnError)
 	osPtr := flags.String("os", "", "Target operating system")
 	archPtr := flags.String("arch", "", "Target CPU architecture")
+	pluginDirPtr := flags.String("plugin-dir", "", "Path to custom plugins directory")
 	err := flags.Parse(args)
 	if err != nil {
 		c.ui.Error(err.Error())
@@ -35,11 +91,15 @@ func (c *PackageCommand) Run(args []string) int {
 
 	osName := runtime.GOOS
 	archName := runtime.GOARCH
+	pluginDir := "./plugins"
 	if *osPtr != "" {
 		osName = *osPtr
 	}
 	if *archPtr != "" {
 		archName = *archPtr
+	}
+	if *pluginDirPtr != "" {
+		pluginDir = *pluginDirPtr
 	}
 
 	if flags.NArg() != 1 {
@@ -70,6 +130,7 @@ func (c *PackageCommand) Run(args []string) int {
 
 	coreZipURL := c.coreURL(config.Terraform.Version, osName, archName)
 	err = getter.Get(workDir, coreZipURL)
+
 	if err != nil {
 		c.ui.Error(fmt.Sprintf("Failed to fetch core package from %s: %s", coreZipURL, err))
 	}
@@ -103,8 +164,42 @@ func (c *PackageCommand) Run(args []string) int {
 				name, constraint))
 			_, err := installer.Get(name, constraint.MustParse())
 			if err != nil {
-				c.ui.Error(fmt.Sprintf("- Failed to resolve %s provider %s: %s", name, constraint, err))
-				return 1
+				c.ui.Output(fmt.Sprintf("- Could not locate plugin in public registry Checking if %q provider (%s) is a custom plugin in: %s",
+					name, constraint, pluginDir))
+
+				//check if it is in the custom providers folder. if so then copy it to the workDir,
+				// otherwise throw error
+				plugins, err := ioutil.ReadDir(pluginDir)
+				if err != nil {
+					//there is no plugin directory so we are screwed
+					c.ui.Error(fmt.Sprintf("- Failed to resolve %s provider %s: %s", name, constraint, err))
+					return 1
+				}
+
+				var found = false
+				for _, file := range plugins {
+					var parts = strings.Split(file.Name(), "-")
+
+					//not a valid plugin name
+					if len(parts) < 2 {
+						c.ui.Output(fmt.Sprintf("- Skipping invalid file: %s", file.Name()))
+						break
+					}
+
+					var pluginName = parts[2]
+					c.ui.Output(fmt.Sprintf("- Found plugin: %s", file.Name()))
+					if pluginName == name {
+						found = true
+						CopyFile(pluginDir+"/"+file.Name(), workDir+"/"+file.Name()) //copy plugin to workDir
+						break
+					}
+				}
+
+				if !found {
+					//plugin folder exists but we can't find it
+					c.ui.Error(fmt.Sprintf("- Failed to find %s provider %s in plugins folder", name, constraint))
+					return 1
+				}
 			}
 		}
 	}
@@ -202,11 +297,13 @@ current working directory containing a Terraform binary along with zero or
 more provider plugin binaries.
 
 Options:
-  -os=name    Target operating system the archive will be built for. Defaults
-              to that of the system where the command is being run.
+  -os=name    		Target operating system the archive will be built for. Defaults
+              		to that of the system where the command is being run.
 
-  -arch=name  Target CPU architecture the archive will be built for. Defaults
-              to that of the system where the command is being run.
+  -arch=name  		Target CPU architecture the archive will be built for. Defaults
+					to that of the system where the command is being run.
+					  
+  -plugin-dir=path 	The path to the custom plugins directory. Defaults to "./plugins".
 
 The resulting zip file can be used to more easily install Terraform and
 a fixed set of providers together on a server, so that Terraform's provider
@@ -233,7 +330,13 @@ not a normal Terraform configuration file. The file format looks like this:
     # Each item in these lists allows a distinct version to be added. If the
 	# two expressions match different versions then _both_ are included in
 	# the bundle archive.
-    google = ["~> 1.0", "~> 2.0"]
+	google = ["~> 1.0", "~> 2.0"]
+	
+	#Include a custom plugin to the bundle. Will search for the plugin in the 
+	#plugins directory, and package it with the bundle archive. Plugin must have
+	#a name of the form: terraform-provider-*, and must be build with the operating
+	#system and architecture that terraform enterprise is running, e.g. linux and amd64
+	customplugin = ["0.1"]
   }
 
 `
