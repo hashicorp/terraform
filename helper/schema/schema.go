@@ -395,7 +395,7 @@ func (m *schemaMap) DeepCopy() schemaMap {
 	if err != nil {
 		panic(err)
 	}
-	return copy.(schemaMap)
+	return *copy.(*schemaMap)
 }
 
 // Diff returns the diff for a resource given the schema map,
