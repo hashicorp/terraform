@@ -22,6 +22,7 @@ BUG FIXES:
 * provider/terraform: restore support for the deprecated `environment` argument to the `terraform_remote_state` data source [GH-17545]
 * backend/gcs: Report the correct lock ID for GCS state locks [GH-17397]
 * helper/schema: Prevent crash on removal of computed field in CustomizeDiff [GH-17261]
+* helper/schema: Allow ResourceDiff.ForceNew on nested fields (avoid crash) [GH-17463]
 
 ## 0.11.3 (January 31, 2018)
 
