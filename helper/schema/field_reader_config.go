@@ -206,7 +206,7 @@ func (r *ConfigFieldReader) readMap(k string, schema *Schema) (FieldReadResult, 
 		panic(fmt.Sprintf("unknown type: %#v", mraw))
 	}
 
-	err := mapValuesToPrimitive(result, schema)
+	err := mapValuesToPrimitive(k, result, schema)
 	if err != nil {
 		return FieldReadResult{}, nil
 	}
