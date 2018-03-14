@@ -223,15 +223,30 @@ func (d *ResourceDiff) Clear(key string) error {
 
 func (d *ResourceDiff) clear(key string) error {
 	// Check the schema to make sure that this key exists first.
-	if _, ok := d.schema[key]; !ok {
+	schemaL := addrToSchema(strings.Split(key, "."), d.schema)
+	if len(schemaL) == 0 {
 		return fmt.Errorf("%s is not a valid key", key)
 	}
+
 	for k := range d.diff.Attributes {
 		if strings.HasPrefix(k, key) {
 			delete(d.diff.Attributes, k)
 		}
 	}
 	return nil
+}
+
+// GetChangedKeysPrefix helps to implement Resource.CustomizeDiff
+// where we need to act on all nested fields
+// without calling out each one separately
+func (d *ResourceDiff) GetChangedKeysPrefix(prefix string) []string {
+	keys := make([]string, 0)
+	for k := range d.diff.Attributes {
+		if strings.HasPrefix(k, prefix) {
+			keys = append(keys, k)
+		}
+	}
+	return keys
 }
 
 // diffChange helps to implement resourceDiffer and derives its change values
@@ -309,9 +324,20 @@ func (d *ResourceDiff) ForceNew(key string) error {
 		return fmt.Errorf("ForceNew: No changes for %s", key)
 	}
 
-	_, new := d.GetChange(key)
-	d.schema[key].ForceNew = true
-	return d.setDiff(key, new, false)
+	keyParts := strings.Split(key, ".")
+	var schema *Schema
+	schemaL := addrToSchema(keyParts, d.schema)
+	if len(schemaL) > 0 {
+		schema = schemaL[len(schemaL)-1]
+	} else {
+		return fmt.Errorf("ForceNew: %s is not a valid key", key)
+	}
+
+	schema.ForceNew = true
+
+	// We need to set whole lists/sets/maps here
+	_, new := d.GetChange(keyParts[0])
+	return d.setDiff(keyParts[0], new, false)
 }
 
 // Get hands off to ResourceData.Get.
