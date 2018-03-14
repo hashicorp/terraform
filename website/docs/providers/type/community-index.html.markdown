@@ -63,14 +63,19 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <td><a href="https://github.com/camptocamp/terraform-provider-puppetdb">PuppetDB</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/yunify/terraform-provider-qingcloud">QingCloud</a></td>
     <td><a href="https://github.com/ewilde/terraform-provider-runscope">Runscope</a></td>
     <td><a href="https://github.com/sacloud/terraform-provider-sakuracloud">SakuraCloud</a></td>
-    <td><a href="https://github.com/jianyuan/terraform-provider-sentry">Sentry</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/jianyuan/terraform-provider-sentry">Sentry</a></td>
     <td><a href="https://github.com/Yelp/terraform-provider-signalform">SignalFx</a></td>
     <td><a href="https://github.com/GSLabDev/terraform-provider-scvmm">SCVMM</a></td>
+    </tr>
+    <tr>
     <td><a href="https://github.com/GSLabDev/terraform-provider-vra">vRealize Automation</a></td>
+    <td><a></a></td>
+    <td><a></a></td>
     </tr>
 
 </table>
