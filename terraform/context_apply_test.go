@@ -4482,7 +4482,7 @@ func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyProvisionerFailCreateBeforeDestroyStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("expected:\n%s\n:got\n%s", expected, actual)
 	}
 }
 
