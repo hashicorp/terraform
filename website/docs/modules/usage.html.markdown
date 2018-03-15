@@ -47,7 +47,7 @@ for each registry module can be found from the registry website.
 
 Terraform also supports modules in local directories, identified by a relative
 path starting with either `./` or `../`. Such local modules are useful to
-organize code more complex repositories, and are described in more detail
+organize code in more complex repositories, and are described in more detail
 in [_Creating Modules_](/docs/modules/create.html).
 
 Finally, Terraform can download modules directly from various storage providers

@@ -427,6 +427,13 @@ func (m schemaMap) Diff(
 		}
 	}
 
+	// Remove any nil diffs just to keep things clean
+	for k, v := range result.Attributes {
+		if v == nil {
+			delete(result.Attributes, k)
+		}
+	}
+
 	// If this is a non-destroy diff, call any custom diff logic that has been
 	// defined.
 	if !result.DestroyTainted && customizeDiff != nil {
@@ -519,13 +526,6 @@ func (m schemaMap) Diff(
 
 		// And set the diff!
 		result = result2
-	}
-
-	// Remove any nil diffs just to keep things clean
-	for k, v := range result.Attributes {
-		if v == nil {
-			delete(result.Attributes, k)
-		}
 	}
 
 	// Go through and detect all of the ComputedWhens now that we've
@@ -1461,13 +1461,10 @@ func getValueType(k string, schema *Schema) (ValueType, error) {
 		return vt, nil
 	}
 
+	// If a Schema is provided to a Map, we use the Type of that schema
+	// as the type for each element in the Map.
 	if s, ok := schema.Elem.(*Schema); ok {
-		if s.Elem == nil {
-			return TypeString, nil
-		}
-		if vt, ok := s.Elem.(ValueType); ok {
-			return vt, nil
-		}
+		return s.Type, nil
 	}
 
 	if _, ok := schema.Elem.(*Resource); ok {

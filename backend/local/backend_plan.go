@@ -9,17 +9,15 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func (b *Local) opPlan(
-	ctx context.Context,
+	stopCtx context.Context,
+	cancelCtx context.Context,
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
 	log.Printf("[INFO] backend/local: starting Plan operation")
@@ -61,25 +59,6 @@ func (b *Local) opPlan(
 		return
 	}
 
-	if op.LockState {
-		lockCtx, cancel := context.WithTimeout(ctx, op.StateLockTimeout)
-		defer cancel()
-
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = op.Type.String()
-		lockID, err := clistate.Lock(lockCtx, opState, lockInfo, b.CLI, b.Colorize())
-		if err != nil {
-			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
-			return
-		}
-
-		defer func() {
-			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
-				runningOp.Err = multierror.Append(runningOp.Err, err)
-			}
-		}()
-	}
-
 	// Setup the state
 	runningOp.State = tfCtx.State()
 
@@ -111,18 +90,8 @@ func (b *Local) opPlan(
 		plan, planErr = tfCtx.Plan()
 	}()
 
-	select {
-	case <-ctx.Done():
-		if b.CLI != nil {
-			b.CLI.Output("stopping plan operation...")
-		}
-
-		// Stop execution
-		go tfCtx.Stop()
-
-		// Wait for completion still
-		<-doneCh
-	case <-doneCh:
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+		return
 	}
 
 	if planErr != nil {

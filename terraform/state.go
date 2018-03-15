@@ -16,10 +16,10 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
-	"github.com/satori/go.uuid"
 
 	tfversion "github.com/hashicorp/terraform/version"
 )
@@ -706,7 +706,11 @@ func (s *State) EnsureHasLineage() {
 
 func (s *State) ensureHasLineage() {
 	if s.Lineage == "" {
-		s.Lineage = uuid.NewV4().String()
+		lineage, err := uuid.GenerateUUID()
+		if err != nil {
+			panic(fmt.Errorf("Failed to generate lineage: %v", err))
+		}
+		s.Lineage = lineage
 		log.Printf("[DEBUG] New state was assigned lineage %q\n", s.Lineage)
 	} else {
 		log.Printf("[TRACE] Preserving existing state lineage %q\n", s.Lineage)

@@ -63,6 +63,14 @@ type sshConfig struct {
 	sshAgent *sshAgent
 }
 
+type fatalError struct {
+	error
+}
+
+func (e fatalError) FatalError() error {
+	return e.error
+}
+
 // New creates a new communicator implementation over SSH.
 func New(s *terraform.InstanceState) (*Communicator, error) {
 	connInfo, err := parseConnectionInfo(s)
@@ -117,11 +125,13 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 				"  User: %s\n"+
 				"  Password: %t\n"+
 				"  Private key: %t\n"+
-				"  SSH Agent: %t",
+				"  SSH Agent: %t\n"+
+				"  Checking Host Key: %t",
 			c.connInfo.Host, c.connInfo.User,
 			c.connInfo.Password != "",
 			c.connInfo.PrivateKey != "",
 			c.connInfo.Agent,
+			c.connInfo.HostKey != "",
 		))
 
 		if c.connInfo.BastionHost != "" {
@@ -131,11 +141,13 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 					"  User: %s\n"+
 					"  Password: %t\n"+
 					"  Private key: %t\n"+
-					"  SSH Agent: %t",
+					"  SSH Agent: %t\n"+
+					"  Checking Host Key: %t",
 				c.connInfo.BastionHost, c.connInfo.BastionUser,
 				c.connInfo.BastionPassword != "",
 				c.connInfo.BastionPrivateKey != "",
 				c.connInfo.Agent,
+				c.connInfo.BastionHostKey != "",
 			))
 		}
 	}
@@ -159,8 +171,8 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	host := fmt.Sprintf("%s:%d", c.connInfo.Host, c.connInfo.Port)
 	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, host, c.config.config)
 	if err != nil {
-		log.Printf("handshake error: %s", err)
-		return err
+		log.Printf("fatal handshake error: %s", err)
+		return fatalError{err}
 	}
 
 	c.client = ssh.NewClient(sshConn, sshChan, req)
@@ -168,7 +180,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	if c.config.sshAgent != nil {
 		log.Printf("[DEBUG] Telling SSH config to forward to agent")
 		if err := c.config.sshAgent.ForwardToAgent(c.client); err != nil {
-			return err
+			return fatalError{err}
 		}
 
 		log.Printf("[DEBUG] Setting up a session to request agent forwarding")
@@ -231,6 +243,8 @@ func (c *Communicator) ScriptPath() string {
 
 // Start implementation of communicator.Communicator interface
 func (c *Communicator) Start(cmd *remote.Cmd) error {
+	cmd.Init()
+
 	session, err := c.newSession()
 	if err != nil {
 		return err
@@ -255,7 +269,7 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	}
 
 	log.Printf("starting remote command: %s", cmd.Command)
-	err = session.Start(cmd.Command + "\n")
+	err = session.Start(strings.TrimSpace(cmd.Command) + "\n")
 	if err != nil {
 		return err
 	}
@@ -274,8 +288,8 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 			}
 		}
 
+		cmd.SetExitStatus(exitStatus, err)
 		log.Printf("remote command exited with '%d': %s", exitStatus, cmd.Command)
-		cmd.SetExited(exitStatus)
 	}()
 
 	return nil
@@ -346,10 +360,10 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 				"machine: %s", err)
 	}
 	cmd.Wait()
-	if cmd.ExitStatus != 0 {
+	if cmd.ExitStatus() != 0 {
 		return fmt.Errorf(
 			"Error chmodding script file to 0777 in remote "+
-				"machine %d: %s %s", cmd.ExitStatus, stdout.String(), stderr.String())
+				"machine %d: %s %s", cmd.ExitStatus(), stdout.String(), stderr.String())
 	}
 
 	return nil

@@ -200,7 +200,21 @@ func resourceAwsLambdaFunction() *schema.Resource {
 
 			"tags": tagsSchema(),
 		},
+
+		CustomizeDiff: updateComputedAttributesOnPublish,
 	}
+}
+
+func updateComputedAttributesOnPublish(d *schema.ResourceDiff, meta interface{}) error {
+	if needsFunctionCodeUpdate(d) {
+		d.SetNewComputed("last_modified")
+		publish := d.Get("publish").(bool)
+		if publish {
+			d.SetNewComputed("version")
+			d.SetNewComputed("qualified_arn")
+		}
+	}
+	return nil
 }
 
 // resourceAwsLambdaFunction maps to:
@@ -525,6 +539,14 @@ func resourceAwsLambdaFunctionDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
+type resourceDiffer interface {
+	HasChange(string) bool
+}
+
+func needsFunctionCodeUpdate(d resourceDiffer) bool {
+	return d.HasChange("filename") || d.HasChange("source_code_hash") || d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version")
+}
+
 // resourceAwsLambdaFunctionUpdate maps to:
 // UpdateFunctionCode in the API / SDK
 func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -649,6 +671,10 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 			if err != nil {
 				log.Printf("[DEBUG] Received error modifying Lambda Function Configuration %s: %s", d.Id(), err)
 
+				if isAWSErr(err, "InvalidParameterValueException", "The provided execution role does not have permissions") {
+					log.Printf("[DEBUG] Received %s, retrying UpdateFunctionConfiguration", err)
+					return resource.RetryableError(err)
+				}
 				if isAWSErr(err, "InvalidParameterValueException", "Your request has been throttled by EC2, please make sure you have enough API rate limit.") {
 					log.Printf("[DEBUG] Received %s, retrying UpdateFunctionConfiguration", err)
 					return resource.RetryableError(err)
@@ -668,7 +694,7 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("timeout")
 	}
 
-	if d.HasChange("filename") || d.HasChange("source_code_hash") || d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
+	if needsFunctionCodeUpdate(d) {
 		codeReq := &lambda.UpdateFunctionCodeInput{
 			FunctionName: aws.String(d.Id()),
 			Publish:      aws.Bool(d.Get("publish").(bool)),

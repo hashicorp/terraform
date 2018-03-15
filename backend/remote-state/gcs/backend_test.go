@@ -136,8 +136,11 @@ func TestBackend(t *testing.T) {
 
 	be1 := setupBackend(t, bucket, noPrefix, noEncryptionKey)
 
-	backend.TestBackend(t, be0, be1)
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
+	backend.TestBackendStateForceUnlock(t, be0, be1)
 }
+
 func TestBackendWithPrefix(t *testing.T) {
 	t.Parallel()
 
@@ -149,7 +152,8 @@ func TestBackendWithPrefix(t *testing.T) {
 
 	be1 := setupBackend(t, bucket, prefix+"/", noEncryptionKey)
 
-	backend.TestBackend(t, be0, be1)
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
 }
 func TestBackendWithEncryption(t *testing.T) {
 	t.Parallel()
@@ -161,7 +165,8 @@ func TestBackendWithEncryption(t *testing.T) {
 
 	be1 := setupBackend(t, bucket, noPrefix, encryptionKey)
 
-	backend.TestBackend(t, be0, be1)
+	backend.TestBackendStates(t, be0)
+	backend.TestBackendStateLocks(t, be0, be1)
 }
 
 // setupBackend returns a new GCS backend.

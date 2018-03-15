@@ -15,6 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsEMRCluster() *schema.Resource {
@@ -173,6 +175,16 @@ func resourceAwsEMRCluster() *schema.Resource {
 							Optional: true,
 							Default:  0,
 						},
+						"autoscaling_policy": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressEquivalentJsonDiffs,
+							ValidateFunc:     validateJsonString,
+							StateFunc: func(v interface{}) string {
+								jsonString, _ := structure.NormalizeJsonString(v)
+								return jsonString
+							},
+						},
 						"instance_role": {
 							Type:         schema.TypeString,
 							Required:     true,
@@ -225,6 +237,16 @@ func resourceAwsEMRCluster() *schema.Resource {
 				ForceNew: true,
 				Required: true,
 			},
+			"scale_down_behavior": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					emr.ScaleDownBehaviorTerminateAtInstanceHour,
+					emr.ScaleDownBehaviorTerminateAtTaskCompletion,
+				}, false),
+			},
 			"security_configuration": {
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -244,6 +266,12 @@ func resourceAwsEMRCluster() *schema.Resource {
 				Type:     schema.TypeInt,
 				ForceNew: true,
 				Optional: true,
+			},
+			"custom_ami_id": {
+				Type:         schema.TypeString,
+				ForceNew:     true,
+				Optional:     true,
+				ValidateFunc: validateAwsEmrCustomAmiId,
 			},
 		},
 	}
@@ -346,8 +374,13 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 	if v, ok := d.GetOk("log_uri"); ok {
 		params.LogUri = aws.String(v.(string))
 	}
+
 	if v, ok := d.GetOk("autoscaling_role"); ok {
 		params.AutoScalingRole = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("scale_down_behavior"); ok {
+		params.ScaleDownBehavior = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("security_configuration"); ok {
@@ -356,6 +389,10 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 	if v, ok := d.GetOk("ebs_root_volume_size"); ok {
 		params.EbsRootVolumeSize = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("custom_ami_id"); ok {
+		params.CustomAmiId = aws.String(v.(string))
 	}
 
 	if instanceProfile != "" {
@@ -465,6 +502,7 @@ func resourceAwsEMRClusterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("name", cluster.Name)
+
 	d.Set("service_role", cluster.ServiceRole)
 	d.Set("security_configuration", cluster.SecurityConfiguration)
 	d.Set("autoscaling_role", cluster.AutoScalingRole)
@@ -474,6 +512,11 @@ func resourceAwsEMRClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("visible_to_all_users", cluster.VisibleToAllUsers)
 	d.Set("tags", tagsToMapEMR(cluster.Tags))
 	d.Set("ebs_root_volume_size", cluster.EbsRootVolumeSize)
+	d.Set("scale_down_behavior", cluster.ScaleDownBehavior)
+
+	if cluster.CustomAmiId != nil {
+		d.Set("custom_ami_id", cluster.CustomAmiId)
+	}
 
 	if err := d.Set("applications", flattenApplications(cluster.Applications)); err != nil {
 		log.Printf("[ERR] Error setting EMR Applications for cluster (%s): %s", d.Id(), err)
@@ -736,6 +779,13 @@ func flattenInstanceGroups(igs []*emr.InstanceGroup) []map[string]interface{} {
 		attrs["instance_count"] = *ig.RequestedInstanceCount
 		attrs["instance_role"] = *ig.InstanceGroupType
 		attrs["instance_type"] = *ig.InstanceType
+
+		if ig.AutoScalingPolicy != nil {
+			attrs["autoscaling_policy"] = *ig.AutoScalingPolicy
+		} else {
+			attrs["autoscaling_policy"] = ""
+		}
+
 		attrs["name"] = *ig.Name
 		result = append(result, attrs)
 	}
@@ -883,7 +933,7 @@ func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActi
 }
 
 func expandInstanceGroupConfigs(instanceGroupConfigs []interface{}) []*emr.InstanceGroupConfig {
-	configsOut := []*emr.InstanceGroupConfig{}
+	instanceGroupConfig := []*emr.InstanceGroupConfig{}
 
 	for _, raw := range instanceGroupConfigs {
 		configAttributes := raw.(map[string]interface{})
@@ -898,42 +948,68 @@ func expandInstanceGroupConfigs(instanceGroupConfigs []interface{}) []*emr.Insta
 			InstanceCount: aws.Int64(int64(configInstanceCount)),
 		}
 
-		if bidPrice, ok := configAttributes["bid_price"]; ok {
-			if bidPrice != "" {
-				config.BidPrice = aws.String(bidPrice.(string))
-				config.Market = aws.String("SPOT")
-			} else {
-				config.Market = aws.String("ON_DEMAND")
-			}
-		}
+		applyBidPrice(config, configAttributes)
+		applyEbsConfig(configAttributes, config)
+		applyAutoScalingPolicy(configAttributes, config)
 
-		if rawEbsConfigs, ok := configAttributes["ebs_config"]; ok {
-			ebsConfig := &emr.EbsConfiguration{}
-
-			ebsBlockDeviceConfigs := make([]*emr.EbsBlockDeviceConfig, 0)
-			for _, rawEbsConfig := range rawEbsConfigs.(*schema.Set).List() {
-				rawEbsConfig := rawEbsConfig.(map[string]interface{})
-				ebsBlockDeviceConfig := &emr.EbsBlockDeviceConfig{
-					VolumesPerInstance: aws.Int64(int64(rawEbsConfig["volumes_per_instance"].(int))),
-					VolumeSpecification: &emr.VolumeSpecification{
-						SizeInGB:   aws.Int64(int64(rawEbsConfig["size"].(int))),
-						VolumeType: aws.String(rawEbsConfig["type"].(string)),
-					},
-				}
-				if v, ok := rawEbsConfig["iops"].(int); ok && v != 0 {
-					ebsBlockDeviceConfig.VolumeSpecification.Iops = aws.Int64(int64(v))
-				}
-				ebsBlockDeviceConfigs = append(ebsBlockDeviceConfigs, ebsBlockDeviceConfig)
-			}
-			ebsConfig.EbsBlockDeviceConfigs = ebsBlockDeviceConfigs
-
-			config.EbsConfiguration = ebsConfig
-		}
-
-		configsOut = append(configsOut, config)
+		instanceGroupConfig = append(instanceGroupConfig, config)
 	}
 
-	return configsOut
+	return instanceGroupConfig
+}
+
+func applyBidPrice(config *emr.InstanceGroupConfig, configAttributes map[string]interface{}) {
+	if bidPrice, ok := configAttributes["bid_price"]; ok {
+		if bidPrice != "" {
+			config.BidPrice = aws.String(bidPrice.(string))
+			config.Market = aws.String("SPOT")
+		} else {
+			config.Market = aws.String("ON_DEMAND")
+		}
+	}
+}
+
+func applyEbsConfig(configAttributes map[string]interface{}, config *emr.InstanceGroupConfig) {
+	if rawEbsConfigs, ok := configAttributes["ebs_config"]; ok {
+		ebsConfig := &emr.EbsConfiguration{}
+
+		ebsBlockDeviceConfigs := make([]*emr.EbsBlockDeviceConfig, 0)
+		for _, rawEbsConfig := range rawEbsConfigs.(*schema.Set).List() {
+			rawEbsConfig := rawEbsConfig.(map[string]interface{})
+			ebsBlockDeviceConfig := &emr.EbsBlockDeviceConfig{
+				VolumesPerInstance: aws.Int64(int64(rawEbsConfig["volumes_per_instance"].(int))),
+				VolumeSpecification: &emr.VolumeSpecification{
+					SizeInGB:   aws.Int64(int64(rawEbsConfig["size"].(int))),
+					VolumeType: aws.String(rawEbsConfig["type"].(string)),
+				},
+			}
+			if v, ok := rawEbsConfig["iops"].(int); ok && v != 0 {
+				ebsBlockDeviceConfig.VolumeSpecification.Iops = aws.Int64(int64(v))
+			}
+			ebsBlockDeviceConfigs = append(ebsBlockDeviceConfigs, ebsBlockDeviceConfig)
+		}
+		ebsConfig.EbsBlockDeviceConfigs = ebsBlockDeviceConfigs
+
+		config.EbsConfiguration = ebsConfig
+	}
+}
+
+func applyAutoScalingPolicy(configAttributes map[string]interface{}, config *emr.InstanceGroupConfig) {
+	if rawAutoScalingPolicy, ok := configAttributes["autoscaling_policy"]; ok {
+		autoScalingConfig, _ := expandAutoScalingPolicy(rawAutoScalingPolicy.(string))
+		config.AutoScalingPolicy = autoScalingConfig
+	}
+}
+
+func expandAutoScalingPolicy(rawDefinitions string) (*emr.AutoScalingPolicy, error) {
+	var policy *emr.AutoScalingPolicy
+
+	err := json.Unmarshal([]byte(rawDefinitions), &policy)
+	if err != nil {
+		return nil, fmt.Errorf("Error decoding JSON: %s", err)
+	}
+
+	return policy, nil
 }
 
 func expandConfigures(input string) []*emr.Configuration {

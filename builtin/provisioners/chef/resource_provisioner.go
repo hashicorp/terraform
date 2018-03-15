@@ -15,7 +15,6 @@ import (
 	"strings"
 	"sync"
 	"text/template"
-	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -307,8 +306,11 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	defer cancel()
+
 	// Wait and retry until we establish the connection
-	err = retryFunc(comm.Timeout(), func() error {
+	err = communicator.Retry(ctx, func() error {
 		return comm.Connect(o)
 	})
 	if err != nil {
@@ -682,6 +684,13 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 	errDoneCh := make(chan struct{})
 	go p.copyOutput(o, outR, outDoneCh)
 	go p.copyOutput(o, errR, errDoneCh)
+	go func() {
+		// Wait for output to clean up
+		outW.Close()
+		errW.Close()
+		<-outDoneCh
+		<-errDoneCh
+	}()
 
 	cmd := &remote.Cmd{
 		Command: command,
@@ -695,18 +704,15 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 	}
 
 	cmd.Wait()
-	if cmd.ExitStatus != 0 {
-		err = fmt.Errorf(
-			"Command %q exited with non-zero exit status: %d", cmd.Command, cmd.ExitStatus)
+	if cmd.Err() != nil {
+		return cmd.Err()
 	}
 
-	// Wait for output to clean up
-	outW.Close()
-	errW.Close()
-	<-outDoneCh
-	<-errDoneCh
+	if cmd.ExitStatus() != 0 {
+		return fmt.Errorf("Command %q exited with non-zero exit status: %d", cmd.Command, cmd.ExitStatus())
+	}
 
-	return err
+	return nil
 }
 
 func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
@@ -714,24 +720,6 @@ func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<
 	lr := linereader.New(r)
 	for line := range lr.Ch {
 		o.Output(line)
-	}
-}
-
-// retryFunc is used to retry a function for a given duration
-func retryFunc(timeout time.Duration, f func() error) error {
-	finish := time.After(timeout)
-	for {
-		err := f()
-		if err == nil {
-			return nil
-		}
-		log.Printf("Retryable error: %v", err)
-
-		select {
-		case <-finish:
-			return err
-		case <-time.After(3 * time.Second):
-		}
 	}
 }
 

@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
@@ -72,7 +73,7 @@ func dataAwsSsmParameterRead(d *schema.ResourceData, meta interface{}) error {
 		Region:    meta.(*AWSClient).region,
 		Service:   "ssm",
 		AccountID: meta.(*AWSClient).accountid,
-		Resource:  fmt.Sprintf("parameter/%s", d.Id()),
+		Resource:  fmt.Sprintf("parameter/%s", strings.TrimPrefix(d.Id(), "/")),
 	}
 	d.Set("arn", arn.String())
 

@@ -215,6 +215,13 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 			Type: TypeMap,
 			Elem: TypeInt,
 		},
+
+		// This is used to verify that the type of a Map can be specified using the
+		// same syntax as for lists (as a nested *Schema passed to Elem)
+		"mapIntNestedSchema": &Schema{
+			Type: TypeMap,
+			Elem: &Schema{Type: TypeInt},
+		},
 		"mapFloat": &Schema{
 			Type: TypeMap,
 			Elem: TypeFloat,
@@ -349,6 +356,19 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 
 		"mapInt": {
 			[]string{"mapInt"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"one": 1,
+					"two": 2,
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"mapIntNestedSchema": {
+			[]string{"mapIntNestedSchema"},
 			FieldReadResult{
 				Value: map[string]interface{}{
 					"one": 1,

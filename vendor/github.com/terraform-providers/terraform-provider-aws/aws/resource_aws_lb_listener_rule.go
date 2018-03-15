@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -36,7 +39,8 @@ func resourceAwsLbbListenerRule() *schema.Resource {
 			},
 			"priority": {
 				Type:         schema.TypeInt,
-				Required:     true,
+				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateAwsLbListenerRulePriority,
 			},
@@ -82,10 +86,10 @@ func resourceAwsLbbListenerRule() *schema.Resource {
 
 func resourceAwsLbListenerRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
+	listenerArn := d.Get("listener_arn").(string)
 
 	params := &elbv2.CreateRuleInput{
-		ListenerArn: aws.String(d.Get("listener_arn").(string)),
-		Priority:    aws.Int64(int64(d.Get("priority").(int))),
+		ListenerArn: aws.String(listenerArn),
 	}
 
 	actions := d.Get("action").([]interface{})
@@ -112,9 +116,34 @@ func resourceAwsLbListenerRuleCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	resp, err := elbconn.CreateRule(params)
-	if err != nil {
-		return errwrap.Wrapf("Error creating LB Listener Rule: {{err}}", err)
+	var resp *elbv2.CreateRuleOutput
+	if v, ok := d.GetOk("priority"); ok {
+		var err error
+		params.Priority = aws.Int64(int64(v.(int)))
+		resp, err = elbconn.CreateRule(params)
+		if err != nil {
+			return fmt.Errorf("Error creating LB Listener Rule: %v", err)
+		}
+	} else {
+		err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+			var err error
+			priority, err := highestListenerRulePriority(elbconn, listenerArn)
+			if err != nil {
+				return resource.NonRetryableError(err)
+			}
+			params.Priority = aws.Int64(priority + 1)
+			resp, err = elbconn.CreateRule(params)
+			if err != nil {
+				if isAWSErr(err, elbv2.ErrCodePriorityInUseException, "") {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("Error creating LB Listener Rule: %v", err)
+		}
 	}
 
 	if len(resp.Rules) == 0 {
@@ -157,7 +186,7 @@ func resourceAwsLbListenerRuleRead(d *schema.ResourceData, meta interface{}) err
 		d.Set("priority", 99999)
 	} else {
 		if priority, err := strconv.Atoi(*rule.Priority); err != nil {
-			return errwrap.Wrapf("Cannot convert rule priority %q to int: {{err}}", err)
+			return fmt.Errorf("Cannot convert rule priority %q to int: {{err}}", err)
 		} else {
 			d.Set("priority", priority)
 		}
@@ -278,8 +307,8 @@ func resourceAwsLbListenerRuleDelete(d *schema.ResourceData, meta interface{}) e
 
 func validateAwsLbListenerRulePriority(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(int)
-	if value < 1 || value > 99999 {
-		errors = append(errors, fmt.Errorf("%q must be in the range 1-99999", k))
+	if value < 1 || (value > 50000 && value != 99999) {
+		errors = append(errors, fmt.Errorf("%q must be in the range 1-50000 for normal rule or 99999 for default rule", k))
 	}
 	return
 }
@@ -311,4 +340,40 @@ func lbListenerARNFromRuleARN(ruleArn string) string {
 func isRuleNotFound(err error) bool {
 	elberr, ok := err.(awserr.Error)
 	return ok && elberr.Code() == "RuleNotFound"
+}
+
+func highestListenerRulePriority(conn *elbv2.ELBV2, arn string) (priority int64, err error) {
+	var priorities []int
+	var nextMarker *string
+
+	for {
+		out, aerr := conn.DescribeRules(&elbv2.DescribeRulesInput{
+			ListenerArn: aws.String(arn),
+			Marker:      nextMarker,
+		})
+		if aerr != nil {
+			err = aerr
+			return
+		}
+		for _, rule := range out.Rules {
+			if *rule.Priority != "default" {
+				p, _ := strconv.Atoi(*rule.Priority)
+				priorities = append(priorities, p)
+			}
+		}
+		if out.NextMarker == nil {
+			break
+		}
+		nextMarker = out.NextMarker
+	}
+
+	if len(priorities) == 0 {
+		priority = 0
+		return
+	}
+
+	sort.IntSlice(priorities).Sort()
+	priority = int64(priorities[len(priorities)-1])
+
+	return
 }

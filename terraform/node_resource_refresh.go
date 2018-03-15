@@ -213,10 +213,16 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResourceNoState(
 	// Determine the dependencies for the state.
 	stateDeps := n.StateReferences()
 
+	// n.Config can be nil if the config and state don't match
+	var raw *config.RawConfig
+	if n.Config != nil {
+		raw = n.Config.RawConfig.Copy()
+	}
+
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalInterpolate{
-				Config:   n.Config.RawConfig.Copy(),
+				Config:   raw,
 				Resource: resource,
 				Output:   &resourceConfig,
 			},

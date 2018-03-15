@@ -19,7 +19,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 [Arukas](/docs/providers/arukas/index.html)
 
-[CenteryLinkCloud](/docs/providers/clc/index.html)
+[CenturyLinkCloud](/docs/providers/clc/index.html)
 
 [CloudScale.ch](/docs/providers/cloudscale/index.html)
 

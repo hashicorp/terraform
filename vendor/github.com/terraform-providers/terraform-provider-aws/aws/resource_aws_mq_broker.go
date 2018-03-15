@@ -140,9 +140,10 @@ func resourceAwsMqBroker() *schema.Resource {
 							Optional: true,
 						},
 						"password": {
-							Type:      schema.TypeString,
-							Required:  true,
-							Sensitive: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							Sensitive:    true,
+							ValidateFunc: validateMqBrokerPassword,
 						},
 						"username": {
 							Type:     schema.TypeString,
@@ -533,5 +534,30 @@ func diffAwsMqBrokerUsers(bId string, oldUsers, newUsers []interface{}) (
 		})
 	}
 
+	return
+}
+
+func validateMqBrokerPassword(v interface{}, k string) (ws []string, errors []error) {
+	min := 12
+	max := 250
+	value := v.(string)
+	unique := make(map[string]bool)
+
+	for _, v := range value {
+		if _, ok := unique[string(v)]; ok {
+			continue
+		}
+		if string(v) == "," {
+			errors = append(errors, fmt.Errorf("%q must not contain commas", k))
+		}
+		unique[string(v)] = true
+	}
+	if len(unique) < 4 {
+		errors = append(errors, fmt.Errorf("%q must contain at least 4 unique characters", k))
+	}
+	if len(value) < min || len(value) > max {
+		errors = append(errors, fmt.Errorf(
+			"%q must be %d to %d characters long. provided string length: %d", k, min, max, len(value)))
+	}
 	return
 }
