@@ -27,6 +27,7 @@ PROVIDER SDK CHANGES (not user-facing):
 * helper/schema: Prevent crash on removal of computed field in CustomizeDiff [GH-17261]
 * helper/schema: Allow ResourceDiff.ForceNew on nested fields (avoid crash) [GH-17463]
 * helper/schema: Allow `TypeMap` to have a `*schema.Schema` as its `Elem`, for consistency with `TypeSet` and `TypeList` [GH-17097]
+* helper/validation: Add ValidateRFC3339TimeString function [GH-17484]
 
 ## 0.11.3 (January 31, 2018)
 
