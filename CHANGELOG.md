@@ -17,7 +17,6 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * core: Make sure state is locked during initial refresh ([#17422](https://github.com/hashicorp/terraform/issues/17422))
-* core: Fix interpolation error when count references another interpolated count value ([#17368](https://github.com/hashicorp/terraform/issues/17368))
 * core: Halt on fatal provisioner errors, rather than retrying until a timeout ([#17359](https://github.com/hashicorp/terraform/issues/17359))
 * core: When handling a forced exit due to multiple interrupts, prevent the process from exiting while the state is being written ([#17323](https://github.com/hashicorp/terraform/issues/17323))
 * core: Fix handling of locals and outputs at destroy time ([#17241](https://github.com/hashicorp/terraform/issues/17241))
