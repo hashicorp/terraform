@@ -131,6 +131,8 @@ func (c *Communicator) ScriptPath() string {
 
 // Start implementation of communicator.Communicator interface
 func (c *Communicator) Start(rc *remote.Cmd) error {
+	rc.Init()
+
 	err := c.Connect(nil)
 	if err != nil {
 		return err
@@ -168,7 +170,8 @@ func runCommand(shell *winrm.Shell, cmd *winrm.Command, rc *remote.Cmd) {
 
 	cmd.Wait()
 	wg.Wait()
-	rc.SetExited(cmd.ExitCode())
+
+	rc.SetExitStatus(cmd.ExitCode(), nil)
 }
 
 // Upload implementation of communicator.Communicator interface

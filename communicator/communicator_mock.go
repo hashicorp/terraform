@@ -42,11 +42,13 @@ func (c *MockCommunicator) ScriptPath() string {
 
 // Start implementation of communicator.Communicator interface
 func (c *MockCommunicator) Start(r *remote.Cmd) error {
+	r.Init()
+
 	if !c.Commands[r.Command] {
 		return fmt.Errorf("Command not found!")
 	}
 
-	r.SetExited(0)
+	r.SetExitStatus(0, nil)
 
 	return nil
 }
