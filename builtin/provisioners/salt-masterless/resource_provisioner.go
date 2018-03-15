@@ -164,8 +164,10 @@ func applyFn(ctx context.Context) error {
 
 		if err == nil {
 			cmd.Wait()
-			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Curl exited with non-zero exit status: %d", cmd.ExitStatus)
+			if cmd.Err() != nil {
+				err = cmd.Err()
+			} else if cmd.ExitStatus() != 0 {
+				err = fmt.Errorf("Curl exited with non-zero exit status: %d", cmd.ExitStatus())
 			}
 		}
 
@@ -188,8 +190,10 @@ func applyFn(ctx context.Context) error {
 
 		if err == nil {
 			cmd.Wait()
-			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("install_salt.sh exited with non-zero exit status: %d", cmd.ExitStatus)
+			if cmd.Err() != nil {
+				err = cmd.Err()
+			} else if cmd.ExitStatus() != 0 {
+				err = fmt.Errorf("install_salt.sh exited with non-zero exit status: %d", cmd.ExitStatus())
 			}
 		}
 		// Wait for output to clean up
@@ -277,17 +281,16 @@ func applyFn(ctx context.Context) error {
 		Stdout:  outW,
 		Stderr:  errW,
 	}
-	if err = comm.Start(cmd); err != nil || cmd.ExitStatus != 0 {
-		if err == nil {
-			err = fmt.Errorf("Bad exit status: %d", cmd.ExitStatus)
-		}
-
+	if err = comm.Start(cmd); err != nil {
 		err = fmt.Errorf("Error executing salt-call: %s", err)
 	}
+
 	if err == nil {
 		cmd.Wait()
-		if cmd.ExitStatus != 0 {
-			err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+		if cmd.Err() != nil {
+			err = cmd.Err()
+		} else if cmd.ExitStatus() != 0 {
+			err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus())
 		}
 	}
 	// Wait for output to clean up
@@ -354,14 +357,15 @@ func (p *provisioner) uploadFile(o terraform.UIOutput, comm communicator.Communi
 func (p *provisioner) moveFile(o terraform.UIOutput, comm communicator.Communicator, dst, src string) error {
 	o.Output(fmt.Sprintf("Moving %s to %s", src, dst))
 	cmd := &remote.Cmd{Command: fmt.Sprintf(p.sudo("mv %s %s"), src, dst)}
-	if err := comm.Start(cmd); err != nil || cmd.ExitStatus != 0 {
-		if err == nil {
-			err = fmt.Errorf("Bad exit status: %d", cmd.ExitStatus)
-		}
-
+	if err := comm.Start(cmd); err != nil {
 		return fmt.Errorf("Unable to move %s to %s: %s", src, dst, err)
 	}
-	return nil
+	cmd.Wait()
+	if cmd.ExitStatus() != 0 {
+		return fmt.Errorf("Unable to move %s to %s: exit status: %d", src, dst, cmd.ExitStatus())
+	}
+
+	return cmd.Err()
 }
 
 func (p *provisioner) createDir(o terraform.UIOutput, comm communicator.Communicator, dir string) error {
@@ -372,10 +376,12 @@ func (p *provisioner) createDir(o terraform.UIOutput, comm communicator.Communic
 	if err := comm.Start(cmd); err != nil {
 		return err
 	}
-	if cmd.ExitStatus != 0 {
+
+	cmd.Wait()
+	if cmd.ExitStatus() != 0 {
 		return fmt.Errorf("Non-zero exit status.")
 	}
-	return nil
+	return cmd.Err()
 }
 
 func (p *provisioner) removeDir(o terraform.UIOutput, comm communicator.Communicator, dir string) error {
@@ -386,10 +392,11 @@ func (p *provisioner) removeDir(o terraform.UIOutput, comm communicator.Communic
 	if err := comm.Start(cmd); err != nil {
 		return err
 	}
-	if cmd.ExitStatus != 0 {
+	cmd.Wait()
+	if cmd.ExitStatus() != 0 {
 		return fmt.Errorf("Non-zero exit status.")
 	}
-	return nil
+	return cmd.Err()
 }
 
 func (p *provisioner) uploadDir(o terraform.UIOutput, comm communicator.Communicator, dst, src string, ignore []string) error {
