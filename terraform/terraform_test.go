@@ -636,11 +636,12 @@ const testTerraformApplyProvisionerFailCreateNoIdStr = `
 `
 
 const testTerraformApplyProvisionerFailCreateBeforeDestroyStr = `
-aws_instance.bar: (1 deposed)
-  ID = bar
+aws_instance.bar: (tainted) (1 deposed)
+  ID = foo
   provider = provider.aws
-  require_new = abc
-  Deposed ID 1 = foo (tainted)
+  require_new = xyz
+  type = aws_instance
+  Deposed ID 1 = bar
 `
 
 const testTerraformApplyProvisionerResourceRefStr = `

@@ -2,7 +2,6 @@ package command
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"os"
 	"sort"
@@ -40,13 +39,11 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	cmdFlags := c.Meta.flagSet(cmdName)
+	cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of plan before applying")
 	if c.Destroy {
-		cmdFlags.BoolVar(&destroyForce, "force", false, "force")
+		cmdFlags.BoolVar(&destroyForce, "force", false, "deprecated: same as auto-approve")
 	}
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
-	if !c.Destroy {
-		cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of plan before applying")
-	}
 	cmdFlags.IntVar(
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
@@ -158,38 +155,9 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.AutoApprove = autoApprove
 	opReq.DestroyForce = destroyForce
 
-	// Perform the operation
-	ctx, ctxCancel := context.WithCancel(context.Background())
-	defer ctxCancel()
-
-	op, err := b.Operation(ctx, opReq)
+	op, err := c.RunOperation(b, opReq)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
-		return 1
-	}
-
-	// Wait for the operation to complete or an interrupt to occur
-	select {
-	case <-c.ShutdownCh:
-		// Cancel our context so we can start gracefully exiting
-		ctxCancel()
-
-		// Notify the user
-		c.Ui.Output(outputInterrupt)
-
-		// Still get the result, since there is still one
-		select {
-		case <-c.ShutdownCh:
-			c.Ui.Error(
-				"Two interrupts received. Exiting immediately. Note that data\n" +
-					"loss may have occurred.")
-			return 1
-		case <-op.Done():
-		}
-	case <-op.Done():
-		if err := op.Err; err != nil {
-			diags = diags.Append(err)
-		}
+		diags = diags.Append(err)
 	}
 
 	c.showDiagnostics(diags)
@@ -250,8 +218,6 @@ Options:
 
   -lock-timeout=0s       Duration to retry a state lock.
 
-  -auto-approve          Skip interactive approval of plan before applying.
-
   -input=true            Ask for input for variables if not directly set.
 
   -no-color              If specified, output won't contain any color.
@@ -297,7 +263,9 @@ Options:
                          modifying. Defaults to the "-state-out" path with
                          ".backup" extension. Set to "-" to disable backup.
 
-  -force                 Don't ask for input for destroy confirmation.
+  -auto-approve          Skip interactive approval before destroying.
+
+  -force                 Deprecated: same as auto-approve.
 
   -lock=true             Lock the state file when locking is supported.
 

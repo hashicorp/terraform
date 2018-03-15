@@ -106,7 +106,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	lockErr := &state.LockError{}
 	lockInfo, err := c.getLockInfo()
 	if err != nil {
-		if tritonErrors.IsResourceNotFound(err) {
+		if !tritonErrors.IsResourceNotFound(err) {
 			lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
 			return "", lockErr
 		}

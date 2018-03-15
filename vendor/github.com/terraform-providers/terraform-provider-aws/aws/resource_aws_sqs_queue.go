@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -52,6 +53,7 @@ func resourceAwsSqsQueue() *schema.Resource {
 				ForceNew:      true,
 				Computed:      true,
 				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateSQSQueueName,
 			},
 			"name_prefix": {
 				Type:     schema.TypeString,
@@ -148,7 +150,7 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("Error validating the FIFO queue name: %v", errors)
 		}
 	} else {
-		if errors := validateSQSQueueName(name, "name"); len(errors) > 0 {
+		if errors := validateSQSNonFifoQueueName(name, "name"); len(errors) > 0 {
 			return fmt.Errorf("Error validating SQS queue name: %v", errors)
 		}
 	}
@@ -165,9 +167,9 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 
 	attributes := make(map[string]*string)
 
-	resource := *resourceAwsSqsQueue()
+	queueResource := *resourceAwsSqsQueue()
 
-	for k, s := range resource.Schema {
+	for k, s := range queueResource.Schema {
 		if attrKey, ok := sqsQueueAttributeMap[k]; ok {
 			if value, ok := d.GetOk(k); ok {
 				switch s.Type {
@@ -187,7 +189,18 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 		req.Attributes = attributes
 	}
 
-	output, err := sqsconn.CreateQueue(req)
+	var output *sqs.CreateQueueOutput
+	err := resource.Retry(70*time.Second, func() *resource.RetryError {
+		var err error
+		output, err = sqsconn.CreateQueue(req)
+		if err != nil {
+			if isAWSErr(err, sqs.ErrCodeQueueDeletedRecently, "You must wait 60 seconds after deleting a queue before you can create another with the same name.") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("Error creating SQS queue: %s", err)
 	}
@@ -299,13 +312,17 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("fifo_queue", d.Get("fifo_queue").(bool))
 	d.Set("content_based_deduplication", d.Get("content_based_deduplication").(bool))
 
-	listTagsOutput, err := sqsconn.ListQueueTags(&sqs.ListQueueTagsInput{
-		QueueUrl: aws.String(d.Id()),
-	})
-	if err != nil {
-		return err
+	tags := make(map[string]string)
+	if !meta.(*AWSClient).IsGovCloud() {
+		listTagsOutput, err := sqsconn.ListQueueTags(&sqs.ListQueueTagsInput{
+			QueueUrl: aws.String(d.Id()),
+		})
+		if err != nil {
+			return err
+		}
+		tags = tagsToMapGeneric(listTagsOutput.Tags)
 	}
-	d.Set("tags", tagsToMapGeneric(listTagsOutput.Tags))
+	d.Set("tags", tags)
 
 	return nil
 }

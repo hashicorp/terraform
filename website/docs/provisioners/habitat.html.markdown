@@ -49,6 +49,7 @@ There are 2 configuration levels, `supervisor` and `service`.  Configuration pla
 * `version (string)` - (Optional) The Habitat version to install on the remote machine.  If not specified, the latest available version is used.
 * `use_sudo (bool)` - (Optional) Use `sudo` when executing remote commands.  Required when the user specified in the `connection` block is not `root`.  (Defaults to `true`)
 * `service_type (string)` - (Optional) Method used to run the Habitat supervisor.  Valid options are `unmanaged` and `systemd`.  (Defaults to `systemd`)
+* `service_name (string)` - (Optional) The name of the Habitat supervisor service, if using an init system such as `systemd`. (Defaults to `hab-supervisor`)
 * `peer (string)` - (Optional) IP or FQDN of a supervisor instance to peer with. (Defaults to none)
 * `permanent_peer (bool)` - (Optional) Marks this supervisor as a permanent peer.  (Defaults to false)
 * `listen_gossip (string)` - (Optional) The listen address for the gossip system (Defaults to 0.0.0.0:9638)

@@ -46,6 +46,10 @@ func TestMapFieldReader(t *testing.T) {
 				"mapInt.one": "1",
 				"mapInt.two": "2",
 
+				"mapIntNestedSchema.%":   "2",
+				"mapIntNestedSchema.one": "1",
+				"mapIntNestedSchema.two": "2",
+
 				"mapFloat.%":         "1",
 				"mapFloat.oneDotTwo": "1.2",
 

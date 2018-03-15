@@ -4,13 +4,13 @@ import (
 	"github.com/hashicorp/hcl2/hcl"
 )
 
-// ParseConfig parses the given buffer as a whole zcl config file, returning
+// ParseConfig parses the given buffer as a whole HCL config file, returning
 // a *hcl.File representing its contents. If HasErrors called on the returned
 // diagnostics returns true, the returned body is likely to be incomplete
 // and should therefore be used with care.
 //
-// The body in the returned file has dynamic type *zclsyntax.Body, so callers
-// may freely type-assert this to get access to the full zclsyntax API in
+// The body in the returned file has dynamic type *hclsyntax.Body, so callers
+// may freely type-assert this to get access to the full hclsyntax API in
 // situations where detailed access is required. However, most common use-cases
 // should be served using the hcl.Body interface to ensure compatibility with
 // other configurationg syntaxes, such as JSON.
@@ -20,6 +20,12 @@ func ParseConfig(src []byte, filename string, start hcl.Pos) (*hcl.File, hcl.Dia
 	parser := &parser{peeker: peeker}
 	body, parseDiags := parser.ParseBody(TokenEOF)
 	diags = append(diags, parseDiags...)
+
+	// Panic if the parser uses incorrect stack discipline with the peeker's
+	// newlines stack, since otherwise it will produce confusing downstream
+	// errors.
+	peeker.AssertEmptyIncludeNewlinesStack()
+
 	return &hcl.File{
 		Body:  body,
 		Bytes: src,
@@ -30,7 +36,7 @@ func ParseConfig(src []byte, filename string, start hcl.Pos) (*hcl.File, hcl.Dia
 	}, diags
 }
 
-// ParseExpression parses the given buffer as a standalone zcl expression,
+// ParseExpression parses the given buffer as a standalone HCL expression,
 // returning it as an instance of Expression.
 func ParseExpression(src []byte, filename string, start hcl.Pos) (Expression, hcl.Diagnostics) {
 	tokens, diags := LexExpression(src, filename, start)
@@ -54,10 +60,17 @@ func ParseExpression(src []byte, filename string, start hcl.Pos) (Expression, hc
 		})
 	}
 
+	parser.PopIncludeNewlines()
+
+	// Panic if the parser uses incorrect stack discipline with the peeker's
+	// newlines stack, since otherwise it will produce confusing downstream
+	// errors.
+	peeker.AssertEmptyIncludeNewlinesStack()
+
 	return expr, diags
 }
 
-// ParseTemplate parses the given buffer as a standalone zcl template,
+// ParseTemplate parses the given buffer as a standalone HCL template,
 // returning it as an instance of Expression.
 func ParseTemplate(src []byte, filename string, start hcl.Pos) (Expression, hcl.Diagnostics) {
 	tokens, diags := LexTemplate(src, filename, start)
@@ -65,6 +78,12 @@ func ParseTemplate(src []byte, filename string, start hcl.Pos) (Expression, hcl.
 	parser := &parser{peeker: peeker}
 	expr, parseDiags := parser.ParseTemplate()
 	diags = append(diags, parseDiags...)
+
+	// Panic if the parser uses incorrect stack discipline with the peeker's
+	// newlines stack, since otherwise it will produce confusing downstream
+	// errors.
+	peeker.AssertEmptyIncludeNewlinesStack()
+
 	return expr, diags
 }
 
@@ -85,11 +104,19 @@ func ParseTraversalAbs(src []byte, filename string, start hcl.Pos) (hcl.Traversa
 
 	expr, parseDiags := parser.ParseTraversalAbs()
 	diags = append(diags, parseDiags...)
+
+	parser.PopIncludeNewlines()
+
+	// Panic if the parser uses incorrect stack discipline with the peeker's
+	// newlines stack, since otherwise it will produce confusing downstream
+	// errors.
+	peeker.AssertEmptyIncludeNewlinesStack()
+
 	return expr, diags
 }
 
 // LexConfig performs lexical analysis on the given buffer, treating it as a
-// whole zcl config file, and returns the resulting tokens.
+// whole HCL config file, and returns the resulting tokens.
 //
 // Only minimal validation is done during lexical analysis, so the returned
 // diagnostics may include errors about lexical issues such as bad character
@@ -102,7 +129,7 @@ func LexConfig(src []byte, filename string, start hcl.Pos) (Tokens, hcl.Diagnost
 }
 
 // LexExpression performs lexical analysis on the given buffer, treating it as
-// a standalone zcl expression, and returns the resulting tokens.
+// a standalone HCL expression, and returns the resulting tokens.
 //
 // Only minimal validation is done during lexical analysis, so the returned
 // diagnostics may include errors about lexical issues such as bad character
@@ -117,7 +144,7 @@ func LexExpression(src []byte, filename string, start hcl.Pos) (Tokens, hcl.Diag
 }
 
 // LexTemplate performs lexical analysis on the given buffer, treating it as a
-// standalone zcl template, and returns the resulting tokens.
+// standalone HCL template, and returns the resulting tokens.
 //
 // Only minimal validation is done during lexical analysis, so the returned
 // diagnostics may include errors about lexical issues such as bad character
@@ -127,4 +154,18 @@ func LexTemplate(src []byte, filename string, start hcl.Pos) (Tokens, hcl.Diagno
 	tokens := scanTokens(src, filename, start, scanTemplate)
 	diags := checkInvalidTokens(tokens)
 	return tokens, diags
+}
+
+// ValidIdentifier tests if the given string could be a valid identifier in
+// a native syntax expression.
+//
+// This is useful when accepting names from the user that will be used as
+// variable or attribute names in the scope, to ensure that any name chosen
+// will be traversable using the variable or attribute traversal syntax.
+func ValidIdentifier(s string) bool {
+	// This is a kinda-expensive way to do something pretty simple, but it
+	// is easiest to do with our existing scanner-related infrastructure here
+	// and nobody should be validating identifiers in a tight loop.
+	tokens := scanTokens([]byte(s), "", hcl.Pos{}, scanIdentOnly)
+	return len(tokens) == 2 && tokens[0].Type == TokenIdent && tokens[1].Type == TokenEOF
 }

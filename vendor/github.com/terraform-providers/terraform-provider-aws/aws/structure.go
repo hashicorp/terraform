@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -18,13 +19,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/configservice"
+	"github.com/aws/aws-sdk-go/service/dax"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/iot"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/mq"
@@ -36,6 +40,7 @@ import (
 	"github.com/beevik/etree"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/mitchellh/copystructure"
 	"gopkg.in/yaml.v2"
 )
 
@@ -845,6 +850,16 @@ func flattenElastiCacheSecurityGroupIds(securityGroups []*elasticache.SecurityGr
 	for _, sg := range securityGroups {
 		if sg.SecurityGroupId != nil {
 			result = append(result, *sg.SecurityGroupId)
+		}
+	}
+	return result
+}
+
+func flattenDaxSecurityGroupIds(securityGroups []*dax.SecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.SecurityGroupIdentifier != nil {
+			result = append(result, *sg.SecurityGroupIdentifier)
 		}
 	}
 	return result
@@ -2422,6 +2437,227 @@ func expandCognitoUserPoolPasswordPolicy(config map[string]interface{}) *cognito
 	return configs
 }
 
+func flattenIoTRuleCloudWatchAlarmActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.CloudwatchAlarm
+		if v != nil {
+			result["alarm_name"] = *v.AlarmName
+			result["role_arn"] = *v.RoleArn
+			result["state_reason"] = *v.StateReason
+			result["state_value"] = *v.StateValue
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleCloudWatchMetricActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.CloudwatchMetric
+		if v != nil {
+			result["metric_name"] = *v.MetricName
+			result["role_arn"] = *v.RoleArn
+			result["metric_namespace"] = *v.MetricNamespace
+			result["metric_unit"] = *v.MetricUnit
+			result["metric_value"] = *v.MetricValue
+
+			if v.MetricTimestamp != nil {
+				result["metric_timestamp"] = *v.MetricTimestamp
+			}
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleDynamoDbActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.DynamoDB
+		if v != nil {
+			result["hash_key_field"] = *v.HashKeyField
+			result["hash_key_value"] = *v.HashKeyValue
+			result["range_key_field"] = *v.RangeKeyField
+			result["range_key_value"] = *v.RangeKeyValue
+			result["role_arn"] = *v.RoleArn
+			result["table_name"] = *v.TableName
+
+			if v.HashKeyType != nil {
+				result["hash_key_type"] = *v.HashKeyType
+			}
+
+			if v.PayloadField != nil {
+				result["payload_field"] = *v.PayloadField
+			}
+
+			if v.RangeKeyType != nil {
+				result["range_key_type"] = *v.RangeKeyType
+			}
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleElasticSearchActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Elasticsearch
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["endpoint"] = *v.Endpoint
+			result["id"] = *v.Id
+			result["index"] = *v.Index
+			result["type"] = *v.Type
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleFirehoseActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Firehose
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["delivery_stream_name"] = *v.DeliveryStreamName
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleKinesisActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Kinesis
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["stream_name"] = *v.StreamName
+
+			if v.PartitionKey != nil {
+				result["partition_key"] = *v.PartitionKey
+			}
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleLambdaActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Lambda
+		if v != nil {
+			result["function_arn"] = *v.FunctionArn
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleRepublishActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Republish
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["topic"] = *v.Topic
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleS3Actions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.S3
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["bucket_name"] = *v.BucketName
+			result["key"] = *v.Key
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleSnsActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Sns
+		if v != nil {
+			result["message_format"] = *v.MessageFormat
+			result["role_arn"] = *v.RoleArn
+			result["target_arn"] = *v.TargetArn
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
+func flattenIoTRuleSqsActions(actions []*iot.Action) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	for _, a := range actions {
+		result := make(map[string]interface{})
+		v := a.Sqs
+		if v != nil {
+			result["role_arn"] = *v.RoleArn
+			result["use_base64"] = *v.UseBase64
+			result["queue_url"] = *v.QueueUrl
+
+			results = append(results, result)
+		}
+	}
+
+	return results
+}
+
 func flattenCognitoUserPoolPasswordPolicy(s *cognitoidentityprovider.PasswordPolicyType) []map[string]interface{} {
 	m := map[string]interface{}{}
 
@@ -3073,4 +3309,399 @@ func flattenMqBrokerInstances(instances []*mq.BrokerInstance) []interface{} {
 	}
 
 	return l
+}
+
+func diffDynamoDbGSI(oldGsi, newGsi []interface{}) (ops []*dynamodb.GlobalSecondaryIndexUpdate, e error) {
+	// Transform slices into maps
+	oldGsis := make(map[string]interface{})
+	for _, gsidata := range oldGsi {
+		m := gsidata.(map[string]interface{})
+		oldGsis[m["name"].(string)] = m
+	}
+	newGsis := make(map[string]interface{})
+	for _, gsidata := range newGsi {
+		m := gsidata.(map[string]interface{})
+		newGsis[m["name"].(string)] = m
+	}
+
+	for _, data := range newGsi {
+		newMap := data.(map[string]interface{})
+		newName := newMap["name"].(string)
+
+		if _, exists := oldGsis[newName]; !exists {
+			m := data.(map[string]interface{})
+			idxName := m["name"].(string)
+
+			ops = append(ops, &dynamodb.GlobalSecondaryIndexUpdate{
+				Create: &dynamodb.CreateGlobalSecondaryIndexAction{
+					IndexName:             aws.String(idxName),
+					KeySchema:             expandDynamoDbKeySchema(m),
+					ProvisionedThroughput: expandDynamoDbProvisionedThroughput(m),
+					Projection:            expandDynamoDbProjection(m),
+				},
+			})
+		}
+	}
+
+	for _, data := range oldGsi {
+		oldMap := data.(map[string]interface{})
+		oldName := oldMap["name"].(string)
+
+		newData, exists := newGsis[oldName]
+		if exists {
+			newMap := newData.(map[string]interface{})
+			idxName := newMap["name"].(string)
+
+			oldWriteCapacity, oldReadCapacity := oldMap["write_capacity"].(int), oldMap["read_capacity"].(int)
+			newWriteCapacity, newReadCapacity := newMap["write_capacity"].(int), newMap["read_capacity"].(int)
+			capacityChanged := (oldWriteCapacity != newWriteCapacity || oldReadCapacity != newReadCapacity)
+
+			oldAttributes, err := stripCapacityAttributes(oldMap)
+			if err != nil {
+				e = err
+				return
+			}
+			newAttributes, err := stripCapacityAttributes(newMap)
+			if err != nil {
+				e = err
+				return
+			}
+			otherAttributesChanged := !reflect.DeepEqual(oldAttributes, newAttributes)
+
+			if capacityChanged && !otherAttributesChanged {
+				update := &dynamodb.GlobalSecondaryIndexUpdate{
+					Update: &dynamodb.UpdateGlobalSecondaryIndexAction{
+						IndexName:             aws.String(idxName),
+						ProvisionedThroughput: expandDynamoDbProvisionedThroughput(newMap),
+					},
+				}
+				ops = append(ops, update)
+			} else if otherAttributesChanged {
+				// Other attributes cannot be updated
+				ops = append(ops, &dynamodb.GlobalSecondaryIndexUpdate{
+					Delete: &dynamodb.DeleteGlobalSecondaryIndexAction{
+						IndexName: aws.String(idxName),
+					},
+				})
+
+				ops = append(ops, &dynamodb.GlobalSecondaryIndexUpdate{
+					Create: &dynamodb.CreateGlobalSecondaryIndexAction{
+						IndexName:             aws.String(idxName),
+						KeySchema:             expandDynamoDbKeySchema(newMap),
+						ProvisionedThroughput: expandDynamoDbProvisionedThroughput(newMap),
+						Projection:            expandDynamoDbProjection(newMap),
+					},
+				})
+			}
+		} else {
+			idxName := oldName
+			ops = append(ops, &dynamodb.GlobalSecondaryIndexUpdate{
+				Delete: &dynamodb.DeleteGlobalSecondaryIndexAction{
+					IndexName: aws.String(idxName),
+				},
+			})
+		}
+	}
+	return
+}
+
+func stripCapacityAttributes(in map[string]interface{}) (map[string]interface{}, error) {
+	mapCopy, err := copystructure.Copy(in)
+	if err != nil {
+		return nil, err
+	}
+
+	m := mapCopy.(map[string]interface{})
+
+	delete(m, "write_capacity")
+	delete(m, "read_capacity")
+
+	return m, nil
+}
+
+// Expanders + flatteners
+
+func flattenDynamoDbTtl(ttlDesc *dynamodb.TimeToLiveDescription) []interface{} {
+	m := map[string]interface{}{}
+	if ttlDesc.AttributeName != nil {
+		m["attribute_name"] = *ttlDesc.AttributeName
+		if ttlDesc.TimeToLiveStatus != nil {
+			m["enabled"] = (*ttlDesc.TimeToLiveStatus == dynamodb.TimeToLiveStatusEnabled)
+		}
+	}
+	if len(m) > 0 {
+		return []interface{}{m}
+	}
+
+	return []interface{}{}
+}
+
+func flattenAwsDynamoDbTableResource(d *schema.ResourceData, table *dynamodb.TableDescription) error {
+	d.Set("write_capacity", table.ProvisionedThroughput.WriteCapacityUnits)
+	d.Set("read_capacity", table.ProvisionedThroughput.ReadCapacityUnits)
+
+	attributes := []interface{}{}
+	for _, attrdef := range table.AttributeDefinitions {
+		attribute := map[string]string{
+			"name": *attrdef.AttributeName,
+			"type": *attrdef.AttributeType,
+		}
+		attributes = append(attributes, attribute)
+	}
+
+	d.Set("attribute", attributes)
+	d.Set("name", table.TableName)
+
+	for _, attribute := range table.KeySchema {
+		if *attribute.KeyType == dynamodb.KeyTypeHash {
+			d.Set("hash_key", attribute.AttributeName)
+		}
+
+		if *attribute.KeyType == dynamodb.KeyTypeRange {
+			d.Set("range_key", attribute.AttributeName)
+		}
+	}
+
+	lsiList := make([]map[string]interface{}, 0, len(table.LocalSecondaryIndexes))
+	for _, lsiObject := range table.LocalSecondaryIndexes {
+		lsi := map[string]interface{}{
+			"name":            *lsiObject.IndexName,
+			"projection_type": *lsiObject.Projection.ProjectionType,
+		}
+
+		for _, attribute := range lsiObject.KeySchema {
+
+			if *attribute.KeyType == dynamodb.KeyTypeRange {
+				lsi["range_key"] = *attribute.AttributeName
+			}
+		}
+		nkaList := make([]string, len(lsiObject.Projection.NonKeyAttributes))
+		for _, nka := range lsiObject.Projection.NonKeyAttributes {
+			nkaList = append(nkaList, *nka)
+		}
+		lsi["non_key_attributes"] = nkaList
+
+		lsiList = append(lsiList, lsi)
+	}
+
+	err := d.Set("local_secondary_index", lsiList)
+	if err != nil {
+		return err
+	}
+
+	gsiList := make([]map[string]interface{}, 0, len(table.GlobalSecondaryIndexes))
+	for _, gsiObject := range table.GlobalSecondaryIndexes {
+		gsi := map[string]interface{}{
+			"write_capacity": *gsiObject.ProvisionedThroughput.WriteCapacityUnits,
+			"read_capacity":  *gsiObject.ProvisionedThroughput.ReadCapacityUnits,
+			"name":           *gsiObject.IndexName,
+		}
+
+		for _, attribute := range gsiObject.KeySchema {
+			if *attribute.KeyType == dynamodb.KeyTypeHash {
+				gsi["hash_key"] = *attribute.AttributeName
+			}
+
+			if *attribute.KeyType == dynamodb.KeyTypeRange {
+				gsi["range_key"] = *attribute.AttributeName
+			}
+		}
+
+		gsi["projection_type"] = *(gsiObject.Projection.ProjectionType)
+
+		nonKeyAttrs := make([]string, 0, len(gsiObject.Projection.NonKeyAttributes))
+		for _, nonKeyAttr := range gsiObject.Projection.NonKeyAttributes {
+			nonKeyAttrs = append(nonKeyAttrs, *nonKeyAttr)
+		}
+		gsi["non_key_attributes"] = nonKeyAttrs
+
+		gsiList = append(gsiList, gsi)
+	}
+
+	if table.StreamSpecification != nil {
+		d.Set("stream_view_type", table.StreamSpecification.StreamViewType)
+		d.Set("stream_enabled", table.StreamSpecification.StreamEnabled)
+	} else {
+		d.Set("stream_view_type", "")
+		d.Set("stream_enabled", false)
+	}
+
+	d.Set("stream_arn", table.LatestStreamArn)
+	d.Set("stream_label", table.LatestStreamLabel)
+
+	err = d.Set("global_secondary_index", gsiList)
+	if err != nil {
+		return err
+	}
+
+	d.Set("arn", table.TableArn)
+
+	return nil
+}
+
+func expandDynamoDbAttributes(cfg []interface{}) []*dynamodb.AttributeDefinition {
+	attributes := make([]*dynamodb.AttributeDefinition, len(cfg), len(cfg))
+	for i, attribute := range cfg {
+		attr := attribute.(map[string]interface{})
+		attributes[i] = &dynamodb.AttributeDefinition{
+			AttributeName: aws.String(attr["name"].(string)),
+			AttributeType: aws.String(attr["type"].(string)),
+		}
+	}
+	return attributes
+}
+
+// TODO: Get rid of keySchemaM - the user should just explicitely define
+// this in the config, we shouldn't magically be setting it like this.
+// Removal will however require config change, hence BC. :/
+func expandDynamoDbLocalSecondaryIndexes(cfg []interface{}, keySchemaM map[string]interface{}) []*dynamodb.LocalSecondaryIndex {
+	indexes := make([]*dynamodb.LocalSecondaryIndex, len(cfg), len(cfg))
+	for i, lsi := range cfg {
+		m := lsi.(map[string]interface{})
+		idxName := m["name"].(string)
+
+		// TODO: See https://github.com/terraform-providers/terraform-provider-aws/issues/3176
+		if _, ok := m["hash_key"]; !ok {
+			m["hash_key"] = keySchemaM["hash_key"]
+		}
+
+		indexes[i] = &dynamodb.LocalSecondaryIndex{
+			IndexName:  aws.String(idxName),
+			KeySchema:  expandDynamoDbKeySchema(m),
+			Projection: expandDynamoDbProjection(m),
+		}
+	}
+	return indexes
+}
+
+func expandDynamoDbGlobalSecondaryIndex(data map[string]interface{}) *dynamodb.GlobalSecondaryIndex {
+	return &dynamodb.GlobalSecondaryIndex{
+		IndexName:             aws.String(data["name"].(string)),
+		KeySchema:             expandDynamoDbKeySchema(data),
+		Projection:            expandDynamoDbProjection(data),
+		ProvisionedThroughput: expandDynamoDbProvisionedThroughput(data),
+	}
+}
+
+func expandDynamoDbProvisionedThroughput(data map[string]interface{}) *dynamodb.ProvisionedThroughput {
+	return &dynamodb.ProvisionedThroughput{
+		WriteCapacityUnits: aws.Int64(int64(data["write_capacity"].(int))),
+		ReadCapacityUnits:  aws.Int64(int64(data["read_capacity"].(int))),
+	}
+}
+
+func expandDynamoDbProjection(data map[string]interface{}) *dynamodb.Projection {
+	projection := &dynamodb.Projection{
+		ProjectionType: aws.String(data["projection_type"].(string)),
+	}
+
+	if v, ok := data["non_key_attributes"].([]interface{}); ok && len(v) > 0 {
+		projection.NonKeyAttributes = expandStringList(v)
+	}
+
+	return projection
+}
+
+func expandDynamoDbKeySchema(data map[string]interface{}) []*dynamodb.KeySchemaElement {
+	keySchema := []*dynamodb.KeySchemaElement{}
+
+	if v, ok := data["hash_key"]; ok && v != nil && v != "" {
+		keySchema = append(keySchema, &dynamodb.KeySchemaElement{
+			AttributeName: aws.String(v.(string)),
+			KeyType:       aws.String(dynamodb.KeyTypeHash),
+		})
+	}
+
+	if v, ok := data["range_key"]; ok && v != nil && v != "" {
+		keySchema = append(keySchema, &dynamodb.KeySchemaElement{
+			AttributeName: aws.String(v.(string)),
+			KeyType:       aws.String(dynamodb.KeyTypeRange),
+		})
+	}
+
+	return keySchema
+}
+
+func flattenVpcEndpointServiceAllowedPrincipals(allowedPrincipals []*ec2.AllowedPrincipal) []string {
+	result := make([]string, 0, len(allowedPrincipals))
+	for _, allowedPrincipal := range allowedPrincipals {
+		if allowedPrincipal.Principal != nil {
+			result = append(result, *allowedPrincipal.Principal)
+		}
+	}
+	return result
+}
+
+func expandDynamoDbTableItemAttributes(input string) (map[string]*dynamodb.AttributeValue, error) {
+	var attributes map[string]*dynamodb.AttributeValue
+
+	dec := json.NewDecoder(strings.NewReader(input))
+	err := dec.Decode(&attributes)
+	if err != nil {
+		return nil, fmt.Errorf("Decoding failed: %s", err)
+	}
+
+	return attributes, nil
+}
+
+func flattenDynamoDbTableItemAttributes(attrs map[string]*dynamodb.AttributeValue) (string, error) {
+	buf := bytes.NewBufferString("")
+	encoder := json.NewEncoder(buf)
+	err := encoder.Encode(attrs)
+	if err != nil {
+		return "", fmt.Errorf("Encoding failed: %s", err)
+	}
+
+	var rawData map[string]map[string]interface{}
+
+	// Reserialize so we get rid of the nulls
+	decoder := json.NewDecoder(strings.NewReader(buf.String()))
+	err = decoder.Decode(&rawData)
+	if err != nil {
+		return "", fmt.Errorf("Decoding failed: %s", err)
+	}
+
+	for _, value := range rawData {
+		for typeName, typeVal := range value {
+			if typeVal == nil {
+				delete(value, typeName)
+			}
+		}
+	}
+
+	rawBuffer := bytes.NewBufferString("")
+	rawEncoder := json.NewEncoder(rawBuffer)
+	err = rawEncoder.Encode(rawData)
+	if err != nil {
+		return "", fmt.Errorf("Re-encoding failed: %s", err)
+	}
+
+	return rawBuffer.String(), nil
+}
+
+func expandIotThingTypeProperties(config map[string]interface{}) *iot.ThingTypeProperties {
+	properties := &iot.ThingTypeProperties{
+		SearchableAttributes: expandStringList(config["searchable_attributes"].(*schema.Set).List()),
+	}
+
+	if v, ok := config["description"]; ok && v.(string) != "" {
+		properties.ThingTypeDescription = aws.String(v.(string))
+	}
+
+	return properties
+}
+
+func flattenIotThingTypeProperties(s *iot.ThingTypeProperties) []map[string]interface{} {
+	m := map[string]interface{}{}
+
+	if s == nil {
+		return nil
+	}
+
+	if s.ThingTypeDescription != nil {
+		m["description"] = *s.ThingTypeDescription
+	}
+	m["searchable_attributes"] = flattenStringList(s.SearchableAttributes)
+
+	return []map[string]interface{}{m}
 }

@@ -3142,6 +3142,53 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"var.foo": interfaceToVariableSwallowError(""),
 			},
 		},
+
+		{
+			Name: "optional, computed, empty string should not crash in CustomizeDiff",
+			Schema: map[string]*Schema{
+				"unrelated_set": {
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     &Schema{Type: TypeString},
+				},
+				"stream_enabled": {
+					Type:     TypeBool,
+					Optional: true,
+				},
+				"stream_view_type": {
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"unrelated_set.#":  "0",
+					"stream_enabled":   "true",
+					"stream_view_type": "KEYS_ONLY",
+				},
+			},
+			Config: map[string]interface{}{
+				"stream_enabled":   false,
+				"stream_view_type": "",
+			},
+			CustomizeDiff: func(diff *ResourceDiff, v interface{}) error {
+				v, ok := diff.GetOk("unrelated_set")
+				if ok {
+					return fmt.Errorf("Didn't expect unrelated_set: %#v", v)
+				}
+				return nil
+			},
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"stream_enabled": {
+						Old: "true",
+						New: "false",
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -4479,6 +4526,42 @@ func TestSchemaMap_Validate(t *testing.T) {
 					"foo": "bar",
 				},
 			},
+		},
+
+		"Map with type specified as value type": {
+			Schema: map[string]*Schema{
+				"user_data": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+					Elem:     TypeBool,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"user_data": map[string]interface{}{
+					"foo": "not_a_bool",
+				},
+			},
+
+			Err: true,
+		},
+
+		"Map with type specified as nested Schema": {
+			Schema: map[string]*Schema{
+				"user_data": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+					Elem:     &Schema{Type: TypeBool},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"user_data": map[string]interface{}{
+					"foo": "not_a_bool",
+				},
+			},
+
+			Err: true,
 		},
 
 		"Bad map: just a slice": {

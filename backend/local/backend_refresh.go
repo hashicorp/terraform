@@ -8,16 +8,14 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func (b *Local) opRefresh(
-	ctx context.Context,
+	stopCtx context.Context,
+	cancelCtx context.Context,
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
 	// Check if our state exists if we're performing a refresh operation. We
@@ -52,25 +50,6 @@ func (b *Local) opRefresh(
 		return
 	}
 
-	if op.LockState {
-		lockCtx, cancel := context.WithTimeout(ctx, op.StateLockTimeout)
-		defer cancel()
-
-		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = op.Type.String()
-		lockID, err := clistate.Lock(lockCtx, opState, lockInfo, b.CLI, b.Colorize())
-		if err != nil {
-			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
-			return
-		}
-
-		defer func() {
-			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
-				runningOp.Err = multierror.Append(runningOp.Err, err)
-			}
-		}()
-	}
-
 	// Set our state
 	runningOp.State = opState.State()
 	if runningOp.State.Empty() || !runningOp.State.HasResources() {
@@ -90,18 +69,8 @@ func (b *Local) opRefresh(
 		log.Printf("[INFO] backend/local: refresh calling Refresh")
 	}()
 
-	select {
-	case <-ctx.Done():
-		if b.CLI != nil {
-			b.CLI.Output("stopping refresh operation...")
-		}
-
-		// Stop execution
-		go tfCtx.Stop()
-
-		// Wait for completion still
-		<-doneCh
-	case <-doneCh:
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+		return
 	}
 
 	// write the resulting state to the running op

@@ -65,6 +65,16 @@ func (s Set) Has(val interface{}) bool {
 	return false
 }
 
+// Copy performs a shallow copy of the receiving set, returning a new set
+// with the same rules and elements.
+func (s Set) Copy() Set {
+	ret := NewSet(s.rules)
+	for k, v := range s.vals {
+		ret.vals[k] = v
+	}
+	return ret
+}
+
 // Iterator returns an iterator over values in the set, in an undefined order
 // that callers should not depend on.
 //

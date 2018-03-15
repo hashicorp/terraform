@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
 	"github.com/hashicorp/terraform/svchost"
@@ -51,11 +51,11 @@ func NewClient(services *disco.Disco, creds auth.CredentialsSource, client *http
 	services.SetCredentialsSource(creds)
 
 	if client == nil {
-		client = cleanhttp.DefaultPooledClient()
+		client = httpclient.New()
 		client.Timeout = requestTimeout
 	}
 
-	services.Transport = client.Transport.(*http.Transport)
+	services.Transport = client.Transport
 
 	return &Client{
 		client:   client,
@@ -115,7 +115,7 @@ func (c *Client) Versions(module *regsrc.Module) (*response.ModuleVersions, erro
 	case http.StatusOK:
 		// OK
 	case http.StatusNotFound:
-		return nil, fmt.Errorf("module %q not found", module.String())
+		return nil, &errModuleNotFound{addr: module}
 	default:
 		return nil, fmt.Errorf("error looking up module versions: %s", resp.Status)
 	}

@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator"
@@ -157,10 +156,6 @@ func runScripts(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	scripts []io.ReadCloser) error {
-	// Wrap out context in a cancelation function that we use to
-	// kill the connection.
-	ctx, cancelFunc := context.WithCancel(ctx)
-	defer cancelFunc()
 
 	// Wait for the context to end and then disconnect
 	go func() {
@@ -169,9 +164,8 @@ func runScripts(
 	}()
 
 	// Wait and retry until we establish the connection
-	err := retryFunc(ctx, comm.Timeout(), func() error {
-		err := comm.Connect(o)
-		return err
+	err := communicator.Retry(ctx, func() error {
+		return comm.Connect(o)
 	})
 	if err != nil {
 		return err
@@ -179,49 +173,38 @@ func runScripts(
 
 	for _, script := range scripts {
 		var cmd *remote.Cmd
+
 		outR, outW := io.Pipe()
 		errR, errW := io.Pipe()
-		outDoneCh := make(chan struct{})
-		errDoneCh := make(chan struct{})
-		go copyOutput(o, outR, outDoneCh)
-		go copyOutput(o, errR, errDoneCh)
+		defer outW.Close()
+		defer errW.Close()
+
+		go copyOutput(o, outR)
+		go copyOutput(o, errR)
 
 		remotePath := comm.ScriptPath()
-		err = retryFunc(ctx, comm.Timeout(), func() error {
-			if err := comm.UploadScript(remotePath, script); err != nil {
-				return fmt.Errorf("Failed to upload script: %v", err)
-			}
 
-			cmd = &remote.Cmd{
-				Command: remotePath,
-				Stdout:  outW,
-				Stderr:  errW,
-			}
-			if err := comm.Start(cmd); err != nil {
-				return fmt.Errorf("Error starting script: %v", err)
-			}
-
-			return nil
-		})
-		if err == nil {
-			cmd.Wait()
-			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
-			}
+		if err := comm.UploadScript(remotePath, script); err != nil {
+			return fmt.Errorf("Failed to upload script: %v", err)
 		}
 
-		// If we have an error, end our context so the disconnect happens.
-		// This has to happen before the output cleanup below since during
-		// an interrupt this will cause the outputs to end.
-		if err != nil {
-			cancelFunc()
+		cmd = &remote.Cmd{
+			Command: remotePath,
+			Stdout:  outW,
+			Stderr:  errW,
+		}
+		if err := comm.Start(cmd); err != nil {
+			return fmt.Errorf("Error starting script: %v", err)
+		}
+		cmd.Wait()
+
+		if err := cmd.Err(); err != nil {
+			return fmt.Errorf("Remote command exited with error: %s", err)
 		}
 
-		// Wait for output to clean up
-		outW.Close()
-		errW.Close()
-		<-outDoneCh
-		<-errDoneCh
+		if cmd.ExitStatus() != 0 {
+			err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus())
+		}
 
 		// Upload a blank follow up file in the same path to prevent residual
 		// script contents from remaining on remote machine
@@ -230,93 +213,15 @@ func runScripts(
 			// This feature is best-effort.
 			log.Printf("[WARN] Failed to upload empty follow up script: %v", err)
 		}
-
-		// If we have an error, return it out now that we've cleaned up
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
 }
 
 func copyOutput(
-	o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
-	defer close(doneCh)
+	o terraform.UIOutput, r io.Reader) {
 	lr := linereader.New(r)
 	for line := range lr.Ch {
 		o.Output(line)
 	}
-}
-
-// retryFunc is used to retry a function for a given duration
-func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error {
-	// Build a new context with the timeout
-	ctx, done := context.WithTimeout(ctx, timeout)
-	defer done()
-
-	// container for atomic error value
-	type errWrap struct {
-		E error
-	}
-
-	// Try the function in a goroutine
-	var errVal atomic.Value
-	doneCh := make(chan struct{})
-	go func() {
-		defer close(doneCh)
-
-		delay := time.Duration(0)
-		for {
-			// If our context ended, we want to exit right away.
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(delay):
-			}
-
-			// Try the function call
-			err := f()
-			errVal.Store(&errWrap{err})
-
-			if err == nil {
-				return
-			}
-
-			log.Printf("[WARN] retryable error: %v", err)
-
-			delay *= 2
-
-			if delay == 0 {
-				delay = initialBackoffDelay
-			}
-
-			if delay > maxBackoffDelay {
-				delay = maxBackoffDelay
-			}
-
-			log.Printf("[INFO] sleeping for %s", delay)
-		}
-	}()
-
-	// Wait for completion
-	select {
-	case <-ctx.Done():
-	case <-doneCh:
-	}
-
-	// Check if we have a context error to check if we're interrupted or timeout
-	switch ctx.Err() {
-	case context.Canceled:
-		return fmt.Errorf("interrupted")
-	case context.DeadlineExceeded:
-		return fmt.Errorf("timeout")
-	}
-
-	// Check if we got an error executing
-	if ev, ok := errVal.Load().(errWrap); ok {
-		return ev.E
-	}
-
-	return nil
 }

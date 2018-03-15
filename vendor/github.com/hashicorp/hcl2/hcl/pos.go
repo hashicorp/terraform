@@ -60,6 +60,40 @@ func RangeBetween(start, end Range) Range {
 	}
 }
 
+// RangeOver returns a new range that covers both of the given ranges and
+// possibly additional content between them if the two ranges do not overlap.
+//
+// If either range is empty then it is ignored. The result is empty if both
+// given ranges are empty.
+//
+// The result is meaningless if the two ranges to not belong to the same
+// source file.
+func RangeOver(a, b Range) Range {
+	if a.Empty() {
+		return b
+	}
+	if b.Empty() {
+		return a
+	}
+
+	var start, end Pos
+	if a.Start.Byte < b.Start.Byte {
+		start = a.Start
+	} else {
+		start = b.Start
+	}
+	if a.End.Byte > b.End.Byte {
+		end = a.End
+	} else {
+		end = b.End
+	}
+	return Range{
+		Filename: a.Filename,
+		Start:    start,
+		End:      end,
+	}
+}
+
 // ContainsOffset returns true if and only if the given byte offset is within
 // the receiving Range.
 func (r Range) ContainsOffset(offset int) bool {
@@ -93,4 +127,136 @@ func (r Range) String() string {
 			r.End.Line, r.End.Column,
 		)
 	}
+}
+
+func (r Range) Empty() bool {
+	return r.Start.Byte == r.End.Byte
+}
+
+// CanSliceBytes returns true if SliceBytes could return an accurate
+// sub-slice of the given slice.
+//
+// This effectively tests whether the start and end offsets of the range
+// are within the bounds of the slice, and thus whether SliceBytes can be
+// trusted to produce an accurate start and end position within that slice.
+func (r Range) CanSliceBytes(b []byte) bool {
+	switch {
+	case r.Start.Byte < 0 || r.Start.Byte > len(b):
+		return false
+	case r.End.Byte < 0 || r.End.Byte > len(b):
+		return false
+	case r.End.Byte < r.Start.Byte:
+		return false
+	default:
+		return true
+	}
+}
+
+// SliceBytes returns a sub-slice of the given slice that is covered by the
+// receiving range, assuming that the given slice is the source code of the
+// file indicated by r.Filename.
+//
+// If the receiver refers to any byte offsets that are outside of the slice
+// then the result is constrained to the overlapping portion only, to avoid
+// a panic. Use CanSliceBytes to determine if the result is guaranteed to
+// be an accurate span of the requested range.
+func (r Range) SliceBytes(b []byte) []byte {
+	start := r.Start.Byte
+	end := r.End.Byte
+	if start < 0 {
+		start = 0
+	} else if start > len(b) {
+		start = len(b)
+	}
+	if end < 0 {
+		end = 0
+	} else if end > len(b) {
+		end = len(b)
+	}
+	if end < start {
+		end = start
+	}
+	return b[start:end]
+}
+
+// Overlaps returns true if the receiver and the other given range share any
+// characters in common.
+func (r Range) Overlaps(other Range) bool {
+	switch {
+	case r.Filename != other.Filename:
+		// If the ranges are in different files then they can't possibly overlap
+		return false
+	case r.Empty() || other.Empty():
+		// Empty ranges can never overlap
+		return false
+	case r.ContainsOffset(other.Start.Byte) || r.ContainsOffset(other.End.Byte):
+		return true
+	case other.ContainsOffset(r.Start.Byte) || other.ContainsOffset(r.End.Byte):
+		return true
+	default:
+		return false
+	}
+}
+
+// Overlap finds a range that is either identical to or a sub-range of both
+// the receiver and the other given range. It returns an empty range
+// within the receiver if there is no overlap between the two ranges.
+//
+// A non-empty result is either identical to or a subset of the receiver.
+func (r Range) Overlap(other Range) Range {
+	if !r.Overlaps(other) {
+		// Start == End indicates an empty range
+		return Range{
+			Filename: r.Filename,
+			Start:    r.Start,
+			End:      r.Start,
+		}
+	}
+
+	var start, end Pos
+	if r.Start.Byte > other.Start.Byte {
+		start = r.Start
+	} else {
+		start = other.Start
+	}
+	if r.End.Byte < other.End.Byte {
+		end = r.End
+	} else {
+		end = other.End
+	}
+
+	return Range{
+		Filename: r.Filename,
+		Start:    start,
+		End:      end,
+	}
+}
+
+// PartitionAround finds the portion of the given range that overlaps with
+// the reciever and returns three ranges: the portion of the reciever that
+// precedes the overlap, the overlap itself, and then the portion of the
+// reciever that comes after the overlap.
+//
+// If the two ranges do not overlap then all three returned ranges are empty.
+//
+// If the given range aligns with or extends beyond either extent of the
+// reciever then the corresponding outer range will be empty.
+func (r Range) PartitionAround(other Range) (before, overlap, after Range) {
+	overlap = r.Overlap(other)
+	if overlap.Empty() {
+		return overlap, overlap, overlap
+	}
+
+	before = Range{
+		Filename: r.Filename,
+		Start:    r.Start,
+		End:      overlap.Start,
+	}
+	after = Range{
+		Filename: r.Filename,
+		Start:    overlap.End,
+		End:      r.End,
+	}
+
+	return before, overlap, after
 }

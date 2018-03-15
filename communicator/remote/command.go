@@ -23,45 +23,59 @@ type Cmd struct {
 	Stdout io.Writer
 	Stderr io.Writer
 
-	// This will be set to true when the remote command has exited. It
-	// shouldn't be set manually by the user, but there is no harm in
-	// doing so.
-	Exited bool
-
-	// Once Exited is true, this will contain the exit code of the process.
-	ExitStatus int
+	// Once Wait returns, his will contain the exit code of the process.
+	exitStatus int
 
 	// Internal fields
 	exitCh chan struct{}
+
+	// err is used to store any error reported by the Communicator during
+	// execution.
+	err error
 
 	// This thing is a mutex, lock when making modifications concurrently
 	sync.Mutex
 }
 
-// SetExited is a helper for setting that this process is exited. This
-// should be called by communicators who are running a remote command in
-// order to set that the command is done.
-func (r *Cmd) SetExited(status int) {
-	r.Lock()
-	defer r.Unlock()
+// Init must be called by the Communicator before executing the command.
+func (c *Cmd) Init() {
+	c.Lock()
+	defer c.Unlock()
 
-	if r.exitCh == nil {
-		r.exitCh = make(chan struct{})
-	}
+	c.exitCh = make(chan struct{})
+}
 
-	r.Exited = true
-	r.ExitStatus = status
-	close(r.exitCh)
+// SetExitStatus stores the exit status of the remote command as well as any
+// communicator related error. SetExitStatus then unblocks any pending calls
+// to Wait.
+// This should only be called by communicators executing the remote.Cmd.
+func (c *Cmd) SetExitStatus(status int, err error) {
+	c.Lock()
+	defer c.Unlock()
+
+	c.exitStatus = status
+	c.err = err
+
+	close(c.exitCh)
+}
+
+// Err returns any communicator related error.
+func (c *Cmd) Err() error {
+	c.Lock()
+	defer c.Unlock()
+
+	return c.err
+}
+
+// ExitStatus returns the exit status of the remote command
+func (c *Cmd) ExitStatus() int {
+	c.Lock()
+	defer c.Unlock()
+
+	return c.exitStatus
 }
 
 // Wait waits for the remote command to complete.
-func (r *Cmd) Wait() {
-	// Make sure our condition variable is initialized.
-	r.Lock()
-	if r.exitCh == nil {
-		r.exitCh = make(chan struct{})
-	}
-	r.Unlock()
-
-	<-r.exitCh
+func (c *Cmd) Wait() {
+	<-c.exitCh
 }

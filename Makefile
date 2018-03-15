@@ -1,7 +1,7 @@
 TEST?=./...
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
-default: test vet
+default: test
 
 tools:
 	go get -u github.com/kardianos/govendor
@@ -30,7 +30,6 @@ plugin-dev: generate
 # we run this one package at a time here because running the entire suite in
 # one command creates memory usage issues when running in Travis-CI.
 test: fmtcheck generate
-	go test -i $(TEST) || exit 1
 	go list $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=60s -parallel=4
 
 # testacc runs acceptance tests
@@ -68,17 +67,6 @@ cover:
 	go tool cover -html=coverage.out
 	rm coverage.out
 
-# vet runs the Go source code static analysis tool `vet` to find
-# any common errors.
-vet:
-	@echo 'go vet ./...'
-	@go vet ./... ; if [ $$? -eq 1 ]; then \
-		echo ""; \
-		echo "Vet found suspicious constructs. Please check the reported constructs"; \
-		echo "and fix them if necessary before submitting the code for review."; \
-		exit 1; \
-	fi
-
 # generate runs `go generate` to build the dynamically generated
 # source files.
 generate:
@@ -102,4 +90,4 @@ vendor-status:
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: bin cover default dev e2etest fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status vet
+.PHONY: bin cover default dev e2etest fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status
