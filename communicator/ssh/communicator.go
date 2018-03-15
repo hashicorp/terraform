@@ -243,6 +243,8 @@ func (c *Communicator) ScriptPath() string {
 
 // Start implementation of communicator.Communicator interface
 func (c *Communicator) Start(cmd *remote.Cmd) error {
+	cmd.Init()
+
 	session, err := c.newSession()
 	if err != nil {
 		return err
@@ -267,7 +269,7 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	}
 
 	log.Printf("starting remote command: %s", cmd.Command)
-	err = session.Start(cmd.Command + "\n")
+	err = session.Start(strings.TrimSpace(cmd.Command) + "\n")
 	if err != nil {
 		return err
 	}
@@ -286,8 +288,8 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 			}
 		}
 
+		cmd.SetExitStatus(exitStatus, err)
 		log.Printf("remote command exited with '%d': %s", exitStatus, cmd.Command)
-		cmd.SetExited(exitStatus)
 	}()
 
 	return nil
@@ -358,10 +360,10 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 				"machine: %s", err)
 	}
 	cmd.Wait()
-	if cmd.ExitStatus != 0 {
+	if cmd.ExitStatus() != 0 {
 		return fmt.Errorf(
 			"Error chmodding script file to 0777 in remote "+
-				"machine %d: %s %s", cmd.ExitStatus, stdout.String(), stderr.String())
+				"machine %d: %s %s", cmd.ExitStatus(), stdout.String(), stderr.String())
 	}
 
 	return nil

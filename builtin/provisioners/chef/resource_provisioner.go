@@ -684,6 +684,13 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 	errDoneCh := make(chan struct{})
 	go p.copyOutput(o, outR, outDoneCh)
 	go p.copyOutput(o, errR, errDoneCh)
+	go func() {
+		// Wait for output to clean up
+		outW.Close()
+		errW.Close()
+		<-outDoneCh
+		<-errDoneCh
+	}()
 
 	cmd := &remote.Cmd{
 		Command: command,
@@ -697,18 +704,15 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 	}
 
 	cmd.Wait()
-	if cmd.ExitStatus != 0 {
-		err = fmt.Errorf(
-			"Command %q exited with non-zero exit status: %d", cmd.Command, cmd.ExitStatus)
+	if cmd.Err() != nil {
+		return cmd.Err()
 	}
 
-	// Wait for output to clean up
-	outW.Close()
-	errW.Close()
-	<-outDoneCh
-	<-errDoneCh
+	if cmd.ExitStatus() != 0 {
+		return fmt.Errorf("Command %q exited with non-zero exit status: %d", cmd.Command, cmd.ExitStatus())
+	}
 
-	return err
+	return nil
 }
 
 func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
