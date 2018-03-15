@@ -740,12 +740,17 @@ func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<
 func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communicator, command string) error {
 	outR, outW := io.Pipe()
 	errR, errW := io.Pipe()
-	var err error
 
 	outDoneCh := make(chan struct{})
 	errDoneCh := make(chan struct{})
 	go p.copyOutput(o, outR, outDoneCh)
 	go p.copyOutput(o, errR, errDoneCh)
+	defer func() {
+		outW.Close()
+		errW.Close()
+		<-outDoneCh
+		<-errDoneCh
+	}()
 
 	cmd := &remote.Cmd{
 		Command: command,
@@ -753,22 +758,20 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 		Stderr:  errW,
 	}
 
-	if err = comm.Start(cmd); err != nil {
+	if err := comm.Start(cmd); err != nil {
 		return fmt.Errorf("Error executing command %q: %v", cmd.Command, err)
 	}
 
 	cmd.Wait()
-	if cmd.ExitStatus != 0 {
-		err = fmt.Errorf(
-			"Command %q exited with non-zero exit status: %d", cmd.Command, cmd.ExitStatus)
+	if cmd.Err() != nil {
+		return cmd.Err()
 	}
 
-	outW.Close()
-	errW.Close()
-	<-outDoneCh
-	<-errDoneCh
+	if cmd.ExitStatus() != 0 {
+		return fmt.Errorf("Command %q exited with non-zero exit status: %d", cmd.Command, cmd.ExitStatus())
+	}
 
-	return err
+	return nil
 }
 
 func getBindFromString(bind string) (Bind, error) {
