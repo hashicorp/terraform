@@ -1,33 +1,33 @@
-## 0.11.4 (Unreleased)
+## 0.11.4 (March 15, 2018)
 
 IMPROVEMENTS:
 
-* cli: `terraform state list` now accepts a new argument `-id=...` for filtering resources for display by their remote ids [GH-17221]
-* cli: `terraform destroy` now uses the option `-auto-approve` instead of `-force`, for consistency with `terraform apply`. The old flag is preserved for backward-compatibility, but is now deprecated; it will be retained for at least one major release. [GH-17218]
-* connection/ssh: Add support for host key verifiation [GH-17354]
-* backend/s3: add support for the cn-northwest-1 region [GH-17216]
-* provisioner/local-exec: Allow setting custom environment variables when running commands [GH-13880]
-* provisioner/habitat: Detect if hab user exists and only create if necessary [GH-17195]
-* provisioner/habitat: Allow custom service name [GH-17196]
+* cli: `terraform state list` now accepts a new argument `-id=...` for filtering resources for display by their remote ids ([#17221](https://github.com/hashicorp/terraform/issues/17221))
+* cli: `terraform destroy` now uses the option `-auto-approve` instead of `-force`, for consistency with `terraform apply`. The old flag is preserved for backward-compatibility, but is now deprecated; it will be retained for at least one major release. ([#17218](https://github.com/hashicorp/terraform/issues/17218))
+* connection/ssh: Add support for host key verifiation ([#17354](https://github.com/hashicorp/terraform/issues/17354))
+* backend/s3: add support for the cn-northwest-1 region ([#17216](https://github.com/hashicorp/terraform/issues/17216))
+* provisioner/local-exec: Allow setting custom environment variables when running commands ([#13880](https://github.com/hashicorp/terraform/issues/13880))
+* provisioner/habitat: Detect if hab user exists and only create if necessary ([#17195](https://github.com/hashicorp/terraform/issues/17195))
+* provisioner/habitat: Allow custom service name ([#17196](https://github.com/hashicorp/terraform/issues/17196))
 * general: https URLs are now supported in the HTTP_PROXY environment variable for URLs interpreted by Terraform Core. (This will not immediately be true for all Terraform provider plugins, since each must upgrade its own HTTP client.) [go1.10:net/http](https://golang.org/doc/go1.10#net/http)
 
 BUG FIXES:
 
-* core: Make sure state is locked during initial refresh [GH-17422]
-* core: Fix interpolation error when count references another interpolated count value [GH-17368]
-* core: Halt on fatal provisioner errors, rather than retrying until a timeout [GH-17359]
-* core: When handling a forced exit due to multiple interrupts, prevent the process from exiting while the state is being written [GH-17323]
-* core: Fix handling of locals and outputs at destroy time [GH-17241]
-* core: Fix regression in handling of `count` arguments that refer to `count` attributes from other resources [GH-17548]
-* provider/terraform: restore support for the deprecated `environment` argument to the `terraform_remote_state` data source [GH-17545]
-* backend/gcs: Report the correct lock ID for GCS state locks [GH-17397]
+* core: Make sure state is locked during initial refresh ([#17422](https://github.com/hashicorp/terraform/issues/17422))
+* core: Fix interpolation error when count references another interpolated count value ([#17368](https://github.com/hashicorp/terraform/issues/17368))
+* core: Halt on fatal provisioner errors, rather than retrying until a timeout ([#17359](https://github.com/hashicorp/terraform/issues/17359))
+* core: When handling a forced exit due to multiple interrupts, prevent the process from exiting while the state is being written ([#17323](https://github.com/hashicorp/terraform/issues/17323))
+* core: Fix handling of locals and outputs at destroy time ([#17241](https://github.com/hashicorp/terraform/issues/17241))
+* core: Fix regression in handling of `count` arguments that refer to `count` attributes from other resources ([#17548](https://github.com/hashicorp/terraform/issues/17548))
+* provider/terraform: restore support for the deprecated `environment` argument to the `terraform_remote_state` data source ([#17545](https://github.com/hashicorp/terraform/issues/17545))
+* backend/gcs: Report the correct lock ID for GCS state locks ([#17397](https://github.com/hashicorp/terraform/issues/17397))
 
 PROVIDER SDK CHANGES (not user-facing):
 
-* helper/schema: Prevent crash on removal of computed field in CustomizeDiff [GH-17261]
-* helper/schema: Allow ResourceDiff.ForceNew on nested fields (avoid crash) [GH-17463]
-* helper/schema: Allow `TypeMap` to have a `*schema.Schema` as its `Elem`, for consistency with `TypeSet` and `TypeList` [GH-17097]
-* helper/validation: Add ValidateRFC3339TimeString function [GH-17484]
+* helper/schema: Prevent crash on removal of computed field in CustomizeDiff ([#17261](https://github.com/hashicorp/terraform/issues/17261))
+* helper/schema: Allow ResourceDiff.ForceNew on nested fields (avoid crash) ([#17463](https://github.com/hashicorp/terraform/issues/17463))
+* helper/schema: Allow `TypeMap` to have a `*schema.Schema` as its `Elem`, for consistency with `TypeSet` and `TypeList` ([#17097](https://github.com/hashicorp/terraform/issues/17097))
+* helper/validation: Add ValidateRFC3339TimeString function ([#17484](https://github.com/hashicorp/terraform/issues/17484))
 
 ## 0.11.3 (January 31, 2018)
 
