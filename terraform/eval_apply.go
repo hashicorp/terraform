@@ -227,11 +227,8 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 			state.Tainted = true
 		}
 
-		if n.Error != nil {
-			*n.Error = multierror.Append(*n.Error, err)
-		} else {
-			return nil, err
-		}
+		*n.Error = multierror.Append(*n.Error, err)
+		return nil, err
 	}
 
 	{
