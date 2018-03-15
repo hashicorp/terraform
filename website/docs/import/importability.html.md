@@ -210,6 +210,7 @@ To make a resource importable, please see the
 * google_compute_router
 * google_compute_target_pool
 * google_dns_managed_zone
+* google_dns_record_set
 * google_project
 * google_sql_database_instance
 * google_sql_database
