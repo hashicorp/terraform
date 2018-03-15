@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/terraform"
@@ -175,6 +176,55 @@ func TestStart(t *testing.T) {
 	err = c.Start(&cmd)
 	if err != nil {
 		t.Fatalf("error executing remote command: %s", err)
+	}
+}
+
+func TestLostConnection(t *testing.T) {
+	address := newMockLineServer(t, nil)
+	parts := strings.Split(address, ":")
+
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "ssh",
+				"user":     "user",
+				"password": "pass",
+				"host":     parts[0],
+				"port":     parts[1],
+				"timeout":  "30s",
+			},
+		},
+	}
+
+	c, err := New(r)
+	if err != nil {
+		t.Fatalf("error creating communicator: %s", err)
+	}
+
+	var cmd remote.Cmd
+	stdout := new(bytes.Buffer)
+	cmd.Command = "echo foo"
+	cmd.Stdout = stdout
+
+	err = c.Start(&cmd)
+	if err != nil {
+		t.Fatalf("error executing remote command: %s", err)
+	}
+
+	// The test server can't execute anything, so Wait will block, unless
+	// there's an error.  Disconnect the communicator transport, to cause the
+	// command to fail.
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		c.Disconnect()
+	}()
+
+	cmd.Wait()
+	if cmd.Err() == nil {
+		t.Fatal("expected communicator error")
+	}
+	if cmd.ExitStatus() != 0 {
+		t.Fatal("command should not have returned an exit status")
 	}
 }
 
