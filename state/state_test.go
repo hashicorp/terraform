@@ -99,7 +99,7 @@ func TestLockWithContext(t *testing.T) {
 		t.Fatal("lock should have completed within 2s:", err)
 	}
 
-	// ensure the goruotine completes
+	// ensure the goroutine completes
 	<-unlocked
 
 	// Lock should have been called a total of 4 times.

@@ -29,7 +29,7 @@
 // within certain constraints and produce a new bundle containing these
 // upgraded provider versions. A bundle archive can include multiple versions
 // of the same provider, allowing configurations containing provider version
-// constrants to be gradually migrated to newer versions.
+// constraints to be gradually migrated to newer versions.
 package main
 
 import (

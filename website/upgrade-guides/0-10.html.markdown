@@ -55,7 +55,7 @@ of plugins from being automatically installed in future.
 ### Third-party Provider Plugins
 
 This initial release of separated provider plugins applies only to the
-providers that are packaged and released by Hashicorp. The goal is to
+providers that are packaged and released by HashiCorp. The goal is to
 eventually support a similar approach for third-party plugins, but we wish
 to ensure the robustness of the installation and versioning mechanisms before
 generalizing this feature.
@@ -124,7 +124,7 @@ default. Although no immediate action is required, we strongly recommend
 adjusting any Terraform automation or wrapper scripts to prepare for this
 upcoming change in behavior, in the following ways:
 
-* Non-interative automation around production systems should _always_
+* Non-interactive automation around production systems should _always_
   separately run `terraform plan -out=tfplan` and then (after approval)
   `terraform apply tfplan`, to ensure operators have a chance to review
   the plan before applying it.

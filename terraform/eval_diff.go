@@ -85,7 +85,7 @@ type EvalDiff struct {
 
 	// Stub is used to flag the generated InstanceDiff as a stub. This is used to
 	// ensure that the node exists to perform interpolations and generate
-	// computed paths off of, but not as an actual diff where resouces should be
+	// computed paths off of, but not as an actual diff where resources should be
 	// counted, and not as a diff that should be acted on.
 	Stub bool
 }
@@ -251,7 +251,7 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 		// out all the empty and computed attributes. There may be a bunch of
 		// extraneous attribute diffs for the other non-requires-new attributes
 		// going from "" -> "configval" or "" -> "<computed>".
-		// We must make sure any flatmapped containers are filterred (or not) as a
+		// We must make sure any flatmapped containers are filtered (or not) as a
 		// whole.
 		containers := groupContainers(diff)
 		keep := map[string]bool{}
@@ -263,7 +263,7 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 					keep[k] = true
 					// this key may have been added by the user to ignore, but
 					// if it's a subkey in a container, we need to un-ignore it
-					// to keep the complete containter.
+					// to keep the complete container.
 					delete(ignorableAttrKeys, k)
 				}
 			}

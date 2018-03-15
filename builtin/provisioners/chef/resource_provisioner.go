@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	clienrb         = "client.rb"
+	clientrb         = "client.rb"
 	defaultEnv      = "_default"
 	firstBoot       = "first-boot.json"
 	logfileDir      = "logfiles"
@@ -428,17 +428,17 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	}
 
 	// Create a new template and parse the client config into it
-	t := template.Must(template.New(clienrb).Funcs(funcMap).Parse(clientConf))
+	t := template.Must(template.New(clientrb).Funcs(funcMap).Parse(clientConf))
 
 	var buf bytes.Buffer
 	err := t.Execute(&buf, p)
 	if err != nil {
-		return fmt.Errorf("Error executing %s template: %s", clienrb, err)
+		return fmt.Errorf("Error executing %s template: %s", clientrb, err)
 	}
 
 	// Copy the client config to the new instance
-	if err = comm.Upload(path.Join(confDir, clienrb), &buf); err != nil {
-		return fmt.Errorf("Uploading %s failed: %v", clienrb, err)
+	if err = comm.Upload(path.Join(confDir, clientrb), &buf); err != nil {
+		return fmt.Errorf("Uploading %s failed: %v", clientrb, err)
 	}
 
 	// Create a map with first boot settings
@@ -495,7 +495,7 @@ func (p *provisioner) fetchChefCertificatesFunc(
 	knifeCmd string,
 	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
-		clientrb := path.Join(confDir, clienrb)
+		clientrb := path.Join(confDir, clientrb)
 		cmd := fmt.Sprintf("%s ssl fetch -c %s", knifeCmd, clientrb)
 
 		return p.runCommand(o, comm, cmd)
@@ -505,7 +505,7 @@ func (p *provisioner) fetchChefCertificatesFunc(
 func (p *provisioner) generateClientKeyFunc(knifeCmd string, confDir string, noOutput string) provisionFn {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
 		options := fmt.Sprintf("-c %s -u %s --key %s",
-			path.Join(confDir, clienrb),
+			path.Join(confDir, clientrb),
 			p.UserName,
 			path.Join(confDir, p.UserName+".pem"),
 		)
@@ -567,7 +567,7 @@ func (p *provisioner) configureVaultsFunc(gemCmd string, knifeCmd string, confDi
 		}
 
 		options := fmt.Sprintf("-c %s -u %s --key %s",
-			path.Join(confDir, clienrb),
+			path.Join(confDir, clientrb),
 			p.UserName,
 			path.Join(confDir, p.UserName+".pem"),
 		)

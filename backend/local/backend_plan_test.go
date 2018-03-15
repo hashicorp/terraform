@@ -49,7 +49,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 	const msg = `You didn't specify an "-out" parameter`
 
 	// When we're "in automation" we omit certain text from the
-	// plan output. However, testing for the absense of text is
+	// plan output. However, testing for the absence of text is
 	// unreliable in the face of future copy changes, so we'll
 	// mitigate that by running both with and without the flag
 	// set so we can ensure that the expected messages _are_

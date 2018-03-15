@@ -536,7 +536,7 @@ func interpolationFuncCeil() ast.Function {
 	}
 }
 
-// interpolationFuncLog returns the logarithnm.
+// interpolationFuncLog returns the logarithm.
 func interpolationFuncLog() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeFloat, ast.TypeFloat},
@@ -760,7 +760,7 @@ func interpolationFuncDistinct() ast.Function {
 	}
 }
 
-// helper function to add an element to a list, if it does not already exsit
+// helper function to add an element to a list, if it does not already exist
 func appendIfMissing(slice []string, element string) []string {
 	for _, ele := range slice {
 		if ele == element {
@@ -1018,7 +1018,7 @@ func interpolationFuncSlice() ast.Function {
 	}
 }
 
-// interpolationFuncSort sorts a list of a strings lexographically
+// interpolationFuncSort sorts a list of a strings lexicographically
 func interpolationFuncSort() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeList},

@@ -1130,7 +1130,7 @@ func loadProvisionersHcl(list *ast.ObjectList, connInfo map[string]interface{}) 
 		}
 
 		// Inherit from the resource connInfo any keys
-		// that are not explicitly overriden.
+		// that are not explicitly overridden.
 		if connInfo != nil && subConnInfo != nil {
 			for k, v := range connInfo {
 				if _, ok := subConnInfo[k]; !ok {

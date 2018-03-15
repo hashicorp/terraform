@@ -281,7 +281,7 @@ func (n *EvalUndeposeState) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	// If we don't have any desposed resource, then we don't have anything to do
+	// If we don't have any deposed resource, then we don't have anything to do
 	if len(rs.Deposed) == 0 {
 		return nil, nil
 	}

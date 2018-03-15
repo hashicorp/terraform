@@ -70,7 +70,7 @@ type EvalContext interface {
 	// InterpolateProvider takes a ProviderConfig and interpolates it with the
 	// stored interpolation scope. Since provider configurations can be
 	// inherited, the interpolation scope may be different from the current
-	// context path. Interplation is otherwise executed the same as in the
+	// context path. Interpolation is otherwise executed the same as in the
 	// Interpolation method.
 	InterpolateProvider(*config.ProviderConfig, *Resource) (*ResourceConfig, error)
 

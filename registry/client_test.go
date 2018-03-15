@@ -174,7 +174,7 @@ func TestAccLookupModuleVersions(t *testing.T) {
 	}
 }
 
-// the error should reference the config source exatly, not the discovered path.
+// the error should reference the config source exactly, not the discovered path.
 func TestLookupLookupModuleError(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()

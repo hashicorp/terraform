@@ -152,25 +152,25 @@ func (t *TargetsTransformer) addDependencies(targetedNodes *dag.Set, g *Graph) (
 	queue := targetedNodes.List()
 	for len(queue) > 0 {
 		vertices := queue
-		queue = nil // ready to append for next iteration if neccessary
+		queue = nil // ready to append for next iteration if necessary
 		for _, v := range vertices {
-			dependers := g.UpEdges(v)
-			if dependers == nil {
+			dependents := g.UpEdges(v)
+			if dependents == nil {
 				// indicates that there are no up edges for this node, so
 				// we have nothing to do here.
 				continue
 			}
 
-			dependers = dependers.Filter(func(dv interface{}) bool {
+			dependents = dependents.Filter(func(dv interface{}) bool {
 				_, ok := dv.(GraphNodeTargetDownstream)
 				return ok
 			})
 
-			if dependers.Len() == 0 {
+			if dependents.Len() == 0 {
 				continue
 			}
 
-			for _, dv := range dependers.List() {
+			for _, dv := range dependents.List() {
 				if targetedNodes.Include(dv) {
 					// Already present, so nothing to do
 					continue
@@ -187,7 +187,7 @@ func (t *TargetsTransformer) addDependencies(targetedNodes *dag.Set, g *Graph) (
 				if dv.(GraphNodeTargetDownstream).TargetDownstream(depsTargeted, depsUntargeted) {
 					targetedNodes.Add(dv)
 					// Need to visit this node on the next pass to see if it
-					// has any transitive dependers.
+					// has any transitive dependents.
 					queue = append(queue, dv)
 				}
 			}
@@ -212,8 +212,8 @@ func filterPartialOutputs(v interface{}, targetedNodes *dag.Set, g *Graph) bool 
 		return true
 	}
 
-	dependers := g.UpEdges(v)
-	for _, d := range dependers.List() {
+	dependents := g.UpEdges(v)
+	for _, d := range dependents.List() {
 		if _, ok := d.(*NodeCountBoundary); ok {
 			continue
 		}

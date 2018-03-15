@@ -99,7 +99,7 @@ func (b deprecatedBackendShim) Validate(c *terraform.ResourceConfig) ([]string, 
 	return warns, errs
 }
 
-// DeprecateBackend can be used to wrap a backend to retrun a deprecation
+// DeprecateBackend can be used to wrap a backend to return a deprecation
 // warning during validation.
 func deprecateBackend(b backend.Backend, message string) func() backend.Backend {
 	// Since a Backend wrapped by deprecatedBackendShim can no longer be

@@ -6,7 +6,7 @@ type NodeDestroyableDataResource struct {
 	*NodeAbstractResource
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeDestroyableDataResource) EvalTree() EvalNode {
 	addr := n.NodeAbstractResource.Addr
 

@@ -48,7 +48,7 @@ func (s *sccAcct) inStack(needle Node) bool {
 // StronglyConnectedComponents implements Tarjan's algorithm to
 // find all the strongly connected components in a graph. This can
 // be used to detected any cycles in a graph, as well as which nodes
-// partipate in those cycles. excludeSingle is used to exclude strongly
+// participate in those cycles. excludeSingle is used to exclude strongly
 // connected components of size one.
 func StronglyConnectedComponents(nodes []Node, excludeSingle bool) [][]Node {
 	acct := sccAcct{

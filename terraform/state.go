@@ -2003,7 +2003,7 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 		}
 	}
 
-	// catch any unitialized fields in the state
+	// catch any uninitialized fields in the state
 	state.init()
 
 	// Sort it
@@ -2038,13 +2038,13 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 		}
 	}
 
-	// catch any unitialized fields in the state
+	// catch any uninitialized fields in the state
 	state.init()
 
 	// Sort it
 	state.sort()
 
-	// Now we write the state back out to detect any changes in normaliztion.
+	// Now we write the state back out to detect any changes in normalization.
 	// If our state is now written out differently, bump the serial number to
 	// prevent conflicts.
 	var buf bytes.Buffer

@@ -42,7 +42,7 @@ resource "null_resource" "cluster" {
   }
 
   provisioner "remote-exec" {
-    # Bootstrap script called with private_ip of each node in the clutser
+    # Bootstrap script called with private_ip of each node in the cluster
     inline = [
       "bootstrap-cluster.sh ${join(" ", aws_instance.cluster.*.private_ip)}",
     ]

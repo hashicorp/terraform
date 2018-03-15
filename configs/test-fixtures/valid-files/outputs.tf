@@ -12,7 +12,7 @@ output "baz" {
   sensitive = true
 }
 
-output "cheeze_pizza" {
+output "cheese_pizza" {
   description = "Nothing special"
   value       = "🍕"
 }

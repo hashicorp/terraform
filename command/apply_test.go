@@ -157,7 +157,7 @@ func TestApply_parallelism(t *testing.T) {
 
 	par := 4
 
-	// This blocks all the appy functions. We close it when we exit so
+	// This blocks all the apply functions. We close it when we exit so
 	// they end quickly after this test finishes.
 	block := make(chan struct{})
 	// signal how many goroutines have started
@@ -869,7 +869,7 @@ func TestApply_shutdown(t *testing.T) {
 		})
 
 		// Because of the internal lock in the MockProvider, we can't
-		// coordiante directly with the calling of Stop, and making the
+		// coordinate directly with the calling of Stop, and making the
 		// MockProvider concurrent is disruptive to a lot of existing tests.
 		// Wait here a moment to help make sure the main goroutine gets to the
 		// Stop call before we exit, or the plan may finish before it can be

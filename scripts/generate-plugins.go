@@ -195,7 +195,7 @@ func discoverTypesInPath(path, typeID, typeName string) ([]plugin, error) {
 					// and see if it matches our expected typeID
 					//
 					// This is somewhat verbose but prevents us from identifying
-					// the wrong types if the function name is amiguous or if
+					// the wrong types if the function name is ambiguous or if
 					// there are other subfolders added later.
 					if x.Name.Name == typeName && len(x.Type.Results.List) == 1 {
 						node := x.Type.Results.List[0].Type

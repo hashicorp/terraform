@@ -859,7 +859,7 @@ func TestConfigModuleProviders(t *testing.T) {
 	got := c.Modules[0].Providers
 
 	if !reflect.DeepEqual(expected, got) {
-		t.Fatalf("exptected providers %#v, got providers %#v", expected, got)
+		t.Fatalf("expected providers %#v, got providers %#v", expected, got)
 	}
 }
 

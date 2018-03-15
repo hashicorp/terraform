@@ -61,7 +61,7 @@ func (n *graphNodeImportState) Path() []string {
 	return normalizeModulePath(n.Addr.Path)
 }
 
-// GraphNodeEvalable impl.
+// GraphNodeEvaluable impl.
 func (n *graphNodeImportState) EvalTree() EvalNode {
 	var provider ResourceProvider
 	info := &InstanceInfo{
@@ -191,7 +191,7 @@ func (n *graphNodeImportStateSub) Path() []string {
 	return n.Path_
 }
 
-// GraphNodeEvalable impl.
+// GraphNodeEvaluable impl.
 func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 	// If the Ephemeral type isn't set, then it is an error
 	if n.State.Ephemeral.Type == "" {

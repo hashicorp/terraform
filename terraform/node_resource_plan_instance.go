@@ -13,7 +13,7 @@ type NodePlannableResourceInstance struct {
 	*NodeAbstractResource
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodePlannableResourceInstance) EvalTree() EvalNode {
 	addr := n.NodeAbstractResource.Addr
 

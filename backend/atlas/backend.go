@@ -78,7 +78,7 @@ func (b *Backend) State(name string) (state.State, error) {
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing
-// output. This is gauranteed to always return a non-nil value and so is useful
+// output. This is guaranteed to always return a non-nil value and so is useful
 // as a helper to wrap any potentially colored strings.
 func (b *Backend) Colorize() *colorstring.Colorize {
 	if b.CLIColor != nil {

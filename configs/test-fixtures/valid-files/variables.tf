@@ -15,7 +15,7 @@ variable "bar-baz" {
   type    = list(string)
 }
 
-variable "cheeze_pizza" {
+variable "cheese_pizza" {
   description = "Nothing special"
 }
 

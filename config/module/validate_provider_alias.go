@@ -14,7 +14,7 @@ import (
 // is usually a good tradeoff since not many aliases are used.
 func (t *Tree) validateProviderAlias() error {
 	// If we're not the root, don't perform this validation. We must be the
-	// root since we require full tree visibilty.
+	// root since we require full tree visibility.
 	if len(t.path) != 0 {
 		return nil
 	}

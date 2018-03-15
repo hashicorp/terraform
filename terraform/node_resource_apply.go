@@ -47,7 +47,7 @@ func (n *NodeApplyableResource) References() []string {
 	return result
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeApplyableResource) EvalTree() EvalNode {
 	addr := n.NodeAbstractResource.Addr
 

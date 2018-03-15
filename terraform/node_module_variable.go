@@ -81,7 +81,7 @@ func (n *NodeApplyableModuleVariable) References() []string {
 	return modulePrefixList(result, prefix)
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
 	// If we have no value, do nothing
 	if n.Value == nil {

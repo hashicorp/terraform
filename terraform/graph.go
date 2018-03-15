@@ -109,7 +109,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 		}
 
 		// If the node is eval-able, then evaluate it.
-		if ev, ok := v.(GraphNodeEvalable); ok {
+		if ev, ok := v.(GraphNodeEvaluable); ok {
 			tree := ev.EvalTree()
 			if tree == nil {
 				panic(fmt.Sprintf(

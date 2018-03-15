@@ -57,7 +57,7 @@ func (n *NodeLocal) References() []string {
 	return result
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeLocal) EvalTree() EvalNode {
 	return &EvalLocal{
 		Name:  n.Config.Name,

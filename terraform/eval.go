@@ -14,9 +14,9 @@ type EvalNode interface {
 	Eval(EvalContext) (interface{}, error)
 }
 
-// GraphNodeEvalable is the interface that graph nodes must implement
+// GraphNodeEvaluable is the interface that graph nodes must implement
 // to enable valuation.
-type GraphNodeEvalable interface {
+type GraphNodeEvaluable interface {
 	EvalTree() EvalNode
 }
 

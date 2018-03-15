@@ -164,7 +164,7 @@ func (n *EvalVariableBlock) setUnknownVariableValueForPath(path string) error {
 	pathComponents := strings.Split(path, ".")
 
 	if len(pathComponents) < 1 {
-		return fmt.Errorf("No path comoponents in %s", path)
+		return fmt.Errorf("No path components in %s", path)
 	}
 
 	if len(pathComponents) == 1 {

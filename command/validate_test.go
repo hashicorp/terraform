@@ -79,7 +79,7 @@ func TestValidateFailingCommandMissingVariable(t *testing.T) {
 	}
 }
 
-func TestSameProviderMutipleTimesShouldFail(t *testing.T) {
+func TestSameProviderMultipleTimesShouldFail(t *testing.T) {
 	ui, code := setupTest("validate-invalid/multiple_providers")
 	if code != 1 {
 		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -142,7 +142,7 @@ func TestWronglyUsedInterpolationShouldFail(t *testing.T) {
 	if !strings.Contains(ui.ErrorWriter.String(), "depends on value cannot contain interpolations") {
 		t.Fatalf("Should have failed: %d\n\n'%s'", code, ui.ErrorWriter.String())
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), "variable \"vairable_with_interpolation\": default may not contain interpolations") {
+	if !strings.Contains(ui.ErrorWriter.String(), "variable \"variable_with_interpolation\": default may not contain interpolations") {
 		t.Fatalf("Should have failed: %d\n\n'%s'", code, ui.ErrorWriter.String())
 	}
 }

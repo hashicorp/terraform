@@ -67,7 +67,7 @@ func (n *NodeApplyableOutput) References() []string {
 	return result
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeApplyableOutput) EvalTree() EvalNode {
 	return &EvalSequence{
 		Nodes: []EvalNode{
@@ -145,7 +145,7 @@ func (n *NodeDestroyableOutput) References() []string {
 	return result
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeDestroyableOutput) EvalTree() EvalNode {
 	return &EvalDeleteOutput{
 		Name: n.Config.Name,

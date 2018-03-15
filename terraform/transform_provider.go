@@ -137,7 +137,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	for _, v := range pm {
 		p := v.(GraphNodeProvider)
 
-		// get the close provider of this type if we alread created it
+		// get the close provider of this type if we already created it
 		closer := cpm[p.Name()]
 
 		if closer == nil {
@@ -214,7 +214,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 
 		log.Println("[DEBUG] adding missing provider:", p)
 
-		// create the misisng top-level provider
+		// create the missing top-level provider
 		provider = t.Concrete(&NodeAbstractProvider{
 			NameValue: p,
 		}).(dag.Vertex)
@@ -339,7 +339,7 @@ func (n *graphNodeCloseProvider) Name() string {
 	return n.ProviderNameValue + " (close)"
 }
 
-// GraphNodeEvalable impl.
+// GraphNodeEvaluable impl.
 func (n *graphNodeCloseProvider) EvalTree() EvalNode {
 	return CloseProviderEvalTree(n.ProviderNameValue)
 }
@@ -412,7 +412,7 @@ type ProviderConfigTransformer struct {
 	// each provider node is stored here so that the proxy nodes can look up
 	// their targets by name.
 	providers map[string]GraphNodeProvider
-	// record providers that can be overriden with a proxy
+	// record providers that can be overridden with a proxy
 	proxiable map[string]bool
 
 	// Module is the module to add resources from.

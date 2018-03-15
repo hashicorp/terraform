@@ -10,7 +10,7 @@ type NodeValidatableResource struct {
 	*NodeAbstractCountResource
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeValidatableResource) EvalTree() EvalNode {
 	// Ensure we're validating
 	c := n.NodeAbstractCountResource
@@ -83,7 +83,7 @@ type NodeValidatableResourceInstance struct {
 	*NodeAbstractResource
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeValidatableResourceInstance) EvalTree() EvalNode {
 	addr := n.NodeAbstractResource.Addr
 

@@ -18,7 +18,7 @@ COPY releases_public_key .
 
 # What's going on here?
 # - Download the indicated release along with its checksums and signature for the checksums
-# - Verify that the checksums file is signed by the Hashicorp releases key
+# - Verify that the checksums file is signed by the HashiCorp releases key
 # - Verify that the zip file matches the expected checksum
 # - Extract the zip file so it can be run
 

@@ -139,7 +139,7 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 // ReferenceMap is a structure that can be used to efficiently check
 // for references on a graph.
 type ReferenceMap struct {
-	// m is the mapping of referenceable name to list of verticies that
+	// m is the mapping of referenceable name to list of vertices that
 	// implement that name. This is built on initialization.
 	references   map[string][]dag.Vertex
 	referencedBy map[string][]dag.Vertex

@@ -47,7 +47,7 @@ func (n *NodeDestroyResource) ModifyCreateBeforeDestroy(v bool) error {
 // GraphNodeReferenceable, overriding NodeAbstractResource
 func (n *NodeDestroyResource) ReferenceableName() []string {
 	// We modify our referenceable name to have the suffix of ".destroy"
-	// since depending on the creation side doesn't necessarilly mean
+	// since depending on the creation side doesn't necessarily mean
 	// depending on destruction.
 	suffix := ".destroy"
 
@@ -123,7 +123,7 @@ func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	return b.Build(ctx.Path())
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeDestroyResource) EvalTree() EvalNode {
 	// stateId is the ID to put into the state
 	stateId := n.Addr.stateId()

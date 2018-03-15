@@ -764,7 +764,7 @@ func (m *Meta) backend_c_R_S(
 	// Get the backend type for later
 	backendType := sMgr.State().Backend.Type
 
-	// First, perform the configured => local tranasition
+	// First, perform the configured => local transition
 	if _, err := m.backend_c_r_S(c, sMgr, false); err != nil {
 		return nil, err
 	}
@@ -1066,7 +1066,7 @@ func (m *Meta) backend_C_r_S_changed(
 	return b, nil
 }
 
-// Initiailizing an unchanged saved backend
+// Initializing an unchanged saved backend
 func (m *Meta) backend_C_r_S_unchanged(
 	c *config.Backend, sMgr state.State) (backend.Backend, error) {
 	s := sMgr.State()
@@ -1105,7 +1105,7 @@ func (m *Meta) backend_C_r_S_unchanged(
 	return b, nil
 }
 
-// Initiailizing a changed saved backend with legacy remote state.
+// Initializing a changed saved backend with legacy remote state.
 func (m *Meta) backend_C_R_S_changed(
 	c *config.Backend, sMgr state.State) (backend.Backend, error) {
 	// Notify the user
@@ -1132,7 +1132,7 @@ func (m *Meta) backend_C_R_S_changed(
 	return b, nil
 }
 
-// Initiailizing an unchanged saved backend with legacy remote state.
+// Initializing an unchanged saved backend with legacy remote state.
 func (m *Meta) backend_C_R_S_unchanged(
 	c *config.Backend, sMgr state.State, output bool) (backend.Backend, error) {
 	if output {
@@ -1500,7 +1500,7 @@ different states.
 
 The most common cause of seeing this error is using a plan that was
 created against a different state. Perhaps the plan is very old and the
-state has since been recreated, or perhaps the plan was against a competely
+state has since been recreated, or perhaps the plan was against a completely
 different infrastructure.
 `
 

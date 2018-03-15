@@ -120,7 +120,7 @@ and installation behavior, and thus forces the use of only the plugins that
 can be found in the directory indicated.
 
 The downloaded provider archives are verified using the same signature check
-that is used for auto-installed plugins, using Hashicorp's release key. At
+that is used for auto-installed plugins, using HashiCorp's release key. At
 this time, the core Terraform archive itself is _not_ verified in this way;
 that may change in a future version of this tool.
 

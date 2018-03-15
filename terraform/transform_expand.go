@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
-// GraphNodeExapndable is an interface that nodes can implement to
+// GraphNodeExpandable is an interface that nodes can implement to
 // signal that they can be expanded. Expanded nodes turn into
 // GraphNodeSubgraph nodes within the graph.
 type GraphNodeExpandable interface {

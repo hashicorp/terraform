@@ -261,7 +261,7 @@ func (w *indentWriter) Indent() { w.level++ }
 // Unindent decreases indentation by 1
 func (w *indentWriter) Unindent() { w.level-- }
 
-// the following methods intercecpt the byte.Buffer writes and insert the
+// the following methods intercept the byte.Buffer writes and insert the
 // indentation when starting a new line.
 func (w *indentWriter) Write(b []byte) (int, error) {
 	w.indent()

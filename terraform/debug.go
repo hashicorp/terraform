@@ -224,7 +224,7 @@ func (d *debugInfo) flush() {
 	}
 }
 
-// WriteFile writes data as a single file to the debug arhive.
+// WriteFile writes data as a single file to the debug archive.
 func (d *debugInfo) WriteFile(name string, data []byte) error {
 	if d == nil {
 		return nil

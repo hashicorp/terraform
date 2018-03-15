@@ -31,7 +31,7 @@ type ResourceProvider interface {
 	GetSchema(*ProviderSchemaRequest) (*ProviderSchema, error)
 
 	// Input is called to ask the provider to ask the user for input
-	// for completing the configuration if necesarry.
+	// for completing the configuration if necessary.
 	//
 	// This may or may not be called, so resource provider writers shouldn't
 	// rely on this being available to set some default values for validate

@@ -129,7 +129,7 @@ func TestState(t *testing.T, s State) {
 		t.Fatal("State() should return a copy")
 	}
 
-	// our current expected state should also marhsal identically to the persisted state
+	// our current expected state should also marshal identically to the persisted state
 	if current.MarshalEqual(s.State()) {
 		t.Fatalf("Persisted state altered unexpectedly. Expected: %#v\b Got: %#v", current, s.State())
 	}

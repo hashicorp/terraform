@@ -21,7 +21,7 @@ func (n *NodeModuleRemoved) Path() []string {
 	return n.PathValue
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodeModuleRemoved) EvalTree() EvalNode {
 	return &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh, walkApply, walkDestroy},

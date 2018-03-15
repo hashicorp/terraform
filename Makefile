@@ -8,7 +8,7 @@ tools:
 	go get -u golang.org/x/tools/cmd/stringer
 	go get -u golang.org/x/tools/cmd/cover
 
-# bin generates the releaseable binaries for Terraform
+# bin generates the releasable binaries for Terraform
 bin: fmtcheck generate
 	@TF_RELEASE=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 

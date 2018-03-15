@@ -35,7 +35,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
 //
-// This can be installed only on a loder that can install modules, and will
+// This can be installed only on a loader that can install modules, and will
 // panic otherwise. Use CanInstallModules to determine if this method can be
 // used, or refer to the documentation of that method for situations where
 // install ability is guaranteed.

@@ -2618,7 +2618,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 		t.Fatalf("state should be nil: %#v", state)
 	}
 
-	// Verify the default path doens't exist
+	// Verify the default path doesn't exist
 	if !isEmptyState(DefaultStateFilename) {
 		t.Fatal("expected empty state")
 	}
@@ -3379,7 +3379,7 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 	}
 }
 
-// when confniguring a default local state, don't delete local state
+// when configuring a default local state, don't delete local state
 func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)

@@ -10,7 +10,7 @@ func (n *NodePlannableResourceOrphan) Name() string {
 	return n.NodeAbstractResource.Name() + " (orphan)"
 }
 
-// GraphNodeEvalable
+// GraphNodeEvaluable
 func (n *NodePlannableResourceOrphan) EvalTree() EvalNode {
 	addr := n.NodeAbstractResource.Addr
 

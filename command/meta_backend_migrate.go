@@ -191,7 +191,7 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 	// Copy the default state
 	opts.oneEnv = currentEnv
 
-	// now switch back to the default env so we can acccess the new backend
+	// now switch back to the default env so we can access the new backend
 	m.SetWorkspace(backend.DefaultStateName)
 
 	return m.backendMigrateState_s_s(opts)

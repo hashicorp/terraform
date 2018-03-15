@@ -64,7 +64,7 @@ var getterHTTPGetter = &getter.HttpGetter{
 // go-getter library, which have very inconsistent quality as
 // end-user-actionable error messages. At this time we do not have any
 // reasonable way to improve these error messages at this layer because
-// the underlying errors are not separatelyr recognizable.
+// the underlying errors are not separately recognizable.
 func getWithGoGetter(instPath, addr string) (string, error) {
 	packageAddr, subDir := splitAddrSubdir(addr)
 

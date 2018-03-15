@@ -175,7 +175,7 @@ func (s PluginMetaSet) OverridePaths(paths map[string]string) PluginMetaSet {
 	ret := make(PluginMetaSet)
 	for p := range s {
 		if _, ok := paths[p.Name]; ok {
-			// Skip plugins that we're overridding
+			// Skip plugins that we're overriding
 			continue
 		}
 

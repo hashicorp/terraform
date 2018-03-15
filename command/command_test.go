@@ -591,7 +591,7 @@ func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.Remote
 
 // testlockState calls a separate process to the lock the state file at path.
 // deferFunc should be called in the caller to properly unlock the file.
-// Since many tests change the working durectory, the sourcedir argument must be
+// Since many tests change the working directory, the sourcedir argument must be
 // supplied to locate the statelocker.go source.
 func testLockState(sourceDir, path string) (func(), error) {
 	// build and run the binary ourselves so we can quickly terminate it for cleanup
