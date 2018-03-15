@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/version"
 )
 
-func TestUserAgent(t *testing.T) {
+func TestNew_userAgent(t *testing.T) {
 	var actualUserAgent string
 	ts := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		actualUserAgent = req.UserAgent()
