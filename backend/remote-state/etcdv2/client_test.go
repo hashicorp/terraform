@@ -1,14 +1,17 @@
-package remote
+package etcdv2
 
 import (
 	"fmt"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/state/remote"
 )
 
 func TestEtcdClient_impl(t *testing.T) {
-	var _ Client = new(EtcdClient)
+	var _ remote.Client = new(EtcdClient)
 }
 
 func TestEtcdClient(t *testing.T) {
@@ -17,7 +20,8 @@ func TestEtcdClient(t *testing.T) {
 		t.Skipf("skipping; ETCD_ENDPOINT must be set")
 	}
 
-	config := map[string]string{
+	// Get the backend
+	config := map[string]interface{}{
 		"endpoints": endpoint,
 		"path":      fmt.Sprintf("tf-unit/%s", time.Now().String()),
 	}
@@ -29,10 +33,11 @@ func TestEtcdClient(t *testing.T) {
 		config["password"] = password
 	}
 
-	client, err := etcdFactory(config)
+	b := backend.TestBackendConfig(t, New(), config)
+	state, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("Error for valid config: %s", err)
 	}
 
-	testClient(t, client)
+	remote.TestClient(t, state.(*remote.State).Client)
 }
