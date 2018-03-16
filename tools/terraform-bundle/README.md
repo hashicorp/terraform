@@ -55,10 +55,10 @@ providers {
   google = ["~> 1.0", "~> 2.0"]
 
   # Include a custom plugin to the bundle. Will search for the plugin in the 
-	# plugins directory, and package it with the bundle archive. Plugin must have
-	# a name of the form: terraform-provider-*, and must be build with the operating
-	# system and architecture that terraform enterprise is running, e.g. linux and amd64
-	customplugin = ["0.1"]
+  # plugins directory, and package it with the bundle archive. Plugin must have
+  # a name of the form: terraform-provider-*, and must be build with the operating
+  # system and architecture that terraform enterprise is running, e.g. linux and amd64
+  customplugin = ["0.1"]
 }
 
 ```
