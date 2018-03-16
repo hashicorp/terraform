@@ -28,7 +28,7 @@ func (p *Provider) merge(op *Provider) hcl.Diagnostics {
 		p.Version = op.Version
 	}
 
-	p.Config = mergeBodies(p.Config, op.Config)
+	p.Config = MergeBodies(p.Config, op.Config)
 
 	return diags
 }
@@ -172,7 +172,7 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 		mc.Version = omc.Version
 	}
 
-	mc.Config = mergeBodies(mc.Config, omc.Config)
+	mc.Config = MergeBodies(mc.Config, omc.Config)
 
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.
@@ -218,7 +218,7 @@ func (r *ManagedResource) merge(or *ManagedResource) hcl.Diagnostics {
 		r.Provisioners = or.Provisioners
 	}
 
-	r.Config = mergeBodies(r.Config, or.Config)
+	r.Config = MergeBodies(r.Config, or.Config)
 
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.
@@ -247,7 +247,7 @@ func (r *DataResource) merge(or *DataResource) hcl.Diagnostics {
 		r.ProviderConfigRef = or.ProviderConfigRef
 	}
 
-	r.Config = mergeBodies(r.Config, or.Config)
+	r.Config = MergeBodies(r.Config, or.Config)
 
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.
