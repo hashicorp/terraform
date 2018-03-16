@@ -15,8 +15,9 @@ import (
 	backendLocal "github.com/hashicorp/terraform/backend/local"
 	backendRemote "github.com/hashicorp/terraform/backend/remote"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
-	backendConsul "github.com/hashicorp/terraform/backend/remote-state/consul"
-	backendEtcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
+	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
+	backendetcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
+	backendetcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
 	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
@@ -57,8 +58,8 @@ func Init(services *disco.Disco) {
 		// Remote State backends.
 		"atlas":   func() backend.Backend { return backendAtlas.New() },
 		"azurerm": func() backend.Backend { return backendAzure.New() },
-		"consul":  func() backend.Backend { return backendConsul.New() },
-		"etcdv3":  func() backend.Backend { return backendEtcdv3.New() },
+		"etcd":    func() backend.Backend { return backendetcdv2.New() },
+		"etcdv3":  func() backend.Backend { return backendetcdv3.New() },
 		"gcs":     func() backend.Backend { return backendGCS.New() },
 		"inmem":   func() backend.Backend { return backendInmem.New() },
 		"manta":   func() backend.Backend { return backendManta.New() },
