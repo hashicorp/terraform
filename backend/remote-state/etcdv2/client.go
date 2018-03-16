@@ -1,45 +1,13 @@
-package remote
+package etcdv2
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
-	"strings"
 
 	etcdapi "github.com/coreos/etcd/client"
-	"golang.org/x/net/context"
+	"github.com/hashicorp/terraform/state/remote"
 )
-
-func etcdFactory(conf map[string]string) (Client, error) {
-	path, ok := conf["path"]
-	if !ok {
-		return nil, fmt.Errorf("missing 'path' configuration")
-	}
-
-	endpoints, ok := conf["endpoints"]
-	if !ok || endpoints == "" {
-		return nil, fmt.Errorf("missing 'endpoints' configuration")
-	}
-
-	config := etcdapi.Config{
-		Endpoints: strings.Split(endpoints, " "),
-	}
-	if username, ok := conf["username"]; ok && username != "" {
-		config.Username = username
-	}
-	if password, ok := conf["password"]; ok && password != "" {
-		config.Password = password
-	}
-
-	client, err := etcdapi.New(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &EtcdClient{
-		Client: client,
-		Path:   path,
-	}, nil
-}
 
 // EtcdClient is a remote client that stores data in etcd.
 type EtcdClient struct {
@@ -47,7 +15,7 @@ type EtcdClient struct {
 	Path   string
 }
 
-func (c *EtcdClient) Get() (*Payload, error) {
+func (c *EtcdClient) Get() (*remote.Payload, error) {
 	resp, err := etcdapi.NewKeysAPI(c.Client).Get(context.Background(), c.Path, &etcdapi.GetOptions{Quorum: true})
 	if err != nil {
 		if err, ok := err.(etcdapi.Error); ok && err.Code == etcdapi.ErrorCodeKeyNotFound {
@@ -61,7 +29,7 @@ func (c *EtcdClient) Get() (*Payload, error) {
 
 	data := []byte(resp.Node.Value)
 	md5 := md5.Sum(data)
-	return &Payload{
+	return &remote.Payload{
 		Data: data,
 		MD5:  md5[:],
 	}, nil
