@@ -54,10 +54,10 @@ providers {
   # the bundle archive.
   google = ["~> 1.0", "~> 2.0"]
 
-  #Include a custom plugin to the bundle. Will search for the plugin in the 
-	#plugins directory, and package it with the bundle archive. Plugin must have
-	#a name of the form: terraform-provider-*, and must be build with the operating
-	#system and architecture that terraform enterprise is running, e.g. linux and amd64
+  # Include a custom plugin to the bundle. Will search for the plugin in the 
+	# plugins directory, and package it with the bundle archive. Plugin must have
+	# a name of the form: terraform-provider-*, and must be build with the operating
+	# system and architecture that terraform enterprise is running, e.g. linux and amd64
 	customplugin = ["0.1"]
 }
 
@@ -109,7 +109,7 @@ bundles contain the same core Terraform version.
 To include custom plugins in the bundle file, create a local directory "./plugins"
 and put all the plugins you want to include there. Optionally, you can use the 
 `-plugin-dir` flag to specify a location where to find the plugins. To be recognized
-as a valid plugin, the file must have a name of the form: "terraform-provider-*". In 
+as a valid plugin, the file must have a name of the form: "terraform-provider-*-v*". In 
 addition, ensure that the plugin is build using the same operating system and 
 architecture used for terraform enterprise. Typically this will be linux and amd64.
 
