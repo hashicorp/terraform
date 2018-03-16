@@ -219,12 +219,9 @@ func TestLostConnection(t *testing.T) {
 		c.Disconnect()
 	}()
 
-	cmd.Wait()
-	if cmd.Err() == nil {
+	err = cmd.Wait()
+	if err == nil {
 		t.Fatal("expected communicator error")
-	}
-	if cmd.ExitStatus() != 0 {
-		t.Fatal("command should not have returned an exit status")
 	}
 }
 
