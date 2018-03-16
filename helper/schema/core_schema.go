@@ -59,11 +59,12 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 // whose elem is a whole resource.
 func (s *Schema) coreConfigSchemaAttribute() *configschema.Attribute {
 	return &configschema.Attribute{
-		Type:      s.coreConfigSchemaType(),
-		Optional:  s.Optional,
-		Required:  s.Required,
-		Computed:  s.Computed,
-		Sensitive: s.Sensitive,
+		Type:        s.coreConfigSchemaType(),
+		Optional:    s.Optional,
+		Required:    s.Required,
+		Computed:    s.Computed,
+		Sensitive:   s.Sensitive,
+		Description: s.Description,
 	}
 }
 
