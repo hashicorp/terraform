@@ -13,6 +13,7 @@ import (
 	backendlocal "github.com/hashicorp/terraform/backend/local"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
 	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
+	backendetcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
 	backendetcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
 	backendinmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
@@ -48,6 +49,7 @@ func init() {
 		"azure": deprecateBackend(backendAzure.New(),
 			`Warning: "azure" name is deprecated, please use "azurerm"`),
 		"azurerm": func() backend.Backend { return backendAzure.New() },
+		"etcd":    func() backend.Backend { return backendetcdv2.New() },
 		"etcdv3":  func() backend.Backend { return backendetcdv3.New() },
 		"gcs":     func() backend.Backend { return backendGCS.New() },
 		"manta":   func() backend.Backend { return backendManta.New() },
