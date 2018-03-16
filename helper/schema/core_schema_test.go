@@ -23,8 +23,9 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 		"primitives": {
 			map[string]*Schema{
 				"int": {
-					Type:     TypeInt,
-					Required: true,
+					Type:        TypeInt,
+					Required:    true,
+					Description: "foo bar baz",
 				},
 				"float": {
 					Type:     TypeFloat,
@@ -43,8 +44,9 @@ func TestSchemaMapCoreConfigSchema(t *testing.T) {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"int": {
-						Type:     cty.Number,
-						Required: true,
+						Type:        cty.Number,
+						Required:    true,
+						Description: "foo bar baz",
 					},
 					"float": {
 						Type:     cty.Number,
