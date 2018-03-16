@@ -2,20 +2,20 @@ package main
 
 import (
 	"archive/zip"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
+
+	"flag"
 
 	"io"
 
 	getter "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/plugin"
-	"github.com/hashicorp/terraform/plugin/discovery"
+	discovery "github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/mitchellh/cli"
 )
 
@@ -135,6 +135,12 @@ func (c *PackageCommand) Run(args []string) int {
 		c.ui.Error(fmt.Sprintf("Failed to fetch core package from %s: %s", coreZipURL, err))
 	}
 
+	c.ui.Info(fmt.Sprintf("Fetching 3rd party plugins in directory: %s", pluginDir))
+	dirs := []string{pluginDir} //FindPlugins requires an array
+	localPlugins := discovery.FindPlugins("provider", dirs)
+	for k, _ := range localPlugins {
+		c.ui.Info(fmt.Sprintf("plugin: %s (%s)", k.Name, k.Version))
+	}
 	installer := &discovery.ProviderInstaller{
 		Dir: workDir,
 
@@ -153,51 +159,27 @@ func (c *PackageCommand) Run(args []string) int {
 		Ui:   c.ui,
 	}
 
-	if len(config.Providers) > 0 {
-		c.ui.Output(fmt.Sprintf("Checking for available provider plugins on %s...",
-			discovery.GetReleaseHost()))
-	}
-
-	for name, constraints := range config.Providers {
-		for _, constraint := range constraints {
+	for name, constraintStrs := range config.Providers {
+		for _, constraintStr := range constraintStrs {
 			c.ui.Output(fmt.Sprintf("- Resolving %q provider (%s)...",
-				name, constraint))
-			_, err := installer.Get(name, constraint.MustParse())
-			if err != nil {
-				c.ui.Output(fmt.Sprintf("- Could not locate plugin in public registry Checking if %q provider (%s) is a custom plugin in: %s",
-					name, constraint, pluginDir))
+				name, constraintStr))
+			foundPlugins := discovery.PluginMetaSet{}
+			constraint := constraintStr.MustParse()
+			for plugin, _ := range localPlugins {
+				if plugin.Name == name && constraint.Allows(plugin.Version.MustParse()) {
+					foundPlugins.Add(plugin)
+				}
+			}
 
-				//check if it is in the custom providers folder. if so then copy it to the workDir,
-				// otherwise throw error
-				plugins, err := ioutil.ReadDir(pluginDir)
+			if len(foundPlugins) > 0 {
+				plugin := foundPlugins.Newest()
+				CopyFile(plugin.Path, workDir+"/terraform-provider-"+plugin.Name+"-v"+plugin.Version.MustParse().String()) //put into temp dir
+			} else { //attempt to get from the public registry if not found locally
+				c.ui.Output(fmt.Sprintf("- Checking for provider plugin on %s...",
+					discovery.GetReleaseHost()))
+				_, err := installer.Get(name, constraint)
 				if err != nil {
-					//there is no plugin directory so we are screwed
 					c.ui.Error(fmt.Sprintf("- Failed to resolve %s provider %s: %s", name, constraint, err))
-					return 1
-				}
-
-				var found = false
-				for _, file := range plugins {
-					var parts = strings.Split(file.Name(), "-")
-
-					//not a valid plugin name
-					if len(parts) < 2 {
-						c.ui.Output(fmt.Sprintf("- Skipping invalid file: %s", file.Name()))
-						break
-					}
-
-					var pluginName = parts[2]
-					c.ui.Output(fmt.Sprintf("- Found plugin: %s", file.Name()))
-					if pluginName == name {
-						found = true
-						CopyFile(pluginDir+"/"+file.Name(), workDir+"/"+file.Name()) //copy plugin to workDir
-						break
-					}
-				}
-
-				if !found {
-					//plugin folder exists but we can't find it
-					c.ui.Error(fmt.Sprintf("- Failed to find %s provider %s in plugins folder", name, constraint))
 					return 1
 				}
 			}
@@ -334,7 +316,7 @@ not a normal Terraform configuration file. The file format looks like this:
 	
 	#Include a custom plugin to the bundle. Will search for the plugin in the 
 	#plugins directory, and package it with the bundle archive. Plugin must have
-	#a name of the form: terraform-provider-*, and must be build with the operating
+	#a name of the form: terraform-provider-*-v*, and must be built with the operating
 	#system and architecture that terraform enterprise is running, e.g. linux and amd64
 	customplugin = ["0.1"]
   }
