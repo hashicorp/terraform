@@ -13,7 +13,7 @@ func (e nativeError) Severity() Severity {
 
 func (e nativeError) Description() Description {
 	return Description{
-		Summary: e.err.Error(),
+		Summary: FormatError(e.err),
 	}
 }
 
