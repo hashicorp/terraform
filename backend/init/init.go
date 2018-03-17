@@ -16,6 +16,7 @@ import (
 	backendetcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
 	backendetcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
+	backendhttp "github.com/hashicorp/terraform/backend/remote-state/http"
 	backendinmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
@@ -41,6 +42,7 @@ func init() {
 	// since init() code is serial and can't spawn goroutines.
 	backends = map[string]func() backend.Backend{
 		"atlas":  func() backend.Backend { return &backendatlas.Backend{} },
+		"http":   func() backend.Backend { return backendhttp.New() },
 		"local":  func() backend.Backend { return &backendlocal.Local{} },
 		"consul": func() backend.Backend { return backendconsul.New() },
 		"inmem":  func() backend.Backend { return backendinmem.New() },
