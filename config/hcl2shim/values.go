@@ -73,7 +73,10 @@ func ConfigValueFromHCL2(v cty.Value) interface{} {
 		it := v.ElementIterator()
 		for it.Next() {
 			ek, ev := it.Element()
-			l[ek.AsString()] = ConfigValueFromHCL2(ev)
+			cv := ConfigValueFromHCL2(ev)
+			if cv != nil {
+				l[ek.AsString()] = cv
+			}
 		}
 		return l
 	}
