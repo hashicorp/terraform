@@ -1,9 +1,8 @@
-package remote
+package http
 
 import (
 	"bytes"
 	"crypto/md5"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,104 +10,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
 
 	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/state/remote"
 )
 
-func httpFactory(conf map[string]string) (Client, error) {
-	address, ok := conf["address"]
-	if !ok {
-		return nil, fmt.Errorf("missing 'address' configuration")
-	}
-
-	updateURL, err := url.Parse(address)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse address URL: %s", err)
-	}
-	if updateURL.Scheme != "http" && updateURL.Scheme != "https" {
-		return nil, fmt.Errorf("address must be HTTP or HTTPS")
-	}
-	updateMethod, ok := conf["update_method"]
-	if !ok {
-		updateMethod = "POST"
-	}
-
-	var lockURL *url.URL
-	if lockAddress, ok := conf["lock_address"]; ok {
-		var err error
-		lockURL, err = url.Parse(lockAddress)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse lockAddress URL: %s", err)
-		}
-		if lockURL.Scheme != "http" && lockURL.Scheme != "https" {
-			return nil, fmt.Errorf("lockAddress must be HTTP or HTTPS")
-		}
-	} else {
-		lockURL = nil
-	}
-	lockMethod, ok := conf["lock_method"]
-	if !ok {
-		lockMethod = "LOCK"
-	}
-
-	var unlockURL *url.URL
-	if unlockAddress, ok := conf["unlock_address"]; ok {
-		var err error
-		unlockURL, err = url.Parse(unlockAddress)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse unlockAddress URL: %s", err)
-		}
-		if unlockURL.Scheme != "http" && unlockURL.Scheme != "https" {
-			return nil, fmt.Errorf("unlockAddress must be HTTP or HTTPS")
-		}
-	} else {
-		unlockURL = nil
-	}
-	unlockMethod, ok := conf["unlock_method"]
-	if !ok {
-		unlockMethod = "UNLOCK"
-	}
-
-	client := &http.Client{}
-	if skipRaw, ok := conf["skip_cert_verification"]; ok {
-		skip, err := strconv.ParseBool(skipRaw)
-		if err != nil {
-			return nil, fmt.Errorf("skip_cert_verification must be boolean")
-		}
-		if skip {
-			// Replace the client with one that ignores TLS verification
-			client = &http.Client{
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true,
-					},
-				},
-			}
-		}
-	}
-
-	ret := &HTTPClient{
-		URL:          updateURL,
-		UpdateMethod: updateMethod,
-
-		LockURL:      lockURL,
-		LockMethod:   lockMethod,
-		UnlockURL:    unlockURL,
-		UnlockMethod: unlockMethod,
-
-		Username: conf["username"],
-		Password: conf["password"],
-
-		// accessible only for testing use
-		Client: client,
-	}
-
-	return ret, nil
-}
-
-// HTTPClient is a remote client that stores data in Consul or HTTP REST.
-type HTTPClient struct {
+// httpClient is a remote client that stores data in Consul or HTTP REST.
+type httpClient struct {
 	// Update & Retrieve
 	URL          *url.URL
 	UpdateMethod string
@@ -128,7 +36,7 @@ type HTTPClient struct {
 	jsonLockInfo []byte
 }
 
-func (c *HTTPClient) httpRequest(method string, url *url.URL, data *[]byte, what string) (*http.Response, error) {
+func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what string) (*http.Response, error) {
 	// If we have data we need a reader
 	var reader io.Reader = nil
 	if data != nil {
@@ -165,7 +73,7 @@ func (c *HTTPClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	return resp, nil
 }
 
-func (c *HTTPClient) Lock(info *state.LockInfo) (string, error) {
+func (c *httpClient) Lock(info *state.LockInfo) (string, error) {
 	if c.LockURL == nil {
 		return "", nil
 	}
@@ -204,7 +112,7 @@ func (c *HTTPClient) Lock(info *state.LockInfo) (string, error) {
 	}
 }
 
-func (c *HTTPClient) Unlock(id string) error {
+func (c *httpClient) Unlock(id string) error {
 	if c.UnlockURL == nil {
 		return nil
 	}
@@ -223,7 +131,7 @@ func (c *HTTPClient) Unlock(id string) error {
 	}
 }
 
-func (c *HTTPClient) Get() (*Payload, error) {
+func (c *httpClient) Get() (*remote.Payload, error) {
 	resp, err := c.httpRequest("GET", c.URL, nil, "get state")
 	if err != nil {
 		return nil, err
@@ -255,7 +163,7 @@ func (c *HTTPClient) Get() (*Payload, error) {
 	}
 
 	// Create the payload
-	payload := &Payload{
+	payload := &remote.Payload{
 		Data: buf.Bytes(),
 	}
 
@@ -282,7 +190,7 @@ func (c *HTTPClient) Get() (*Payload, error) {
 	return payload, nil
 }
 
-func (c *HTTPClient) Put(data []byte) error {
+func (c *httpClient) Put(data []byte) error {
 	// Copy the target URL
 	base := *c.URL
 
@@ -320,7 +228,7 @@ func (c *HTTPClient) Put(data []byte) error {
 	}
 }
 
-func (c *HTTPClient) Delete() error {
+func (c *httpClient) Delete() error {
 	// Make the request
 	resp, err := c.httpRequest("DELETE", c.URL, nil, "delete state")
 	if err != nil {
