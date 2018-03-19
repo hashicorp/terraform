@@ -402,12 +402,15 @@ The supported built-in functions are:
 
   * `substr(string, offset, length)` - Extracts a substring from the input string. A negative offset is interpreted as being equivalent to a positive offset measured backwards from the end of the string. A length of `-1` is interpreted as meaning "until the end of the string".
 
-  * `timestamp()` - Returns a UTC timestamp string in RFC 3339 format. This string will change with every
+  * `timestamp(format)` - Returns a UTC timestamp string in `format`. This string will change with every
    invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the
    [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
+   The format syntax is the same as Go's time layout as documented in [go time pkg](https://golang.org/pkg/time/#pkg-constants).
+    A default `format` of `RFC 3339` is used if not provided.
 
-  * `timeadd(time, duration)` - Returns a UTC timestamp string corresponding to adding a given `duration` to `time` in RFC 3339 format.      
+  * `timeadd(time, duration, format, timeFormat)` - Returns a UTC timestamp string corresponding to adding a given `duration` to `time` in `format`.
     For example, `timeadd("2017-11-22T00:00:00Z", "10m")` produces a value `"2017-11-22T00:10:00Z"`. 
+    A default `format` and `timeFormat` of `RFC 3339` is used when not provided.
     
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
 

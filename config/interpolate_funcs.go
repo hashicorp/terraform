@@ -1504,7 +1504,16 @@ func interpolationFuncTimestamp() ast.Function {
 		ArgTypes:   []ast.Type{},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			return time.Now().UTC().Format(time.RFC3339), nil
+
+			format := time.RFC3339
+			if len(args) > 0 {
+				f, ok := args[0].(string)
+				if !ok {
+					return nil, fmt.Errorf("argument %d represents a time layout, so it must be a string", 2)
+				}
+				format = f
+			}
+			return time.Now().UTC().Format(format), nil
 		},
 	}
 }
@@ -1518,7 +1527,26 @@ func interpolationFuncTimeAdd() ast.Function {
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 
-			ts, err := time.Parse(time.RFC3339, args[0].(string))
+			inputFormat := time.RFC3339
+			outputFormat := time.RFC3339
+
+			if len(args) > 2 {
+				f, ok := args[2].(string)
+				if !ok {
+					return nil, fmt.Errorf("argument %d represents a time layout, so it must be a string", 3)
+				}
+				outputFormat = f
+			}
+
+			if len(args) > 3 {
+				f, ok := args[3].(string)
+				if !ok {
+					return nil, fmt.Errorf("argument %d represents a time layout, so it must be a string", 4)
+				}
+				outputFormat = f
+			}
+
+			ts, err := time.Parse(inputFormat, args[0].(string))
 			if err != nil {
 				return nil, err
 			}
@@ -1527,7 +1555,7 @@ func interpolationFuncTimeAdd() ast.Function {
 				return nil, err
 			}
 
-			return ts.Add(duration).Format(time.RFC3339), nil
+			return ts.Add(duration).Format(outputFormat), nil
 		},
 	}
 }
