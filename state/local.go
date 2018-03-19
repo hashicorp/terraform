@@ -119,8 +119,20 @@ func (s *LocalState) RefreshState() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.PathOut == "" {
+		s.PathOut = s.Path
+	}
+
 	var reader io.Reader
-	if !s.written {
+
+	// The s.Path file is only OK to read if we have not written any state out
+	// (in which case the same state needs to be read in), and no state output file
+	// has been opened (possibly via a lock) or the input path is different
+	// than the output path.
+	// This is important for Windows, as if the input file is the same as the
+	// output file, and the output file has been locked already, we can't open
+	// the file again.
+	if !s.written && (s.stateFileOut == nil || s.Path != s.PathOut) {
 		// we haven't written a state file yet, so load from Path
 		f, err := os.Open(s.Path)
 		if err != nil {
