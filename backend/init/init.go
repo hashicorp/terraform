@@ -10,6 +10,7 @@ import (
 
 	backendatlas "github.com/hashicorp/terraform/backend/atlas"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendartifactory "github.com/hashicorp/terraform/backend/remote-state/artifactory"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
 	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
 	backendetcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
@@ -42,19 +43,19 @@ func init() {
 	// Our hardcoded backends. We don't need to acquire a lock here
 	// since init() code is serial and can't spawn goroutines.
 	backends = map[string]func() backend.Backend{
-		"atlas":  func() backend.Backend { return &backendatlas.Backend{} },
-		"http":   func() backend.Backend { return backendhttp.New() },
-		"local":  func() backend.Backend { return &backendlocal.Local{} },
-		"consul": func() backend.Backend { return backendconsul.New() },
-		"inmem":  func() backend.Backend { return backendinmem.New() },
-		"swift":  func() backend.Backend { return backendSwift.New() },
-		"s3":     func() backend.Backend { return backendS3.New() },
-		"azurerm": func() backend.Backend { return backendAzure.New() },
-		"etcd":    func() backend.Backend { return backendetcdv2.New() },
-		"etcdv3":  func() backend.Backend { return backendetcdv3.New() },
-		"gcs":     func() backend.Backend { return backendGCS.New() },
-		"manta":   func() backend.Backend { return backendManta.New() },
-	}
+		"artifactory": func() backend.Backend { return backendartifactory.New() },
+		"atlas":       func() backend.Backend { return &backendatlas.Backend{} },
+		"http":        func() backend.Backend { return backendhttp.New() },
+		"local":       func() backend.Backend { return &backendlocal.Local{} },
+		"consul":      func() backend.Backend { return backendconsul.New() },
+		"inmem":       func() backend.Backend { return backendinmem.New() },
+		"swift":       func() backend.Backend { return backendSwift.New() },
+		"s3":          func() backend.Backend { return backendS3.New() },
+		"azurerm":     func() backend.Backend { return backendAzure.New() },
+		"etcd":        func() backend.Backend { return backendetcdv2.New() },
+		"etcdv3":      func() backend.Backend { return backendetcdv3.New() },
+		"gcs":         func() backend.Backend { return backendGCS.New() },
+		"manta":       func() backend.Backend { return backendManta.New() },
 
 		"azure": func() backend.Backend {
 			return deprecateBackend(
