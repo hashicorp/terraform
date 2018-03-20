@@ -1,5 +1,8 @@
 ## 0.11.5 (Unreleased)
 
+IMPROVEMENTS:
+
+* provisioner/chef: Allow specifying a channel [GH-17355]
 
 ## 0.11.4 (March 15, 2018)
 
