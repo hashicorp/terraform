@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	backendatlas "github.com/hashicorp/terraform/backend/atlas"
-	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
 	backendartifactory "github.com/hashicorp/terraform/backend/remote-state/artifactory"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
@@ -67,10 +66,6 @@ func init() {
 		"azure": deprecateBackend(backendAzure.New(),
 			`Warning: "azure" name is deprecated, please use "azurerm"`),
 	}
-
-	// Add the legacy remote backends that haven't yet been converted to
-	// the new backend API.
-	backendLegacy.Init(backends)
 }
 
 // Backend returns the initialization factory for the given backend, or
