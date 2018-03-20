@@ -1,25 +1,21 @@
-package remote
+package artifactory
 
 import (
 	"testing"
+
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/state/remote"
 )
 
 func TestArtifactoryClient_impl(t *testing.T) {
-	var _ Client = new(ArtifactoryClient)
+	var _ remote.Client = new(ArtifactoryClient)
 }
 
 func TestArtifactoryFactory(t *testing.T) {
 	// This test just instantiates the client. Shouldn't make any actual
 	// requests nor incur any costs.
 
-	config := make(map[string]string)
-
-	// Empty config is an error
-	_, err := artifactoryFactory(config)
-	if err == nil {
-		t.Fatalf("Empty config should be error")
-	}
-
+	config := make(map[string]interface{})
 	config["url"] = "http://artifactory.local:8081/artifactory"
 	config["repo"] = "terraform-repo"
 	config["subpath"] = "myproject"
@@ -30,12 +26,14 @@ func TestArtifactoryFactory(t *testing.T) {
 	config["username"] = "test"
 	config["password"] = "testpass"
 
-	client, err := artifactoryFactory(config)
+	b := backend.TestBackendConfig(t, New(), config)
+
+	state, err := b.State(backend.DefaultStateName)
 	if err != nil {
-		t.Fatalf("Error for valid config")
+		t.Fatalf("Error for valid config: %s", err)
 	}
 
-	artifactoryClient := client.(*ArtifactoryClient)
+	artifactoryClient := state.(*remote.State).Client.(*ArtifactoryClient)
 
 	if artifactoryClient.nativeClient.Config.BaseURL != "http://artifactory.local:8081/artifactory" {
 		t.Fatalf("Incorrect url was populated")
