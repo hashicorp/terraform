@@ -2969,6 +2969,28 @@ STATE:
 	}
 }
 
+// ensure that outputs missing references due to targetting are removed from
+// the graph.
+func TestContext2Plan_outputContainsTargetedResource(t *testing.T) {
+	m := testModule(t, "plan-untargeted-resource-output")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Targets: []string{"module.mod.aws_instance.a"},
+	})
+
+	_, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 // https://github.com/hashicorp/terraform/issues/4515
 func TestContext2Plan_targetedOverTen(t *testing.T) {
 	m := testModule(t, "plan-targeted-over-ten")
