@@ -312,11 +312,11 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
 	defer cancel()
 
 	// Wait and retry until we establish the connection
-	err = communicator.Retry(ctx, func() error {
+	err = communicator.Retry(retryCtx, func() error {
 		return comm.Connect(o)
 	})
 	if err != nil {
