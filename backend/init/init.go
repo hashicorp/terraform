@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	backendatlas "github.com/hashicorp/terraform/backend/atlas"
-	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
 	backendartifactory "github.com/hashicorp/terraform/backend/remote-state/artifactory"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
@@ -58,10 +57,6 @@ func init() {
 		"gcs":     func() backend.Backend { return backendGCS.New() },
 		"manta":   func() backend.Backend { return backendManta.New() },
 	}
-
-	// Add the legacy remote backends that haven't yet been convertd to
-	// the new backend API.
-	backendlegacy.Init(backends)
 }
 
 // Backend returns the initialization factory for the given backend, or
