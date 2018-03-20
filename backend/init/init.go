@@ -10,10 +10,10 @@ import (
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 
-	backendAtlas "github.com/hashicorp/terraform/backend/atlas"
-	backendLegacy "github.com/hashicorp/terraform/backend/legacy"
-	backendLocal "github.com/hashicorp/terraform/backend/local"
-	backendRemote "github.com/hashicorp/terraform/backend/remote"
+	backendatlas "github.com/hashicorp/terraform/backend/atlas"
+	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
+	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendartifactory "github.com/hashicorp/terraform/backend/remote-state/artifactory"
 	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
 	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
 	backendetcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
@@ -44,13 +44,14 @@ func init() {
 	// Our hardcoded backends. We don't need to acquire a lock here
 	// since init() code is serial and can't spawn goroutines.
 	backends = map[string]func() backend.Backend{
-		"atlas":  func() backend.Backend { return &backendatlas.Backend{} },
-		"http":   func() backend.Backend { return backendhttp.New() },
-		"local":  func() backend.Backend { return &backendlocal.Local{} },
-		"consul": func() backend.Backend { return backendconsul.New() },
-		"inmem":  func() backend.Backend { return backendinmem.New() },
-		"swift":  func() backend.Backend { return backendSwift.New() },
-		"s3":     func() backend.Backend { return backendS3.New() },
+		"artifactory": func() backend.Backend { return backendartifactory.New() },
+		"atlas":       func() backend.Backend { return &backendatlas.Backend{} },
+		"http":        func() backend.Backend { return backendhttp.New() },
+		"local":       func() backend.Backend { return &backendlocal.Local{} },
+		"consul":      func() backend.Backend { return backendconsul.New() },
+		"inmem":       func() backend.Backend { return backendinmem.New() },
+		"swift":       func() backend.Backend { return backendSwift.New() },
+		"s3":          func() backend.Backend { return backendS3.New() },
 		"azure": deprecateBackend(backendAzure.New(),
 			`Warning: "azure" name is deprecated, please use "azurerm"`),
 		"azurerm": func() backend.Backend { return backendAzure.New() },
