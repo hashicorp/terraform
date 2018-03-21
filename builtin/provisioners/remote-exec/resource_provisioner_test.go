@@ -2,11 +2,15 @@ package remoteexec
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"testing"
+	"time"
 
 	"strings"
 
+	"github.com/hashicorp/terraform/communicator"
+	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -204,6 +208,59 @@ func TestResourceProvider_CollectScripts_scriptsEmpty(t *testing.T) {
 	if !strings.Contains(err.Error(), "Error parsing") {
 		t.Fatalf("Expected parsing error, got: %s", err)
 	}
+}
+
+func TestProvisionerTimeout(t *testing.T) {
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
+
+	disconnected := make(chan struct{})
+	c.DisconnectFunc = func() error {
+		close(disconnected)
+		return nil
+	}
+
+	completed := make(chan struct{})
+	c.CommandFunc = func(cmd *remote.Cmd) error {
+		defer close(completed)
+		cmd.Init()
+		time.Sleep(2 * time.Second)
+		cmd.SetExitStatus(0, nil)
+		return nil
+	}
+	c.ConnTimeout = time.Second
+	c.UploadScripts = map[string]string{"hello": "echo hello"}
+	c.RemoteScriptPath = "hello"
+
+	p := Provisioner().(*schema.Provisioner)
+	conf := map[string]interface{}{
+		"inline": []interface{}{"echo hello"},
+	}
+
+	scripts, err := collectScripts(schema.TestResourceDataRaw(
+		t, p.Schema, conf))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		if err := runScripts(ctx, o, c, scripts); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	select {
+	case <-disconnected:
+		t.Fatal("communicator disconnected before command completed")
+	case <-completed:
+	}
+
+	<-done
 }
 
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
