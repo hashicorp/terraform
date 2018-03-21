@@ -22,10 +22,10 @@ func TestRemoteClient(t *testing.T) {
 	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
 	// Get the backend
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
 		"prefix":    prefix,
-	})
+	}))
 
 	// Grab the client
 	state, err := b.State(backend.DefaultStateName)
@@ -44,18 +44,18 @@ func TestEtcdv3_stateLock(t *testing.T) {
 	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
 	// Get the backend
-	s1, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	s1, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
 		"prefix":    prefix,
-	}).State(backend.DefaultStateName)
+	})).State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	s2, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	s2, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
 		"prefix":    prefix,
-	}).State(backend.DefaultStateName)
+	})).State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,10 +70,10 @@ func TestEtcdv3_destroyLock(t *testing.T) {
 	prefix := fmt.Sprintf("%s/%s/", keyPrefix, time.Now().Format(time.RFC3339))
 
 	// Get the backend
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"endpoints": etcdv3Endpoints,
 		"prefix":    prefix,
-	})
+	}))
 
 	// Grab the client
 	s, err := b.State(backend.DefaultStateName)

@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // TestLocal returns a configured Local struct with temporary paths and
@@ -17,13 +18,26 @@ import (
 // No operations will be called on the returned value, so you can still set
 // public fields without any locks.
 func TestLocal(t *testing.T) (*Local, func()) {
+	t.Helper()
+
 	tempDir := testTempDir(t)
-	local := &Local{
+	var local *Local
+	local = &Local{
 		StatePath:         filepath.Join(tempDir, "state.tfstate"),
 		StateOutPath:      filepath.Join(tempDir, "state.tfstate"),
 		StateBackupPath:   filepath.Join(tempDir, "state.tfstate.bak"),
 		StateWorkspaceDir: filepath.Join(tempDir, "state.tfstate.d"),
 		ContextOpts:       &terraform.ContextOpts{},
+		ShowDiagnostics: func(vals ...interface{}) {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(vals...)
+			for _, diag := range diags {
+				t.Log(diag.Description().Summary)
+				if local.CLI != nil {
+					local.CLI.Error(diag.Description().Summary)
+				}
+			}
+		},
 	}
 	cleanup := func() {
 		if err := os.RemoveAll(tempDir); err != nil {
