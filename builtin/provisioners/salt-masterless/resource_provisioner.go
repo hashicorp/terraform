@@ -131,23 +131,23 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
-	ctx, cancelFunc := context.WithTimeout(ctx, comm.Timeout())
-	defer cancelFunc()
-
-	// Wait for the context to end and then disconnect
-	go func() {
-		<-ctx.Done()
-		comm.Disconnect()
-	}()
+	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	defer cancel()
 
 	// Wait and retry until we establish the connection
-	err = communicator.Retry(ctx, func() error {
+	err = communicator.Retry(retryCtx, func() error {
 		return comm.Connect(o)
 	})
 
 	if err != nil {
 		return err
 	}
+
+	// Wait for the context to end and then disconnect
+	go func() {
+		<-ctx.Done()
+		comm.Disconnect()
+	}()
 
 	var src, dst string
 

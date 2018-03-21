@@ -231,10 +231,10 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
 	defer cancel()
 
-	err = communicator.Retry(ctx, func() error {
+	err = communicator.Retry(retryCtx, func() error {
 		return comm.Connect(o)
 	})
 
