@@ -187,7 +187,7 @@ func setupBackend(t *testing.T, bucket, prefix, key string) backend.Backend {
 		"encryption_key": key,
 	}
 
-	b := backend.TestBackendConfig(t, New(), config)
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config))
 	be := b.(*Backend)
 
 	// create the bucket if it doesn't exist

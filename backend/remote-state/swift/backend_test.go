@@ -46,7 +46,7 @@ func TestBackendConfig(t *testing.T) {
 		"container":         "test-tfstate",
 	}
 
-	b := backend.TestBackendConfig(t, New(), config).(*Backend)
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
 	if b.container != "test-tfstate" {
 		t.Fatal("Incorrect path was provided.")
@@ -61,9 +61,9 @@ func TestBackend(t *testing.T) {
 
 	container := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
 
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"container": container,
-	}).(*Backend)
+	})).(*Backend)
 
 	defer deleteSwiftContainer(t, b.client, container)
 
@@ -75,9 +75,9 @@ func TestBackendPath(t *testing.T) {
 
 	path := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
 	t.Logf("[DEBUG] Generating backend config")
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"path": path,
-	}).(*Backend)
+	})).(*Backend)
 	t.Logf("[DEBUG] Backend configured")
 
 	defer deleteSwiftContainer(t, b.client, path)
@@ -131,10 +131,10 @@ func TestBackendArchive(t *testing.T) {
 	container := fmt.Sprintf("terraform-state-swift-test-%x", time.Now().Unix())
 	archiveContainer := fmt.Sprintf("%s_archive", container)
 
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"archive_container": archiveContainer,
 		"container":         container,
-	}).(*Backend)
+	})).(*Backend)
 
 	defer deleteSwiftContainer(t, b.client, container)
 	defer deleteSwiftContainer(t, b.client, archiveContainer)
