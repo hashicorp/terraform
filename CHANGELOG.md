@@ -1,10 +1,22 @@
+## 0.11.5 (March 21, 2018)
+
+IMPROVEMENTS:
+
+* provisioner/chef: Allow specifying a channel ([#17355](https://github.com/hashicorp/terraform/issues/17355))
+
+BUG FIXES:
+
+* core: Fix the timeout handling for provisioners ([#17646](https://github.com/hashicorp/terraform/issues/17646))
+* core: Ensure that state is unlocked after running console, import, graph or push commands ([#17645](https://github.com/hashicorp/terraform/issues/17645))
+* core: Don't open multiple file descriptors for local state files, which would cause reading the state to fail on Windows [[#17636](https://github.com/hashicorp/terraform/issues/17636)] 
+
 ## 0.11.4 (March 15, 2018)
 
 IMPROVEMENTS:
 
 * cli: `terraform state list` now accepts a new argument `-id=...` for filtering resources for display by their remote ids ([#17221](https://github.com/hashicorp/terraform/issues/17221))
 * cli: `terraform destroy` now uses the option `-auto-approve` instead of `-force`, for consistency with `terraform apply`. The old flag is preserved for backward-compatibility, but is now deprecated; it will be retained for at least one major release. ([#17218](https://github.com/hashicorp/terraform/issues/17218))
-* connection/ssh: Add support for host key verifiation ([#17354](https://github.com/hashicorp/terraform/issues/17354))
+* connection/ssh: Add support for host key verification ([#17354](https://github.com/hashicorp/terraform/issues/17354))
 * backend/s3: add support for the cn-northwest-1 region ([#17216](https://github.com/hashicorp/terraform/issues/17216))
 * provisioner/local-exec: Allow setting custom environment variables when running commands ([#13880](https://github.com/hashicorp/terraform/issues/13880))
 * provisioner/habitat: Detect if hab user exists and only create if necessary ([#17195](https://github.com/hashicorp/terraform/issues/17195))
@@ -14,7 +26,6 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * core: Make sure state is locked during initial refresh ([#17422](https://github.com/hashicorp/terraform/issues/17422))
-* core: Fix interpolation error when count references another interpolated count value ([#17368](https://github.com/hashicorp/terraform/issues/17368))
 * core: Halt on fatal provisioner errors, rather than retrying until a timeout ([#17359](https://github.com/hashicorp/terraform/issues/17359))
 * core: When handling a forced exit due to multiple interrupts, prevent the process from exiting while the state is being written ([#17323](https://github.com/hashicorp/terraform/issues/17323))
 * core: Fix handling of locals and outputs at destroy time ([#17241](https://github.com/hashicorp/terraform/issues/17241))

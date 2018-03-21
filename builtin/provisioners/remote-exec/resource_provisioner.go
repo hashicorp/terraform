@@ -157,19 +157,22 @@ func runScripts(
 	comm communicator.Communicator,
 	scripts []io.ReadCloser) error {
 
-	// Wait for the context to end and then disconnect
-	go func() {
-		<-ctx.Done()
-		comm.Disconnect()
-	}()
+	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	defer cancel()
 
 	// Wait and retry until we establish the connection
-	err := communicator.Retry(ctx, func() error {
+	err := communicator.Retry(retryCtx, func() error {
 		return comm.Connect(o)
 	})
 	if err != nil {
 		return err
 	}
+
+	// Wait for the context to end and then disconnect
+	go func() {
+		<-ctx.Done()
+		comm.Disconnect()
+	}()
 
 	for _, script := range scripts {
 		var cmd *remote.Cmd

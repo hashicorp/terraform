@@ -2,15 +2,29 @@ package httpclient
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform/version"
 )
 
 const userAgentFormat = "Terraform/%s"
+const uaEnvVar = "TF_APPEND_USER_AGENT"
 
 func UserAgentString() string {
-	return fmt.Sprintf(userAgentFormat, version.Version)
+	ua := fmt.Sprintf(userAgentFormat, version.Version)
+
+	if add := os.Getenv(uaEnvVar); add != "" {
+		add = strings.TrimSpace(add)
+		if len(add) > 0 {
+			ua += " " + add
+			log.Printf("[DEBUG] Using modified User-Agent: %s", ua)
+		}
+	}
+
+	return ua
 }
 
 type userAgentRoundTripper struct {

@@ -86,6 +86,7 @@ type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 
 type provisioner struct {
 	Attributes            map[string]interface{}
+	Channel               string
 	ClientOptions         []string
 	DisableReporting      bool
 	Environment           string
@@ -148,6 +149,11 @@ func Provisioner() terraform.ResourceProvisioner {
 			"attributes_json": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"channel": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "stable",
 			},
 			"client_options": &schema.Schema{
 				Type:     schema.TypeList,
@@ -306,11 +312,11 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
 	defer cancel()
 
 	// Wait and retry until we establish the connection
-	err = communicator.Retry(ctx, func() error {
+	err = communicator.Retry(retryCtx, func() error {
 		return comm.Connect(o)
 	})
 	if err != nil {
@@ -725,6 +731,7 @@ func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<
 
 func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	p := &provisioner{
+		Channel:               d.Get("channel").(string),
 		ClientOptions:         getStringList(d.Get("client_options")),
 		DisableReporting:      d.Get("disable_reporting").(bool),
 		Environment:           d.Get("environment").(string),
