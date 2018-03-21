@@ -80,6 +80,25 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 	return module, diags
 }
 
+// loadBackendConfig reads configuration from the given directory and returns
+// the backend configuration defined by that module, if any. Nil is returned
+// if the specified module does not have an explicit backend configuration.
+//
+// This is a convenience method for command code that will delegate to the
+// configured backend to do most of its work, since in that case it is the
+// backend that will do the full configuration load.
+//
+// Although this method returns only the backend configuration, at present it
+// actually loads and validates the entire configuration first. Therefore errors
+// returned may be about other aspects of the configuration. This behavior may
+// change in future, so callers must not rely on it. (That is, they must expect
+// that a call to loadSingleModule or loadConfig could fail on the same
+// directory even if loadBackendConfig succeeded.)
+func (m *Meta) loadBackendConfig(rootDir string) (*configs.Backend, tfdiags.Diagnostics) {
+	mod, diags := m.loadSingleModule(rootDir)
+	return mod.Backend, diags
+}
+
 // installModules reads a root module from the given directory and attempts
 // recursively install all of its descendent modules.
 //
