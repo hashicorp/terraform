@@ -4,6 +4,12 @@ IMPROVEMENTS:
 
 * provisioner/chef: Allow specifying a channel [GH-17355]
 
+BUG FIXES:
+
+* core: Fix the timeout handling for provisioners [GH-17646]
+* core: Ensure that state is unlocked after running console, import, graph or push commands [GH-17645]
+* core: Don't open multiple file descriptors for local state files, which would cause reading the state to fail on Windows [GH-17636] 
+
 ## 0.11.4 (March 15, 2018)
 
 IMPROVEMENTS:
