@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -20,11 +20,8 @@ func TestLocal_refresh(t *testing.T) {
 	p.RefreshFn = nil
 	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/refresh")
-	defer modCleanup()
-
-	op := testOperationRefresh()
-	op.Module = mod
+	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -43,7 +40,7 @@ test_instance.foo:
 	`)
 }
 
-func TestLocal_refreshNilModule(t *testing.T) {
+func TestLocal_refreshNoConfig(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test")
@@ -52,8 +49,8 @@ func TestLocal_refreshNilModule(t *testing.T) {
 	p.RefreshFn = nil
 	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
 
-	op := testOperationRefresh()
-	op.Module = nil
+	op, configCleanup := testOperationRefresh(t, "./test-fixtures/empty")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -84,8 +81,8 @@ func TestLocal_refreshNilModuleWithInput(t *testing.T) {
 
 	b.OpInput = true
 
-	op := testOperationRefresh()
-	op.Module = nil
+	op, configCleanup := testOperationRefresh(t, "./test-fixtures/empty")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -121,15 +118,12 @@ func TestLocal_refreshInput(t *testing.T) {
 	p.RefreshFn = nil
 	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/refresh-var-unset")
-	defer modCleanup()
-
 	// Enable input asking since it is normally disabled by default
 	b.OpInput = true
 	b.ContextOpts.UIInput = &terraform.MockUIInput{InputReturnString: "bar"}
 
-	op := testOperationRefresh()
-	op.Module = mod
+	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh-var-unset")
+	defer configCleanup()
 	op.UIIn = b.ContextOpts.UIInput
 
 	run, err := b.Operation(context.Background(), op)
@@ -158,14 +152,11 @@ func TestLocal_refreshValidate(t *testing.T) {
 	p.RefreshFn = nil
 	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/refresh")
-	defer modCleanup()
-
 	// Enable validation
 	b.OpValidation = true
 
-	op := testOperationRefresh()
-	op.Module = mod
+	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -184,10 +175,16 @@ test_instance.foo:
 	`)
 }
 
-func testOperationRefresh() *backend.Operation {
+func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, func()) {
+	t.Helper()
+
+	_, configLoader, configCleanup := configload.MustLoadConfigForTests(t, configDir)
+
 	return &backend.Operation{
-		Type: backend.OperationTypeRefresh,
-	}
+		Type:         backend.OperationTypeRefresh,
+		ConfigDir:    configDir,
+		ConfigLoader: configLoader,
+	}, configCleanup
 }
 
 // testRefreshState is just a common state that we use for testing refresh.

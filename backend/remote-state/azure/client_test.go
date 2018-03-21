@@ -21,12 +21,12 @@ func TestRemoteClient(t *testing.T) {
 	res := setupResources(t, keyName)
 	defer destroyResources(t, res.resourceGroupName)
 
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.containerName,
 		"key":                  keyName,
 		"access_key":           res.accessKey,
-	}).(*Backend)
+	})).(*Backend)
 
 	state, err := b.State(backend.DefaultStateName)
 	if err != nil {
@@ -43,19 +43,19 @@ func TestRemoteClientLocks(t *testing.T) {
 	res := setupResources(t, keyName)
 	defer destroyResources(t, res.resourceGroupName)
 
-	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.containerName,
 		"key":                  keyName,
 		"access_key":           res.accessKey,
-	}).(*Backend)
+	})).(*Backend)
 
-	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": res.storageAccountName,
 		"container_name":       res.containerName,
 		"key":                  keyName,
 		"access_key":           res.accessKey,
-	}).(*Backend)
+	})).(*Backend)
 
 	s1, err := b1.State(backend.DefaultStateName)
 	if err != nil {

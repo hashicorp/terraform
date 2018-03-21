@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestImpl(t *testing.T) {
@@ -19,15 +19,17 @@ func TestConfigure_envAddr(t *testing.T) {
 	os.Setenv("ATLAS_ADDRESS", "http://foo.com")
 
 	b := &Backend{}
-	err := b.Configure(terraform.NewResourceConfig(config.TestRawConfig(t, map[string]interface{}{
-		"name": "foo/bar",
-	})))
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	diags := b.Configure(cty.ObjectVal(map[string]cty.Value{
+		"name":         cty.StringVal("foo/bar"),
+		"address":      cty.NullVal(cty.String),
+		"access_token": cty.StringVal("placeholder"),
+	}))
+	for _, diag := range diags {
+		t.Error(diag)
 	}
 
-	if b.stateClient.Server != "http://foo.com" {
-		t.Fatalf("bad: %#v", b.stateClient)
+	if got, want := b.stateClient.Server, "http://foo.com"; got != want {
+		t.Fatalf("wrong URL %#v; want %#v", got, want)
 	}
 }
 
@@ -36,14 +38,16 @@ func TestConfigure_envToken(t *testing.T) {
 	os.Setenv("ATLAS_TOKEN", "foo")
 
 	b := &Backend{}
-	err := b.Configure(terraform.NewResourceConfig(config.TestRawConfig(t, map[string]interface{}{
-		"name": "foo/bar",
-	})))
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	diags := b.Configure(cty.ObjectVal(map[string]cty.Value{
+		"name":         cty.StringVal("foo/bar"),
+		"address":      cty.NullVal(cty.String),
+		"access_token": cty.NullVal(cty.String),
+	}))
+	for _, diag := range diags {
+		t.Error(diag)
 	}
 
-	if b.stateClient.AccessToken != "foo" {
-		t.Fatalf("bad: %#v", b.stateClient)
+	if got, want := b.stateClient.AccessToken, "foo"; got != want {
+		t.Fatalf("wrong access token %#v; want %#v", got, want)
 	}
 }

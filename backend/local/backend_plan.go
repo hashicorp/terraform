@@ -8,10 +8,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -20,27 +20,30 @@ func (b *Local) opPlan(
 	cancelCtx context.Context,
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
+
 	log.Printf("[INFO] backend/local: starting Plan operation")
 
-	if b.CLI != nil && op.Plan != nil {
-		b.CLI.Output(b.Colorize().Color(
-			"[reset][bold][yellow]" +
-				"The plan command received a saved plan file as input. This command\n" +
-				"will output the saved plan. This will not modify the already-existing\n" +
-				"plan. If you wish to generate a new plan, please pass in a configuration\n" +
-				"directory as an argument.\n\n"))
-	}
+	var diags tfdiags.Diagnostics
 
-	// A local plan requires either a plan or a module
-	if op.Plan == nil && op.Module == nil && !op.Destroy {
-		runningOp.Err = fmt.Errorf(strings.TrimSpace(planErrNoConfig))
+	if b.CLI != nil && op.Plan != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Can't re-plan a saved plan",
+			"The plan command was given a saved plan file as its input. This command generates a new plan, and so it requires a configuration directory as its argument.",
+		))
+		b.ReportResult(runningOp, diags)
 		return
 	}
 
-	// If we have a nil module at this point, then set it to an empty tree
-	// to avoid any potential crashes.
-	if op.Module == nil {
-		op.Module = module.NewEmptyTree()
+	// Local planning requires a config, unless we're planning to destroy.
+	if !op.Destroy && !op.HasConfig() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No configuration files",
+			"Plan requires configuration to be present. Planning without a configuration would mark everything for destruction, which is normally not what is desired. If you would like to destroy everything, run plan with the -destroy option. Otherwise, create a Terraform configuration file (.tf file) and try again.",
+		))
+		b.ReportResult(runningOp, diags)
+		return
 	}
 
 	// Setup our count hook that keeps track of resource changes
@@ -55,7 +58,8 @@ func (b *Local) opPlan(
 	// Get our context
 	tfCtx, opState, err := b.context(op)
 	if err != nil {
-		runningOp.Err = err
+		diags = diags.Append(err)
+		b.ReportResult(runningOp, diags)
 		return
 	}
 
@@ -72,7 +76,8 @@ func (b *Local) opPlan(
 
 		_, err := tfCtx.Refresh()
 		if err != nil {
-			runningOp.Err = errwrap.Wrapf("Error refreshing state: {{err}}", err)
+			diags = diags.Append(err)
+			b.ReportResult(runningOp, diags)
 			return
 		}
 		if b.CLI != nil {
@@ -95,7 +100,8 @@ func (b *Local) opPlan(
 	}
 
 	if planErr != nil {
-		runningOp.Err = errwrap.Wrapf("Error running plan: {{err}}", planErr)
+		diags = diags.Append(planErr)
+		b.ReportResult(runningOp, diags)
 		return
 	}
 	// Record state
@@ -119,7 +125,12 @@ func (b *Local) opPlan(
 		}
 		f.Close()
 		if err != nil {
-			runningOp.Err = fmt.Errorf("Error writing plan file: %s", err)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to write plan file",
+				fmt.Sprintf("The plan file could not be written: %s.", err),
+			))
+			b.ReportResult(runningOp, diags)
 			return
 		}
 	}
@@ -133,6 +144,11 @@ func (b *Local) opPlan(
 		}
 
 		b.renderPlan(dispPlan)
+
+		// If we've accumulated any warnings along the way then we'll show them
+		// here just before we show the summary and next steps. If we encountered
+		// errors then we would've returned early at some other point above.
+		b.ShowDiagnostics(diags)
 
 		// Give the user some next-steps, unless we're running in an automation
 		// tool which is presumed to provide its own UI for further actions.

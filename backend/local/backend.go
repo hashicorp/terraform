@@ -12,13 +12,17 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+	"github.com/zclconf/go-cty/cty"
 )
 
 const (
@@ -36,6 +40,9 @@ type Local struct {
 	// output will be done. If CLIColor is nil then no coloring will be done.
 	CLI      cli.Ui
 	CLIColor *colorstring.Colorize
+
+	// ShowDiagnostics prints diagnostic messages to the UI.
+	ShowDiagnostics func(vals ...interface{})
 
 	// The State* paths are set from the backend config, and may be left blank
 	// to use the defaults. If the actual paths for the local backend state are
@@ -89,43 +96,93 @@ type Local struct {
 	// exact commands that are being run.
 	RunningInAutomation bool
 
-	schema *schema.Backend
 	opLock sync.Mutex
 	once   sync.Once
 }
 
-func (b *Local) Input(
-	ui terraform.UIInput, c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
-	b.once.Do(b.init)
-
-	f := b.schema.Input
+func (b *Local) ConfigSchema() *configschema.Block {
 	if b.Backend != nil {
-		f = b.Backend.Input
+		return b.Backend.ConfigSchema()
 	}
-
-	return f(ui, c)
+	return &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"path": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			"workspace_dir": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			// environment_dir was previously a deprecated alias for
+			// workspace_dir, but now removed.
+		},
+	}
 }
 
-func (b *Local) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	b.once.Do(b.init)
-
-	f := b.schema.Validate
+func (b *Local) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
 	if b.Backend != nil {
-		f = b.Backend.Validate
+		return b.Backend.ValidateConfig(obj)
 	}
 
-	return f(c)
+	var diags tfdiags.Diagnostics
+
+	if val := obj.GetAttr("path"); !val.IsNull() {
+		p := val.AsString()
+		if p == "" {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid local state file path",
+				`The "path" attribute value must not be empty.`,
+				cty.Path{cty.GetAttrStep{Name: "path"}},
+			))
+		}
+	}
+
+	if val := obj.GetAttr("workspace_dir"); !val.IsNull() {
+		p := val.AsString()
+		if p == "" {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid local workspace directory path",
+				`The "workspace_dir" attribute value must not be empty.`,
+				cty.Path{cty.GetAttrStep{Name: "workspace_dir"}},
+			))
+		}
+	}
+
+	return diags
 }
 
-func (b *Local) Configure(c *terraform.ResourceConfig) error {
-	b.once.Do(b.init)
-
-	f := b.schema.Configure
+func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {
 	if b.Backend != nil {
-		f = b.Backend.Configure
+		return b.Backend.Configure(obj)
 	}
 
-	return f(c)
+	var diags tfdiags.Diagnostics
+
+	type Config struct {
+		Path         string `hcl:"path,optional"`
+		WorkspaceDir string `hcl:"workspace_dir,optional"`
+	}
+
+	if val := obj.GetAttr("path"); !val.IsNull() {
+		p := val.AsString()
+		b.StatePath = p
+		b.StateOutPath = p
+	} else {
+		b.StatePath = DefaultStateFilename
+		b.StateOutPath = DefaultStateFilename
+	}
+
+	if val := obj.GetAttr("workspace_dir"); !val.IsNull() {
+		p := val.AsString()
+		b.StateWorkspaceDir = p
+	} else {
+		b.StateWorkspaceDir = DefaultWorkspaceDir
+	}
+
+	return diags
 }
 
 func (b *Local) States() ([]string, error) {
@@ -276,7 +333,11 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 		// the state was locked during context creation, unlock the state when
 		// the operation completes
 		defer func() {
-			runningOp.Err = op.StateLocker.Unlock(runningOp.Err)
+			err := op.StateLocker.Unlock(nil)
+			if err != nil {
+				b.ShowDiagnostics(err)
+			}
+			runningOp.Result = backend.OperationFailure
 		}()
 
 		defer b.opLock.Unlock()
@@ -334,6 +395,28 @@ func (b *Local) opWait(
 	return
 }
 
+// ReportResult is a helper for the common chore of setting the status of
+// a running operation and showing any diagnostics produced during that
+// operation.
+//
+// If the given diagnostics contains errors then the operation's result
+// will be set to backend.OperationFailure. It will be set to
+// backend.OperationSuccess otherwise. It will then use b.ShowDiagnostics
+// to show the given diagnostics before returning.
+//
+// Callers should feel free to do each of these operations separately in
+// more complex cases where e.g. diagnostics are interleaved with other
+// output, but terminating immediately after reporting error diagnostics is
+// common and can be expressed concisely via this method.
+func (b *Local) ReportResult(op *backend.RunningOperation, diags tfdiags.Diagnostics) {
+	if diags.HasErrors() {
+		op.Result = backend.OperationFailure
+	} else {
+		op.Result = backend.OperationSuccess
+	}
+	b.ShowDiagnostics(diags)
+}
+
 // Colorize returns the Colorize structure that can be used for colorizing
 // output. This is gauranteed to always return a non-nil value and so is useful
 // as a helper to wrap any potentially colored strings.
@@ -345,35 +428,6 @@ func (b *Local) Colorize() *colorstring.Colorize {
 	return &colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
 		Disable: true,
-	}
-}
-
-func (b *Local) init() {
-	b.schema = &schema.Backend{
-		Schema: map[string]*schema.Schema{
-			"path": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
-
-			"workspace_dir": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
-
-			"environment_dir": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				Default:       "",
-				ConflictsWith: []string{"workspace_dir"},
-
-				Deprecated: "workspace_dir should be used instead, with the same meaning",
-			},
-		},
-
-		ConfigureFunc: b.schemaConfigure,
 	}
 }
 

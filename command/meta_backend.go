@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
@@ -27,9 +28,9 @@ import (
 
 // BackendOpts are the options used to initialize a backend.Backend.
 type BackendOpts struct {
-	// Module is the root module from which we will extract the terraform and
-	// backend configuration.
-	Config *config.Config
+	// Config is a representation of the backend configuration block given in
+	// the root module, or nil if no such block is present.
+	Config *configs.Backend
 
 	// ConfigFile is a path to a file that contains configuration that
 	// is merged directly into the backend configuration when loaded
