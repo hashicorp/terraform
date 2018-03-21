@@ -48,6 +48,10 @@ type CLIOpts struct {
 	CLI      cli.Ui
 	CLIColor *colorstring.Colorize
 
+	// ShowDiagnostics is a function that will format and print diagnostic
+	// messages to the UI.
+	ShowDiagnostics func(vals ...interface{})
+
 	// StatePath is the local path where state is read from.
 	//
 	// StateOutPath is the local path where the state will be written.

@@ -3,6 +3,7 @@ package inmem
 import (
 	"testing"
 
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
@@ -20,7 +21,7 @@ func TestBackendConfig(t *testing.T) {
 		"lock_id": testID,
 	}
 
-	b := backend.TestBackendConfig(t, New(), config).(*Backend)
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
 	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
@@ -39,14 +40,14 @@ func TestBackendConfig(t *testing.T) {
 
 func TestBackend(t *testing.T) {
 	defer Reset()
-	b := backend.TestBackendConfig(t, New(), nil).(*Backend)
+	b := backend.TestBackendConfig(t, New(), hcl.EmptyBody()).(*Backend)
 	backend.TestBackendStates(t, b)
 }
 
 func TestBackendLocked(t *testing.T) {
 	defer Reset()
-	b1 := backend.TestBackendConfig(t, New(), nil).(*Backend)
-	b2 := backend.TestBackendConfig(t, New(), nil).(*Backend)
+	b1 := backend.TestBackendConfig(t, New(), hcl.EmptyBody()).(*Backend)
+	b2 := backend.TestBackendConfig(t, New(), hcl.EmptyBody()).(*Backend)
 
 	backend.TestBackendStateLocks(t, b1, b2)
 }
@@ -54,7 +55,7 @@ func TestBackendLocked(t *testing.T) {
 // use the this backen to test the remote.State implementation
 func TestRemoteState(t *testing.T) {
 	defer Reset()
-	b := backend.TestBackendConfig(t, New(), nil)
+	b := backend.TestBackendConfig(t, New(), hcl.EmptyBody())
 
 	workspace := "workspace"
 
