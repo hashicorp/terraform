@@ -475,7 +475,11 @@ func Test(t TestT, c TestCase) {
 			}
 		}
 
-		if step.Config == "" && !step.ImportState {
+		if step.ExpectError != nil && step.Check != nil {
+			err = fmt.Errorf(
+				"checks are not run when an error is encountered. Please see TestStep docs\n\n%#v",
+				step)
+		} else if step.Config == "" && !step.ImportState {
 			err = fmt.Errorf(
 				"unknown test mode for step. Please see TestStep docs\n\n%#v",
 				step)
