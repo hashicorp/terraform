@@ -84,3 +84,10 @@ func (l *Loader) Parser() *configs.Parser {
 func (l *Loader) Sources() map[string][]byte {
 	return l.parser.Sources()
 }
+
+// IsConfigDir returns true if and only if the given directory contains at
+// least one Terraform configuration file. This is a wrapper around calling
+// the same method name on the loader's parser.
+func (l *Loader) IsConfigDir(path string) bool {
+	return l.parser.IsConfigDir(path)
+}
