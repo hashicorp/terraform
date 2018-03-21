@@ -1,8 +1,10 @@
 package backend
 
 import (
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Nil is a no-op implementation of Backend.
@@ -11,17 +13,15 @@ import (
 // backend interface for testing.
 type Nil struct{}
 
-func (Nil) Input(
-	ui terraform.UIInput,
-	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
-	return c, nil
+func (Nil) ConfigSchema() *configschema.Block {
+	return &configschema.Block{}
 }
 
-func (Nil) Validate(*terraform.ResourceConfig) ([]string, []error) {
-	return nil, nil
+func (Nil) ValidateConfig(cty.Value) tfdiags.Diagnostics {
+	return nil
 }
 
-func (Nil) Configure(*terraform.ResourceConfig) error {
+func (Nil) Configure(cty.Value) tfdiags.Diagnostics {
 	return nil
 }
 

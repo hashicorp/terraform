@@ -7,9 +7,9 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	backendinit "github.com/hashicorp/terraform/backend/init"
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func dataSourceRemoteState() *schema.Resource {
@@ -66,12 +66,6 @@ func dataSourceRemoteState() *schema.Resource {
 func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	backendType := d.Get("backend").(string)
 
-	// Get the configuration in a type we want.
-	rawConfig, err := config.NewRawConfig(d.Get("config").(map[string]interface{}))
-	if err != nil {
-		return fmt.Errorf("error initializing backend: %s", err)
-	}
-
 	// Don't break people using the old _local syntax - but note warning above
 	if backendType == "_local" {
 		log.Println(`[INFO] Switching old (unsupported) backend "_local" to "local"`)
@@ -86,9 +80,22 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	b := f()
 
-	// Configure the backend
-	if err := b.Configure(terraform.NewResourceConfig(rawConfig)); err != nil {
-		return fmt.Errorf("error initializing backend: %s", err)
+	schema := b.ConfigSchema()
+	rawConfig := d.Get("config")
+	configVal := hcl2shim.HCL2ValueFromConfigValue(rawConfig)
+
+	// Try to coerce the provided value into the desired configuration type.
+	configVal, err := schema.CoerceValue(configVal)
+	if err != nil {
+		return fmt.Errorf("invalid %s backend configuration: %s", backendType, tfdiags.FormatError(err))
+	}
+	validateDiags := b.ValidateConfig(configVal)
+	if validateDiags.HasErrors() {
+		return validateDiags.Err()
+	}
+	configureDiags := b.Configure(configVal)
+	if configureDiags.HasErrors() {
+		return configureDiags.Err()
 	}
 
 	// environment is deprecated in favour of workspace.
