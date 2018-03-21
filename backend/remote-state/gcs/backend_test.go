@@ -187,8 +187,8 @@ func setupBackend(t *testing.T, bucket, prefix, key string) backend.Backend {
 		"encryption_key": key,
 	}
 
-	b := backend.TestBackendConfig(t, New(), config)
-	be := b.(*Backend)
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config))
+	be := b.(*gcsBackend)
 
 	// create the bucket if it doesn't exist
 	bkt := be.storageClient.Bucket(bucket)

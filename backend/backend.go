@@ -9,10 +9,16 @@ import (
 	"errors"
 	"time"
 
+	"github.com/hashicorp/terraform/configs"
+
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // DefaultStateName is the name of the default, initial state that every
@@ -41,11 +47,45 @@ type InitFn func() Backend
 
 // Backend is the minimal interface that must be implemented to enable Terraform.
 type Backend interface {
-	// Ask for input and configure the backend. Similar to
-	// terraform.ResourceProvider.
-	Input(terraform.UIInput, *terraform.ResourceConfig) (*terraform.ResourceConfig, error)
-	Validate(*terraform.ResourceConfig) ([]string, []error)
-	Configure(*terraform.ResourceConfig) error
+	// ConfigSchema returns a description of the expected configuration
+	// structure for the receiving backend.
+	//
+	// This method does not have any side-effects for the backend and can
+	// be safely used before configuring.
+	ConfigSchema() *configschema.Block
+
+	// ValidateConfig checks the validity of the values in the given
+	// configuration, assuming that its structure has already been validated
+	// per the schema returned by ConfigSchema.
+	//
+	// This method does not have any side-effects for the backend and can
+	// be safely used before configuring. It also does not consult any
+	// external data such as environment variables, disk files, etc. Validation
+	// that requires such external data should be deferred until the
+	// Configure call.
+	//
+	// If error diagnostics are returned then the configuration is not valid
+	// and must not subsequently be passed to the Configure method.
+	//
+	// This method may return configuration-contextual diagnostics such
+	// as tfdiags.AttributeValue, and so the caller should provide the
+	// necessary context via the diags.InConfigBody method before returning
+	// diagnostics to the user.
+	ValidateConfig(cty.Value) tfdiags.Diagnostics
+
+	// Configure uses the provided configuration to set configuration fields
+	// within the backend.
+	//
+	// The given configuration is assumed to have already been validated
+	// against the schema returned by ConfigSchema and passed validation
+	// via ValidateConfig.
+	//
+	// This method may be called only once per backend instance, and must be
+	// called before all other methods except where otherwise stated.
+	//
+	// If error diagnostics are returned, the internal state of the instance
+	// is undefined and no other methods may be called.
+	Configure(cty.Value) tfdiags.Diagnostics
 
 	// State returns the current state for this environment. This state may
 	// not be loaded locally: the proper APIs should be called on state.State
@@ -96,7 +136,7 @@ type Enhanced interface {
 type Local interface {
 	// Context returns a runnable terraform Context. The operation parameter
 	// doesn't need a Type set but it needs other options set such as Module.
-	Context(*Operation) (*terraform.Context, state.State, error)
+	Context(*Operation) (*terraform.Context, state.State, tfdiags.Diagnostics)
 }
 
 // An operation represents an operation for Terraform to execute.
@@ -128,8 +168,13 @@ type Operation struct {
 	PlanOutPath    string // PlanOutPath is the path to save the plan
 	PlanOutBackend *terraform.BackendState
 
-	// Module settings specify the root module to use for operations.
-	Module *module.Tree
+	// ConfigDir is the path to the directory containing the configuration's
+	// root module.
+	ConfigDir string
+
+	// ConfigLoader is a configuration loader that can be used to load
+	// configuration from ConfigDir.
+	ConfigLoader *configload.Loader
 
 	// Plan is a plan that was passed as an argument. This is valid for
 	// plan and apply arguments but may not work for all backends.
@@ -165,6 +210,22 @@ type Operation struct {
 	Workspace string
 }
 
+// HasConfig returns true if and only if the operation has a ConfigDir value
+// that refers to a directory containing at least one Terraform configuration
+// file.
+func (o *Operation) HasConfig() bool {
+	return o.ConfigLoader.IsConfigDir(o.ConfigDir)
+}
+
+// Config loads the configuration that the operation applies to, using the
+// ConfigDir and ConfigLoader fields within the receiving operation.
+func (o *Operation) Config() (*configs.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	config, hclDiags := o.ConfigLoader.LoadConfig(o.ConfigDir)
+	diags = diags.Append(hclDiags)
+	return config, diags
+}
+
 // RunningOperation is the result of starting an operation.
 type RunningOperation struct {
 	// For implementers of a backend, this context should not wrap the
@@ -184,9 +245,9 @@ type RunningOperation struct {
 	// to avoid running operations during process exit.
 	Cancel context.CancelFunc
 
-	// Err is the error of the operation. This is populated after
-	// the operation has completed.
-	Err error
+	// Result is the exit status of the operation, populated only after the
+	// operation has completed.
+	Result OperationResult
 
 	// ExitCode can be used to set a custom exit code. This enables enhanced
 	// backends to set specific exit codes that miror any remote exit codes.
@@ -201,3 +262,16 @@ type RunningOperation struct {
 	// after the operation completes to avoid read/write races.
 	State *terraform.State
 }
+
+// OperationResult describes the result status of an operation.
+type OperationResult int
+
+const (
+	// OperationSuccess indicates that the operation completed as expected.
+	OperationSuccess OperationResult = 0
+
+	// OperationFailure indicates that the operation encountered some sort
+	// of error, and thus may have been only partially performed or not
+	// performed at all.
+	OperationFailure OperationResult = 1
+)

@@ -5,39 +5,59 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/hashicorp/terraform/configs"
+
+	"github.com/hashicorp/terraform/config/hcl2shim"
+
+	"github.com/hashicorp/terraform/tfdiags"
+
+	"github.com/hashicorp/hcl2/hcldec"
+
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 // TestBackendConfig validates and configures the backend with the
 // given configuration.
-func TestBackendConfig(t *testing.T, b Backend, c map[string]interface{}) Backend {
+func TestBackendConfig(t *testing.T, b Backend, c hcl.Body) Backend {
 	t.Helper()
 
-	// Get the proper config structure
-	rc, err := config.NewRawConfig(c)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	conf := terraform.NewResourceConfig(rc)
+	t.Logf("TestBackendConfig on %T with %#v", b, c)
 
-	// Validate
-	warns, errs := b.Validate(conf)
-	if len(warns) > 0 {
-		t.Fatalf("warnings: %s", warns)
-	}
-	if len(errs) > 0 {
-		t.Fatalf("errors: %s", errs)
+	var diags tfdiags.Diagnostics
+
+	schema := b.ConfigSchema()
+	spec := schema.DecoderSpec()
+	obj, decDiags := hcldec.Decode(c, spec, nil)
+	diags = diags.Append(decDiags)
+
+	valDiags := b.ValidateConfig(obj)
+	diags = diags.Append(valDiags.InConfigBody(c))
+
+	if len(diags) != 0 {
+		t.Fatal(diags)
 	}
 
-	// Configure
-	if err := b.Configure(conf); err != nil {
-		t.Fatalf("err: %s", err)
+	confDiags := b.Configure(obj)
+	if len(confDiags) != 0 {
+		confDiags = confDiags.InConfigBody(c)
+		t.Fatal(confDiags)
 	}
 
 	return b
+}
+
+// TestWrapConfig takes a raw data structure and converts it into a
+// synthetic hcl.Body to use for testing.
+//
+// The given structure should only include values that can be accepted by
+// hcl2shim.HCL2ValueFromConfigValue. If incompatible values are given,
+// this function will panic.
+func TestWrapConfig(raw map[string]interface{}) hcl.Body {
+	obj := hcl2shim.HCL2ValueFromConfigValue(raw)
+	return configs.SynthBody("<TestWrapConfig>", obj.AsValueMap())
 }
 
 // TestBackend will test the functionality of a Backend. The backend is

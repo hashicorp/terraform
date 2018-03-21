@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -42,7 +42,7 @@ func TestBackendConfig(t *testing.T) {
 		"dynamodb_table": "dynamoTable",
 	}
 
-	b := backend.TestBackendConfig(t, New(), config).(*Backend)
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
 	if *b.s3Client.Config.Region != "us-west-1" {
 		t.Fatalf("Incorrect region was populated")
@@ -68,22 +68,16 @@ func TestBackendConfig(t *testing.T) {
 
 func TestBackendConfig_invalidKey(t *testing.T) {
 	testACC(t)
-	cfg := map[string]interface{}{
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
 		"region":         "us-west-1",
 		"bucket":         "tf-test",
 		"key":            "/leading-slash",
 		"encrypt":        true,
 		"dynamodb_table": "dynamoTable",
-	}
+	})
 
-	rawCfg, err := config.NewRawConfig(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resCfg := terraform.NewResourceConfig(rawCfg)
-
-	_, errs := New().Validate(resCfg)
-	if len(errs) != 1 {
+	diags := New().ValidateConfig(cfg)
+	if !diags.HasErrors() {
 		t.Fatal("expected config validation error")
 	}
 }
@@ -94,11 +88,11 @@ func TestBackend(t *testing.T) {
 	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
 	keyName := "testState"
 
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket":  bucketName,
 		"key":     keyName,
 		"encrypt": true,
-	}).(*Backend)
+	})).(*Backend)
 
 	createS3Bucket(t, b.s3Client, bucketName)
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
@@ -112,19 +106,19 @@ func TestBackendLocked(t *testing.T) {
 	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
 	keyName := "test/state"
 
-	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket":         bucketName,
 		"key":            keyName,
 		"encrypt":        true,
 		"dynamodb_table": bucketName,
-	}).(*Backend)
+	})).(*Backend)
 
-	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket":         bucketName,
 		"key":            keyName,
 		"encrypt":        true,
 		"dynamodb_table": bucketName,
-	}).(*Backend)
+	})).(*Backend)
 
 	createS3Bucket(t, b1.s3Client, bucketName)
 	defer deleteS3Bucket(t, b1.s3Client, bucketName)
@@ -141,11 +135,11 @@ func TestBackendExtraPaths(t *testing.T) {
 	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
 	keyName := "test/state/tfstate"
 
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket":  bucketName,
 		"key":     keyName,
 		"encrypt": true,
-	}).(*Backend)
+	})).(*Backend)
 
 	createS3Bucket(t, b.s3Client, bucketName)
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
@@ -256,11 +250,11 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 	testACC(t)
 	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
 
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":               bucketName,
-		"key":                  "test-env.tfstate",
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket": bucketName,
+		"key":    "test-env.tfstate",
 		"workspace_key_prefix": "env",
-	}).(*Backend)
+	})).(*Backend)
 
 	createS3Bucket(t, b.s3Client, bucketName)
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
@@ -284,33 +278,33 @@ func TestKeyEnv(t *testing.T) {
 	keyName := "some/paths/tfstate"
 
 	bucket0Name := fmt.Sprintf("terraform-remote-s3-test-%x-0", time.Now().Unix())
-	b0 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket":               bucket0Name,
 		"key":                  keyName,
 		"encrypt":              true,
 		"workspace_key_prefix": "",
-	}).(*Backend)
+	})).(*Backend)
 
 	createS3Bucket(t, b0.s3Client, bucket0Name)
 	defer deleteS3Bucket(t, b0.s3Client, bucket0Name)
 
 	bucket1Name := fmt.Sprintf("terraform-remote-s3-test-%x-1", time.Now().Unix())
-	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket":               bucket1Name,
 		"key":                  keyName,
 		"encrypt":              true,
 		"workspace_key_prefix": "project/env:",
-	}).(*Backend)
+	})).(*Backend)
 
 	createS3Bucket(t, b1.s3Client, bucket1Name)
 	defer deleteS3Bucket(t, b1.s3Client, bucket1Name)
 
 	bucket2Name := fmt.Sprintf("terraform-remote-s3-test-%x-2", time.Now().Unix())
-	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket":  bucket2Name,
 		"key":     keyName,
 		"encrypt": true,
-	}).(*Backend)
+	})).(*Backend)
 
 	createS3Bucket(t, b2.s3Client, bucket2Name)
 	defer deleteS3Bucket(t, b2.s3Client, bucket2Name)

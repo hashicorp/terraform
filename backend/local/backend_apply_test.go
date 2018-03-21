@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -24,19 +24,16 @@ func TestLocal_applyBasic(t *testing.T) {
 
 	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
-	defer modCleanup()
-
-	op := testOperationApply()
-	op.Module = mod
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err != nil {
-		t.Fatalf("err: %s", err)
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("operation failed")
 	}
 
 	if p.RefreshCalled {
@@ -66,16 +63,16 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 
 	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
 
-	op := testOperationApply()
-	op.Module = nil
+	op, configCleanup := testOperationApply(t, "./test-fixtures/empty")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err == nil {
-		t.Fatal("should error")
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("operation succeeded; want error")
 	}
 
 	if p.ApplyCalled {
@@ -94,8 +91,8 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 
 	p.ApplyReturn = nil
 
-	op := testOperationApply()
-	op.Module = nil
+	op, configCleanup := testOperationApply(t, "./test-fixtures/empty")
+	defer configCleanup()
 	op.Destroy = true
 
 	run, err := b.Operation(context.Background(), op)
@@ -103,8 +100,8 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err != nil {
-		t.Fatalf("err: %s", err)
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("apply operation failed")
 	}
 
 	if p.ApplyCalled {
@@ -148,19 +145,16 @@ func TestLocal_applyError(t *testing.T) {
 		}, nil
 	}
 
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply-error")
-	defer modCleanup()
-
-	op := testOperationApply()
-	op.Module = mod
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-error")
+	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err == nil {
-		t.Fatal("should error")
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("operation succeeded; want failure")
 	}
 
 	checkState(t, b.StateOutPath, `
@@ -171,8 +165,8 @@ test_instance.foo:
 }
 
 func TestLocal_applyBackendFail(t *testing.T) {
-	mod, modCleanup := module.TestTree(t, "./test-fixtures/apply")
-	defer modCleanup()
+	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	defer configCleanup()
 
 	b, cleanup := TestLocal(t)
 	defer cleanup()
@@ -193,21 +187,13 @@ func TestLocal_applyBackendFail(t *testing.T) {
 
 	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
 
-	op := testOperationApply()
-	op.Module = mod
-
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Err == nil {
+	if run.Result == backend.OperationSuccess {
 		t.Fatalf("apply succeeded; want error")
-	}
-
-	errStr := run.Err.Error()
-	if !strings.Contains(errStr, "terraform state push errored.tfstate") {
-		t.Fatalf("wrong error message:\n%s", errStr)
 	}
 
 	msgStr := b.CLI.(*cli.MockUi).ErrorWriter.String()
@@ -244,10 +230,16 @@ func (s failingState) WriteState(state *terraform.State) error {
 	return errors.New("fake failure")
 }
 
-func testOperationApply() *backend.Operation {
+func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func()) {
+	t.Helper()
+
+	_, configLoader, configCleanup := configload.MustLoadConfigForTests(t, configDir)
+
 	return &backend.Operation{
-		Type: backend.OperationTypeApply,
-	}
+		Type:         backend.OperationTypeApply,
+		ConfigDir:    configDir,
+		ConfigLoader: configLoader,
+	}, configCleanup
 }
 
 // testApplyState is just a common state that we use for testing refresh.

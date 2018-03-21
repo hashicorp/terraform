@@ -1,14 +1,17 @@
 package atlas
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
@@ -16,6 +19,9 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 )
+
+const EnvVarToken = "ATLAS_TOKEN"
+const EnvVarAddress = "ATLAS_ADDRESS"
 
 // Backend is an implementation of EnhancedBackend that performs all operations
 // in Atlas. State must currently also be stored in Atlas, although it is worth
@@ -44,97 +50,130 @@ type Backend struct {
 	opLock sync.Mutex
 }
 
-// New returns a new initialized Atlas backend.
-func New() *Backend {
-	b := &Backend{}
-	b.schema = &schema.Backend{
-		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:        schema.TypeString,
+func (b *Backend) ConfigSchema() *configschema.Block {
+	return &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"name": {
+				Type:        cty.String,
 				Required:    true,
-				Description: schemaDescriptions["name"],
+				Description: "Full name of the environment in Terraform Enterprise, such as 'myorg/myenv'",
 			},
-
-			"access_token": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: schemaDescriptions["access_token"],
-				DefaultFunc: schema.EnvDefaultFunc("ATLAS_TOKEN", nil),
-			},
-
-			"address": &schema.Schema{
-				Type:        schema.TypeString,
+			"access_token": {
+				Type:        cty.String,
 				Optional:    true,
-				Description: schemaDescriptions["address"],
-				DefaultFunc: schema.EnvDefaultFunc("ATLAS_ADDRESS", defaultAtlasServer),
+				Description: "Access token to use to access Terraform Enterprise; the ATLAS_TOKEN environment variable is used if this argument is not set",
+			},
+			"address": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Base URL for your Terraform Enterprise installation; the ATLAS_ADDRESS environment variable is used if this argument is not set, finally falling back to a default of 'https://atlas.hashicorp.com/' if neither are set.",
 			},
 		},
-
-		ConfigureFunc: b.configure,
 	}
-
-	return b
 }
 
-func (b *Backend) configure(ctx context.Context) error {
-	d := schema.FromContextBackendConfig(ctx)
+func (b *Backend) ValidateConfig(obj cty.Value) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 
-	// Parse the address
-	addr := d.Get("address").(string)
-	addrUrl, err := url.Parse(addr)
-	if err != nil {
-		return fmt.Errorf("Error parsing 'address': %s", err)
+	name := obj.GetAttr("name").AsString()
+	if ct := strings.Count(name, "/"); ct != 1 {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid workspace selector",
+			`The "name" argument must be an organization name and a workspace name separated by a slash, such as "acme/network-production".`,
+			cty.Path{cty.GetAttrStep{Name: "name"}},
+		))
 	}
 
-	// Parse the org/env
-	name := d.Get("name").(string)
-	parts := strings.Split(name, "/")
-	if len(parts) != 2 {
-		return fmt.Errorf("malformed name '%s', expected format '<org>/<name>'", name)
+	if v := obj.GetAttr("address"); !v.IsNull() {
+		addr := v.AsString()
+		_, err := url.Parse(addr)
+		if err != nil {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid Terraform Enterprise URL",
+				fmt.Sprintf(`The "address" argument must be a valid URL: %s.`, err),
+				cty.Path{cty.GetAttrStep{Name: "address"}},
+			))
+		}
 	}
-	org := parts[0]
-	env := parts[1]
 
-	// Setup the client
-	b.stateClient = &stateClient{
-		Server:      addr,
-		ServerURL:   addrUrl,
-		AccessToken: d.Get("access_token").(string),
-		User:        org,
-		Name:        env,
+	return diags
+}
 
+func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	client := &stateClient{
 		// This is optionally set during Atlas Terraform runs.
 		RunId: os.Getenv("ATLAS_RUN_ID"),
 	}
 
-	return nil
-}
+	name := obj.GetAttr("name").AsString() // assumed valid due to ValidateConfig method
+	slashIdx := strings.Index(name, "/")
+	client.User = name[:slashIdx]
+	client.Name = name[slashIdx+1:]
 
-func (b *Backend) Input(ui terraform.UIInput, c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
-	return b.schema.Input(ui, c)
-}
-
-func (b *Backend) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	return b.schema.Validate(c)
-}
-
-func (b *Backend) Configure(c *terraform.ResourceConfig) error {
-	return b.schema.Configure(c)
-}
-
-func (b *Backend) State(name string) (state.State, error) {
-	if name != backend.DefaultStateName {
-		return nil, backend.ErrNamedStatesNotSupported
+	if v := obj.GetAttr("access_token"); !v.IsNull() {
+		client.AccessToken = v.AsString()
+	} else {
+		client.AccessToken = os.Getenv(EnvVarToken)
+		if client.AccessToken == "" {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Missing Terraform Enterprise access token",
+				`The "access_token" argument must be set unless the ATLAS_TOKEN environment variable is set to provide the authentication token for Terraform Enterprise.`,
+				cty.Path{cty.GetAttrStep{Name: "access_token"}},
+			))
+		}
 	}
-	return &remote.State{Client: b.stateClient}, nil
+
+	if v := obj.GetAttr("address"); !v.IsNull() {
+		addr := v.AsString()
+		addrURL, err := url.Parse(addr)
+		if err != nil {
+			// We already validated the URL in ValidateConfig, so this shouldn't happen
+			panic(err)
+		}
+		client.Server = addr
+		client.ServerURL = addrURL
+	} else {
+		addr := os.Getenv(EnvVarAddress)
+		if addr == "" {
+			addr = defaultAtlasServer
+		}
+		addrURL, err := url.Parse(addr)
+		if err != nil {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid Terraform Enterprise URL",
+				fmt.Sprintf(`The ATLAS_ADDRESS environment variable must contain a valid URL: %s.`, err),
+				cty.Path{cty.GetAttrStep{Name: "address"}},
+			))
+		}
+		client.Server = addr
+		client.ServerURL = addrURL
+	}
+
+	b.stateClient = client
+
+	return diags
+}
+
+func (b *Backend) States() ([]string, error) {
+	return nil, backend.ErrNamedStatesNotSupported
 }
 
 func (b *Backend) DeleteState(name string) error {
 	return backend.ErrNamedStatesNotSupported
 }
 
-func (b *Backend) States() ([]string, error) {
-	return nil, backend.ErrNamedStatesNotSupported
+func (b *Backend) State(name string) (state.State, error) {
+	if name != backend.DefaultStateName {
+		return nil, backend.ErrNamedStatesNotSupported
+	}
+
+	return &remote.State{Client: b.stateClient}, nil
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing
@@ -149,13 +188,4 @@ func (b *Backend) Colorize() *colorstring.Colorize {
 		Colors:  colorstring.DefaultColors,
 		Disable: true,
 	}
-}
-
-var schemaDescriptions = map[string]string{
-	"name": "Full name of the environment in Atlas, such as 'hashicorp/myenv'",
-	"access_token": "Access token to use to access Atlas. If ATLAS_TOKEN is set then\n" +
-		"this will override any saved value for this.",
-	"address": "Address to your Atlas installation. This defaults to the publicly\n" +
-		"hosted version at 'https://atlas.hashicorp.com/'. This address\n" +
-		"should contain the full HTTP scheme to use.",
 }
