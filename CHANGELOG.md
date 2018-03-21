@@ -1,14 +1,14 @@
-## 0.11.5 (Unreleased)
+## 0.11.5 (March 21, 2018)
 
 IMPROVEMENTS:
 
-* provisioner/chef: Allow specifying a channel [GH-17355]
+* provisioner/chef: Allow specifying a channel ([#17355](https://github.com/hashicorp/terraform/issues/17355))
 
 BUG FIXES:
 
-* core: Fix the timeout handling for provisioners [GH-17646]
-* core: Ensure that state is unlocked after running console, import, graph or push commands [GH-17645]
-* core: Don't open multiple file descriptors for local state files, which would cause reading the state to fail on Windows [GH-17636] 
+* core: Fix the timeout handling for provisioners ([#17646](https://github.com/hashicorp/terraform/issues/17646))
+* core: Ensure that state is unlocked after running console, import, graph or push commands ([#17645](https://github.com/hashicorp/terraform/issues/17645))
+* core: Don't open multiple file descriptors for local state files, which would cause reading the state to fail on Windows [[#17636](https://github.com/hashicorp/terraform/issues/17636)] 
 
 ## 0.11.4 (March 15, 2018)
 
