@@ -18,6 +18,9 @@ type MockCommunicator struct {
 	Uploads          map[string]string
 	UploadScripts    map[string]string
 	UploadDirs       map[string]string
+	CommandFunc      func(*remote.Cmd) error
+	DisconnectFunc   func() error
+	ConnTimeout      time.Duration
 }
 
 // Connect implementation of communicator.Communicator interface
@@ -27,11 +30,17 @@ func (c *MockCommunicator) Connect(o terraform.UIOutput) error {
 
 // Disconnect implementation of communicator.Communicator interface
 func (c *MockCommunicator) Disconnect() error {
+	if c.DisconnectFunc != nil {
+		return c.DisconnectFunc()
+	}
 	return nil
 }
 
 // Timeout implementation of communicator.Communicator interface
 func (c *MockCommunicator) Timeout() time.Duration {
+	if c.ConnTimeout != 0 {
+		return c.ConnTimeout
+	}
 	return time.Duration(5 * time.Second)
 }
 
@@ -43,6 +52,10 @@ func (c *MockCommunicator) ScriptPath() string {
 // Start implementation of communicator.Communicator interface
 func (c *MockCommunicator) Start(r *remote.Cmd) error {
 	r.Init()
+
+	if c.CommandFunc != nil {
+		return c.CommandFunc(r)
+	}
 
 	if !c.Commands[r.Command] {
 		return fmt.Errorf("Command not found!")
