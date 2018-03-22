@@ -1366,6 +1366,11 @@ func TestResourceDataTimeout(t *testing.T) {
 			Rd:       &ResourceData{timeouts: timeoutForValues(10, 3, 0, 0, 13)},
 			Expected: expectedTimeoutForValues(10, 3, 13, 13, 13),
 		},
+		{
+			Name:     "Resource has no config",
+			Rd:       &ResourceData{},
+			Expected: expectedTimeoutForValues(0, 0, 0, 0, 0),
+		},
 	}
 
 	keys := timeoutKeys()
@@ -1398,7 +1403,7 @@ func TestResourceDataTimeout(t *testing.T) {
 				// confirm values
 				if ex != nil {
 					if got != *ex {
-						t.Fatalf("Timeout %s case (%d) expected (%#v), got (%#v)", k, i, *ex, got)
+						t.Fatalf("Timeout %s case (%d) expected (%s), got (%s)", k, i, *ex, got)
 					}
 				}
 			}
