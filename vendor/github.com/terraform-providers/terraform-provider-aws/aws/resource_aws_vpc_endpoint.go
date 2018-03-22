@@ -257,7 +257,7 @@ func resourceAwsVpcEndpointDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"available", "deleting"},
+		Pending:    []string{"available", "pending", "deleting"},
 		Target:     []string{"deleted"},
 		Refresh:    vpcEndpointStateRefresh(conn, d.Id()),
 		Timeout:    10 * time.Minute,

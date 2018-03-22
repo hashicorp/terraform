@@ -8,11 +8,13 @@ description: |-
 
 # Command: push
 
+~> **Important:** The `terraform push` command is deprecated, and only works with [the legacy version of Terraform Enterprise](/docs/enterprise-legacy/index.html). In the current version of Terraform Enterprise, you can upload configurations using the API. See [the docs about API-driven runs](/docs/enterprise/workspaces/run-api.html) for more details.
+
 The `terraform push` command uploads your Terraform configuration to
 be managed by HashiCorp's [Terraform Enterprise](https://www.hashicorp.com/products/terraform/).
-By uploading your configuration to Terraform Enterprise, you can automatically run
-Terraform for you, will save all state transitions, will save plans,
-and will keep a history of all Terraform runs.
+Terraform Enterprise can automatically run
+Terraform for you, save all state transitions, save plans,
+and keep a history of all Terraform runs.
 
 This makes it significantly easier to use Terraform as a team: team
 members modify the Terraform configurations locally and continue to
@@ -126,6 +128,8 @@ sets the value locally (the exact same process as commands such as apply
 or plan), and the `-overwrite` flag tells the push command to update Terraform Enterprise.
 
 ## Remote State Requirement
+
+~> **Important:** This section only refers to the legacy version of Terraform Enterprise. The current version of Terraform Enterprise always manages its own state, and does not support arbitrary remote state backends.
 
 `terraform push` requires that
 [remote state](/docs/state/remote.html)

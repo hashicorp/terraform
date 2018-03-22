@@ -61,7 +61,7 @@ func (r *MapFieldReader) readMap(k string, schema *Schema) (FieldReadResult, err
 		return true
 	})
 
-	err := mapValuesToPrimitive(result, schema)
+	err := mapValuesToPrimitive(k, result, schema)
 	if err != nil {
 		return FieldReadResult{}, nil
 	}

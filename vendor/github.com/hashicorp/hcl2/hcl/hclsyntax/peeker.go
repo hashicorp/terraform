@@ -1,8 +1,21 @@
 package hclsyntax
 
 import (
+	"bytes"
+	"fmt"
+	"path/filepath"
+	"runtime"
+	"strings"
+
 	"github.com/hashicorp/hcl2/hcl"
 )
+
+// This is set to true at init() time in tests, to enable more useful output
+// if a stack discipline error is detected. It should not be enabled in
+// normal mode since there is a performance penalty from accessing the
+// runtime stack to produce the traces, but could be temporarily set to
+// true for debugging if desired.
+var tracePeekerNewlinesStack = false
 
 type peeker struct {
 	Tokens    Tokens
@@ -10,6 +23,16 @@ type peeker struct {
 
 	IncludeComments      bool
 	IncludeNewlinesStack []bool
+
+	// used only when tracePeekerNewlinesStack is set
+	newlineStackChanges []peekerNewlineStackChange
+}
+
+// for use in debugging the stack usage only
+type peekerNewlineStackChange struct {
+	Pushing bool // if false, then popping
+	Frame   runtime.Frame
+	Include bool
 }
 
 func newPeeker(tokens Tokens, includeComments bool) *peeker {
@@ -97,6 +120,18 @@ func (p *peeker) includingNewlines() bool {
 }
 
 func (p *peeker) PushIncludeNewlines(include bool) {
+	if tracePeekerNewlinesStack {
+		// Record who called us so that we can more easily track down any
+		// mismanagement of the stack in the parser.
+		callers := []uintptr{0}
+		runtime.Callers(2, callers)
+		frames := runtime.CallersFrames(callers)
+		frame, _ := frames.Next()
+		p.newlineStackChanges = append(p.newlineStackChanges, peekerNewlineStackChange{
+			true, frame, include,
+		})
+	}
+
 	p.IncludeNewlinesStack = append(p.IncludeNewlinesStack, include)
 }
 
@@ -104,5 +139,74 @@ func (p *peeker) PopIncludeNewlines() bool {
 	stack := p.IncludeNewlinesStack
 	remain, ret := stack[:len(stack)-1], stack[len(stack)-1]
 	p.IncludeNewlinesStack = remain
+
+	if tracePeekerNewlinesStack {
+		// Record who called us so that we can more easily track down any
+		// mismanagement of the stack in the parser.
+		callers := []uintptr{0}
+		runtime.Callers(2, callers)
+		frames := runtime.CallersFrames(callers)
+		frame, _ := frames.Next()
+		p.newlineStackChanges = append(p.newlineStackChanges, peekerNewlineStackChange{
+			false, frame, ret,
+		})
+	}
+
 	return ret
+}
+
+// AssertEmptyNewlinesStack checks if the IncludeNewlinesStack is empty, doing
+// panicking if it is not. This can be used to catch stack mismanagement that
+// might otherwise just cause confusing downstream errors.
+//
+// This function is a no-op if the stack is empty when called.
+//
+// If newlines stack tracing is enabled by setting the global variable
+// tracePeekerNewlinesStack at init time, a full log of all of the push/pop
+// calls will be produced to help identify which caller in the parser is
+// misbehaving.
+func (p *peeker) AssertEmptyIncludeNewlinesStack() {
+	if len(p.IncludeNewlinesStack) != 1 {
+		// Should never happen; indicates mismanagement of the stack inside
+		// the parser.
+		if p.newlineStackChanges != nil { // only if traceNewlinesStack is enabled above
+			panic(fmt.Errorf(
+				"non-empty IncludeNewlinesStack after parse with %d calls unaccounted for:\n%s",
+				len(p.IncludeNewlinesStack)-1,
+				formatPeekerNewlineStackChanges(p.newlineStackChanges),
+			))
+		} else {
+			panic(fmt.Errorf("non-empty IncludeNewlinesStack after parse: %#v", p.IncludeNewlinesStack))
+		}
+	}
+}
+
+func formatPeekerNewlineStackChanges(changes []peekerNewlineStackChange) string {
+	indent := 0
+	var buf bytes.Buffer
+	for _, change := range changes {
+		funcName := change.Frame.Function
+		if idx := strings.LastIndexByte(funcName, '.'); idx != -1 {
+			funcName = funcName[idx+1:]
+		}
+		filename := change.Frame.File
+		if idx := strings.LastIndexByte(filename, filepath.Separator); idx != -1 {
+			filename = filename[idx+1:]
+		}
+
+		switch change.Pushing {
+
+		case true:
+			buf.WriteString(strings.Repeat("    ", indent))
+			fmt.Fprintf(&buf, "PUSH %#v (%s at %s:%d)\n", change.Include, funcName, filename, change.Frame.Line)
+			indent++
+
+		case false:
+			indent--
+			buf.WriteString(strings.Repeat("    ", indent))
+			fmt.Fprintf(&buf, "POP %#v (%s at %s:%d)\n", change.Include, funcName, filename, change.Frame.Line)
+
+		}
+	}
+	return buf.String()
 }

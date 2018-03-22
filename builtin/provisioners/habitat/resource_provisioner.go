@@ -6,12 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/url"
 	"path"
 	"strings"
 	"text/template"
-	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -233,10 +231,13 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
-	err = retryFunc(comm.Timeout(), func() error {
-		err = comm.Connect(o)
-		return err
+	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
+	defer cancel()
+
+	err = communicator.Retry(retryCtx, func() error {
+		return comm.Connect(o)
 	})
+
 	if err != nil {
 		return err
 	}
@@ -728,24 +729,6 @@ func (p *provisioner) uploadUserTOML(o terraform.UIOutput, comm communicator.Com
 
 }
 
-func retryFunc(timeout time.Duration, f func() error) error {
-	finish := time.After(timeout)
-
-	for {
-		err := f()
-		if err == nil {
-			return nil
-		}
-		log.Printf("Retryable error: %v", err)
-
-		select {
-		case <-finish:
-			return err
-		case <-time.After(3 * time.Second):
-		}
-	}
-}
-
 func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
 	defer close(doneCh)
 	lr := linereader.New(r)
@@ -757,12 +740,17 @@ func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<
 func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communicator, command string) error {
 	outR, outW := io.Pipe()
 	errR, errW := io.Pipe()
-	var err error
 
 	outDoneCh := make(chan struct{})
 	errDoneCh := make(chan struct{})
 	go p.copyOutput(o, outR, outDoneCh)
 	go p.copyOutput(o, errR, errDoneCh)
+	defer func() {
+		outW.Close()
+		errW.Close()
+		<-outDoneCh
+		<-errDoneCh
+	}()
 
 	cmd := &remote.Cmd{
 		Command: command,
@@ -770,22 +758,20 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 		Stderr:  errW,
 	}
 
-	if err = comm.Start(cmd); err != nil {
+	if err := comm.Start(cmd); err != nil {
 		return fmt.Errorf("Error executing command %q: %v", cmd.Command, err)
 	}
 
 	cmd.Wait()
-	if cmd.ExitStatus != 0 {
-		err = fmt.Errorf(
-			"Command %q exited with non-zero exit status: %d", cmd.Command, cmd.ExitStatus)
+	if cmd.Err() != nil {
+		return cmd.Err()
 	}
 
-	outW.Close()
-	errW.Close()
-	<-outDoneCh
-	<-errDoneCh
+	if cmd.ExitStatus() != 0 {
+		return fmt.Errorf("Command %q exited with non-zero exit status: %d", cmd.Command, cmd.ExitStatus())
+	}
 
-	return err
+	return nil
 }
 
 func getBindFromString(bind string) (Bind, error) {

@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -1320,13 +1319,15 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 			log.Printf("[DEBUG] Error creating Firehose Delivery Stream: %s", err)
 			lastError = err
 
-			if awsErr, ok := err.(awserr.Error); ok {
-				// IAM roles can take ~10 seconds to propagate in AWS:
-				// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
-				if awsErr.Code() == "InvalidArgumentException" && strings.Contains(awsErr.Message(), "Firehose is unable to assume role") {
-					log.Printf("[DEBUG] Firehose could not assume role referenced, retrying...")
-					return resource.RetryableError(awsErr)
-				}
+			// Retry for IAM eventual consistency
+			if isAWSErr(err, firehose.ErrCodeInvalidArgumentException, "is not authorized to perform") {
+				return resource.RetryableError(err)
+			}
+			// IAM roles can take ~10 seconds to propagate in AWS:
+			// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+			if isAWSErr(err, firehose.ErrCodeInvalidArgumentException, "Firehose is unable to assume role") {
+				log.Printf("[DEBUG] Firehose could not assume role referenced, retrying...")
+				return resource.RetryableError(err)
 			}
 			// Not retryable
 			return resource.NonRetryableError(err)
@@ -1335,10 +1336,7 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 		return nil
 	})
 	if err != nil {
-		if awsErr, ok := lastError.(awserr.Error); ok {
-			return fmt.Errorf("[WARN] Error creating Kinesis Firehose Delivery Stream: %s", awsErr.Error())
-		}
-		return err
+		return fmt.Errorf("error creating Kinesis Firehose Delivery Stream: %s", err)
 	}
 
 	stateConf := &resource.StateChangeConf{
@@ -1459,14 +1457,12 @@ func resourceAwsKinesisFirehoseDeliveryStreamRead(d *schema.ResourceData, meta i
 	})
 
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "ResourceNotFoundException" {
-				d.SetId("")
-				return nil
-			}
-			return fmt.Errorf("[WARN] Error reading Kinesis Firehose Delivery Stream: %s", awsErr.Error())
+		if isAWSErr(err, firehose.ErrCodeResourceNotFoundException, "") {
+			log.Printf("[WARN] Kinesis Firehose Delivery Stream (%s) not found, removing from state", d.Get("name").(string))
+			d.SetId("")
+			return nil
 		}
-		return err
+		return fmt.Errorf("error reading Kinesis Firehose Delivery Stream: %s", err)
 	}
 
 	s := resp.DeliveryStreamDescription
@@ -1517,11 +1513,8 @@ func firehoseStreamStateRefreshFunc(conn *firehose.Firehose, sn string) resource
 		}
 		resp, err := conn.DescribeDeliveryStream(describeOpts)
 		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				if awsErr.Code() == "ResourceNotFoundException" {
-					return 42, "DESTROYED", nil
-				}
-				return nil, awsErr.Code(), err
+			if isAWSErr(err, firehose.ErrCodeResourceNotFoundException, "") {
+				return 42, "DESTROYED", nil
 			}
 			return nil, "failed", err
 		}

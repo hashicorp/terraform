@@ -122,7 +122,8 @@ func (r *DiffFieldReader) readMap(
 		result[k] = v.New
 	}
 
-	err = mapValuesToPrimitive(result, schema)
+	key := address[len(address)-1]
+	err = mapValuesToPrimitive(key, result, schema)
 	if err != nil {
 		return FieldReadResult{}, nil
 	}

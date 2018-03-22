@@ -31,7 +31,7 @@ $ terraform destroy
 - aws_instance.example
 ```
 
-The `-` prefix indicates that a the instance will be destroyed. As with apply,
+The `-` prefix indicates that the instance will be destroyed. As with apply,
 Terraform shows its execution plan and waits for approval before making any
 changes.
 

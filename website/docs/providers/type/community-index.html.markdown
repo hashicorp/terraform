@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Community Providers"
 sidebar_current: "docs-providers-community"
 description: |-
-  Category for database vendors.
+  Category for community-built providers.
 ---
 
 # Community Providers
@@ -44,12 +44,17 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     </tr>
     <tr>
     <td><a href="https://github.com/anubhavmishra/terraform-provider-jira">Jira</a></td>
+    <td><a href-"https://guthub.com/geekmuse/jumpcloud-terraform-provider">JumpCloud</a></td>
     <td><a href="https://github.com/Mongey/terraform-provider-kafka">Kafka</a></td>
-    <td><a href="https://github.com/ewilde/terraform-provider-kibana">Kibana</a></td>
     </tr>
     <tr>
+    <td><a href="https://github.com/ewilde/terraform-provider-kibana">Kibana</a></td>
     <td><a href="https://github.com/kevholditch/terraform-provider-kong">Kong</a></td>
     <td><a href="https://github.com/sl1pm4t/terraform-provider-lxd">LXD</a></td>
+    </tr>
+    <tr>
+    <td><a href="https://github.com/coreos/terraform-provider-matchbox">Matchbox</a></td>
+    <td><a href="https://github.com/akshaykarle/terraform-provider-mongodbatlas">MongoDB Atlas</a></td>
     <td><a href="https://github.com/GSLabDev/terraform-provider-odl">Open Day Light</a></td>
     </tr>
     <tr>

@@ -95,6 +95,11 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"hosted_zone_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"engine": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -247,6 +252,12 @@ func resourceAwsRDSCluster() *schema.Resource {
 			"cluster_resource_id": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"source_region": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"tags": tagsSchema(),
@@ -406,6 +417,10 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 		if attr, ok := d.GetOk("kms_key_id"); ok {
 			createOpts.KmsKeyId = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("source_region"); ok {
+			createOpts.SourceRegion = aws.String(attr.(string))
 		}
 
 		log.Printf("[DEBUG] Create RDS Cluster as read replica: %s", createOpts)
@@ -590,6 +605,7 @@ func flattenAwsRdsClusterResource(d *schema.ResourceData, meta interface{}, dbc 
 	d.Set("reader_endpoint", dbc.ReaderEndpoint)
 	d.Set("replication_source_identifier", dbc.ReplicationSourceIdentifier)
 	d.Set("iam_database_authentication_enabled", dbc.IAMDatabaseAuthenticationEnabled)
+	d.Set("hosted_zone_id", dbc.HostedZoneId)
 
 	var vpcg []string
 	for _, g := range dbc.VpcSecurityGroups {

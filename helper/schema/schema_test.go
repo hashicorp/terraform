@@ -4528,6 +4528,42 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 		},
 
+		"Map with type specified as value type": {
+			Schema: map[string]*Schema{
+				"user_data": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+					Elem:     TypeBool,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"user_data": map[string]interface{}{
+					"foo": "not_a_bool",
+				},
+			},
+
+			Err: true,
+		},
+
+		"Map with type specified as nested Schema": {
+			Schema: map[string]*Schema{
+				"user_data": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+					Elem:     &Schema{Type: TypeBool},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"user_data": map[string]interface{}{
+					"foo": "not_a_bool",
+				},
+			},
+
+			Err: true,
+		},
+
 		"Bad map: just a slice": {
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
