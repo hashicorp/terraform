@@ -8,14 +8,20 @@ description: |-
 
 # Workspaces
 
-A _workspace_ is a named container for Terraform state. With multiple
-workspaces, a single directory of Terraform configuration can be used to
-manage multiple distinct sets of infrastructure resources.
+Each Terraform configuration has an associated [backend](/docs/backends/index.html)
+that defines how operations are executed and where persistent data such as
+[the Terraform state](https://www.terraform.io/docs/state/purpose.html) are
+stored.
 
-Terraform state determines what resources it manages based on what
-exists in the state. This is how `terraform plan` determines what isn't
-created, what needs to be updated, etc. The full details of state can be
-found on [the _purpose_ page](/docs/state/purpose.html).
+The persistent data stored in the backend belongs to a _workspace_. Initially
+the backend has only one workspace, called "default", and thus there is only
+one Terraform state associated with that configuration.
+
+Certain backends support _multiple_ named workspaces, allowing multiple states
+to be associated with a single configuration. The configuration is still
+has only one backend, but multiple distinct instances of that configuration
+to be deployed without configuring a new backend or changing authentication
+credentials.
 
 Multiple workspaces are currently supported by the following backends:
 
@@ -89,37 +95,78 @@ resource "aws_instance" "example" {
 }
 ```
 
-## Best Practices
+## When to use Multiple Workspaces
 
-Workspaces can be used to manage small differences between development,
-staging, and production, but they **should not** be treated as the only
-isolation mechanism. As Terraform configurations get larger, it's much more
-manageable and safer to split one large configuration into many
-smaller ones linked together with the `terraform_remote_state` data source.
-This allows teams to delegate ownership and reduce the potential impact of
-changes. For *each* smaller configuration, you can use workspaces to model
-the differences between development, staging, and production. However, if you
-have one large Terraform configuration, it is riskier and not recommended to
-use workspaces to handle those differences.
+Named workspaces allow conveniently switching between multiple instances of
+a _single_ configuration within its _single_ backend. They are convenient in
+a number of situations, but cannot solve all problems.
 
-[The `terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html)
-accepts a `workspace` name to target. Therefore, you can link
-together multiple independently managed Terraform configurations with the same
-environment easily, with each configuration itself having multiple workspaces.
+A common use for multiple workspaces is to create a parallel, distinct copy of
+a set of infrastructure in order to test a set of changes before modifying the
+main production infrastructure. For example, a developer working on a complex
+set of infrastructure changes might create a new temporary workspace in order
+to freely experiment with changes without affecting the default workspace.
 
-While workspaces are available to all,
-[Terraform Enterprise](https://www.hashicorp.com/products/terraform/)
-provides an interface and API for managing sets of configurations linked
-with `terraform_remote_state` and viewing them all as a single environment.
+Non-default workspaces are often related to feature branches in version control.
+The default workspace might correspond to the "master" or "trunk" branch,
+which describes the intended state of production infrastructure. When a
+feature branch is created to develop a change, the developer of that feature
+might create a corresponding workspace and deploy into it a temporary "copy"
+of the main infrastructure so that changes can be tested without affecting
+the production infrastructure. Once the change is merged and deployed to the
+default workspace, the test infrastructure can be destroyed and the temporary
+workspace deleted.
 
-Workspaces alone are useful for isolating a set of resources to test
-changes during development. For example, it is common to associate a
-branch in a VCS with a temporary workspace so new features can be developed
-without affecting the default workspace.
+When Terraform is used to manage larger systems, teams should use multiple
+separate Terraform configurations that correspond with suitable architectural
+boundaries within the system so that different components can be managed
+separately and, if appropriate, by distinct teams. Workspaces _alone_
+are not a suitable tool for system decomposition, because each subsystem should
+have its own separate configuration and backend, and will thus have its own
+distinct set of workspaces.
 
-Future Terraform versions and workspace enhancements will enable
-Terraform to track VCS branches with a workspace to help verify only certain
-branches can make changes to a Terraform workspace.
+In particular, organizations commonly want to create a strong separation
+between multiple deployments of the same infrastructure serving different
+development stages (e.g. staging vs. production) or different internal teams.
+In this case, the backend used for each deployment often belongs to that
+deployment, with different credentials and access controls. Named workspaces
+are _not_ a suitable isolation mechanism for this scenario.
+
+Instead, use one or more [re-usable modules](/docs/modules/index.html) to
+represent the common elements, and then represent each instance as a separate
+configuration that instantiates those common elements in the context of a
+different backend. In that case, the root module of each configuration will
+consist only of a backend configuration and a small number of `module` blocks
+whose arguments describe any small differences between the deployments.
+
+Where multiple configurations are representing distinct system components
+rather than multiple deployments, data can be passed from one component to
+another using paired resources types and data sources. For example:
+
+* Where a shared [Consul](https://consul.io/) cluster is available, use
+  [`consul_key_prefix`](/docs/providers/consul/r/key_prefix.html) to
+  publish to the key/value store and [`consul_keys`](/docs/providers/consul/d/keys.html)
+  to retrieve those values in other configurations.
+
+* In systems that support user-defined labels or tags, use a tagging convention
+  to make resources automatically discoverable. For example, use
+  [the `aws_vpc` resource type](/docs/providers/aws/r/vpc.html)
+  to assign suitable tags and then
+  [the `aws_vpc` data source](/docs/providers/aws/d/vpc.html)
+  to query by those tags in other configurations.
+
+* For server addresses, use a provider-specific resource to create a DNS
+  record with a predictable name and then either use that name directly or
+  use [the `dns` provider](/docs/providers/dns/index.html) to retrieve
+  the published addresses in other configurations.
+
+* If a Terraform state for one configuration is stored in a remote backend
+  that is accessible to other configurations then
+  [`terraform_remote_state`](/docs/providers/terraform/d/remote_state.html)
+  can be used to directly consume its root module outputs from those other
+  configurations. This creates a tighter coupling between configurations,
+  but avoids the need for the "producer" configuration to explicitly
+  publish its results in a separate system.
 
 ## Workspace Internals
 
@@ -129,7 +176,7 @@ a set of protections and support for remote state.
 
 For local state, Terraform stores the workspace states in a directory called
 `terraform.tfstate.d`. This directory should be be treated similarly to
-local-only `terraform.tfstate`); some teams commit these files to version
+local-only `terraform.tfstate`; some teams commit these files to version
 control, although using a remote backend instead is recommended when there are
 multiple collaborators.
 
