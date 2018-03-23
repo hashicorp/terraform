@@ -26,7 +26,7 @@ Almost any infrastructure noun can be represented as a resource in Terraform.
 
 A provider is responsible for understanding API interactions with the underlying
 infrastructure like a cloud (AWS, GCP, Azure), a PaaS service (Heroku), a SaaS
-(service DNSimple, CloudFlare), or on-prem resources (vSphere). It then exposes
+service (DNSimple, CloudFlare), or on-prem resources (vSphere). It then exposes
 these as resources users can code to. Terraform presently supports more than
 70 providers, a number that has more than doubled in the past 12 months.
 
