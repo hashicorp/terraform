@@ -99,7 +99,7 @@ down to see all providers.
     <tr>
     <td><a href="/docs/providers/opentelekomcloud/index.html">OpenTelekomCloud</a></td>
     <td><a href="/docs/providers/opsgenie/index.html">OpsGenie</a></td>
-    <td><a href="/docs/provider/oraclepaas/index.html"><Oracle Platform Cloud</a></td>
+    <td><a href="/docs/providers/oraclepaas/index.html"><Oracle Platform Cloud</a></td>
     </tr>
     <tr>
     <td><a href="/docs/providers/ovh/index.html">OVH</a></td>
