@@ -686,17 +686,10 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 
 	outR, outW := io.Pipe()
 	errR, errW := io.Pipe()
-	outDoneCh := make(chan struct{})
-	errDoneCh := make(chan struct{})
-	go p.copyOutput(o, outR, outDoneCh)
-	go p.copyOutput(o, errR, errDoneCh)
-	go func() {
-		// Wait for output to clean up
-		outW.Close()
-		errW.Close()
-		<-outDoneCh
-		<-errDoneCh
-	}()
+	go p.copyOutput(o, outR)
+	go p.copyOutput(o, errR)
+	defer outW.Close()
+	defer errW.Close()
 
 	cmd := &remote.Cmd{
 		Command: command,
@@ -709,20 +702,14 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 		return fmt.Errorf("Error executing command %q: %v", cmd.Command, err)
 	}
 
-	cmd.Wait()
-	if cmd.Err() != nil {
-		return cmd.Err()
-	}
-
-	if cmd.ExitStatus() != 0 {
-		return fmt.Errorf("Command %q exited with non-zero exit status: %d", cmd.Command, cmd.ExitStatus())
+	if err := cmd.Wait(); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
-	defer close(doneCh)
+func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader) {
 	lr := linereader.New(r)
 	for line := range lr.Ch {
 		o.Output(line)
