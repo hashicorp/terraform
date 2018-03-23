@@ -93,13 +93,13 @@ down to see all providers.
     </tr>
     <tr>
     <td><a href="/docs/providers/oneandone/index.html">1&1</a></td>
-    <td><a href="/docs/providers/opc/index.html">Oracle Public Cloud</a></td>
     <td><a href="/docs/providers/openstack/index.html">OpenStack</a></td>
+    <td><a href="/docs/providers/opentelekomcloud/index.html">OpenTelekomCloud</a></td>
     </tr>
     <tr>
-    <td><a href="/docs/providers/opentelekomcloud/index.html">OpenTelekomCloud</a></td>
     <td><a href="/docs/providers/opsgenie/index.html">OpsGenie</a></td>
-    <td><a href="/docs/providers/oraclepaas/index.html"><Oracle Platform Cloud</a></td>
+    <td><a href="/docs/providers/opc/index.html">Oracle Public Cloud</a></td>
+    <td><a href="/docs/providers/oraclepaas/index.html">Oracle Cloud Platform </a></td>
     </tr>
     <tr>
     <td><a href="/docs/providers/ovh/index.html">OVH</a></td>
