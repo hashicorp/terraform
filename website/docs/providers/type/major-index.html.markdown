@@ -27,7 +27,7 @@ tested by HashiCorp.
 
 [Google Cloud](/docs/providers/google/index.html)
 
-[Oracle Platform Cloud](/docs/providers/oraclepaas/index.html)
+[Oracle Cloud Platform](/docs/providers/oraclepaas/index.html)
 
 [Oracle Public Cloud](/docs/providers/opc/index.html)
 
