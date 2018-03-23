@@ -198,10 +198,7 @@ func runScripts(
 		}
 
 		if err := cmd.Wait(); err != nil {
-			if rc, ok := err.(remote.ExitError); ok {
-				return fmt.Errorf("Script exited with non-zero exit status: %d", rc)
-			}
-			return fmt.Errorf("Remote command exited with error: %s", err)
+			return err
 		}
 
 		// Upload a blank follow up file in the same path to prevent residual

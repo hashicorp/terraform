@@ -69,19 +69,28 @@ func (c *Cmd) Wait() error {
 	c.Lock()
 	defer c.Unlock()
 
-	if c.err != nil {
-		return c.err
-	}
-
-	if c.exitStatus != 0 {
-		return ExitError(c.exitStatus)
+	if c.err != nil || c.exitStatus != 0 {
+		return &ExitError{
+			Command:    c.Command,
+			ExitStatus: c.exitStatus,
+			Err:        c.err,
+		}
 	}
 
 	return nil
 }
 
-type ExitError int
+// ExitError is returned by Wait to indicate and error executing the remote
+// command, or a non-zero exit status.
+type ExitError struct {
+	Command    string
+	ExitStatus int
+	Err        error
+}
 
-func (e ExitError) Error() string {
-	return fmt.Sprintf("exit status: %d", e)
+func (e *ExitError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("error executing %q: %v", e.Command, e.Err)
+	}
+	return fmt.Sprintf("%q exit status: %d", e.Command, e.ExitStatus)
 }

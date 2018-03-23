@@ -756,9 +756,6 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 	}
 
 	if err := cmd.Wait(); err != nil {
-		if rc, ok := err.(remote.ExitError); ok {
-			return fmt.Errorf("Command %q exited with non-zero exit status: %d", cmd.Command, rc)
-		}
 		return err
 	}
 

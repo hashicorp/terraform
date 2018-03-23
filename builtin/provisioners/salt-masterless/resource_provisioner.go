@@ -161,9 +161,6 @@ func applyFn(ctx context.Context) error {
 		}
 
 		if err := cmd.Wait(); err != nil {
-			if rc, ok := err.(remote.ExitError); ok {
-				return fmt.Errorf("Curl exited with non-zero exit status: %d", rc)
-			}
 			return err
 		}
 
@@ -186,9 +183,6 @@ func applyFn(ctx context.Context) error {
 		}
 
 		if err := cmd.Wait(); err != nil {
-			if rc, ok := err.(remote.ExitError); ok {
-				return fmt.Errorf("install_salt.sh exited with non-zero exit status: %d", rc)
-			}
 			return err
 		}
 	}
@@ -273,9 +267,6 @@ func applyFn(ctx context.Context) error {
 	}
 
 	if err := cmd.Wait(); err != nil {
-		if rc, ok := err.(remote.ExitError); ok {
-			return fmt.Errorf("Script exited with non-zero exit status: %d", rc)
-		}
 		return err
 	}
 	return nil
@@ -340,9 +331,6 @@ func (p *provisioner) moveFile(o terraform.UIOutput, comm communicator.Communica
 		return fmt.Errorf("Unable to move %s to %s: %s", src, dst, err)
 	}
 	if err := cmd.Wait(); err != nil {
-		if rc, ok := err.(remote.ExitError); ok {
-			return fmt.Errorf("Unable to move %s to %s: exit status: %d", src, dst, rc)
-		}
 		return err
 	}
 	return nil
@@ -358,9 +346,6 @@ func (p *provisioner) createDir(o terraform.UIOutput, comm communicator.Communic
 	}
 
 	if err := cmd.Wait(); err != nil {
-		if _, ok := err.(remote.ExitError); ok {
-			return fmt.Errorf("Non-zero exit status.")
-		}
 		return err
 	}
 	return nil
@@ -375,9 +360,6 @@ func (p *provisioner) removeDir(o terraform.UIOutput, comm communicator.Communic
 		return err
 	}
 	if err := cmd.Wait(); err != nil {
-		if _, ok := err.(remote.ExitError); ok {
-			return fmt.Errorf("Non-zero exit status.")
-		}
 		return err
 	}
 	return nil
