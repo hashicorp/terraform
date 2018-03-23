@@ -690,7 +690,7 @@ func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communi
 	errDoneCh := make(chan struct{})
 	go p.copyOutput(o, outR, outDoneCh)
 	go p.copyOutput(o, errR, errDoneCh)
-	go func() {
+	defer func() {
 		// Wait for output to clean up
 		outW.Close()
 		errW.Close()
