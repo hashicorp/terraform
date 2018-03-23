@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"fmt"
 	"io"
 	"sync"
 )
@@ -59,23 +60,37 @@ func (c *Cmd) SetExitStatus(status int, err error) {
 	close(c.exitCh)
 }
 
-// Err returns any communicator related error.
-func (c *Cmd) Err() error {
-	c.Lock()
-	defer c.Unlock()
-
-	return c.err
-}
-
-// ExitStatus returns the exit status of the remote command
-func (c *Cmd) ExitStatus() int {
-	c.Lock()
-	defer c.Unlock()
-
-	return c.exitStatus
-}
-
 // Wait waits for the remote command to complete.
-func (c *Cmd) Wait() {
+// Wait may return an error from the communicator, or an ExitError if the
+// process exits with a non-zero exit status.
+func (c *Cmd) Wait() error {
 	<-c.exitCh
+
+	c.Lock()
+	defer c.Unlock()
+
+	if c.err != nil || c.exitStatus != 0 {
+		return &ExitError{
+			Command:    c.Command,
+			ExitStatus: c.exitStatus,
+			Err:        c.err,
+		}
+	}
+
+	return nil
+}
+
+// ExitError is returned by Wait to indicate and error executing the remote
+// command, or a non-zero exit status.
+type ExitError struct {
+	Command    string
+	ExitStatus int
+	Err        error
+}
+
+func (e *ExitError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("error executing %q: %v", e.Command, e.Err)
+	}
+	return fmt.Sprintf("%q exit status: %d", e.Command, e.ExitStatus)
 }
