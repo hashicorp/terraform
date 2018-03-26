@@ -214,6 +214,8 @@ Options:
                          modifying. Defaults to the "-state-out" path with
                          ".backup" extension. Set to "-" to disable backup.
 
+  -auto-approve          Skip interactive approval of plan before applying.
+
   -lock=true             Lock the state file when locking is supported.
 
   -lock-timeout=0s       Duration to retry a state lock.
