@@ -313,20 +313,6 @@ provider "aws" {
 Each resource should then have its own `provider` attribute set to either
 `"aws.src"` or `"aws.dst"` to choose which of the two provider instances to use.
 
-At this time it is required to write an explicit proxy configuration block
-even for default (un-aliased) provider configurations when they will be passed
-via an explicit `providers` block:
-
-```hcl
-provider "aws" {
-}
-```
-
-If such a block is not present, the child module will behave as if it has no
-configurations of this type at all, which may cause input prompts to supply
-any required provider configuration arguments. This limitation will be
-addressed in a future version of Terraform.
-
 ## Multiple Instances of a Module
 
 A particular module source can be instantiated multiple times:
