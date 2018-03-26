@@ -92,6 +92,8 @@ There are **meta-parameters** available to all resources:
         which will match all attribute names. Using a partial string together
         with a wildcard (e.g. `"rout*"`) is **not** supported.
 
+  -> **Note**: Interpolations are **not** supported in `lifecycle` yet (see [issue #3116](https://github.com/hashicorp/terraform/issues/3116)).
+
 ### Timeouts
 
 Individual Resources may provide a `timeouts` block to enable users to configure the
