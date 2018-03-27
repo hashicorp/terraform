@@ -2,11 +2,9 @@ package command
 
 import (
 	"bufio"
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -41,43 +39,46 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	// Load the module
-	mod, diags := c.Module(configPath)
+	backendConfig, backendDiags := c.loadBackendConfig(configPath)
+	diags = diags.Append(backendDiags)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	var conf *config.Config
-	if mod != nil {
-		conf = mod.Config()
-	}
-
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: conf,
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
 	})
-
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// We require a local backend
 	local, ok := b.(backend.Local)
 	if !ok {
+		c.showDiagnostics(diags) // in case of any warnings in here
 		c.Ui.Error(ErrUnsupportedLocalOp)
 		return 1
 	}
 
 	// Build the operation
 	opReq := c.Operation()
-	opReq.Module = mod
+	opReq.ConfigDir = configPath
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	// Get the context
-	ctx, _, err := local.Context(opReq)
-	if err != nil {
-		c.Ui.Error(err.Error())
+	ctx, _, ctxDiags := local.Context(opReq)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 

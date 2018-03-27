@@ -31,9 +31,9 @@ func (c *StateMeta) State() (state.State, error) {
 		}
 	} else {
 		// Load the backend
-		b, err := c.Backend(nil)
-		if err != nil {
-			return nil, err
+		b, backendDiags := c.Backend(nil)
+		if backendDiags.HasErrors() {
+			return nil, backendDiags.Err()
 		}
 
 		env := c.Workspace()
@@ -44,10 +44,10 @@ func (c *StateMeta) State() (state.State, error) {
 		}
 
 		// Get a local backend
-		localRaw, err := c.Backend(&BackendOpts{ForceLocal: true})
-		if err != nil {
+		localRaw, backendDiags := c.Backend(&BackendOpts{ForceLocal: true})
+		if backendDiags.HasErrors() {
 			// This should never fail
-			panic(err)
+			panic(backendDiags.Err())
 		}
 		localB := localRaw.(*backendLocal.Local)
 		_, stateOutPath, _ = localB.StatePaths(env)

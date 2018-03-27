@@ -9,6 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/configs"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/backend"
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	backendLocal "github.com/hashicorp/terraform/backend/local"
@@ -28,9 +31,9 @@ func TestMetaBackend_emptyDir(t *testing.T) {
 
 	// Get the backend
 	m := testMetaBackend(t, nil)
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Write some state
@@ -98,9 +101,9 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 
 	// Get the backend
 	m := testMetaBackend(t, nil)
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -171,9 +174,9 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 	m.statePath = statePath
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -230,9 +233,9 @@ func TestMetaBackend_emptyLegacyRemote(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -297,9 +300,9 @@ func TestMetaBackend_configureNew(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -366,9 +369,9 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -444,9 +447,9 @@ func TestMetaBackend_configureNewWithoutCopy(t *testing.T) {
 	m.input = false
 
 	// init the backend
-	_, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	_, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Verify the state is where we expect
@@ -493,9 +496,9 @@ func TestMetaBackend_configureNewWithStateNoMigrate(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -537,9 +540,9 @@ func TestMetaBackend_configureNewWithStateExisting(t *testing.T) {
 	m.forceInitCopy = true
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -611,9 +614,9 @@ func TestMetaBackend_configureNewWithStateExistingNoMigrate(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -685,9 +688,9 @@ func TestMetaBackend_configureNewLegacy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -779,9 +782,9 @@ func TestMetaBackend_configureNewLegacyCopy(t *testing.T) {
 	m.forceInitCopy = true
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -872,9 +875,9 @@ func TestMetaBackend_configuredUnchanged(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -919,9 +922,9 @@ func TestMetaBackend_configuredChange(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -1007,9 +1010,9 @@ func TestMetaBackend_reconfigureChange(t *testing.T) {
 	m.reconfigure = true
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -1051,9 +1054,9 @@ func TestMetaBackend_configuredChangeCopy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -1105,9 +1108,9 @@ func TestMetaBackend_configuredChangeCopy_singleState(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -1160,9 +1163,9 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleDefault(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -1215,9 +1218,9 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -1286,9 +1289,9 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 	}
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -1342,9 +1345,9 @@ func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check resulting states
@@ -1584,9 +1587,9 @@ func TestMetaBackend_configuredUnset(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -1668,9 +1671,9 @@ func TestMetaBackend_configuredUnsetCopy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -1747,9 +1750,9 @@ func TestMetaBackend_configuredUnchangedLegacy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -1848,9 +1851,9 @@ func TestMetaBackend_configuredUnchangedLegacyCopy(t *testing.T) {
 	m.forceInitCopy = true
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -1951,9 +1954,9 @@ func TestMetaBackend_configuredChangedLegacy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -2051,9 +2054,9 @@ func TestMetaBackend_configuredChangedLegacyCopyBackend(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -2154,9 +2157,9 @@ func TestMetaBackend_configuredChangedLegacyCopyLegacy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -2257,9 +2260,9 @@ func TestMetaBackend_configuredChangedLegacyCopyBoth(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -2360,9 +2363,9 @@ func TestMetaBackend_configuredUnsetWithLegacyNoCopy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -2450,9 +2453,9 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBackend(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -2548,9 +2551,9 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyLegacy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -2646,9 +2649,9 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBoth(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Init: true})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -2747,9 +2750,9 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Plan: plan})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -2844,9 +2847,9 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	m.stateOutPath = statePath
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Plan: plan})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -2930,9 +2933,9 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Plan: plan})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -3023,12 +3026,12 @@ func TestMetaBackend_planLocalMismatchLineage(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	_, err := m.Backend(&BackendOpts{Plan: plan})
-	if err == nil {
+	_, diags := m.Backend(&BackendOpts{Plan: plan})
+	if !diags.HasErrors() {
 		t.Fatal("should have error")
 	}
-	if !strings.Contains(err.Error(), "lineage") {
-		t.Fatalf("bad: %s", err)
+	if !strings.Contains(diags[0].Description().Summary, "lineage") {
+		t.Fatalf("wrong diagnostic message %q; want something containing \"lineage\"", diags[0].Description().Summary)
 	}
 
 	// Verify our local state didn't change
@@ -3075,12 +3078,12 @@ func TestMetaBackend_planLocalNewer(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	_, err := m.Backend(&BackendOpts{Plan: plan})
-	if err == nil {
+	_, diags := m.Backend(&BackendOpts{Plan: plan})
+	if !diags.HasErrors() {
 		t.Fatal("should have error")
 	}
-	if !strings.Contains(err.Error(), "older") {
-		t.Fatalf("bad: %s", err)
+	if !strings.Contains(diags[0].Description().Summary, "older") {
+		t.Fatalf("wrong diagnostic message %q; want something containing \"older\"", diags[0].Description().Summary)
 	}
 
 	// Verify our local state didn't change
@@ -3130,9 +3133,9 @@ func TestMetaBackend_planBackendEmptyDir(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Plan: plan})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -3232,9 +3235,9 @@ func TestMetaBackend_planBackendMatch(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	b, diags := m.Backend(&BackendOpts{Plan: plan})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -3337,12 +3340,12 @@ func TestMetaBackend_planBackendMismatchLineage(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	_, err := m.Backend(&BackendOpts{Plan: plan})
-	if err == nil {
+	_, diags := m.Backend(&BackendOpts{Plan: plan})
+	if !diags.HasErrors() {
 		t.Fatal("should have error")
 	}
-	if !strings.Contains(err.Error(), "lineage") {
-		t.Fatalf("bad: %s", err)
+	if !strings.Contains(diags[0].Description().Summary, "lineage") {
+		t.Fatalf("wrong diagnostic message %q; want something containing \"lineage\"", diags[0].Description().Summary)
 	}
 
 	// Verify our local state didn't change
@@ -3395,9 +3398,9 @@ func TestMetaBackend_planLegacy(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, err := m.Backend(&BackendOpts{Plan: plan})
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	b, diags := m.Backend(&BackendOpts{Plan: plan})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
@@ -3476,52 +3479,46 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	extras := map[string]interface{}{"path": "hello"}
+	extras := map[string]cty.Value{"path": cty.StringVal("hello")}
 	m := testMetaBackend(t, nil)
 	opts := &BackendOpts{
-		ConfigExtra: extras,
-		Init:        true,
+		ConfigOverride: configs.SynthBody("synth", extras),
+		Init:           true,
 	}
 
-	backendCfg, err := m.backendConfig(opts)
+	_, cHash, err := m.backendConfig(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// init the backend
-	_, err = m.Backend(&BackendOpts{
-		ConfigExtra: extras,
-		Init:        true,
+	_, diags := m.Backend(&BackendOpts{
+		ConfigOverride: configs.SynthBody("synth", extras),
+		Init:           true,
 	})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// Check the state
-	s := testStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
-	if s.Backend.Hash != backendCfg.Hash {
+	s := testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	if s.Backend.Hash != cHash {
 		t.Fatal("mismatched state and config backend hashes")
-	}
-	if s.Backend.Rehash() == s.Backend.Hash {
-		t.Fatal("saved hash should not match actual hash")
-	}
-	if s.Backend.Rehash() != backendCfg.Rehash() {
-		t.Fatal("mismatched state and config re-hashes")
 	}
 
 	// init the backend again with the same options
 	m = testMetaBackend(t, nil)
 	_, err = m.Backend(&BackendOpts{
-		ConfigExtra: extras,
-		Init:        true,
+		ConfigOverride: configs.SynthBody("synth", extras),
+		Init:           true,
 	})
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 
 	// Check the state
-	s = testStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))
-	if s.Backend.Hash != backendCfg.Hash {
+	s = testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	if s.Backend.Hash != cHash {
 		t.Fatal("mismatched state and config backend hashes")
 	}
 }
@@ -3557,11 +3554,9 @@ func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 	m := testMetaBackend(t, nil)
 	m.forceInitCopy = true
 	// init the backend
-	_, err = m.Backend(&BackendOpts{
-		Init: true,
-	})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	_, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// check that we can read the state
@@ -3599,15 +3594,15 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 	}
 
 	// init the backend again with the  options
-	extras := map[string]interface{}{"path": "hello"}
+	extras := map[string]cty.Value{"path": cty.StringVal("hello")}
 	m = testMetaBackend(t, nil)
 	m.forceInitCopy = true
-	_, err = m.Backend(&BackendOpts{
-		ConfigExtra: extras,
-		Init:        true,
+	_, diags := m.Backend(&BackendOpts{
+		ConfigOverride: configs.SynthBody("synth", extras),
+		Init:           true,
 	})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	s = testStateRead(t, filepath.Join(DefaultDataDir, backendLocal.DefaultStateFilename))

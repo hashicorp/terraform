@@ -261,6 +261,15 @@ func (m *Meta) StdinPiped() bool {
 	return fi.Mode()&os.ModeNamedPipe != 0
 }
 
+// RunOperation executes the given operation on the given backend, blocking
+// until that operation completes or is inteerrupted, and then returns
+// the RunningOperation object representing the completed or
+// aborted operation that is, despite the name, no longer running.
+//
+// An error is returned if the operation either fails to start or is cancelled.
+// If the operation runs to completion then no error is returned even if the
+// operation itself is unsuccessful. Use the "Result" field of the
+// returned operation object to recognize operation-level failure.
 func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*backend.RunningOperation, error) {
 	op, err := b.Operation(context.Background(), opReq)
 	if err != nil {
@@ -300,10 +309,6 @@ func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*back
 		}
 	case <-op.Done():
 		// operation completed normally
-	}
-
-	if op.Err != nil {
-		return op, op.Err
 	}
 
 	return op, nil

@@ -20,9 +20,12 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
-	"github.com/mitchellh/copystructure"
-
+	"github.com/hashicorp/terraform/config/configschema"
 	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+
+	"github.com/mitchellh/copystructure"
 )
 
 const (
@@ -811,13 +814,9 @@ func (s *State) String() string {
 
 // BackendState stores the configuration to connect to a remote backend.
 type BackendState struct {
-	Type   string                 `json:"type"`   // Backend type
-	Config map[string]interface{} `json:"config"` // Backend raw config
-
-	// Hash is the hash code to uniquely identify the original source
-	// configuration. We use this to detect when there is a change in
-	// configuration even when "type" isn't changed.
-	Hash uint64 `json:"hash"`
+	Type      string          `json:"type"`   // Backend type
+	ConfigRaw json.RawMessage `json:"config"` // Backend raw config
+	Hash      int             `json:"hash"`   // Hash of portion of configuration from config files
 }
 
 // Empty returns true if BackendState has no state.
@@ -825,25 +824,29 @@ func (s *BackendState) Empty() bool {
 	return s == nil || s.Type == ""
 }
 
-// Rehash returns a unique content hash for this backend's configuration
-// as a uint64 value.
-// The Hash stored in the backend state needs to match the config itself, but
-// we need to compare the backend config after it has been combined with all
-// options.
-// This function must match the implementation used by config.Backend.
-func (s *BackendState) Rehash() uint64 {
-	if s == nil {
-		return 0
-	}
+// Config decodes the type-specific configuration object using the provided
+// schema and returns the result as a cty.Value.
+//
+// An error is returned if the stored configuration does not conform to the
+// given schema.
+func (s *BackendState) Config(schema *configschema.Block) (cty.Value, error) {
+	ty := schema.ImpliedType()
+	return ctyjson.Unmarshal(s.ConfigRaw, ty)
+}
 
-	cfg := config.Backend{
-		Type: s.Type,
-		RawConfig: &config.RawConfig{
-			Raw: s.Config,
-		},
+// SetConfig replaces (in-place) the type-specific configuration object using
+// the provided value and associated schema.
+//
+// An error is returned if the given value does not conform to the implied
+// type of the schema.
+func (s *BackendState) SetConfig(val cty.Value, schema *configschema.Block) error {
+	ty := schema.ImpliedType()
+	buf, err := ctyjson.Marshal(val, ty)
+	if err != nil {
+		return err
 	}
-
-	return cfg.Rehash()
+	s.ConfigRaw = buf
+	return nil
 }
 
 // RemoteState is used to track the information about a remote

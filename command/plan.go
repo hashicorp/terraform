@@ -5,8 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -70,58 +69,62 @@ func (c *PlanCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	// Load the module if we don't have one yet (not running from plan)
-	var mod *module.Tree
+	var backendConfig *configs.Backend
 	if plan == nil {
-		var modDiags tfdiags.Diagnostics
-		mod, modDiags = c.Module(configPath)
-		diags = diags.Append(modDiags)
-		if modDiags.HasErrors() {
+		var configDiags tfdiags.Diagnostics
+		backendConfig, configDiags = c.loadBackendConfig(configPath)
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
 	}
 
-	var conf *config.Config
-	if mod != nil {
-		conf = mod.Config()
-	}
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: conf,
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
 		Plan:   plan,
 	})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
+
+	// Emit any diagnostics we've accumulated before we delegate to the
+	// backend, since the backend will handle its own diagnostics internally.
+	c.showDiagnostics(diags)
+	diags = nil
 
 	// Build the operation
 	opReq := c.Operation()
 	opReq.Destroy = destroy
-	opReq.Module = mod
-	opReq.ModuleDepth = moduleDepth
+	opReq.ConfigDir = configPath
 	opReq.Plan = plan
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypePlan
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		c.showDiagnostics(err)
+		return 1
+	}
 
 	// Perform the operation
 	op, err := c.RunOperation(b, opReq)
 	if err != nil {
-		diags = diags.Append(err)
-	}
-
-	c.showDiagnostics(diags)
-	if diags.HasErrors() {
+		c.showDiagnostics(err)
 		return 1
 	}
 
+	if op.Result != backend.OperationSuccess {
+		return op.Result.ExitStatus()
+	}
 	if detailed && !op.PlanEmpty {
 		return 2
 	}
 
-	return op.ExitCode
+	return op.Result.ExitStatus()
 }
 
 func (c *PlanCommand) Help() string {
