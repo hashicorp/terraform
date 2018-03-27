@@ -7,12 +7,13 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/terraform/configs"
+
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -118,66 +119,75 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	// Load the module if we don't have one yet (not running from plan)
-	var mod *module.Tree
+	var backendConfig *configs.Backend
 	if plan == nil {
-		var modDiags tfdiags.Diagnostics
-		mod, modDiags = c.Module(configPath)
-		diags = diags.Append(modDiags)
-		if modDiags.HasErrors() {
+		var configDiags tfdiags.Diagnostics
+		backendConfig, configDiags = c.loadBackendConfig(configPath)
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
 	}
 
-	var conf *config.Config
-	if mod != nil {
-		conf = mod.Config()
-	}
-
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: conf,
+	b, beDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
 		Plan:   plan,
 	})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(beDiags)
+	if beDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
+
+	// Before we delegate to the backend, we'll print any warning diagnostics
+	// we've accumulated here, since the backend will start fresh with its own
+	// diagnostics.
+	c.showDiagnostics(diags)
+	diags = nil
 
 	// Build the operation
 	opReq := c.Operation()
 	opReq.AutoApprove = autoApprove
 	opReq.Destroy = c.Destroy
-	opReq.DestroyForce = destroyForce
-	opReq.Module = mod
+	opReq.ConfigDir = configPath
 	opReq.Plan = plan
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypeApply
-
-	op, err := c.RunOperation(b, opReq)
+	opReq.AutoApprove = autoApprove
+	opReq.DestroyForce = destroyForce
+	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
-		diags = diags.Append(err)
-	}
-
-	c.showDiagnostics(diags)
-	if diags.HasErrors() {
+		c.showDiagnostics(err)
 		return 1
 	}
 
-	if !c.Destroy {
-		// Get the right module that we used. If we ran a plan, then use
-		// that module.
-		if plan != nil {
-			mod = plan.Module
-		}
-
-		if outputs := outputsAsString(op.State, terraform.RootModulePath, mod.Config().Outputs, true); outputs != "" {
-			c.Ui.Output(c.Colorize().Color(outputs))
-		}
+	op, err := c.RunOperation(b, opReq)
+	if err != nil {
+		c.showDiagnostics(err)
+		return 1
+	}
+	if op.Result != backend.OperationSuccess {
+		return op.Result.ExitStatus()
 	}
 
-	return op.ExitCode
+	if !c.Destroy {
+		// TODO: Print outputs, once this is updated to use new config types.
+		/*
+			// Get the right module that we used. If we ran a plan, then use
+			// that module.
+			if plan != nil {
+				mod = plan.Module
+			}
+
+			if outputs := outputsAsString(op.State, terraform.RootModulePath, mod.Config().Outputs, true); outputs != "" {
+				c.Ui.Output(c.Colorize().Color(outputs))
+			}
+		*/
+	}
+
+	return op.Result.ExitStatus()
 }
 
 func (c *ApplyCommand) Help() string {

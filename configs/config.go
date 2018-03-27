@@ -113,3 +113,21 @@ func (c *Config) AllModules() []*Config {
 	})
 	return ret
 }
+
+// Descendent returns the descendent config that has the given path beneath
+// the receiver, or nil if there is no such module.
+//
+// The path traverses the static module tree, prior to any expansion to handle
+// count and for_each arguments.
+//
+// An empty path will just return the receiver, and is therefore pointless.
+func (c *Config) Descendent(path []string) *Config {
+	current := c
+	for _, name := range path {
+		current = current.Children[name]
+		if current == nil {
+			return nil
+		}
+	}
+	return current
+}
