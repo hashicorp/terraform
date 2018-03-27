@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // OutputCommand is a Command implementation that reads an output
@@ -46,10 +48,13 @@ func (c *OutputCommand) Run(args []string) int {
 		name = args[0]
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// Load the backend
-	b, err := c.Backend(nil)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	b, backendDiags := c.Backend(nil)
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 

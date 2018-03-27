@@ -552,9 +552,9 @@ func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State
 
 	state := terraform.NewState()
 	state.Backend = &terraform.BackendState{
-		Type:   "http",
-		Config: map[string]interface{}{"address": srv.URL},
-		Hash:   2529831861221416334,
+		Type:      "http",
+		ConfigRaw: json.RawMessage(fmt.Sprintf(`{"address":%q}`, srv.URL)),
+		Hash:      2529831861221416334,
 	}
 
 	return state, srv

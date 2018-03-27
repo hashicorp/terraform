@@ -275,3 +275,7 @@ const (
 	// performed at all.
 	OperationFailure OperationResult = 1
 )
+
+func (r OperationResult) ExitStatus() int {
+	return int(r)
+}
