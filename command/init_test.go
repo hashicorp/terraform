@@ -11,6 +11,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/configs"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -312,8 +315,8 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 	// Read our saved backend config and verify we have our settings
 	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-	if v := state.Backend.Config["path"]; v != "hello" {
-		t.Fatalf("bad: %#v", v)
+	if got, want := string(state.Backend.ConfigRaw), `{"path":"hello"}`; got != want {
+		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
 }
 
@@ -344,8 +347,8 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 
 	// Read our saved backend config and verify we have our settings
 	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-	if v := state.Backend.Config["path"]; v != "hello" {
-		t.Fatalf("bad: %#v", v)
+	if got, want := string(state.Backend.ConfigRaw), `{"path":"hello"}`; got != want {
+		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
 }
 
@@ -371,8 +374,8 @@ func TestInit_backendConfigKV(t *testing.T) {
 
 	// Read our saved backend config and verify we have our settings
 	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-	if v := state.Backend.Config["path"]; v != "hello" {
-		t.Fatalf("bad: %#v", v)
+	if got, want := string(state.Backend.ConfigRaw), `{"path":"hello"}`; got != want {
+		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
 }
 
@@ -419,11 +422,13 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 
 	m := testMetaBackend(t, nil)
 	opts := &BackendOpts{
-		ConfigExtra: map[string]interface{}{"path": "hello"},
-		Init:        true,
+		ConfigOverride: configs.SynthBody("synth", map[string]cty.Value{
+			"path": cty.StringVal("hello"),
+		}),
+		Init: true,
 	}
 
-	b, err := m.backendConfig(opts)
+	_, cHash, err := m.backendConfig(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -443,16 +448,12 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 
 	// Read our saved backend config and verify we have our settings
 	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-	if v := state.Backend.Config["path"]; v != "hello" {
-		t.Fatalf("bad: %#v", v)
+	if got, want := string(state.Backend.ConfigRaw), `{"path":"hello"}`; got != want {
+		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
 
-	if state.Backend.Hash != b.Hash {
+	if state.Backend.Hash != cHash {
 		t.Fatal("mismatched state and config backend hashes")
-	}
-
-	if state.Backend.Rehash() != b.Rehash() {
-		t.Fatal("mismatched state and config re-hashes")
 	}
 
 	// init again and make sure nothing changes
@@ -460,11 +461,10 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 	state = testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-	if v := state.Backend.Config["path"]; v != "hello" {
-		t.Fatalf("bad: %#v", v)
+	if got, want := string(state.Backend.ConfigRaw), `{"path":"hello"}`; got != want {
+		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
-
-	if state.Backend.Hash != b.Hash {
+	if state.Backend.Hash != cHash {
 		t.Fatal("mismatched state and config backend hashes")
 	}
 }
@@ -490,8 +490,8 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 
 	// Read our saved backend config and verify we have our settings
 	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-	if v := state.Backend.Config["path"]; v != "foo" {
-		t.Fatalf("bad: %#v", v)
+	if got, want := string(state.Backend.ConfigRaw), `{"path":"foo"}`; got != want {
+		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
 
 	backendHash := state.Backend.Hash

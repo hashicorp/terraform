@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform/moduledeps"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/xlab/treeprint"
 )
 
@@ -38,26 +38,22 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Load the config
-	root, diags := c.Module(configPath)
-	if diags.HasErrors() {
+	var diags tfdiags.Diagnostics
+
+	config, configDiags := c.loadConfig(configPath)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
 		c.showDiagnostics(diags)
-		return 1
-	}
-	if root == nil {
-		c.Ui.Error(fmt.Sprintf(
-			"No configuration files found in the directory: %s\n\n"+
-				"This command requires configuration to run.",
-			configPath))
 		return 1
 	}
 
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: root.Config(),
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: config.Module.Backend,
 	})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -73,9 +69,11 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
-	s := state.State()
-
-	depTree := terraform.ModuleTreeDependencies(root, s)
+	// FIXME: Restore this once the "terraform" package is updated to deal
+	// with HCL2 config types.
+	//s := state.State()
+	//depTree := terraform.ModuleTreeDependencies(config, s)
+	var depTree *moduledeps.Module
 	depTree.SortDescendents()
 
 	printRoot := treeprint.New()
