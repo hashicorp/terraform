@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 )
@@ -38,9 +39,13 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	conf, err := c.Config(configPath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+	var diags tfdiags.Diagnostics
+
+	backendConfig, backendDiags := c.loadBackendConfig(configPath)
+	diags = diags.Append(backendDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	current, isOverridden := c.WorkspaceOverridden()
@@ -50,9 +55,14 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: conf,
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
 	})
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))

@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -76,37 +76,34 @@ func (c *ImportCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	// Load the module
-	var mod *module.Tree
-	if configPath != "" {
-		if empty, _ := config.IsEmptyDir(configPath); empty {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "No Terraform configuration files",
-				Detail: fmt.Sprintf(
-					"The directory %s does not contain any Terraform configuration files (.tf or .tf.json). To specify a different configuration directory, use the -config=\"...\" command line option.",
-					configPath,
-				),
-			})
-			c.showDiagnostics(diags)
-			return 1
-		}
+	if !c.dirIsConfigPath(configPath) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "No Terraform configuration files",
+			Detail: fmt.Sprintf(
+				"The directory %s does not contain any Terraform configuration files (.tf or .tf.json). To specify a different configuration directory, use the -config=\"...\" command line option.",
+				configPath,
+			),
+		})
+		c.showDiagnostics(diags)
+		return 1
+	}
 
-		var modDiags tfdiags.Diagnostics
-		mod, modDiags = c.Module(configPath)
-		diags = diags.Append(modDiags)
-		if modDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
+	// Load the full config, so we can verify that the target resource is
+	// already configured.
+	config, configDiags := c.loadConfig(configPath)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	// Verify that the given address points to something that exists in config.
 	// This is to reduce the risk that a typo in the resource address will
 	// import something that Terraform will want to immediately destroy on
 	// the next plan, and generally acts as a reassurance of user intent.
-	targetMod := mod.Child(addr.Path)
-	if targetMod == nil {
+	targetConfig := config.Descendent(addr.Path)
+	if targetConfig == nil {
 		modulePath := addr.WholeModuleAddress().String()
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -119,10 +116,11 @@ func (c *ImportCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
-	rcs := targetMod.Config().Resources
-	var rc *config.Resource
+	targetMod := targetConfig.Module
+	rcs := targetMod.ManagedResources
+	var rc *configs.ManagedResource
 	for _, thisRc := range rcs {
-		if addr.MatchesConfig(targetMod, thisRc) {
+		if addr.MatchesManagedResourceConfig(addr.Path, thisRc) {
 			rc = thisRc
 			break
 		}
@@ -154,11 +152,12 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: mod.Config(),
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: config.Module.Backend,
 	})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -175,12 +174,19 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Build the operation
 	opReq := c.Operation()
-	opReq.Module = mod
+	opReq.ConfigDir = configPath
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	// Get the context
-	ctx, state, err := local.Context(opReq)
-	if err != nil {
-		c.Ui.Error(err.Error())
+	ctx, state, ctxDiags := local.Context(opReq)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 

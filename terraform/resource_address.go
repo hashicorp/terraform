@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 )
 
 // ResourceAddress is a way of identifying an individual resource (or,
@@ -109,30 +109,35 @@ func (r *ResourceAddress) WholeModuleAddress() *ResourceAddress {
 	}
 }
 
-// MatchesConfig returns true if the receiver matches the given
-// configuration resource within the given configuration module.
+// MatchesManagedResourceConfig returns true if the receiver matches the given
+// configuration resource within the given _static_ module path. Note that
+// the module path in a resource address is a _dynamic_ module path, and
+// multiple dynamic resource paths may map to a single static path if
+// count and for_each are in use on module calls.
 //
 // Since resource configuration blocks represent all of the instances of
 // a multi-instance resource, the index of the address (if any) is not
 // considered.
-func (r *ResourceAddress) MatchesConfig(mod *module.Tree, rc *config.Resource) bool {
+func (r *ResourceAddress) MatchesManagedResourceConfig(path []string, rc *configs.ManagedResource) bool {
 	if r.HasResourceSpec() {
-		if r.Mode != rc.Mode || r.Type != rc.Type || r.Name != rc.Name {
+		if r.Mode != config.ManagedResourceMode {
+			return false
+		}
+		if r.Type != rc.Type || r.Name != rc.Name {
 			return false
 		}
 	}
 
 	addrPath := r.Path
-	cfgPath := mod.Path()
 
 	// normalize
 	if len(addrPath) == 0 {
 		addrPath = nil
 	}
-	if len(cfgPath) == 0 {
-		cfgPath = nil
+	if len(path) == 0 {
+		path = nil
 	}
-	return reflect.DeepEqual(addrPath, cfgPath)
+	return reflect.DeepEqual(addrPath, path)
 }
 
 // stateId returns the ID that this resource should be entered with
