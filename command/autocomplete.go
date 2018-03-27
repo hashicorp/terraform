@@ -49,15 +49,15 @@ func (m *Meta) completePredictWorkspaceName() complete.Predictor {
 			return nil
 		}
 
-		cfg, err := m.Config(configPath)
-		if err != nil {
+		backendConfig, diags := m.loadBackendConfig(configPath)
+		if diags.HasErrors() {
 			return nil
 		}
 
-		b, err := m.Backend(&BackendOpts{
-			Config: cfg,
+		b, diags := m.Backend(&BackendOpts{
+			Config: backendConfig,
 		})
-		if err != nil {
+		if diags.HasErrors() {
 			return nil
 		}
 

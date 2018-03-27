@@ -8,8 +8,6 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -60,55 +58,47 @@ func (c *GraphCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	// Load the module
-	var mod *module.Tree
-	if plan == nil {
-		var modDiags tfdiags.Diagnostics
-		mod, modDiags = c.Module(configPath)
-		diags = diags.Append(modDiags)
-		if modDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-	}
-
-	var conf *config.Config
-	if mod != nil {
-		conf = mod.Config()
+	backendConfig, backendDiags := c.loadBackendConfig(configPath)
+	diags = diags.Append(backendDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{
-		Config: conf,
-		Plan:   plan,
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
 	})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// We require a local backend
 	local, ok := b.(backend.Local)
 	if !ok {
+		c.showDiagnostics(diags) // in case of any warnings in here
 		c.Ui.Error(ErrUnsupportedLocalOp)
 		return 1
 	}
 
-	// Building a graph may require config module to be present, even if it's
-	// empty.
-	if mod == nil && plan == nil {
-		mod = module.NewEmptyTree()
-	}
-
 	// Build the operation
 	opReq := c.Operation()
-	opReq.Module = mod
+	opReq.ConfigDir = configPath
+	opReq.ConfigLoader, err = c.initConfigLoader()
 	opReq.Plan = plan
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	// Get the context
-	ctx, _, err := local.Context(opReq)
-	if err != nil {
-		c.Ui.Error(err.Error())
+	ctx, _, ctxDiags := local.Context(opReq)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
