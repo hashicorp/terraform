@@ -23,6 +23,8 @@ Without these prerequisites, your provisioning execution will fail.
 
 ## Example usage
 
+### Chef server with environment
+
 ```hcl
 resource "aws_instance" "web" {
   # ...
@@ -57,9 +59,40 @@ resource "aws_instance" "web" {
 }
 ```
 
+### Local mode with Policyfile
+
+With policy `example` specified in `example.rb`, it is possible to generate the repository
+with `chef export example.rb example`. If data bags are needed, they can be placed within
+the repository directory.
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "chef" {
+    use_local_mode = true
+    use_policyfile = true
+    policy_name    = "example"
+    chef_repo      = "${path.module}/chef/example"
+    version        = "13.7"
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
+
+* `use_local_mode (boolean)` - (Optional) If set to `true`, chef-client is run in local mode, i.e.
+  `chef-client -z`. A `true` value requires `chef_repo` to be set and conflicts with the settings
+  `server_url`, `user_name`, `user_key`, `fetch_chef_certificates`, `http_proxy`, `https_proxy`,
+  `no_proxy`, `skip_register` and `ssl_verify_mode`. Default: `false`.
+
+* `chef_repo (string)` - (Optional) Path to a directory containing the chef repo that is to
+  be used for the chef-client run. The directory can be a typical environment cookbook, containing
+  the subdirectories `cookbooks`, `environments`, `roles`, `data_bags`. Or it can be a Policyfile
+  directory as created by `chef export`. In this case `use_policyfile` etc. need to be set
+  accordingly.
 
 * `attributes_json (string)` - (Optional) A raw JSON string with initial node attributes
   for the new node. These can also be loaded from a file on disk using the [`file()`
@@ -92,7 +125,8 @@ The following arguments are supported:
   `false`).
 
 * `policy_group (string)` - (Optional) The name of a policy group that exists on the Chef
-  server. Required if `use_policyfile` is set; `policy_name` must also be specified.
+  server. Required if `use_policyfile` is set; `policy_name` must also be specified. Default
+  is `local` which is expected by local mode.
 
 * `policy_name (string)` - (Optional) The name of a policy, as identified by the `name`
   setting in a Policyfile.rb file. Required if `use_policyfile` is set; `policy_group`
@@ -108,7 +142,8 @@ The following arguments are supported:
 
 * `no_proxy (array)` - (Optional) A list of URLs that should bypass the proxy.
 
-* `node_name (string)` - (Required) The name of the node to register with the Chef Server.
+* `node_name (string)` - (Optional) The name of the node to register with the Chef Server. Must be
+  set if chef-client is used with a chef server.
 
 * `ohai_hints (array)` - (Optional) A list with
   [Ohai hints](https://docs.chef.io/ohai.html#hints) to upload to the node.
@@ -134,8 +169,8 @@ The following arguments are supported:
   machine. This can also be loaded from a file on disk using the [`file()` interpolation
   function](/docs/configuration/interpolation.html#file_path_).
 
-* `server_url (string)` - (Required) The URL to the Chef server. This includes the path to
-  the organization. See the example.
+* `server_url (string)` - (Optional) The URL to the Chef server. This includes the path to
+  the organization. See the example. Must be set if chef-client is used with a chef server.
 
 * `skip_install (boolean)` - (Optional) Skip the installation of Chef Client on the remote
   machine. This assumes Chef Client is already installed when you run the `chef`
@@ -149,12 +184,14 @@ The following arguments are supported:
 * `ssl_verify_mode (string)` - (Optional) Used to set the verify mode for Chef Client HTTPS
   requests. The options are `:verify_none`, or `:verify_peer` which is default.
 
-* `user_name (string)` - (Required) The name of an existing Chef user to register
-  the new Chef Client and optionally configure Chef Vaults.
+* `user_name (string)` - (Optional) The name of an existing Chef user to register
+  the new Chef Client and optionally configure Chef Vaults. Must be set if chef-client is
+  used with a chef server.
 
-* `user_key (string)` - (Required) The contents of the user key that will be used to
+* `user_key (string)` - (Optional) The contents of the user key that will be used to
   authenticate with the Chef Server. This can also be loaded from a file on disk using the [`file()`
-  interpolation function](/docs/configuration/interpolation.html#file_path_).
+  interpolation function](/docs/configuration/interpolation.html#file_path_). Must be
+  set if chef-client is used with a chef server.
 
 * `vault_json (string)` - (Optional) A raw JSON string with Chef Vaults and Items to which the new node
   should have access. These can also be loaded from a file on disk using the

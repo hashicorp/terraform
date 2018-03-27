@@ -44,21 +44,7 @@ func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communic
 }
 
 func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communicator.Communicator) error {
-	// Make sure the config directory exists
-	if err := p.runCommand(o, comm, "mkdir -p "+linuxConfDir); err != nil {
-		return err
-	}
-
-	// Make sure we have enough rights to upload the files if using sudo
-	if p.useSudo {
-		if err := p.runCommand(o, comm, "chmod 777 "+linuxConfDir); err != nil {
-			return err
-		}
-		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, linuxConfDir, 666)); err != nil {
-			return err
-		}
-	}
-
+	p.linuxEnsureRemoteDir(o, comm, linuxConfDir)
 	if err := p.deployConfigFiles(o, comm, linuxConfDir); err != nil {
 		return err
 	}
@@ -107,6 +93,30 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 			return err
 		}
 		if err := p.runCommand(o, comm, "chown -R root.root "+linuxConfDir); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *provisioner) linuxUploadChefRepo(o terraform.UIOutput, comm communicator.Communicator) error {
+	p.linuxEnsureRemoteDir(o, comm, linuxRepoDir)
+	return p.deployChefRepoFiles(o, comm, linuxRepoDir)
+}
+
+func (p *provisioner) linuxEnsureRemoteDir(o terraform.UIOutput, comm communicator.Communicator, dir string) error {
+	// Make sure the directory exists
+	if err := p.runCommand(o, comm, "mkdir -p "+dir); err != nil {
+		return err
+	}
+
+	// Make sure we have enough rights to upload the files if using sudo
+	if p.useSudo {
+		if err := p.runCommand(o, comm, "chmod 777 "+dir); err != nil {
+			return err
+		}
+		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, dir, 666)); err != nil {
 			return err
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -31,12 +32,14 @@ const (
 	logfileDir      = "logfiles"
 	linuxChefCmd    = "chef-client"
 	linuxConfDir    = "/etc/chef"
+	linuxRepoDir    = "/tmp/chef-repo"
 	linuxNoOutput   = "> /dev/null 2>&1"
 	linuxGemCmd     = "/opt/chef/embedded/bin/gem"
 	linuxKnifeCmd   = "knife"
 	secretKey       = "encrypted_data_bag_secret"
 	windowsChefCmd  = "cmd /c chef-client"
 	windowsConfDir  = "C:/chef"
+	windowsRepoDir  = "%TEMP%\\chef-repo"
 	windowsNoOutput = "> nul 2>&1"
 	windowsGemCmd   = "C:/opscode/chef/embedded/bin/gem"
 	windowsKnifeCmd = "cmd /c knife"
@@ -44,15 +47,16 @@ const (
 
 const clientConf = `
 log_location            STDOUT
-chef_server_url         "{{ .ServerURL }}"
+{{ if .NodeName -}}
 node_name               "{{ .NodeName }}"
-{{ if .UsePolicyfile }}
-use_policyfile true
-policy_group 	 "{{ .PolicyGroup }}"
-policy_name 	 "{{ .PolicyName }}"
 {{ end -}}
 
-{{ if .HTTPProxy }}
+{{ if .UseLocalMode -}}
+chef_repo_path          "{{ .RemoteChefRepo }}"
+{{ else -}}
+chef_server_url         "{{ .ServerURL }}"
+
+{{ if .HTTPProxy -}}
 http_proxy          "{{ .HTTPProxy }}"
 ENV['http_proxy'] = "{{ .HTTPProxy }}"
 ENV['HTTP_PROXY'] = "{{ .HTTPProxy }}"
@@ -71,7 +75,14 @@ ENV['no_proxy'] = "{{ join .NOProxy "," }}"
 
 {{ if .SSLVerifyMode }}
 ssl_verify_mode  {{ .SSLVerifyMode }}
-{{- end -}}
+{{ end -}}
+{{ end -}}
+
+{{ if .UsePolicyfile }}
+use_policyfile true
+policy_group 	 "{{ .PolicyGroup }}"
+policy_name 	 "{{ .PolicyName }}"
+{{ end -}}
 
 {{ if .DisableReporting }}
 enable_reporting false
@@ -90,6 +101,8 @@ type provisioner struct {
 	ClientOptions         []string
 	DisableReporting      bool
 	Environment           string
+	UseLocalMode          bool
+	ChefRepo              string
 	FetchChefCertificates bool
 	LogToFile             bool
 	UsePolicyfile         bool
@@ -118,6 +131,7 @@ type provisioner struct {
 	cleanupUserKeyCmd     string
 	createConfigFiles     provisionFn
 	installChefClient     provisionFn
+	uploadChefRepo        provisionFn
 	fetchChefCertificates provisionFn
 	generateClientKey     provisionFn
 	configureVaults       provisionFn
@@ -125,25 +139,42 @@ type provisioner struct {
 	useSudo               bool
 }
 
+type clientrbVars struct {
+	*provisioner
+
+	RemoteChefRepo string
+}
+
 // Provisioner returns a Chef provisioner
 func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
+			"use_local_mode": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ConflictsWith: []string{
+					"server_url", "user_name", "user_key", "fetch_chef_certificates", "http_proxy",
+					"https_proxy", "no_proxy", "skip_register", "ssl_verify_mode"},
+			},
+			"chef_repo": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"node_name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"server_url": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"user_name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"user_key": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 
 			"attributes_json": &schema.Schema{
@@ -184,6 +215,7 @@ func Provisioner() terraform.ResourceProvisioner {
 			"policy_group": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "local",
 			},
 			"policy_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -288,6 +320,7 @@ func applyFn(ctx context.Context) error {
 		p.cleanupUserKeyCmd = fmt.Sprintf("rm -f %s", path.Join(linuxConfDir, p.UserName+".pem"))
 		p.createConfigFiles = p.linuxCreateConfigFiles
 		p.installChefClient = p.linuxInstallChefClient
+		p.uploadChefRepo = p.linuxUploadChefRepo
 		p.fetchChefCertificates = p.fetchChefCertificatesFunc(linuxKnifeCmd, linuxConfDir)
 		p.generateClientKey = p.generateClientKeyFunc(linuxKnifeCmd, linuxConfDir, linuxNoOutput)
 		p.configureVaults = p.configureVaultsFunc(linuxGemCmd, linuxKnifeCmd, linuxConfDir)
@@ -297,6 +330,7 @@ func applyFn(ctx context.Context) error {
 		p.cleanupUserKeyCmd = fmt.Sprintf("cd %s && del /F /Q %s", windowsConfDir, p.UserName+".pem")
 		p.createConfigFiles = p.windowsCreateConfigFiles
 		p.installChefClient = p.windowsInstallChefClient
+		p.uploadChefRepo = p.windowsUploadChefRepo
 		p.fetchChefCertificates = p.fetchChefCertificatesFunc(windowsKnifeCmd, windowsConfDir)
 		p.generateClientKey = p.generateClientKeyFunc(windowsKnifeCmd, windowsConfDir, windowsNoOutput)
 		p.configureVaults = p.configureVaultsFunc(windowsGemCmd, windowsKnifeCmd, windowsConfDir)
@@ -345,7 +379,7 @@ func applyFn(ctx context.Context) error {
 		return err
 	}
 
-	if !p.SkipRegister {
+	if !p.UseLocalMode && !p.SkipRegister {
 		if p.FetchChefCertificates {
 			o.Output("Fetch Chef certificates...")
 			if err := p.fetchChefCertificates(o, comm); err != nil {
@@ -366,6 +400,13 @@ func applyFn(ctx context.Context) error {
 		}
 	}
 
+	if p.UseLocalMode {
+		o.Output("Upload Chef repository...")
+		if err := p.uploadChefRepo(o, comm); err != nil {
+			return err
+		}
+	}
+
 	// Cleanup the user key before we run Chef-Client to prevent issues
 	// with rights caused by changing settings during the run.
 	once.Do(cleanupUserKey)
@@ -379,20 +420,33 @@ func applyFn(ctx context.Context) error {
 }
 
 func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
-	usePolicyFile := false
-	if usePolicyFileRaw, ok := c.Get("use_policyfile"); ok {
-		switch usePolicyFileRaw := usePolicyFileRaw.(type) {
-		case bool:
-			usePolicyFile = usePolicyFileRaw
-		case string:
-			usePolicyFileBool, err := strconv.ParseBool(usePolicyFileRaw)
-			if err != nil {
-				return ws, append(es, errors.New("\"use_policyfile\" must be a boolean"))
-			}
-			usePolicyFile = usePolicyFileBool
-		default:
-			return ws, append(es, errors.New("\"use_policyfile\" must be a boolean"))
+	useLocalMode, err := getRawBoolSettingForValidate(c, "use_local_mode", false)
+	if err != nil {
+		es = append(es, err)
+	}
+
+	if useLocalMode {
+		if !c.IsSet("chef_repo") {
+			es = append(es, errors.New("\"chef_repo\": required field is not set"))
 		}
+	} else {
+		if !c.IsSet("node_name") {
+			es = append(es, errors.New("\"node_name\": required field is not set"))
+		}
+		if !c.IsSet("user_name") {
+			es = append(es, errors.New("\"user_name\": required field is not set"))
+		}
+		if !c.IsSet("server_url") {
+			es = append(es, errors.New("\"server_url\": required field is not set"))
+		}
+		if !c.IsSet("user_key") {
+			es = append(es, errors.New("\"user_key\": required field is not set"))
+		}
+	}
+
+	usePolicyFile, err := getRawBoolSettingForValidate(c, "use_policyfile", false)
+	if err != nil {
+		es = append(es, err)
 	}
 
 	if !usePolicyFile && !c.IsSet("run_list") {
@@ -401,18 +455,49 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 	if usePolicyFile && !c.IsSet("policy_name") {
 		es = append(es, errors.New("using policyfile, but \"policy_name\" not set"))
 	}
-	if usePolicyFile && !c.IsSet("policy_group") {
-		es = append(es, errors.New("using policyfile, but \"policy_group\" not set"))
+	policyGroup, hasPolicyGroup := c.Get("policy_group")
+	if hasPolicyGroup {
+		if useLocalMode && policyGroup != "local" {
+			ws = append(ws, "\"policy_group\" is not \"local\" but chef-client is used in local mode. This could be a mistake.")
+		} else if !useLocalMode {
+			ws = append(ws, "\"policy_group\" defaults to \"local\" but chef-client is not used in local mode. This is probably a mistake.")
+		}
 	}
 
 	return ws, es
 }
 
+func getRawBoolSettingForValidate(c *terraform.ResourceConfig, name string, defaultValue bool) (result bool, err error) {
+	if rawValue, ok := c.Get(name); ok {
+		switch rawValue := rawValue.(type) {
+		case bool:
+			return rawValue, nil
+		case string:
+			value, err := strconv.ParseBool(rawValue)
+			if err != nil {
+				return defaultValue, fmt.Errorf("\"%s\" must be a boolean", name)
+			}
+			return value, nil
+		default:
+			return defaultValue, fmt.Errorf("\"%s\" must be a boolean", name)
+		}
+	}
+
+	return defaultValue, nil
+}
+
 func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.Communicator, confDir string) error {
-	// Copy the user key to the new instance
-	pk := strings.NewReader(p.UserKey)
-	if err := comm.Upload(path.Join(confDir, p.UserName+".pem"), pk); err != nil {
-		return fmt.Errorf("Uploading user key failed: %v", err)
+	if !p.UseLocalMode {
+		// Copy the user key to the new instance
+		pk := strings.NewReader(p.UserKey)
+		if err := comm.Upload(path.Join(confDir, p.UserName+".pem"), pk); err != nil {
+			return fmt.Errorf("Uploading user key failed: %v", err)
+		}
+
+		// Make sure the SSLVerifyMode value is written as a symbol
+		if p.SSLVerifyMode != "" && !strings.HasPrefix(p.SSLVerifyMode, ":") {
+			p.SSLVerifyMode = fmt.Sprintf(":%s", p.SSLVerifyMode)
+		}
 	}
 
 	if p.SecretKey != "" {
@@ -423,21 +508,26 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 		}
 	}
 
-	// Make sure the SSLVerifyMode value is written as a symbol
-	if p.SSLVerifyMode != "" && !strings.HasPrefix(p.SSLVerifyMode, ":") {
-		p.SSLVerifyMode = fmt.Sprintf(":%s", p.SSLVerifyMode)
-	}
-
 	// Make strings.Join available for use within the template
 	funcMap := template.FuncMap{
 		"join": strings.Join,
+	}
+
+	// Prepare clientrb template variables
+	clientrbVars := clientrbVars{}
+	clientrbVars.provisioner = p
+	switch p.OSType {
+	case "windows":
+		clientrbVars.RemoteChefRepo = windowsRepoDir
+	default:
+		clientrbVars.RemoteChefRepo = linuxRepoDir
 	}
 
 	// Create a new template and parse the client config into it
 	t := template.Must(template.New(clienrb).Funcs(funcMap).Parse(clientConf))
 
 	var buf bytes.Buffer
-	err := t.Execute(&buf, p)
+	err := t.Execute(&buf, &clientrbVars)
 	if err != nil {
 		return fmt.Errorf("Error executing %s template: %s", clienrb, err)
 	}
@@ -474,6 +564,76 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	// Copy the first-boot.json to the new instance
 	if err := comm.Upload(path.Join(confDir, firstBoot), bytes.NewReader(d)); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", firstBoot, err)
+	}
+
+	return nil
+}
+
+func (p *provisioner) deployChefRepoFiles(o terraform.UIOutput, comm communicator.Communicator, varDir string) error {
+	repoSrc := p.ChefRepo
+	if repoSrc[len(repoSrc)-1] != '/' {
+		repoSrc = repoSrc + "/"
+	}
+
+	files, err := ioutil.ReadDir(repoSrc)
+	if err != nil {
+		return fmt.Errorf("Unable to read repository directoy %s: %v", repoSrc, err)
+	}
+
+	if p.UsePolicyfile {
+		var hasPolicyfile bool
+		var hasCookbookArtifactsDir bool
+
+		for _, file := range files {
+			if file.Name() == "Policyfile.lock.json" {
+				hasPolicyfile = true
+			} else if file.Name() == "cookbook_artifacts" {
+				hasCookbookArtifactsDir = true
+			}
+		}
+
+		if !hasPolicyfile {
+			log.Printf("[WARN] Chef repository lacks %s '%s'. This is probably a mistake.", "file", "Policyfile.lock.json")
+		}
+		if !hasCookbookArtifactsDir {
+			log.Printf("[WARN] Chef repository lacks %s '%s'. This is probably a mistake.", "directory", "cookbook_artifacts")
+		}
+	} else {
+		var hasCookbooksDir bool
+		var hasEnvironmentsDir bool
+		var hasRolesDir bool
+
+		for _, file := range files {
+			if file.Name() == "cookbooks" {
+				hasCookbooksDir = true
+			} else if file.Name() == "environments" {
+				hasEnvironmentsDir = true
+			} else if file.Name() == "roles" {
+				hasRolesDir = true
+			}
+		}
+
+		var usesRole bool
+		for _, e := range p.RunList {
+			if strings.HasPrefix(e, "role[") && !hasRolesDir {
+				usesRole = true
+				break
+			}
+		}
+
+		if !hasCookbooksDir {
+			log.Printf("[WARN] Chef repository lacks %s '%s'. This is probably a mistake.", "directory", "cookbooks")
+		}
+		if p.Environment != defaultEnv && !hasEnvironmentsDir {
+			log.Printf("[WARN] Chef repository lacks %s '%s'. This is probably a mistake.", "directory", "environments")
+		}
+		if usesRole && !hasRolesDir {
+			log.Printf("[WARN] Chef repository lacks %s '%s'. This is probably a mistake.", "directory", "roles")
+		}
+	}
+
+	if err := comm.UploadDir(varDir, repoSrc); err != nil {
+		return fmt.Errorf("Uploading %s failed: %v", repoSrc, err)
 	}
 
 	return nil
@@ -619,16 +779,25 @@ func (p *provisioner) configureVaultsFunc(gemCmd string, knifeCmd string, confDi
 func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisionFn {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
 		fb := path.Join(confDir, firstBoot)
-		var cmd string
+		var args string
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
 		switch {
 		case p.UsePolicyfile && p.NamedRunList == "":
-			cmd = fmt.Sprintf("%s -j %q", chefCmd, fb)
+			args = fmt.Sprintf("-j %q", fb)
 		case p.UsePolicyfile && p.NamedRunList != "":
-			cmd = fmt.Sprintf("%s -j %q -n %q", chefCmd, fb, p.NamedRunList)
+			args = fmt.Sprintf("-j %q -n %q", fb, p.NamedRunList)
 		default:
-			cmd = fmt.Sprintf("%s -j %q -E %q", chefCmd, fb, p.Environment)
+			args = fmt.Sprintf("-j %q -E %q", fb, p.Environment)
+		}
+
+		var cmd string
+		if p.UseLocalMode {
+			// chef-client -z -c /etc/chef/client.rb -j /etc/chef/first-boot.json -E staging
+			cmd = fmt.Sprintf("%s -z -c %s %s", chefCmd, path.Join(confDir, clienrb), args)
+		} else {
+			// chef-client -j /etc/chef/first-boot.json -E staging
+			cmd = fmt.Sprintf("%s %s", chefCmd, args)
 		}
 
 		if p.LogToFile {
@@ -718,6 +887,8 @@ func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader) {
 
 func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	p := &provisioner{
+		UseLocalMode:          d.Get("use_local_mode").(bool),
+		ChefRepo:              d.Get("chef_repo").(string),
 		Channel:               d.Get("channel").(string),
 		ClientOptions:         getStringList(d.Get("client_options")),
 		DisableReporting:      d.Get("disable_reporting").(bool),

@@ -11,11 +11,7 @@ import (
 )
 
 func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
-	cases := map[string]struct {
-		Config        map[string]interface{}
-		Commands      map[string]bool
-		UploadScripts map[string]string
-	}{
+	cases := map[string]createConfigTestCase{
 		"Default": {
 			Config: map[string]interface{}{
 				"node_name":  "nodename1",
@@ -118,11 +114,7 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 }
 
 func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
-	cases := map[string]struct {
-		Config   map[string]interface{}
-		Commands map[string]bool
-		Uploads  map[string]string
-	}{
+	cases := map[string]createConfigTestCase{
 		"Default": {
 			Config: map[string]interface{}{
 				"ohai_hints": []interface{}{"test-fixtures/ohaihint.json"},
@@ -200,6 +192,43 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 			},
 		},
+
+		"LocalMode": {
+			Config: map[string]interface{}{
+				"use_local_mode": true,
+				"chef_repo":      "tbd",
+				"run_list":       []interface{}{"cookbook::recipe"},
+				"environment":    "testenv",
+				"node_name":      "testnode",
+			},
+
+			Commands: map[string]bool{
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
+			},
+
+			Uploads: map[string]string{
+				windowsConfDir + "/client.rb":       windowsLocalModeClientConf,
+				windowsConfDir + "/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
+			},
+		},
+
+		"LocalModePolicy": {
+			Config: map[string]interface{}{
+				"use_local_mode": true,
+				"chef_repo":      "tbd",
+				"use_policyfile": true,
+				"policy_name":    "testpolicy",
+			},
+
+			Commands: map[string]bool{
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
+			},
+
+			Uploads: map[string]string{
+				windowsConfDir + "/client.rb":       windowsLocalModePolicyClientConf,
+				windowsConfDir + "/first-boot.json": `{}`,
+			},
+		},
 	}
 
 	o := new(terraform.MockUIOutput)
@@ -208,6 +237,18 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 		c.Uploads = tc.Uploads
+		c.UploadDirs = tc.UploadDirs
+
+		if tc.SetUp != nil {
+			if err := tc.SetUp(t, tc); err != nil {
+				if tderr := tc.TearDown(t, tc); tderr != nil {
+					t.Logf("TearDown failed for %s: %v", k, err)
+				}
+				t.Fatalf("SetUp failed for %s: %v", k, err)
+			}
+
+			defer tc.TearDown(t, tc)
+		}
 
 		p, err := decodeConfig(
 			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
@@ -217,8 +258,120 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 		}
 
 		p.useSudo = false
+		p.OSType = "windows"
 
 		err = p.windowsCreateConfigFiles(o, c)
+		if err != nil {
+			t.Fatalf("Test %q failed: %v", k, err)
+		}
+	}
+}
+
+func TestResourceProvider_windowsUploadChefRepo(t *testing.T) {
+	cases := map[string]createConfigTestCase{
+		"LocalMode": {
+			Config: map[string]interface{}{
+				"use_local_mode": true,
+				"chef_repo":      "tbd",
+				"run_list":       []interface{}{"cookbook::recipe"},
+				"environment":    "testenv",
+			},
+
+			Commands: map[string]bool{
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsRepoDir, windowsRepoDir):           true,
+				"cmd /c \"cd C:\\chef\\data && chef-client -z -j C:\\chef\\first-boot.json -E testenv\"": true,
+				"chef-client -z -j C:\\chef\\first-boot.json -E testenv":                                 false,
+			},
+
+			UploadDirs: map[string]string{},
+
+			SetUp: func(t *testing.T, self createConfigTestCase) error {
+				layout := map[string][]string{
+					"cookbooks":    nil,
+					"environments": nil,
+				}
+
+				path, err := testCreateTmpFiles(layout)
+				if err != nil {
+					return err
+				}
+
+				self.Config["chef_repo"] = path
+				self.UploadDirs[path+"/"] = windowsRepoDir
+				return nil
+			},
+
+			TearDown: func(t *testing.T, self createConfigTestCase) error {
+				return testDeleteTmpFiles(self.Config["chef_repo"].(string))
+			},
+		},
+
+		"LocalModePolicy": {
+			Config: map[string]interface{}{
+				"use_local_mode": true,
+				"chef_repo":      "tbd",
+				"use_policyfile": true,
+				"policy_name":    "testpolicy",
+			},
+
+			Commands: map[string]bool{
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsRepoDir, windowsRepoDir):           true,
+				"cmd /c \"cd C:\\chef\\data && chef-client -z -j C:\\chef\\first-boot.json -E testenv\"": true,
+				"chef-client -z -j C:\\chef\\first-boot.json -E testenv":                                 false,
+			},
+
+			UploadDirs: map[string]string{},
+
+			SetUp: func(t *testing.T, self createConfigTestCase) error {
+				layout := map[string][]string{
+					"": []string{"Policyfile.lock.json"},
+				}
+				path, err := testCreateTmpFiles(layout)
+				if err != nil {
+					return err
+				}
+
+				self.Config["chef_repo"] = path
+				self.UploadDirs[path+"/"] = windowsRepoDir
+				return nil
+			},
+
+			TearDown: func(t *testing.T, self createConfigTestCase) error {
+				return testDeleteTmpFiles(self.Config["chef_repo"].(string))
+			},
+		},
+	}
+
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
+
+	for k, tc := range cases {
+		c.Commands = tc.Commands
+		c.Uploads = tc.Uploads
+		c.UploadDirs = tc.UploadDirs
+
+		if tc.SetUp != nil {
+			if err := tc.SetUp(t, tc); err != nil {
+				if tderr := tc.TearDown(t, tc); tderr != nil {
+					t.Logf("TearDown failed for %s: %v", k, err)
+				}
+				t.Fatalf("SetUp failed for %s: %v", k, err)
+			}
+
+			defer tc.TearDown(t, tc)
+		}
+
+		p, err := decodeConfig(
+			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
+		)
+		if err != nil {
+			t.Fatalf("Error: %v", err)
+		}
+
+		p.useSudo = false
+		p.OSType = "windows"
+
+		err = p.windowsUploadChefRepo(o, c)
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
@@ -373,12 +526,12 @@ Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
 `
 
 const defaultWindowsClientConf = `log_location            STDOUT
-chef_server_url         "https://chef.local/"
-node_name               "nodename1"`
+node_name               "nodename1"
+chef_server_url         "https://chef.local/"`
 
 const proxyWindowsClientConf = `log_location            STDOUT
-chef_server_url         "https://chef.local/"
 node_name               "nodename1"
+chef_server_url         "https://chef.local/"
 
 http_proxy          "http://proxy.local"
 ENV['http_proxy'] = "http://proxy.local"
@@ -392,3 +545,14 @@ no_proxy          "http://local.local,https://local.local"
 ENV['no_proxy'] = "http://local.local,https://local.local"
 
 ssl_verify_mode  :verify_none`
+
+const windowsLocalModeClientConf = `log_location            STDOUT
+node_name               "testnode"
+chef_repo_path          "%TEMP%\chef-repo"`
+
+const windowsLocalModePolicyClientConf = `log_location            STDOUT
+chef_repo_path          "%TEMP%\chef-repo"
+
+use_policyfile true
+policy_group 	 "local"
+policy_name 	 "testpolicy"`

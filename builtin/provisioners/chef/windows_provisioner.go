@@ -82,3 +82,13 @@ func (p *provisioner) windowsCreateConfigFiles(o terraform.UIOutput, comm commun
 
 	return p.deployConfigFiles(o, comm, windowsConfDir)
 }
+
+func (p *provisioner) windowsUploadChefRepo(o terraform.UIOutput, comm communicator.Communicator) error {
+	// Make sure the var directory exists
+	cmd := fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsRepoDir, windowsRepoDir)
+	if err := p.runCommand(o, comm, cmd); err != nil {
+		return err
+	}
+
+	return p.deployChefRepoFiles(o, comm, windowsRepoDir)
+}

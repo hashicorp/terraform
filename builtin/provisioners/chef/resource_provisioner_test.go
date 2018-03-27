@@ -2,6 +2,8 @@ package chef
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 
@@ -10,6 +12,18 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+type createConfigTestCase struct {
+	Config        map[string]interface{}
+	Commands      map[string]bool
+	Uploads       map[string]string
+	UploadDirs    map[string]string
+	UploadScripts map[string]string
+
+	CheckLog func(string)
+	SetUp    func(t *testing.T, self createConfigTestCase) error
+	TearDown func(t *testing.T, self createConfigTestCase) error
+}
 
 func TestResourceProvisioner_impl(t *testing.T) {
 	var _ terraform.ResourceProvisioner = Provisioner()
@@ -40,6 +54,23 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_Validate_good_local_mode(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"use_local_mode": true,
+		"chef_repo":      "/path/to/repo",
+		"environment":    "_default",
+		"run_list":       []interface{}{"cookbook::recipe"},
+	})
+
+	warn, errs := Provisioner().Validate(c)
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+	if len(errs) > 0 {
+		t.Fatalf("Errors: %v", errs)
+	}
+}
+
 func TestResourceProvider_Validate_bad(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"invalid": "nope",
@@ -50,6 +81,24 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 		t.Fatalf("Warnings: %v", warn)
 	}
 	if len(errs) == 0 {
+		t.Fatalf("Should have errors")
+	}
+}
+
+func TestResourceProvider_Validate_bad_local_mode(t *testing.T) {
+	// chef_repo missing and conflict with server_url
+	c := testConfig(t, map[string]interface{}{
+		"use_local_mode": true,
+		"environment":    "_default",
+		"run_list":       []interface{}{"cookbook::recipe"},
+		"server_url":     "https://chef.local",
+	})
+
+	warn, errs := Provisioner().Validate(c)
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+	if len(errs) < 2 {
 		t.Fatalf("Should have errors")
 	}
 }
@@ -437,4 +486,51 @@ func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfi
 	}
 
 	return terraform.NewResourceConfig(r)
+}
+
+// Creates a temporary fs layout. The layout is a map from directory names to
+// file names with the empty string denoting the root tmp dir. Multi-level
+// structures can be created by using os-specific fs separators within directory
+// names, as directories are created with os.MkdirAll().
+//
+// Returns the root tmp dir path or any error that has occurred.
+//
+func testCreateTmpFiles(layout map[string][]string) (string, error) {
+	tmpRoot, err := ioutil.TempDir("", "test_tmp_files")
+	if err != nil {
+		return "", err
+	}
+
+	for dir, files := range layout {
+		parent := tmpRoot
+		if dir != "" {
+			parent = path.Join(parent, dir)
+			if err := os.MkdirAll(parent, 0755); err != nil {
+				return "", err
+			}
+		}
+
+		for _, file := range files {
+			f, err := os.Create(path.Join(parent, file))
+			if err != nil {
+				return "", err
+			}
+			f.Close()
+		}
+	}
+
+	return tmpRoot, nil
+}
+
+func testDeleteTmpFiles(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+
+	if info.IsDir() {
+		return os.RemoveAll(path)
+	}
+
+	return nil
 }
