@@ -1,5 +1,8 @@
 ## 0.11.6 (Unreleased)
 
+BUG FIXES:
+
+* cli: Fix strange formatting of list and map values in the `terraform console` command [GH-17714]
 
 ## 0.11.5 (March 21, 2018)
 
