@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strings"
 
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/backend"
 	backendinit "github.com/hashicorp/terraform/backend/init"
@@ -145,6 +144,8 @@ func (c *InitCommand) Run(args []string) int {
 			c.showDiagnostics(diags)
 			return 1
 		}
+
+		c.Ui.Output("")
 	}
 
 	// If our directory is empty, then we're done. We can't get or setup
@@ -289,10 +290,10 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	err = c.getProviders(path, state, flagUpgrade)
-	if err != nil {
-		// this function provides its own output
-		log.Printf("[ERROR] %s", err)
+	providerDiags := c.getProviders(path, state, flagUpgrade)
+	diags = diags.Append(providerDiags)
+	if providerDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -301,6 +302,11 @@ func (c *InitCommand) Run(args []string) int {
 	if header {
 		c.Ui.Output("")
 	}
+
+	// If we accumulated any warnings along the way that weren't accompanied
+	// by errors then we'll output them here so that the success message is
+	// still the final thing shown.
+	c.showDiagnostics(diags)
 
 	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccess)))
 	if !c.RunningInAutomation {
@@ -384,24 +390,25 @@ func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configsc
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade bool) error {
-	mod, diags := c.Module(path)
+func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade bool) tfdiags.Diagnostics {
+	config, diags := c.loadConfig(path)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return diags.Err()
+		return diags
 	}
 
 	if err := terraform.CheckStateVersion(state); err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
-		return err
+		return diags
 	}
 
-	if err := terraform.CheckRequiredVersion(mod); err != nil {
-		diags = diags.Append(err)
-		c.showDiagnostics(diags)
-		return err
-	}
+	// FIXME: Restore this once terraform.CheckRequiredVersion is updated to
+	// work with a configs.Config instead of a legacy module.Tree.
+	/*
+		if err := terraform.CheckRequiredVersion(mod); err != nil {
+			diags = diags.Append(err)
+			return diags
+		}
+	*/
 
 	var available discovery.PluginMetaSet
 	if upgrade {
@@ -412,7 +419,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		available = c.providerPluginSet()
 	}
 
-	requirements := terraform.ModuleTreeDependencies(mod, state).AllPluginRequirements()
+	requirements := terraform.ConfigTreeDependencies(config, state).AllPluginRequirements()
 	if len(requirements) == 0 {
 		// nothing to initialize
 		return nil
@@ -424,7 +431,6 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 
 	missing := c.missingPlugins(available, requirements)
 
-	var errs error
 	if c.getPlugins {
 		if len(missing) > 0 {
 			c.Ui.Output(fmt.Sprintf("- Checking for available provider plugins on %s...",
@@ -461,12 +467,12 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 					c.Ui.Error(fmt.Sprintf(errProviderInstallError, provider, err.Error(), DefaultPluginVendorDir))
 				}
 
-				errs = multierror.Append(errs, err)
+				diags = diags.Append(err)
 			}
 		}
 
-		if errs != nil {
-			return errs
+		if diags.HasErrors() {
+			return diags
 		}
 	} else if len(missing) > 0 {
 		// we have missing providers, but aren't going to try and download them
@@ -477,11 +483,11 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 			} else {
 				lines = append(lines, fmt.Sprintf("* %s (%s)\n", provider, reqd.Versions))
 			}
-			errs = multierror.Append(errs, fmt.Errorf("missing provider %q", provider))
+			diags = diags.Append(fmt.Errorf("missing provider %q", provider))
 		}
 		sort.Strings(lines)
 		c.Ui.Error(fmt.Sprintf(errMissingProvidersNoInstall, strings.Join(lines, ""), DefaultPluginVendorDir))
-		return errs
+		return diags
 	}
 
 	// With all the providers downloaded, we'll generate our lock file
@@ -497,8 +503,8 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	for name, meta := range chosen {
 		digest, err := meta.SHA256()
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("failed to read provider plugin %s: %s", meta.Path, err))
-			return err
+			diags = diags.Append(fmt.Errorf("Failed to read provider plugin %s: %s", meta.Path, err))
+			return diags
 		}
 		digests[name] = digest
 		if c.ignorePluginChecksum {
@@ -507,8 +513,8 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 	}
 	err := c.providerPluginsLock().Write(digests)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("failed to save provider manifest: %s", err))
-		return err
+		diags = diags.Append(fmt.Errorf("failed to save provider manifest: %s", err))
+		return diags
 	}
 
 	{
@@ -556,7 +562,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State, upgrade 
 		}
 	}
 
-	return nil
+	return diags
 }
 
 func (c *InitCommand) AutocompleteArgs() complete.Predictor {
