@@ -2,6 +2,7 @@ package configs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
@@ -37,6 +38,22 @@ type ManagedResource struct {
 
 func (r *ManagedResource) moduleUniqueKey() string {
 	return fmt.Sprintf("%s.%s", r.Name, r.Type)
+}
+
+// ProviderConfigKey returns a string key for the provider configuration
+// that should be used for this resource. This function implements the
+// default behavior of extracting the type from the resource type name if
+// an explicit "provider" argument was not provided.
+func (r *ManagedResource) ProviderConfigKey() string {
+	if r.ProviderConfigRef == nil {
+		typeName := r.Type
+		if under := strings.Index(typeName, "_"); under != -1 {
+			return typeName[:under]
+		}
+		return typeName
+	}
+
+	return r.ProviderConfigRef.String()
 }
 
 func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
@@ -234,6 +251,22 @@ func (r *DataResource) moduleUniqueKey() string {
 	return fmt.Sprintf("data.%s.%s", r.Name, r.Type)
 }
 
+// ProviderConfigKey returns a string key for the provider configuration
+// that should be used for this resource. This function implements the
+// default behavior of extracting the type from the resource type name if
+// an explicit "provider" argument was not provided.
+func (r *DataResource) ProviderConfigKey() string {
+	if r.ProviderConfigRef == nil {
+		typeName := r.Type
+		if under := strings.Index(typeName, "_"); under != -1 {
+			return typeName[:under]
+		}
+		return typeName
+	}
+
+	return r.ProviderConfigRef.String()
+}
+
 func decodeDataBlock(block *hcl.Block) (*DataResource, hcl.Diagnostics) {
 	r := &DataResource{
 		Type:      block.Labels[0],
@@ -368,6 +401,16 @@ func decodeProviderConfigRef(attr *hcl.Attribute) (*ProviderConfigRef, hcl.Diagn
 	}
 
 	return ret, diags
+}
+
+func (r *ProviderConfigRef) String() string {
+	if r == nil {
+		return "<nil>"
+	}
+	if r.Alias != "" {
+		return fmt.Sprintf("%s.%s", r.Name, r.Alias)
+	}
+	return r.Name
 }
 
 var commonResourceAttributes = []hcl.AttributeSchema{
