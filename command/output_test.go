@@ -1,7 +1,6 @@
 package command
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -451,10 +450,7 @@ func TestOutput_stateDefault(t *testing.T) {
 
 	// Write the state file in a temporary directory with the
 	// default filename.
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	td := testTempDir(t)
 	statePath := filepath.Join(td, DefaultStateFilename)
 
 	f, err := os.Create(statePath)
