@@ -73,6 +73,7 @@ func initCommands(config *Config, services *disco.Disco) {
 		"state":        struct{}{}, // includes all subcommands
 		"debug":        struct{}{}, // includes all subcommands
 		"force-unlock": struct{}{},
+		"push":         struct{}{},
 	}
 
 	Commands = map[string]cli.CommandFactory{
