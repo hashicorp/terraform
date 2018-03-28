@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform/moduledeps"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/xlab/treeprint"
 )
@@ -69,11 +70,8 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
-	// FIXME: Restore this once the "terraform" package is updated to deal
-	// with HCL2 config types.
-	//s := state.State()
-	//depTree := terraform.ModuleTreeDependencies(config, s)
-	var depTree *moduledeps.Module
+	s := state.State()
+	depTree := terraform.ConfigTreeDependencies(config, s)
 	depTree.SortDescendents()
 
 	printRoot := treeprint.New()
