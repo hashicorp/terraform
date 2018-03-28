@@ -998,11 +998,7 @@ func TestInit_providerLockFile(t *testing.T) {
 }
 
 func TestInit_pluginDirReset(t *testing.T) {
-	td, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(td)
+	td := testTempDir(t)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
