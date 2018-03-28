@@ -36,6 +36,11 @@ type Constraints struct {
 	raw version.Constraints
 }
 
+// NewConstraints creates a Constraints based on a version.Constraints.
+func NewConstraints(c version.Constraints) Constraints {
+	return Constraints{c}
+}
+
 // AllVersions is a Constraints containing all versions
 var AllVersions Constraints
 
