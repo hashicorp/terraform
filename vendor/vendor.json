@@ -1815,10 +1815,12 @@
 			"revision": "36289988d83ca270bc07c234c36f364b0dd9c9a7"
 		},
 		{
-			"checksumSHA1": "9w1ZtxhdB/J0qqNPJQNNI/ZTwwE=",
+			"checksumSHA1": "4+PK0yd1prnC11PETgrXPzHyct4=",
 			"path": "github.com/hashicorp/go-version",
-			"revision": "4fe82ae3040f80a03d04d2cccb5606a626b8e1ee",
-			"revisionTime": "2017-11-29T15:08:20Z"
+			"revision": "23480c0665776210b5fbbac6eaaee40e3e6a96b7",
+			"revisionTime": "2018-03-22T23:02:33Z",
+			"version": "master",
+			"versionExact": "master"
 		},
 		{
 			"checksumSHA1": "o3XZZdOnSnwQSpYw215QV75ZDeI=",
