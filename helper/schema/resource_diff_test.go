@@ -1498,7 +1498,7 @@ func TestResourceDiffGetOkExistsSetNewComputed(t *testing.T) {
 	}
 }
 
-func TestResourceDiffComputed(t *testing.T) {
+func TestResourceDiffNewValueKnown(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Schema   map[string]*Schema
@@ -1529,7 +1529,7 @@ func TestResourceDiffComputed(t *testing.T) {
 				},
 			},
 			Key:      "availability_zone",
-			Expected: false,
+			Expected: true,
 		},
 		{
 			Name: "in config, has state, no diff",
@@ -1551,7 +1551,7 @@ func TestResourceDiffComputed(t *testing.T) {
 				Attributes: map[string]*terraform.ResourceAttrDiff{},
 			},
 			Key:      "availability_zone",
-			Expected: false,
+			Expected: true,
 		},
 		{
 			Name: "computed attribute, in state, no diff",
@@ -1571,7 +1571,7 @@ func TestResourceDiffComputed(t *testing.T) {
 				Attributes: map[string]*terraform.ResourceAttrDiff{},
 			},
 			Key:      "availability_zone",
-			Expected: false,
+			Expected: true,
 		},
 		{
 			Name: "optional and computed attribute, in state, no config",
@@ -1592,7 +1592,7 @@ func TestResourceDiffComputed(t *testing.T) {
 				Attributes: map[string]*terraform.ResourceAttrDiff{},
 			},
 			Key:      "availability_zone",
-			Expected: false,
+			Expected: true,
 		},
 		{
 			Name: "optional and computed attribute, in state, with config",
@@ -1615,7 +1615,7 @@ func TestResourceDiffComputed(t *testing.T) {
 				Attributes: map[string]*terraform.ResourceAttrDiff{},
 			},
 			Key:      "availability_zone",
-			Expected: false,
+			Expected: true,
 		},
 		{
 			Name: "computed value, through config reader",
@@ -1646,7 +1646,7 @@ func TestResourceDiffComputed(t *testing.T) {
 				Attributes: map[string]*terraform.ResourceAttrDiff{},
 			},
 			Key:      "availability_zone",
-			Expected: true,
+			Expected: false,
 		},
 		{
 			Name: "computed value, through diff reader",
@@ -1683,7 +1683,7 @@ func TestResourceDiffComputed(t *testing.T) {
 				},
 			},
 			Key:      "availability_zone",
-			Expected: true,
+			Expected: false,
 		},
 	}
 
@@ -1691,7 +1691,7 @@ func TestResourceDiffComputed(t *testing.T) {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
 			d := newResourceDiff(tc.Schema, tc.Config, tc.State, tc.Diff)
 
-			actual := d.Computed(tc.Key)
+			actual := d.NewValueKnown(tc.Key)
 			if tc.Expected != actual {
 				t.Fatalf("%s: expected ok: %t, got: %t", tc.Name, tc.Expected, actual)
 			}
@@ -1699,7 +1699,7 @@ func TestResourceDiffComputed(t *testing.T) {
 	}
 }
 
-func TestResourceDiffComputedSetNew(t *testing.T) {
+func TestResourceDiffNewValueKnownSetNew(t *testing.T) {
 	tc := struct {
 		Schema   map[string]*Schema
 		State    *terraform.InstanceState
@@ -1744,19 +1744,19 @@ func TestResourceDiffComputedSetNew(t *testing.T) {
 		},
 		Key:      "availability_zone",
 		Value:    "bar",
-		Expected: false,
+		Expected: true,
 	}
 
 	d := newResourceDiff(tc.Schema, tc.Config, tc.State, tc.Diff)
 	d.SetNew(tc.Key, tc.Value)
 
-	actual := d.Computed(tc.Key)
+	actual := d.NewValueKnown(tc.Key)
 	if tc.Expected != actual {
 		t.Fatalf("expected ok: %t, got: %t", tc.Expected, actual)
 	}
 }
 
-func TestResourceDiffComputedSetNewComputed(t *testing.T) {
+func TestResourceDiffNewValueKnownSetNewComputed(t *testing.T) {
 	tc := struct {
 		Schema   map[string]*Schema
 		State    *terraform.InstanceState
@@ -1781,13 +1781,13 @@ func TestResourceDiffComputedSetNewComputed(t *testing.T) {
 			Attributes: map[string]*terraform.ResourceAttrDiff{},
 		},
 		Key:      "availability_zone",
-		Expected: true,
+		Expected: false,
 	}
 
 	d := newResourceDiff(tc.Schema, tc.Config, tc.State, tc.Diff)
 	d.SetNewComputed(tc.Key)
 
-	actual := d.Computed(tc.Key)
+	actual := d.NewValueKnown(tc.Key)
 	if tc.Expected != actual {
 		t.Fatalf("expected ok: %t, got: %t", tc.Expected, actual)
 	}
