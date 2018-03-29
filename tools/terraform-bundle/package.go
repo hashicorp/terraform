@@ -36,6 +36,7 @@ func CopyFile(src, dst string) (err error) {
 	}
 	dfi, err := os.Stat(dst)
 	if err != nil {
+		os.Chmod(dst, sfi.Mode())
 		if !os.IsNotExist(err) {
 			return
 		}
