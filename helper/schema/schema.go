@@ -1270,9 +1270,9 @@ func (m schemaMap) validateConflictingAttributes(
 	}
 
 	for _, conflicting_key := range schema.ConflictsWith {
-		if value, ok := c.Get(conflicting_key); ok {
+		if _, ok := c.Get(conflicting_key); ok {
 			return fmt.Errorf(
-				"%q: conflicts with %s (%#v)", k, conflicting_key, value)
+				"%q: conflicts with %s", k, conflicting_key)
 		}
 	}
 
