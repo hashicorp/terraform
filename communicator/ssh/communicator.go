@@ -171,8 +171,12 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	host := fmt.Sprintf("%s:%d", c.connInfo.Host, c.connInfo.Port)
 	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, host, c.config.config)
 	if err != nil {
-		log.Printf("fatal handshake error: %s", err)
-		return fatalError{err}
+		// While in theory this should be a fatal error, some hosts may start
+		// the ssh service before it is properly configured, or before user
+		// authentication data is available.
+		// Log the error, and allow the provisioner to retry.
+		log.Printf("[WARN] %s", err)
+		return err
 	}
 
 	c.client = ssh.NewClient(sshConn, sshChan, req)
