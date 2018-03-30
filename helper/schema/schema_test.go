@@ -4790,7 +4790,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf("\"blacklist\": conflicts with whitelist (\"white-val\")"),
+				fmt.Errorf("\"blacklist\": conflicts with whitelist"),
 			},
 		},
 
@@ -4834,7 +4834,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf(`"optional_att": conflicts with required_att ("required-val")`),
+				fmt.Errorf(`"optional_att": conflicts with required_att`),
 			},
 		},
 
@@ -4861,8 +4861,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf(`"foo_att": conflicts with bar_att ("bar-val")`),
-				fmt.Errorf(`"bar_att": conflicts with foo_att ("foo-val")`),
+				fmt.Errorf(`"foo_att": conflicts with bar_att`),
+				fmt.Errorf(`"bar_att": conflicts with foo_att`),
 			},
 		},
 
