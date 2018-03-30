@@ -3,7 +3,10 @@
 BUG FIXES:
 
 * cli: Fix strange formatting of list and map values in the `terraform console` command [GH-17714]
-* helper/schema: Removed attribute value output when keys conflict [GH-17738]
+
+PROVIDER SDK CHANGES (not user-facing):
+
+* helper/schema: Attribute value is no longer included in error message when `ConflictsWith` keys are used together. [GH-17738]
 
 ## 0.11.5 (March 21, 2018)
 
