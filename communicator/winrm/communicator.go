@@ -217,7 +217,7 @@ func (c *Communicator) newCopyClient() (*winrmcp.Winrmcp, error) {
 		OperationTimeout:      c.Timeout(),
 		MaxOperationsPerShell: 15, // lowest common denominator
 	}
-	
+
 	if c.connInfo.NTLM == true {
 		config.TransportDecorator = func() winrm.Transporter { return &winrm.ClientNTLM{} }
 	}
