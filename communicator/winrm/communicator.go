@@ -214,9 +214,12 @@ func (c *Communicator) newCopyClient() (*winrmcp.Winrmcp, error) {
 		},
 		Https:                 c.connInfo.HTTPS,
 		Insecure:              c.connInfo.Insecure,
-		TransportDecorator:    c.client.TransportDecorator,
 		OperationTimeout:      c.Timeout(),
 		MaxOperationsPerShell: 15, // lowest common denominator
+	}
+	
+	if c.connInfo.NTLM == true {
+		config.TransportDecorator = func() winrm.Transporter { return &winrm.ClientNTLM{} }
 	}
 
 	if c.connInfo.CACert != "" {
