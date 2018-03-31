@@ -155,6 +155,39 @@ func TestScriptPath(t *testing.T) {
 	}
 }
 
+func TestNoTransportDecorator(t *testing.T) {
+	wrm := newMockWinRMServer(t)
+	defer wrm.Close()
+
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "winrm",
+				"user":     "user",
+				"password": "pass",
+				"host":     wrm.Host,
+				"port":     strconv.Itoa(wrm.Port),
+				"timeout":  "30s",
+			},
+		},
+	}
+
+	c, err := New(r)
+	if err != nil {
+		t.Fatalf("error creating communicator: %s", err)
+	}
+
+	err = c.Connect(nil)
+	if err != nil {
+		t.Fatalf("error connecting communicator: %s", err)
+	}
+	defer c.Disconnect()
+
+	if c.client.TransportDecorator != nil {
+		t.Fatal("bad TransportDecorator: expected nil, got non-nil")
+	}
+}
+
 func TestTransportDecorator(t *testing.T) {
 	wrm := newMockWinRMServer(t)
 	defer wrm.Close()
@@ -185,7 +218,7 @@ func TestTransportDecorator(t *testing.T) {
 	defer c.Disconnect()
 
 	if c.client.TransportDecorator == nil {
-		t.Fatal("bad TransportDecorator: got nil")
+		t.Fatal("bad TransportDecorator: expected non-nil, got nil")
 	}
 }
 
