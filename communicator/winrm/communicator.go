@@ -62,6 +62,9 @@ func (c *Communicator) Connect(o terraform.UIOutput) error {
 
 	params := winrm.DefaultParameters
 	params.Timeout = formatDuration(c.Timeout())
+	if c.connInfo.NTLM == true {
+		params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientNTLM{} }
+	}
 
 	client, err := winrm.NewClientWithParameters(
 		c.endpoint, c.connInfo.User, c.connInfo.Password, params)
@@ -78,6 +81,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) error {
 				"  Password: %t\n"+
 				"  HTTPS: %t\n"+
 				"  Insecure: %t\n"+
+				"  NTLM: %t\n"+
 				"  CACert: %t",
 			c.connInfo.Host,
 			c.connInfo.Port,
@@ -85,6 +89,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) error {
 			c.connInfo.Password != "",
 			c.connInfo.HTTPS,
 			c.connInfo.Insecure,
+			c.connInfo.NTLM,
 			c.connInfo.CACert != "",
 		))
 	}
@@ -209,6 +214,7 @@ func (c *Communicator) newCopyClient() (*winrmcp.Winrmcp, error) {
 		},
 		Https:                 c.connInfo.HTTPS,
 		Insecure:              c.connInfo.Insecure,
+		TransportDecorator:    c.client.TransportDecorator,
 		OperationTimeout:      c.Timeout(),
 		MaxOperationsPerShell: 15, // lowest common denominator
 	}
