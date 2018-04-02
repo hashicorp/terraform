@@ -378,6 +378,29 @@ func (d *ResourceDiff) GetOk(key string) (interface{}, bool) {
 	return r.Value, exists
 }
 
+// GetOkExists functions the same way as GetOkExists within ResourceData, but
+// it also checks the new diff levels to provide data consistent with the
+// current state of the customized diff.
+//
+// This is nearly the same function as GetOk, yet it does not check
+// for the zero value of the attribute's type. This allows for attributes
+// without a default, to fully check for a literal assignment, regardless
+// of the zero-value for that type.
+func (d *ResourceDiff) GetOkExists(key string) (interface{}, bool) {
+	r := d.get(strings.Split(key, "."), "newDiff")
+	exists := r.Exists && !r.Computed
+	return r.Value, exists
+}
+
+// NewValueKnown returns true if the new value for the given key is available
+// as its final value at diff time. If the return value is false, this means
+// either the value is based of interpolation that was unavailable at diff
+// time, or that the value was explicitly marked as computed by SetNewComputed.
+func (d *ResourceDiff) NewValueKnown(key string) bool {
+	r := d.get(strings.Split(key, "."), "newDiff")
+	return !r.Computed
+}
+
 // HasChange checks to see if there is a change between state and the diff, or
 // in the overridden diff.
 func (d *ResourceDiff) HasChange(key string) bool {
