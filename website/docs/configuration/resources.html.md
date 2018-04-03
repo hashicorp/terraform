@@ -71,11 +71,6 @@ There are **meta-parameters** available to all resources:
     example, this can be used to create an new DNS record before removing an old
     record.
 
-        ~> Resources that utilize the `create_before_destroy` key can only
-        depend on other resources that also include `create_before_destroy`.
-        Referencing a resource that does not include `create_before_destroy`
-        will result in a dependency graph cycle.
-
   - `prevent_destroy` (bool) - This flag provides extra protection against the
     destruction of a given resource. When this is set to `true`, any plan that
     includes a destroy of this resource will return an error message.
