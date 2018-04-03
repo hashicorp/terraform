@@ -1889,6 +1889,12 @@
 			"revisionTime": "2017-05-04T19:02:34Z"
 		},
 		{
+			"checksumSHA1": "dJPromzLdd492RQjE/09klKRXGs=",
+			"path": "github.com/hashicorp/hcl2/ext/dynblock",
+			"revision": "5f8ed954abd873b2c09616ba0aa607892bbca7e9",
+			"revisionTime": "2018-03-08T16:30:58Z"
+		},
+		{
 			"checksumSHA1": "Tpj2tK/XrhxbIKB5xEJlfTI46M0=",
 			"path": "github.com/hashicorp/hcl2/ext/typeexpr",
 			"revision": "5f8ed954abd873b2c09616ba0aa607892bbca7e9",
