@@ -141,6 +141,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		ContentLength: uint64(contentLength),
 		ObjectPath:    path.Join(mantaDefaultRootStore, c.directoryName, lockFileName),
 		ObjectReader:  bytes.NewReader(data),
+		ForceInsert:   true,
 	}
 
 	log.Printf("[DEBUG] Creating manta state lock: %#v", params)
