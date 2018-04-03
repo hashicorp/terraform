@@ -820,7 +820,13 @@ func (i *Interpolater) resourceCountMax(
 	// use "cr.Count()" but that doesn't work if the count is interpolated
 	// and we can't guarantee that so we instead depend on the state.
 	max := -1
-	for k, _ := range ms.Resources {
+	for k, s := range ms.Resources {
+		// This resource may have been just removed, in which case the Primary
+		// may be nil, or just empty.
+		if s == nil || s.Primary == nil || len(s.Primary.Attributes) == 0 {
+			continue
+		}
+
 		// Get the index number for this resource
 		index := ""
 		if k == id {
