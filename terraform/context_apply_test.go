@@ -9541,3 +9541,62 @@ func TestContext2Apply_plannedInterpolatedCount(t *testing.T) {
 		t.Fatalf("apply failed: %s", err)
 	}
 }
+
+func TestContext2Apply_scaleInMultivarRef(t *testing.T) {
+	m := testModule(t, "apply-resource-scale-in")
+
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	providerResolver := ResourceProviderResolverFixed(
+		map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	)
+
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.one": {
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Provider: "provider.aws",
+					},
+					"aws_instance.two": {
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"val": "foo",
+							},
+						},
+						Provider: "provider.aws",
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:           m,
+		ProviderResolver: providerResolver,
+		State:            s,
+		Variables:        map[string]interface{}{"count": "0"},
+	})
+
+	_, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("plan failed: %s", err)
+	}
+
+	// Applying the plan should now succeed
+	_, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("apply failed: %s", err)
+	}
+}
