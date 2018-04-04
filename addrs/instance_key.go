@@ -17,6 +17,7 @@ import (
 // InstanceKey.
 type InstanceKey interface {
 	instanceKeySigil()
+	String() string
 }
 
 // ParseInstanceKey returns the instance key corresponding to the given value,
@@ -51,9 +52,19 @@ type IntKey int
 func (k IntKey) instanceKeySigil() {
 }
 
+func (k IntKey) String() string {
+	return fmt.Sprintf("[%d]", int(k))
+}
+
 // StringKey is the InstanceKey representation representing string indices, as
 // used when the "for_each" argument is specified with a map or object type.
 type StringKey string
 
 func (k StringKey) instanceKeySigil() {
+}
+
+func (k StringKey) String() string {
+	// FIXME: This isn't _quite_ right because Go's quoted string syntax is
+	// slightly different than HCL's, but we'll accept it for now.
+	return fmt.Sprintf("[%q]", string(k))
 }
