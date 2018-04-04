@@ -51,6 +51,7 @@ func CopyFile(src, dst string) (err error) {
 		return
 	}
 	err = copyFileContents(src, dst)
+	os.Chmod(dst, sfi.Mode())
 	return
 }
 
