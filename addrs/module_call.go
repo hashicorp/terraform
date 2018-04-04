@@ -1,5 +1,9 @@
 package addrs
 
+import (
+	"fmt"
+)
+
 // ModuleCall is the address of a call from the current module to a child
 // module.
 //
@@ -8,6 +12,10 @@ package addrs
 type ModuleCall struct {
 	referenceable
 	Name string
+}
+
+func (c ModuleCall) String() string {
+	return "module." + c.Name
 }
 
 // Instance returns the address of an instance of the receiver identified by
@@ -28,6 +36,13 @@ type ModuleCallInstance struct {
 	Key  InstanceKey
 }
 
+func (c ModuleCallInstance) String() string {
+	if c.Key == NoKey {
+		return c.Call.String()
+	}
+	return fmt.Sprintf("module.%s%s", c.Call.Name, c.Key)
+}
+
 // Output returns the address of an output of the receiver identified by its
 // name.
 func (c ModuleCallInstance) Output(name string) ModuleCallOutput {
@@ -43,4 +58,8 @@ type ModuleCallOutput struct {
 	referenceable
 	Call ModuleCallInstance
 	Name string
+}
+
+func (co ModuleCallOutput) String() string {
+	return fmt.Sprintf("%s.%s", co.Call.String(), co.Name)
 }
