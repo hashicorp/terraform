@@ -70,9 +70,9 @@ There are 2 configuration levels, `supervisor` and `service`.  Configuration pla
 
 ```hcl
 bind {
-  Alias = "backend"
-  Service = "nginx"
-  Group = "default"
+  alias = "backend"
+  service = "nginx"
+  group = "default"
 }
 ```
 * `topology (string)` - (Optional) Topology to start service in. Possible values `standalone` or `leader`.  (Defaults to `standalone`)
