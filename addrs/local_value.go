@@ -5,3 +5,7 @@ type LocalValue struct {
 	referenceable
 	Name string
 }
+
+func (v LocalValue) String() string {
+	return "local." + v.Name
+}

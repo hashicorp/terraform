@@ -1,5 +1,9 @@
 package addrs
 
+import (
+	"fmt"
+)
+
 // Resource is an address for a resource block within configuration, which
 // contains potentially-multiple resource instances if that configuration
 // block uses "count" or "for_each".
@@ -8,6 +12,17 @@ type Resource struct {
 	Mode ResourceMode
 	Type string
 	Name string
+}
+
+func (r Resource) String() string {
+	switch r.Mode {
+	case ManagedResourceMode:
+		return fmt.Sprintf("%s.%s", r.Type, r.Name)
+	case DataResourceMode:
+		return fmt.Sprintf("data.%s.%s", r.Type, r.Name)
+	default:
+		panic(fmt.Errorf("resource address with invalid mode %s", r.Mode))
+	}
 }
 
 // Instance produces the address for a specific instance of the receiver
@@ -35,6 +50,13 @@ type ResourceInstance struct {
 	referenceable
 	Resource Resource
 	Key      InstanceKey
+}
+
+func (r ResourceInstance) String() string {
+	if r.Key == NoKey {
+		return r.Resource.String()
+	}
+	return r.Resource.String() + r.Key.String()
 }
 
 // Absolute returns an AbsResourceInstance from the receiver and the given module
