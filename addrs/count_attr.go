@@ -6,3 +6,7 @@ type CountAttr struct {
 	referenceable
 	Name string
 }
+
+func (ca CountAttr) String() string {
+	return "count." + ca.Name
+}
