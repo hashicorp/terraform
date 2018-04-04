@@ -6582,13 +6582,11 @@ module.child.child2:
 
 func TestContext2Apply_destroyOutputs(t *testing.T) {
 	m := testModule(t, "apply-destroy-outputs")
-	h := new(HookRecordApplyOrder)
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Module: m,
-		Hooks:  []Hook{h},
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -6608,12 +6606,10 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 	}
 
 	// Next, plan and apply a destroy operation
-	h.Active = true
 	ctx = testContext2(t, &ContextOpts{
 		Destroy: true,
 		State:   state,
 		Module:  m,
-		Hooks:   []Hook{h},
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -6622,17 +6618,36 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 	})
 
 	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
+		t.Fatal(err)
 	}
 
 	state, err = ctx.Apply()
 	if err != nil {
-		t.Fatalf("err: %s", err)
+		t.Fatal(err)
 	}
 
 	mod := state.RootModule()
 	if len(mod.Resources) > 0 {
-		t.Fatalf("bad: %#v", mod)
+		t.Fatalf("expected no resources, got: %#v", mod)
+	}
+
+	// destroying again should produce no errors
+	ctx = testContext2(t, &ContextOpts{
+		Destroy: true,
+		State:   state,
+		Module:  m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+	})
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err = ctx.Apply(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -7766,7 +7781,7 @@ func TestContext2Apply_destroyProvisionerWithOutput(t *testing.T) {
 		},
 		Destroy: true,
 
-		// targeting the source of the value used by all resources shoudl still
+		// targeting the source of the value used by all resources should still
 		// destroy them all.
 		Targets: []string{"module.mod.aws_instance.baz"},
 	})
