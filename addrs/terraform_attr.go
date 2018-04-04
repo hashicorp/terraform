@@ -6,3 +6,7 @@ type TerraformAttr struct {
 	referenceable
 	Name string
 }
+
+func (ta TerraformAttr) String() string {
+	return "terraform." + ta.Name
+}
