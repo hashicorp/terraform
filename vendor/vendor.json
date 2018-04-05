@@ -2107,14 +2107,18 @@
 		{
 			"checksumSHA1": "dIMJD0AZwSwmuOuTaGgqWZkzuPU=",
 			"path": "github.com/packer-community/winrmcp",
-			"revision": "078cc0a785c9da54158c0775f06f505fc1e867f8",
-			"revisionTime": "2017-06-07T14:21:56Z"
+			"revision": "81144009af586de8e7729b829266f09dd0d59701",
+			"revisionTime": "2018-01-02T16:08:24Z",
+			"version": "master",
+			"versionExact": "master"
 		},
 		{
-			"checksumSHA1": "iApv8tX8vuAvzyY6VkOvW+IzJF8=",
+			"checksumSHA1": "/NoE6t3UkW4/iKAtbf59GGv6tF8=",
 			"path": "github.com/packer-community/winrmcp/winrmcp",
-			"revision": "078cc0a785c9da54158c0775f06f505fc1e867f8",
-			"revisionTime": "2017-06-07T14:21:56Z"
+			"revision": "81144009af586de8e7729b829266f09dd0d59701",
+			"revisionTime": "2018-01-02T16:08:24Z",
+			"version": "master",
+			"versionExact": "master"
 		},
 		{
 			"checksumSHA1": "rJab1YdNhQooDiBWNnt7TLWPyBU=",
