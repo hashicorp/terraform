@@ -7485,6 +7485,27 @@ aws_instance.foo:
 	`)
 }
 
+func TestContext2Apply_targetEmpty(t *testing.T) {
+	m := testModule(t, "apply-targeted")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		ProviderResolver: ResourceProviderResolverFixed(
+			map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		),
+		Targets: []string{""},
+	})
+
+	_, err := ctx.Apply()
+	if err == nil {
+		t.Fatalf("should error")
+	}
+}
+
 func TestContext2Apply_targetedCount(t *testing.T) {
 	m := testModule(t, "apply-targeted-count")
 	p := testProvider("aws")
