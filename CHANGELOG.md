@@ -11,7 +11,8 @@ BUG FIXES:
 * connection/ssh: Retry on authentication failures when the remote service is available before it is completely configured ([#17744](https://github.com/hashicorp/terraform/issues/17744))
 * connection/winrm: Get execution errors from winrm commands ([#17788](https://github.com/hashicorp/terraform/issues/17788))
 * connection/winrm: Support NTLM authentication ([#17748](https://github.com/hashicorp/terraform/issues/17748))
-* provisioner/habitat: Set channel and builder URL during install, and enable service before start ([#17403](https://github.com/hashicorp/terraform/issues/17403)] [[#17781](https://github.com/hashicorp/terraform/issues/17781))
+* provisioner/chef: Fix regression causing connection to be prematurely closed ([#17609](https://github.com/hashicorp/terraform/pull/17609))
+* provisioner/habitat: Set channel and builder URL during install, and enable service before start ([#17403](https://github.com/hashicorp/terraform/issues/17403)) ([#17781](https://github.com/hashicorp/terraform/issues/17781))
 
 PROVIDER SDK CHANGES (not user-facing):
 
