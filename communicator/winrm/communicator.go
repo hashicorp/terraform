@@ -1,7 +1,6 @@
 package winrm
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,9 +13,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/masterzen/winrm"
 	"github.com/packer-community/winrmcp/winrmcp"
-
-	// This import is a bit strange, but it's needed so `make updatedeps` can see and download it
-	_ "github.com/dylanmei/winrmtest"
 )
 
 // Communicator represents the WinRM communicator
@@ -97,13 +93,13 @@ func (c *Communicator) Connect(o terraform.UIOutput) error {
 	log.Printf("[DEBUG] connecting to remote shell using WinRM")
 	shell, err := client.CreateShell()
 	if err != nil {
-		log.Printf("[ERROR] connection error: %s", err)
+		log.Printf("[ERROR] error creating shell: %s", err)
 		return err
 	}
 
 	err = shell.Close()
 	if err != nil {
-		log.Printf("[ERROR] error closing connection: %s", err)
+		log.Printf("[ERROR] error closing shell: %s", err)
 		return err
 	}
 
@@ -139,8 +135,13 @@ func (c *Communicator) Start(rc *remote.Cmd) error {
 	rc.Init()
 	log.Printf("[DEBUG] starting remote command: %s", rc.Command)
 
+	// TODO: make sure communicators always connect first, so we can get output
+	// from the connection.
 	if c.client == nil {
-		return errors.New("winrm client is not connected")
+		log.Println("[WARN] winrm client not connected, attempting to connect")
+		if err := c.Connect(nil); err != nil {
+			return err
+		}
 	}
 
 	status, err := c.client.Run(rc.Command, rc.Stdout, rc.Stderr)

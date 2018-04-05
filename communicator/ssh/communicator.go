@@ -406,7 +406,7 @@ func (c *Communicator) UploadDir(dst string, src string) error {
 func (c *Communicator) newSession() (session *ssh.Session, err error) {
 	log.Println("[DEBUG] opening new ssh session")
 	if c.client == nil {
-		err = errors.New("client not available")
+		err = errors.New("ssh client is not connected")
 	} else {
 		session, err = c.client.NewSession()
 	}
