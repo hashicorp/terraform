@@ -2,10 +2,12 @@
 
 BUG FIXES:
 
+* cli: Don't allow -target without arguments [GH-16360]
 * cli: Fix strange formatting of list and map values in the `terraform console` command [GH-17714]
 * core: Don't evaluate unused outputs during a full destroy operation [GH-17768]
 * core: Fix local and output evaluation when they reference a resource being scaled down to 0 [GH-17765]
 * connection/ssh: Retry on authentication failures when the remote service is available before it is completely configured [GH-17744]
+* connection/winrm: Get execution errors from winrm commands [GH-17788]
 * connection/winrm: Support NTLM authentication [GH-17748]
 * provisioner/habitat: Set channel and builder URL during install, and enable service before start [GH-17403] [GH-17781]
 
