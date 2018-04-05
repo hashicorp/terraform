@@ -39,6 +39,13 @@ type SliceWalker interface {
 	SliceElem(int, reflect.Value) error
 }
 
+// ArrayWalker implementations are able to handle array elements found
+// within complex structures.
+type ArrayWalker interface {
+	Array(reflect.Value) error
+	ArrayElem(int, reflect.Value) error
+}
+
 // StructWalker is an interface that has methods that are called for
 // structs when a Walk is done.
 type StructWalker interface {
@@ -65,6 +72,7 @@ type PointerWalker interface {
 // SkipEntry can be returned from walk functions to skip walking
 // the value of this field. This is only valid in the following functions:
 //
+//   - Struct: skips all fields from being walked
 //   - StructField: skips walking the struct value
 //
 var SkipEntry = errors.New("skip this entry")
@@ -179,6 +187,9 @@ func walk(v reflect.Value, w interface{}) (err error) {
 	case reflect.Struct:
 		err = walkStruct(v, w)
 		return
+	case reflect.Array:
+		err = walkArray(v, w)
+		return
 	default:
 		panic("unsupported type: " + k.String())
 	}
@@ -286,48 +297,99 @@ func walkSlice(v reflect.Value, w interface{}) (err error) {
 	return nil
 }
 
+func walkArray(v reflect.Value, w interface{}) (err error) {
+	ew, ok := w.(EnterExitWalker)
+	if ok {
+		ew.Enter(Array)
+	}
+
+	if aw, ok := w.(ArrayWalker); ok {
+		if err := aw.Array(v); err != nil {
+			return err
+		}
+	}
+
+	for i := 0; i < v.Len(); i++ {
+		elem := v.Index(i)
+
+		if aw, ok := w.(ArrayWalker); ok {
+			if err := aw.ArrayElem(i, elem); err != nil {
+				return err
+			}
+		}
+
+		ew, ok := w.(EnterExitWalker)
+		if ok {
+			ew.Enter(ArrayElem)
+		}
+
+		if err := walk(elem, w); err != nil {
+			return err
+		}
+
+		if ok {
+			ew.Exit(ArrayElem)
+		}
+	}
+
+	ew, ok = w.(EnterExitWalker)
+	if ok {
+		ew.Exit(Array)
+	}
+
+	return nil
+}
+
 func walkStruct(v reflect.Value, w interface{}) (err error) {
 	ew, ewok := w.(EnterExitWalker)
 	if ewok {
 		ew.Enter(Struct)
 	}
 
+	skip := false
 	if sw, ok := w.(StructWalker); ok {
-		if err = sw.Struct(v); err != nil {
+		err = sw.Struct(v)
+		if err == SkipEntry {
+			skip = true
+			err = nil
+		}
+		if err != nil {
 			return
 		}
 	}
 
-	vt := v.Type()
-	for i := 0; i < vt.NumField(); i++ {
-		sf := vt.Field(i)
-		f := v.FieldByIndex([]int{i})
+	if !skip {
+		vt := v.Type()
+		for i := 0; i < vt.NumField(); i++ {
+			sf := vt.Field(i)
+			f := v.FieldByIndex([]int{i})
 
-		if sw, ok := w.(StructWalker); ok {
-			err = sw.StructField(sf, f)
+			if sw, ok := w.(StructWalker); ok {
+				err = sw.StructField(sf, f)
 
-			// SkipEntry just pretends this field doesn't even exist
-			if err == SkipEntry {
-				continue
+				// SkipEntry just pretends this field doesn't even exist
+				if err == SkipEntry {
+					continue
+				}
+
+				if err != nil {
+					return
+				}
 			}
 
+			ew, ok := w.(EnterExitWalker)
+			if ok {
+				ew.Enter(StructField)
+			}
+
+			err = walk(f, w)
 			if err != nil {
 				return
 			}
-		}
 
-		ew, ok := w.(EnterExitWalker)
-		if ok {
-			ew.Enter(StructField)
-		}
-
-		err = walk(f, w)
-		if err != nil {
-			return
-		}
-
-		if ok {
-			ew.Exit(StructField)
+			if ok {
+				ew.Exit(StructField)
+			}
 		}
 	}
 
