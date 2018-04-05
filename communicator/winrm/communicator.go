@@ -7,16 +7,12 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/masterzen/winrm"
 	"github.com/packer-community/winrmcp/winrmcp"
-
-	// This import is a bit strange, but it's needed so `make updatedeps` can see and download it
-	_ "github.com/dylanmei/winrmtest"
 )
 
 // Communicator represents the WinRM communicator
@@ -94,16 +90,16 @@ func (c *Communicator) Connect(o terraform.UIOutput) error {
 		))
 	}
 
-	log.Printf("connecting to remote shell using WinRM")
+	log.Printf("[DEBUG] connecting to remote shell using WinRM")
 	shell, err := client.CreateShell()
 	if err != nil {
-		log.Printf("connection error: %s", err)
+		log.Printf("[ERROR] error creating shell: %s", err)
 		return err
 	}
 
 	err = shell.Close()
 	if err != nil {
-		log.Printf("error closing connection: %s", err)
+		log.Printf("[ERROR] error closing shell: %s", err)
 		return err
 	}
 
@@ -137,46 +133,21 @@ func (c *Communicator) ScriptPath() string {
 // Start implementation of communicator.Communicator interface
 func (c *Communicator) Start(rc *remote.Cmd) error {
 	rc.Init()
+	log.Printf("[DEBUG] starting remote command: %s", rc.Command)
 
-	err := c.Connect(nil)
-	if err != nil {
-		return err
+	// TODO: make sure communicators always connect first, so we can get output
+	// from the connection.
+	if c.client == nil {
+		log.Println("[WARN] winrm client not connected, attempting to connect")
+		if err := c.Connect(nil); err != nil {
+			return err
+		}
 	}
 
-	shell, err := c.client.CreateShell()
-	if err != nil {
-		return err
-	}
+	status, err := c.client.Run(rc.Command, rc.Stdout, rc.Stderr)
+	rc.SetExitStatus(status, err)
 
-	log.Printf("starting remote command: %s", rc.Command)
-	cmd, err := shell.Execute(rc.Command)
-	if err != nil {
-		return err
-	}
-
-	go runCommand(shell, cmd, rc)
 	return nil
-}
-
-func runCommand(shell *winrm.Shell, cmd *winrm.Command, rc *remote.Cmd) {
-	defer shell.Close()
-
-	var wg sync.WaitGroup
-	go func() {
-		wg.Add(1)
-		io.Copy(rc.Stdout, cmd.Stdout)
-		wg.Done()
-	}()
-	go func() {
-		wg.Add(1)
-		io.Copy(rc.Stderr, cmd.Stderr)
-		wg.Done()
-	}()
-
-	cmd.Wait()
-	wg.Wait()
-
-	rc.SetExitStatus(cmd.ExitCode(), nil)
 }
 
 // Upload implementation of communicator.Communicator interface
@@ -185,7 +156,7 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("Uploading file to '%s'", path)
+	log.Printf("[DEBUG] Uploading file to '%s'", path)
 	return wcp.Write(path, input)
 }
 
@@ -196,7 +167,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 
 // UploadDir implementation of communicator.Communicator interface
 func (c *Communicator) UploadDir(dst string, src string) error {
-	log.Printf("Uploading dir '%s' to '%s'", src, dst)
+	log.Printf("[DEBUG] Uploading dir '%s' to '%s'", src, dst)
 	wcp, err := c.newCopyClient()
 	if err != nil {
 		return err
