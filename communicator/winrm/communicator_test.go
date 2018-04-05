@@ -155,6 +155,73 @@ func TestScriptPath(t *testing.T) {
 	}
 }
 
+func TestNoTransportDecorator(t *testing.T) {
+	wrm := newMockWinRMServer(t)
+	defer wrm.Close()
+
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "winrm",
+				"user":     "user",
+				"password": "pass",
+				"host":     wrm.Host,
+				"port":     strconv.Itoa(wrm.Port),
+				"timeout":  "30s",
+			},
+		},
+	}
+
+	c, err := New(r)
+	if err != nil {
+		t.Fatalf("error creating communicator: %s", err)
+	}
+
+	err = c.Connect(nil)
+	if err != nil {
+		t.Fatalf("error connecting communicator: %s", err)
+	}
+	defer c.Disconnect()
+
+	if c.client.TransportDecorator != nil {
+		t.Fatal("bad TransportDecorator: expected nil, got non-nil")
+	}
+}
+
+func TestTransportDecorator(t *testing.T) {
+	wrm := newMockWinRMServer(t)
+	defer wrm.Close()
+
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "winrm",
+				"user":     "user",
+				"password": "pass",
+				"host":     wrm.Host,
+				"port":     strconv.Itoa(wrm.Port),
+				"use_ntlm": "true",
+				"timeout":  "30s",
+			},
+		},
+	}
+
+	c, err := New(r)
+	if err != nil {
+		t.Fatalf("error creating communicator: %s", err)
+	}
+
+	err = c.Connect(nil)
+	if err != nil {
+		t.Fatalf("error connecting communicator: %s", err)
+	}
+	defer c.Disconnect()
+
+	if c.client.TransportDecorator == nil {
+		t.Fatal("bad TransportDecorator: expected non-nil, got nil")
+	}
+}
+
 func TestScriptPath_randSeed(t *testing.T) {
 	// Pre GH-4186 fix, this value was the deterministic start the pseudorandom
 	// chain of unseeded math/rand values for Int31().
