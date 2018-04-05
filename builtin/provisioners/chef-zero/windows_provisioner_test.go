@@ -22,6 +22,7 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
+				"instance_id": 	"myid",
 				"user_key":   "USER-KEY",
 			},
 
@@ -42,6 +43,7 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
+				"instance_id": 	"myid",
 				"user_key":   "USER-KEY",
 			},
 
@@ -61,6 +63,7 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
 				"user_key":   "USER-KEY",
+				"instance_id": 	"myid",
 				"version":    "11.18.6",
 			},
 
@@ -80,6 +83,7 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
+				"instance_id": 	"myid",
 				"user_key":   "USER-KEY",
 				"version":    "11.18.6",
 			},
@@ -131,6 +135,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"secret_key": "SECRET-KEY",
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
+				"instance_id": 	"myid",
 				"user_key":   "USER-KEY",
 			},
 
@@ -145,6 +150,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				windowsConfDir + "/client.rb":                 defaultWindowsClientConf,
 				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				windowsConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
 				windowsConfDir + "/ohai/hints/ohaihint.json":  "OHAI-HINT-FILE",
 				windowsConfDir + "/bob.pem":                   "USER-KEY",
 			},
@@ -161,6 +167,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"server_url":      "https://chef.local",
 				"ssl_verify_mode": "verify_none",
 				"user_name":       "bob",
+				"instance_id": 	   "myid",
 				"user_key":        "USER-KEY",
 			},
 
@@ -171,20 +178,24 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			Uploads: map[string]string{
 				windowsConfDir + "/client.rb":                 proxyWindowsClientConf,
 				windowsConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
 				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				windowsConfDir + "/bob.pem":                   "USER-KEY",
 			},
 		},
 
-		"Attributes JSON": {
+		"DNAAttributes JSON": {
 			Config: map[string]interface{}{
-				"attributes_json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+				"attributes_dna": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2"}`,
+				"attributes_automatic": `{"test":{"subkey1" : "value"} }`,
+				"attributes_default": `{"test_default":{"subkey_default" : "value"} }`,
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"secret_key": "SECRET-KEY",
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
+				"instance_id": 	"myid",
 				"user_key":   "USER-KEY",
 			},
 
@@ -198,6 +209,8 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				windowsConfDir + "/bob.pem":                   "USER-KEY",
 				windowsConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/node.json": `{"automatic":{"test":{"subkey1":"value"}},` +
+					`"default":{"test_default":{"subkey_default":"value"}},"id":"myid","run_list":["cookbook::recipe"]}`,
 			},
 		},
 	}

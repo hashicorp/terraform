@@ -27,6 +27,7 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 		"node_name":   "nodename1",
 		"run_list":    []interface{}{"cookbook::recipe"},
 		"server_url":  "https://chef.local",
+		"instance_id": 	"instance-id",
 		"user_name":   "bob",
 		"user_key":    "USER-KEY",
 	})
@@ -64,7 +65,11 @@ func TestResourceProvider_Validate_computedValues(t *testing.T) {
 		"server_url":      "https://chef.local",
 		"user_name":       "bob",
 		"user_key":        "USER-KEY",
-		"attributes_json": config.UnknownVariableValue,
+		"instance_id": 		"instance-id",
+		"attributes_dna": config.UnknownVariableValue,
+		"attributes_automatic": config.UnknownVariableValue,
+		"attributes_default": config.UnknownVariableValue,
+
 	})
 
 	warn, errs := Provisioner().Validate(c)
@@ -226,10 +231,6 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 
 	for k, tc := range cases {
 		c.Commands = tc.Commands
-
-		for com := range c.Commands  {
-			fmt.Println(com)
-		}
 
 		p, err := decodeConfig(
 			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),

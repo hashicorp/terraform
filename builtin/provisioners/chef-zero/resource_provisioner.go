@@ -28,7 +28,8 @@ import (
 const (
 	clienrb         = "client.rb"
 	defaultEnv      = "_default"
-	firstBoot       = "first-boot.json"
+	dnafile         = "first-boot.json"
+	nodefile        = "node.json"
 	logfileDir      = "logfiles"
 	linuxChefCmd    = "chef-client"
 	linuxConfDir    = "/etc/chef"
@@ -88,45 +89,48 @@ var debug_logger = loggo.GetLogger("default")
 
 type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 
-type provisioner struct {
-	Attributes            map[string]interface{}
-	Channel               string
-	ClientOptions         []string
-	DisableReporting      bool
-	Environment           string
-	FetchChefCertificates bool
-	LogToFile             bool
-	UsePolicyfile         bool
-	PolicyGroup           string
-	PolicyName            string
-	HTTPProxy             string
-	HTTPSProxy            string
-	NamedRunList          string
-	NOProxy               []string
-	NodeName              string
-	OhaiHints             []string
-	OSType                string
-	RecreateClient        bool
-	PreventSudo           bool
-	RunList               []string
-	SecretKey             string
-	ServerURL             string
-	SkipInstall           bool
-	SkipRegister          bool
-	SSLVerifyMode         string
-	UserName              string
-	UserKey               string
-	Vaults                map[string][]string
-	Version               string
 
-	cleanupUserKeyCmd     string
-	createConfigFiles     provisionFn
-	installChefClient     provisionFn
-	fetchChefCertificates provisionFn
-	generateClientKey     provisionFn
-	configureVaults       provisionFn
-	runChefClient         provisionFn
-	useSudo               bool
+type provisioner struct {
+	DNAAttributes		  	map[string]interface{}
+	NodeAttributes 			map[string]interface{}
+	InstanceId 				string
+	Channel               	string
+	ClientOptions         	[]string
+	DisableReporting      	bool
+	Environment           	string
+	FetchChefCertificates 	bool
+	LogToFile             	bool
+	UsePolicyfile         	bool
+	PolicyGroup           	string
+	PolicyName            	string
+	HTTPProxy             	string
+	HTTPSProxy            	string
+	NamedRunList          	string
+	NOProxy               	[]string
+	NodeName              	string
+	OhaiHints             	[]string
+	OSType                	string
+	RecreateClient        	bool
+	PreventSudo           	bool
+	RunList               	[]string
+	SecretKey             	string
+	ServerURL             	string
+	SkipInstall           	bool
+	SkipRegister          	bool
+	SSLVerifyMode         	string
+	UserName              	string
+	UserKey               	string
+	Vaults                	map[string][]string
+	Version               	string
+
+	cleanupUserKeyCmd     	string
+	createConfigFiles     	provisionFn
+	installChefClient     	provisionFn
+	fetchChefCertificates 	provisionFn
+	generateClientKey     	provisionFn
+	configureVaults       	provisionFn
+	runChefClient         	provisionFn
+	useSudo               	bool
 }
 
 // Provisioner returns a Chef provisioner
@@ -152,8 +156,21 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"instance_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"attributes_dna": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 
-			"attributes_json": &schema.Schema{
+			"attributes_automatic": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"attributes_default": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -458,8 +475,13 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 
 	// Create a map with first boot settings
 	fb := make(map[string]interface{})
-	if p.Attributes != nil {
-		fb = p.Attributes
+	if p.DNAAttributes != nil {
+		fb = p.DNAAttributes
+	}
+
+	node := make(map[string]interface{})
+	if p.NodeAttributes != nil {
+		node = p.NodeAttributes
 	}
 
 	// Check if the run_list was also in the attributes and if so log a warning
@@ -469,22 +491,31 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 			"This value will be overwritten by the value of the `run_list` argument!")
 	}
 
+
 	// Add the initial runlist to the first boot settings
 	if !p.UsePolicyfile {
 		fb["run_list"] = p.RunList
+		node["run_list"] = p.RunList
 	}
 
-	// Marshal the first boot settings to JSON
-	d, err := json.Marshal(fb)
-	if err != nil {
-		return fmt.Errorf("Failed to create %s data: %s", firstBoot, err)
-	}
+	configs := map[string]interface{}{dnafile: fb,nodefile: node}
 
-	debug_logger.Debugf("First-boot json file containing : %s" , string(d))
+	for file,config := range configs {
 
-	// Copy the first-boot.json to the new instance
-	if err := comm.Upload(path.Join(confDir, firstBoot), bytes.NewReader(d)); err != nil {
-		return fmt.Errorf("Uploading %s failed: %v", firstBoot, err)
+		// Marshal the first boot settings to JSON
+
+		d, err := json.Marshal(config)
+		if err != nil {
+			return fmt.Errorf("Failed to create %s data: %s", file, err)
+		}
+
+		debug_logger.Debugf("%s json file containing : %s" , file, string(d))
+
+		// Copy the first-boot.json to the new instance
+		if err := comm.Upload(path.Join(confDir, file), bytes.NewReader(d)); err != nil {
+			return fmt.Errorf("Uploading %s failed: %v", file, err)
+		}
+
 	}
 
 	return nil
@@ -629,7 +660,7 @@ func (p *provisioner) configureVaultsFunc(gemCmd string, knifeCmd string, confDi
 
 func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisionFn {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
-		fb := path.Join(confDir, firstBoot)
+		fb := path.Join(confDir, dnafile)
 		var cmd string
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
@@ -756,6 +787,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		UserName:              d.Get("user_name").(string),
 		UserKey:               d.Get("user_key").(string),
 		Version:               d.Get("version").(string),
+		InstanceId:			   d.Get("instance_id").(string),
 	}
 
 	// Make sure the supplied URL has a trailing slash
@@ -769,12 +801,33 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		p.OhaiHints[i] = hintPath
 	}
 
-	if attrs, ok := d.GetOk("attributes_json"); ok {
+	p.NodeAttributes = make(map[string]interface{})
+
+
+	//fixme support each type of attributes
+	types := []string{"automatic", "default", "force_default", "normal", "override", "force_override"}
+	for _,v := range types {
+		if attrs, ok := d.GetOk("attributes_"+v); ok {
+			var m map[string]interface{}
+			if err := json.Unmarshal([]byte(attrs.(string)), &m); err != nil {
+				return nil, fmt.Errorf("Error parsing attributes_dna: %v", err)
+			}
+			p.NodeAttributes[v] = m
+		}
+	}
+
+	// not sure about the checks
+	// fixme
+	var test = d.Get("instance_id").(string)
+
+	p.NodeAttributes["id"] = test
+
+	if attrs, ok := d.GetOk("attributes_dna"); ok {
 		var m map[string]interface{}
 		if err := json.Unmarshal([]byte(attrs.(string)), &m); err != nil {
-			return nil, fmt.Errorf("Error parsing attributes_json: %v", err)
+			return nil, fmt.Errorf("Error parsing attributes_dna: %v", err)
 		}
-		p.Attributes = m
+		p.DNAAttributes = m
 	}
 
 	if vaults, ok := d.GetOk("vault_json"); ok {

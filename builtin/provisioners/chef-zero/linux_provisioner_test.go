@@ -21,6 +21,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
+				"instance_id": 	"myid",
 				"user_key":   "USER-KEY",
 			},
 
@@ -39,6 +40,8 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"secret_key":   "SECRET-KEY",
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
+				"instance_id": 	"myid",
+
 				"user_key":     "USER-KEY",
 			},
 
@@ -57,6 +60,8 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"run_list":     []interface{}{"cookbook::recipe"},
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
+				"instance_id": 	"myid",
+
 				"user_key":     "USER-KEY",
 			},
 
@@ -75,6 +80,8 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"run_list":     []interface{}{"cookbook::recipe"},
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
+				"instance_id": 	"myid",
+
 				"user_key":     "USER-KEY",
 			},
 
@@ -94,6 +101,8 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"run_list":     []interface{}{"cookbook::recipe"},
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
+				"instance_id": 	"myid",
+
 				"user_key":     "USER-KEY",
 			},
 
@@ -114,6 +123,8 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"run_list":     []interface{}{"cookbook::recipe"},
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
+				"instance_id": 	"myid",
+
 				"user_key":     "USER-KEY",
 				"version":      "11.18.6",
 			},
@@ -133,6 +144,8 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"run_list":     []interface{}{"cookbook::recipe"},
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
+				"instance_id": 	"myid",
+
 				"user_key":     "USER-KEY",
 				"version":      "11.18.6",
 			},
@@ -181,6 +194,8 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"secret_key": "SECRET-KEY",
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
+				"instance_id": 	"myid",
+
 				"user_key":   "USER-KEY",
 			},
 
@@ -203,6 +218,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
 				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
 				linuxConfDir + "/ohai/hints/ohaihint.json":  "OHAI-HINT-FILE",
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
 			},
@@ -216,6 +232,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"secret_key":   "SECRET-KEY",
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
+				"instance_id": 	"myid",
 				"user_key":     "USER-KEY",
 			},
 
@@ -227,6 +244,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
 				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
 			},
 		},
@@ -243,6 +261,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"server_url":      "https://chef.local",
 				"ssl_verify_mode": "verify_none",
 				"user_name":       "bob",
+				"instance_id": 		"myid",
 				"user_key":        "USER-KEY",
 			},
 
@@ -254,20 +273,24 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				linuxConfDir + "/client.rb":                 proxyLinuxClientConf,
 				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
 			},
 		},
 
-		"Attributes JSON": {
+		"DNAAttributes": {
 			Config: map[string]interface{}{
-				"attributes_json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+				"attributes_dna": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2"}`,
+				"attributes_automatic": `{"test":{"subkey1" : "value"} }`,
+				"attributes_default": `{"test_default":{"subkey_default" : "value"} }`,
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
 				"secret_key":   "SECRET-KEY",
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
+				"instance_id": 	"myid",
 				"user_key":     "USER-KEY",
 			},
 
@@ -281,6 +304,9 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
 				linuxConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/node.json": `{"automatic":{"test":{"subkey1":"value"}},` +
+					`"default":{"test_default":{"subkey_default":"value"}},"id":"myid","run_list":["cookbook::recipe"]}`,
+
 			},
 		},
 	}
