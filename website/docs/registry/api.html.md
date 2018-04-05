@@ -663,9 +663,6 @@ download endpoint (above) for the latest version.
 - `provider` `(string: <required>)` - The name of the provider.
   This is required and is specified as part of the URL path.
 
-- `version` `(string: <required>)` - The version of the module.
-  This is required and is specified as part of the URL path.
-
 ### Sample Request
 
 ```text
