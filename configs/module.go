@@ -21,8 +21,8 @@ type Module struct {
 
 	ModuleCalls map[string]*ModuleCall
 
-	ManagedResources map[string]*ManagedResource
-	DataResources    map[string]*DataResource
+	ManagedResources map[string]*Resource
+	DataResources    map[string]*Resource
 }
 
 // File describes the contents of a single configuration file.
@@ -49,8 +49,8 @@ type File struct {
 
 	ModuleCalls []*ModuleCall
 
-	ManagedResources []*ManagedResource
-	DataResources    []*DataResource
+	ManagedResources []*Resource
+	DataResources    []*Resource
 }
 
 // NewModule takes a list of primary files and a list of override files and
@@ -70,8 +70,8 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		Locals:               map[string]*Local{},
 		Outputs:              map[string]*Output{},
 		ModuleCalls:          map[string]*ModuleCall{},
-		ManagedResources:     map[string]*ManagedResource{},
-		DataResources:        map[string]*DataResource{},
+		ManagedResources:     map[string]*Resource{},
+		DataResources:        map[string]*Resource{},
 	}
 
 	for _, file := range primaryFiles {
