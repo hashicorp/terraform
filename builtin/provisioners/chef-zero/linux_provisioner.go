@@ -80,6 +80,7 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 			}
 		}
 
+		// check for errors
 		// fixme refactor with ohai
 		p.deployConfigDirectory(o, comm, configDir)
 
