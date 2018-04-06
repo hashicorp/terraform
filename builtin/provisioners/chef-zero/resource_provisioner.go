@@ -29,7 +29,6 @@ const (
 	clienrb         = "client.rb"
 	defaultEnv      = "_default"
 	dnafile         = "first-boot.json"
-	nodefile        = "node.json"
 	logfileDir      = "logfiles"
 	linuxChefCmd    = "chef-client"
 	linuxConfDir    = "/etc/chef"
@@ -93,6 +92,7 @@ type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 type provisioner struct {
 	DNAAttributes		  	map[string]interface{}
 	NodeAttributes 			map[string]interface{}
+	LocalNodesDirectory		string
 	InstanceId 				string
 	Channel               	string
 	ClientOptions         	[]string
@@ -141,6 +141,10 @@ func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
 			"node_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"nodes_dir": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -365,6 +369,7 @@ func applyFn(ctx context.Context) error {
 		}
 	}
 
+	// file configured here
 	o.Output("Creating configuration files...")
 	if err := p.createConfigFiles(o, comm); err != nil {
 		return err
@@ -433,6 +438,7 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 	return ws, es
 }
 
+// called by @createConfigFiles
 func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.Communicator, confDir string) error {
 
 	// Copy the user key to the new instance
@@ -479,6 +485,7 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 		fb = p.DNAAttributes
 	}
 
+	// fixme document me
 	node := make(map[string]interface{})
 	if p.NodeAttributes != nil {
 		node = p.NodeAttributes
@@ -498,7 +505,7 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 		node["run_list"] = p.RunList
 	}
 
-	configs := map[string]interface{}{dnafile: fb,nodefile: node}
+	configs := map[string]interface{}{dnafile: fb}
 
 	for file,config := range configs {
 
@@ -515,11 +522,48 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 		if err := comm.Upload(path.Join(confDir, file), bytes.NewReader(d)); err != nil {
 			return fmt.Errorf("Uploading %s failed: %v", file, err)
 		}
-
 	}
+
+	// nodefile is put in a node directory meaning that it will be uploaded during the node directory upload
+	nodefile := p.InstanceId+".json"
+	d, err := json.Marshal(node)
+	if err != nil {
+		return fmt.Errorf("Failed to create %s data: %s", nodefile, err)
+	}
+	nodePath := path.Join(confDir+"/"+p.LocalNodesDirectory, nodefile)
+	f, err := os.Create(path.Join(nodePath))
+	if err != nil {
+		return fmt.Errorf("Error creating node file %s: %v", nodePath, err)
+	}
+	_,err := f.Write(d)
+	if err != nil {
+		return fmt.Errorf("Failed to write data %d to node file %s: %v", d, nodePath, err)
+	}
+	f.Close()
 
 	return nil
 }
+
+
+// fixme refactor with deploy ohai hints
+func (p *provisioner) deployFileDirectory(o terraform.UIOutput, comm communicator.Communicator, dirPath string) error {
+	_, err := os.Stat(dirPath)
+	if os.IsNotExist(err) || err != nil {
+		return err
+	}
+
+	if err := comm.UploadDir(dirPath, dirPath); err != nil {
+		return fmt.Errorf("Uploading %s failed: %v", path.Base(dirPath), err)
+	}
+	return nil
+}
+
+func (provisioner *provisioner) deployConfigDirectory(output terraform.UIOutput, i communicator.Communicator, s string) {
+	if err := p.deployFileDirectory(o, comm, homedir.Expand(dir)); err != nil {
+		fmt.Errorf("Uploading %s directory failed: %v", dir, err)
+	}
+}
+
 
 func (p *provisioner) deployOhaiHints(o terraform.UIOutput, comm communicator.Communicator, hintDir string) error {
 	for _, hint := range p.OhaiHints {
@@ -788,6 +832,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		UserKey:               d.Get("user_key").(string),
 		Version:               d.Get("version").(string),
 		InstanceId:			   d.Get("instance_id").(string),
+		LocalNodesDirectory:   d.Get("local_nodes_dir").(string),
 	}
 
 	// Make sure the supplied URL has a trailing slash
@@ -803,6 +848,12 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 
 	p.NodeAttributes = make(map[string]interface{})
 
+	for _,dir := range []string{"data-bags",p.LocalNodesDirectory,"roles","dna","environments","cookbooks"} {
+		configPath, err := homedir.Expand(dir)
+		if err != nil {
+			return nil, fmt.Errorf("Error expanding the path %s: %v", configPath, err)
+		}
+	}
 
 	//fixme support each type of attributes
 	types := []string{"automatic", "default", "force_default", "normal", "override", "force_override"}
@@ -818,9 +869,24 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 
 	// not sure about the checks
 	// fixme
-	var test = d.Get("instance_id").(string)
+	p.NodeAttributes["id"] = d.Get("instance_id").(string)
 
-	p.NodeAttributes["id"] = test
+
+	// Check if nodes directory doesn't already exist
+	if attrs,ok := d.GetOk("local_nodes_dir"); ok {
+		path,err := homedir.Expand(p.LocalNodesDirectory)
+
+		if err != nil {
+			return nil, fmt.Errorf("Error expanding node directory %s: %v", path, err)
+		}
+
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			if errmk := os.Mkdir(path, 0755); errmk != nil {
+				return nil, fmt.Errorf("Error creating node directory %s: %v", path, err)
+			}
+		}
+	}
+
 
 	if attrs, ok := d.GetOk("attributes_dna"); ok {
 		var m map[string]interface{}

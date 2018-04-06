@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path"
 	"strings"
-
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -63,6 +62,43 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 		return err
 	}
 
+	// Make sure the hits directory exists
+	configDirs := []string{"data-bags",p.LocalNodesDirectory,"roles","dna","environments","cookbooks"}
+	for _,dir := range configDirs {
+		configDir := path.Join(linuxConfDir, dir)
+		if err := p.runCommand(o, comm, "mkdir -p "+configDir); err != nil {
+			return err
+		}
+
+		// Make sure we have enough rights to upload the hints if using sudo
+		if p.useSudo {
+			if err := p.runCommand(o, comm, "chmod 777 "+configDir); err != nil {
+				return err
+			}
+			if err := p.runCommand(o, comm, fmt.Sprintf(chmod, configDir, 666)); err != nil {
+				return err
+			}
+		}
+
+		// fixme refactor with ohai
+		p.deployConfigDirectory(o, comm, configDir)
+
+		// When done copying the hints restore the rights and make sure root is owner
+		if p.useSudo {
+			if err := p.runCommand(o, comm, "chmod 755 "+configDir); err != nil {
+				return err
+			}
+			if err := p.runCommand(o, comm, fmt.Sprintf(chmod, configDir, 600)); err != nil {
+				return err
+			}
+			if err := p.runCommand(o, comm, "chown -R root.root "+configDir); err != nil {
+				return err
+			}
+		}
+	}
+
+
+	//fixme do the same for other directories
 	if len(p.OhaiHints) > 0 {
 		// Make sure the hits directory exists
 		hintsDir := path.Join(linuxConfDir, "ohai/hints")

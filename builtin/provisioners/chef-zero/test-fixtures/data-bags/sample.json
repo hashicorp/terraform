@@ -1,0 +1,6 @@
+{
+  "id": "sample",
+  "keys": {
+    "encrypted_data": "some_key"
+  }
+}
