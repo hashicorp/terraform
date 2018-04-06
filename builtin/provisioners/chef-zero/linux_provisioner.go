@@ -63,7 +63,7 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 	}
 
 	// Make sure the hits directory exists
-	configDirs := []string{"data-bags",p.LocalNodesDirectory,"roles","dna","environments","cookbooks"}
+	configDirs := []string{"data-bags","nodes","roles","dna","environments","cookbooks"}
 	for _,dir := range configDirs {
 		configDir := path.Join(linuxConfDir, dir)
 		if err := p.runCommand(o, comm, "mkdir -p "+configDir); err != nil {
@@ -80,9 +80,9 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 			}
 		}
 
-		// check for errors
-		// fixme refactor with ohai
-		p.deployConfigDirectory(o, comm, configDir)
+		if err := p.deployFileDirectory(o, comm, linuxConfDir, dir); err != nil {
+			return err
+		}
 
 		// When done copying the hints restore the rights and make sure root is owner
 		if p.useSudo {

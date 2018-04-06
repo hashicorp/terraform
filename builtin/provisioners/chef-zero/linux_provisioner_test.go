@@ -185,6 +185,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 		Config   map[string]interface{}
 		Commands map[string]bool
 		Uploads  map[string]string
+		UploadDirs map[string]string
 	}{
 		"Sudo": {
 			Config: map[string]interface{}{
@@ -194,8 +195,9 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"secret_key": "SECRET-KEY",
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
-				"instance_id": 	"myid",
-
+				"dir_resources": "test-fixtures",
+				"local_nodes_dir":  "nodes",
+				"instance_id": "myid",
 				"user_key":   "USER-KEY",
 			},
 
@@ -203,12 +205,57 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"sudo mkdir -p " + linuxConfDir:                                          true,
 				"sudo chmod 777 " + linuxConfDir:                                         true,
 				"sudo " + fmt.Sprintf(chmod, linuxConfDir, 666):                          true,
+
 				"sudo mkdir -p " + path.Join(linuxConfDir, "ohai/hints"):                 true,
 				"sudo chmod 777 " + path.Join(linuxConfDir, "ohai/hints"):                true,
 				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "ohai/hints"), 666): true,
 				"sudo chmod 755 " + path.Join(linuxConfDir, "ohai/hints"):                true,
 				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "ohai/hints"), 600): true,
 				"sudo chown -R root.root " + path.Join(linuxConfDir, "ohai/hints"):       true,
+
+				"sudo mkdir -p " + path.Join(linuxConfDir, "nodes"):   true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "nodes"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "nodes"), 666): true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "nodes"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "nodes"), 600): true,
+				"sudo chown -R root.root " + path.Join(linuxConfDir, "nodes"):       true,
+
+				"sudo mkdir -p " + path.Join(linuxConfDir, "data-bags"):                 true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "data-bags"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "data-bags"), 666): true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "data-bags"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "data-bags"), 600): true,
+				"sudo chown -R root.root " + path.Join(linuxConfDir, "data-bags"):       true,
+
+				"sudo mkdir -p " + path.Join(linuxConfDir, "cookbooks"):                 true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "cookbooks"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "cookbooks"), 666): true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "cookbooks"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "cookbooks"), 600): true,
+				"sudo chown -R root.root " + path.Join(linuxConfDir, "cookbooks"):       true,
+
+				"sudo mkdir -p " + path.Join(linuxConfDir, "dna"):                 true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "dna"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "dna"), 666): true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "dna"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "dna"), 600): true,
+				"sudo chown -R root.root " + path.Join(linuxConfDir, "dna"):       true,
+
+				"sudo mkdir -p " + path.Join(linuxConfDir, "roles"):                 true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "roles"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "roles"), 666): true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "roles"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "roles"), 600): true,
+				"sudo chown -R root.root " + path.Join(linuxConfDir, "roles"):       true,
+
+				"sudo mkdir -p " + path.Join(linuxConfDir, "environments"):                 true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "environments"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "environments"), 666): true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "environments"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "environments"), 600): true,
+				"sudo chown -R root.root " + path.Join(linuxConfDir, "environments"):       true,
+
+
 				"sudo chmod 755 " + linuxConfDir:                                         true,
 				"sudo " + fmt.Sprintf(chmod, linuxConfDir, 600):                          true,
 				"sudo chown -R root.root " + linuxConfDir:                                true,
@@ -218,10 +265,19 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
 				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
-				linuxConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
 				linuxConfDir + "/ohai/hints/ohaihint.json":  "OHAI-HINT-FILE",
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
 			},
+
+			UploadDirs:  map[string]string{
+				"test-fixtures/data-bags" : linuxConfDir + "/data-bags",
+				"test-fixtures/dna" : linuxConfDir + "/dna",
+				"test-fixtures/cookbooks" : linuxConfDir + "/cookbooks" ,
+				"test-fixtures/environments" : linuxConfDir + "/environments",
+				"test-fixtures/nodes" : linuxConfDir + "/nodes",
+				"test-fixtures/roles" : linuxConfDir + "/roles",
+			},
+
 		},
 
 		"NoSudo": {
@@ -233,19 +289,35 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
 				"instance_id": 	"myid",
+				"dir_resources": "test-fixtures",
+				"local_nodes_dir":  "nodes",
 				"user_key":     "USER-KEY",
 			},
 
 			Commands: map[string]bool{
 				"mkdir -p " + linuxConfDir: true,
+				"mkdir -p " + linuxConfDir +"/data-bags": true,
+				"mkdir -p " + linuxConfDir +"/cookbooks": true,
+				"mkdir -p " + linuxConfDir +"/nodes": true,
+				"mkdir -p " + linuxConfDir +"/roles": true,
+				"mkdir -p " + linuxConfDir +"/dna": true,
+				"mkdir -p " + linuxConfDir +"/environments": true,
 			},
 
 			Uploads: map[string]string{
 				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
 				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
-				linuxConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
+			},
+
+			UploadDirs:  map[string]string{
+				"test-fixtures/data-bags" : linuxConfDir + "/data-bags",
+				"test-fixtures/dna" : linuxConfDir + "/dna",
+				"test-fixtures/cookbooks" : linuxConfDir + "/cookbooks" ,
+				"test-fixtures/environments" : linuxConfDir + "/environments",
+				"test-fixtures/nodes" : linuxConfDir + "/nodes",
+				"test-fixtures/roles" : linuxConfDir + "/roles",
 			},
 		},
 
@@ -262,19 +334,36 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"ssl_verify_mode": "verify_none",
 				"user_name":       "bob",
 				"instance_id": 		"myid",
+				"dir_resources": "test-fixtures",
+				"local_nodes_dir":  "nodes",
 				"user_key":        "USER-KEY",
 			},
 
 			Commands: map[string]bool{
 				"mkdir -p " + linuxConfDir: true,
+				"mkdir -p " + linuxConfDir +"/data-bags": true,
+				"mkdir -p " + linuxConfDir +"/cookbooks": true,
+				"mkdir -p " + linuxConfDir +"/nodes": true,
+				"mkdir -p " + linuxConfDir +"/roles": true,
+				"mkdir -p " + linuxConfDir +"/dna": true,
+				"mkdir -p " + linuxConfDir +"/environments": true,
 			},
 
 			Uploads: map[string]string{
 				linuxConfDir + "/client.rb":                 proxyLinuxClientConf,
 				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
-				linuxConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
+			//	linuxConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
+			},
+
+			UploadDirs:  map[string]string{
+				"test-fixtures/data-bags" : linuxConfDir + "/data-bags",
+				"test-fixtures/dna" : linuxConfDir + "/dna",
+				"test-fixtures/cookbooks" : linuxConfDir + "/cookbooks" ,
+				"test-fixtures/environments" : linuxConfDir + "/environments",
+				"test-fixtures/nodes" : linuxConfDir + "/nodes",
+				"test-fixtures/roles" : linuxConfDir + "/roles",
 			},
 		},
 
@@ -291,11 +380,19 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
 				"instance_id": 	"myid",
+				"dir_resources": "test-fixtures",
+				"local_nodes_dir":  "nodes",
 				"user_key":     "USER-KEY",
 			},
 
 			Commands: map[string]bool{
 				"mkdir -p " + linuxConfDir: true,
+				"mkdir -p " + linuxConfDir +"/data-bags": true,
+				"mkdir -p " + linuxConfDir +"/cookbooks": true,
+				"mkdir -p " + linuxConfDir +"/nodes": true,
+				"mkdir -p " + linuxConfDir +"/roles": true,
+				"mkdir -p " + linuxConfDir +"/dna": true,
+				"mkdir -p " + linuxConfDir +"/environments": true,
 			},
 
 			Uploads: map[string]string{
@@ -304,9 +401,16 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
 				linuxConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
-				linuxConfDir + "/node.json": `{"automatic":{"test":{"subkey1":"value"}},` +
-					`"default":{"test_default":{"subkey_default":"value"}},"id":"myid","run_list":["cookbook::recipe"]}`,
 
+			},
+
+			UploadDirs:  map[string]string{
+				"test-fixtures/data-bags" : linuxConfDir + "/data-bags",
+				"test-fixtures/dna" : linuxConfDir + "/dna",
+				"test-fixtures/cookbooks" : linuxConfDir + "/cookbooks" ,
+				"test-fixtures/environments" : linuxConfDir + "/environments",
+				"test-fixtures/nodes" : linuxConfDir + "/nodes",
+				"test-fixtures/roles" : linuxConfDir + "/roles",
 			},
 		},
 	}
@@ -317,6 +421,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 		c.Uploads = tc.Uploads
+		c.UploadDirs = tc.UploadDirs
 
 		p, err := decodeConfig(
 			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),

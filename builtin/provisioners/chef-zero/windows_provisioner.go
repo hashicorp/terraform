@@ -77,7 +77,9 @@ func (p *provisioner) windowsCreateConfigFiles(o terraform.UIOutput, comm commun
 		}
 		// fixme check for errors
 		// fixme refactor with ohai
-		p.deployConfigDirectory(o, comm, configDir)
+		if err := p.deployFileDirectory(o, comm, windowsConfDir, dir) ; err != nil {
+			return err
+		}
 
 	}
 

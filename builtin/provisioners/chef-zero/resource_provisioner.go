@@ -92,6 +92,7 @@ type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 type provisioner struct {
 	DNAAttributes		  	map[string]interface{}
 	NodeAttributes 			map[string]interface{}
+	DirResources			string
 	LocalNodesDirectory		string
 	InstanceId 				string
 	Channel               	string
@@ -144,7 +145,11 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"nodes_dir": &schema.Schema{
+			"dir_resources": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"local_nodes_dir": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -530,12 +535,20 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	if err != nil {
 		return fmt.Errorf("Failed to create %s data: %s", nodefile, err)
 	}
-	nodePath := path.Join(confDir+"/"+p.LocalNodesDirectory, nodefile)
+
+
+
+	nodePath,err := homedir.Expand(path.Join(p.DirResources+"/"+p.LocalNodesDirectory, nodefile))
+	_, err = os.Stat(nodePath)
+	if err == nil {
+		return fmt.Errorf("File %s already exist", nodePath)
+	}
+
 	f, err := os.Create(path.Join(nodePath))
 	if err != nil {
 		return fmt.Errorf("Error creating node file %s: %v", nodePath, err)
 	}
-	_,err := f.Write(d)
+	_,err = f.Write(d)
 	if err != nil {
 		return fmt.Errorf("Failed to write data %d to node file %s: %v", d, nodePath, err)
 	}
@@ -546,22 +559,18 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 
 
 // fixme refactor with deploy ohai hints
-func (p *provisioner) deployFileDirectory(o terraform.UIOutput, comm communicator.Communicator, dirPath string) error {
-	_, err := os.Stat(dirPath)
+func (p *provisioner) deployFileDirectory(o terraform.UIOutput, comm communicator.Communicator, confDir, dirPath string) error {
+
+	_, err := os.Stat(path.Join(p.DirResources, dirPath))
 	if os.IsNotExist(err) || err != nil {
 		return err
 	}
 
-	if err := comm.UploadDir(dirPath, dirPath); err != nil {
+	dstPath := path.Join(confDir, dirPath)
+	if err := comm.UploadDir(dstPath, path.Join(p.DirResources, dirPath)); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", path.Base(dirPath), err)
 	}
 	return nil
-}
-
-func (provisioner *provisioner) deployConfigDirectory(output terraform.UIOutput, i communicator.Communicator, s string) {
-	if err := p.deployFileDirectory(o, comm, homedir.Expand(dir)); err != nil {
-		fmt.Errorf("Uploading %s directory failed: %v", dir, err)
-	}
 }
 
 
@@ -833,6 +842,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		Version:               d.Get("version").(string),
 		InstanceId:			   d.Get("instance_id").(string),
 		LocalNodesDirectory:   d.Get("local_nodes_dir").(string),
+		DirResources:		   d.Get("dir_resources").(string),
 	}
 
 	// Make sure the supplied URL has a trailing slash
@@ -873,8 +883,8 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 
 
 	// Check if nodes directory doesn't already exist
-	if attrs,ok := d.GetOk("local_nodes_dir"); ok {
-		path,err := homedir.Expand(p.LocalNodesDirectory)
+	if _,ok := d.GetOk("local_nodes_dir"); ok {
+		path,err := homedir.Expand(p.DirResources+"/"+p.LocalNodesDirectory)
 
 		if err != nil {
 			return nil, fmt.Errorf("Error expanding node directory %s: %v", path, err)
