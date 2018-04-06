@@ -6,6 +6,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestWalker_basic(t *testing.T) {
@@ -28,7 +30,7 @@ func TestWalker_basic(t *testing.T) {
 		// Check
 		expected := []interface{}{1, 2}
 		if !reflect.DeepEqual(order, expected) {
-			t.Fatalf("bad: %#v", order)
+			t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 		}
 	}
 }
@@ -68,9 +70,11 @@ func TestWalker_error(t *testing.T) {
 	recordF := walkCbRecord(&order)
 
 	// Build a callback that delays until we close a channel
-	cb := func(v Vertex) error {
+	cb := func(v Vertex) tfdiags.Diagnostics {
 		if v == 2 {
-			return fmt.Errorf("error!")
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(fmt.Errorf("error"))
+			return diags
 		}
 
 		return recordF(v)
@@ -87,7 +91,7 @@ func TestWalker_error(t *testing.T) {
 	// Check
 	expected := []interface{}{1}
 	if !reflect.DeepEqual(order, expected) {
-		t.Fatalf("bad: %#v", order)
+		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
 }
 
@@ -104,7 +108,7 @@ func TestWalker_newVertex(t *testing.T) {
 
 	// Build a callback that notifies us when 2 has been walked
 	var w *Walker
-	cb := func(v Vertex) error {
+	cb := func(v Vertex) tfdiags.Diagnostics {
 		if v == 2 {
 			defer close(done2)
 		}
@@ -134,7 +138,7 @@ func TestWalker_newVertex(t *testing.T) {
 	// Check
 	expected := []interface{}{1, 2, 3}
 	if !reflect.DeepEqual(order, expected) {
-		t.Fatalf("bad: %#v", order)
+		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
 }
 
@@ -149,7 +153,7 @@ func TestWalker_removeVertex(t *testing.T) {
 	recordF := walkCbRecord(&order)
 
 	var w *Walker
-	cb := func(v Vertex) error {
+	cb := func(v Vertex) tfdiags.Diagnostics {
 		if v == 1 {
 			g.Remove(2)
 			w.Update(&g)
@@ -170,7 +174,7 @@ func TestWalker_removeVertex(t *testing.T) {
 	// Check
 	expected := []interface{}{1}
 	if !reflect.DeepEqual(order, expected) {
-		t.Fatalf("bad: %#v", order)
+		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
 }
 
@@ -185,17 +189,17 @@ func TestWalker_newEdge(t *testing.T) {
 	recordF := walkCbRecord(&order)
 
 	var w *Walker
-	cb := func(v Vertex) error {
+	cb := func(v Vertex) tfdiags.Diagnostics {
 		// record where we are first, otherwise the Updated vertex may get
 		// walked before the first visit.
-		err := recordF(v)
+		diags := recordF(v)
 
 		if v == 1 {
 			g.Add(3)
 			g.Connect(BasicEdge(3, 2))
 			w.Update(&g)
 		}
-		return err
+		return diags
 	}
 
 	// Add the initial vertices
@@ -210,7 +214,7 @@ func TestWalker_newEdge(t *testing.T) {
 	// Check
 	expected := []interface{}{1, 3, 2}
 	if !reflect.DeepEqual(order, expected) {
-		t.Fatalf("bad: %#v", order)
+		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
 }
 
@@ -236,23 +240,30 @@ func TestWalker_removeEdge(t *testing.T) {
 	// this test will timeout.
 	var w *Walker
 	gateCh := make(chan struct{})
-	cb := func(v Vertex) error {
+	cb := func(v Vertex) tfdiags.Diagnostics {
+		t.Logf("visit vertex %#v", v)
 		switch v {
 		case 1:
 			g.RemoveEdge(BasicEdge(3, 2))
 			w.Update(&g)
+			t.Logf("removed edge from 3 to 2")
 
 		case 2:
 			// this visit isn't completed until we've recorded it
 			// Once the visit is official, we can then close the gate to
 			// let 3 continue.
 			defer close(gateCh)
+			defer t.Logf("2 unblocked 3")
 
 		case 3:
 			select {
 			case <-gateCh:
-			case <-time.After(50 * time.Millisecond):
-				return fmt.Errorf("timeout 3 waiting for 2")
+				t.Logf("vertex 3 gate channel is now closed")
+			case <-time.After(500 * time.Millisecond):
+				t.Logf("vertex 3 timed out waiting for the gate channel to close")
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(fmt.Errorf("timeout 3 waiting for 2"))
+				return diags
 			}
 		}
 
@@ -264,21 +275,21 @@ func TestWalker_removeEdge(t *testing.T) {
 	w.Update(&g)
 
 	// Wait
-	if err := w.Wait(); err != nil {
-		t.Fatalf("err: %s", err)
+	if diags := w.Wait(); diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	// Check
 	expected := []interface{}{1, 2, 3}
 	if !reflect.DeepEqual(order, expected) {
-		t.Fatalf("bad: %#v", order)
+		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
 }
 
 // walkCbRecord is a test helper callback that just records the order called.
 func walkCbRecord(order *[]interface{}) WalkFunc {
 	var l sync.Mutex
-	return func(v Vertex) error {
+	return func(v Vertex) tfdiags.Diagnostics {
 		l.Lock()
 		defer l.Unlock()
 		*order = append(*order, v)
