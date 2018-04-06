@@ -12,6 +12,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/terraform/helper/logging"
 )
 
@@ -273,7 +275,7 @@ func TestAcyclicGraphWalk(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	err := g.Walk(func(v Vertex) error {
+	err := g.Walk(func(v Vertex) tfdiags.Diagnostics {
 		lock.Lock()
 		defer lock.Unlock()
 		visits = append(visits, v)
@@ -308,31 +310,29 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	err := g.Walk(func(v Vertex) error {
+	err := g.Walk(func(v Vertex) tfdiags.Diagnostics {
 		lock.Lock()
 		defer lock.Unlock()
 
+		var diags tfdiags.Diagnostics
+
 		if v == 2 {
-			return fmt.Errorf("error")
+			diags = diags.Append(fmt.Errorf("error"))
+			return diags
 		}
 
 		visits = append(visits, v)
-		return nil
+		return diags
 	})
 	if err == nil {
 		t.Fatal("should error")
 	}
 
-	expected := [][]Vertex{
-		{1},
-	}
-	for _, e := range expected {
-		if reflect.DeepEqual(visits, e) {
-			return
-		}
+	expected := []Vertex{1}
+	if !reflect.DeepEqual(visits, expected) {
+		t.Errorf("wrong visits\ngot:  %#v\nwant: %#v", visits, expected)
 	}
 
-	t.Fatalf("bad: %#v", visits)
 }
 
 func TestAcyclicGraph_ReverseDepthFirstWalk_WithRemoval(t *testing.T) {
