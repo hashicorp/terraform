@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs"
 )
@@ -1046,7 +1048,7 @@ func TestResourceAddressWholeModuleAddress(t *testing.T) {
 	}
 }
 
-func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
+func TestResourceAddressMatchesResourceConfig(t *testing.T) {
 	root := []string(nil)
 	child := []string{"child"}
 	grandchild := []string{"child", "grandchild"}
@@ -1055,7 +1057,7 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 	tests := []struct {
 		Addr       *ResourceAddress
 		ModulePath []string
-		Resource   *configs.ManagedResource
+		Resource   *configs.Resource
 		Want       bool
 	}{
 		{
@@ -1066,7 +1068,8 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 				Index: -1,
 			},
 			root,
-			&configs.ManagedResource{
+			&configs.Resource{
+				Mode: addrs.ManagedResourceMode,
 				Type: "null_resource",
 				Name: "baz",
 			},
@@ -1081,7 +1084,8 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 				Index: -1,
 			},
 			child,
-			&configs.ManagedResource{
+			&configs.Resource{
+				Mode: addrs.ManagedResourceMode,
 				Type: "null_resource",
 				Name: "baz",
 			},
@@ -1096,7 +1100,8 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 				Index: -1,
 			},
 			grandchild,
-			&configs.ManagedResource{
+			&configs.Resource{
+				Mode: addrs.ManagedResourceMode,
 				Type: "null_resource",
 				Name: "baz",
 			},
@@ -1108,7 +1113,8 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 				Index: -1,
 			},
 			child,
-			&configs.ManagedResource{
+			&configs.Resource{
+				Mode: addrs.ManagedResourceMode,
 				Type: "null_resource",
 				Name: "baz",
 			},
@@ -1120,7 +1126,8 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 				Index: -1,
 			},
 			grandchild,
-			&configs.ManagedResource{
+			&configs.Resource{
+				Mode: addrs.ManagedResourceMode,
 				Type: "null_resource",
 				Name: "baz",
 			},
@@ -1134,7 +1141,8 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 				Index: -1,
 			},
 			irrelevant,
-			&configs.ManagedResource{
+			&configs.Resource{
+				Mode: addrs.ManagedResourceMode,
 				Type: "null_resource",
 				Name: "baz",
 			},
@@ -1148,7 +1156,8 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 				Index: -1,
 			},
 			irrelevant,
-			&configs.ManagedResource{
+			&configs.Resource{
+				Mode: addrs.ManagedResourceMode,
 				Type: "null_resource",
 				Name: "pizza",
 			},
@@ -1162,7 +1171,8 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 				Index: -1,
 			},
 			irrelevant,
-			&configs.ManagedResource{
+			&configs.Resource{
+				Mode: addrs.ManagedResourceMode,
 				Type: "aws_instance",
 				Name: "baz",
 			},
@@ -1177,7 +1187,8 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 				Index: -1,
 			},
 			child,
-			&configs.ManagedResource{
+			&configs.Resource{
+				Mode: addrs.ManagedResourceMode,
 				Type: "null_resource",
 				Name: "baz",
 			},
@@ -1192,7 +1203,8 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 				Index: -1,
 			},
 			grandchild,
-			&configs.ManagedResource{
+			&configs.Resource{
+				Mode: addrs.ManagedResourceMode,
 				Type: "null_resource",
 				Name: "baz",
 			},
@@ -1202,7 +1214,7 @@ func TestResourceAddressMatchesManagedResourceConfig(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%02d-%s", i, test.Addr), func(t *testing.T) {
-			got := test.Addr.MatchesManagedResourceConfig(test.ModulePath, test.Resource)
+			got := test.Addr.MatchesResourceConfig(test.ModulePath, test.Resource)
 			if got != test.Want {
 				t.Errorf(
 					"wrong result\naddr: %s\nmod:  %#v\nrsrc: %#v\ngot:  %#v\nwant: %#v",
