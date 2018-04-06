@@ -1,5 +1,9 @@
 package addrs
 
+import (
+	"strings"
+)
+
 // Module is an address for a module call within configuration. This is
 // the static counterpart of ModuleInstance, representing a traversal through
 // the static module call tree in configuration and does not take into account
@@ -18,6 +22,13 @@ type Module []string
 // Note that this is not the root of the dynamic module tree, which is instead
 // represented by RootModuleInstance.
 var RootModule Module
+
+func (m Module) String() string {
+	if len(m) == 0 {
+		return ""
+	}
+	return strings.Join([]string(m), ".")
+}
 
 // Child returns the address of a child call in the receiver, identified by the
 // given name.
