@@ -73,6 +73,17 @@ type Config struct {
 	Version *version.Version
 }
 
+// NewEmptyConfig constructs a single-node configuration tree with an empty
+// root module. This is generally a pretty useless thing to do, so most callers
+// should instead use BuildConfig.
+func NewEmptyConfig() *Config {
+	ret := &Config{}
+	ret.Root = ret
+	ret.Children = make(map[string]*Config)
+	ret.Module = &Module{}
+	return ret
+}
+
 // Depth returns the number of "hops" the receiver is from the root of its
 // module tree, with the root module having a depth of zero.
 func (c *Config) Depth() int {
