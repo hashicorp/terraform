@@ -1,5 +1,7 @@
 package addrs
 
+import "bytes"
+
 // ModuleInstance is an address for a particular module instance within the
 // dynamic module tree. This is an extension of the static traversals
 // represented by type Module that deals with the possibility of a single
@@ -39,4 +41,23 @@ func (m ModuleInstance) Parent() ModuleInstance {
 		return m
 	}
 	return m[:len(m)-1]
+}
+
+// String returns a string representation of the receiver, in the format used
+// within e.g. user-provided resource addresses.
+//
+// The address of the root module has the empty string as its representation.
+func (m ModuleInstance) String() string {
+	var buf bytes.Buffer
+	sep := ""
+	for _, step := range m {
+		buf.WriteString(sep)
+		buf.WriteString("module.")
+		buf.WriteString(step.Name)
+		if step.InstanceKey != NoKey {
+			buf.WriteString(step.InstanceKey.String())
+		}
+		sep = "."
+	}
+	return buf.String()
 }
