@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 )
 
-// ManagedResource represents a "resource" block in a module or file.
-type ManagedResource struct {
+// Resource represents a "resource" or "data" block in a module or file.
+type Resource struct {
+	Mode    addrs.ResourceMode
 	Name    string
 	Type    string
 	Config  hcl.Body
@@ -21,6 +24,17 @@ type ManagedResource struct {
 
 	DependsOn []hcl.Traversal
 
+	// Managed is populated only for Mode = addrs.ManagedResourceMode,
+	// containing the additional fields that apply to managed resources.
+	// For all other resource modes, this field is nil.
+	Managed *ManagedResource
+
+	DeclRange hcl.Range
+	TypeRange hcl.Range
+}
+
+// ManagedResource represents a "resource" block in a module or file.
+type ManagedResource struct {
 	Connection   *Connection
 	Provisioners []*Provisioner
 
@@ -31,20 +45,24 @@ type ManagedResource struct {
 
 	CreateBeforeDestroySet bool
 	PreventDestroySet      bool
-
-	DeclRange hcl.Range
-	TypeRange hcl.Range
 }
 
-func (r *ManagedResource) moduleUniqueKey() string {
-	return fmt.Sprintf("%s.%s", r.Name, r.Type)
+func (r *Resource) moduleUniqueKey() string {
+	switch r.Mode {
+	case addrs.ManagedResourceMode:
+		return fmt.Sprintf("%s.%s", r.Name, r.Type)
+	case addrs.DataResourceMode:
+		return fmt.Sprintf("data.%s.%s", r.Name, r.Type)
+	default:
+		panic(fmt.Errorf("Resource has invalid resource mode %s", r.Mode))
+	}
 }
 
 // ProviderConfigKey returns a string key for the provider configuration
 // that should be used for this resource. This function implements the
 // default behavior of extracting the type from the resource type name if
 // an explicit "provider" argument was not provided.
-func (r *ManagedResource) ProviderConfigKey() string {
+func (r *Resource) ProviderConfigKey() string {
 	if r.ProviderConfigRef == nil {
 		typeName := r.Type
 		if under := strings.Index(typeName, "_"); under != -1 {
@@ -56,12 +74,14 @@ func (r *ManagedResource) ProviderConfigKey() string {
 	return r.ProviderConfigRef.String()
 }
 
-func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
-	r := &ManagedResource{
+func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
+	r := &Resource{
+		Mode:      addrs.ManagedResourceMode,
 		Type:      block.Labels[0],
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,
 		TypeRange: block.LabelRanges[0],
+		Managed:   &ManagedResource{},
 	}
 
 	content, remain, diags := block.Body.PartialContent(resourceBlockSchema)
@@ -124,15 +144,15 @@ func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 			diags = append(diags, lcDiags...)
 
 			if attr, exists := lcContent.Attributes["create_before_destroy"]; exists {
-				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.CreateBeforeDestroy)
+				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Managed.CreateBeforeDestroy)
 				diags = append(diags, valDiags...)
-				r.CreateBeforeDestroySet = true
+				r.Managed.CreateBeforeDestroySet = true
 			}
 
 			if attr, exists := lcContent.Attributes["prevent_destroy"]; exists {
-				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.PreventDestroy)
+				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Managed.PreventDestroy)
 				diags = append(diags, valDiags...)
-				r.PreventDestroySet = true
+				r.Managed.PreventDestroySet = true
 			}
 
 			if attr, exists := lcContent.Attributes["ignore_changes"]; exists {
@@ -151,7 +171,7 @@ func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 
 				switch {
 				case kw == "all":
-					r.IgnoreAllChanges = true
+					r.Managed.IgnoreAllChanges = true
 				default:
 					exprs, listDiags := hcl.ExprList(attr.Expr)
 					diags = append(diags, listDiags...)
@@ -163,7 +183,7 @@ func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 						// our expr might be the literal string "*", which
 						// we accept as a deprecated way of saying "all".
 						if shimIsIgnoreChangesStar(expr) {
-							r.IgnoreAllChanges = true
+							r.Managed.IgnoreAllChanges = true
 							ignoreAllRange = expr.Range()
 							diags = append(diags, &hcl.Diagnostic{
 								Severity: hcl.DiagWarning,
@@ -180,11 +200,11 @@ func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 						traversal, travDiags := hcl.RelTraversalForExpr(expr)
 						diags = append(diags, travDiags...)
 						if len(traversal) != 0 {
-							r.IgnoreChanges = append(r.IgnoreChanges, traversal)
+							r.Managed.IgnoreChanges = append(r.Managed.IgnoreChanges, traversal)
 						}
 					}
 
-					if r.IgnoreAllChanges && len(r.IgnoreChanges) != 0 {
+					if r.Managed.IgnoreAllChanges && len(r.Managed.IgnoreChanges) != 0 {
 						diags = append(diags, &hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "Invalid ignore_changes ruleset",
@@ -212,13 +232,13 @@ func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 
 			conn, connDiags := decodeConnectionBlock(block)
 			diags = append(diags, connDiags...)
-			r.Connection = conn
+			r.Managed.Connection = conn
 
 		case "provisioner":
 			pv, pvDiags := decodeProvisionerBlock(block)
 			diags = append(diags, pvDiags...)
 			if pv != nil {
-				r.Provisioners = append(r.Provisioners, pv)
+				r.Managed.Provisioners = append(r.Managed.Provisioners, pv)
 			}
 
 		default:
@@ -231,44 +251,9 @@ func decodeResourceBlock(block *hcl.Block) (*ManagedResource, hcl.Diagnostics) {
 	return r, diags
 }
 
-// DataResource represents a "data" block in a module or file.
-type DataResource struct {
-	Name    string
-	Type    string
-	Config  hcl.Body
-	Count   hcl.Expression
-	ForEach hcl.Expression
-
-	ProviderConfigRef *ProviderConfigRef
-
-	DependsOn []hcl.Traversal
-
-	DeclRange hcl.Range
-	TypeRange hcl.Range
-}
-
-func (r *DataResource) moduleUniqueKey() string {
-	return fmt.Sprintf("data.%s.%s", r.Name, r.Type)
-}
-
-// ProviderConfigKey returns a string key for the provider configuration
-// that should be used for this resource. This function implements the
-// default behavior of extracting the type from the resource type name if
-// an explicit "provider" argument was not provided.
-func (r *DataResource) ProviderConfigKey() string {
-	if r.ProviderConfigRef == nil {
-		typeName := r.Type
-		if under := strings.Index(typeName, "_"); under != -1 {
-			return typeName[:under]
-		}
-		return typeName
-	}
-
-	return r.ProviderConfigRef.String()
-}
-
-func decodeDataBlock(block *hcl.Block) (*DataResource, hcl.Diagnostics) {
-	r := &DataResource{
+func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
+	r := &Resource{
+		Mode:      addrs.DataResourceMode,
 		Type:      block.Labels[0],
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,

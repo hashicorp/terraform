@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs"
 )
@@ -109,7 +111,7 @@ func (r *ResourceAddress) WholeModuleAddress() *ResourceAddress {
 	}
 }
 
-// MatchesManagedResourceConfig returns true if the receiver matches the given
+// MatchesResourceConfig returns true if the receiver matches the given
 // configuration resource within the given _static_ module path. Note that
 // the module path in a resource address is a _dynamic_ module path, and
 // multiple dynamic resource paths may map to a single static path if
@@ -118,10 +120,21 @@ func (r *ResourceAddress) WholeModuleAddress() *ResourceAddress {
 // Since resource configuration blocks represent all of the instances of
 // a multi-instance resource, the index of the address (if any) is not
 // considered.
-func (r *ResourceAddress) MatchesManagedResourceConfig(path []string, rc *configs.ManagedResource) bool {
+func (r *ResourceAddress) MatchesResourceConfig(path addrs.Module, rc *configs.Resource) bool {
 	if r.HasResourceSpec() {
-		if r.Mode != config.ManagedResourceMode {
-			return false
+		// FIXME: Some ugliness while we are between worlds. Functionality
+		// in "addrs" should eventually replace this ResourceAddress idea
+		// completely, but for now we'll need to translate to the old
+		// way of representing resource modes.
+		switch r.Mode {
+		case config.ManagedResourceMode:
+			if rc.Mode != addrs.ManagedResourceMode {
+				return false
+			}
+		case config.DataResourceMode:
+			if rc.Mode != addrs.DataResourceMode {
+				return false
+			}
 		}
 		if r.Type != rc.Type || r.Name != rc.Name {
 			return false
@@ -137,7 +150,8 @@ func (r *ResourceAddress) MatchesManagedResourceConfig(path []string, rc *config
 	if len(path) == 0 {
 		path = nil
 	}
-	return reflect.DeepEqual(addrPath, path)
+	rawPath := []string(path)
+	return reflect.DeepEqual(addrPath, rawPath)
 }
 
 // stateId returns the ID that this resource should be entered with
