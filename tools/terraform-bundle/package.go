@@ -234,6 +234,7 @@ func (c *PackageCommand) Run(args []string) int {
 			c.ui.Error(fmt.Sprintf("Failed to add zip entry for %s: %s", fn, err))
 			return 1
 		}
+		hdr.Method = zip.Deflate // be sure to compress files
 		w, err := outZ.CreateHeader(hdr)
 		if err != nil {
 			c.ui.Error(fmt.Sprintf("Failed to add zip entry for %s: %s", fn, err))
