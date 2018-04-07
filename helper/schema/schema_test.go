@@ -2866,6 +2866,48 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
+			// NOTE: This case is technically impossible in the current
+			// implementation, because optional+computed values never show up in the
+			// diff. In the event behavior changes this test should ensure that the
+			// intended diff still shows up.
+			Name: "overridden removed attribute diff with a CustomizeDiff function, ForceNew not in schema",
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				if err := d.SetNew("availability_zone", "bar"); err != nil {
+					return err
+				}
+				if err := d.ForceNew("availability_zone"); err != nil {
+					return err
+				}
+				return nil
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "bar",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+
 			Name: "overridden diff with a CustomizeDiff function, ForceNew in schema",
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
