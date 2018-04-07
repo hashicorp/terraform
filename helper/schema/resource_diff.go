@@ -135,6 +135,10 @@ type ResourceDiff struct {
 	// diff does not get re-run on keys that were not touched, or diffs that were
 	// just removed (re-running on the latter would just roll back the removal).
 	updatedKeys map[string]bool
+
+	// Tracks which keys were flagged as forceNew. These keys are not saved in
+	// newWriter, but we need to track them so that they can be re-diffed later.
+	forcedNewKeys map[string]bool
 }
 
 // newResourceDiff creates a new ResourceDiff instance.
@@ -193,15 +197,28 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 	}
 
 	d.updatedKeys = make(map[string]bool)
+	d.forcedNewKeys = make(map[string]bool)
 
 	return d
 }
 
 // UpdatedKeys returns the keys that were updated by this ResourceDiff run.
 // These are the only keys that a diff should be re-calculated for.
+//
+// This is the combined result of both keys for which diff values were updated
+// for or cleared, and also keys that were flagged to be re-diffed as a result
+// of ForceNew.
 func (d *ResourceDiff) UpdatedKeys() []string {
 	var s []string
 	for k := range d.updatedKeys {
+		s = append(s, k)
+	}
+	for k := range d.forcedNewKeys {
+		for _, l := range s {
+			if k == l {
+				break
+			}
+		}
 		s = append(s, k)
 	}
 	return s
@@ -257,7 +274,7 @@ func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, b
 	if !old.Exists {
 		old.Value = nil
 	}
-	if !new.Exists {
+	if !new.Exists || d.removed(key) {
 		new.Value = nil
 	}
 
@@ -335,9 +352,12 @@ func (d *ResourceDiff) ForceNew(key string) error {
 
 	schema.ForceNew = true
 
-	// We need to set whole lists/sets/maps here
-	_, new := d.GetChange(keyParts[0])
-	return d.setDiff(keyParts[0], new, false)
+	// Flag this for a re-diff. Don't save any values to guarantee that existing
+	// diffs aren't messed with, as this gets messy when dealing with complex
+	// structures, zero values, etc.
+	d.forcedNewKeys[keyParts[0]] = true
+
+	return nil
 }
 
 // Get hands off to ResourceData.Get.
@@ -447,6 +467,16 @@ func (d *ResourceDiff) getChange(key string) (getResult, getResult, bool) {
 	}
 	new = d.get(strings.Split(key, "."), "newDiff")
 	return old, new, false
+}
+
+// removed checks to see if the key is present in the existing, pre-customized
+// diff and if it was marked as NewRemoved.
+func (d *ResourceDiff) removed(k string) bool {
+	diff, ok := d.diff.Attributes[k]
+	if !ok {
+		return false
+	}
+	return diff.NewRemoved
 }
 
 // get performs the appropriate multi-level reader logic for ResourceDiff,
