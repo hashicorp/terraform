@@ -156,3 +156,23 @@ type ModuleRequest struct {
 	// rather than to either its source address or its version number.
 	CallRange hcl.Range
 }
+
+// DisabledModuleWalker is a ModuleWalker that doesn't support
+// child modules at all, and so will return an error if asked to load one.
+//
+// This is provided primarily for testing. There is no good reason to use this
+// in the main application.
+var DisabledModuleWalker ModuleWalker
+
+func init() {
+	DisabledModuleWalker = ModuleWalkerFunc(func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
+		return nil, nil, hcl.Diagnostics{
+			{
+				Severity: hcl.DiagError,
+				Summary:  "Child modules are not supported",
+				Detail:   "Child module calls are not allowed in this context.",
+				Subject:  &req.CallRange,
+			},
+		}
+	})
+}
