@@ -139,7 +139,7 @@ down to see all providers.
     <tr>
     <td><a href="/docs/providers/vault/index.html">Vault</a></td>
     <td><a href="/docs/providers/vcd/index.html">VMware vCloud Director</a></td>
-    <td><a href="/docs/provider/nsxt/index.html">VMware NSX-T</a></td>
+    <td><a href="/docs/providers/nsxt/index.html">VMware NSX-T</a></td>
     </tr>
     <tr>
     <td><a href="/docs/providers/vsphere/index.html">VMware vSphere</a></td>
