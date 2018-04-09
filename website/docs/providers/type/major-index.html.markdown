@@ -31,6 +31,6 @@ tested by HashiCorp.
 
 [Oracle Public Cloud](/docs/providers/opc/index.html)
 
-[VMware NSX-T](/docs/provider/nsxt/index.html)
+[VMware NSX-T](/docs/providers/nsxt/index.html)
 
 [VMware vSphere](/docs/providers/vsphere/index.html)
