@@ -1,5 +1,15 @@
 ## 0.11.7 (Unreleased)
 
+PROVIDER SDK CHANGES (not user-facing):
+
+* helper/schema: Invoking `ForceNew` on a key being removed from config during
+  diff customization now correctly exposes that key as being removed in the
+  updated diff. This prevents diff mismatches under certain circumstances.
+  [GH-17811]
+* helper/schema: Invoking `ForceNew` on its own no longer writes any new data to
+  the diff. This prevents writing of new nil to zero value diffs for sub-fields
+  of complex lists and sets where a diff did not exist before. [GH-17811]
+
 ## 0.11.6 (April 5, 2018)
 
 BUG FIXES:
