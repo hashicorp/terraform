@@ -553,6 +553,52 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			NewValue:      "qux",
 			ExpectedError: true,
 		},
+		resourceDiffTestCase{
+			// NOTE: This case is technically impossible in the current
+			// implementation, because optional+computed values never show up in the
+			// diff, and we actually clear existing diffs when SetNew or
+			// SetNewComputed is run.  This test is here to ensure that if either of
+			// these behaviors change that we don't introduce regressions.
+			Name: "NewRemoved in diff for Optional and Computed, should be fully overridden",
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+				},
+			},
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"foo": "bar",
+				},
+			},
+			Config: testConfig(t, map[string]interface{}{}),
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo": &terraform.ResourceAttrDiff{
+						Old:        "bar",
+						New:        "",
+						NewRemoved: true,
+					},
+				},
+			},
+			Key:      "foo",
+			NewValue: "qux",
+			Expected: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo": &terraform.ResourceAttrDiff{
+						Old: "bar",
+						New: func() string {
+							if computed {
+								return ""
+							}
+							return "qux"
+						}(),
+						NewComputed: computed,
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -760,6 +806,94 @@ func TestForceNew(t *testing.T) {
 					"foo.0.baz": &terraform.ResourceAttrDiff{
 						Old:         "xyz",
 						New:         "changed",
+						RequiresNew: true,
+					},
+				},
+			},
+		},
+		resourceDiffTestCase{
+			Name: "preserve NewRemoved on existing diff",
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"foo": "bar",
+				},
+			},
+			Config: testConfig(t, map[string]interface{}{}),
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo": &terraform.ResourceAttrDiff{
+						Old:        "bar",
+						New:        "",
+						NewRemoved: true,
+					},
+				},
+			},
+			Key: "foo",
+			Expected: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo": &terraform.ResourceAttrDiff{
+						Old:         "bar",
+						New:         "",
+						RequiresNew: true,
+						NewRemoved:  true,
+					},
+				},
+			},
+		},
+		resourceDiffTestCase{
+			Name: "nested field, preserve original diff without zero values",
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeList,
+					Required: true,
+					MaxItems: 1,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"bar": {
+								Type:     TypeString,
+								Optional: true,
+							},
+							"baz": {
+								Type:     TypeInt,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"foo.#":     "1",
+					"foo.0.bar": "abc",
+				},
+			},
+			Config: testConfig(t, map[string]interface{}{
+				"foo": []map[string]interface{}{
+					map[string]interface{}{
+						"bar": "abcdefg",
+					},
+				},
+			}),
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo.0.bar": &terraform.ResourceAttrDiff{
+						Old: "abc",
+						New: "abcdefg",
+					},
+				},
+			},
+			Key: "foo.0.bar",
+			Expected: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo.0.bar": &terraform.ResourceAttrDiff{
+						Old:         "abc",
+						New:         "abcdefg",
 						RequiresNew: true,
 					},
 				},
