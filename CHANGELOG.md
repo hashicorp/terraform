@@ -1,5 +1,9 @@
 ## 0.11.7 (Unreleased)
 
+BUG FIXES:
+
+* core: Fix handling of interpolated counts when applying a destroy plan [GH-17824]
+
 PROVIDER SDK CHANGES (not user-facing):
 
 * helper/schema: Invoking `ForceNew` on a key being removed from config during
