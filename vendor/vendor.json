@@ -1591,10 +1591,10 @@
 			"versionExact": "master"
 		},
 		{
-			"checksumSHA1": "9VcI9QGCShWIUIL187qRd4sxwb8=",
+			"checksumSHA1": "fvjFEz5PBN1m9ALWf9UuLgTFWLg=",
 			"path": "github.com/hashicorp/go-getter",
-			"revision": "a686900cb3753aa644dc4812be91ceaf9fdd3b98",
-			"revisionTime": "2017-09-22T19:29:48Z",
+			"revision": "90bb99a48d86cf1d327cee9968f7428f90ba13c1",
+			"revisionTime": "2018-03-27T01:01:14Z",
 			"version": "master",
 			"versionExact": "master"
 		},
@@ -1636,6 +1636,12 @@
 			"path": "github.com/hashicorp/go-rootcerts",
 			"revision": "6bb64b370b90e7ef1fa532be9e591a81c3493e00",
 			"revisionTime": "2016-05-03T14:34:40Z"
+		},
+		{
+			"checksumSHA1": "CduvzBFfTv77nhjtXPGdIjQQLMI=",
+			"path": "github.com/hashicorp/go-safetemp",
+			"revision": "b1a1dbde6fdc11e3ae79efd9039009e22d4ae240",
+			"revisionTime": "2018-03-26T21:11:50Z"
 		},
 		{
 			"checksumSHA1": "85XUnluYJL7F55ptcwdmN8eSOsk=",
