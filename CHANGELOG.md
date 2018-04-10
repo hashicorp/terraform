@@ -1,3 +1,20 @@
+## 0.11.7 (April 10, 2018)
+
+BUG FIXES:
+
+* core: Fix handling of interpolated counts when applying a destroy plan ([#17824](https://github.com/hashicorp/terraform/issues/17824))
+
+PROVIDER SDK CHANGES (not user-facing):
+
+* helper/schema: Invoking `ForceNew` on a key being removed from config during
+  diff customization now correctly exposes that key as being removed in the
+  updated diff. This prevents diff mismatches under certain circumstances.
+  ([#17811](https://github.com/hashicorp/terraform/issues/17811))
+* helper/schema: Invoking `ForceNew` during diff customization on its own no
+  longer writes any new data to the diff. This prevents writing of new nil to
+  zero value diffs for sub-fields of complex lists and sets where a diff did not
+  exist before. ([#17811](https://github.com/hashicorp/terraform/issues/17811))
+
 ## 0.11.6 (April 5, 2018)
 
 BUG FIXES:
@@ -9,7 +26,8 @@ BUG FIXES:
 * connection/ssh: Retry on authentication failures when the remote service is available before it is completely configured ([#17744](https://github.com/hashicorp/terraform/issues/17744))
 * connection/winrm: Get execution errors from winrm commands ([#17788](https://github.com/hashicorp/terraform/issues/17788))
 * connection/winrm: Support NTLM authentication ([#17748](https://github.com/hashicorp/terraform/issues/17748))
-* provisioner/habitat: Set channel and builder URL during install, and enable service before start ([#17403](https://github.com/hashicorp/terraform/issues/17403)] [[#17781](https://github.com/hashicorp/terraform/issues/17781))
+* provisioner/chef: Fix regression causing connection to be prematurely closed ([#17609](https://github.com/hashicorp/terraform/pull/17609))
+* provisioner/habitat: Set channel and builder URL during install, and enable service before start ([#17403](https://github.com/hashicorp/terraform/issues/17403)) ([#17781](https://github.com/hashicorp/terraform/issues/17781))
 
 PROVIDER SDK CHANGES (not user-facing):
 
