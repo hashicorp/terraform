@@ -789,7 +789,8 @@ func (i *Interpolater) resourceCountMax(
 	// If we're NOT applying, then we assume we can read the count
 	// from the state. Plan and so on may not have any state yet so
 	// we do a full interpolation.
-	if i.Operation != walkApply {
+	// Don't forget walkDestroy, which is a special case of walkApply
+	if !(i.Operation == walkApply || i.Operation == walkDestroy) {
 		if cr == nil {
 			return 0, nil
 		}
