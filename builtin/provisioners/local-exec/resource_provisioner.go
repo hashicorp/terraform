@@ -60,7 +60,6 @@ func applyFn(ctx context.Context) error {
 	environment := data.Get("environment").(map[string]interface{})
 
 	var env []string
-	env = make([]string, len(environment))
 	for k := range environment {
 		entry := fmt.Sprintf("%s=%s", k, environment[k].(string))
 		env = append(env, entry)
