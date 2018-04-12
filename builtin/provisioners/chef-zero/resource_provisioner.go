@@ -43,7 +43,6 @@ const (
 )
 
 
-// fixme update for chef zero support
 const clientConf = `
 log_location            STDOUT
 {{ if .UsePolicyfile }}
@@ -99,6 +98,7 @@ type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 type provisioner struct {
 	DNAAttributes		  	map[string]interface{}
 	NodeAttributes 			map[string]interface{}
+	DynamicAttributes		map[string]interface{}
 	DirResources			string
 	LocalNodesDirectory		string
 	InstanceId 				string
@@ -150,7 +150,7 @@ func Provisioner() terraform.ResourceProvisioner {
 		Schema: map[string]*schema.Schema{
 			"node_name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"dir_resources": &schema.Schema{
 				Type:     schema.TypeString,
@@ -162,11 +162,11 @@ func Provisioner() terraform.ResourceProvisioner {
 			},
 			"user_name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"user_key": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"instance_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -176,12 +176,14 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-
 			"attributes_automatic": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-
+			"attributes_dynamic": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+			},
 			"attributes_default": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -495,11 +497,13 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 		fb = p.DNAAttributes
 	}
 
-	// fixme document me
+
 	node := make(map[string]interface{})
 	if p.NodeAttributes != nil {
 		node = p.NodeAttributes
 	}
+
+	fb = mapDynamicVariables(fb, p.DynamicAttributes)
 
 	// Check if the run_list was also in the attributes and if so log a warning
 	// that it will be overwritten with the value of the run_list argument.
@@ -562,6 +566,39 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	return nil
 }
 
+
+
+func mapDynamicVariables(node map[string]interface{}, dynamic map[string]interface{}) map[string]interface{}{
+	for ktm, vtm := range node {
+		if f, ok := vtm.(string); ok {
+			node[ktm] = mapDynamicStringValue(f, dynamic)
+		} else if f, ok := vtm.([]string); ok {
+			for i,s := range f {
+				f[i] = mapDynamicStringValue(s, dynamic)
+			}
+			node[ktm] = f
+		} else if f, ok := vtm.([]map[string]interface{}); ok {
+			for i,arr := range f {
+				f[i] = mapDynamicVariables(arr, dynamic)
+			}
+			node[ktm] = f
+		} else if f, ok := vtm.(map[string]interface{}); ok {
+			node[ktm] = mapDynamicVariables(f, dynamic)
+		}
+	}
+	return node
+}
+
+func mapDynamicStringValue(s string, dynamic map[string]interface{}) string {
+	for k,v := range dynamic {
+		if(s == "<%= @"+k+" %>") {
+			if va,ok := v.(string); ok {
+				return va
+			}
+		}
+	}
+	return s
+}
 
 // fixme refactor with deploy ohai hints
 func (p *provisioner) deployFileDirectory(o terraform.UIOutput, comm communicator.Communicator, confDir, dirPath string) error {
@@ -878,10 +915,16 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		}
 	}
 
-	// not sure about the checks
-	// fixme
 	p.NodeAttributes["id"] = d.Get("instance_id").(string)
 
+	p.DynamicAttributes = make(map[string]interface{})
+
+	if tmpmap,ok := d.GetOk("attributes_dynamic"); ok {
+		if _, ok := tmpmap.(map[string]interface{}); !ok {
+			return nil, fmt.Errorf("Error parsing dynamic attributes")
+		}
+		p.DynamicAttributes = tmpmap.(map[string]interface{})
+	}
 
 	// Check if nodes directory doesn't already exist
 	if _,ok := d.GetOk("local_nodes_dir"); ok {
@@ -897,7 +940,6 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 			}
 		}
 	}
-
 
 	if attrs, ok := d.GetOk("attributes_dna"); ok {
 		var m map[string]interface{}

@@ -369,9 +369,11 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 		"DNAAttributes": {
 			Config: map[string]interface{}{
 				"attributes_dna": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
-					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2"}`,
+					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","ipaddress" : "<%= @node_ip %>"` +
+						`,"id" : "<%= @node_index %>"}`,
 				"attributes_automatic": `{"test":{"subkey1" : "value"} }`,
 				"attributes_default": `{"test_default":{"subkey_default" : "value"} }`,
+				"attributes_dynamic": map[string]interface{}{"node_ip":"192.168.0.1", "node_index": "1"},
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},

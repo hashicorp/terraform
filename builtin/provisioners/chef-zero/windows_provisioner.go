@@ -70,12 +70,14 @@ func (p *provisioner) windowsCreateConfigFiles(o terraform.UIOutput, comm commun
 	// Make sure the hits directory exists
 	configDirs := []string{"data-bags",p.LocalNodesDirectory,"roles","dna","environments","cookbooks"}
 	for _,dir := range configDirs {
+
 		configDir := path.Join(windowsConfDir, dir)
 		cmd := fmt.Sprintf("cmd /c if not exist %q mkdir %q", configDir, configDir)
+
 		if err := p.runCommand(o, comm, cmd); err != nil {
 			return err
 		}
-		// fixme check for errors
+
 		// fixme refactor with ohai
 		if err := p.deployFileDirectory(o, comm, windowsConfDir, dir) ; err != nil {
 			return err
