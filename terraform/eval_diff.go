@@ -236,7 +236,7 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 				// id will always be changed if we intended to replace this instance
 				continue
 			}
-			if v.Empty() || v.NewComputed {
+			if v.Empty() {
 				continue
 			}
 
