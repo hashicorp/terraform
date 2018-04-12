@@ -84,7 +84,7 @@ func TestProcessIgnoreChanges(t *testing.T) {
 	var evalDiff *EvalDiff
 	var instanceDiff *InstanceDiff
 
-	var testDiffs = func(ignoreChanges []string, newAttribute string) (*EvalDiff, *InstanceDiff) {
+	var testDiffs = func(ignoreChanges []string, newAttribute string, newComputed bool) (*EvalDiff, *InstanceDiff) {
 		return &EvalDiff{
 				Resource: &config.Resource{
 					Lifecycle: config.ResourceLifecycle{
@@ -101,6 +101,7 @@ func TestProcessIgnoreChanges(t *testing.T) {
 					},
 					"resource.changed": {
 						RequiresNew: true,
+						NewComputed: newComputed,
 						Type:        DiffAttrInput,
 						Old:         "old",
 						New:         "new",
@@ -120,11 +121,17 @@ func TestProcessIgnoreChanges(t *testing.T) {
 	for i, tc := range []struct {
 		ignore    []string
 		newAttr   string
+		newComp   bool
 		attrDiffs int
 	}{
 		// attr diffs should be all (4), or nothing
 		{
 			ignore:    []string{"resource.changed"},
+			attrDiffs: 0,
+		},
+		{
+			ignore:    []string{"resource.changed"},
+			newComp:   true,
 			attrDiffs: 0,
 		},
 		{
@@ -141,12 +148,24 @@ func TestProcessIgnoreChanges(t *testing.T) {
 			attrDiffs: 4,
 		},
 		{
+			ignore:    []string{"resource.maybe"},
+			newAttr:   "new",
+			newComp:   true,
+			attrDiffs: 4,
+		},
+		{
 			newAttr:   "new",
 			attrDiffs: 4,
 		},
 		{
 			ignore:    []string{"resource"},
 			newAttr:   "new",
+			attrDiffs: 0,
+		},
+		{
+			ignore:    []string{"resource"},
+			newAttr:   "new",
+			newComp:   true,
 			attrDiffs: 0,
 		},
 		// extra ignored values shouldn't effect the diff
@@ -162,7 +181,7 @@ func TestProcessIgnoreChanges(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			evalDiff, instanceDiff = testDiffs(tc.ignore, tc.newAttr)
+			evalDiff, instanceDiff = testDiffs(tc.ignore, tc.newAttr, tc.newComp)
 			err := evalDiff.processIgnoreChanges(instanceDiff)
 			if err != nil {
 				t.Fatalf("err: %s", err)
