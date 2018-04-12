@@ -369,8 +369,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 		"DNAAttributes": {
 			Config: map[string]interface{}{
 				"attributes_dna": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
-					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","ipaddress" : "<%= @node_ip %>"` +
-						`,"id" : "<%= @node_index %>"}`,
+					`"subkey2b":{"subkey3":"value3", "id" : "<%= @node_index %>"}}},"key2":"value2","ipaddress" : "<%= @node_ip %>"}`,
 				"attributes_automatic": `{"test":{"subkey1" : "value"} }`,
 				"attributes_default": `{"test_default":{"subkey_default" : "value"} }`,
 				"attributes_dynamic": map[string]interface{}{"node_ip":"192.168.0.1", "node_index": "1"},
@@ -400,8 +399,8 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
 				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
-				linuxConfDir + "/dna/myid.json":  `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
-					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/dna/myid.json":  `{"ipaddress":"192.168.0.1","key1":{"subkey1":{"subkey2a":` +
+				`["val1","val2","val3"],"subkey2b":{"id":"1","subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 
 			},
 

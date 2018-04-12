@@ -504,6 +504,7 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	}
 
 	fb = mapDynamicVariables(fb, p.DynamicAttributes)
+	node = mapDynamicVariables(node, p.DynamicAttributes)
 
 	// Check if the run_list was also in the attributes and if so log a warning
 	// that it will be overwritten with the value of the run_list argument.
@@ -761,12 +762,13 @@ func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisio
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
 		switch {
 		case p.UsePolicyfile && p.NamedRunList == "":
-			cmd = fmt.Sprintf("%s -j %q", chefCmd, fb)
+			cmd = fmt.Sprintf("%s -z -j %q", chefCmd, fb)
 		case p.UsePolicyfile && p.NamedRunList != "":
-			cmd = fmt.Sprintf("%s -j %q -n %q", chefCmd, fb, p.NamedRunList)
+			cmd = fmt.Sprintf("%s -z -j %q -n %q", chefCmd, fb, p.NamedRunList)
 		default:
-			cmd = fmt.Sprintf("%s -j %q -E %q", chefCmd, fb, p.Environment)
+			cmd = fmt.Sprintf("%s -z -j %q -E %q", chefCmd, fb, p.Environment)
 		}
+
 
 		if p.LogToFile {
 			if err := os.MkdirAll(logfileDir, 0755); err != nil {
