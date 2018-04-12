@@ -84,7 +84,7 @@ func TestProcessIgnoreChanges(t *testing.T) {
 	var evalDiff *EvalDiff
 	var instanceDiff *InstanceDiff
 
-	var testDiffs = func(ignoreChanges []string, newAttribute string, newComputed bool) (*EvalDiff, *InstanceDiff) {
+	var testDiffs = func(ignoreChanges []string, newAttribute string, newComputed bool, newCounter bool) (*EvalDiff, *InstanceDiff) {
 		return &EvalDiff{
 				Resource: &config.Resource{
 					Lifecycle: config.ResourceLifecycle{
@@ -96,8 +96,10 @@ func TestProcessIgnoreChanges(t *testing.T) {
 				Destroy: true,
 				Attributes: map[string]*ResourceAttrDiff{
 					"resource.%": {
-						Old: "3",
-						New: "3",
+						RequiresNew: newCounter,
+						NewComputed: newCounter,
+						Old:         "3",
+						New:         "3",
 					},
 					"resource.changed": {
 						RequiresNew: true,
@@ -122,6 +124,7 @@ func TestProcessIgnoreChanges(t *testing.T) {
 		ignore    []string
 		newAttr   string
 		newComp   bool
+		newCount  bool
 		attrDiffs int
 	}{
 		// attr diffs should be all (4), or nothing
@@ -179,9 +182,16 @@ func TestProcessIgnoreChanges(t *testing.T) {
 			ignore:    []string{"resource.%"},
 			attrDiffs: 4,
 		},
+		// Edge case seen in null_resource. If all changes in the map are ignored
+		// then the counter should not cause the refresh to still happen
+		{
+			ignore:    []string{"resource.changed"},
+			newCount:  true,
+			attrDiffs: 0,
+		},
 	} {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			evalDiff, instanceDiff = testDiffs(tc.ignore, tc.newAttr, tc.newComp)
+			evalDiff, instanceDiff = testDiffs(tc.ignore, tc.newAttr, tc.newComp, tc.newCount)
 			err := evalDiff.processIgnoreChanges(instanceDiff)
 			if err != nil {
 				t.Fatalf("err: %s", err)
