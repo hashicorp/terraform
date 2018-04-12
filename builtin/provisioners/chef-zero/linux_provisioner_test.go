@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"os"
 )
 
 func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
@@ -19,7 +20,6 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 			Config: map[string]interface{}{
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
-				"server_url": "https://chef.local",
 				"user_name":  "bob",
 				"instance_id": 	"myid",
 				"user_key":   "USER-KEY",
@@ -38,7 +38,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
 				"secret_key":   "SECRET-KEY",
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
 				"instance_id": 	"myid",
 
@@ -58,7 +58,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
 				"instance_id": 	"myid",
 
@@ -78,7 +78,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
 				"instance_id": 	"myid",
 
@@ -99,7 +99,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
 				"instance_id": 	"myid",
 
@@ -121,7 +121,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
 				"instance_id": 	"myid",
 
@@ -142,7 +142,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
 				"instance_id": 	"myid",
 
@@ -193,7 +193,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"secret_key": "SECRET-KEY",
-				"server_url": "https://chef.local",
+
 				"user_name":  "bob",
 				"dir_resources": "test-fixtures",
 				"local_nodes_dir":  "nodes",
@@ -264,7 +264,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			Uploads: map[string]string{
 				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
 				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
-				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/dna/myid.json":           `{"run_list":["cookbook::recipe"]}`,
 				linuxConfDir + "/ohai/hints/ohaihint.json":  "OHAI-HINT-FILE",
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
 			},
@@ -286,7 +286,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
 				"secret_key":   "SECRET-KEY",
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
 				"instance_id": 	"myid",
 				"dir_resources": "test-fixtures",
@@ -307,7 +307,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			Uploads: map[string]string{
 				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
 				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
-				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/dna/myid.json":           `{"run_list":["cookbook::recipe"]}`,
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
 			},
 
@@ -330,7 +330,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"prevent_sudo":    true,
 				"run_list":        []interface{}{"cookbook::recipe"},
 				"secret_key":      "SECRET-KEY",
-				"server_url":      "https://chef.local",
+
 				"ssl_verify_mode": "verify_none",
 				"user_name":       "bob",
 				"instance_id": 		"myid",
@@ -352,8 +352,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			Uploads: map[string]string{
 				linuxConfDir + "/client.rb":                 proxyLinuxClientConf,
 				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
-				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
-			//	linuxConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/dna/myid.json":           `{"run_list":["cookbook::recipe"]}`,
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
 			},
 
@@ -377,7 +376,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
 				"secret_key":   "SECRET-KEY",
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
 				"instance_id": 	"myid",
 				"dir_resources": "test-fixtures",
@@ -399,7 +398,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
 				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				linuxConfDir + "/bob.pem":                   "USER-KEY",
-				linuxConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+				linuxConfDir + "/dna/myid.json":  `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 
 			},
@@ -429,6 +428,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
+		p.DefaultConfDir = linuxConfDir
 
 		p.useSudo = !p.PreventSudo
 
@@ -436,16 +436,22 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
+		os.Remove("test-fixtures/nodes/myid.json")
 	}
 }
 
 const defaultLinuxClientConf = `log_location            STDOUT
-chef_server_url         "https://chef.local/"
-node_name               "nodename1"`
+
+
+local_mode 				true
+cookbooks_path 			'/etc/chef/cookbooks'
+nodes_path 				'/etc/chef/nodes'
+roles_path 				'/etc/chef/roles'
+data_bags_path  		'/etc/chef/data_bags'
+rubygems_url 			'http://nexus.query.consul/content/groups/rubygems'
+# environments_path 	'/etc/chef/environments'`
 
 const proxyLinuxClientConf = `log_location            STDOUT
-chef_server_url         "https://chef.local/"
-node_name               "nodename1"
 
 http_proxy          "http://proxy.local"
 ENV['http_proxy'] = "http://proxy.local"
@@ -458,4 +464,12 @@ ENV['HTTPS_PROXY'] = "https://proxy.local"
 no_proxy          "http://local.local,https://local.local"
 ENV['no_proxy'] = "http://local.local,https://local.local"
 
-ssl_verify_mode  :verify_none`
+ssl_verify_mode  :verify_none
+
+local_mode 				true
+cookbooks_path 			'/etc/chef/cookbooks'
+nodes_path 				'/etc/chef/nodes'
+roles_path 				'/etc/chef/roles'
+data_bags_path  		'/etc/chef/data_bags'
+rubygems_url 			'http://nexus.query.consul/content/groups/rubygems'
+# environments_path 	'/etc/chef/environments'`

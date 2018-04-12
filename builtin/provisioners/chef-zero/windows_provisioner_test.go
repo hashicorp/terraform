@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"os"
 )
 
 func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
@@ -20,9 +21,12 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 			Config: map[string]interface{}{
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
-				"server_url": "https://chef.local",
+
 				"user_name":  "bob",
 				"instance_id": 	"myid",
+				"dir_resources" : "test-fixtures",
+				"local_nodes_dir":  "nodes",
+
 				"user_key":   "USER-KEY",
 			},
 
@@ -41,9 +45,12 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"no_proxy":   []interface{}{"http://local.local", "http://local.org"},
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
-				"server_url": "https://chef.local",
+
 				"user_name":  "bob",
 				"instance_id": 	"myid",
+				"local_nodes_dir":  "nodes",
+
+				"dir_resources" : "test-fixtures",
 				"user_key":   "USER-KEY",
 			},
 
@@ -60,10 +67,13 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 			Config: map[string]interface{}{
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
-				"server_url": "https://chef.local",
+
 				"user_name":  "bob",
 				"user_key":   "USER-KEY",
 				"instance_id": 	"myid",
+				"local_nodes_dir":  "nodes",
+
+				"dir_resources" : "test-fixtures",
 				"version":    "11.18.6",
 			},
 
@@ -81,10 +91,12 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"channel":    "current",
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
-				"server_url": "https://chef.local",
+
 				"user_name":  "bob",
 				"instance_id": 	"myid",
 				"user_key":   "USER-KEY",
+				"local_nodes_dir":  "nodes",
+				"dir_resources" : "test-fixtures",
 				"version":    "11.18.6",
 			},
 
@@ -126,6 +138,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 		Config   map[string]interface{}
 		Commands map[string]bool
 		Uploads  map[string]string
+		UploadDirs  map[string]string
 	}{
 		"Default": {
 			Config: map[string]interface{}{
@@ -133,9 +146,11 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"secret_key": "SECRET-KEY",
-				"server_url": "https://chef.local",
 				"user_name":  "bob",
 				"instance_id": 	"myid",
+				"dir_resources" : "test-fixtures",
+				"local_nodes_dir":  "nodes",
+
 				"user_key":   "USER-KEY",
 			},
 
@@ -144,15 +159,28 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q",
 					path.Join(windowsConfDir, "ohai/hints"),
 					path.Join(windowsConfDir, "ohai/hints")): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/roles", windowsConfDir+"/roles"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/environments", windowsConfDir+"/environments"): true,
 			},
 
 			Uploads: map[string]string{
 				windowsConfDir + "/client.rb":                 defaultWindowsClientConf,
 				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
-				windowsConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
-				windowsConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/dna/myid.json":            `{"run_list":["cookbook::recipe"]}`,
 				windowsConfDir + "/ohai/hints/ohaihint.json":  "OHAI-HINT-FILE",
 				windowsConfDir + "/bob.pem":                   "USER-KEY",
+			},
+			UploadDirs:  map[string]string{
+				"test-fixtures/data-bags" : windowsConfDir + "/data-bags",
+				"test-fixtures/dna" : windowsConfDir + "/dna",
+				"test-fixtures/cookbooks" : windowsConfDir + "/cookbooks" ,
+				"test-fixtures/environments" : windowsConfDir + "/environments",
+				"test-fixtures/nodes" : windowsConfDir + "/nodes",
+				"test-fixtures/roles" : windowsConfDir + "/roles",
 			},
 		},
 
@@ -164,23 +192,38 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"node_name":       "nodename1",
 				"run_list":        []interface{}{"cookbook::recipe"},
 				"secret_key":      "SECRET-KEY",
-				"server_url":      "https://chef.local",
 				"ssl_verify_mode": "verify_none",
 				"user_name":       "bob",
 				"instance_id": 	   "myid",
+				"dir_resources" : "test-fixtures",
+				"local_nodes_dir":  "nodes",
+
 				"user_key":        "USER-KEY",
 			},
 
 			Commands: map[string]bool{
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/roles", windowsConfDir+"/roles"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/environments", windowsConfDir+"/environments"): true,
 			},
 
 			Uploads: map[string]string{
 				windowsConfDir + "/client.rb":                 proxyWindowsClientConf,
-				windowsConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
-				windowsConfDir + "/node.json":          		 `{"id":"myid","run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/dna/myid.json":           `{"run_list":["cookbook::recipe"]}`,
 				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				windowsConfDir + "/bob.pem":                   "USER-KEY",
+			},
+			UploadDirs:  map[string]string{
+				"test-fixtures/data-bags" : windowsConfDir + "/data-bags",
+				"test-fixtures/dna" : windowsConfDir + "/dna",
+				"test-fixtures/cookbooks" : windowsConfDir + "/cookbooks" ,
+				"test-fixtures/environments" : windowsConfDir + "/environments",
+				"test-fixtures/nodes" : windowsConfDir + "/nodes",
+				"test-fixtures/roles" : windowsConfDir + "/roles",
 			},
 		},
 
@@ -193,24 +236,39 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"secret_key": "SECRET-KEY",
-				"server_url": "https://chef.local",
 				"user_name":  "bob",
 				"instance_id": 	"myid",
+				"local_nodes_dir":  "nodes",
+
+				"dir_resources" : "test-fixtures",
 				"user_key":   "USER-KEY",
 			},
 
 			Commands: map[string]bool{
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/roles", windowsConfDir+"/roles"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/environments", windowsConfDir+"/environments"): true,
 			},
 
 			Uploads: map[string]string{
 				windowsConfDir + "/client.rb":                 defaultWindowsClientConf,
 				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				windowsConfDir + "/bob.pem":                   "USER-KEY",
-				windowsConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+				windowsConfDir + "/dna/myid.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
-				windowsConfDir + "/node.json": `{"automatic":{"test":{"subkey1":"value"}},` +
-					`"default":{"test_default":{"subkey_default":"value"}},"id":"myid","run_list":["cookbook::recipe"]}`,
+			},
+
+			UploadDirs:  map[string]string{
+				"test-fixtures/data-bags" : windowsConfDir + "/data-bags",
+				"test-fixtures/dna" : windowsConfDir + "/dna",
+				"test-fixtures/cookbooks" : windowsConfDir + "/cookbooks" ,
+				"test-fixtures/environments" : windowsConfDir + "/environments",
+				"test-fixtures/nodes" : windowsConfDir + "/nodes",
+				"test-fixtures/roles" : windowsConfDir + "/roles",
 			},
 		},
 	}
@@ -221,10 +279,12 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 		c.Uploads = tc.Uploads
+		c.UploadDirs = tc.UploadDirs
 
 		p, err := decodeConfig(
 			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
 		)
+		p.DefaultConfDir = windowsConfDir
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -235,6 +295,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
+		os.Remove("test-fixtures/nodes/myid.json")
 	}
 }
 
@@ -386,12 +447,17 @@ Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
 `
 
 const defaultWindowsClientConf = `log_location            STDOUT
-chef_server_url         "https://chef.local/"
-node_name               "nodename1"`
+
+
+local_mode 				true
+cookbooks_path 			'C:/chef/cookbooks'
+nodes_path 				'C:/chef/nodes'
+roles_path 				'C:/chef/roles'
+data_bags_path  		'C:/chef/data_bags'
+rubygems_url 			'http://nexus.query.consul/content/groups/rubygems'
+# environments_path 	'C:/chef/environments'`
 
 const proxyWindowsClientConf = `log_location            STDOUT
-chef_server_url         "https://chef.local/"
-node_name               "nodename1"
 
 http_proxy          "http://proxy.local"
 ENV['http_proxy'] = "http://proxy.local"
@@ -404,4 +470,12 @@ ENV['HTTPS_PROXY'] = "https://proxy.local"
 no_proxy          "http://local.local,https://local.local"
 ENV['no_proxy'] = "http://local.local,https://local.local"
 
-ssl_verify_mode  :verify_none`
+ssl_verify_mode  :verify_none
+
+local_mode 				true
+cookbooks_path 			'C:/chef/cookbooks'
+nodes_path 				'C:/chef/nodes'
+roles_path 				'C:/chef/roles'
+data_bags_path  		'C:/chef/data_bags'
+rubygems_url 			'http://nexus.query.consul/content/groups/rubygems'
+# environments_path 	'C:/chef/environments'`

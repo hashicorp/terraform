@@ -26,11 +26,12 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 		"environment": "_default",
 		"node_name":   "nodename1",
 		"run_list":    []interface{}{"cookbook::recipe"},
-		"server_url":  "https://chef.local",
-		"local_nodes_dir":  "test-fixtures/nodes",
-		"instance_id": 	"instance-id",
+
+		"local_nodes_dir":  "nodes",
+		"instance_id": 	"myid",
 		"user_name":   "bob",
 		"user_key":    "USER-KEY",
+		"dir_resources": "test-fixtures",
 	})
 
 	warn, errs := Provisioner().Validate(c)
@@ -63,14 +64,15 @@ func TestResourceProvider_Validate_computedValues(t *testing.T) {
 		"environment":     "_default",
 		"node_name":       "nodename1",
 		"run_list":        []interface{}{"cookbook::recipe"},
-		"server_url":      "https://chef.local",
+
 		"user_name":       "bob",
 		"user_key":        "USER-KEY",
-		"instance_id": 		"instance-id",
-		"local_nodes_dir":  "test-fixtures/nodes",
+		"instance_id": 		"myid",
+		"local_nodes_dir":  "nodes",
 		"attributes_dna": config.UnknownVariableValue,
 		"attributes_automatic": config.UnknownVariableValue,
 		"attributes_default": config.UnknownVariableValue,
+		"dir_resources": "test-fixtures",
 
 	})
 
@@ -94,8 +96,10 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			Config: map[string]interface{}{
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
-				"server_url": "https://chef.local",
+
 				"user_name":  "bob",
+				"instance_id": 	"myid",
+
 				"user_key":   "USER-KEY",
 			},
 
@@ -106,7 +110,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			Commands: map[string]bool{
 				fmt.Sprintf(`sudo %s -j %q -E "_default"`,
 					linuxChefCmd,
-					path.Join(linuxConfDir, "first-boot.json")): true,
+					path.Join(linuxConfDir, "dna", "myid.json")): true,
 			},
 		},
 
@@ -115,8 +119,10 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
+				"instance_id": 	"myid",
+
 				"user_key":     "USER-KEY",
 			},
 
@@ -127,7 +133,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			Commands: map[string]bool{
 				fmt.Sprintf(`%s -j %q -E "_default"`,
 					linuxChefCmd,
-					path.Join(linuxConfDir, "first-boot.json")): true,
+					path.Join(linuxConfDir, "dna", "myid.json")): true,
 			},
 		},
 
@@ -137,8 +143,10 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
+				"instance_id": 	"myid",
+
 				"user_key":     "USER-KEY",
 			},
 
@@ -149,7 +157,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			Commands: map[string]bool{
 				fmt.Sprintf(`%s -j %q -E "production"`,
 					windowsChefCmd,
-					path.Join(windowsConfDir, "first-boot.json")): true,
+					path.Join(windowsConfDir,"dna", "myid.json")): true,
 			},
 		},
 	}
@@ -189,7 +197,7 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 				"fetch_chef_certificates": true,
 				"node_name":               "nodename1",
 				"run_list":                []interface{}{"cookbook::recipe"},
-				"server_url":              "https://chef.local",
+
 				"user_name":               "bob",
 				"user_key":                "USER-KEY",
 			},
@@ -211,7 +219,7 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 				"node_name":               "nodename1",
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
-				"server_url":              "https://chef.local",
+
 				"user_name":               "bob",
 				"user_key":                "USER-KEY",
 			},
@@ -264,7 +272,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
 				"user_key":     "USER-KEY",
 				"vault_json":   `{"vault1": "item1"}`,
@@ -287,7 +295,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"node_name":               "nodename1",
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
-				"server_url":              "https://chef.local",
+
 				"user_name":               "bob",
 				"user_key":                "USER-KEY",
 				"vault_json":              `{"vault1": ["item1", "item2"]}`,
@@ -312,7 +320,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"node_name":               "nodename1",
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
-				"server_url":              "https://chef.local",
+
 				"user_name":               "bob",
 				"user_key":                "USER-KEY",
 				"vault_json":              `{"vault1": ["item1", "item2"]}`,
@@ -341,7 +349,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-				"server_url":   "https://chef.local",
+
 				"user_name":    "bob",
 				"user_key":     "USER-KEY",
 				"vault_json":   `{"vault1": "item1"}`,
@@ -364,7 +372,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"node_name":               "nodename1",
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
-				"server_url":              "https://chef.local",
+
 				"user_name":               "bob",
 				"user_key":                "USER-KEY",
 				"vault_json":              `{"vault1": ["item1", "item2"]}`,
@@ -389,7 +397,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"node_name":               "nodename1",
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
-				"server_url":              "https://chef.local",
+
 				"user_name":               "bob",
 				"user_key":                "USER-KEY",
 				"vault_json":              `{"vault1": ["item1", "item2"]}`,

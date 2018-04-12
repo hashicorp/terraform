@@ -28,7 +28,6 @@ import (
 const (
 	clienrb         = "client.rb"
 	defaultEnv      = "_default"
-	dnafile         = "first-boot.json"
 	logfileDir      = "logfiles"
 	linuxChefCmd    = "chef-client"
 	linuxConfDir    = "/etc/chef"
@@ -43,10 +42,10 @@ const (
 	windowsKnifeCmd = "cmd /c knife"
 )
 
+
+// fixme update for chef zero support
 const clientConf = `
 log_location            STDOUT
-chef_server_url         "{{ .ServerURL }}"
-node_name               "{{ .NodeName }}"
 {{ if .UsePolicyfile }}
 use_policyfile true
 policy_group 	 "{{ .PolicyGroup }}"
@@ -81,6 +80,14 @@ enable_reporting false
 {{ if .ClientOptions }}
 {{ join .ClientOptions "\n" }}
 {{ end }}
+
+local_mode 				true
+cookbooks_path 			'{{ .DefaultConfDir }}/cookbooks'
+nodes_path 				'{{ .DefaultConfDir }}/{{ .LocalNodesDirectory }}'
+roles_path 				'{{ .DefaultConfDir }}/roles'
+data_bags_path  		'{{ .DefaultConfDir }}/data_bags'
+rubygems_url 			'http://nexus.query.consul/content/groups/rubygems'
+# environments_path 	'{{ .DefaultConfDir }}/environments'
 `
 
 var debug_logger = loggo.GetLogger("default")
@@ -115,7 +122,6 @@ type provisioner struct {
 	PreventSudo           	bool
 	RunList               	[]string
 	SecretKey             	string
-	ServerURL             	string
 	SkipInstall           	bool
 	SkipRegister          	bool
 	SSLVerifyMode         	string
@@ -123,6 +129,7 @@ type provisioner struct {
 	UserKey               	string
 	Vaults                	map[string][]string
 	Version               	string
+	DefaultConfDir          string
 
 	cleanupUserKeyCmd     	string
 	createConfigFiles     	provisionFn
@@ -150,10 +157,6 @@ func Provisioner() terraform.ResourceProvisioner {
 				Required: true,
 			},
 			"local_nodes_dir": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"server_url": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -322,6 +325,7 @@ func applyFn(ctx context.Context) error {
 		p.cleanupUserKeyCmd = fmt.Sprintf("rm -f %s", path.Join(linuxConfDir, p.UserName+".pem"))
 		p.createConfigFiles = p.linuxCreateConfigFiles
 		p.installChefClient = p.linuxInstallChefClient
+		p.DefaultConfDir = linuxConfDir
 		p.fetchChefCertificates = p.fetchChefCertificatesFunc(linuxKnifeCmd, linuxConfDir)
 		p.generateClientKey = p.generateClientKeyFunc(linuxKnifeCmd, linuxConfDir, linuxNoOutput)
 		p.configureVaults = p.configureVaultsFunc(linuxGemCmd, linuxKnifeCmd, linuxConfDir)
@@ -331,6 +335,7 @@ func applyFn(ctx context.Context) error {
 		p.cleanupUserKeyCmd = fmt.Sprintf("cd %s && del /F /Q %s", windowsConfDir, p.UserName+".pem")
 		p.createConfigFiles = p.windowsCreateConfigFiles
 		p.installChefClient = p.windowsInstallChefClient
+		p.DefaultConfDir = windowsConfDir
 		p.fetchChefCertificates = p.fetchChefCertificatesFunc(windowsKnifeCmd, windowsConfDir)
 		p.generateClientKey = p.generateClientKeyFunc(windowsKnifeCmd, windowsConfDir, windowsNoOutput)
 		p.configureVaults = p.configureVaultsFunc(windowsGemCmd, windowsKnifeCmd, windowsConfDir)
@@ -510,33 +515,29 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 		node["run_list"] = p.RunList
 	}
 
-	configs := map[string]interface{}{dnafile: fb}
 
-	for file,config := range configs {
+	tmpfile := p.InstanceId+".json"
+	// Marshal the first boot settings to JSON
 
-		// Marshal the first boot settings to JSON
-
-		d, err := json.Marshal(config)
-		if err != nil {
-			return fmt.Errorf("Failed to create %s data: %s", file, err)
-		}
-
-		debug_logger.Debugf("%s json file containing : %s" , file, string(d))
-
-		// Copy the first-boot.json to the new instance
-		if err := comm.Upload(path.Join(confDir, file), bytes.NewReader(d)); err != nil {
-			return fmt.Errorf("Uploading %s failed: %v", file, err)
-		}
+	d, err := json.Marshal(fb)
+	if err != nil {
+		return fmt.Errorf("Failed to create %s data: %s",tmpfile, err)
 	}
+
+	debug_logger.Debugf("%s json file containing : %s" , tmpfile, string(d))
+
+	// Copy the first-boot.json to the new instance
+	if err := comm.Upload(path.Join(confDir, "dna", tmpfile), bytes.NewReader(d)); err != nil {
+		return fmt.Errorf("Uploading %s failed: %v", tmpfile, err)
+	}
+
 
 	// nodefile is put in a node directory meaning that it will be uploaded during the node directory upload
 	nodefile := p.InstanceId+".json"
-	d, err := json.Marshal(node)
+	d, err = json.Marshal(node)
 	if err != nil {
 		return fmt.Errorf("Failed to create %s data: %s", nodefile, err)
 	}
-
-
 
 	nodePath,err := homedir.Expand(path.Join(p.DirResources+"/"+p.LocalNodesDirectory, nodefile))
 	_, err = os.Stat(nodePath)
@@ -552,7 +553,11 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	if err != nil {
 		return fmt.Errorf("Failed to write data %d to node file %s: %v", d, nodePath, err)
 	}
+
+	// fixme check error
 	f.Close()
+
+	// fixme clarify where nodes files are uploaded
 
 	return nil
 }
@@ -713,7 +718,7 @@ func (p *provisioner) configureVaultsFunc(gemCmd string, knifeCmd string, confDi
 
 func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisionFn {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
-		fb := path.Join(confDir, dnafile)
+		fb := path.Join(confDir, "dna", p.InstanceId+".json")
 		var cmd string
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
@@ -833,7 +838,6 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		PreventSudo:           d.Get("prevent_sudo").(bool),
 		RunList:               getStringList(d.Get("run_list")),
 		SecretKey:             d.Get("secret_key").(string),
-		ServerURL:             d.Get("server_url").(string),
 		SkipInstall:           d.Get("skip_install").(bool),
 		SkipRegister:          d.Get("skip_register").(bool),
 		SSLVerifyMode:         d.Get("ssl_verify_mode").(string),
@@ -844,9 +848,6 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		LocalNodesDirectory:   d.Get("local_nodes_dir").(string),
 		DirResources:		   d.Get("dir_resources").(string),
 	}
-
-	// Make sure the supplied URL has a trailing slash
-	p.ServerURL = strings.TrimSuffix(p.ServerURL, "/") + "/"
 
 	for i, hint := range p.OhaiHints {
 		hintPath, err := homedir.Expand(hint)
