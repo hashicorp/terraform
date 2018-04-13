@@ -82,5 +82,5 @@ func (pf *pluginSHA256LockFile) Write(digests map[string][]byte) error {
 		filepath.Dir(pf.Filename), os.ModePerm,
 	) // ignore error since WriteFile below will generate a better one anyway
 
-	return ioutil.WriteFile(pf.Filename, buf, os.ModePerm)
+	return ioutil.WriteFile(pf.Filename, buf, 0644)
 }
