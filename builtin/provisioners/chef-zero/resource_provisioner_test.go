@@ -27,11 +27,11 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 		"node_name":   "nodename1",
 		"run_list":    []interface{}{"cookbook::recipe"},
 
-		"local_nodes_dir":  "nodes",
-		"instance_id": 	"myid",
-		"user_name":   "bob",
-		"user_key":    "USER-KEY",
-		"dir_resources": "test-fixtures",
+		"local_nodes_dir": "nodes",
+		"instance_id":     "myid",
+		"user_name":       "bob",
+		"user_key":        "USER-KEY",
+		"dir_resources":   "test-fixtures",
 	})
 
 	warn, errs := Provisioner().Validate(c)
@@ -61,19 +61,18 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 // validate.
 func TestResourceProvider_Validate_computedValues(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"environment":     "_default",
-		"node_name":       "nodename1",
-		"run_list":        []interface{}{"cookbook::recipe"},
+		"environment": "_default",
+		"node_name":   "nodename1",
+		"run_list":    []interface{}{"cookbook::recipe"},
 
-		"user_name":       "bob",
-		"user_key":        "USER-KEY",
-		"instance_id": 		"myid",
-		"local_nodes_dir":  "nodes",
-		"attributes_dna": config.UnknownVariableValue,
+		"user_name":            "bob",
+		"user_key":             "USER-KEY",
+		"instance_id":          "myid",
+		"local_nodes_dir":      "nodes",
+		"attributes_dna":       config.UnknownVariableValue,
 		"attributes_automatic": config.UnknownVariableValue,
-		"attributes_default": config.UnknownVariableValue,
-		"dir_resources": "test-fixtures",
-
+		"attributes_default":   config.UnknownVariableValue,
+		"dir_resources":        "test-fixtures",
 	})
 
 	warn, errs := Provisioner().Validate(c)
@@ -94,13 +93,13 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 	}{
 		"Sudo": {
 			Config: map[string]interface{}{
-				"node_name":  "nodename1",
-				"run_list":   []interface{}{"cookbook::recipe"},
+				"node_name": "nodename1",
+				"run_list":  []interface{}{"cookbook::recipe"},
 
-				"user_name":  "bob",
-				"instance_id": 	"myid",
+				"user_name":   "bob",
+				"instance_id": "myid",
 
-				"user_key":   "USER-KEY",
+				"user_key": "USER-KEY",
 			},
 
 			ChefCmd: linuxChefCmd,
@@ -120,10 +119,10 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
 
-				"user_name":    "bob",
-				"instance_id": 	"myid",
+				"user_name":   "bob",
+				"instance_id": "myid",
 
-				"user_key":     "USER-KEY",
+				"user_key": "USER-KEY",
 			},
 
 			ChefCmd: linuxChefCmd,
@@ -144,10 +143,10 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
 
-				"user_name":    "bob",
-				"instance_id": 	"myid",
+				"user_name":   "bob",
+				"instance_id": "myid",
 
-				"user_key":     "USER-KEY",
+				"user_key": "USER-KEY",
 			},
 
 			ChefCmd: windowsChefCmd,
@@ -157,7 +156,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			Commands: map[string]bool{
 				fmt.Sprintf(`%s -j %q -E "production"`,
 					windowsChefCmd,
-					path.Join(windowsConfDir,"dna", "myid.json")): true,
+					path.Join(windowsConfDir, "dna", "myid.json")): true,
 			},
 		},
 	}
@@ -198,8 +197,8 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 				"node_name":               "nodename1",
 				"run_list":                []interface{}{"cookbook::recipe"},
 
-				"user_name":               "bob",
-				"user_key":                "USER-KEY",
+				"user_name": "bob",
+				"user_key":  "USER-KEY",
 			},
 
 			KnifeCmd: linuxKnifeCmd,
@@ -220,8 +219,8 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
 
-				"user_name":               "bob",
-				"user_key":                "USER-KEY",
+				"user_name": "bob",
+				"user_key":  "USER-KEY",
 			},
 
 			KnifeCmd: windowsKnifeCmd,
@@ -273,9 +272,9 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
 
-				"user_name":    "bob",
-				"user_key":     "USER-KEY",
-				"vault_json":   `{"vault1": "item1"}`,
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
+				"vault_json": `{"vault1": "item1"}`,
 			},
 
 			GemCmd:   linuxGemCmd,
@@ -296,9 +295,9 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
 
-				"user_name":               "bob",
-				"user_key":                "USER-KEY",
-				"vault_json":              `{"vault1": ["item1", "item2"]}`,
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
+				"vault_json": `{"vault1": ["item1", "item2"]}`,
 			},
 
 			GemCmd:   linuxGemCmd,
@@ -321,10 +320,10 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
 
-				"user_name":               "bob",
-				"user_key":                "USER-KEY",
-				"vault_json":              `{"vault1": ["item1", "item2"]}`,
-				"recreate_client":         true,
+				"user_name":       "bob",
+				"user_key":        "USER-KEY",
+				"vault_json":      `{"vault1": ["item1", "item2"]}`,
+				"recreate_client": true,
 			},
 
 			GemCmd:   linuxGemCmd,
@@ -350,9 +349,9 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
 
-				"user_name":    "bob",
-				"user_key":     "USER-KEY",
-				"vault_json":   `{"vault1": "item1"}`,
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
+				"vault_json": `{"vault1": "item1"}`,
 			},
 
 			GemCmd:   windowsGemCmd,
@@ -373,9 +372,9 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
 
-				"user_name":               "bob",
-				"user_key":                "USER-KEY",
-				"vault_json":              `{"vault1": ["item1", "item2"]}`,
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
+				"vault_json": `{"vault1": ["item1", "item2"]}`,
 			},
 
 			GemCmd:   windowsGemCmd,
@@ -398,10 +397,10 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
 
-				"user_name":               "bob",
-				"user_key":                "USER-KEY",
-				"vault_json":              `{"vault1": ["item1", "item2"]}`,
-				"recreate_client":         true,
+				"user_name":       "bob",
+				"user_key":        "USER-KEY",
+				"vault_json":      `{"vault1": ["item1", "item2"]}`,
+				"recreate_client": true,
 			},
 
 			GemCmd:   windowsGemCmd,

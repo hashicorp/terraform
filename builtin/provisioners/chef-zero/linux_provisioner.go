@@ -2,10 +2,10 @@ package chef
 
 import (
 	"fmt"
-	"path"
-	"strings"
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/terraform"
+	"path"
+	"strings"
 )
 
 const (
@@ -58,13 +58,33 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 		}
 	}
 
+	//fixme refactor me !!!!
+	configDir := path.Join(linuxConfDir, "dna")
+	if err := p.runCommand(o, comm, "mkdir -p "+configDir); err != nil {
+		return err
+	}
+
+	// Make sure we have enough rights to upload the hints if using sudo
+	if p.useSudo {
+		if err := p.runCommand(o, comm, "chmod 777 "+configDir); err != nil {
+			return err
+		}
+		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, configDir, 666)); err != nil {
+			return err
+		}
+	}
+
+	if err := p.deployFileDirectory(o, comm, linuxConfDir, "dna"); err != nil {
+		return err
+	}
+
 	if err := p.deployConfigFiles(o, comm, linuxConfDir); err != nil {
 		return err
 	}
 
 	// Make sure the hits directory exists
-	configDirs := []string{"data-bags","nodes","roles","dna","environments","cookbooks"}
-	for _,dir := range configDirs {
+	configDirs := []string{"data-bags", "nodes", "roles", "environments", "cookbooks"}
+	for _, dir := range configDirs {
 		configDir := path.Join(linuxConfDir, dir)
 		if err := p.runCommand(o, comm, "mkdir -p "+configDir); err != nil {
 			return err
@@ -98,6 +118,18 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 		}
 	}
 
+	// When done copying the hints restore the rights and make sure root is owner
+	if p.useSudo {
+		if err := p.runCommand(o, comm, "chmod 755 "+configDir); err != nil {
+			return err
+		}
+		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, configDir, 600)); err != nil {
+			return err
+		}
+		if err := p.runCommand(o, comm, "chown -R root.root "+configDir); err != nil {
+			return err
+		}
+	}
 
 	//fixme do the same for other directories
 	if len(p.OhaiHints) > 0 {

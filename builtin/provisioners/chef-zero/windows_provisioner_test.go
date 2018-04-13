@@ -19,15 +19,15 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 	}{
 		"Default": {
 			Config: map[string]interface{}{
-				"node_name":  "nodename1",
-				"run_list":   []interface{}{"cookbook::recipe"},
+				"node_name": "nodename1",
+				"run_list":  []interface{}{"cookbook::recipe"},
 
-				"user_name":  "bob",
-				"instance_id": 	"myid",
-				"dir_resources" : "test-fixtures",
-				"local_nodes_dir":  "nodes",
+				"user_name":       "bob",
+				"instance_id":     "myid",
+				"dir_resources":   "test-fixtures",
+				"local_nodes_dir": "nodes",
 
-				"user_key":   "USER-KEY",
+				"user_key": "USER-KEY",
 			},
 
 			Commands: map[string]bool{
@@ -46,12 +46,12 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
 
-				"user_name":  "bob",
-				"instance_id": 	"myid",
-				"local_nodes_dir":  "nodes",
+				"user_name":       "bob",
+				"instance_id":     "myid",
+				"local_nodes_dir": "nodes",
 
-				"dir_resources" : "test-fixtures",
-				"user_key":   "USER-KEY",
+				"dir_resources": "test-fixtures",
+				"user_key":      "USER-KEY",
 			},
 
 			Commands: map[string]bool{
@@ -65,16 +65,16 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 
 		"Version": {
 			Config: map[string]interface{}{
-				"node_name":  "nodename1",
-				"run_list":   []interface{}{"cookbook::recipe"},
+				"node_name": "nodename1",
+				"run_list":  []interface{}{"cookbook::recipe"},
 
-				"user_name":  "bob",
-				"user_key":   "USER-KEY",
-				"instance_id": 	"myid",
-				"local_nodes_dir":  "nodes",
+				"user_name":       "bob",
+				"user_key":        "USER-KEY",
+				"instance_id":     "myid",
+				"local_nodes_dir": "nodes",
 
-				"dir_resources" : "test-fixtures",
-				"version":    "11.18.6",
+				"dir_resources": "test-fixtures",
+				"version":       "11.18.6",
 			},
 
 			Commands: map[string]bool{
@@ -88,16 +88,16 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 
 		"Channel": {
 			Config: map[string]interface{}{
-				"channel":    "current",
-				"node_name":  "nodename1",
-				"run_list":   []interface{}{"cookbook::recipe"},
+				"channel":   "current",
+				"node_name": "nodename1",
+				"run_list":  []interface{}{"cookbook::recipe"},
 
-				"user_name":  "bob",
-				"instance_id": 	"myid",
-				"user_key":   "USER-KEY",
-				"local_nodes_dir":  "nodes",
-				"dir_resources" : "test-fixtures",
-				"version":    "11.18.6",
+				"user_name":       "bob",
+				"instance_id":     "myid",
+				"user_key":        "USER-KEY",
+				"local_nodes_dir": "nodes",
+				"dir_resources":   "test-fixtures",
+				"version":         "11.18.6",
 			},
 
 			Commands: map[string]bool{
@@ -135,23 +135,23 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 
 func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 	cases := map[string]struct {
-		Config   map[string]interface{}
-		Commands map[string]bool
-		Uploads  map[string]string
-		UploadDirs  map[string]string
+		Config     map[string]interface{}
+		Commands   map[string]bool
+		Uploads    map[string]string
+		UploadDirs map[string]string
 	}{
 		"Default": {
 			Config: map[string]interface{}{
-				"ohai_hints": []interface{}{"test-fixtures/ohaihint.json"},
-				"node_name":  "nodename1",
-				"run_list":   []interface{}{"cookbook::recipe"},
-				"secret_key": "SECRET-KEY",
-				"user_name":  "bob",
-				"instance_id": 	"myid",
-				"dir_resources" : "test-fixtures",
-				"local_nodes_dir":  "nodes",
+				"ohai_hints":      []interface{}{"test-fixtures/ohaihint.json"},
+				"node_name":       "nodename1",
+				"run_list":        []interface{}{"cookbook::recipe"},
+				"secret_key":      "SECRET-KEY",
+				"user_name":       "bob",
+				"instance_id":     "myid",
+				"dir_resources":   "test-fixtures",
+				"local_nodes_dir": "nodes",
 
-				"user_key":   "USER-KEY",
+				"user_key": "USER-KEY",
 			},
 
 			Commands: map[string]bool{
@@ -159,28 +159,28 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q",
 					path.Join(windowsConfDir, "ohai/hints"),
 					path.Join(windowsConfDir, "ohai/hints")): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/roles", windowsConfDir+"/roles"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"):       true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"):               true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"):                   true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"):       true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/roles", windowsConfDir+"/roles"):               true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/environments", windowsConfDir+"/environments"): true,
 			},
 
 			Uploads: map[string]string{
 				windowsConfDir + "/client.rb":                 defaultWindowsClientConf,
 				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
-				windowsConfDir + "/dna/myid.json":            `{"run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/dna/myid.json":             `{"run_list":["cookbook::recipe"]}`,
 				windowsConfDir + "/ohai/hints/ohaihint.json":  "OHAI-HINT-FILE",
 				windowsConfDir + "/bob.pem":                   "USER-KEY",
 			},
-			UploadDirs:  map[string]string{
-				"test-fixtures/data-bags" : windowsConfDir + "/data-bags",
-				"test-fixtures/dna" : windowsConfDir + "/dna",
-				"test-fixtures/cookbooks" : windowsConfDir + "/cookbooks" ,
-				"test-fixtures/environments" : windowsConfDir + "/environments",
-				"test-fixtures/nodes" : windowsConfDir + "/nodes",
-				"test-fixtures/roles" : windowsConfDir + "/roles",
+			UploadDirs: map[string]string{
+				"test-fixtures/data-bags":    windowsConfDir,
+				"test-fixtures/dna":          windowsConfDir,
+				"test-fixtures/cookbooks":    windowsConfDir,
+				"test-fixtures/environments": windowsConfDir,
+				"test-fixtures/nodes":        windowsConfDir,
+				"test-fixtures/roles":        windowsConfDir,
 			},
 		},
 
@@ -194,36 +194,36 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"secret_key":      "SECRET-KEY",
 				"ssl_verify_mode": "verify_none",
 				"user_name":       "bob",
-				"instance_id": 	   "myid",
-				"dir_resources" : "test-fixtures",
-				"local_nodes_dir":  "nodes",
+				"instance_id":     "myid",
+				"dir_resources":   "test-fixtures",
+				"local_nodes_dir": "nodes",
 
-				"user_key":        "USER-KEY",
+				"user_key": "USER-KEY",
 			},
 
 			Commands: map[string]bool{
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/roles", windowsConfDir+"/roles"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir):                                 true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"):       true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"):               true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"):                   true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"):       true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/roles", windowsConfDir+"/roles"):               true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/environments", windowsConfDir+"/environments"): true,
 			},
 
 			Uploads: map[string]string{
 				windowsConfDir + "/client.rb":                 proxyWindowsClientConf,
-				windowsConfDir + "/dna/myid.json":           `{"run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/dna/myid.json":             `{"run_list":["cookbook::recipe"]}`,
 				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				windowsConfDir + "/bob.pem":                   "USER-KEY",
 			},
-			UploadDirs:  map[string]string{
-				"test-fixtures/data-bags" : windowsConfDir + "/data-bags",
-				"test-fixtures/dna" : windowsConfDir + "/dna",
-				"test-fixtures/cookbooks" : windowsConfDir + "/cookbooks" ,
-				"test-fixtures/environments" : windowsConfDir + "/environments",
-				"test-fixtures/nodes" : windowsConfDir + "/nodes",
-				"test-fixtures/roles" : windowsConfDir + "/roles",
+			UploadDirs: map[string]string{
+				"test-fixtures/data-bags":    windowsConfDir,
+				"test-fixtures/dna":          windowsConfDir,
+				"test-fixtures/cookbooks":    windowsConfDir,
+				"test-fixtures/environments": windowsConfDir,
+				"test-fixtures/nodes":        windowsConfDir,
+				"test-fixtures/roles":        windowsConfDir,
 			},
 		},
 
@@ -232,25 +232,25 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"attributes_dna": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2"}`,
 				"attributes_automatic": `{"test":{"subkey1" : "value"} }`,
-				"attributes_default": `{"test_default":{"subkey_default" : "value"} }`,
-				"node_name":  "nodename1",
-				"run_list":   []interface{}{"cookbook::recipe"},
-				"secret_key": "SECRET-KEY",
-				"user_name":  "bob",
-				"instance_id": 	"myid",
-				"local_nodes_dir":  "nodes",
+				"attributes_default":   `{"test_default":{"subkey_default" : "value"} }`,
+				"node_name":            "nodename1",
+				"run_list":             []interface{}{"cookbook::recipe"},
+				"secret_key":           "SECRET-KEY",
+				"user_name":            "bob",
+				"instance_id":          "myid",
+				"local_nodes_dir":      "nodes",
 
-				"dir_resources" : "test-fixtures",
-				"user_key":   "USER-KEY",
+				"dir_resources": "test-fixtures",
+				"user_key":      "USER-KEY",
 			},
 
 			Commands: map[string]bool{
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/roles", windowsConfDir+"/roles"): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir):                                 true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"):       true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"):               true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"):                   true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"):       true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/roles", windowsConfDir+"/roles"):               true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/environments", windowsConfDir+"/environments"): true,
 			},
 
@@ -262,13 +262,13 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 			},
 
-			UploadDirs:  map[string]string{
-				"test-fixtures/data-bags" : windowsConfDir + "/data-bags",
-				"test-fixtures/dna" : windowsConfDir + "/dna",
-				"test-fixtures/cookbooks" : windowsConfDir + "/cookbooks" ,
-				"test-fixtures/environments" : windowsConfDir + "/environments",
-				"test-fixtures/nodes" : windowsConfDir + "/nodes",
-				"test-fixtures/roles" : windowsConfDir + "/roles",
+			UploadDirs: map[string]string{
+				"test-fixtures/data-bags":    windowsConfDir,
+				"test-fixtures/dna":          windowsConfDir,
+				"test-fixtures/cookbooks":    windowsConfDir,
+				"test-fixtures/environments": windowsConfDir,
+				"test-fixtures/nodes":        windowsConfDir,
+				"test-fixtures/roles":        windowsConfDir,
 			},
 		},
 	}

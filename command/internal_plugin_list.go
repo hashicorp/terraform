@@ -4,7 +4,6 @@
 package command
 
 import (
-	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 	chefzeroprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef-zero"
 	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
 	habitatprovisioner "github.com/hashicorp/terraform/builtin/provisioners/habitat"
@@ -18,7 +17,6 @@ import (
 var InternalProviders = map[string]plugin.ProviderFunc{}
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
-	"chef":            chefprovisioner.Provisioner,
 	"chef-zero":       chefzeroprovisioner.Provisioner,
 	"file":            fileprovisioner.Provisioner,
 	"habitat":         habitatprovisioner.Provisioner,

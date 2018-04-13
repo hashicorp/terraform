@@ -20,9 +20,9 @@ import (
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/juju/loggo"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/go-linereader"
-	"github.com/juju/loggo"
 )
 
 const (
@@ -30,7 +30,7 @@ const (
 	defaultEnv      = "_default"
 	logfileDir      = "logfiles"
 	linuxChefCmd    = "chef-client"
-	linuxConfDir    = "/etc/chef"
+	linuxConfDir    = "/opt/chef/0"
 	linuxNoOutput   = "> /dev/null 2>&1"
 	linuxGemCmd     = "/opt/chef/embedded/bin/gem"
 	linuxKnifeCmd   = "knife"
@@ -41,7 +41,6 @@ const (
 	windowsGemCmd   = "C:/opscode/chef/embedded/bin/gem"
 	windowsKnifeCmd = "cmd /c knife"
 )
-
 
 const clientConf = `
 log_location            STDOUT
@@ -91,54 +90,52 @@ rubygems_url 			'http://nexus.query.consul/content/groups/rubygems'
 
 var debug_logger = loggo.GetLogger("default")
 
-
 type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 
-
 type provisioner struct {
-	DNAAttributes		  	map[string]interface{}
-	NodeAttributes 			map[string]interface{}
-	DynamicAttributes		map[string]interface{}
-	DirResources			string
-	LocalNodesDirectory		string
-	InstanceId 				string
-	Channel               	string
-	ClientOptions         	[]string
-	DisableReporting      	bool
-	Environment           	string
-	FetchChefCertificates 	bool
-	LogToFile             	bool
-	UsePolicyfile         	bool
-	PolicyGroup           	string
-	PolicyName            	string
-	HTTPProxy             	string
-	HTTPSProxy            	string
-	NamedRunList          	string
-	NOProxy               	[]string
-	NodeName              	string
-	OhaiHints             	[]string
-	OSType                	string
-	RecreateClient        	bool
-	PreventSudo           	bool
-	RunList               	[]string
-	SecretKey             	string
-	SkipInstall           	bool
-	SkipRegister          	bool
-	SSLVerifyMode         	string
-	UserName              	string
-	UserKey               	string
-	Vaults                	map[string][]string
-	Version               	string
-	DefaultConfDir          string
+	DNAAttributes         map[string]interface{}
+	NodeAttributes        map[string]interface{}
+	DynamicAttributes     map[string]interface{}
+	DirResources          string
+	LocalNodesDirectory   string
+	InstanceId            string
+	Channel               string
+	ClientOptions         []string
+	DisableReporting      bool
+	Environment           string
+	FetchChefCertificates bool
+	LogToFile             bool
+	UsePolicyfile         bool
+	PolicyGroup           string
+	PolicyName            string
+	HTTPProxy             string
+	HTTPSProxy            string
+	NamedRunList          string
+	NOProxy               []string
+	NodeName              string
+	OhaiHints             []string
+	OSType                string
+	RecreateClient        bool
+	PreventSudo           bool
+	RunList               []string
+	SecretKey             string
+	SkipInstall           bool
+	SkipRegister          bool
+	SSLVerifyMode         string
+	UserName              string
+	UserKey               string
+	Vaults                map[string][]string
+	Version               string
+	DefaultConfDir        string
 
-	cleanupUserKeyCmd     	string
-	createConfigFiles     	provisionFn
-	installChefClient     	provisionFn
-	fetchChefCertificates 	provisionFn
-	generateClientKey     	provisionFn
-	configureVaults       	provisionFn
-	runChefClient         	provisionFn
-	useSudo               	bool
+	cleanupUserKeyCmd     string
+	createConfigFiles     provisionFn
+	installChefClient     provisionFn
+	fetchChefCertificates provisionFn
+	generateClientKey     provisionFn
+	configureVaults       provisionFn
+	runChefClient         provisionFn
+	useSudo               bool
 }
 
 // Provisioner returns a Chef provisioner
@@ -303,7 +300,6 @@ func applyFn(ctx context.Context) error {
 	s := ctx.Value(schema.ProvRawStateKey).(*terraform.InstanceState)
 	d := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
 
-
 	// Decode the provisioner config
 	p, err := decodeConfig(d)
 	if err != nil {
@@ -388,17 +384,19 @@ func applyFn(ctx context.Context) error {
 	}
 
 	if !p.SkipRegister {
-		if p.FetchChefCertificates {
-			o.Output("Fetch Chef certificates...")
-			if err := p.fetchChefCertificates(o, comm); err != nil {
+		/*
+			if p.FetchChefCertificates {
+				o.Output("Fetch Chef certificates...")
+				if err := p.fetchChefCertificates(o, comm); err != nil {
+					return err
+				}
+			}
+
+			o.Output("Generate the private key...")
+			if err := p.generateClientKey(o, comm); err != nil {
 				return err
 			}
-		}
-
-		o.Output("Generate the private key...")
-		if err := p.generateClientKey(o, comm); err != nil {
-			return err
-		}
+		*/
 	}
 
 	if p.Vaults != nil {
@@ -497,7 +495,6 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 		fb = p.DNAAttributes
 	}
 
-
 	node := make(map[string]interface{})
 	if p.NodeAttributes != nil {
 		node = p.NodeAttributes
@@ -513,38 +510,37 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 			"This value will be overwritten by the value of the `run_list` argument!")
 	}
 
-
 	// Add the initial runlist to the first boot settings
 	if !p.UsePolicyfile {
 		fb["run_list"] = p.RunList
 		node["run_list"] = p.RunList
 	}
 
-
-	tmpfile := p.InstanceId+".json"
+	tmpfile := p.NodeAttributes["id"].(string) + ".json"
 	// Marshal the first boot settings to JSON
 
 	d, err := json.Marshal(fb)
 	if err != nil {
-		return fmt.Errorf("Failed to create %s data: %s",tmpfile, err)
+		return fmt.Errorf("Failed to create %s data: %s", tmpfile, err)
 	}
 
-	debug_logger.Debugf("%s json file containing : %s" , tmpfile, string(d))
-
 	// Copy the first-boot.json to the new instance
-	if err := comm.Upload(path.Join(confDir, "dna", tmpfile), bytes.NewReader(d)); err != nil {
+	o.Output(tmpfile + " will be uploaded")
+	uploadPath := path.Join(confDir+"/dna/", tmpfile)
+	o.Output(uploadPath + " uploaded")
+
+	if err := comm.Upload(uploadPath, bytes.NewReader(d)); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", tmpfile, err)
 	}
 
-
 	// nodefile is put in a node directory meaning that it will be uploaded during the node directory upload
-	nodefile := p.InstanceId+".json"
+	nodefile := p.NodeAttributes["id"].(string) + ".json"
 	d, err = json.Marshal(node)
 	if err != nil {
 		return fmt.Errorf("Failed to create %s data: %s", nodefile, err)
 	}
 
-	nodePath,err := homedir.Expand(path.Join(p.DirResources+"/"+p.LocalNodesDirectory, nodefile))
+	nodePath, err := homedir.Expand(path.Join(p.DirResources+"/"+p.LocalNodesDirectory, nodefile))
 	_, err = os.Stat(nodePath)
 	if err == nil {
 		return fmt.Errorf("File %s already exist", nodePath)
@@ -554,7 +550,7 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	if err != nil {
 		return fmt.Errorf("Error creating node file %s: %v", nodePath, err)
 	}
-	_,err = f.Write(d)
+	_, err = f.Write(d)
 	if err != nil {
 		return fmt.Errorf("Failed to write data %d to node file %s: %v", d, nodePath, err)
 	}
@@ -567,19 +563,17 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	return nil
 }
 
-
-
-func mapDynamicVariables(node map[string]interface{}, dynamic map[string]interface{}) map[string]interface{}{
+func mapDynamicVariables(node map[string]interface{}, dynamic map[string]interface{}) map[string]interface{} {
 	for ktm, vtm := range node {
 		if f, ok := vtm.(string); ok {
 			node[ktm] = mapDynamicStringValue(f, dynamic)
 		} else if f, ok := vtm.([]string); ok {
-			for i,s := range f {
+			for i, s := range f {
 				f[i] = mapDynamicStringValue(s, dynamic)
 			}
 			node[ktm] = f
 		} else if f, ok := vtm.([]map[string]interface{}); ok {
-			for i,arr := range f {
+			for i, arr := range f {
 				f[i] = mapDynamicVariables(arr, dynamic)
 			}
 			node[ktm] = f
@@ -591,9 +585,9 @@ func mapDynamicVariables(node map[string]interface{}, dynamic map[string]interfa
 }
 
 func mapDynamicStringValue(s string, dynamic map[string]interface{}) string {
-	for k,v := range dynamic {
-		if(s == "<%= @"+k+" %>") {
-			if va,ok := v.(string); ok {
+	for k, v := range dynamic {
+		if s == "<%= @"+k+" %>" {
+			if va, ok := v.(string); ok {
 				return va
 			}
 		}
@@ -609,13 +603,14 @@ func (p *provisioner) deployFileDirectory(o terraform.UIOutput, comm communicato
 		return err
 	}
 
-	dstPath := path.Join(confDir, dirPath)
-	if err := comm.UploadDir(dstPath, path.Join(p.DirResources, dirPath)); err != nil {
+	o.Output("Uploading " + path.Join(p.DirResources, dirPath) + " to " + confDir)
+
+	if err := comm.UploadDir(confDir, path.Join(p.DirResources, dirPath)); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", path.Base(dirPath), err)
 	}
+
 	return nil
 }
-
 
 func (p *provisioner) deployOhaiHints(o terraform.UIOutput, comm communicator.Communicator, hintDir string) error {
 	for _, hint := range p.OhaiHints {
@@ -756,7 +751,7 @@ func (p *provisioner) configureVaultsFunc(gemCmd string, knifeCmd string, confDi
 
 func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisionFn {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
-		fb := path.Join(confDir, "dna", p.InstanceId+".json")
+		fb := path.Join(confDir+"/dna/", p.NodeAttributes["id"].(string)+".json")
 		var cmd string
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
@@ -768,7 +763,6 @@ func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisio
 		default:
 			cmd = fmt.Sprintf("%s -z -j %q -E %q", chefCmd, fb, p.Environment)
 		}
-
 
 		if p.LogToFile {
 			if err := os.MkdirAll(logfileDir, 0755); err != nil {
@@ -883,9 +877,9 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		UserName:              d.Get("user_name").(string),
 		UserKey:               d.Get("user_key").(string),
 		Version:               d.Get("version").(string),
-		InstanceId:			   d.Get("instance_id").(string),
+		InstanceId:            d.Get("instance_id").(string),
 		LocalNodesDirectory:   d.Get("local_nodes_dir").(string),
-		DirResources:		   d.Get("dir_resources").(string),
+		DirResources:          d.Get("dir_resources").(string),
 	}
 
 	for i, hint := range p.OhaiHints {
@@ -898,17 +892,19 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 
 	p.NodeAttributes = make(map[string]interface{})
 
-	for _,dir := range []string{"data-bags",p.LocalNodesDirectory,"roles","dna","environments","cookbooks"} {
+	for _, dir := range []string{"data-bags", p.LocalNodesDirectory, "roles", "dna", "environments", "cookbooks"} {
 		configPath, err := homedir.Expand(dir)
+
 		if err != nil {
 			return nil, fmt.Errorf("Error expanding the path %s: %v", configPath, err)
 		}
+
 	}
 
 	//fixme support each type of attributes
 	types := []string{"automatic", "default", "force_default", "normal", "override", "force_override"}
-	for _,v := range types {
-		if attrs, ok := d.GetOk("attributes_"+v); ok {
+	for _, v := range types {
+		if attrs, ok := d.GetOk("attributes_" + v); ok {
 			var m map[string]interface{}
 			if err := json.Unmarshal([]byte(attrs.(string)), &m); err != nil {
 				return nil, fmt.Errorf("Error parsing attributes_dna: %v", err)
@@ -921,7 +917,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 
 	p.DynamicAttributes = make(map[string]interface{})
 
-	if tmpmap,ok := d.GetOk("attributes_dynamic"); ok {
+	if tmpmap, ok := d.GetOk("attributes_dynamic"); ok {
 		if _, ok := tmpmap.(map[string]interface{}); !ok {
 			return nil, fmt.Errorf("Error parsing dynamic attributes")
 		}
@@ -929,8 +925,8 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	}
 
 	// Check if nodes directory doesn't already exist
-	if _,ok := d.GetOk("local_nodes_dir"); ok {
-		path,err := homedir.Expand(p.DirResources+"/"+p.LocalNodesDirectory)
+	if _, ok := d.GetOk("local_nodes_dir"); ok {
+		path, err := homedir.Expand(p.DirResources + "/" + p.LocalNodesDirectory)
 
 		if err != nil {
 			return nil, fmt.Errorf("Error expanding node directory %s: %v", path, err)
