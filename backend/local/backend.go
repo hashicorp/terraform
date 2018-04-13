@@ -427,6 +427,7 @@ func (b *Local) StatePaths(name string) (string, string, string) {
 		}
 	} else {
 		statePath = filepath.Join(b.stateWorkspaceDir(), name, DefaultStateFilename)
+		stateOutPath = statePath
 	}
 
 	if stateOutPath == "" {

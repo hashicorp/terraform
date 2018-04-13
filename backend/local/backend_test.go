@@ -87,6 +87,28 @@ func TestLocal_StatePaths(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedBackup, back)
 	}
 
+	// check with env and not defaults path"
+	testPath := "test_state"
+	b.StatePath = testPath
+	b.StateOutPath = testPath
+	path, out, back = b.StatePaths(testEnv)
+
+	expectedPath = filepath.Join(DefaultWorkspaceDir, testEnv, DefaultStateFilename)
+	expectedOut = expectedPath
+	expectedBackup = expectedPath + DefaultBackupExtension
+
+	if path != expectedPath {
+		t.Fatalf("expected %q, got %q", expectedPath, path)
+	}
+
+	if out != expectedOut {
+		t.Fatalf("expected %q, got %q", expectedOut, out)
+	}
+
+	if back != expectedBackup {
+		t.Fatalf("expected %q, got %q", expectedBackup, back)
+	}
+
 }
 
 func TestLocal_addAndRemoveStates(t *testing.T) {
