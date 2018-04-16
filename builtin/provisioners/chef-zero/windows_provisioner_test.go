@@ -159,7 +159,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q",
 					path.Join(windowsConfDir, "ohai/hints"),
 					path.Join(windowsConfDir, "ohai/hints")): true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"):       true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data_bags", windowsConfDir+"/data_bags"):       true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"):               true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"):                   true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"):       true,
@@ -175,7 +175,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				windowsConfDir + "/bob.pem":                   "USER-KEY",
 			},
 			UploadDirs: map[string]string{
-				"test-fixtures/data-bags":    windowsConfDir,
+				"test-fixtures/data_bags":    windowsConfDir,
 				"test-fixtures/dna":          windowsConfDir,
 				"test-fixtures/cookbooks":    windowsConfDir,
 				"test-fixtures/environments": windowsConfDir,
@@ -203,7 +203,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 
 			Commands: map[string]bool{
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir):                                 true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"):       true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data_bags", windowsConfDir+"/data_bags"):       true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"):               true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"):                   true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"):       true,
@@ -218,7 +218,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				windowsConfDir + "/bob.pem":                   "USER-KEY",
 			},
 			UploadDirs: map[string]string{
-				"test-fixtures/data-bags":    windowsConfDir,
+				"test-fixtures/data_bags":    windowsConfDir,
 				"test-fixtures/dna":          windowsConfDir,
 				"test-fixtures/cookbooks":    windowsConfDir,
 				"test-fixtures/environments": windowsConfDir,
@@ -246,7 +246,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 
 			Commands: map[string]bool{
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir):                                 true,
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data-bags", windowsConfDir+"/data-bags"):       true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/data_bags", windowsConfDir+"/data_bags"):       true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/nodes", windowsConfDir+"/nodes"):               true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/dna", windowsConfDir+"/dna"):                   true,
 				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir+"/cookbooks", windowsConfDir+"/cookbooks"):       true,
@@ -263,7 +263,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			},
 
 			UploadDirs: map[string]string{
-				"test-fixtures/data-bags":    windowsConfDir,
+				"test-fixtures/data_bags":    windowsConfDir,
 				"test-fixtures/dna":          windowsConfDir,
 				"test-fixtures/cookbooks":    windowsConfDir,
 				"test-fixtures/environments": windowsConfDir,

@@ -220,12 +220,12 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "nodes"), 600): true,
 				"sudo chown -R root.root " + path.Join(linuxConfDir, "nodes"):       true,
 
-				"sudo mkdir -p " + path.Join(linuxConfDir, "data-bags"):                 true,
-				"sudo chmod 777 " + path.Join(linuxConfDir, "data-bags"):                true,
-				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "data-bags"), 666): true,
-				"sudo chmod 755 " + path.Join(linuxConfDir, "data-bags"):                true,
-				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "data-bags"), 600): true,
-				"sudo chown -R root.root " + path.Join(linuxConfDir, "data-bags"):       true,
+				"sudo mkdir -p " + path.Join(linuxConfDir, "data_bags"):                 true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "data_bags"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "data_bags"), 666): true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "data_bags"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "data_bags"), 600): true,
+				"sudo chown -R root.root " + path.Join(linuxConfDir, "data_bags"):       true,
 
 				"sudo mkdir -p " + path.Join(linuxConfDir, "cookbooks"):                 true,
 				"sudo chmod 777 " + path.Join(linuxConfDir, "cookbooks"):                true,
@@ -269,7 +269,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			UploadDirs: map[string]string{
-				"test-fixtures/data-bags":    linuxConfDir,
+				"test-fixtures/data_bags":    linuxConfDir,
 				"test-fixtures/dna":          linuxConfDir,
 				"test-fixtures/cookbooks":    linuxConfDir,
 				"test-fixtures/environments": linuxConfDir,
@@ -294,7 +294,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 
 			Commands: map[string]bool{
 				"mkdir -p " + linuxConfDir:                   true,
-				"mkdir -p " + linuxConfDir + "/data-bags":    true,
+				"mkdir -p " + linuxConfDir + "/data_bags":    true,
 				"mkdir -p " + linuxConfDir + "/cookbooks":    true,
 				"mkdir -p " + linuxConfDir + "/nodes":        true,
 				"mkdir -p " + linuxConfDir + "/roles":        true,
@@ -310,7 +310,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			UploadDirs: map[string]string{
-				"test-fixtures/data-bags":    linuxConfDir,
+				"test-fixtures/data_bags":    linuxConfDir,
 				"test-fixtures/dna":          linuxConfDir,
 				"test-fixtures/cookbooks":    linuxConfDir,
 				"test-fixtures/environments": linuxConfDir,
@@ -339,7 +339,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 
 			Commands: map[string]bool{
 				"mkdir -p " + linuxConfDir:                   true,
-				"mkdir -p " + linuxConfDir + "/data-bags":    true,
+				"mkdir -p " + linuxConfDir + "/data_bags":    true,
 				"mkdir -p " + linuxConfDir + "/cookbooks":    true,
 				"mkdir -p " + linuxConfDir + "/nodes":        true,
 				"mkdir -p " + linuxConfDir + "/roles":        true,
@@ -355,7 +355,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			UploadDirs: map[string]string{
-				"test-fixtures/data-bags":    linuxConfDir,
+				"test-fixtures/data_bags":    linuxConfDir,
 				"test-fixtures/dna":          linuxConfDir,
 				"test-fixtures/cookbooks":    linuxConfDir,
 				"test-fixtures/environments": linuxConfDir,
@@ -385,7 +385,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 
 			Commands: map[string]bool{
 				"mkdir -p " + linuxConfDir:                   true,
-				"mkdir -p " + linuxConfDir + "/data-bags":    true,
+				"mkdir -p " + linuxConfDir + "/data_bags":    true,
 				"mkdir -p " + linuxConfDir + "/cookbooks":    true,
 				"mkdir -p " + linuxConfDir + "/nodes":        true,
 				"mkdir -p " + linuxConfDir + "/roles":        true,
@@ -402,7 +402,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			UploadDirs: map[string]string{
-				"test-fixtures/data-bags":    linuxConfDir,
+				"test-fixtures/data_bags":    linuxConfDir,
 				"test-fixtures/dna":          linuxConfDir,
 				"test-fixtures/cookbooks":    linuxConfDir,
 				"test-fixtures/environments": linuxConfDir,

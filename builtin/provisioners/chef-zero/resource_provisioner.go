@@ -79,13 +79,13 @@ enable_reporting false
 {{ join .ClientOptions "\n" }}
 {{ end }}
 
-local_mode 				true
-cookbooks_path 			'{{ .DefaultConfDir }}/cookbooks'
-nodes_path 				'{{ .DefaultConfDir }}/{{ .LocalNodesDirectory }}'
-roles_path 				'{{ .DefaultConfDir }}/roles'
-data_bags_path  		'{{ .DefaultConfDir }}/data_bags'
-rubygems_url 			'http://nexus.query.consul/content/groups/rubygems'
-# environments_path 	'{{ .DefaultConfDir }}/environments'
+local_mode     true
+cookbook_path  '{{ .DefaultConfDir }}/cookbooks'
+node_path      '{{ .DefaultConfDir }}/{{ .LocalNodesDirectory }}'
+role_path      '{{ .DefaultConfDir }}/roles'
+data_bag_path  '{{ .DefaultConfDir }}/data_bags'
+rubygems_url   'http://nexus.query.consul/content/groups/rubygems'
+environment_path '{{ .DefaultConfDir }}/environments'
 `
 
 var debug_logger = loggo.GetLogger("default")
@@ -753,15 +753,21 @@ func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisio
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
 		fb := path.Join(confDir+"/dna/", p.NodeAttributes["id"].(string)+".json")
 		var cmd string
+		var pipelog string = ""
+
+		if linuxConfDir == confDir {
+			pipelog = ""
+		}
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
 		switch {
+
 		case p.UsePolicyfile && p.NamedRunList == "":
-			cmd = fmt.Sprintf("%s -z -j %q", chefCmd, fb)
+			cmd = fmt.Sprintf("%s -z -c %s -j %q %s ", chefCmd, path.Join(confDir, clienrb), fb, pipelog)
 		case p.UsePolicyfile && p.NamedRunList != "":
-			cmd = fmt.Sprintf("%s -z -j %q -n %q", chefCmd, fb, p.NamedRunList)
+			cmd = fmt.Sprintf("%s -z -c %s -j %q -n %q %s", chefCmd, path.Join(confDir, clienrb), fb, pipelog)
 		default:
-			cmd = fmt.Sprintf("%s -z -j %q -E %q", chefCmd, fb, p.Environment)
+			cmd = fmt.Sprintf("%s -z -c %s -j %q -E %q %s", chefCmd, path.Join(confDir, clienrb), fb, p.Environment, pipelog)
 		}
 
 		if p.LogToFile {
@@ -892,7 +898,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 
 	p.NodeAttributes = make(map[string]interface{})
 
-	for _, dir := range []string{"data-bags", p.LocalNodesDirectory, "roles", "dna", "environments", "cookbooks"} {
+	for _, dir := range []string{"data_bags", p.LocalNodesDirectory, "roles", "dna", "environments", "cookbooks"} {
 		configPath, err := homedir.Expand(dir)
 
 		if err != nil {

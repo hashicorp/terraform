@@ -42,36 +42,51 @@ func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communic
 	return p.runCommand(o, comm, fmt.Sprintf("%srm -f install.sh", prefix))
 }
 
-func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communicator.Communicator) error {
+func (p *provisioner) preUploadDirectory(o terraform.UIOutput, comm communicator.Communicator, dir string) error {
+
 	// Make sure the config directory exists
-	if err := p.runCommand(o, comm, "mkdir -p "+linuxConfDir); err != nil {
+	if err := p.runCommand(o, comm, "mkdir -p "+dir); err != nil {
 		return err
 	}
 
 	// Make sure we have enough rights to upload the files if using sudo
 	if p.useSudo {
-		if err := p.runCommand(o, comm, "chmod 777 "+linuxConfDir); err != nil {
+		if err := p.runCommand(o, comm, "chmod 777 "+dir); err != nil {
 			return err
 		}
-		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, linuxConfDir, 666)); err != nil {
+		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, dir, 666)); err != nil {
 			return err
 		}
 	}
+	return nil
+}
 
-	//fixme refactor me !!!!
-	configDir := path.Join(linuxConfDir, "dna")
-	if err := p.runCommand(o, comm, "mkdir -p "+configDir); err != nil {
+func (p *provisioner) postUploadDirectory(o terraform.UIOutput, comm communicator.Communicator, dir string) error {
+	// When done copying the hints restore the rights and make sure root is owner
+	if p.useSudo {
+		if err := p.runCommand(o, comm, "chmod 755 "+dir); err != nil {
+			return err
+		}
+		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, dir, 600)); err != nil {
+			return err
+		}
+		if err := p.runCommand(o, comm, "chown -R root.root "+dir); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communicator.Communicator) error {
+
+	// Make sure we have enough rights to upload the files if using sudo
+	if err := p.preUploadDirectory(o, comm, linuxConfDir); err != nil {
 		return err
 	}
 
-	// Make sure we have enough rights to upload the hints if using sudo
-	if p.useSudo {
-		if err := p.runCommand(o, comm, "chmod 777 "+configDir); err != nil {
-			return err
-		}
-		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, configDir, 666)); err != nil {
-			return err
-		}
+	// Create dna directory before deploying files because we'll need it aftewhile
+	if err := p.preUploadDirectory(o, comm, path.Join(linuxConfDir, "dna")); err != nil {
+		return err
 	}
 
 	if err := p.deployFileDirectory(o, comm, linuxConfDir, "dna"); err != nil {
@@ -83,101 +98,44 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 	}
 
 	// Make sure the hits directory exists
-	configDirs := []string{"data-bags", "nodes", "roles", "environments", "cookbooks"}
+	configDirs := []string{"data_bags", "nodes", "roles", "dna", "environments", "cookbooks"}
 	for _, dir := range configDirs {
 		configDir := path.Join(linuxConfDir, dir)
-		if err := p.runCommand(o, comm, "mkdir -p "+configDir); err != nil {
-			return err
-		}
 
-		// Make sure we have enough rights to upload the hints if using sudo
-		if p.useSudo {
-			if err := p.runCommand(o, comm, "chmod 777 "+configDir); err != nil {
-				return err
-			}
-			if err := p.runCommand(o, comm, fmt.Sprintf(chmod, configDir, 666)); err != nil {
-				return err
-			}
+		if err := p.preUploadDirectory(o, comm, path.Join(linuxConfDir, configDir)); err != nil {
+			return err
 		}
 
 		if err := p.deployFileDirectory(o, comm, linuxConfDir, dir); err != nil {
 			return err
 		}
 
-		// When done copying the hints restore the rights and make sure root is owner
-		if p.useSudo {
-			if err := p.runCommand(o, comm, "chmod 755 "+configDir); err != nil {
-				return err
-			}
-			if err := p.runCommand(o, comm, fmt.Sprintf(chmod, configDir, 600)); err != nil {
-				return err
-			}
-			if err := p.runCommand(o, comm, "chown -R root.root "+configDir); err != nil {
-				return err
-			}
+		if err := p.postUploadDirectory(o, comm, path.Join(linuxConfDir, configDir)); err != nil {
+			return err
 		}
-	}
 
-	// When done copying the hints restore the rights and make sure root is owner
-	if p.useSudo {
-		if err := p.runCommand(o, comm, "chmod 755 "+configDir); err != nil {
-			return err
-		}
-		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, configDir, 600)); err != nil {
-			return err
-		}
-		if err := p.runCommand(o, comm, "chown -R root.root "+configDir); err != nil {
-			return err
-		}
 	}
 
 	//fixme do the same for other directories
 	if len(p.OhaiHints) > 0 {
 		// Make sure the hits directory exists
 		hintsDir := path.Join(linuxConfDir, "ohai/hints")
-		if err := p.runCommand(o, comm, "mkdir -p "+hintsDir); err != nil {
-			return err
-		}
 
-		// Make sure we have enough rights to upload the hints if using sudo
-		if p.useSudo {
-			if err := p.runCommand(o, comm, "chmod 777 "+hintsDir); err != nil {
-				return err
-			}
-			if err := p.runCommand(o, comm, fmt.Sprintf(chmod, hintsDir, 666)); err != nil {
-				return err
-			}
+		if err := p.preUploadDirectory(o, comm, hintsDir); err != nil {
+			return err
 		}
 
 		if err := p.deployOhaiHints(o, comm, hintsDir); err != nil {
 			return err
 		}
 
-		// When done copying the hints restore the rights and make sure root is owner
-		if p.useSudo {
-			if err := p.runCommand(o, comm, "chmod 755 "+hintsDir); err != nil {
-				return err
-			}
-			if err := p.runCommand(o, comm, fmt.Sprintf(chmod, hintsDir, 600)); err != nil {
-				return err
-			}
-			if err := p.runCommand(o, comm, "chown -R root.root "+hintsDir); err != nil {
-				return err
-			}
+		if err := p.postUploadDirectory(o, comm, hintsDir); err != nil {
+			return err
 		}
 	}
 
-	// When done copying all files restore the rights and make sure root is owner
-	if p.useSudo {
-		if err := p.runCommand(o, comm, "chmod 755 "+linuxConfDir); err != nil {
-			return err
-		}
-		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, linuxConfDir, 600)); err != nil {
-			return err
-		}
-		if err := p.runCommand(o, comm, "chown -R root.root "+linuxConfDir); err != nil {
-			return err
-		}
+	if err := p.postUploadDirectory(o, comm, linuxConfDir); err != nil {
+		return err
 	}
 
 	return nil

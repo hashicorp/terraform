@@ -68,7 +68,7 @@ func (p *provisioner) windowsCreateConfigFiles(o terraform.UIOutput, comm commun
 	}
 
 	// Make sure the hits directory exists
-	configDirs := []string{"data-bags", p.LocalNodesDirectory, "roles", "dna", "environments", "cookbooks"}
+	configDirs := []string{"data_bags", p.LocalNodesDirectory, "roles", "dna", "environments", "cookbooks"}
 	for _, dir := range configDirs {
 
 		configDir := path.Join(windowsConfDir, dir)
