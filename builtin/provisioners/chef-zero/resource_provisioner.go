@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/juju/loggo"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/go-linereader"
 )
@@ -88,8 +87,6 @@ rubygems_url 'http://nexus.query.consul/content/groups/rubygems'
 environment_path '{{ .DefaultConfDir }}/environments'
 `
 
-var debug_logger = loggo.GetLogger("default")
-
 type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 
 type provisioner struct {
@@ -138,8 +135,6 @@ type provisioner struct {
 
 // Provisioner returns a Chef provisioner
 func Provisioner() terraform.ResourceProvisioner {
-
-	debug_logger.SetLogLevel(loggo.DEBUG)
 
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
