@@ -69,6 +69,10 @@ func (p *provisioner) windowsCreateConfigFiles(o terraform.UIOutput, comm commun
 
 	// Make sure the hits directory exists
 	configDirs := []string{"data_bags", p.LocalNodesDirectory, "roles", "dna", "environments", "cookbooks"}
+
+	if len(p.OhaiHints) > 0 {
+		configDirs = append(configDirs, "ohai/hints")
+	}
 	for _, dir := range configDirs {
 
 		configDir := path.Join(windowsConfDir, dir)
@@ -78,24 +82,16 @@ func (p *provisioner) windowsCreateConfigFiles(o terraform.UIOutput, comm commun
 			return err
 		}
 
-		// fixme refactor with ohai
-		if err := p.deployFileDirectory(o, comm, windowsConfDir, dir); err != nil {
+		if dir == "ohai/hints" {
+			if err := p.deployOhaiHints(o, comm, path.Join(windowsConfDir, "ohai/hints")); err != nil {
+				return err
+			}
+		}
+
+		if err := p.deployDirectoryFiles(o, comm, windowsConfDir, dir); err != nil {
 			return err
 		}
 
-	}
-
-	if len(p.OhaiHints) > 0 {
-		// Make sure the hits directory exists
-		hintsDir := path.Join(windowsConfDir, "ohai/hints")
-		cmd := fmt.Sprintf("cmd /c if not exist %q mkdir %q", hintsDir, hintsDir)
-		if err := p.runCommand(o, comm, cmd); err != nil {
-			return err
-		}
-
-		if err := p.deployOhaiHints(o, comm, hintsDir); err != nil {
-			return err
-		}
 	}
 
 	return p.deployConfigFiles(o, comm, windowsConfDir)

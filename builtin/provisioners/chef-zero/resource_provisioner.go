@@ -95,7 +95,7 @@ type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 type provisioner struct {
 	DNAAttributes         map[string]interface{}
 	NodeAttributes        map[string]interface{}
-	DynamicAttributes     map[string]interface{}
+	MappedAttributes      map[string]interface{}
 	DirResources          string
 	LocalNodesDirectory   string
 	InstanceId            string
@@ -169,19 +169,19 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"attributes_dna": &schema.Schema{
+			"dna_attributes": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"attributes_automatic": &schema.Schema{
+			"automatic_attributes": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"attributes_dynamic": &schema.Schema{
+			"mapped_attributes": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
-			"attributes_default": &schema.Schema{
+			"default_attributes": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -294,7 +294,6 @@ func Provisioner() terraform.ResourceProvisioner {
 	}
 }
 
-// TODO: Support context cancelling (Provisioner Stop)
 func applyFn(ctx context.Context) error {
 	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
 	s := ctx.Value(schema.ProvRawStateKey).(*terraform.InstanceState)
@@ -384,19 +383,18 @@ func applyFn(ctx context.Context) error {
 	}
 
 	if !p.SkipRegister {
-		/*
-			if p.FetchChefCertificates {
-				o.Output("Fetch Chef certificates...")
-				if err := p.fetchChefCertificates(o, comm); err != nil {
-					return err
-				}
-			}
 
-			o.Output("Generate the private key...")
-			if err := p.generateClientKey(o, comm); err != nil {
+		if p.FetchChefCertificates {
+			o.Output("Fetch Chef certificates...")
+			if err := p.fetchChefCertificates(o, comm); err != nil {
 				return err
 			}
-		*/
+		}
+
+		o.Output("Generate the private key...")
+		if err := p.generateClientKey(o, comm); err != nil {
+			return err
+		}
 	}
 
 	if p.Vaults != nil {
@@ -500,8 +498,8 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 		node = p.NodeAttributes
 	}
 
-	fb = mapDynamicVariables(fb, p.DynamicAttributes)
-	node = mapDynamicVariables(node, p.DynamicAttributes)
+	fb = mapDynamicVariables(fb, p.MappedAttributes)
+	node = mapDynamicVariables(node, p.MappedAttributes)
 
 	// Check if the run_list was also in the attributes and if so log a warning
 	// that it will be overwritten with the value of the run_list argument.
@@ -547,18 +545,19 @@ func (p *provisioner) deployConfigFiles(o terraform.UIOutput, comm communicator.
 	}
 
 	f, err := os.Create(path.Join(nodePath))
+
 	if err != nil {
 		return fmt.Errorf("Error creating node file %s: %v", nodePath, err)
 	}
 	_, err = f.Write(d)
+
 	if err != nil {
 		return fmt.Errorf("Failed to write data %d to node file %s: %v", d, nodePath, err)
 	}
 
-	// fixme check error
-	f.Close()
-
-	// fixme clarify where nodes files are uploaded
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("Error closing node file %s: %v", nodePath, err)
+	}
 
 	return nil
 }
@@ -595,12 +594,12 @@ func mapDynamicStringValue(s string, dynamic map[string]interface{}) string {
 	return s
 }
 
-// fixme refactor with deploy ohai hints
-func (p *provisioner) deployFileDirectory(o terraform.UIOutput, comm communicator.Communicator, confDir, dirPath string) error {
+func (p *provisioner) deployDirectoryFiles(o terraform.UIOutput, comm communicator.Communicator, confDir, dirPath string) error {
 
 	_, err := os.Stat(path.Join(p.DirResources, dirPath))
 	if os.IsNotExist(err) || err != nil {
-		return err
+		o.Output("Warning: " + path.Join(p.DirResources, dirPath) + " does not exist, uploading nothing.")
+		return nil
 	}
 
 	o.Output("Uploading " + path.Join(p.DirResources, dirPath) + " to " + confDir)
@@ -907,27 +906,37 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 
 	}
 
-	//fixme support each type of attributes
+	if _, err := d.GetOk("instance_id"); err != true {
+		return nil, fmt.Errorf("Error parsing instance_id")
+	} else {
+		p.NodeAttributes["id"] = d.Get("instance_id").(string)
+	}
+
 	types := []string{"automatic", "default", "force_default", "normal", "override", "force_override"}
 	for _, v := range types {
-		if attrs, ok := d.GetOk("attributes_" + v); ok {
+		if attrs, ok := d.GetOk(v + "_attributes"); ok {
 			var m map[string]interface{}
 			if err := json.Unmarshal([]byte(attrs.(string)), &m); err != nil {
-				return nil, fmt.Errorf("Error parsing attributes_dna: %v", err)
+				return nil, fmt.Errorf("Error parsing %s_attributes: %v", v, err)
 			}
 			p.NodeAttributes[v] = m
 		}
 	}
 
-	p.NodeAttributes["id"] = d.Get("instance_id").(string)
-
-	p.DynamicAttributes = make(map[string]interface{})
-
-	if tmpmap, ok := d.GetOk("attributes_dynamic"); ok {
+	p.MappedAttributes = make(map[string]interface{})
+	if tmpmap, ok := d.GetOk("mapped_attributes"); ok {
 		if _, ok := tmpmap.(map[string]interface{}); !ok {
-			return nil, fmt.Errorf("Error parsing dynamic attributes")
+			return nil, fmt.Errorf("Error parsing mapped attributes")
 		}
-		p.DynamicAttributes = tmpmap.(map[string]interface{})
+		p.MappedAttributes = tmpmap.(map[string]interface{})
+	}
+
+	if attrs, ok := d.GetOk("dna_attributes"); ok {
+		var m map[string]interface{}
+		if err := json.Unmarshal([]byte(attrs.(string)), &m); err != nil {
+			return nil, fmt.Errorf("Error parsing attributes_dna: %v", err)
+		}
+		p.DNAAttributes = m
 	}
 
 	// Check if nodes directory doesn't already exist
@@ -943,14 +952,6 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 				return nil, fmt.Errorf("Error creating node directory %s: %v", path, err)
 			}
 		}
-	}
-
-	if attrs, ok := d.GetOk("attributes_dna"); ok {
-		var m map[string]interface{}
-		if err := json.Unmarshal([]byte(attrs.(string)), &m); err != nil {
-			return nil, fmt.Errorf("Error parsing attributes_dna: %v", err)
-		}
-		p.DNAAttributes = m
 	}
 
 	if vaults, ok := d.GetOk("vault_json"); ok {

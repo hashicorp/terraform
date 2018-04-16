@@ -84,52 +84,40 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 		return err
 	}
 
-	// Create dna directory before deploying files because we'll need it aftewhile
-	if err := p.preUploadDirectory(o, comm, path.Join(linuxConfDir, "dna")); err != nil {
-		return err
+	// Make sure the hits directory exists
+	configDirs := []string{"data_bags", "nodes", "roles", "dna", "environments", "cookbooks", "ohai/hints"}
+
+	if len(p.OhaiHints) > 0 {
+		configDirs = append(configDirs, "ohai/hints")
 	}
 
-	if err := p.deployFileDirectory(o, comm, linuxConfDir, "dna"); err != nil {
-		return err
+	for _, dir := range configDirs {
+		configDir := path.Join(linuxConfDir, dir)
+
+		if err := p.preUploadDirectory(o, comm, configDir); err != nil {
+			return err
+		}
+
+		if dir == "ohai/hints" {
+			if err := p.deployOhaiHints(o, comm, configDir); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if err := p.deployDirectoryFiles(o, comm, linuxConfDir, dir); err != nil {
+			return err
+		}
 	}
 
 	if err := p.deployConfigFiles(o, comm, linuxConfDir); err != nil {
 		return err
 	}
 
-	// Make sure the hits directory exists
-	configDirs := []string{"data_bags", "nodes", "roles", "dna", "environments", "cookbooks"}
 	for _, dir := range configDirs {
 		configDir := path.Join(linuxConfDir, dir)
 
-		if err := p.preUploadDirectory(o, comm, path.Join(linuxConfDir, configDir)); err != nil {
-			return err
-		}
-
-		if err := p.deployFileDirectory(o, comm, linuxConfDir, dir); err != nil {
-			return err
-		}
-
-		if err := p.postUploadDirectory(o, comm, path.Join(linuxConfDir, configDir)); err != nil {
-			return err
-		}
-
-	}
-
-	//fixme do the same for other directories
-	if len(p.OhaiHints) > 0 {
-		// Make sure the hits directory exists
-		hintsDir := path.Join(linuxConfDir, "ohai/hints")
-
-		if err := p.preUploadDirectory(o, comm, hintsDir); err != nil {
-			return err
-		}
-
-		if err := p.deployOhaiHints(o, comm, hintsDir); err != nil {
-			return err
-		}
-
-		if err := p.postUploadDirectory(o, comm, hintsDir); err != nil {
+		if err := p.postUploadDirectory(o, comm, configDir); err != nil {
 			return err
 		}
 	}
