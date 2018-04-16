@@ -85,7 +85,7 @@ func (p *provisioner) linuxCreateConfigFiles(o terraform.UIOutput, comm communic
 	}
 
 	// Make sure the hits directory exists
-	configDirs := []string{"data_bags", "nodes", "roles", "dna", "environments", "cookbooks", "ohai/hints"}
+	configDirs := []string{"data_bags", "nodes", "roles", "dna", "environments", "cookbooks"}
 
 	if len(p.OhaiHints) > 0 {
 		configDirs = append(configDirs, "ohai/hints")

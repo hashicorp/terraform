@@ -366,11 +366,11 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 
 		"DNAAttributes": {
 			Config: map[string]interface{}{
-				"attributes_dna": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+				"dna_attributes": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3", "id" : "<%= @node_index %>"}}},"key2":"value2","ipaddress" : "<%= @node_ip %>"}`,
-				"attributes_automatic": `{"test":{"subkey1" : "value"} }`,
-				"attributes_default":   `{"test_default":{"subkey_default" : "value"} }`,
-				"attributes_dynamic":   map[string]interface{}{"node_ip": "192.168.0.1", "node_index": "1"},
+				"automatic_attributes": `{"test":{"subkey1" : "value"} }`,
+				"default_attributes":   `{"test_default":{"subkey_default" : "value"} }`,
+				"mapped_attributes":   map[string]interface{}{"node_ip": "192.168.0.1", "node_index": "1"},
 				"node_name":            "nodename1",
 				"prevent_sudo":         true,
 				"run_list":             []interface{}{"cookbook::recipe"},
@@ -430,8 +430,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 
 		p.useSudo = !p.PreventSudo
 
-		err = p.linuxCreateConfigFiles(o, c)
-		if err != nil {
+		if err = p.linuxCreateConfigFiles(o, c); err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
 		os.Remove("test-fixtures/nodes/myid.json")
@@ -441,13 +440,13 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 const defaultLinuxClientConf = `log_location            STDOUT
 
 
-local_mode 				true
-cookbooks_path 			'/opt/chef/0/cookbooks'
-nodes_path 				'/opt/chef/0/nodes'
-roles_path 				'/opt/chef/0/roles'
-data_bags_path  		'/opt/chef/0/data_bags'
-rubygems_url 			'http://nexus.query.consul/content/groups/rubygems'
-# environments_path 	'/opt/chef/0/environments'`
+local_mode true
+cookbook_path '/opt/chef/0/cookbooks'
+node_path '/opt/chef/0/nodes'
+role_path '/opt/chef/0/roles'
+data_bag_path '/opt/chef/0/data_bags'
+rubygems_url 'http://nexus.query.consul/content/groups/rubygems'
+environment_path '/opt/chef/0/environments'`
 
 const proxyLinuxClientConf = `log_location            STDOUT
 
@@ -464,10 +463,10 @@ ENV['no_proxy'] = "http://local.local,https://local.local"
 
 ssl_verify_mode  :verify_none
 
-local_mode 				true
-cookbooks_path 			'/opt/chef/0/cookbooks'
-nodes_path 				'/opt/chef/0/nodes'
-roles_path 				'/opt/chef/0/roles'
-data_bags_path  		'/opt/chef/0/data_bags'
-rubygems_url 			'http://nexus.query.consul/content/groups/rubygems'
-# environments_path 	'/opt/chef/0/environments'`
+local_mode true
+cookbook_path '/opt/chef/0/cookbooks'
+node_path '/opt/chef/0/nodes'
+role_path '/opt/chef/0/roles'
+data_bag_path '/opt/chef/0/data_bags'
+rubygems_url 'http://nexus.query.consul/content/groups/rubygems'
+environment_path '/opt/chef/0/environments'`

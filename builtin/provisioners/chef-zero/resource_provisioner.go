@@ -79,12 +79,12 @@ enable_reporting false
 {{ join .ClientOptions "\n" }}
 {{ end }}
 
-local_mode     true
-cookbook_path  '{{ .DefaultConfDir }}/cookbooks'
-node_path      '{{ .DefaultConfDir }}/{{ .LocalNodesDirectory }}'
-role_path      '{{ .DefaultConfDir }}/roles'
-data_bag_path  '{{ .DefaultConfDir }}/data_bags'
-rubygems_url   'http://nexus.query.consul/content/groups/rubygems'
+local_mode true
+cookbook_path '{{ .DefaultConfDir }}/cookbooks'
+node_path '{{ .DefaultConfDir }}/{{ .LocalNodesDirectory }}'
+role_path '{{ .DefaultConfDir }}/roles'
+data_bag_path '{{ .DefaultConfDir }}/data_bags'
+rubygems_url 'http://nexus.query.consul/content/groups/rubygems'
 environment_path '{{ .DefaultConfDir }}/environments'
 `
 
@@ -103,7 +103,6 @@ type provisioner struct {
 	ClientOptions         []string
 	DisableReporting      bool
 	Environment           string
-	FetchChefCertificates bool
 	LogToFile             bool
 	UsePolicyfile         bool
 	PolicyGroup           string
@@ -131,8 +130,7 @@ type provisioner struct {
 	cleanupUserKeyCmd     string
 	createConfigFiles     provisionFn
 	installChefClient     provisionFn
-	fetchChefCertificates provisionFn
-	generateClientKey     provisionFn
+
 	configureVaults       provisionFn
 	runChefClient         provisionFn
 	useSudo               bool
@@ -323,8 +321,6 @@ func applyFn(ctx context.Context) error {
 		p.createConfigFiles = p.linuxCreateConfigFiles
 		p.installChefClient = p.linuxInstallChefClient
 		p.DefaultConfDir = linuxConfDir
-		p.fetchChefCertificates = p.fetchChefCertificatesFunc(linuxKnifeCmd, linuxConfDir)
-		p.generateClientKey = p.generateClientKeyFunc(linuxKnifeCmd, linuxConfDir, linuxNoOutput)
 		p.configureVaults = p.configureVaultsFunc(linuxGemCmd, linuxKnifeCmd, linuxConfDir)
 		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
 		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
@@ -333,8 +329,6 @@ func applyFn(ctx context.Context) error {
 		p.createConfigFiles = p.windowsCreateConfigFiles
 		p.installChefClient = p.windowsInstallChefClient
 		p.DefaultConfDir = windowsConfDir
-		p.fetchChefCertificates = p.fetchChefCertificatesFunc(windowsKnifeCmd, windowsConfDir)
-		p.generateClientKey = p.generateClientKeyFunc(windowsKnifeCmd, windowsConfDir, windowsNoOutput)
 		p.configureVaults = p.configureVaultsFunc(windowsGemCmd, windowsKnifeCmd, windowsConfDir)
 		p.runChefClient = p.runChefClientFunc(windowsChefCmd, windowsConfDir)
 		p.useSudo = false
@@ -380,21 +374,6 @@ func applyFn(ctx context.Context) error {
 	o.Output("Creating configuration files...")
 	if err := p.createConfigFiles(o, comm); err != nil {
 		return err
-	}
-
-	if !p.SkipRegister {
-
-		if p.FetchChefCertificates {
-			o.Output("Fetch Chef certificates...")
-			if err := p.fetchChefCertificates(o, comm); err != nil {
-				return err
-			}
-		}
-
-		o.Output("Generate the private key...")
-		if err := p.generateClientKey(o, comm); err != nil {
-			return err
-		}
 	}
 
 	if p.Vaults != nil {
@@ -629,74 +608,6 @@ func (p *provisioner) deployOhaiHints(o terraform.UIOutput, comm communicator.Co
 	return nil
 }
 
-func (p *provisioner) fetchChefCertificatesFunc(
-	knifeCmd string,
-	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
-	return func(o terraform.UIOutput, comm communicator.Communicator) error {
-		clientrb := path.Join(confDir, clienrb)
-		cmd := fmt.Sprintf("%s ssl fetch -c %s", knifeCmd, clientrb)
-
-		return p.runCommand(o, comm, cmd)
-	}
-}
-
-func (p *provisioner) generateClientKeyFunc(knifeCmd string, confDir string, noOutput string) provisionFn {
-	return func(o terraform.UIOutput, comm communicator.Communicator) error {
-		options := fmt.Sprintf("-c %s -u %s --key %s",
-			path.Join(confDir, clienrb),
-			p.UserName,
-			path.Join(confDir, p.UserName+".pem"),
-		)
-
-		// See if we already have a node object
-		getNodeCmd := fmt.Sprintf("%s node show %s %s %s", knifeCmd, p.NodeName, options, noOutput)
-		node := p.runCommand(o, comm, getNodeCmd) == nil
-
-		// See if we already have a client object
-		getClientCmd := fmt.Sprintf("%s client show %s %s %s", knifeCmd, p.NodeName, options, noOutput)
-		client := p.runCommand(o, comm, getClientCmd) == nil
-
-		// If we have a client, we can only continue if we are to recreate the client
-		if client && !p.RecreateClient {
-			return fmt.Errorf(
-				"Chef client %q already exists, set recreate_client=true to automatically recreate the client", p.NodeName)
-		}
-
-		// If the node exists, try to delete it
-		if node {
-			deleteNodeCmd := fmt.Sprintf("%s node delete %s -y %s",
-				knifeCmd,
-				p.NodeName,
-				options,
-			)
-			if err := p.runCommand(o, comm, deleteNodeCmd); err != nil {
-				return err
-			}
-		}
-
-		// If the client exists, try to delete it
-		if client {
-			deleteClientCmd := fmt.Sprintf("%s client delete %s -y %s",
-				knifeCmd,
-				p.NodeName,
-				options,
-			)
-			if err := p.runCommand(o, comm, deleteClientCmd); err != nil {
-				return err
-			}
-		}
-
-		// Create the new client object
-		createClientCmd := fmt.Sprintf("%s client create %s -d -f %s %s",
-			knifeCmd,
-			p.NodeName,
-			path.Join(confDir, "client.pem"),
-			options,
-		)
-
-		return p.runCommand(o, comm, createClientCmd)
-	}
-}
 
 func (p *provisioner) configureVaultsFunc(gemCmd string, knifeCmd string, confDir string) provisionFn {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
@@ -754,19 +665,16 @@ func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisio
 		var cmd string
 		var pipelog string = ""
 
-		if linuxConfDir == confDir {
-			pipelog = ""
-		}
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
 		switch {
 
 		case p.UsePolicyfile && p.NamedRunList == "":
-			cmd = fmt.Sprintf("%s -z -c %s -j %q %s ", chefCmd, path.Join(confDir, clienrb), fb, pipelog)
+			cmd = fmt.Sprintf("%s -z -c %s -j %q", chefCmd, path.Join(confDir, clienrb), fb)
 		case p.UsePolicyfile && p.NamedRunList != "":
-			cmd = fmt.Sprintf("%s -z -c %s -j %q -n %q %s", chefCmd, path.Join(confDir, clienrb), fb, pipelog)
+			cmd = fmt.Sprintf("%s -z -c %s -j %q -n %q", chefCmd, path.Join(confDir, clienrb), fb, pipelog)
 		default:
-			cmd = fmt.Sprintf("%s -z -c %s -j %q -E %q %s", chefCmd, path.Join(confDir, clienrb), fb, p.Environment, pipelog)
+			cmd = fmt.Sprintf("%s -z -c %s -j %q -E %q", chefCmd, path.Join(confDir, clienrb), fb, p.Environment)
 		}
 
 		if p.LogToFile {
@@ -860,7 +768,6 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		ClientOptions:         getStringList(d.Get("client_options")),
 		DisableReporting:      d.Get("disable_reporting").(bool),
 		Environment:           d.Get("environment").(string),
-		FetchChefCertificates: d.Get("fetch_chef_certificates").(bool),
 		LogToFile:             d.Get("log_to_file").(bool),
 		UsePolicyfile:         d.Get("use_policyfile").(bool),
 		PolicyGroup:           d.Get("policy_group").(string),

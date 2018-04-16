@@ -229,10 +229,10 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 
 		"DNAAttributes JSON": {
 			Config: map[string]interface{}{
-				"attributes_dna": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+				"dna_attributes": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2"}`,
-				"attributes_automatic": `{"test":{"subkey1" : "value"} }`,
-				"attributes_default":   `{"test_default":{"subkey_default" : "value"} }`,
+				"automatic_attributes": `{"test":{"subkey1" : "value"} }`,
+				"default_attributes":   `{"test_default":{"subkey_default" : "value"} }`,
 				"node_name":            "nodename1",
 				"run_list":             []interface{}{"cookbook::recipe"},
 				"secret_key":           "SECRET-KEY",
@@ -449,13 +449,13 @@ Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
 const defaultWindowsClientConf = `log_location            STDOUT
 
 
-local_mode 				true
-cookbooks_path 			'C:/chef/cookbooks'
-nodes_path 				'C:/chef/nodes'
-roles_path 				'C:/chef/roles'
-data_bags_path  		'C:/chef/data_bags'
-rubygems_url 			'http://nexus.query.consul/content/groups/rubygems'
-# environments_path 	'C:/chef/environments'`
+local_mode true
+cookbook_path 'C:/chef/cookbooks'
+node_path 'C:/chef/nodes'
+role_path 'C:/chef/roles'
+data_bag_path 'C:/chef/data_bags'
+rubygems_url 'http://nexus.query.consul/content/groups/rubygems'
+environment_path 'C:/chef/environments'`
 
 const proxyWindowsClientConf = `log_location            STDOUT
 
@@ -472,10 +472,10 @@ ENV['no_proxy'] = "http://local.local,https://local.local"
 
 ssl_verify_mode  :verify_none
 
-local_mode 				true
-cookbooks_path 			'C:/chef/cookbooks'
-nodes_path 				'C:/chef/nodes'
-roles_path 				'C:/chef/roles'
-data_bags_path  		'C:/chef/data_bags'
-rubygems_url 			'http://nexus.query.consul/content/groups/rubygems'
-# environments_path 	'C:/chef/environments'`
+local_mode true
+cookbook_path 'C:/chef/cookbooks'
+node_path 'C:/chef/nodes'
+role_path 'C:/chef/roles'
+data_bag_path 'C:/chef/data_bags'
+rubygems_url 'http://nexus.query.consul/content/groups/rubygems'
+environment_path 'C:/chef/environments'`

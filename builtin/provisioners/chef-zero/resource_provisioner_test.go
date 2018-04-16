@@ -69,9 +69,9 @@ func TestResourceProvider_Validate_computedValues(t *testing.T) {
 		"user_key":             "USER-KEY",
 		"instance_id":          "myid",
 		"local_nodes_dir":      "nodes",
-		"attributes_dna":       config.UnknownVariableValue,
-		"attributes_automatic": config.UnknownVariableValue,
-		"attributes_default":   config.UnknownVariableValue,
+		"dna_attributes":       config.UnknownVariableValue,
+		"automatic_attributes": config.UnknownVariableValue,
+		"default_attributes":   config.UnknownVariableValue,
 		"dir_resources":        "test-fixtures",
 	})
 
@@ -96,6 +96,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"node_name": "nodename1",
 				"run_list":  []interface{}{"cookbook::recipe"},
 
+				"environment" : "_default",
 				"user_name":   "bob",
 				"instance_id": "myid",
 
@@ -107,8 +108,9 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			ConfDir: linuxConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf(`sudo %s -j %q -E "_default"`,
+				fmt.Sprintf(`sudo %s -z -c %s -j %q -E "_default"`,
 					linuxChefCmd,
+					path.Join(linuxConfDir, clienrb),
 					path.Join(linuxConfDir, "dna", "myid.json")): true,
 			},
 		},
@@ -118,7 +120,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-
+				"environment" : "_default",
 				"user_name":   "bob",
 				"instance_id": "myid",
 
@@ -130,8 +132,9 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			ConfDir: linuxConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf(`%s -j %q -E "_default"`,
+				fmt.Sprintf(`%s -z -c %s -j %q -E "_default"`,
 					linuxChefCmd,
+					path.Join(linuxConfDir, clienrb),
 					path.Join(linuxConfDir, "dna", "myid.json")): true,
 			},
 		},
@@ -154,8 +157,9 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			ConfDir: windowsConfDir,
 
 			Commands: map[string]bool{
-				fmt.Sprintf(`%s -j %q -E "production"`,
+				fmt.Sprintf(`%s -z -c %s -j %q -E "production"`,
 					windowsChefCmd,
+					path.Join(windowsConfDir, clienrb),
 					path.Join(windowsConfDir, "dna", "myid.json")): true,
 			},
 		},
@@ -184,79 +188,6 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 	}
 }
 
-func TestResourceProvider_fetchChefCertificates(t *testing.T) {
-	cases := map[string]struct {
-		Config   map[string]interface{}
-		KnifeCmd string
-		ConfDir  string
-		Commands map[string]bool
-	}{
-		"Sudo": {
-			Config: map[string]interface{}{
-				"fetch_chef_certificates": true,
-				"node_name":               "nodename1",
-				"run_list":                []interface{}{"cookbook::recipe"},
-
-				"user_name": "bob",
-				"user_key":  "USER-KEY",
-			},
-
-			KnifeCmd: linuxKnifeCmd,
-
-			ConfDir: linuxConfDir,
-
-			Commands: map[string]bool{
-				fmt.Sprintf(`sudo %s ssl fetch -c %s`,
-					linuxKnifeCmd,
-					path.Join(linuxConfDir, "client.rb")): true,
-			},
-		},
-
-		"NoSudo": {
-			Config: map[string]interface{}{
-				"fetch_chef_certificates": true,
-				"node_name":               "nodename1",
-				"prevent_sudo":            true,
-				"run_list":                []interface{}{"cookbook::recipe"},
-
-				"user_name": "bob",
-				"user_key":  "USER-KEY",
-			},
-
-			KnifeCmd: windowsKnifeCmd,
-
-			ConfDir: windowsConfDir,
-
-			Commands: map[string]bool{
-				fmt.Sprintf(`%s ssl fetch -c %s`,
-					windowsKnifeCmd,
-					path.Join(windowsConfDir, "client.rb")): true,
-			},
-		},
-	}
-
-	o := new(terraform.MockUIOutput)
-	c := new(communicator.MockCommunicator)
-
-	for k, tc := range cases {
-		c.Commands = tc.Commands
-
-		p, err := decodeConfig(
-			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
-		)
-		if err != nil {
-			t.Fatalf("Error: %v", err)
-		}
-
-		p.fetchChefCertificates = p.fetchChefCertificatesFunc(tc.KnifeCmd, tc.ConfDir)
-		p.useSudo = !p.PreventSudo
-
-		err = p.fetchChefCertificates(o, c)
-		if err != nil {
-			t.Fatalf("Test %q failed: %v", k, err)
-		}
-	}
-}
 
 func TestResourceProvider_configureVaults(t *testing.T) {
 	cases := map[string]struct {
@@ -271,6 +202,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
+				"instance_id":  	"myid",
 
 				"user_name":  "bob",
 				"user_key":   "USER-KEY",
@@ -296,6 +228,8 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"run_list":                []interface{}{"cookbook::recipe"},
 
 				"user_name":  "bob",
+				"instance_id":  	"myid",
+
 				"user_key":   "USER-KEY",
 				"vault_json": `{"vault1": ["item1", "item2"]}`,
 			},
@@ -321,6 +255,8 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"run_list":                []interface{}{"cookbook::recipe"},
 
 				"user_name":       "bob",
+				"instance_id":  	"myid",
+
 				"user_key":        "USER-KEY",
 				"vault_json":      `{"vault1": ["item1", "item2"]}`,
 				"recreate_client": true,
@@ -350,6 +286,8 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"run_list":     []interface{}{"cookbook::recipe"},
 
 				"user_name":  "bob",
+				"instance_id":  	"myid",
+
 				"user_key":   "USER-KEY",
 				"vault_json": `{"vault1": "item1"}`,
 			},
@@ -373,6 +311,8 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"run_list":                []interface{}{"cookbook::recipe"},
 
 				"user_name":  "bob",
+				"instance_id":  	"myid",
+
 				"user_key":   "USER-KEY",
 				"vault_json": `{"vault1": ["item1", "item2"]}`,
 			},
@@ -398,6 +338,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"run_list":                []interface{}{"cookbook::recipe"},
 
 				"user_name":       "bob",
+				"instance_id":  	"myid",
 				"user_key":        "USER-KEY",
 				"vault_json":      `{"vault1": ["item1", "item2"]}`,
 				"recreate_client": true,
@@ -430,6 +371,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 		p, err := decodeConfig(
 			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
 		)
+
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
