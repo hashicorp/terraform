@@ -370,7 +370,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 					`"subkey2b":{"subkey3":"value3", "id" : "<%= @node_index %>"}}},"key2":"value2","ipaddress" : "<%= @node_ip %>"}`,
 				"automatic_attributes": `{"test":{"subkey1" : "value"} }`,
 				"default_attributes":   `{"test_default":{"subkey_default" : "value"} }`,
-				"mapped_attributes":   map[string]interface{}{"node_ip": "192.168.0.1", "node_index": "1"},
+				"mapped_attributes":    map[string]interface{}{"node_ip": "192.168.0.1", "node_index": "1"},
 				"node_name":            "nodename1",
 				"prevent_sudo":         true,
 				"run_list":             []interface{}{"cookbook::recipe"},

@@ -93,47 +93,47 @@ var debug_logger = loggo.GetLogger("default")
 type provisionFn func(terraform.UIOutput, communicator.Communicator) error
 
 type provisioner struct {
-	DNAAttributes         map[string]interface{}
-	NodeAttributes        map[string]interface{}
-	MappedAttributes      map[string]interface{}
-	DirResources          string
-	LocalNodesDirectory   string
-	InstanceId            string
-	Channel               string
-	ClientOptions         []string
-	DisableReporting      bool
-	Environment           string
-	LogToFile             bool
-	UsePolicyfile         bool
-	PolicyGroup           string
-	PolicyName            string
-	HTTPProxy             string
-	HTTPSProxy            string
-	NamedRunList          string
-	NOProxy               []string
-	NodeName              string
-	OhaiHints             []string
-	OSType                string
-	RecreateClient        bool
-	PreventSudo           bool
-	RunList               []string
-	SecretKey             string
-	SkipInstall           bool
-	SkipRegister          bool
-	SSLVerifyMode         string
-	UserName              string
-	UserKey               string
-	Vaults                map[string][]string
-	Version               string
-	DefaultConfDir        string
+	DNAAttributes       map[string]interface{}
+	NodeAttributes      map[string]interface{}
+	MappedAttributes    map[string]interface{}
+	DirResources        string
+	LocalNodesDirectory string
+	InstanceId          string
+	Channel             string
+	ClientOptions       []string
+	DisableReporting    bool
+	Environment         string
+	LogToFile           bool
+	UsePolicyfile       bool
+	PolicyGroup         string
+	PolicyName          string
+	HTTPProxy           string
+	HTTPSProxy          string
+	NamedRunList        string
+	NOProxy             []string
+	NodeName            string
+	OhaiHints           []string
+	OSType              string
+	RecreateClient      bool
+	PreventSudo         bool
+	RunList             []string
+	SecretKey           string
+	SkipInstall         bool
+	SkipRegister        bool
+	SSLVerifyMode       string
+	UserName            string
+	UserKey             string
+	Vaults              map[string][]string
+	Version             string
+	DefaultConfDir      string
 
-	cleanupUserKeyCmd     string
-	createConfigFiles     provisionFn
-	installChefClient     provisionFn
+	cleanupUserKeyCmd string
+	createConfigFiles provisionFn
+	installChefClient provisionFn
 
-	configureVaults       provisionFn
-	runChefClient         provisionFn
-	useSudo               bool
+	configureVaults provisionFn
+	runChefClient   provisionFn
+	useSudo         bool
 }
 
 // Provisioner returns a Chef provisioner
@@ -608,7 +608,6 @@ func (p *provisioner) deployOhaiHints(o terraform.UIOutput, comm communicator.Co
 	return nil
 }
 
-
 func (p *provisioner) configureVaultsFunc(gemCmd string, knifeCmd string, confDir string) provisionFn {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
 		if err := p.runCommand(o, comm, fmt.Sprintf("%s install chef-vault", gemCmd)); err != nil {
@@ -664,7 +663,6 @@ func (p *provisioner) runChefClientFunc(chefCmd string, confDir string) provisio
 		fb := path.Join(confDir+"/dna/", p.NodeAttributes["id"].(string)+".json")
 		var cmd string
 		var pipelog string = ""
-
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
 		switch {
@@ -764,34 +762,34 @@ func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader) {
 
 func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	p := &provisioner{
-		Channel:               d.Get("channel").(string),
-		ClientOptions:         getStringList(d.Get("client_options")),
-		DisableReporting:      d.Get("disable_reporting").(bool),
-		Environment:           d.Get("environment").(string),
-		LogToFile:             d.Get("log_to_file").(bool),
-		UsePolicyfile:         d.Get("use_policyfile").(bool),
-		PolicyGroup:           d.Get("policy_group").(string),
-		PolicyName:            d.Get("policy_name").(string),
-		HTTPProxy:             d.Get("http_proxy").(string),
-		HTTPSProxy:            d.Get("https_proxy").(string),
-		NOProxy:               getStringList(d.Get("no_proxy")),
-		NamedRunList:          d.Get("named_run_list").(string),
-		NodeName:              d.Get("node_name").(string),
-		OhaiHints:             getStringList(d.Get("ohai_hints")),
-		OSType:                d.Get("os_type").(string),
-		RecreateClient:        d.Get("recreate_client").(bool),
-		PreventSudo:           d.Get("prevent_sudo").(bool),
-		RunList:               getStringList(d.Get("run_list")),
-		SecretKey:             d.Get("secret_key").(string),
-		SkipInstall:           d.Get("skip_install").(bool),
-		SkipRegister:          d.Get("skip_register").(bool),
-		SSLVerifyMode:         d.Get("ssl_verify_mode").(string),
-		UserName:              d.Get("user_name").(string),
-		UserKey:               d.Get("user_key").(string),
-		Version:               d.Get("version").(string),
-		InstanceId:            d.Get("instance_id").(string),
-		LocalNodesDirectory:   d.Get("local_nodes_dir").(string),
-		DirResources:          d.Get("dir_resources").(string),
+		Channel:             d.Get("channel").(string),
+		ClientOptions:       getStringList(d.Get("client_options")),
+		DisableReporting:    d.Get("disable_reporting").(bool),
+		Environment:         d.Get("environment").(string),
+		LogToFile:           d.Get("log_to_file").(bool),
+		UsePolicyfile:       d.Get("use_policyfile").(bool),
+		PolicyGroup:         d.Get("policy_group").(string),
+		PolicyName:          d.Get("policy_name").(string),
+		HTTPProxy:           d.Get("http_proxy").(string),
+		HTTPSProxy:          d.Get("https_proxy").(string),
+		NOProxy:             getStringList(d.Get("no_proxy")),
+		NamedRunList:        d.Get("named_run_list").(string),
+		NodeName:            d.Get("node_name").(string),
+		OhaiHints:           getStringList(d.Get("ohai_hints")),
+		OSType:              d.Get("os_type").(string),
+		RecreateClient:      d.Get("recreate_client").(bool),
+		PreventSudo:         d.Get("prevent_sudo").(bool),
+		RunList:             getStringList(d.Get("run_list")),
+		SecretKey:           d.Get("secret_key").(string),
+		SkipInstall:         d.Get("skip_install").(bool),
+		SkipRegister:        d.Get("skip_register").(bool),
+		SSLVerifyMode:       d.Get("ssl_verify_mode").(string),
+		UserName:            d.Get("user_name").(string),
+		UserKey:             d.Get("user_key").(string),
+		Version:             d.Get("version").(string),
+		InstanceId:          d.Get("instance_id").(string),
+		LocalNodesDirectory: d.Get("local_nodes_dir").(string),
+		DirResources:        d.Get("dir_resources").(string),
 	}
 
 	for i, hint := range p.OhaiHints {

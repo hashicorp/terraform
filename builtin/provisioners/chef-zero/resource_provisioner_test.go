@@ -96,7 +96,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"node_name": "nodename1",
 				"run_list":  []interface{}{"cookbook::recipe"},
 
-				"environment" : "_default",
+				"environment": "_default",
 				"user_name":   "bob",
 				"instance_id": "myid",
 
@@ -120,9 +120,9 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-				"environment" : "_default",
-				"user_name":   "bob",
-				"instance_id": "myid",
+				"environment":  "_default",
+				"user_name":    "bob",
+				"instance_id":  "myid",
 
 				"user_key": "USER-KEY",
 			},
@@ -188,7 +188,6 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 	}
 }
 
-
 func TestResourceProvider_configureVaults(t *testing.T) {
 	cases := map[string]struct {
 		Config   map[string]interface{}
@@ -202,7 +201,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
-				"instance_id":  	"myid",
+				"instance_id":  "myid",
 
 				"user_name":  "bob",
 				"user_key":   "USER-KEY",
@@ -227,8 +226,8 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
 
-				"user_name":  "bob",
-				"instance_id":  	"myid",
+				"user_name":   "bob",
+				"instance_id": "myid",
 
 				"user_key":   "USER-KEY",
 				"vault_json": `{"vault1": ["item1", "item2"]}`,
@@ -254,8 +253,8 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
 
-				"user_name":       "bob",
-				"instance_id":  	"myid",
+				"user_name":   "bob",
+				"instance_id": "myid",
 
 				"user_key":        "USER-KEY",
 				"vault_json":      `{"vault1": ["item1", "item2"]}`,
@@ -285,8 +284,8 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
 
-				"user_name":  "bob",
-				"instance_id":  	"myid",
+				"user_name":   "bob",
+				"instance_id": "myid",
 
 				"user_key":   "USER-KEY",
 				"vault_json": `{"vault1": "item1"}`,
@@ -310,8 +309,8 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
 
-				"user_name":  "bob",
-				"instance_id":  	"myid",
+				"user_name":   "bob",
+				"instance_id": "myid",
 
 				"user_key":   "USER-KEY",
 				"vault_json": `{"vault1": ["item1", "item2"]}`,
@@ -338,7 +337,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"run_list":                []interface{}{"cookbook::recipe"},
 
 				"user_name":       "bob",
-				"instance_id":  	"myid",
+				"instance_id":     "myid",
 				"user_key":        "USER-KEY",
 				"vault_json":      `{"vault1": ["item1", "item2"]}`,
 				"recreate_client": true,
