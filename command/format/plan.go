@@ -181,21 +181,23 @@ func (p *Plan) Format(color *colorstring.Colorize) string {
 		}
 	}
 
-	// Find the longest path length of all the paths that are changing,
-	// so we can align them all.
-	keyLen := 0
-	for _, r := range p.Resources {
-		for _, attr := range r.Attributes {
-			key := attr.Path
-
-			if len(key) > keyLen {
-				keyLen = len(key)
-			}
-		}
-	}
-
 	buf := new(bytes.Buffer)
 	for _, r := range p.Resources {
+		// Find the longest path length of all the paths that are changing,
+		// so we can align them all.
+		keyLen := map[string]int{
+			"Path":     0,
+			"OldValue": 0,
+		}
+		for _, attr := range r.Attributes {
+			if len(attr.Path) > keyLen["Path"] {
+				keyLen["Path"] = len(attr.Path)
+			}
+
+			if len(attr.OldValue) > keyLen["OldValue"] {
+				keyLen["OldValue"] = len(attr.OldValue)
+			}
+		}
 		formatPlanInstanceDiff(buf, r, keyLen, color)
 	}
 
@@ -256,7 +258,7 @@ func DiffActionSymbol(action terraform.DiffChangeType) string {
 
 // formatPlanInstanceDiff writes the text representation of the given instance diff
 // to the given buffer, using the given colorizer.
-func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colorizer *colorstring.Colorize) {
+func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen map[string]int, colorizer *colorstring.Colorize) {
 	addrStr := r.Addr.String()
 
 	// Determine the color for the text (green for adding, yellow
@@ -326,18 +328,21 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen int, colo
 			default:
 				dispU = fmt.Sprintf("%q", u)
 			}
+
 			buf.WriteString(fmt.Sprintf(
-				"      %s:%s %s => %s%s\n",
+				"      %s:%s %s %s=> %s%s\n",
 				attr.Path,
-				strings.Repeat(" ", keyLen-len(attr.Path)),
-				dispU, dispV,
+				strings.Repeat(" ", keyLen["Path"]-len(attr.Path)),
+				dispU,
+				strings.Repeat(" ", keyLen["OldValue"]-len(attr.OldValue)),
+				dispV,
 				updateMsg,
 			))
 		} else {
 			buf.WriteString(fmt.Sprintf(
 				"      %s:%s %s%s\n",
 				attr.Path,
-				strings.Repeat(" ", keyLen-len(attr.Path)),
+				strings.Repeat(" ", keyLen["Path"]-len(attr.Path)),
 				dispV,
 				updateMsg,
 			))
