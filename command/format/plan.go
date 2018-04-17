@@ -329,15 +329,30 @@ func formatPlanInstanceDiff(buf *bytes.Buffer, r *InstanceDiff, keyLen map[strin
 				dispU = fmt.Sprintf("%q", u)
 			}
 
-			buf.WriteString(fmt.Sprintf(
-				"      %s:%s %s %s=> %s%s\n",
+			var color string
+			switch attr.Action {
+			case terraform.DiffCreate:
+				color = "[green]"
+			case terraform.DiffDestroy:
+				color = "[red]"
+			case terraform.DiffUpdate:
+				if dispU != dispV {
+					color = "[yellow]"
+				}
+			default:
+				color = ""
+			}
+
+			buf.WriteString(colorizer.Color(fmt.Sprintf(
+				"      %s%s:%s %s %s=> %s%s[reset]\n",
+				color,
 				attr.Path,
 				strings.Repeat(" ", keyLen["Path"]-len(attr.Path)),
 				dispU,
 				strings.Repeat(" ", keyLen["OldValue"]-len(attr.OldValue)),
 				dispV,
 				updateMsg,
-			))
+			)))
 		} else {
 			buf.WriteString(fmt.Sprintf(
 				"      %s:%s %s%s\n",
