@@ -136,6 +136,42 @@ func (diags Diagnostics) Err() error {
 	return diagnosticsAsError{diags}
 }
 
+// ErrWithWarnings is similar to Err except that it will also return a non-nil
+// error if the receiver contains only warnings.
+//
+// In the warnings-only situation, the result is guaranteed to be of dynamic
+// type NonFatalError, allowing diagnostics-aware callers to type-assert
+// and unwrap it, treating it as non-fatal.
+//
+// This should be used only in contexts where the caller is able to recognize
+// and handle NonFatalError. For normal callers that expect a lack of errors
+// to be signaled by nil, use just Diagnostics.Err.
+func (diags Diagnostics) ErrWithWarnings() error {
+	if len(diags) == 0 {
+		return nil
+	}
+	if diags.HasErrors() {
+		return diags.Err()
+	}
+	return NonFatalError{diags}
+}
+
+// NonFatalErr is similar to Err except that it always returns either nil
+// (if there are no diagnostics at all) or NonFatalError.
+//
+// This allows diagnostics to be returned over an error return channel while
+// being explicit that the diagnostics should not halt processing.
+//
+// This should be used only in contexts where the caller is able to recognize
+// and handle NonFatalError. For normal callers that expect a lack of errors
+// to be signaled by nil, use just Diagnostics.Err.
+func (diags Diagnostics) NonFatalErr() error {
+	if len(diags) == 0 {
+		return nil
+	}
+	return NonFatalError{diags}
+}
+
 type diagnosticsAsError struct {
 	Diagnostics
 }
@@ -178,4 +214,45 @@ func (dae diagnosticsAsError) WrappedErrors() []error {
 		}
 	}
 	return errs
+}
+
+// NonFatalError is a special error type, returned by
+// Diagnostics.ErrWithWarnings and Diagnostics.NonFatalErr,
+// that indicates that the wrapped diagnostics should be treated as non-fatal.
+// Callers can conditionally type-assert an error to this type in order to
+// detect the non-fatal scenario and handle it in a different way.
+type NonFatalError struct {
+	Diagnostics
+}
+
+func (woe NonFatalError) Error() string {
+	diags := woe.Diagnostics
+	switch {
+	case len(diags) == 0:
+		// should never happen, since we don't create this wrapper if
+		// there are no diagnostics in the list.
+		return "no errors or warnings"
+	case len(diags) == 1:
+		desc := diags[0].Description()
+		if desc.Detail == "" {
+			return desc.Summary
+		}
+		return fmt.Sprintf("%s: %s", desc.Summary, desc.Detail)
+	default:
+		var ret bytes.Buffer
+		if diags.HasErrors() {
+			fmt.Fprintf(&ret, "%d problems:\n", len(diags))
+		} else {
+			fmt.Fprintf(&ret, "%d warnings:\n", len(diags))
+		}
+		for _, diag := range woe.Diagnostics {
+			desc := diag.Description()
+			if desc.Detail == "" {
+				fmt.Fprintf(&ret, "\n- %s", desc.Summary)
+			} else {
+				fmt.Fprintf(&ret, "\n- %s: %s", desc.Summary, desc.Detail)
+			}
+		}
+		return ret.String()
+	}
 }
