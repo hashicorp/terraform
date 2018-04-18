@@ -37,7 +37,7 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateHTTPMethod,
+				ValidateFunc: validateHTTPMethod(),
 			},
 
 			"status_code": {
@@ -73,7 +73,7 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 			"content_handling": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateApiGatewayIntegrationContentHandling,
+				ValidateFunc: validateApiGatewayIntegrationContentHandling(),
 			},
 		},
 	}

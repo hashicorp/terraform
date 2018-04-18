@@ -10,6 +10,7 @@ import (
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsDmsReplicationInstance() *schema.Resource {
@@ -34,7 +35,7 @@ func resourceAwsDmsReplicationInstance() *schema.Resource {
 				Type:         schema.TypeInt,
 				Computed:     true,
 				Optional:     true,
-				ValidateFunc: validateIntegerInRange(5, 6144),
+				ValidateFunc: validation.IntBetween(5, 6144),
 			},
 			"apply_immediately": {
 				Type:     schema.TypeBool,

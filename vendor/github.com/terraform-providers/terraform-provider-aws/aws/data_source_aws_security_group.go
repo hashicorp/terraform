@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -91,8 +92,14 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("description", sg.Description)
 	d.Set("vpc_id", sg.VpcId)
 	d.Set("tags", tagsToMap(sg.Tags))
-	d.Set("arn", fmt.Sprintf("arn:%s:ec2:%s:%s:security-group/%s",
-		meta.(*AWSClient).partition, meta.(*AWSClient).region, *sg.OwnerId, *sg.GroupId))
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "ec2",
+		Region:    meta.(*AWSClient).region,
+		AccountID: *sg.OwnerId,
+		Resource:  fmt.Sprintf("security-group/%s", *sg.GroupId),
+	}.String()
+	d.Set("arn", arn)
 
 	return nil
 }

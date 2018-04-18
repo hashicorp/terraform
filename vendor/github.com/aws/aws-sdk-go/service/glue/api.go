@@ -15,7 +15,7 @@ const opBatchCreatePartition = "BatchCreatePartition"
 
 // BatchCreatePartitionRequest generates a "aws/request.Request" representing the
 // client's request for the BatchCreatePartition operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -109,7 +109,7 @@ const opBatchDeleteConnection = "BatchDeleteConnection"
 
 // BatchDeleteConnectionRequest generates a "aws/request.Request" representing the
 // client's request for the BatchDeleteConnection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -191,7 +191,7 @@ const opBatchDeletePartition = "BatchDeletePartition"
 
 // BatchDeletePartitionRequest generates a "aws/request.Request" representing the
 // client's request for the BatchDeletePartition operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -279,7 +279,7 @@ const opBatchDeleteTable = "BatchDeleteTable"
 
 // BatchDeleteTableRequest generates a "aws/request.Request" representing the
 // client's request for the BatchDeleteTable operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -367,7 +367,7 @@ const opBatchDeleteTableVersion = "BatchDeleteTableVersion"
 
 // BatchDeleteTableVersionRequest generates a "aws/request.Request" representing the
 // client's request for the BatchDeleteTableVersion operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -455,7 +455,7 @@ const opBatchGetPartition = "BatchGetPartition"
 
 // BatchGetPartitionRequest generates a "aws/request.Request" representing the
 // client's request for the BatchGetPartition operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -543,7 +543,7 @@ const opBatchStopJobRun = "BatchStopJobRun"
 
 // BatchStopJobRunRequest generates a "aws/request.Request" representing the
 // client's request for the BatchStopJobRun operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -628,7 +628,7 @@ const opCreateClassifier = "CreateClassifier"
 
 // CreateClassifierRequest generates a "aws/request.Request" representing the
 // client's request for the CreateClassifier operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -715,7 +715,7 @@ const opCreateConnection = "CreateConnection"
 
 // CreateConnectionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateConnection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -803,7 +803,7 @@ const opCreateCrawler = "CreateCrawler"
 
 // CreateCrawlerRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCrawler operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -893,7 +893,7 @@ const opCreateDatabase = "CreateDatabase"
 
 // CreateDatabaseRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDatabase operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -984,7 +984,7 @@ const opCreateDevEndpoint = "CreateDevEndpoint"
 
 // CreateDevEndpointRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDevEndpoint operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1084,7 +1084,7 @@ const opCreateJob = "CreateJob"
 
 // CreateJobRequest generates a "aws/request.Request" representing the
 // client's request for the CreateJob operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1181,7 +1181,7 @@ const opCreatePartition = "CreatePartition"
 
 // CreatePartitionRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePartition operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1275,7 +1275,7 @@ const opCreateScript = "CreateScript"
 
 // CreateScriptRequest generates a "aws/request.Request" representing the
 // client's request for the CreateScript operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1360,7 +1360,7 @@ const opCreateTable = "CreateTable"
 
 // CreateTableRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTable operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1454,7 +1454,7 @@ const opCreateTrigger = "CreateTrigger"
 
 // CreateTriggerRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTrigger operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1551,7 +1551,7 @@ const opCreateUserDefinedFunction = "CreateUserDefinedFunction"
 
 // CreateUserDefinedFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateUserDefinedFunction operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1645,7 +1645,7 @@ const opDeleteClassifier = "DeleteClassifier"
 
 // DeleteClassifierRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteClassifier operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1727,7 +1727,7 @@ const opDeleteConnection = "DeleteConnection"
 
 // DeleteConnectionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteConnection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1809,7 +1809,7 @@ const opDeleteCrawler = "DeleteCrawler"
 
 // DeleteCrawlerRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCrawler operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1898,7 +1898,7 @@ const opDeleteDatabase = "DeleteDatabase"
 
 // DeleteDatabaseRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDatabase operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1986,7 +1986,7 @@ const opDeleteDevEndpoint = "DeleteDevEndpoint"
 
 // DeleteDevEndpointRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDevEndpoint operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2074,7 +2074,7 @@ const opDeleteJob = "DeleteJob"
 
 // DeleteJobRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteJob operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2159,7 +2159,7 @@ const opDeletePartition = "DeletePartition"
 
 // DeletePartitionRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePartition operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2247,7 +2247,7 @@ const opDeleteTable = "DeleteTable"
 
 // DeleteTableRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTable operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2335,7 +2335,7 @@ const opDeleteTableVersion = "DeleteTableVersion"
 
 // DeleteTableVersionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTableVersion operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2423,7 +2423,7 @@ const opDeleteTrigger = "DeleteTrigger"
 
 // DeleteTriggerRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTrigger operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2512,7 +2512,7 @@ const opDeleteUserDefinedFunction = "DeleteUserDefinedFunction"
 
 // DeleteUserDefinedFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteUserDefinedFunction operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2600,7 +2600,7 @@ const opGetCatalogImportStatus = "GetCatalogImportStatus"
 
 // GetCatalogImportStatusRequest generates a "aws/request.Request" representing the
 // client's request for the GetCatalogImportStatus operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2682,7 +2682,7 @@ const opGetClassifier = "GetClassifier"
 
 // GetClassifierRequest generates a "aws/request.Request" representing the
 // client's request for the GetClassifier operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2764,7 +2764,7 @@ const opGetClassifiers = "GetClassifiers"
 
 // GetClassifiersRequest generates a "aws/request.Request" representing the
 // client's request for the GetClassifiers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2899,7 +2899,7 @@ const opGetConnection = "GetConnection"
 
 // GetConnectionRequest generates a "aws/request.Request" representing the
 // client's request for the GetConnection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2981,7 +2981,7 @@ const opGetConnections = "GetConnections"
 
 // GetConnectionsRequest generates a "aws/request.Request" representing the
 // client's request for the GetConnections operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3119,7 +3119,7 @@ const opGetCrawler = "GetCrawler"
 
 // GetCrawlerRequest generates a "aws/request.Request" representing the
 // client's request for the GetCrawler operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3201,7 +3201,7 @@ const opGetCrawlerMetrics = "GetCrawlerMetrics"
 
 // GetCrawlerMetricsRequest generates a "aws/request.Request" representing the
 // client's request for the GetCrawlerMetrics operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3336,7 +3336,7 @@ const opGetCrawlers = "GetCrawlers"
 
 // GetCrawlersRequest generates a "aws/request.Request" representing the
 // client's request for the GetCrawlers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3471,7 +3471,7 @@ const opGetDatabase = "GetDatabase"
 
 // GetDatabaseRequest generates a "aws/request.Request" representing the
 // client's request for the GetDatabase operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3559,7 +3559,7 @@ const opGetDatabases = "GetDatabases"
 
 // GetDatabasesRequest generates a "aws/request.Request" representing the
 // client's request for the GetDatabases operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3700,7 +3700,7 @@ const opGetDataflowGraph = "GetDataflowGraph"
 
 // GetDataflowGraphRequest generates a "aws/request.Request" representing the
 // client's request for the GetDataflowGraph operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3785,7 +3785,7 @@ const opGetDevEndpoint = "GetDevEndpoint"
 
 // GetDevEndpointRequest generates a "aws/request.Request" representing the
 // client's request for the GetDevEndpoint operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3873,7 +3873,7 @@ const opGetDevEndpoints = "GetDevEndpoints"
 
 // GetDevEndpointsRequest generates a "aws/request.Request" representing the
 // client's request for the GetDevEndpoints operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4017,7 +4017,7 @@ const opGetJob = "GetJob"
 
 // GetJobRequest generates a "aws/request.Request" representing the
 // client's request for the GetJob operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4105,7 +4105,7 @@ const opGetJobRun = "GetJobRun"
 
 // GetJobRunRequest generates a "aws/request.Request" representing the
 // client's request for the GetJobRun operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4193,7 +4193,7 @@ const opGetJobRuns = "GetJobRuns"
 
 // GetJobRunsRequest generates a "aws/request.Request" representing the
 // client's request for the GetJobRuns operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4337,7 +4337,7 @@ const opGetJobs = "GetJobs"
 
 // GetJobsRequest generates a "aws/request.Request" representing the
 // client's request for the GetJobs operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4481,7 +4481,7 @@ const opGetMapping = "GetMapping"
 
 // GetMappingRequest generates a "aws/request.Request" representing the
 // client's request for the GetMapping operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4569,7 +4569,7 @@ const opGetPartition = "GetPartition"
 
 // GetPartitionRequest generates a "aws/request.Request" representing the
 // client's request for the GetPartition operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4657,7 +4657,7 @@ const opGetPartitions = "GetPartitions"
 
 // GetPartitionsRequest generates a "aws/request.Request" representing the
 // client's request for the GetPartitions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4801,7 +4801,7 @@ const opGetPlan = "GetPlan"
 
 // GetPlanRequest generates a "aws/request.Request" representing the
 // client's request for the GetPlan operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4886,7 +4886,7 @@ const opGetTable = "GetTable"
 
 // GetTableRequest generates a "aws/request.Request" representing the
 // client's request for the GetTable operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4974,7 +4974,7 @@ const opGetTableVersion = "GetTableVersion"
 
 // GetTableVersionRequest generates a "aws/request.Request" representing the
 // client's request for the GetTableVersion operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5062,7 +5062,7 @@ const opGetTableVersions = "GetTableVersions"
 
 // GetTableVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the GetTableVersions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5207,7 +5207,7 @@ const opGetTables = "GetTables"
 
 // GetTablesRequest generates a "aws/request.Request" representing the
 // client's request for the GetTables operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5351,7 +5351,7 @@ const opGetTrigger = "GetTrigger"
 
 // GetTriggerRequest generates a "aws/request.Request" representing the
 // client's request for the GetTrigger operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5439,7 +5439,7 @@ const opGetTriggers = "GetTriggers"
 
 // GetTriggersRequest generates a "aws/request.Request" representing the
 // client's request for the GetTriggers operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5583,7 +5583,7 @@ const opGetUserDefinedFunction = "GetUserDefinedFunction"
 
 // GetUserDefinedFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the GetUserDefinedFunction operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5671,7 +5671,7 @@ const opGetUserDefinedFunctions = "GetUserDefinedFunctions"
 
 // GetUserDefinedFunctionsRequest generates a "aws/request.Request" representing the
 // client's request for the GetUserDefinedFunctions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5815,7 +5815,7 @@ const opImportCatalogToGlue = "ImportCatalogToGlue"
 
 // ImportCatalogToGlueRequest generates a "aws/request.Request" representing the
 // client's request for the ImportCatalogToGlue operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5897,7 +5897,7 @@ const opResetJobBookmark = "ResetJobBookmark"
 
 // ResetJobBookmarkRequest generates a "aws/request.Request" representing the
 // client's request for the ResetJobBookmark operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5985,7 +5985,7 @@ const opStartCrawler = "StartCrawler"
 
 // StartCrawlerRequest generates a "aws/request.Request" representing the
 // client's request for the StartCrawler operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6071,7 +6071,7 @@ const opStartCrawlerSchedule = "StartCrawlerSchedule"
 
 // StartCrawlerScheduleRequest generates a "aws/request.Request" representing the
 // client's request for the StartCrawlerSchedule operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6163,7 +6163,7 @@ const opStartJobRun = "StartJobRun"
 
 // StartJobRunRequest generates a "aws/request.Request" representing the
 // client's request for the StartJobRun operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6257,7 +6257,7 @@ const opStartTrigger = "StartTrigger"
 
 // StartTriggerRequest generates a "aws/request.Request" representing the
 // client's request for the StartTrigger operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6352,7 +6352,7 @@ const opStopCrawler = "StopCrawler"
 
 // StopCrawlerRequest generates a "aws/request.Request" representing the
 // client's request for the StopCrawler operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6440,7 +6440,7 @@ const opStopCrawlerSchedule = "StopCrawlerSchedule"
 
 // StopCrawlerScheduleRequest generates a "aws/request.Request" representing the
 // client's request for the StopCrawlerSchedule operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6529,7 +6529,7 @@ const opStopTrigger = "StopTrigger"
 
 // StopTriggerRequest generates a "aws/request.Request" representing the
 // client's request for the StopTrigger operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6620,7 +6620,7 @@ const opUpdateClassifier = "UpdateClassifier"
 
 // UpdateClassifierRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateClassifier operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6709,7 +6709,7 @@ const opUpdateConnection = "UpdateConnection"
 
 // UpdateConnectionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateConnection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6794,7 +6794,7 @@ const opUpdateCrawler = "UpdateCrawler"
 
 // UpdateCrawlerRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateCrawler operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6886,7 +6886,7 @@ const opUpdateCrawlerSchedule = "UpdateCrawlerSchedule"
 
 // UpdateCrawlerScheduleRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateCrawlerSchedule operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6977,7 +6977,7 @@ const opUpdateDatabase = "UpdateDatabase"
 
 // UpdateDatabaseRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDatabase operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7065,7 +7065,7 @@ const opUpdateDevEndpoint = "UpdateDevEndpoint"
 
 // UpdateDevEndpointRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDevEndpoint operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7156,7 +7156,7 @@ const opUpdateJob = "UpdateJob"
 
 // UpdateJobRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateJob operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7247,7 +7247,7 @@ const opUpdatePartition = "UpdatePartition"
 
 // UpdatePartitionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdatePartition operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7335,7 +7335,7 @@ const opUpdateTable = "UpdateTable"
 
 // UpdateTableRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateTable operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7429,7 +7429,7 @@ const opUpdateTrigger = "UpdateTrigger"
 
 // UpdateTriggerRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateTrigger operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7520,7 +7520,7 @@ const opUpdateUserDefinedFunction = "UpdateUserDefinedFunction"
 
 // UpdateUserDefinedFunctionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateUserDefinedFunction operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9893,9 +9893,7 @@ type CreateDevEndpointInput struct {
 	NumberOfNodes *int64 `type:"integer"`
 
 	// The public key to use for authentication.
-	//
-	// PublicKey is a required field
-	PublicKey *string `type:"string" required:"true"`
+	PublicKey *string `type:"string"`
 
 	// The IAM role for the DevEndpoint.
 	//
@@ -9924,9 +9922,6 @@ func (s *CreateDevEndpointInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateDevEndpointInput"}
 	if s.EndpointName == nil {
 		invalidParams.Add(request.NewErrParamRequired("EndpointName"))
-	}
-	if s.PublicKey == nil {
-		invalidParams.Add(request.NewErrParamRequired("PublicKey"))
 	}
 	if s.RoleArn == nil {
 		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
@@ -12011,7 +12006,10 @@ type DevEndpoint struct {
 	// The number of AWS Glue Data Processing Units (DPUs) allocated to this DevEndpoint.
 	NumberOfNodes *int64 `type:"integer"`
 
-	// The public address used by this DevEndpoint.
+	// The private address used by this DevEndpoint.
+	PrivateAddress *string `type:"string"`
+
+	// The public VPC address used by this DevEndpoint.
 	PublicAddress *string `type:"string"`
 
 	// The public key to be used by this DevEndpoint for authentication.
@@ -12100,6 +12098,12 @@ func (s *DevEndpoint) SetLastUpdateStatus(v string) *DevEndpoint {
 // SetNumberOfNodes sets the NumberOfNodes field's value.
 func (s *DevEndpoint) SetNumberOfNodes(v int64) *DevEndpoint {
 	s.NumberOfNodes = &v
+	return s
+}
+
+// SetPrivateAddress sets the PrivateAddress field's value.
+func (s *DevEndpoint) SetPrivateAddress(v string) *DevEndpoint {
+	s.PrivateAddress = &v
 	return s
 }
 

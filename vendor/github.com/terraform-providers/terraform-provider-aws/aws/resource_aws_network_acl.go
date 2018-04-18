@@ -308,6 +308,10 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 			for _, r := range remove {
 				association, err := findNetworkAclAssociation(r.(string), conn)
 				if err != nil {
+					if isResourceNotFoundError(err) {
+						// Subnet has been deleted.
+						continue
+					}
 					return fmt.Errorf("Failed to find acl association: acl %s with subnet %s: %s", d.Id(), r, err)
 				}
 				log.Printf("DEBUG] Replacing Network Acl Association (%s) with Default Network ACL ID (%s)", *association.NetworkAclAssociationId, *defaultAcl.NetworkAclId)
@@ -479,6 +483,9 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 					for _, i := range ids {
 						a, err := findNetworkAclAssociation(i.(string), conn)
 						if err != nil {
+							if isResourceNotFoundError(err) {
+								continue
+							}
 							return resource.NonRetryableError(err)
 						}
 						associations = append(associations, a)
@@ -597,26 +604,30 @@ func getDefaultNetworkAcl(vpc_id string, conn *ec2.EC2) (defaultAcl *ec2.Network
 }
 
 func findNetworkAclAssociation(subnetId string, conn *ec2.EC2) (networkAclAssociation *ec2.NetworkAclAssociation, err error) {
-	resp, err := conn.DescribeNetworkAcls(&ec2.DescribeNetworkAclsInput{
-		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("association.subnet-id"),
-				Values: []*string{aws.String(subnetId)},
-			},
+	req := &ec2.DescribeNetworkAclsInput{}
+	req.Filters = buildEC2AttributeFilterList(
+		map[string]string{
+			"association.subnet-id": subnetId,
 		},
-	})
-
+	)
+	resp, err := conn.DescribeNetworkAcls(req)
 	if err != nil {
 		return nil, err
 	}
-	if resp.NetworkAcls != nil && len(resp.NetworkAcls) > 0 {
+
+	if len(resp.NetworkAcls) > 0 {
 		for _, association := range resp.NetworkAcls[0].Associations {
-			if *association.SubnetId == subnetId {
+			if aws.StringValue(association.SubnetId) == subnetId {
 				return association, nil
 			}
 		}
 	}
-	return nil, fmt.Errorf("could not find association for subnet: %s ", subnetId)
+
+	return nil, &resource.NotFoundError{
+		LastRequest:  req,
+		LastResponse: resp,
+		Message:      fmt.Sprintf("could not find association for subnet: %s ", subnetId),
+	}
 }
 
 // networkAclEntriesToMapList turns ingress/egress rules read from AWS into a list

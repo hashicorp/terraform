@@ -17,7 +17,7 @@ const opAbortMultipartUpload = "AbortMultipartUpload"
 
 // AbortMultipartUploadRequest generates a "aws/request.Request" representing the
 // client's request for the AbortMultipartUpload operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -124,7 +124,7 @@ const opAbortVaultLock = "AbortVaultLock"
 
 // AbortVaultLockRequest generates a "aws/request.Request" representing the
 // client's request for the AbortVaultLock operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -227,7 +227,7 @@ const opAddTagsToVault = "AddTagsToVault"
 
 // AddTagsToVaultRequest generates a "aws/request.Request" representing the
 // client's request for the AddTagsToVault operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -323,7 +323,7 @@ const opCompleteMultipartUpload = "CompleteMultipartUpload"
 
 // CompleteMultipartUploadRequest generates a "aws/request.Request" representing the
 // client's request for the CompleteMultipartUpload operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -452,7 +452,7 @@ const opCompleteVaultLock = "CompleteVaultLock"
 
 // CompleteVaultLockRequest generates a "aws/request.Request" representing the
 // client's request for the CompleteVaultLock operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -554,7 +554,7 @@ const opCreateVault = "CreateVault"
 
 // CreateVaultRequest generates a "aws/request.Request" representing the
 // client's request for the CreateVault operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -662,7 +662,7 @@ const opDeleteArchive = "DeleteArchive"
 
 // DeleteArchiveRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteArchive operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -774,7 +774,7 @@ const opDeleteVault = "DeleteVault"
 
 // DeleteVaultRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVault operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -884,7 +884,7 @@ const opDeleteVaultAccessPolicy = "DeleteVaultAccessPolicy"
 
 // DeleteVaultAccessPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVaultAccessPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -981,7 +981,7 @@ const opDeleteVaultNotifications = "DeleteVaultNotifications"
 
 // DeleteVaultNotificationsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteVaultNotifications operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1083,7 +1083,7 @@ const opDescribeJob = "DescribeJob"
 
 // DescribeJobRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeJob operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1190,7 +1190,7 @@ const opDescribeVault = "DescribeVault"
 
 // DescribeVaultRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeVault operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1295,7 +1295,7 @@ const opGetDataRetrievalPolicy = "GetDataRetrievalPolicy"
 
 // GetDataRetrievalPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetDataRetrievalPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1379,7 +1379,7 @@ const opGetJobOutput = "GetJobOutput"
 
 // GetJobOutputRequest generates a "aws/request.Request" representing the
 // client's request for the GetJobOutput operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1508,7 +1508,7 @@ const opGetVaultAccessPolicy = "GetVaultAccessPolicy"
 
 // GetVaultAccessPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetVaultAccessPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1599,7 +1599,7 @@ const opGetVaultLock = "GetVaultLock"
 
 // GetVaultLockRequest generates a "aws/request.Request" representing the
 // client's request for the GetVaultLock operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1704,7 +1704,7 @@ const opGetVaultNotifications = "GetVaultNotifications"
 
 // GetVaultNotificationsRequest generates a "aws/request.Request" representing the
 // client's request for the GetVaultNotifications operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1808,7 +1808,7 @@ const opInitiateJob = "InitiateJob"
 
 // InitiateJobRequest generates a "aws/request.Request" representing the
 // client's request for the InitiateJob operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1906,7 +1906,7 @@ const opInitiateMultipartUpload = "InitiateMultipartUpload"
 
 // InitiateMultipartUploadRequest generates a "aws/request.Request" representing the
 // client's request for the InitiateMultipartUpload operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2026,7 +2026,7 @@ const opInitiateVaultLock = "InitiateVaultLock"
 
 // InitiateVaultLockRequest generates a "aws/request.Request" representing the
 // client's request for the InitiateVaultLock operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2140,7 +2140,7 @@ const opListJobs = "ListJobs"
 
 // ListJobsRequest generates a "aws/request.Request" representing the
 // client's request for the ListJobs operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2317,7 +2317,7 @@ const opListMultipartUploads = "ListMultipartUploads"
 
 // ListMultipartUploadsRequest generates a "aws/request.Request" representing the
 // client's request for the ListMultipartUploads operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2488,7 +2488,7 @@ const opListParts = "ListParts"
 
 // ListPartsRequest generates a "aws/request.Request" representing the
 // client's request for the ListParts operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2653,7 +2653,7 @@ const opListProvisionedCapacity = "ListProvisionedCapacity"
 
 // ListProvisionedCapacityRequest generates a "aws/request.Request" representing the
 // client's request for the ListProvisionedCapacity operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2736,7 +2736,7 @@ const opListTagsForVault = "ListTagsForVault"
 
 // ListTagsForVaultRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForVault operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2824,7 +2824,7 @@ const opListVaults = "ListVaults"
 
 // ListVaultsRequest generates a "aws/request.Request" representing the
 // client's request for the ListVaults operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2986,7 +2986,7 @@ const opPurchaseProvisionedCapacity = "PurchaseProvisionedCapacity"
 
 // PurchaseProvisionedCapacityRequest generates a "aws/request.Request" representing the
 // client's request for the PurchaseProvisionedCapacity operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3071,7 +3071,7 @@ const opRemoveTagsFromVault = "RemoveTagsFromVault"
 
 // RemoveTagsFromVaultRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTagsFromVault operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3163,7 +3163,7 @@ const opSetDataRetrievalPolicy = "SetDataRetrievalPolicy"
 
 // SetDataRetrievalPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the SetDataRetrievalPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3253,7 +3253,7 @@ const opSetVaultAccessPolicy = "SetVaultAccessPolicy"
 
 // SetVaultAccessPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the SetVaultAccessPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3347,7 +3347,7 @@ const opSetVaultNotifications = "SetVaultNotifications"
 
 // SetVaultNotificationsRequest generates a "aws/request.Request" representing the
 // client's request for the SetVaultNotifications operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3466,7 +3466,7 @@ const opUploadArchive = "UploadArchive"
 
 // UploadArchiveRequest generates a "aws/request.Request" representing the
 // client's request for the UploadArchive operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3591,7 +3591,7 @@ const opUploadMultipartPart = "UploadMultipartPart"
 
 // UploadMultipartPartRequest generates a "aws/request.Request" representing the
 // client's request for the UploadMultipartPart operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4988,7 +4988,7 @@ type Encryption struct {
 	EncryptionType *string `type:"string" enum:"EncryptionType"`
 
 	// Optional. If the encryption type is aws:kms, you can use this value to specify
-	// the encryption context for the restore results.
+	// the encryption context for the job results.
 	KMSContext *string `type:"string"`
 
 	// The AWS KMS key ID to use for object encryption. All GET and PUT requests
@@ -6256,7 +6256,7 @@ type JobDescription struct {
 	// An Amazon SNS topic that receives notification.
 	SNSTopic *string `type:"string"`
 
-	// Contains the parameters that define a select job.
+	// Contains the parameters used for a select.
 	SelectParameters *SelectParameters `type:"structure"`
 
 	// The status code can be InProgress, Succeeded, or Failed, and indicates the
@@ -6266,7 +6266,7 @@ type JobDescription struct {
 	// A friendly message that describes the job status.
 	StatusMessage *string `type:"string"`
 
-	// The retrieval option to use for the archive retrieval. Valid values are Expedited,
+	// The tier to use for a select or an archive retrieval. Valid values are Expedited,
 	// Standard, or Bulk. Standard is the default.
 	Tier *string `type:"string"`
 
@@ -6458,8 +6458,8 @@ type JobParameters struct {
 	// Contains the parameters that define a job.
 	SelectParameters *SelectParameters `type:"structure"`
 
-	// The retrieval option to use for a select or archive retrieval job. Valid
-	// values are Expedited, Standard, or Bulk. Standard is the default.
+	// The tier to use for a select or an archive retrieval job. Valid values are
+	// Expedited, Standard, or Bulk. Standard is the default.
 	Tier *string `type:"string"`
 
 	// The job type. You can initiate a job to perform a select query on an archive,
@@ -7235,7 +7235,7 @@ func (s *ListVaultsOutput) SetVaultList(v []*DescribeVaultOutput) *ListVaultsOut
 type OutputLocation struct {
 	_ struct{} `type:"structure"`
 
-	// Describes an S3 location that will receive the results of the restore request.
+	// Describes an S3 location that will receive the results of the job request.
 	S3 *S3Location `type:"structure"`
 }
 
@@ -7525,26 +7525,26 @@ type S3Location struct {
 	// A list of grants that control access to the staged results.
 	AccessControlList []*Grant `type:"list"`
 
-	// The name of the bucket where the restore results are stored.
+	// The name of the Amazon S3 bucket where the job results are stored.
 	BucketName *string `type:"string"`
 
-	// The canned ACL to apply to the restore results.
+	// The canned access control list (ACL) to apply to the job results.
 	CannedACL *string `type:"string" enum:"CannedACL"`
 
 	// Contains information about the encryption used to store the job results in
 	// Amazon S3.
 	Encryption *Encryption `type:"structure"`
 
-	// The prefix that is prepended to the restore results for this request.
+	// The prefix that is prepended to the results for this request.
 	Prefix *string `type:"string"`
 
-	// The storage class used to store the restore results.
+	// The storage class used to store the job results.
 	StorageClass *string `type:"string" enum:"StorageClass"`
 
-	// The tag-set that is applied to the restore results.
+	// The tag-set that is applied to the job results.
 	Tagging map[string]*string `type:"map"`
 
-	// A map of metadata to store with the restore results in Amazon S3.
+	// A map of metadata to store with the job results in Amazon S3.
 	UserMetadata map[string]*string `type:"map"`
 }
 

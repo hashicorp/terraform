@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -40,10 +41,18 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"protocol": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateSNSSubscriptionProtocol,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					// email and email-json not supported
+					"application",
+					"http",
+					"https",
+					"lambda",
+					"sms",
+					"sqs",
+				}, true),
 			},
 			"endpoint": {
 				Type:     schema.TypeString,

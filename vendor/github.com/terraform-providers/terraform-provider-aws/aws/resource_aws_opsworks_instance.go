@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -46,16 +47,22 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			},
 
 			"architecture": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "x86_64",
-				ValidateFunc: validateArchitecture,
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "x86_64",
+				ValidateFunc: validation.StringInSlice([]string{
+					opsworks.ArchitectureX8664,
+					opsworks.ArchitectureI386,
+				}, false),
 			},
 
 			"auto_scaling_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateAutoScalingType,
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					opsworks.AutoScalingTypeLoad,
+					opsworks.AutoScalingTypeTimer,
+				}, false),
 			},
 
 			"availability_zone": {
@@ -92,7 +99,6 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 
 			"ec2_instance_id": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 
@@ -218,11 +224,14 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			},
 
 			"root_device_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				Computed:     true,
-				ValidateFunc: validateRootDeviceType,
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					opsworks.RootDeviceTypeEbs,
+					opsworks.RootDeviceTypeInstanceStore,
+				}, false),
 			},
 
 			"root_device_volume_id": {
@@ -263,9 +272,12 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			},
 
 			"state": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateState,
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"running",
+					"stopped",
+				}, false),
 			},
 
 			"status": {
@@ -282,19 +294,26 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			},
 
 			"tenancy": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateTenancy,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"dedicated",
+					"default",
+					"host",
+				}, false),
 			},
 
 			"virtualization_type": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateVirtualizationType,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					opsworks.VirtualizationTypeParavirtual,
+					opsworks.VirtualizationTypeHvm,
+				}, false),
 			},
 
 			"ebs_block_device": {
@@ -431,60 +450,6 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			},
 		},
 	}
-}
-
-func validateArchitecture(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "x86_64" && value != "i386" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"x86_64\" or \"i386\"", k))
-	}
-	return
-}
-
-func validateTenancy(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "dedicated" && value != "default" && value != "host" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"dedicated\", \"default\" or \"host\"", k))
-	}
-	return
-}
-
-func validateAutoScalingType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "load" && value != "timer" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"load\" or \"timer\"", k))
-	}
-	return
-}
-
-func validateRootDeviceType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "ebs" && value != "instance-store" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"ebs\" or \"instance-store\"", k))
-	}
-	return
-}
-
-func validateState(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "running" && value != "stopped" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"running\" or \"stopped\"", k))
-	}
-	return
-}
-
-func validateVirtualizationType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "paravirtual" && value != "hvm" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of \"paravirtual\" or \"hvm\"", k))
-	}
-	return
 }
 
 func resourceAwsOpsworksInstanceValidate(d *schema.ResourceData) error {

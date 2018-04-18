@@ -313,13 +313,17 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("content_based_deduplication", d.Get("content_based_deduplication").(bool))
 
 	tags := make(map[string]string)
-	if !meta.(*AWSClient).IsGovCloud() {
-		listTagsOutput, err := sqsconn.ListQueueTags(&sqs.ListQueueTagsInput{
-			QueueUrl: aws.String(d.Id()),
-		})
-		if err != nil {
+	listTagsOutput, err := sqsconn.ListQueueTags(&sqs.ListQueueTagsInput{
+		QueueUrl: aws.String(d.Id()),
+	})
+	if err != nil {
+		// Non-standard partitions (e.g. US Gov) and some local development
+		// solutions do not yet support this API call. Depending on the
+		// implementation it may return InvalidAction or AWS.SimpleQueueService.UnsupportedOperation
+		if !isAWSErr(err, "InvalidAction", "") && !isAWSErr(err, sqs.ErrCodeUnsupportedOperation, "") {
 			return err
 		}
+	} else {
 		tags = tagsToMapGeneric(listTagsOutput.Tags)
 	}
 	d.Set("tags", tags)

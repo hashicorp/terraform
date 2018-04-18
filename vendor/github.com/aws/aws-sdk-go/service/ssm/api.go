@@ -15,7 +15,7 @@ const opAddTagsToResource = "AddTagsToResource"
 
 // AddTagsToResourceRequest generates a "aws/request.Request" representing the
 // client's request for the AddTagsToResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -125,7 +125,7 @@ const opCancelCommand = "CancelCommand"
 
 // CancelCommandRequest generates a "aws/request.Request" representing the
 // client's request for the CancelCommand operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -225,7 +225,7 @@ const opCreateActivation = "CreateActivation"
 
 // CreateActivationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateActivation operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -308,7 +308,7 @@ const opCreateAssociation = "CreateAssociation"
 
 // CreateAssociationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAssociation operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -441,7 +441,7 @@ const opCreateAssociationBatch = "CreateAssociationBatch"
 
 // CreateAssociationBatchRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAssociationBatch operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -574,7 +574,7 @@ const opCreateDocument = "CreateDocument"
 
 // CreateDocumentRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDocument operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -671,7 +671,7 @@ const opCreateMaintenanceWindow = "CreateMaintenanceWindow"
 
 // CreateMaintenanceWindowRequest generates a "aws/request.Request" representing the
 // client's request for the CreateMaintenanceWindow operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -761,7 +761,7 @@ const opCreatePatchBaseline = "CreatePatchBaseline"
 
 // CreatePatchBaselineRequest generates a "aws/request.Request" representing the
 // client's request for the CreatePatchBaseline operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -854,7 +854,7 @@ const opCreateResourceDataSync = "CreateResourceDataSync"
 
 // CreateResourceDataSyncRequest generates a "aws/request.Request" representing the
 // client's request for the CreateResourceDataSync operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -952,7 +952,7 @@ const opDeleteActivation = "DeleteActivation"
 
 // DeleteActivationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteActivation operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1046,7 +1046,7 @@ const opDeleteAssociation = "DeleteAssociation"
 
 // DeleteAssociationRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteAssociation operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1155,7 +1155,7 @@ const opDeleteDocument = "DeleteDocument"
 
 // DeleteDocumentRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDocument operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1249,7 +1249,7 @@ const opDeleteMaintenanceWindow = "DeleteMaintenanceWindow"
 
 // DeleteMaintenanceWindowRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteMaintenanceWindow operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1328,7 +1328,7 @@ const opDeleteParameter = "DeleteParameter"
 
 // DeleteParameterRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteParameter operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1410,7 +1410,7 @@ const opDeleteParameters = "DeleteParameters"
 
 // DeleteParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteParameters operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1490,7 +1490,7 @@ const opDeletePatchBaseline = "DeletePatchBaseline"
 
 // DeletePatchBaselineRequest generates a "aws/request.Request" representing the
 // client's request for the DeletePatchBaseline operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1573,7 +1573,7 @@ const opDeleteResourceDataSync = "DeleteResourceDataSync"
 
 // DeleteResourceDataSyncRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteResourceDataSync operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1658,7 +1658,7 @@ const opDeregisterManagedInstance = "DeregisterManagedInstance"
 
 // DeregisterManagedInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the DeregisterManagedInstance operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1754,7 +1754,7 @@ const opDeregisterPatchBaselineForPatchGroup = "DeregisterPatchBaselineForPatchG
 
 // DeregisterPatchBaselineForPatchGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeregisterPatchBaselineForPatchGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1837,7 +1837,7 @@ const opDeregisterTargetFromMaintenanceWindow = "DeregisterTargetFromMaintenance
 
 // DeregisterTargetFromMaintenanceWindowRequest generates a "aws/request.Request" representing the
 // client's request for the DeregisterTargetFromMaintenanceWindow operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1927,7 +1927,7 @@ const opDeregisterTaskFromMaintenanceWindow = "DeregisterTaskFromMaintenanceWind
 
 // DeregisterTaskFromMaintenanceWindowRequest generates a "aws/request.Request" representing the
 // client's request for the DeregisterTaskFromMaintenanceWindow operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2013,7 +2013,7 @@ const opDescribeActivations = "DescribeActivations"
 
 // DescribeActivationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeActivations operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2157,7 +2157,7 @@ const opDescribeAssociation = "DescribeAssociation"
 
 // DescribeAssociationRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAssociation operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2266,7 +2266,7 @@ const opDescribeAutomationExecutions = "DescribeAutomationExecutions"
 
 // DescribeAutomationExecutionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAutomationExecutions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2354,7 +2354,7 @@ const opDescribeAutomationStepExecutions = "DescribeAutomationStepExecutions"
 
 // DescribeAutomationStepExecutionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAutomationStepExecutions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2447,7 +2447,7 @@ const opDescribeAvailablePatches = "DescribeAvailablePatches"
 
 // DescribeAvailablePatchesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAvailablePatches operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2526,7 +2526,7 @@ const opDescribeDocument = "DescribeDocument"
 
 // DescribeDocumentRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDocument operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2611,7 +2611,7 @@ const opDescribeDocumentPermission = "DescribeDocumentPermission"
 
 // DescribeDocumentPermissionRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDocumentPermission operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2699,7 +2699,7 @@ const opDescribeEffectiveInstanceAssociations = "DescribeEffectiveInstanceAssoci
 
 // DescribeEffectiveInstanceAssociationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEffectiveInstanceAssociations operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2796,7 +2796,7 @@ const opDescribeEffectivePatchesForPatchBaseline = "DescribeEffectivePatchesForP
 
 // DescribeEffectivePatchesForPatchBaselineRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeEffectivePatchesForPatchBaseline operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2893,7 +2893,7 @@ const opDescribeInstanceAssociationsStatus = "DescribeInstanceAssociationsStatus
 
 // DescribeInstanceAssociationsStatusRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeInstanceAssociationsStatus operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -2990,7 +2990,7 @@ const opDescribeInstanceInformation = "DescribeInstanceInformation"
 
 // DescribeInstanceInformationRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeInstanceInformation operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3154,7 +3154,7 @@ const opDescribeInstancePatchStates = "DescribeInstancePatchStates"
 
 // DescribeInstancePatchStatesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeInstancePatchStates operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3236,7 +3236,7 @@ const opDescribeInstancePatchStatesForPatchGroup = "DescribeInstancePatchStatesF
 
 // DescribeInstancePatchStatesForPatchGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeInstancePatchStatesForPatchGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3323,7 +3323,7 @@ const opDescribeInstancePatches = "DescribeInstancePatches"
 
 // DescribeInstancePatchesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeInstancePatches operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3425,7 +3425,7 @@ const opDescribeMaintenanceWindowExecutionTaskInvocations = "DescribeMaintenance
 
 // DescribeMaintenanceWindowExecutionTaskInvocationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMaintenanceWindowExecutionTaskInvocations operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3512,7 +3512,7 @@ const opDescribeMaintenanceWindowExecutionTasks = "DescribeMaintenanceWindowExec
 
 // DescribeMaintenanceWindowExecutionTasksRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMaintenanceWindowExecutionTasks operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3598,7 +3598,7 @@ const opDescribeMaintenanceWindowExecutions = "DescribeMaintenanceWindowExecutio
 
 // DescribeMaintenanceWindowExecutionsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMaintenanceWindowExecutions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3679,7 +3679,7 @@ const opDescribeMaintenanceWindowTargets = "DescribeMaintenanceWindowTargets"
 
 // DescribeMaintenanceWindowTargetsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMaintenanceWindowTargets operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3765,7 +3765,7 @@ const opDescribeMaintenanceWindowTasks = "DescribeMaintenanceWindowTasks"
 
 // DescribeMaintenanceWindowTasksRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMaintenanceWindowTasks operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3851,7 +3851,7 @@ const opDescribeMaintenanceWindows = "DescribeMaintenanceWindows"
 
 // DescribeMaintenanceWindowsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMaintenanceWindows operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -3930,7 +3930,7 @@ const opDescribeParameters = "DescribeParameters"
 
 // DescribeParametersRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeParameters operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4086,7 +4086,7 @@ const opDescribePatchBaselines = "DescribePatchBaselines"
 
 // DescribePatchBaselinesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribePatchBaselines operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4165,7 +4165,7 @@ const opDescribePatchGroupState = "DescribePatchGroupState"
 
 // DescribePatchGroupStateRequest generates a "aws/request.Request" representing the
 // client's request for the DescribePatchGroupState operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4247,7 +4247,7 @@ const opDescribePatchGroups = "DescribePatchGroups"
 
 // DescribePatchGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribePatchGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4326,7 +4326,7 @@ const opGetAutomationExecution = "GetAutomationExecution"
 
 // GetAutomationExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the GetAutomationExecution operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4409,7 +4409,7 @@ const opGetCommandInvocation = "GetCommandInvocation"
 
 // GetCommandInvocationRequest generates a "aws/request.Request" representing the
 // client's request for the GetCommandInvocation operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4513,7 +4513,7 @@ const opGetDefaultPatchBaseline = "GetDefaultPatchBaseline"
 
 // GetDefaultPatchBaselineRequest generates a "aws/request.Request" representing the
 // client's request for the GetDefaultPatchBaseline operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4594,7 +4594,7 @@ const opGetDeployablePatchSnapshotForInstance = "GetDeployablePatchSnapshotForIn
 
 // GetDeployablePatchSnapshotForInstanceRequest generates a "aws/request.Request" representing the
 // client's request for the GetDeployablePatchSnapshotForInstance operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4679,7 +4679,7 @@ const opGetDocument = "GetDocument"
 
 // GetDocumentRequest generates a "aws/request.Request" representing the
 // client's request for the GetDocument operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4764,7 +4764,7 @@ const opGetInventory = "GetInventory"
 
 // GetInventoryRequest generates a "aws/request.Request" representing the
 // client's request for the GetInventory operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4856,7 +4856,7 @@ const opGetInventorySchema = "GetInventorySchema"
 
 // GetInventorySchemaRequest generates a "aws/request.Request" representing the
 // client's request for the GetInventorySchema operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -4942,7 +4942,7 @@ const opGetMaintenanceWindow = "GetMaintenanceWindow"
 
 // GetMaintenanceWindowRequest generates a "aws/request.Request" representing the
 // client's request for the GetMaintenanceWindow operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5028,7 +5028,7 @@ const opGetMaintenanceWindowExecution = "GetMaintenanceWindowExecution"
 
 // GetMaintenanceWindowExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the GetMaintenanceWindowExecution operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5115,7 +5115,7 @@ const opGetMaintenanceWindowExecutionTask = "GetMaintenanceWindowExecutionTask"
 
 // GetMaintenanceWindowExecutionTaskRequest generates a "aws/request.Request" representing the
 // client's request for the GetMaintenanceWindowExecutionTask operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5202,7 +5202,7 @@ const opGetMaintenanceWindowExecutionTaskInvocation = "GetMaintenanceWindowExecu
 
 // GetMaintenanceWindowExecutionTaskInvocationRequest generates a "aws/request.Request" representing the
 // client's request for the GetMaintenanceWindowExecutionTaskInvocation operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5289,7 +5289,7 @@ const opGetMaintenanceWindowTask = "GetMaintenanceWindowTask"
 
 // GetMaintenanceWindowTaskRequest generates a "aws/request.Request" representing the
 // client's request for the GetMaintenanceWindowTask operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5375,7 +5375,7 @@ const opGetParameter = "GetParameter"
 
 // GetParameterRequest generates a "aws/request.Request" representing the
 // client's request for the GetParameter operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5464,7 +5464,7 @@ const opGetParameterHistory = "GetParameterHistory"
 
 // GetParameterHistoryRequest generates a "aws/request.Request" representing the
 // client's request for the GetParameterHistory operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5608,7 +5608,7 @@ const opGetParameters = "GetParameters"
 
 // GetParametersRequest generates a "aws/request.Request" representing the
 // client's request for the GetParameters operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5690,7 +5690,7 @@ const opGetParametersByPath = "GetParametersByPath"
 
 // GetParametersByPathRequest generates a "aws/request.Request" representing the
 // client's request for the GetParametersByPath operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5852,7 +5852,7 @@ const opGetPatchBaseline = "GetPatchBaseline"
 
 // GetPatchBaselineRequest generates a "aws/request.Request" representing the
 // client's request for the GetPatchBaseline operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -5942,7 +5942,7 @@ const opGetPatchBaselineForPatchGroup = "GetPatchBaselineForPatchGroup"
 
 // GetPatchBaselineForPatchGroupRequest generates a "aws/request.Request" representing the
 // client's request for the GetPatchBaselineForPatchGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6022,7 +6022,7 @@ const opListAssociationVersions = "ListAssociationVersions"
 
 // ListAssociationVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListAssociationVersions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6107,7 +6107,7 @@ const opListAssociations = "ListAssociations"
 
 // ListAssociationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListAssociations operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6245,7 +6245,7 @@ const opListCommandInvocations = "ListCommandInvocations"
 
 // ListCommandInvocationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListCommandInvocations operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6407,7 +6407,7 @@ const opListCommands = "ListCommands"
 
 // ListCommandsRequest generates a "aws/request.Request" representing the
 // client's request for the ListCommands operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6565,7 +6565,7 @@ const opListComplianceItems = "ListComplianceItems"
 
 // ListComplianceItemsRequest generates a "aws/request.Request" representing the
 // client's request for the ListComplianceItems operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6662,7 +6662,7 @@ const opListComplianceSummaries = "ListComplianceSummaries"
 
 // ListComplianceSummariesRequest generates a "aws/request.Request" representing the
 // client's request for the ListComplianceSummaries operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6750,7 +6750,7 @@ const opListDocumentVersions = "ListDocumentVersions"
 
 // ListDocumentVersionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListDocumentVersions operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6835,7 +6835,7 @@ const opListDocuments = "ListDocuments"
 
 // ListDocumentsRequest generates a "aws/request.Request" representing the
 // client's request for the ListDocuments operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -6976,7 +6976,7 @@ const opListInventoryEntries = "ListInventoryEntries"
 
 // ListInventoryEntriesRequest generates a "aws/request.Request" representing the
 // client's request for the ListInventoryEntries operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7080,7 +7080,7 @@ const opListResourceComplianceSummaries = "ListResourceComplianceSummaries"
 
 // ListResourceComplianceSummariesRequest generates a "aws/request.Request" representing the
 // client's request for the ListResourceComplianceSummaries operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7168,7 +7168,7 @@ const opListResourceDataSync = "ListResourceDataSync"
 
 // ListResourceDataSyncRequest generates a "aws/request.Request" representing the
 // client's request for the ListResourceDataSync operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7259,7 +7259,7 @@ const opListTagsForResource = "ListTagsForResource"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7346,7 +7346,7 @@ const opModifyDocumentPermission = "ModifyDocumentPermission"
 
 // ModifyDocumentPermissionRequest generates a "aws/request.Request" representing the
 // client's request for the ModifyDocumentPermission operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7443,7 +7443,7 @@ const opPutComplianceItems = "PutComplianceItems"
 
 // PutComplianceItemsRequest generates a "aws/request.Request" representing the
 // client's request for the PutComplianceItems operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7584,7 +7584,7 @@ const opPutInventory = "PutInventory"
 
 // PutInventoryRequest generates a "aws/request.Request" representing the
 // client's request for the PutInventory operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7716,7 +7716,7 @@ const opPutParameter = "PutParameter"
 
 // PutParameterRequest generates a "aws/request.Request" representing the
 // client's request for the PutParameter operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7830,7 +7830,7 @@ const opRegisterDefaultPatchBaseline = "RegisterDefaultPatchBaseline"
 
 // RegisterDefaultPatchBaselineRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterDefaultPatchBaseline operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -7920,7 +7920,7 @@ const opRegisterPatchBaselineForPatchGroup = "RegisterPatchBaselineForPatchGroup
 
 // RegisterPatchBaselineForPatchGroupRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterPatchBaselineForPatchGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8021,7 +8021,7 @@ const opRegisterTargetWithMaintenanceWindow = "RegisterTargetWithMaintenanceWind
 
 // RegisterTargetWithMaintenanceWindowRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterTargetWithMaintenanceWindow operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8118,7 +8118,7 @@ const opRegisterTaskWithMaintenanceWindow = "RegisterTaskWithMaintenanceWindow"
 
 // RegisterTaskWithMaintenanceWindowRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterTaskWithMaintenanceWindow operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8219,7 +8219,7 @@ const opRemoveTagsFromResource = "RemoveTagsFromResource"
 
 // RemoveTagsFromResourceRequest generates a "aws/request.Request" representing the
 // client's request for the RemoveTagsFromResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8306,7 +8306,7 @@ const opSendAutomationSignal = "SendAutomationSignal"
 
 // SendAutomationSignalRequest generates a "aws/request.Request" representing the
 // client's request for the SendAutomationSignal operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8397,7 +8397,7 @@ const opSendCommand = "SendCommand"
 
 // SendCommandRequest generates a "aws/request.Request" representing the
 // client's request for the SendCommand operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8523,7 +8523,7 @@ const opStartAutomationExecution = "StartAutomationExecution"
 
 // StartAutomationExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the StartAutomationExecution operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8625,7 +8625,7 @@ const opStopAutomationExecution = "StopAutomationExecution"
 
 // StopAutomationExecutionRequest generates a "aws/request.Request" representing the
 // client's request for the StopAutomationExecution operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8711,7 +8711,7 @@ const opUpdateAssociation = "UpdateAssociation"
 
 // UpdateAssociationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAssociation operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8831,7 +8831,7 @@ const opUpdateAssociationStatus = "UpdateAssociationStatus"
 
 // UpdateAssociationStatusRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateAssociationStatus operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -8939,7 +8939,7 @@ const opUpdateDocument = "UpdateDocument"
 
 // UpdateDocumentRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDocument operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9041,7 +9041,7 @@ const opUpdateDocumentDefaultVersion = "UpdateDocumentDefaultVersion"
 
 // UpdateDocumentDefaultVersionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDocumentDefaultVersion operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9129,7 +9129,7 @@ const opUpdateMaintenanceWindow = "UpdateMaintenanceWindow"
 
 // UpdateMaintenanceWindowRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateMaintenanceWindow operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9215,7 +9215,7 @@ const opUpdateMaintenanceWindowTarget = "UpdateMaintenanceWindowTarget"
 
 // UpdateMaintenanceWindowTargetRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateMaintenanceWindowTarget operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9317,7 +9317,7 @@ const opUpdateMaintenanceWindowTask = "UpdateMaintenanceWindowTask"
 
 // UpdateMaintenanceWindowTaskRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateMaintenanceWindowTask operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9422,7 +9422,7 @@ const opUpdateManagedInstanceRole = "UpdateManagedInstanceRole"
 
 // UpdateManagedInstanceRoleRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateManagedInstanceRole operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -9517,7 +9517,7 @@ const opUpdatePatchBaseline = "UpdatePatchBaseline"
 
 // UpdatePatchBaselineRequest generates a "aws/request.Request" representing the
 // client's request for the UpdatePatchBaseline operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -10937,9 +10937,9 @@ type Command struct {
 
 	// The maximum number of errors allowed before the system stops sending the
 	// command to additional targets. You can specify a number of errors, such as
-	// 10, or a percentage or errors, such as 10%. The default value is 50. For
-	// more information about how to use MaxErrors, see Executing a Command Using
-	// Systems Manager Run Command (http://docs.aws.amazon.com/systems-manager/latest/userguide/run-command.html).
+	// 10, or a percentage or errors, such as 10%. The default value is 0. For more
+	// information about how to use MaxErrors, see Executing a Command Using Systems
+	// Manager Run Command (http://docs.aws.amazon.com/systems-manager/latest/userguide/run-command.html).
 	MaxErrors *string `min:"1" type:"string"`
 
 	// Configurations for sending notifications about command status changes.
@@ -19783,6 +19783,9 @@ type InstanceInformation struct {
 	InstanceId *string `type:"string"`
 
 	// Indicates whether latest version of the SSM Agent is running on your instance.
+	// Some older versions of Windows Server use the EC2Config service to process
+	// SSM requests. For this reason, this field does not indicate whether or not
+	// the latest version is installed on Windows managed instances.
 	IsLatestVersion *bool `type:"boolean"`
 
 	// The date the association was last executed.
@@ -25827,6 +25830,9 @@ type ResourceDataSyncItem struct {
 	// The last time the sync operations returned a status of SUCCESSFUL (UTC).
 	LastSuccessfulSyncTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
+	// The status message details reported by the last sync.
+	LastSyncStatusMessage *string `type:"string"`
+
 	// The last time the configuration attempted to sync (UTC).
 	LastSyncTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
@@ -25859,6 +25865,12 @@ func (s *ResourceDataSyncItem) SetLastStatus(v string) *ResourceDataSyncItem {
 // SetLastSuccessfulSyncTime sets the LastSuccessfulSyncTime field's value.
 func (s *ResourceDataSyncItem) SetLastSuccessfulSyncTime(v time.Time) *ResourceDataSyncItem {
 	s.LastSuccessfulSyncTime = &v
+	return s
+}
+
+// SetLastSyncStatusMessage sets the LastSyncStatusMessage field's value.
+func (s *ResourceDataSyncItem) SetLastSyncStatusMessage(v string) *ResourceDataSyncItem {
+	s.LastSyncStatusMessage = &v
 	return s
 }
 
@@ -26236,7 +26248,7 @@ type SendCommandInput struct {
 	// The maximum number of errors allowed without the command failing. When the
 	// command fails one more time beyond the value of MaxErrors, the systems stops
 	// sending the command to additional targets. You can specify a number like
-	// 10 or a percentage like 10%. The default value is 50. For more information
+	// 10 or a percentage like 10%. The default value is 0. For more information
 	// about how to use MaxErrors, see Using Error Controls (http://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-maxerrors.html).
 	MaxErrors *string `min:"1" type:"string"`
 
@@ -29116,6 +29128,9 @@ const (
 
 	// OperatingSystemSuse is a OperatingSystem enum value
 	OperatingSystemSuse = "SUSE"
+
+	// OperatingSystemCentos is a OperatingSystem enum value
+	OperatingSystemCentos = "CENTOS"
 )
 
 const (

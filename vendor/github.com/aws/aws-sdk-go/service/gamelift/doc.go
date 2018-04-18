@@ -94,18 +94,18 @@
 // CreateGameSession -- Start a new game session on a specific fleet. Available
 //    in Amazon GameLift Local.
 //
-//    * Start new game sessions with FlexMatch matchmaking
+//    * Match players to game sessions with FlexMatch matchmaking
 //
 // StartMatchmaking -- Request matchmaking for one players or a group who want
 //    to play together.
+//
+// StartMatchBackfill - Request additional player matches to fill empty slots
+//    in an existing game session.
 //
 // DescribeMatchmaking -- Get details on a matchmaking request, including status.
 //
 // AcceptMatch -- Register that a player accepts a proposed match, for matches
 //    that require player acceptance.
-//
-// StartMatchBackfill - Request additional player matches to fill empty slots
-//    in an existing game session.
 //
 // StopMatchmaking -- Cancel a matchmaking request.
 //

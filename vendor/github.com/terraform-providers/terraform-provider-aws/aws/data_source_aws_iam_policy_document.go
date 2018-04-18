@@ -2,12 +2,12 @@ package aws
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 var dataSourceAwsIamPolicyDocumentVarReplacer = strings.NewReplacer("&{", "${")
@@ -47,18 +47,10 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 							Optional: true,
 						},
 						"effect": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "Allow",
-							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-								switch v.(string) {
-								case "Allow", "Deny":
-									return
-								default:
-									es = append(es, fmt.Errorf("%q must be either \"Allow\" or \"Deny\"", k))
-									return
-								}
-							},
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "Allow",
+							ValidateFunc: validation.StringInSlice([]string{"Allow", "Deny"}, false),
 						},
 						"actions":        setOfString,
 						"not_actions":    setOfString,
