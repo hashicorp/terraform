@@ -100,7 +100,7 @@ to specify the constraint. The resource address is interpreted as follows:
   is specified in the address, all of the instances sharing the given
   resource name are targeted.
 
-* The the given address _does not_ have a resource spec, and instead just
+* If the given address _does not_ have a resource spec, and instead just
   specifies a module path, the target applies to all resources in the
   specified module _and_ all of the descendent modules of the specified
   module.
