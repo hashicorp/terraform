@@ -111,10 +111,10 @@
 			"versionExact": "v8.3.1"
 		},
 		{
-			"checksumSHA1": "PYNaEEt9v8iAvGVUD4do0YIeR1A=",
+			"checksumSHA1": "sGphazN5+lG+5mK/CXDXe7bsGNU=",
 			"path": "github.com/Azure/go-ntlmssp",
-			"revision": "c92175d540060095c69ced311f76aea56c83ecdb",
-			"revisionTime": "2017-08-03T03:49:30Z"
+			"revision": "4b934ac9dad38d389d34f0b98d98b2467c422012",
+			"revisionTime": "2018-04-16T17:50:57Z"
 		},
 		{
 			"checksumSHA1": "++XyYR/ZfYoCxGn5vTlXzQZ9eo0=",
