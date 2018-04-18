@@ -34,6 +34,7 @@ func resourceAwsLambdaAlias() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,

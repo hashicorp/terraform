@@ -34,9 +34,10 @@ func resourceAwsSsmActivation() *schema.Resource {
 				Computed: true,
 			},
 			"expiration_date": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateRFC3339TimeString,
 			},
 			"iam_role": {
 				Type:     schema.TypeString,
@@ -77,8 +78,9 @@ func resourceAwsSsmActivationCreate(d *schema.ResourceData, meta interface{}) er
 		activationInput.Description = aws.String(d.Get("description").(string))
 	}
 
-	if _, ok := d.GetOk("expiration_date"); ok {
-		activationInput.ExpirationDate = aws.Time(d.Get("expiration_date").(time.Time))
+	if v, ok := d.GetOk("expiration_date"); ok {
+		t, _ := time.Parse(time.RFC3339, v.(string))
+		activationInput.ExpirationDate = aws.Time(t)
 	}
 
 	if _, ok := d.GetOk("iam_role"); ok {

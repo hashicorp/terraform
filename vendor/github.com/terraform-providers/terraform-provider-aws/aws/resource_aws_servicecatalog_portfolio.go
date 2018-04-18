@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/servicecatalog"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsServiceCatalogPortfolio() *schema.Resource {
@@ -40,18 +41,18 @@ func resourceAwsServiceCatalogPortfolio() *schema.Resource {
 			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateServiceCatalogPortfolioName,
+				ValidateFunc: validation.StringLenBetween(1, 20),
 			},
 			"description": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validateServiceCatalogPortfolioDescription,
+				ValidateFunc: validateMaxLength(2000),
 			},
 			"provider_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateServiceCatalogPortfolioProviderName,
+				ValidateFunc: validation.StringLenBetween(1, 20),
 			},
 			"tags": tagsSchema(),
 		},

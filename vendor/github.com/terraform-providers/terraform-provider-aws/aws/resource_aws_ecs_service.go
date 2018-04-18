@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 var taskDefinitionRE = regexp.MustCompile("^([a-zA-Z0-9_-]+):([0-9]+)$")
@@ -204,6 +206,27 @@ func resourceAwsEcsService() *schema.Resource {
 					},
 				},
 			},
+
+			"service_registries": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"port": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validation.IntBetween(0, 65536),
+						},
+						"registry_arn": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateArn,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -217,13 +240,13 @@ func resourceAwsEcsServiceImport(d *schema.ResourceData, meta interface{}) ([]*s
 	log.Printf("[DEBUG] Importing ECS service %s from cluster %s", name, cluster)
 
 	d.SetId(name)
-	clusterArn := arnString(
-		meta.(*AWSClient).partition,
-		meta.(*AWSClient).region,
-		"ecs",
-		meta.(*AWSClient).accountid,
-		fmt.Sprintf("cluster/%s", cluster),
-	)
+	clusterArn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Region:    meta.(*AWSClient).region,
+		Service:   "ecs",
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("cluster/%s", cluster),
+	}.String()
 	d.Set("cluster", clusterArn)
 	return []*schema.ResourceData{d}, nil
 }
@@ -305,6 +328,23 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		input.PlacementConstraints = pc
 	}
 
+	serviceRegistries := d.Get("service_registries").(*schema.Set).List()
+	if len(serviceRegistries) > 0 {
+		srs := make([]*ecs.ServiceRegistry, 0, len(serviceRegistries))
+		for _, v := range serviceRegistries {
+			raw := v.(map[string]interface{})
+			sr := &ecs.ServiceRegistry{
+				RegistryArn: aws.String(raw["registry_arn"].(string)),
+			}
+			if port, ok := raw["port"].(int); ok && port != 0 {
+				sr.Port = aws.Int64(int64(port))
+			}
+
+			srs = append(srs, sr)
+		}
+		input.ServiceRegistries = srs
+	}
+
 	log.Printf("[DEBUG] Creating ECS service: %s", input)
 
 	// Retry due to AWS IAM & ECS eventual consistency
@@ -357,8 +397,11 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 			return resource.NonRetryableError(err)
 		}
 
-		if d.IsNewResource() && len(out.Services) < 1 {
-			return resource.RetryableError(fmt.Errorf("No ECS service found: %q", d.Id()))
+		if len(out.Services) < 1 {
+			if d.IsNewResource() {
+				return resource.RetryableError(fmt.Errorf("ECS service not created yet: %q", d.Id()))
+			}
+			return resource.NonRetryableError(fmt.Errorf("No ECS service found: %q", d.Id()))
 		}
 
 		service := out.Services[0]
@@ -442,6 +485,10 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("[ERR] Error setting network_configuration for (%s): %s", d.Id(), err)
 	}
 
+	if err := d.Set("service_registries", flattenServiceRegistries(service.ServiceRegistries)); err != nil {
+		return fmt.Errorf("[ERR] Error setting service_registries for (%s): %s", d.Id(), err)
+	}
+
 	return nil
 }
 
@@ -513,6 +560,23 @@ func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []map[string]interfa
 			c["field"] = strings.ToLower(*ps.Field)
 		}
 
+		results = append(results, c)
+	}
+	return results
+}
+
+func flattenServiceRegistries(srs []*ecs.ServiceRegistry) []map[string]interface{} {
+	if len(srs) == 0 {
+		return nil
+	}
+	results := make([]map[string]interface{}, 0)
+	for _, sr := range srs {
+		c := map[string]interface{}{
+			"registry_arn": aws.StringValue(sr.RegistryArn),
+		}
+		if sr.Port != nil {
+			c["port"] = int(aws.Int64Value(sr.Port))
+		}
 		results = append(results, c)
 	}
 	return results

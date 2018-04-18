@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsLBCookieStickinessPolicy() *schema.Resource {
@@ -39,17 +40,10 @@ func resourceAwsLBCookieStickinessPolicy() *schema.Resource {
 			},
 
 			"cookie_expiration_period": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(int)
-					if value <= 0 {
-						es = append(es, fmt.Errorf(
-							"LB Cookie Expiration Period must be greater than zero if specified"))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.IntAtLeast(1),
 			},
 		},
 	}

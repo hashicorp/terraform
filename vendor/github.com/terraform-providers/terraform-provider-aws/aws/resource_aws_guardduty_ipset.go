@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/guardduty"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsGuardDutyIpset() *schema.Resource {
@@ -34,10 +35,17 @@ func resourceAwsGuardDutyIpset() *schema.Resource {
 				Required: true,
 			},
 			"format": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateGuardDutyIpsetFormat,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					guardduty.IpSetFormatTxt,
+					guardduty.IpSetFormatStix,
+					guardduty.IpSetFormatOtxCsv,
+					guardduty.IpSetFormatAlienVault,
+					guardduty.IpSetFormatProofPoint,
+					guardduty.IpSetFormatFireEye,
+				}, false),
 			},
 			"location": {
 				Type:     schema.TypeString,

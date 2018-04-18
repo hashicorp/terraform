@@ -130,7 +130,7 @@ func resourceAwsCognitoUserGroupUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if d.HasChange("role_arn") {
-		params.RoleArn = aws.String(d.Get("description").(string))
+		params.RoleArn = aws.String(d.Get("role_arn").(string))
 	}
 
 	log.Print("[DEBUG] Updating Cognito User Group")

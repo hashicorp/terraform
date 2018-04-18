@@ -229,11 +229,23 @@ func convertValidationOptions(certificate *acm.CertificateDetail) ([]map[string]
 func resourceAwsAcmCertificateDelete(d *schema.ResourceData, meta interface{}) error {
 	acmconn := meta.(*AWSClient).acmconn
 
+	log.Printf("[INFO] Deleting ACM Certificate: %s", d.Id())
+
 	params := &acm.DeleteCertificateInput{
 		CertificateArn: aws.String(d.Id()),
 	}
 
-	_, err := acmconn.DeleteCertificate(params)
+	err := resource.Retry(10*time.Minute, func() *resource.RetryError {
+		_, err := acmconn.DeleteCertificate(params)
+		if err != nil {
+			if isAWSErr(err, acm.ErrCodeResourceInUseException, "") {
+				log.Printf("[WARN] Conflict deleting certificate in use: %s, retrying", err.Error())
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 
 	if err != nil && !isAWSErr(err, acm.ErrCodeResourceNotFoundException, "") {
 		return fmt.Errorf("Error deleting certificate: %s", err)

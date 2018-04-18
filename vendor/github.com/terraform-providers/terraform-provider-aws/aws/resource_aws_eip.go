@@ -24,6 +24,12 @@ func resourceAwsEip() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Read:   schema.DefaultTimeout(15 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+			Delete: schema.DefaultTimeout(3 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"vpc": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -145,7 +151,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	var describeAddresses *ec2.DescribeAddressesOutput
 
 	if d.IsNewResource() {
-		err := resource.Retry(15*time.Minute, func() *resource.RetryError {
+		err := resource.Retry(d.Timeout(schema.TimeoutRead), func() *resource.RetryError {
 			describeAddresses, err = ec2conn.DescribeAddresses(req)
 			if err != nil {
 				awsErr, ok := err.(awserr.Error)
@@ -276,7 +282,7 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		log.Printf("[DEBUG] EIP associate configuration: %s (domain: %s)", assocOpts, domain)
 
-		err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err := resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			_, err := ec2conn.AssociateAddress(assocOpts)
 			if err != nil {
 				if isAWSErr(err, "InvalidAllocationID.NotFound", "") {
@@ -323,7 +329,7 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	domain := resourceAwsEipDomain(d)
-	return resource.Retry(3*time.Minute, func() *resource.RetryError {
+	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		var err error
 		switch domain {
 		case "vpc":

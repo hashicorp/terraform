@@ -167,6 +167,20 @@ func dataSourceAwsDynamoDbTable() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"server_side_encryption": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }

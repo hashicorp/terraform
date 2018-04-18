@@ -39,28 +39,14 @@ func resourceAwsWafRule() *schema.Resource {
 							Required: true,
 						},
 						"data_id": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								if len(value) > 128 {
-									errors = append(errors, fmt.Errorf(
-										"%q cannot be longer than 128 characters", k))
-								}
-								return
-							},
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateMaxLength(128),
 						},
 						"type": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								if value != "IPMatch" && value != "ByteMatch" && value != "SqlInjectionMatch" && value != "SizeConstraint" && value != "XssMatch" {
-									errors = append(errors, fmt.Errorf(
-										"%q must be one of IPMatch | ByteMatch | SqlInjectionMatch | SizeConstraint | XssMatch", k))
-								}
-								return
-							},
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateWafPredicatesType(),
 						},
 					},
 				},
@@ -186,40 +172,4 @@ func updateWafRuleResource(id string, oldP, newP []interface{}, conn *waf.WAF) e
 	}
 
 	return nil
-}
-
-func diffWafRulePredicates(oldP, newP []interface{}) []*waf.RuleUpdate {
-	updates := make([]*waf.RuleUpdate, 0)
-
-	for _, op := range oldP {
-		predicate := op.(map[string]interface{})
-
-		if idx, contains := sliceContainsMap(newP, predicate); contains {
-			newP = append(newP[:idx], newP[idx+1:]...)
-			continue
-		}
-
-		updates = append(updates, &waf.RuleUpdate{
-			Action: aws.String(waf.ChangeActionDelete),
-			Predicate: &waf.Predicate{
-				Negated: aws.Bool(predicate["negated"].(bool)),
-				Type:    aws.String(predicate["type"].(string)),
-				DataId:  aws.String(predicate["data_id"].(string)),
-			},
-		})
-	}
-
-	for _, np := range newP {
-		predicate := np.(map[string]interface{})
-
-		updates = append(updates, &waf.RuleUpdate{
-			Action: aws.String(waf.ChangeActionInsert),
-			Predicate: &waf.Predicate{
-				Negated: aws.Bool(predicate["negated"].(bool)),
-				Type:    aws.String(predicate["type"].(string)),
-				DataId:  aws.String(predicate["data_id"].(string)),
-			},
-		})
-	}
-	return updates
 }

@@ -228,7 +228,7 @@ func resourceAwsBatchComputeEnvironmentCreate(d *schema.ResourceData, meta inter
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{batch.CEStatusCreating},
 		Target:     []string{batch.CEStatusValid},
-		Refresh:    resourceAwsBatchComputeEnvironmentStatusRefreshFunc(d, meta),
+		Refresh:    resourceAwsBatchComputeEnvironmentStatusRefreshFunc(computeEnvironmentName, conn),
 		Timeout:    d.Timeout(schema.TimeoutCreate),
 		MinTimeout: 5 * time.Second,
 	}
@@ -266,8 +266,10 @@ func resourceAwsBatchComputeEnvironmentRead(d *schema.ResourceData, meta interfa
 	d.Set("state", computeEnvironment.State)
 	d.Set("type", computeEnvironment.Type)
 
-	if *(computeEnvironment.Type) == "MANAGED" {
-		d.Set("compute_resources", flattenComputeResources(computeEnvironment.ComputeResources))
+	if aws.StringValue(computeEnvironment.Type) == batch.CETypeManaged {
+		if err := d.Set("compute_resources", flattenBatchComputeResources(computeEnvironment.ComputeResources)); err != nil {
+			return fmt.Errorf("error setting compute_resources: %s", err)
+		}
 	}
 
 	d.Set("arn", computeEnvironment.ComputeEnvironmentArn)
@@ -279,23 +281,23 @@ func resourceAwsBatchComputeEnvironmentRead(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func flattenComputeResources(computeResource *batch.ComputeResource) []map[string]interface{} {
+func flattenBatchComputeResources(computeResource *batch.ComputeResource) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0)
 	m := make(map[string]interface{})
 
-	m["bid_percentage"] = computeResource.BidPercentage
-	m["desired_vcpus"] = computeResource.DesiredvCpus
-	m["ec2_key_pair"] = computeResource.Ec2KeyPair
-	m["image_id"] = computeResource.ImageId
-	m["instance_role"] = computeResource.InstanceRole
+	m["bid_percentage"] = int(aws.Int64Value(computeResource.BidPercentage))
+	m["desired_vcpus"] = int(aws.Int64Value(computeResource.DesiredvCpus))
+	m["ec2_key_pair"] = aws.StringValue(computeResource.Ec2KeyPair)
+	m["image_id"] = aws.StringValue(computeResource.ImageId)
+	m["instance_role"] = aws.StringValue(computeResource.InstanceRole)
 	m["instance_type"] = schema.NewSet(schema.HashString, flattenStringList(computeResource.InstanceTypes))
-	m["max_vcpus"] = computeResource.MaxvCpus
-	m["min_vcpus"] = computeResource.MinvCpus
+	m["max_vcpus"] = int(aws.Int64Value(computeResource.MaxvCpus))
+	m["min_vcpus"] = int(aws.Int64Value(computeResource.MinvCpus))
 	m["security_group_ids"] = schema.NewSet(schema.HashString, flattenStringList(computeResource.SecurityGroupIds))
-	m["spot_iam_fleet_role"] = computeResource.SpotIamFleetRole
+	m["spot_iam_fleet_role"] = aws.StringValue(computeResource.SpotIamFleetRole)
 	m["subnets"] = schema.NewSet(schema.HashString, flattenStringList(computeResource.Subnets))
 	m["tags"] = tagsToMapGeneric(computeResource.Tags)
-	m["type"] = computeResource.Type
+	m["type"] = aws.StringValue(computeResource.Type)
 
 	result = append(result, m)
 	return result
@@ -303,51 +305,19 @@ func flattenComputeResources(computeResource *batch.ComputeResource) []map[strin
 
 func resourceAwsBatchComputeEnvironmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).batchconn
-
 	computeEnvironmentName := d.Get("compute_environment_name").(string)
 
-	updateInput := &batch.UpdateComputeEnvironmentInput{
-		ComputeEnvironment: aws.String(computeEnvironmentName),
-		State:              aws.String(batch.CEStateDisabled),
+	log.Printf("[DEBUG] Disabling Batch Compute Environment: %s", computeEnvironmentName)
+	err := disableBatchComputeEnvironment(computeEnvironmentName, d.Timeout(schema.TimeoutDelete), conn)
+	if err != nil {
+		return fmt.Errorf("error disabling Batch Compute Environment (%s): %s", computeEnvironmentName, err)
 	}
 
-	log.Printf("[DEBUG] Delete compute environment %s.\n", updateInput)
-
-	if _, err := conn.UpdateComputeEnvironment(updateInput); err != nil {
-		return err
+	log.Printf("[DEBUG] Deleting Batch Compute Environment: %s", computeEnvironmentName)
+	err = deleteBatchComputeEnvironment(computeEnvironmentName, d.Timeout(schema.TimeoutDelete), conn)
+	if err != nil {
+		return fmt.Errorf("error deleting Batch Compute Environment (%s): %s", computeEnvironmentName, err)
 	}
-
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{batch.CEStatusUpdating},
-		Target:     []string{batch.CEStatusValid},
-		Refresh:    resourceAwsBatchComputeEnvironmentStatusRefreshFunc(d, meta),
-		Timeout:    d.Timeout(schema.TimeoutDelete),
-		MinTimeout: 5 * time.Second,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return err
-	}
-
-	input := &batch.DeleteComputeEnvironmentInput{
-		ComputeEnvironment: aws.String(computeEnvironmentName),
-	}
-
-	if _, err := conn.DeleteComputeEnvironment(input); err != nil {
-		return err
-	}
-
-	stateConfForDelete := &resource.StateChangeConf{
-		Pending:    []string{batch.CEStatusDeleting},
-		Target:     []string{batch.CEStatusDeleted},
-		Refresh:    resourceAwsBatchComputeEnvironmentDeleteRefreshFunc(d, meta),
-		Timeout:    d.Timeout(schema.TimeoutDelete),
-		MinTimeout: 5 * time.Second,
-	}
-	if _, err := stateConfForDelete.WaitForState(); err != nil {
-		return err
-	}
-
-	d.SetId("")
 
 	return nil
 }
@@ -366,7 +336,7 @@ func resourceAwsBatchComputeEnvironmentUpdate(d *schema.ResourceData, meta inter
 		input.ServiceRole = aws.String(d.Get("service_role").(string))
 	}
 	if d.HasChange("state") {
-		input.ServiceRole = aws.String(d.Get("state").(string))
+		input.State = aws.String(d.Get("state").(string))
 	}
 
 	if d.HasChange("compute_resources") {
@@ -390,12 +360,8 @@ func resourceAwsBatchComputeEnvironmentUpdate(d *schema.ResourceData, meta inter
 	return resourceAwsBatchComputeEnvironmentRead(d, meta)
 }
 
-func resourceAwsBatchComputeEnvironmentStatusRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+func resourceAwsBatchComputeEnvironmentStatusRefreshFunc(computeEnvironmentName string, conn *batch.Batch) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		conn := meta.(*AWSClient).batchconn
-
-		computeEnvironmentName := d.Get("compute_environment_name").(string)
-
 		result, err := conn.DescribeComputeEnvironments(&batch.DescribeComputeEnvironmentsInput{
 			ComputeEnvironments: []*string{
 				aws.String(computeEnvironmentName),
@@ -414,12 +380,8 @@ func resourceAwsBatchComputeEnvironmentStatusRefreshFunc(d *schema.ResourceData,
 	}
 }
 
-func resourceAwsBatchComputeEnvironmentDeleteRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+func resourceAwsBatchComputeEnvironmentDeleteRefreshFunc(computeEnvironmentName string, conn *batch.Batch) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		conn := meta.(*AWSClient).batchconn
-
-		computeEnvironmentName := d.Get("compute_environment_name").(string)
-
 		result, err := conn.DescribeComputeEnvironments(&batch.DescribeComputeEnvironmentsInput{
 			ComputeEnvironments: []*string{
 				aws.String(computeEnvironmentName),
@@ -436,4 +398,45 @@ func resourceAwsBatchComputeEnvironmentDeleteRefreshFunc(d *schema.ResourceData,
 		computeEnvironment := result.ComputeEnvironments[0]
 		return result, *(computeEnvironment.Status), nil
 	}
+}
+
+func deleteBatchComputeEnvironment(computeEnvironment string, timeout time.Duration, conn *batch.Batch) error {
+	input := &batch.DeleteComputeEnvironmentInput{
+		ComputeEnvironment: aws.String(computeEnvironment),
+	}
+
+	if _, err := conn.DeleteComputeEnvironment(input); err != nil {
+		return err
+	}
+
+	stateChangeConf := &resource.StateChangeConf{
+		Pending:    []string{batch.CEStatusDeleting},
+		Target:     []string{batch.CEStatusDeleted},
+		Refresh:    resourceAwsBatchComputeEnvironmentDeleteRefreshFunc(computeEnvironment, conn),
+		Timeout:    timeout,
+		MinTimeout: 5 * time.Second,
+	}
+	_, err := stateChangeConf.WaitForState()
+	return err
+}
+
+func disableBatchComputeEnvironment(computeEnvironment string, timeout time.Duration, conn *batch.Batch) error {
+	input := &batch.UpdateComputeEnvironmentInput{
+		ComputeEnvironment: aws.String(computeEnvironment),
+		State:              aws.String(batch.CEStateDisabled),
+	}
+
+	if _, err := conn.UpdateComputeEnvironment(input); err != nil {
+		return err
+	}
+
+	stateChangeConf := &resource.StateChangeConf{
+		Pending:    []string{batch.CEStatusUpdating},
+		Target:     []string{batch.CEStatusValid},
+		Refresh:    resourceAwsBatchComputeEnvironmentStatusRefreshFunc(computeEnvironment, conn),
+		Timeout:    timeout,
+		MinTimeout: 5 * time.Second,
+	}
+	_, err := stateChangeConf.WaitForState()
+	return err
 }

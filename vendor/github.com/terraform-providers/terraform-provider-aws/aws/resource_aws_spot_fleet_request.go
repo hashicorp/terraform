@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSpotFleetRequest() *schema.Resource {
@@ -24,6 +25,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(5 * time.Minute),
 		},
 
 		SchemaVersion: 1,
@@ -204,7 +206,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 							Optional:     true,
 							ForceNew:     true,
 							Computed:     true,
-							ValidateFunc: validateSpotFleetRequestKeyName,
+							ValidateFunc: validation.NoZeroValues,
 						},
 						"monitoring": {
 							Type:     schema.TypeBool,
@@ -317,6 +319,22 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 			"client_token": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"load_balancers": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			"target_group_arns": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 		},
 	}
@@ -438,16 +456,6 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 	}
 
 	return opts, nil
-}
-
-func validateSpotFleetRequestKeyName(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	if value == "" {
-		errors = append(errors, fmt.Errorf("Key name cannot be empty."))
-	}
-
-	return
 }
 
 func readSpotFleetBlockDeviceMappingsFromConfig(
@@ -609,6 +617,36 @@ func resourceAwsSpotFleetRequestCreate(d *schema.ResourceData, meta interface{})
 	} else {
 		valid_until := time.Now().Add(24 * time.Hour)
 		spotFleetConfig.ValidUntil = &valid_until
+	}
+
+	if v, ok := d.GetOk("load_balancers"); ok && v.(*schema.Set).Len() > 0 {
+		var elbNames []*ec2.ClassicLoadBalancer
+		for _, v := range v.(*schema.Set).List() {
+			elbNames = append(elbNames, &ec2.ClassicLoadBalancer{
+				Name: aws.String(v.(string)),
+			})
+		}
+		if spotFleetConfig.LoadBalancersConfig == nil {
+			spotFleetConfig.LoadBalancersConfig = &ec2.LoadBalancersConfig{}
+		}
+		spotFleetConfig.LoadBalancersConfig.ClassicLoadBalancersConfig = &ec2.ClassicLoadBalancersConfig{
+			ClassicLoadBalancers: elbNames,
+		}
+	}
+
+	if v, ok := d.GetOk("target_group_arns"); ok && v.(*schema.Set).Len() > 0 {
+		var targetGroups []*ec2.TargetGroup
+		for _, v := range v.(*schema.Set).List() {
+			targetGroups = append(targetGroups, &ec2.TargetGroup{
+				Arn: aws.String(v.(string)),
+			})
+		}
+		if spotFleetConfig.LoadBalancersConfig == nil {
+			spotFleetConfig.LoadBalancersConfig = &ec2.LoadBalancersConfig{}
+		}
+		spotFleetConfig.LoadBalancersConfig.TargetGroupsConfig = &ec2.TargetGroupsConfig{
+			TargetGroups: targetGroups,
+		}
 	}
 
 	// http://docs.aws.amazon.com/sdk-for-go/api/service/ec2.html#type-RequestSpotFleetInput
@@ -1081,25 +1119,21 @@ func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{})
 	terminateInstances := d.Get("terminate_instances_with_expiration").(bool)
 
 	log.Printf("[INFO] Cancelling spot fleet request: %s", d.Id())
-	resp, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
-		SpotFleetRequestIds: []*string{aws.String(d.Id())},
+	err := deleteSpotFleetRequest(d.Id(), terminateInstances, d.Timeout(schema.TimeoutDelete), conn)
+	if err != nil {
+		return fmt.Errorf("error deleting spot request (%s): %s", d.Id(), err)
+	}
+
+	return nil
+}
+
+func deleteSpotFleetRequest(spotFleetRequestID string, terminateInstances bool, timeout time.Duration, conn *ec2.EC2) error {
+	_, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
+		SpotFleetRequestIds: []*string{aws.String(spotFleetRequestID)},
 		TerminateInstances:  aws.Bool(terminateInstances),
 	})
-
 	if err != nil {
-		return fmt.Errorf("Error cancelling spot request (%s): %s", d.Id(), err)
-	}
-
-	// check response successfulFleetRequestSet to make sure our request was canceled
-	var found bool
-	for _, s := range resp.SuccessfulFleetRequests {
-		if *s.SpotFleetRequestId == d.Id() {
-			found = true
-		}
-	}
-
-	if !found {
-		return fmt.Errorf("[ERR] Spot Fleet request (%s) was not found to be successfully canceled, dangling resources may exit", d.Id())
+		return err
 	}
 
 	// Only wait for instance termination if requested
@@ -1107,20 +1141,20 @@ func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
-	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+	return resource.Retry(timeout, func() *resource.RetryError {
 		resp, err := conn.DescribeSpotFleetInstances(&ec2.DescribeSpotFleetInstancesInput{
-			SpotFleetRequestId: aws.String(d.Id()),
+			SpotFleetRequestId: aws.String(spotFleetRequestID),
 		})
 		if err != nil {
 			return resource.NonRetryableError(err)
 		}
 
 		if len(resp.ActiveInstances) == 0 {
-			log.Printf("[DEBUG] Active instance count is 0 for Spot Fleet Request (%s), removing", d.Id())
+			log.Printf("[DEBUG] Active instance count is 0 for Spot Fleet Request (%s), removing", spotFleetRequestID)
 			return nil
 		}
 
-		log.Printf("[DEBUG] Active instance count in Spot Fleet Request (%s): %d", d.Id(), len(resp.ActiveInstances))
+		log.Printf("[DEBUG] Active instance count in Spot Fleet Request (%s): %d", spotFleetRequestID, len(resp.ActiveInstances))
 
 		return resource.RetryableError(
 			fmt.Errorf("fleet still has (%d) running instances", len(resp.ActiveInstances)))

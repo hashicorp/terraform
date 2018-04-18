@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSpotInstanceRequest() *schema.Resource {
@@ -81,8 +82,13 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 			s["instance_interruption_behaviour"] = &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "terminate",
+				Default:  ec2.InstanceInterruptionBehaviorTerminate,
 				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					ec2.InstanceInterruptionBehaviorTerminate,
+					ec2.InstanceInterruptionBehaviorStop,
+					ec2.InstanceInterruptionBehaviorHibernate,
+				}, false),
 			}
 			return s
 		}(),
@@ -115,7 +121,6 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 			ImageId:             instanceOpts.ImageID,
 			InstanceType:        instanceOpts.InstanceType,
 			KeyName:             instanceOpts.KeyName,
-			Placement:           instanceOpts.SpotPlacement,
 			SecurityGroupIds:    instanceOpts.SecurityGroupIDs,
 			SecurityGroups:      instanceOpts.SecurityGroups,
 			SubnetId:            instanceOpts.SubnetID,
@@ -132,11 +137,16 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 		spotOpts.LaunchGroup = aws.String(v.(string))
 	}
 
+	// Placement GroupName can only be specified when instanceInterruptionBehavior is not set or set to 'terminate'
+	if v, exists := d.GetOkExists("instance_interruption_behaviour"); v.(string) == ec2.InstanceInterruptionBehaviorTerminate || !exists {
+		spotOpts.LaunchSpecification.Placement = instanceOpts.SpotPlacement
+	}
+
 	// Make the spot instance request
 	log.Printf("[DEBUG] Requesting spot bid opts: %s", spotOpts)
 
 	var resp *ec2.RequestSpotInstancesOutput
-	err = resource.Retry(15*time.Second, func() *resource.RetryError {
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 		resp, err = conn.RequestSpotInstances(spotOpts)
 		// IAM instance profiles can take ~10 seconds to propagate in AWS:
@@ -308,6 +318,17 @@ func readInstance(d *schema.ResourceData, meta interface{}) error {
 
 		if err := d.Set("ipv6_addresses", ipv6Addresses); err != nil {
 			log.Printf("[WARN] Error setting ipv6_addresses for AWS Spot Instance (%s): %s", d.Id(), err)
+		}
+
+		if d.Get("get_password_data").(bool) {
+			passwordData, err := getAwsEc2InstancePasswordData(*instance.InstanceId, conn)
+			if err != nil {
+				return err
+			}
+			d.Set("password_data", passwordData)
+		} else {
+			d.Set("get_password_data", false)
+			d.Set("password_data", nil)
 		}
 	}
 

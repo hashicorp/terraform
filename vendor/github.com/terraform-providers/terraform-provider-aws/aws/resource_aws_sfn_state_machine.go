@@ -27,7 +27,7 @@ func resourceAwsSfnStateMachine() *schema.Resource {
 			"definition": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateSfnStateMachineDefinition,
+				ValidateFunc: validateMaxLength(1024 * 1024), // 1048576
 			},
 
 			"name": {

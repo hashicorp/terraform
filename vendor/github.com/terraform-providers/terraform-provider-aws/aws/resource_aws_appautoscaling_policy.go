@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsAppautoscalingPolicy() *schema.Resource {
@@ -26,14 +27,8 @@ func resourceAwsAppautoscalingPolicy() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1862-L1873
-					value := v.(string)
-					if len(value) > 255 {
-						errors = append(errors, fmt.Errorf("%s cannot be longer than 255 characters", k))
-					}
-					return
-				},
+				// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1862-L1873
+				ValidateFunc: validateMaxLength(255),
 			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -191,9 +186,15 @@ func resourceAwsAppautoscalingPolicy() *schema.Resource {
 										Required: true,
 									},
 									"statistic": &schema.Schema{
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validateAppautoscalingCustomizedMetricSpecificationStatistic,
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											applicationautoscaling.MetricStatisticAverage,
+											applicationautoscaling.MetricStatisticMinimum,
+											applicationautoscaling.MetricStatisticMaximum,
+											applicationautoscaling.MetricStatisticSampleCount,
+											applicationautoscaling.MetricStatisticSum,
+										}, false),
 									},
 									"unit": &schema.Schema{
 										Type:     schema.TypeString,
@@ -216,7 +217,7 @@ func resourceAwsAppautoscalingPolicy() *schema.Resource {
 									"resource_label": &schema.Schema{
 										Type:         schema.TypeString,
 										Optional:     true,
-										ValidateFunc: validateAppautoscalingPredefinedResourceLabel,
+										ValidateFunc: validateMaxLength(1023),
 									},
 								},
 							},

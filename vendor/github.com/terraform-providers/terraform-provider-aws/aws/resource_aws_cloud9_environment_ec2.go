@@ -87,7 +87,20 @@ func resourceAwsCloud9EnvironmentEc2Create(d *schema.ResourceData, meta interfac
 		params.SubnetId = aws.String(v.(string))
 	}
 
-	out, err := conn.CreateEnvironmentEC2(params)
+	var out *cloud9.CreateEnvironmentEC2Output
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		var err error
+		out, err = conn.CreateEnvironmentEC2(params)
+		if err != nil {
+			// NotFoundException: User arn:aws:iam::*******:user/****** does not exist.
+			if isAWSErr(err, cloud9.ErrCodeNotFoundException, "User") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
