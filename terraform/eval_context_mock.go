@@ -28,6 +28,10 @@ type MockEvalContext struct {
 	ProviderName     string
 	ProviderProvider ResourceProvider
 
+	ProviderSchemaCalled bool
+	ProviderSchemaName   string
+	ProviderSchemaSchema *ProviderSchema
+
 	CloseProviderCalled   bool
 	CloseProviderName     string
 	CloseProviderProvider ResourceProvider
@@ -117,6 +121,12 @@ func (c *MockEvalContext) Provider(n string) ResourceProvider {
 	c.ProviderCalled = true
 	c.ProviderName = n
 	return c.ProviderProvider
+}
+
+func (c *MockEvalContext) ProviderSchema(n string) *ProviderSchema {
+	c.ProviderSchemaCalled = true
+	c.ProviderSchemaName = n
+	return c.ProviderSchemaSchema
 }
 
 func (c *MockEvalContext) CloseProvider(n string) error {

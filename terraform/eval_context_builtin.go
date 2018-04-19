@@ -33,6 +33,7 @@ type BuiltinEvalContext struct {
 	Hooks               []Hook
 	InputValue          UIInput
 	ProviderCache       map[string]ResourceProvider
+	ProviderSchemas     map[string]*ProviderSchema
 	ProviderInputConfig map[string]map[string]interface{}
 	ProviderLock        *sync.Mutex
 	ProvisionerCache    map[string]ResourceProvisioner
@@ -97,6 +98,35 @@ func (ctx *BuiltinEvalContext) InitProvider(typeName, name string) (ResourceProv
 	}
 
 	ctx.ProviderCache[name] = p
+
+	// Also fetch and cache the provider's schema.
+	// FIXME: This is using a non-ideal provider API that requires us to
+	// request specific resource types, but we actually just want _all_ the
+	// resource types, so we'll list these first. Once the provider API is
+	// updated we'll get enough data to populate this whole structure in
+	// a single call.
+	resourceTypes := p.Resources()
+	dataSources := p.DataSources()
+	resourceTypeNames := make([]string, len(resourceTypes))
+	for i, t := range resourceTypes {
+		resourceTypeNames[i] = t.Name
+	}
+	dataSourceNames := make([]string, len(dataSources))
+	for i, t := range dataSources {
+		dataSourceNames[i] = t.Name
+	}
+	schema, err := p.GetSchema(&ProviderSchemaRequest{
+		DataSources:   dataSourceNames,
+		ResourceTypes: resourceTypeNames,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error fetching schema for %s: %s", name, err)
+	}
+	if ctx.ProviderSchemas == nil {
+		ctx.ProviderSchemas = make(map[string]*ProviderSchema)
+	}
+	ctx.ProviderSchemas[name] = schema
+
 	return p, nil
 }
 
@@ -107,6 +137,15 @@ func (ctx *BuiltinEvalContext) Provider(n string) ResourceProvider {
 	defer ctx.ProviderLock.Unlock()
 
 	return ctx.ProviderCache[n]
+}
+
+func (ctx *BuiltinEvalContext) ProviderSchema(n string) *ProviderSchema {
+	ctx.once.Do(ctx.init)
+
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+
+	return ctx.ProviderSchemas[n]
 }
 
 func (ctx *BuiltinEvalContext) CloseProvider(n string) error {
