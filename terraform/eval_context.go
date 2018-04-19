@@ -32,6 +32,10 @@ type EvalContext interface {
 	// initialized) or returns nil if the provider isn't initialized.
 	Provider(string) ResourceProvider
 
+	// ProviderSchema retrieves the schema for a particular provider, which
+	// must have already be initialized with InitProvider.
+	ProviderSchema(string) *ProviderSchema
+
 	// CloseProvider closes provider connections that aren't needed anymore.
 	CloseProvider(string) error
 
