@@ -4,6 +4,9 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/terraform/config/configschema"
 )
 
 func TestBuiltinEvalContextProviderInput(t *testing.T) {
@@ -34,6 +37,78 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 	}
 	if !reflect.DeepEqual(actual2, expected2) {
 		t.Fatalf("bad: %#v %#v", actual2, expected2)
+	}
+}
+
+func TestBuildingEvalContextInitProvider(t *testing.T) {
+	var lock sync.Mutex
+
+	testP := &MockResourceProvider{
+		ResourcesReturn: []ResourceType{
+			{
+				Name:            "test_thing",
+				SchemaAvailable: true,
+			},
+		},
+		DataSourcesReturn: []DataSource{
+			{
+				Name:            "test_thing",
+				SchemaAvailable: true,
+			},
+		},
+		GetSchemaReturn: &ProviderSchema{
+			Provider: &configschema.Block{},
+			ResourceTypes: map[string]*configschema.Block{
+				"test_thing": &configschema.Block{},
+			},
+			DataSources: map[string]*configschema.Block{
+				"test_thing": &configschema.Block{},
+			},
+		},
+	}
+
+	ctx := testBuiltinEvalContext(t)
+	ctx.ProviderLock = &lock
+	ctx.ProviderCache = make(map[string]ResourceProvider)
+	ctx.Components = &basicComponentFactory{
+		providers: map[string]ResourceProviderFactory{
+			"test": ResourceProviderFactoryFixed(testP),
+		},
+	}
+
+	_, err := ctx.InitProvider("test", "test")
+	if err != nil {
+		t.Fatalf("error initializing provider test: %s", err)
+	}
+	_, err = ctx.InitProvider("test", "test.foo")
+	if err != nil {
+		t.Fatalf("error initializing provider test.foo: %s", err)
+	}
+
+	{
+		got := testP.GetSchemaRequest
+		want := &ProviderSchemaRequest{
+			DataSources:   []string{"test_thing"},
+			ResourceTypes: []string{"test_thing"},
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("wrong schema request\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
+		}
+	}
+
+	{
+		schema := ctx.ProviderSchema("test")
+		if got, want := schema, testP.GetSchemaReturn; !reflect.DeepEqual(got, want) {
+			t.Errorf("wrong schema\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
+		}
+	}
+
+	{
+		schema := ctx.ProviderSchema("test.foo")
+		if got, want := schema, testP.GetSchemaReturn; !reflect.DeepEqual(got, want) {
+			t.Errorf("wrong schema\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
+		}
 	}
 }
 
