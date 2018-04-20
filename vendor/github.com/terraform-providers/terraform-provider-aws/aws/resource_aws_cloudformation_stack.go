@@ -308,7 +308,6 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 	log.Printf("[DEBUG] Received CloudFormation stack: %s", stack)
 
 	d.Set("name", stack.StackName)
-	d.Set("arn", stack.StackId)
 	d.Set("iam_role_arn", stack.RoleARN)
 
 	if stack.TimeoutInMinutes != nil {

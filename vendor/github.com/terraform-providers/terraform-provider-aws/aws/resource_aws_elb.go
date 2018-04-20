@@ -473,7 +473,10 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		ns := n.(*schema.Set)
 
 		remove, _ := expandListeners(os.Difference(ns).List())
-		add, _ := expandListeners(ns.Difference(os).List())
+		add, err := expandListeners(ns.Difference(os).List())
+		if err != nil {
+			return err
+		}
 
 		if len(remove) > 0 {
 			ports := make([]*int64, 0, len(remove))

@@ -26,7 +26,7 @@ func resourceAwsSfnActivity() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateSfnActivityName,
+				ValidateFunc: validateMaxLength(80),
 			},
 
 			"creation_date": {

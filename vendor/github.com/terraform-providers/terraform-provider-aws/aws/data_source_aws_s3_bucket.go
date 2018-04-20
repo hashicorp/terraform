@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -63,7 +64,12 @@ func dataSourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(bucket)
-	d.Set("arn", fmt.Sprintf("arn:%s:s3:::%s", meta.(*AWSClient).partition, bucket))
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "s3",
+		Resource:  bucket,
+	}.String()
+	d.Set("arn", arn)
 	d.Set("bucket_domain_name", bucketDomainName(bucket))
 
 	if err := bucketLocation(d, bucket, conn); err != nil {

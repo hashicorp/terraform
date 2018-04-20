@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -51,6 +52,10 @@ func dataSourceAwsIAMRole() *schema.Resource {
 			},
 			"create_date": {
 				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"max_session_duration": {
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 		},

@@ -191,7 +191,7 @@ func resourceAwsSsmMaintenanceWindowTaskCreate(d *schema.ResourceData, meta inte
 		TaskType:       aws.String(d.Get("task_type").(string)),
 		ServiceRoleArn: aws.String(d.Get("service_role_arn").(string)),
 		TaskArn:        aws.String(d.Get("task_arn").(string)),
-		Targets:        expandAwsSsmTargets(d),
+		Targets:        expandAwsSsmTargets(d.Get("targets").([]interface{})),
 	}
 
 	if v, ok := d.GetOk("priority"); ok {

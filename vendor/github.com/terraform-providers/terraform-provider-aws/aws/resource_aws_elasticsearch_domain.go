@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsElasticSearchDomain() *schema.Resource {
@@ -205,17 +206,10 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 						"log_type": {
 							Type:     schema.TypeString,
 							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								validLogTypes := []string{"INDEX_SLOW_LOGS", "SEARCH_SLOW_LOGS"}
-								for _, str := range validLogTypes {
-									if value == str {
-										return
-									}
-								}
-								errors = append(errors, fmt.Errorf("expected %s to be one of %v, got %s", k, validLogTypes, value))
-								return
-							},
+							ValidateFunc: validation.StringInSlice([]string{
+								elasticsearch.LogTypeIndexSlowLogs,
+								elasticsearch.LogTypeSearchSlowLogs,
+							}, false),
 						},
 						"cloudwatch_log_group_arn": {
 							Type:     schema.TypeString,
@@ -683,43 +677,45 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 
 func resourceAwsElasticSearchDomainDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).esconn
+	domainName := d.Get("domain_name").(string)
 
-	log.Printf("[DEBUG] Deleting ElasticSearch domain: %q", d.Get("domain_name").(string))
+	log.Printf("[DEBUG] Deleting ElasticSearch domain: %q", domainName)
 	_, err := conn.DeleteElasticsearchDomain(&elasticsearch.DeleteElasticsearchDomainInput{
-		DomainName: aws.String(d.Get("domain_name").(string)),
+		DomainName: aws.String(domainName),
 	})
 	if err != nil {
+		if isAWSErr(err, elasticsearch.ErrCodeResourceNotFoundException, "") {
+			return nil
+		}
 		return err
 	}
 
-	log.Printf("[DEBUG] Waiting for ElasticSearch domain %q to be deleted", d.Get("domain_name").(string))
-	err = resource.Retry(90*time.Minute, func() *resource.RetryError {
-		out, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
-			DomainName: aws.String(d.Get("domain_name").(string)),
-		})
+	log.Printf("[DEBUG] Waiting for ElasticSearch domain %q to be deleted", domainName)
+	err = resourceAwsElasticSearchDomainDeleteWaiter(domainName, conn)
+
+	return err
+}
+
+func resourceAwsElasticSearchDomainDeleteWaiter(domainName string, conn *elasticsearch.ElasticsearchService) error {
+	input := &elasticsearch.DescribeElasticsearchDomainInput{
+		DomainName: aws.String(domainName),
+	}
+	err := resource.Retry(90*time.Minute, func() *resource.RetryError {
+		out, err := conn.DescribeElasticsearchDomain(input)
 
 		if err != nil {
-			awsErr, ok := err.(awserr.Error)
-			if !ok {
-				return resource.NonRetryableError(err)
-			}
-
-			if awsErr.Code() == "ResourceNotFoundException" {
+			if isAWSErr(err, elasticsearch.ErrCodeResourceNotFoundException, "") {
 				return nil
 			}
-
 			return resource.NonRetryableError(err)
 		}
 
-		if !*out.DomainStatus.Processing {
+		if out.DomainStatus != nil && !aws.BoolValue(out.DomainStatus.Processing) {
 			return nil
 		}
 
-		return resource.RetryableError(
-			fmt.Errorf("%q: Timeout while waiting for the domain to be deleted", d.Id()))
+		return resource.RetryableError(fmt.Errorf("timeout while waiting for the domain %q to be deleted", domainName))
 	})
-
-	d.SetId("")
 
 	return err
 }
