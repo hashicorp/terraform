@@ -207,6 +207,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_kinesis_stream":                   dataSourceAwsKinesisStream(),
 			"aws_kms_alias":                        dataSourceAwsKmsAlias(),
 			"aws_kms_ciphertext":                   dataSourceAwsKmsCiphertext(),
+			"aws_kms_key":                          dataSourceAwsKmsKey(),
 			"aws_kms_secret":                       dataSourceAwsKmsSecret(),
 			"aws_nat_gateway":                      dataSourceAwsNatGateway(),
 			"aws_network_interface":                dataSourceAwsNetworkInterface(),
@@ -273,6 +274,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_appautoscaling_target":                    resourceAwsAppautoscalingTarget(),
 			"aws_appautoscaling_policy":                    resourceAwsAppautoscalingPolicy(),
 			"aws_appautoscaling_scheduled_action":          resourceAwsAppautoscalingScheduledAction(),
+			"aws_appsync_datasource":                       resourceAwsAppsyncDatasource(),
 			"aws_appsync_graphql_api":                      resourceAwsAppsyncGraphqlApi(),
 			"aws_athena_database":                          resourceAwsAthenaDatabase(),
 			"aws_athena_named_query":                       resourceAwsAthenaNamedQuery(),
@@ -407,12 +409,14 @@ func Provider() terraform.ResourceProvider {
 			"aws_internet_gateway":                         resourceAwsInternetGateway(),
 			"aws_iot_certificate":                          resourceAwsIotCertificate(),
 			"aws_iot_policy":                               resourceAwsIotPolicy(),
+			"aws_iot_thing":                                resourceAwsIotThing(),
 			"aws_iot_thing_type":                           resourceAwsIotThingType(),
 			"aws_iot_topic_rule":                           resourceAwsIotTopicRule(),
 			"aws_key_pair":                                 resourceAwsKeyPair(),
 			"aws_kinesis_firehose_delivery_stream":         resourceAwsKinesisFirehoseDeliveryStream(),
 			"aws_kinesis_stream":                           resourceAwsKinesisStream(),
 			"aws_kms_alias":                                resourceAwsKmsAlias(),
+			"aws_kms_grant":                                resourceAwsKmsGrant(),
 			"aws_kms_key":                                  resourceAwsKmsKey(),
 			"aws_lambda_function":                          resourceAwsLambdaFunction(),
 			"aws_lambda_event_source_mapping":              resourceAwsLambdaEventSourceMapping(),
@@ -455,6 +459,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_opsworks_user_profile":                    resourceAwsOpsworksUserProfile(),
 			"aws_opsworks_permission":                      resourceAwsOpsworksPermission(),
 			"aws_opsworks_rds_db_instance":                 resourceAwsOpsworksRdsDbInstance(),
+			"aws_organizations_organization":               resourceAwsOrganizationsOrganization(),
+			"aws_organizations_account":                    resourceAwsOrganizationsAccount(),
 			"aws_placement_group":                          resourceAwsPlacementGroup(),
 			"aws_proxy_protocol_policy":                    resourceAwsProxyProtocolPolicy(),
 			"aws_rds_cluster":                              resourceAwsRDSCluster(),
@@ -483,6 +489,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_ses_receipt_rule_set":                     resourceAwsSesReceiptRuleSet(),
 			"aws_ses_configuration_set":                    resourceAwsSesConfigurationSet(),
 			"aws_ses_event_destination":                    resourceAwsSesEventDestination(),
+			"aws_ses_identity_notification_topic":          resourceAwsSesNotificationTopic(),
 			"aws_ses_template":                             resourceAwsSesTemplate(),
 			"aws_s3_bucket":                                resourceAwsS3Bucket(),
 			"aws_s3_bucket_policy":                         resourceAwsS3BucketPolicy(),
@@ -543,14 +550,29 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpn_gateway_route_propagation":            resourceAwsVpnGatewayRoutePropagation(),
 			"aws_waf_byte_match_set":                       resourceAwsWafByteMatchSet(),
 			"aws_waf_ipset":                                resourceAwsWafIPSet(),
-			"aws_waf_rule":                                 resourceAwsWafRule(),
 			"aws_waf_rate_based_rule":                      resourceAwsWafRateBasedRule(),
+			"aws_waf_regex_match_set":                      resourceAwsWafRegexMatchSet(),
+			"aws_waf_regex_pattern_set":                    resourceAwsWafRegexPatternSet(),
+			"aws_waf_rule":                                 resourceAwsWafRule(),
+			"aws_waf_rule_group":                           resourceAwsWafRuleGroup(),
 			"aws_waf_size_constraint_set":                  resourceAwsWafSizeConstraintSet(),
 			"aws_waf_web_acl":                              resourceAwsWafWebAcl(),
 			"aws_waf_xss_match_set":                        resourceAwsWafXssMatchSet(),
 			"aws_waf_sql_injection_match_set":              resourceAwsWafSqlInjectionMatchSet(),
+			"aws_waf_geo_match_set":                        resourceAwsWafGeoMatchSet(),
 			"aws_wafregional_byte_match_set":               resourceAwsWafRegionalByteMatchSet(),
+			"aws_wafregional_geo_match_set":                resourceAwsWafRegionalGeoMatchSet(),
 			"aws_wafregional_ipset":                        resourceAwsWafRegionalIPSet(),
+			"aws_wafregional_rate_based_rule":              resourceAwsWafRegionalRateBasedRule(),
+			"aws_wafregional_regex_match_set":              resourceAwsWafRegionalRegexMatchSet(),
+			"aws_wafregional_regex_pattern_set":            resourceAwsWafRegionalRegexPatternSet(),
+			"aws_wafregional_rule":                         resourceAwsWafRegionalRule(),
+			"aws_wafregional_rule_group":                   resourceAwsWafRegionalRuleGroup(),
+			"aws_wafregional_size_constraint_set":          resourceAwsWafRegionalSizeConstraintSet(),
+			"aws_wafregional_sql_injection_match_set":      resourceAwsWafRegionalSqlInjectionMatchSet(),
+			"aws_wafregional_xss_match_set":                resourceAwsWafRegionalXssMatchSet(),
+			"aws_wafregional_web_acl":                      resourceAwsWafRegionalWebAcl(),
+			"aws_wafregional_web_acl_association":          resourceAwsWafRegionalWebAclAssociation(),
 			"aws_batch_compute_environment":                resourceAwsBatchComputeEnvironment(),
 			"aws_batch_job_definition":                     resourceAwsBatchJobDefinition(),
 			"aws_batch_job_queue":                          resourceAwsBatchJobQueue(),
@@ -629,6 +651,8 @@ func init() {
 		"ec2_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
 		"elb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+		"es_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
 		"rds_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
@@ -732,6 +756,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.EcrEndpoint = endpoints["ecr"].(string)
 		config.EcsEndpoint = endpoints["ecs"].(string)
 		config.ElbEndpoint = endpoints["elb"].(string)
+		config.EsEndpoint = endpoints["es"].(string)
 		config.IamEndpoint = endpoints["iam"].(string)
 		config.KinesisEndpoint = endpoints["kinesis"].(string)
 		config.KmsEndpoint = endpoints["kms"].(string)
@@ -880,6 +905,12 @@ func endpointsSchema() *schema.Schema {
 					Optional:    true,
 					Default:     "",
 					Description: descriptions["elb_endpoint"],
+				},
+				"es": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["es_endpoint"],
 				},
 				"kinesis": {
 					Type:        schema.TypeString,

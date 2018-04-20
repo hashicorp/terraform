@@ -282,15 +282,23 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 func resourceAwsVPCPeeringDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	_, err := conn.DeleteVpcPeeringConnection(
-		&ec2.DeleteVpcPeeringConnectionInput{
-			VpcPeeringConnectionId: aws.String(d.Id()),
-		})
+	input := &ec2.DeleteVpcPeeringConnectionInput{
+		VpcPeeringConnectionId: aws.String(d.Id()),
+	}
+	log.Printf("[DEBUG] Deleting VPC Peering Connection: %s", input)
+	_, err := conn.DeleteVpcPeeringConnection(input)
+	if err != nil {
+		if isAWSErr(err, "InvalidVpcPeeringConnectionID.NotFound", "") {
+			return nil
+		}
+		return fmt.Errorf("Error deleting VPC Peering Connection (%s): %s", d.Id(), err)
+	}
 
-	// Wait for the vpc peering connection to become available
+	// Wait for the vpc peering connection to delete
 	log.Printf("[DEBUG] Waiting for VPC Peering Connection (%s) to delete.", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{
+			ec2.VpcPeeringConnectionStateReasonCodeActive,
 			ec2.VpcPeeringConnectionStateReasonCodePendingAcceptance,
 			ec2.VpcPeeringConnectionStateReasonCodeDeleting,
 		},
@@ -302,12 +310,10 @@ func resourceAwsVPCPeeringDelete(d *schema.ResourceData, meta interface{}) error
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
-		return errwrap.Wrapf(fmt.Sprintf(
-			"Error waiting for VPC Peering Connection (%s) to be deleted: {{err}}",
-			d.Id()), err)
+		return fmt.Errorf("Error waiting for VPC Peering Connection (%s) to be deleted: %s", d.Id(), err)
 	}
 
-	return err
+	return nil
 }
 
 // resourceAwsVPCPeeringConnectionStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch

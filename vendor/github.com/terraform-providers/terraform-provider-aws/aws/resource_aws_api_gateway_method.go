@@ -38,7 +38,7 @@ func resourceAwsApiGatewayMethod() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateHTTPMethod,
+				ValidateFunc: validateHTTPMethod(),
 			},
 
 			"authorization": &schema.Schema{

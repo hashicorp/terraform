@@ -64,10 +64,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/lexmodelbuildingservice"
 	"github.com/aws/aws-sdk-go/service/lightsail"
 	"github.com/aws/aws-sdk-go/service/mediastore"
 	"github.com/aws/aws-sdk-go/service/mq"
 	"github.com/aws/aws-sdk-go/service/opsworks"
+	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -118,6 +120,7 @@ type Config struct {
 	Ec2Endpoint              string
 	EcsEndpoint              string
 	EcrEndpoint              string
+	EsEndpoint               string
 	ElbEndpoint              string
 	IamEndpoint              string
 	KinesisEndpoint          string
@@ -194,6 +197,7 @@ type AWSClient struct {
 	lightsailconn         *lightsail.Lightsail
 	mqconn                *mq.MQ
 	opsworksconn          *opsworks.OpsWorks
+	organizationsconn     *organizations.Organizations
 	glacierconn           *glacier.Glacier
 	guarddutyconn         *guardduty.GuardDuty
 	codebuildconn         *codebuild.CodeBuild
@@ -212,6 +216,7 @@ type AWSClient struct {
 	dxconn                *directconnect.DirectConnect
 	mediastoreconn        *mediastore.MediaStore
 	appsyncconn           *appsync.AppSync
+	lexmodelconn          *lexmodelbuildingservice.LexModelBuildingService
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -274,16 +279,27 @@ func (c *Config) Client() (interface{}, error) {
 	cp, err := creds.Get()
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
-			// If a profile wasn't specified then error out
+			// If a profile wasn't specified, the session may still be able to resolve credentials from shared config.
 			if c.Profile == "" {
-				return nil, errors.New(`No valid credential sources found for AWS Provider.
-  Please see https://terraform.io/docs/providers/aws/index.html for more information on
-  providing credentials for the AWS Provider`)
+				sess, err := session.NewSession()
+				if err != nil {
+					return nil, errors.New(`No valid credential sources found for AWS Provider.
+	Please see https://terraform.io/docs/providers/aws/index.html for more information on
+	providing credentials for the AWS Provider`)
+				}
+				_, err = sess.Config.Credentials.Get()
+				if err != nil {
+					return nil, errors.New(`No valid credential sources found for AWS Provider.
+	Please see https://terraform.io/docs/providers/aws/index.html for more information on
+	providing credentials for the AWS Provider`)
+				}
+				log.Printf("[INFO] Using session-derived AWS Auth")
+				opt.Config.Credentials = sess.Config.Credentials
+			} else {
+				log.Printf("[INFO] AWS Auth using Profile: %q", c.Profile)
+				opt.Profile = c.Profile
+				opt.SharedConfigState = session.SharedConfigEnable
 			}
-			// add the profile and enable share config file usage
-			log.Printf("[INFO] AWS Auth using Profile: %q", c.Profile)
-			opt.Profile = c.Profile
-			opt.SharedConfigState = session.SharedConfigEnable
 		} else {
 			return nil, fmt.Errorf("Error loading credentials for AWS Provider: %s", err)
 		}
@@ -345,6 +361,7 @@ func (c *Config) Client() (interface{}, error) {
 	awsEcrSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.EcrEndpoint)})
 	awsEcsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.EcsEndpoint)})
 	awsElbSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.ElbEndpoint)})
+	awsEsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.EsEndpoint)})
 	awsIamSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.IamEndpoint)})
 	awsLambdaSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.LambdaEndpoint)})
 	awsKinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
@@ -431,7 +448,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.elbconn = elb.New(awsElbSess)
 	client.elbv2conn = elbv2.New(awsElbSess)
 	client.emrconn = emr.New(sess)
-	client.esconn = elasticsearch.New(sess)
+	client.esconn = elasticsearch.New(awsEsSess)
 	client.firehoseconn = firehose.New(sess)
 	client.inspectorconn = inspector.New(sess)
 	client.gameliftconn = gamelift.New(sess)
@@ -441,9 +458,11 @@ func (c *Config) Client() (interface{}, error) {
 	client.kinesisconn = kinesis.New(awsKinesisSess)
 	client.kmsconn = kms.New(awsKmsSess)
 	client.lambdaconn = lambda.New(awsLambdaSess)
+	client.lexmodelconn = lexmodelbuildingservice.New(sess)
 	client.lightsailconn = lightsail.New(sess)
 	client.mqconn = mq.New(sess)
 	client.opsworksconn = opsworks.New(sess)
+	client.organizationsconn = organizations.New(sess)
 	client.r53conn = route53.New(r53Sess)
 	client.rdsconn = rds.New(awsRdsSess)
 	client.redshiftconn = redshift.New(sess)

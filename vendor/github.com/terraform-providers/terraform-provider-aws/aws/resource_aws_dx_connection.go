@@ -36,7 +36,7 @@ func resourceAwsDxConnection() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateDxConnectionBandWidth,
+				ValidateFunc: validateDxConnectionBandWidth(),
 			},
 			"location": {
 				Type:     schema.TypeString,

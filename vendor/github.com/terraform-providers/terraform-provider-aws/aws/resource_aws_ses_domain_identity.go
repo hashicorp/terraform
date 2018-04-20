@@ -3,8 +3,10 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -27,6 +29,9 @@ func resourceAwsSesDomainIdentity() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				StateFunc: func(v interface{}) string {
+					return strings.TrimSuffix(v.(string), ".")
+				},
 			},
 			"verification_token": {
 				Type:     schema.TypeString,
@@ -40,6 +45,7 @@ func resourceAwsSesDomainIdentityCreate(d *schema.ResourceData, meta interface{}
 	conn := meta.(*AWSClient).sesConn
 
 	domainName := d.Get("domain").(string)
+	domainName = strings.TrimSuffix(domainName, ".")
 
 	createOpts := &ses.VerifyDomainIdentityInput{
 		Domain: aws.String(domainName),
@@ -80,7 +86,14 @@ func resourceAwsSesDomainIdentityRead(d *schema.ResourceData, meta interface{}) 
 		return nil
 	}
 
-	d.Set("arn", fmt.Sprintf("arn:%s:ses:%s:%s:identity/%s", meta.(*AWSClient).partition, meta.(*AWSClient).region, meta.(*AWSClient).accountid, d.Id()))
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "ses",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("identity/%s", d.Id()),
+	}.String()
+	d.Set("arn", arn)
 	d.Set("verification_token", verificationAttrs.VerificationToken)
 	return nil
 }

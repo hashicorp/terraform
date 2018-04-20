@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCognitoIdentityPoolRolesAttachment() *schema.Resource {
@@ -39,9 +40,12 @@ func resourceAwsCognitoIdentityPoolRolesAttachment() *schema.Resource {
 							Required: true,
 						},
 						"ambiguous_role_resolution": {
-							Type:         schema.TypeString,
-							ValidateFunc: validateCognitoRoleMappingsAmbiguousRoleResolution,
-							Optional:     true, // Required if Type equals Token or Rules.
+							Type:     schema.TypeString,
+							Optional: true, // Required if Type equals Token or Rules.
+							ValidateFunc: validation.StringInSlice([]string{
+								cognitoidentity.AmbiguousRoleResolutionTypeAuthenticatedRole,
+								cognitoidentity.AmbiguousRoleResolutionTypeDeny,
+							}, false),
 						},
 						"mapping_rule": {
 							Type:     schema.TypeList,
@@ -55,9 +59,14 @@ func resourceAwsCognitoIdentityPoolRolesAttachment() *schema.Resource {
 										ValidateFunc: validateCognitoRoleMappingsRulesClaim,
 									},
 									"match_type": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validateCognitoRoleMappingsRulesMatchType,
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											cognitoidentity.MappingRuleMatchTypeEquals,
+											cognitoidentity.MappingRuleMatchTypeContains,
+											cognitoidentity.MappingRuleMatchTypeStartsWith,
+											cognitoidentity.MappingRuleMatchTypeNotEqual,
+										}, false),
 									},
 									"role_arn": {
 										Type:         schema.TypeString,
@@ -67,15 +76,18 @@ func resourceAwsCognitoIdentityPoolRolesAttachment() *schema.Resource {
 									"value": {
 										Type:         schema.TypeString,
 										Required:     true,
-										ValidateFunc: validateCognitoRoleMappingsRulesValue,
+										ValidateFunc: validation.StringLenBetween(1, 128),
 									},
 								},
 							},
 						},
 						"type": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateCognitoRoleMappingsType,
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								cognitoidentity.RoleMappingTypeToken,
+								cognitoidentity.RoleMappingTypeRules,
+							}, false),
 						},
 					},
 				},

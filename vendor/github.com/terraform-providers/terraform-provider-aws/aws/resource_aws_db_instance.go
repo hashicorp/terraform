@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
 
@@ -777,29 +778,28 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	// list tags for resource
 	// set tags
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "rds",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("db:%s", d.Id()),
+	}.String()
+	d.Set("arn", arn)
+	resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
+
 	if err != nil {
-		name := "<empty>"
-		if v.DBName != nil && *v.DBName != "" {
-			name = *v.DBName
-		}
-		log.Printf("[DEBUG] Error building ARN for DB Instance, not setting Tags for DB %s", name)
-	} else {
-		d.Set("arn", arn)
-		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
-			ResourceName: aws.String(arn),
-		})
-
-		if err != nil {
-			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
-		}
-
-		var dt []*rds.Tag
-		if len(resp.TagList) > 0 {
-			dt = resp.TagList
-		}
-		d.Set("tags", tagsToMapRDS(dt))
+		log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 	}
+
+	var dt []*rds.Tag
+	if len(resp.TagList) > 0 {
+		dt = resp.TagList
+	}
+	d.Set("tags", tagsToMapRDS(dt))
 
 	// Create an empty schema.Set to hold all vpc security group ids
 	ids := &schema.Set{
@@ -1073,13 +1073,19 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
-		if err := setTagsRDS(conn, d, arn); err != nil {
-			return err
-		} else {
-			d.SetPartial("tags")
-		}
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "rds",
+		Region:    meta.(*AWSClient).region,
+		AccountID: meta.(*AWSClient).accountid,
+		Resource:  fmt.Sprintf("db:%s", d.Id()),
+	}.String()
+	if err := setTagsRDS(conn, d, arn); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
+
 	d.Partial(false)
 
 	return resourceAwsDbInstanceRead(d, meta)
@@ -1145,17 +1151,6 @@ func resourceAwsDbInstanceStateRefreshFunc(id string, conn *rds.RDS) resource.St
 	}
 }
 
-func buildRDSARN(identifier, partition, accountid, region string) (string, error) {
-	if partition == "" {
-		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS partition")
-	}
-	if accountid == "" {
-		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
-	}
-	arn := fmt.Sprintf("arn:%s:rds:%s:%s:db:%s", partition, region, accountid, identifier)
-	return arn, nil
-}
-
 // Database instance status: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Status.html
 var resourceAwsDbInstanceCreatePendingStates = []string{
 	"backing-up",
@@ -1177,9 +1172,11 @@ var resourceAwsDbInstanceDeletePendingStates = []string{
 	"configuring-enhanced-monitoring",
 	"creating",
 	"deleting",
+	"incompatible-parameters",
 	"modifying",
 	"starting",
 	"stopping",
+	"storage-full",
 	"storage-optimization",
 }
 
@@ -1195,5 +1192,6 @@ var resourceAwsDbInstanceUpdatePendingStates = []string{
 	"resetting-master-credentials",
 	"starting",
 	"stopping",
+	"storage-full",
 	"upgrading",
 }

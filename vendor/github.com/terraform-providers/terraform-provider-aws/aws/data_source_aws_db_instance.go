@@ -252,7 +252,12 @@ func dataSourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("[DEBUG] Error setting db_security_groups attribute: %#v, error: %#v", dbSecurityGroups, err)
 	}
 
-	d.Set("db_subnet_group", dbInstance.DBSubnetGroup.DBSubnetGroupName)
+	if dbInstance.DBSubnetGroup != nil {
+		d.Set("db_subnet_group", dbInstance.DBSubnetGroup.DBSubnetGroupName)
+	} else {
+		d.Set("db_subnet_group", "")
+	}
+
 	d.Set("db_instance_port", dbInstance.DbInstancePort)
 	d.Set("engine", dbInstance.Engine)
 	d.Set("engine_version", dbInstance.EngineVersion)

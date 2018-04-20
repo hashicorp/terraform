@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsSpotFleetRequest() *schema.Resource {
@@ -204,7 +205,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 							Optional:     true,
 							ForceNew:     true,
 							Computed:     true,
-							ValidateFunc: validateSpotFleetRequestKeyName,
+							ValidateFunc: validation.NoZeroValues,
 						},
 						"monitoring": {
 							Type:     schema.TypeBool,
@@ -317,6 +318,22 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 			"client_token": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"load_balancers": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			"target_group_arns": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 		},
 	}
@@ -438,16 +455,6 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 	}
 
 	return opts, nil
-}
-
-func validateSpotFleetRequestKeyName(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	if value == "" {
-		errors = append(errors, fmt.Errorf("Key name cannot be empty."))
-	}
-
-	return
 }
 
 func readSpotFleetBlockDeviceMappingsFromConfig(
@@ -609,6 +616,36 @@ func resourceAwsSpotFleetRequestCreate(d *schema.ResourceData, meta interface{})
 	} else {
 		valid_until := time.Now().Add(24 * time.Hour)
 		spotFleetConfig.ValidUntil = &valid_until
+	}
+
+	if v, ok := d.GetOk("load_balancers"); ok && v.(*schema.Set).Len() > 0 {
+		var elbNames []*ec2.ClassicLoadBalancer
+		for _, v := range v.(*schema.Set).List() {
+			elbNames = append(elbNames, &ec2.ClassicLoadBalancer{
+				Name: aws.String(v.(string)),
+			})
+		}
+		if spotFleetConfig.LoadBalancersConfig == nil {
+			spotFleetConfig.LoadBalancersConfig = &ec2.LoadBalancersConfig{}
+		}
+		spotFleetConfig.LoadBalancersConfig.ClassicLoadBalancersConfig = &ec2.ClassicLoadBalancersConfig{
+			ClassicLoadBalancers: elbNames,
+		}
+	}
+
+	if v, ok := d.GetOk("target_group_arns"); ok && v.(*schema.Set).Len() > 0 {
+		var targetGroups []*ec2.TargetGroup
+		for _, v := range v.(*schema.Set).List() {
+			targetGroups = append(targetGroups, &ec2.TargetGroup{
+				Arn: aws.String(v.(string)),
+			})
+		}
+		if spotFleetConfig.LoadBalancersConfig == nil {
+			spotFleetConfig.LoadBalancersConfig = &ec2.LoadBalancersConfig{}
+		}
+		spotFleetConfig.LoadBalancersConfig.TargetGroupsConfig = &ec2.TargetGroupsConfig{
+			TargetGroups: targetGroups,
+		}
 	}
 
 	// http://docs.aws.amazon.com/sdk-for-go/api/service/ec2.html#type-RequestSpotFleetInput

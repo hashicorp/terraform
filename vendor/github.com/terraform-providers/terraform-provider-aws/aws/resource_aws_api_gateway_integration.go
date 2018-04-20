@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strings"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsApiGatewayIntegration() *schema.Resource {
@@ -38,14 +39,20 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validateHTTPMethod,
+				ValidateFunc: validateHTTPMethod(),
 			},
 
 			"type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateApiGatewayIntegrationType,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					apigateway.IntegrationTypeHttp,
+					apigateway.IntegrationTypeAws,
+					apigateway.IntegrationTypeMock,
+					apigateway.IntegrationTypeHttpProxy,
+					apigateway.IntegrationTypeAwsProxy,
+				}, false),
 			},
 
 			"uri": {
@@ -63,7 +70,7 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateHTTPMethod,
+				ValidateFunc: validateHTTPMethod(),
 			},
 
 			"request_templates": {
@@ -89,15 +96,19 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 			"content_handling": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateApiGatewayIntegrationContentHandling,
+				ValidateFunc: validateApiGatewayIntegrationContentHandling(),
 			},
 
 			"passthrough_behavior": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ForceNew:     true,
-				ValidateFunc: validateApiGatewayIntegrationPassthroughBehavior,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"WHEN_NO_MATCH",
+					"WHEN_NO_TEMPLATES",
+					"NEVER",
+				}, false),
 			},
 
 			"cache_key_parameters": {

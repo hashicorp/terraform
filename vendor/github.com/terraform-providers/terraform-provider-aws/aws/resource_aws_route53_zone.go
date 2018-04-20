@@ -28,9 +28,10 @@ func resourceAwsRoute53Zone() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: suppressRoute53ZoneNameWithTrailingDot,
 			},
 
 			"comment": &schema.Schema{

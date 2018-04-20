@@ -35,9 +35,9 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					"full-load",
-					"cdc",
-					"full-load-and-cdc",
+					dms.MigrationTypeValueFullLoad,
+					dms.MigrationTypeValueCdc,
+					dms.MigrationTypeValueFullLoadAndCdc,
 				}, false),
 			},
 			"replication_instance_arn": {

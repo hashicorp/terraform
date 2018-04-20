@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -53,8 +54,13 @@ func dataSourceAwsElbServiceAccountRead(d *schema.ResourceData, meta interface{}
 
 	if accid, ok := elbAccountIdPerRegionMap[region]; ok {
 		d.SetId(accid)
-
-		d.Set("arn", fmt.Sprintf("arn:%s:iam::%s:root", meta.(*AWSClient).partition, accid))
+		arn := arn.ARN{
+			Partition: meta.(*AWSClient).partition,
+			Service:   "iam",
+			AccountID: accid,
+			Resource:  "root",
+		}.String()
+		d.Set("arn", arn)
 
 		return nil
 	}

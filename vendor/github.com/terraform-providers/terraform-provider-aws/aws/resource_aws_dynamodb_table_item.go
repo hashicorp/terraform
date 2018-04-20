@@ -105,9 +105,9 @@ func resourceAwsDynamoDbTableItemUpdate(d *schema.ResourceData, meta interface{}
 
 		updates := map[string]*dynamodb.AttributeValueUpdate{}
 		for key, value := range attributes {
-			// Hash keys are not updatable, so we'll basically create
+			// Hash keys and range keys are not updatable, so we'll basically create
 			// a new record and delete the old one below
-			if key == hashKey {
+			if key == hashKey || key == rangeKey {
 				continue
 			}
 			updates[key] = &dynamodb.AttributeValueUpdate{

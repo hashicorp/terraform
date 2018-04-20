@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/errwrap"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsS3Bucket() *schema.Resource {
@@ -215,7 +217,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 							Type:         schema.TypeString,
 							Optional:     true,
 							Computed:     true,
-							ValidateFunc: validateS3BucketLifecycleRuleId,
+							ValidateFunc: validateMaxLength(255),
 						},
 						"prefix": {
 							Type:     schema.TypeString,
@@ -244,7 +246,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 									"days": {
 										Type:         schema.TypeInt,
 										Optional:     true,
-										ValidateFunc: validateS3BucketLifecycleExpirationDays,
+										ValidateFunc: validation.IntAtLeast(1),
 									},
 									"expired_object_delete_marker": {
 										Type:     schema.TypeBool,
@@ -262,7 +264,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 									"days": {
 										Type:         schema.TypeInt,
 										Optional:     true,
-										ValidateFunc: validateS3BucketLifecycleExpirationDays,
+										ValidateFunc: validation.IntAtLeast(1),
 									},
 								},
 							},
@@ -281,12 +283,12 @@ func resourceAwsS3Bucket() *schema.Resource {
 									"days": {
 										Type:         schema.TypeInt,
 										Optional:     true,
-										ValidateFunc: validateS3BucketLifecycleTransitionDays,
+										ValidateFunc: validation.IntAtLeast(0),
 									},
 									"storage_class": {
 										Type:         schema.TypeString,
 										Required:     true,
-										ValidateFunc: validateS3BucketLifecycleStorageClass,
+										ValidateFunc: validateS3BucketLifecycleStorageClass(),
 									},
 								},
 							},
@@ -300,12 +302,12 @@ func resourceAwsS3Bucket() *schema.Resource {
 									"days": {
 										Type:         schema.TypeInt,
 										Optional:     true,
-										ValidateFunc: validateS3BucketLifecycleTransitionDays,
+										ValidateFunc: validation.IntAtLeast(0),
 									},
 									"storage_class": {
 										Type:         schema.TypeString,
 										Required:     true,
-										ValidateFunc: validateS3BucketLifecycleStorageClass,
+										ValidateFunc: validateS3BucketLifecycleStorageClass(),
 									},
 								},
 							},
@@ -321,17 +323,23 @@ func resourceAwsS3Bucket() *schema.Resource {
 			},
 
 			"acceleration_status": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validateS3BucketAccelerationStatus,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					s3.BucketAccelerateStatusEnabled,
+					s3.BucketAccelerateStatusSuspended,
+				}, false),
 			},
 
 			"request_payer": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validateS3BucketRequestPayerType,
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					s3.PayerRequester,
+					s3.PayerBucketOwner,
+				}, false),
 			},
 
 			"replication_configuration": {
@@ -353,7 +361,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 									"id": {
 										Type:         schema.TypeString,
 										Optional:     true,
-										ValidateFunc: validateS3BucketReplicationRuleId,
+										ValidateFunc: validateMaxLength(255),
 									},
 									"destination": {
 										Type:     schema.TypeSet,
@@ -369,9 +377,13 @@ func resourceAwsS3Bucket() *schema.Resource {
 													ValidateFunc: validateArn,
 												},
 												"storage_class": {
-													Type:         schema.TypeString,
-													Optional:     true,
-													ValidateFunc: validateS3BucketReplicationDestinationStorageClass,
+													Type:     schema.TypeString,
+													Optional: true,
+													ValidateFunc: validation.StringInSlice([]string{
+														s3.StorageClassStandard,
+														s3.StorageClassStandardIa,
+														s3.StorageClassReducedRedundancy,
+													}, false),
 												},
 												"replica_kms_key_id": {
 													Type:     schema.TypeString,
@@ -409,12 +421,15 @@ func resourceAwsS3Bucket() *schema.Resource {
 									"prefix": {
 										Type:         schema.TypeString,
 										Required:     true,
-										ValidateFunc: validateS3BucketReplicationRulePrefix,
+										ValidateFunc: validateMaxLength(1024),
 									},
 									"status": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: validateS3BucketReplicationRuleStatus,
+										Type:     schema.TypeString,
+										Required: true,
+										ValidateFunc: validation.StringInSlice([]string{
+											s3.ReplicationRuleStatusEnabled,
+											s3.ReplicationRuleStatusDisabled,
+										}, false),
 									},
 								},
 							},
@@ -446,9 +461,12 @@ func resourceAwsS3Bucket() *schema.Resource {
 													Optional: true,
 												},
 												"sse_algorithm": {
-													Type:         schema.TypeString,
-													Required:     true,
-													ValidateFunc: validateS3BucketServerSideEncryptionAlgorithm,
+													Type:     schema.TypeString,
+													Required: true,
+													ValidateFunc: validation.StringInSlice([]string{
+														s3.ServerSideEncryptionAes256,
+														s3.ServerSideEncryptionAwsKms,
+													}, false),
 												},
 											},
 										},
@@ -1091,7 +1109,12 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("arn", fmt.Sprintf("arn:%s:s3:::%s", meta.(*AWSClient).partition, d.Id()))
+	arn := arn.ARN{
+		Partition: meta.(*AWSClient).partition,
+		Service:   "s3",
+		Resource:  d.Id(),
+	}.String()
+	d.Set("arn", arn)
 
 	return nil
 }
@@ -2053,28 +2076,6 @@ func normalizeRegion(region string) string {
 	}
 
 	return region
-}
-
-func validateS3BucketAccelerationStatus(v interface{}, k string) (ws []string, errors []error) {
-	validTypes := map[string]struct{}{
-		"Enabled":   struct{}{},
-		"Suspended": struct{}{},
-	}
-
-	if _, ok := validTypes[v.(string)]; !ok {
-		errors = append(errors, fmt.Errorf("S3 Bucket Acceleration Status %q is invalid, must be %q or %q", v.(string), "Enabled", "Suspended"))
-	}
-	return
-}
-
-func validateS3BucketRequestPayerType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != s3.PayerRequester && value != s3.PayerBucketOwner {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid Request Payer type %q. Valid types are either %q or %q",
-			k, value, s3.PayerRequester, s3.PayerBucketOwner))
-	}
-	return
 }
 
 // validateS3BucketName validates any S3 bucket name that is not inside the us-east-1 region.
