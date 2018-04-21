@@ -45,7 +45,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
     <tr>
     <td><a href="https://github.com/sky-uk/terraform-provider-infoblox">Infoblox</a></td>
     <td><a href="https://github.com/anubhavmishra/terraform-provider-jira">Jira</a></td>
-    <td><a href="https://guthub.com/geekmuse/jumpcloud-terraform-provider">JumpCloud</a></td>
+    <td><a href-"https://github.com/geekmuse/jumpcloud-terraform-provider">JumpCloud</a></td>
     </tr>
     <tr>
     <td><a href="https://github.com/Mongey/terraform-provider-kafka">Kafka</a></td>
