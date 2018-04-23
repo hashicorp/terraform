@@ -68,6 +68,12 @@ func (r ResourceInstance) Absolute(module ModuleInstance) AbsResourceInstance {
 	}
 }
 
+// AbsResource is an absolute address for a resource under a given module path.
+type AbsResource struct {
+	Module   ModuleInstance
+	Resource Resource
+}
+
 // Resource returns the address of a particular resource within the receiver.
 func (m ModuleInstance) Resource(mode ResourceMode, typeName string, name string) AbsResource {
 	return AbsResource{
@@ -80,10 +86,11 @@ func (m ModuleInstance) Resource(mode ResourceMode, typeName string, name string
 	}
 }
 
-// AbsResource is an absolute address for a resource under a given module path.
-type AbsResource struct {
-	Module   ModuleInstance
-	Resource Resource
+func (r AbsResource) String() string {
+	if len(r.Module) == 0 {
+		return r.Resource.String()
+	}
+	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
 }
 
 // AbsResourceInstance is an absolute address for a resource instance under a
@@ -106,6 +113,13 @@ func (m ModuleInstance) ResourceInstance(mode ResourceMode, typeName string, nam
 			Key: key,
 		},
 	}
+}
+
+func (r AbsResourceInstance) String() string {
+	if len(r.Module) == 0 {
+		return r.Resource.String()
+	}
+	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
 }
 
 // ResourceMode defines which lifecycle applies to a given resource. Each
