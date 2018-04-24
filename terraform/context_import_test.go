@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -770,6 +771,15 @@ func TestContextImport_customProvider(t *testing.T) {
 			},
 		),
 	})
+
+	// There should not be any implicit providers configured, only the single
+	// aliased provider in the configuration.
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		if c.Config["foo"] != "bar" {
+			return errors.New("invalid config")
+		}
+		return nil
+	}
 
 	p.ImportStateReturn = []*InstanceState{
 		&InstanceState{

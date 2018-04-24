@@ -52,6 +52,9 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Add the import steps
 		&ImportStateTransformer{Targets: b.ImportTargets},
 
+		// Attach the configuration to any resources
+		&AttachResourceConfigTransformer{Module: b.Module},
+
 		TransformProviders(b.Providers, concreteProvider, mod),
 
 		// This validates that the providers only depend on variables
