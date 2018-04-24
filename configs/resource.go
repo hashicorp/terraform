@@ -114,7 +114,7 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 
 	if attr, exists := content.Attributes["provider"]; exists {
 		var providerDiags hcl.Diagnostics
-		r.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr)
+		r.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr.Expr, "provider")
 		diags = append(diags, providerDiags...)
 	}
 
@@ -290,7 +290,7 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 
 	if attr, exists := content.Attributes["provider"]; exists {
 		var providerDiags hcl.Diagnostics
-		r.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr)
+		r.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr.Expr, "provider")
 		diags = append(diags, providerDiags...)
 	}
 
@@ -324,10 +324,11 @@ type ProviderConfigRef struct {
 	AliasRange *hcl.Range // nil if alias not set
 }
 
-func decodeProviderConfigRef(attr *hcl.Attribute) (*ProviderConfigRef, hcl.Diagnostics) {
+func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConfigRef, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	expr, shimDiags := shimTraversalInString(attr.Expr, false)
+	var shimDiags hcl.Diagnostics
+	expr, shimDiags = shimTraversalInString(expr, false)
 	diags = append(diags, shimDiags...)
 
 	traversal, travDiags := hcl.AbsTraversalForExpr(expr)
@@ -345,7 +346,7 @@ func decodeProviderConfigRef(attr *hcl.Attribute) (*ProviderConfigRef, hcl.Diagn
 		// showing that usage, so we'll sniff for that situation here and
 		// produce a specialized error message for it to help users find
 		// the new correct form.
-		if exprIsNativeQuotedString(attr.Expr) {
+		if exprIsNativeQuotedString(expr) {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid provider configuration reference",
@@ -358,7 +359,7 @@ func decodeProviderConfigRef(attr *hcl.Attribute) (*ProviderConfigRef, hcl.Diagn
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid provider configuration reference",
-			Detail:   fmt.Sprintf("The %s argument requires a provider type name, optionally followed by a period and then a configuration alias.", attr.Name),
+			Detail:   fmt.Sprintf("The %s argument requires a provider type name, optionally followed by a period and then a configuration alias.", argName),
 			Subject:  expr.Range().Ptr(),
 		})
 		return nil, diags

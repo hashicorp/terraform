@@ -22,5 +22,8 @@ module "baz" {
   depends_on = [
     module.bar,
   ]
-}
 
+  providers = {
+    aws = aws.foo
+  }
+}
