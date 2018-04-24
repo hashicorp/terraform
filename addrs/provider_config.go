@@ -174,6 +174,34 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 	return ret, diags
 }
 
+// Inherited returns an address that the receiving configuration address might
+// inherit from in a parent module. The second bool return value indicates if
+// such inheritance is possible, and thus whether the returned address is valid.
+//
+// Inheritance is possible only for default (un-aliased) providers in modules
+// other than the root module. Even if a valid address is returned, inheritence
+// may not be performed for other reasons, such as if the calling module
+// provided explicit provider configurations within the call for this module.
+// The ProviderTransformer graph transform in the main terraform module has
+// the authoritative logic for provider inheritance, and this method is here
+// mainly just for its benefit.
+func (pc AbsProviderConfig) Inherited() (AbsProviderConfig, bool) {
+	// Can't inherit if we're already in the root.
+	if len(pc.Module) == 0 {
+		return AbsProviderConfig{}, false
+	}
+
+	// Can't inherit if we have an alias.
+	if pc.ProviderConfig.Alias != "" {
+		return AbsProviderConfig{}, false
+	}
+
+	// Otherwise, we might inherit from a configuration with the same
+	// provider name in the parent module instance.
+	parentMod := pc.Module.Parent()
+	return pc.ProviderConfig.Absolute(parentMod), true
+}
+
 func (pc AbsProviderConfig) String() string {
 	if len(pc.Module) == 0 {
 		return pc.ProviderConfig.String()
