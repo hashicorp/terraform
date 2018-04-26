@@ -119,16 +119,22 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
 
-		// Handle destroy time transformations for output and local values.
-		// Reverse the edges from outputs and locals, so that
-		// interpolations don't fail during destroy.
+		// Reverse the edges from outputs and locals, so that interpolations
+		// don't fail during destroy.
+		GraphTransformIf(
+			func() bool { return b.Destroy },
+			&DestroyValueReferenceTransformer{},
+		),
+
+		// Target
+		&TargetsTransformer{Targets: b.Targets},
+
 		// Create a destroy node for outputs to remove them from the state.
 		// Prune unreferenced values, which may have interpolations that can't
 		// be resolved.
 		GraphTransformIf(
 			func() bool { return b.Destroy },
 			GraphTransformMulti(
-				&DestroyValueReferenceTransformer{},
 				&DestroyOutputTransformer{},
 				&PruneUnusedValuesTransformer{},
 			),
@@ -136,9 +142,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{},
-
-		// Target
-		&TargetsTransformer{Targets: b.Targets},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},

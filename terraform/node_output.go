@@ -115,19 +115,6 @@ func (n *NodeDestroyableOutput) Path() []string {
 	return n.PathValue
 }
 
-// RemovableIfNotTargeted
-func (n *NodeDestroyableOutput) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
-}
-
-// This will keep the destroy node in the graph if its corresponding output
-// node is also in the destroy graph.
-func (n *NodeDestroyableOutput) TargetDownstream(targetedDeps, untargetedDeps *dag.Set) bool {
-	return true
-}
-
 // GraphNodeReferencer
 func (n *NodeDestroyableOutput) References() []string {
 	var result []string

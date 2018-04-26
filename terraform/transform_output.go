@@ -87,6 +87,14 @@ func (t *DestroyOutputTransformer) Transform(g *Graph) error {
 		deps.Add(v)
 
 		for _, d := range deps.List() {
+			// Destroyable outputs don't need to depend on other destroyable
+			// outputs. This shouldn't make a difference in destroy operation,
+			// but we want to ensure the graph is identical regardless of the
+			// order that these nodes are added to avoid masking other issues
+			// later on.
+			if _, ok := d.(*NodeDestroyableOutput); ok {
+				continue
+			}
 			log.Printf("[TRACE] %s depends on %s", node.Name(), dag.VertexName(d))
 			g.Connect(dag.BasicEdge(node, d))
 		}
