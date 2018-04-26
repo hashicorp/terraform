@@ -130,23 +130,27 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 				continue
 			}
 
-			dependants := g.UpEdges(v)
+			dependants := g.UpEdges(v).List()
 
-			switch dependants.Len() {
-			case 0:
-				// nothing at all depends on this
-				g.Remove(v)
-				removed++
-			case 1:
-				// because an output's destroy node always depends on the output,
-				// we need to check for the case of a single destroy node.
-				d := dependants.List()[0]
-				if _, ok := d.(*NodeDestroyableOutput); ok {
-					g.Remove(v)
-					removed++
+			// because an output's destroy node always depends on the output,
+			// we need to check for the case of only output destroy nodes.
+
+			// prune if there are no dependants at all
+			prune := true
+
+			for _, d := range dependants {
+				if _, ok := d.(*NodeDestroyableOutput); !ok {
+					prune = false
+					break
 				}
 			}
+
+			if prune {
+				g.Remove(v)
+				removed++
+			}
 		}
+
 		if removed == 0 {
 			break
 		}
