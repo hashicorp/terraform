@@ -1,5 +1,7 @@
 dist: trusty
-sudo: false
+sudo: required
+services:
+- docker
 language: go
 go:
 - 1.8.1
@@ -16,6 +18,7 @@ script:
 - make test
 - make vendor-status
 - make vet
+- make website-test
 
 branches:
   only:
