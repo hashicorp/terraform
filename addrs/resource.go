@@ -2,6 +2,7 @@ package addrs
 
 import (
 	"fmt"
+	"strings"
 )
 
 // Resource is an address for a resource block within configuration, which
@@ -43,6 +44,26 @@ func (r Resource) Absolute(module ModuleInstance) AbsResource {
 	}
 }
 
+// DefaultProviderConfig returns the address of the provider configuration
+// that should be used for the resource identified by the reciever if it
+// does not have a provider configuration address explicitly set in
+// configuration.
+//
+// This method is not able to verify that such a configuration exists, nor
+// represent the behavior of automatically inheriting certain provider
+// configurations from parent modules. It just does a static analysis of the
+// receiving address and returns an address to start from, relative to the
+// same module that contains the resource.
+func (r Resource) DefaultProviderConfig() ProviderConfig {
+	typeName := r.Type
+	if under := strings.Index(typeName, "_"); under != -1 {
+		typeName = typeName[:under]
+	}
+	return ProviderConfig{
+		Type: typeName,
+	}
+}
+
 // ResourceInstance is an address for a specific instance of a resource.
 // When a resource is defined in configuration with "count" or "for_each" it
 // produces zero or more instances, which can be addressed using this type.
@@ -50,6 +71,10 @@ type ResourceInstance struct {
 	referenceable
 	Resource Resource
 	Key      InstanceKey
+}
+
+func (r ResourceInstance) ContainingResource() Resource {
+	return r.Resource
 }
 
 func (r ResourceInstance) String() string {
@@ -70,6 +95,7 @@ func (r ResourceInstance) Absolute(module ModuleInstance) AbsResourceInstance {
 
 // AbsResource is an absolute address for a resource under a given module path.
 type AbsResource struct {
+	targetable
 	Module   ModuleInstance
 	Resource Resource
 }
@@ -86,6 +112,34 @@ func (m ModuleInstance) Resource(mode ResourceMode, typeName string, name string
 	}
 }
 
+// Instance produces the address for a specific instance of the receiver
+// that is idenfied by the given key.
+func (r AbsResource) Instance(key InstanceKey) AbsResourceInstance {
+	return AbsResourceInstance{
+		Module:   r.Module,
+		Resource: r.Resource.Instance(key),
+	}
+}
+
+// TargetContains implements Targetable by returning true if the given other
+// address is either equal to the receiver or is an instance of the
+// receiver.
+func (r AbsResource) TargetContains(other Targetable) bool {
+	switch to := other.(type) {
+
+	case AbsResource:
+		// We'll use our stringification as a cheat-ish way to test for equality.
+		return to.String() == r.String()
+
+	case AbsResourceInstance:
+		return r.TargetContains(to.ContainingResource())
+
+	default:
+		return false
+
+	}
+}
+
 func (r AbsResource) String() string {
 	if len(r.Module) == 0 {
 		return r.Resource.String()
@@ -96,6 +150,7 @@ func (r AbsResource) String() string {
 // AbsResourceInstance is an absolute address for a resource instance under a
 // given module path.
 type AbsResourceInstance struct {
+	targetable
 	Module   ModuleInstance
 	Resource ResourceInstance
 }
@@ -112,6 +167,31 @@ func (m ModuleInstance) ResourceInstance(mode ResourceMode, typeName string, nam
 			},
 			Key: key,
 		},
+	}
+}
+
+// ContainingResource returns the address of the resource that contains the
+// receving resource instance. In other words, it discards the key portion
+// of the address to produce an AbsResource value.
+func (r AbsResourceInstance) ContainingResource() AbsResource {
+	return AbsResource{
+		Module:   r.Module,
+		Resource: r.Resource.ContainingResource(),
+	}
+}
+
+// TargetContains implements Targetable by returning true if the given other
+// address is equal to the receiver.
+func (r AbsResourceInstance) TargetContains(other Targetable) bool {
+	switch to := other.(type) {
+
+	case AbsResourceInstance:
+		// We'll use our stringification as a cheat-ish way to test for equality.
+		return to.String() == r.String()
+
+	default:
+		return false
+
 	}
 }
 

@@ -17,6 +17,63 @@ type ProviderConfig struct {
 	Alias string
 }
 
+// NewDefaultProviderConfig returns the address of the default (un-aliased)
+// configuration for the provider with the given type name.
+func NewDefaultProviderConfig(typeName string) ProviderConfig {
+	return ProviderConfig{
+		Type: typeName,
+	}
+}
+
+// ParseProviderConfigCompact parses the given absolute traversal as a relative
+// provider address in compact form. The following are examples of traversals
+// that can be successfully parsed as compact relative provider configuration
+// addresses:
+//
+//     aws
+//     aws.foo
+//
+// This function will panic if given a relative traversal.
+//
+// If the returned diagnostics contains errors then the result value is invalid
+// and must not be used.
+func ParseProviderConfigCompact(traversal hcl.Traversal) (ProviderConfig, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := ProviderConfig{
+		Type: traversal.RootName(),
+	}
+
+	if len(traversal) < 2 {
+		// Just a type name, then.
+		return ret, diags
+	}
+
+	aliasStep := traversal[1]
+	switch ts := aliasStep.(type) {
+	case hcl.TraverseAttr:
+		ret.Alias = ts.Name
+		return ret, diags
+	default:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid provider configuration address",
+			Detail:   "The provider type name must either stand alone or be followed by an alias name separated with a dot.",
+			Subject:  aliasStep.SourceRange().Ptr(),
+		})
+	}
+
+	if len(traversal) > 2 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid provider configuration address",
+			Detail:   "Extraneous extra operators after provider configuration address.",
+			Subject:  traversal[2:].SourceRange().Ptr(),
+		})
+	}
+
+	return ret, diags
+}
+
 // Absolute returns an AbsProviderConfig from the receiver and the given module
 // instance address.
 func (pc ProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig {
@@ -32,6 +89,15 @@ func (pc ProviderConfig) String() string {
 	}
 
 	return "provider." + pc.Type
+}
+
+// StringCompact is an alternative to String that returns the form that can
+// be parsed by ParseProviderConfigCompact, without the "provider." prefix.
+func (pc ProviderConfig) StringCompact() string {
+	if pc.Alias != "" {
+		return fmt.Sprintf("%s.%s", pc.Type, pc.Alias)
+	}
+	return pc.Type
 }
 
 // AbsProviderConfig is the absolute address of a provider configuration
