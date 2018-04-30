@@ -4,12 +4,17 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"strconv"
 	"strings"
+
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/configs"
+
+	"github.com/hashicorp/terraform/addrs"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/helper/hilmapstructure"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // EvalTypeCheckVariable is an EvalNode which ensures that the variable
@@ -93,166 +98,88 @@ func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
-// EvalSetVariables is an EvalNode implementation that sets the variables
-// explicitly for interpolation later.
-type EvalSetVariables struct {
-	Module    *string
-	Variables map[string]interface{}
+// EvalSetModuleCallArguments is an EvalNode implementation that sets values
+// for arguments of a child module call, for later retrieval during
+// expression evaluation.
+type EvalSetModuleCallArguments struct {
+	Module addrs.ModuleCallInstance
+	Values map[string]cty.Value
 }
 
 // TODO: test
-func (n *EvalSetVariables) Eval(ctx EvalContext) (interface{}, error) {
-	ctx.SetVariables(*n.Module, n.Variables)
+func (n *EvalSetModuleCallArguments) Eval(ctx EvalContext) (interface{}, error) {
+	ctx.SetModuleCallArguments(n.Module, n.Values)
 	return nil, nil
 }
 
-// EvalVariableBlock is an EvalNode implementation that evaluates the
-// given configuration, and uses the final values as a way to set the
-// mapping.
-type EvalVariableBlock struct {
-	Config         **ResourceConfig
-	VariableValues map[string]interface{}
-}
-
-func (n *EvalVariableBlock) Eval(ctx EvalContext) (interface{}, error) {
-	// Clear out the existing mapping
-	for k, _ := range n.VariableValues {
-		delete(n.VariableValues, k)
-	}
-
-	// Get our configuration
-	rc := *n.Config
-	for k, v := range rc.Config {
-		vKind := reflect.ValueOf(v).Type().Kind()
-
-		switch vKind {
-		case reflect.Slice:
-			var vSlice []interface{}
-			if err := hilmapstructure.WeakDecode(v, &vSlice); err == nil {
-				n.VariableValues[k] = vSlice
-				continue
-			}
-		case reflect.Map:
-			var vMap map[string]interface{}
-			if err := hilmapstructure.WeakDecode(v, &vMap); err == nil {
-				n.VariableValues[k] = vMap
-				continue
-			}
-		default:
-			var vString string
-			if err := hilmapstructure.WeakDecode(v, &vString); err == nil {
-				n.VariableValues[k] = vString
-				continue
-			}
-		}
-
-		return nil, fmt.Errorf("Variable value for %s is not a string, list or map type", k)
-	}
-
-	for _, path := range rc.ComputedKeys {
-		log.Printf("[DEBUG] Setting Unknown Variable Value for computed key: %s", path)
-		err := n.setUnknownVariableValueForPath(path)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return nil, nil
-}
-
-func (n *EvalVariableBlock) setUnknownVariableValueForPath(path string) error {
-	pathComponents := strings.Split(path, ".")
-
-	if len(pathComponents) < 1 {
-		return fmt.Errorf("No path comoponents in %s", path)
-	}
-
-	if len(pathComponents) == 1 {
-		// Special case the "top level" since we know the type
-		if _, ok := n.VariableValues[pathComponents[0]]; !ok {
-			n.VariableValues[pathComponents[0]] = config.UnknownVariableValue
-		}
-		return nil
-	}
-
-	// Otherwise find the correct point in the tree and then set to unknown
-	var current interface{} = n.VariableValues[pathComponents[0]]
-	for i := 1; i < len(pathComponents); i++ {
-		switch tCurrent := current.(type) {
-		case []interface{}:
-			index, err := strconv.Atoi(pathComponents[i])
-			if err != nil {
-				return fmt.Errorf("Cannot convert %s to slice index in path %s",
-					pathComponents[i], path)
-			}
-			current = tCurrent[index]
-		case []map[string]interface{}:
-			index, err := strconv.Atoi(pathComponents[i])
-			if err != nil {
-				return fmt.Errorf("Cannot convert %s to slice index in path %s",
-					pathComponents[i], path)
-			}
-			current = tCurrent[index]
-		case map[string]interface{}:
-			if val, hasVal := tCurrent[pathComponents[i]]; hasVal {
-				current = val
-				continue
-			}
-
-			tCurrent[pathComponents[i]] = config.UnknownVariableValue
-			break
-		}
-	}
-
-	return nil
-}
-
-// EvalCoerceMapVariable is an EvalNode implementation that recognizes a
-// specific ambiguous HCL parsing situation and resolves it. In HCL parsing, a
-// bare map literal is indistinguishable from a list of maps w/ one element.
+// EvalModuleCallArgument is an EvalNode implementation that produces the value
+// for a particular variable as will be used by a child module instance.
 //
-// We take all the same inputs as EvalTypeCheckVariable above, since we need
-// both the target type and the proposed value in order to properly coerce.
-type EvalCoerceMapVariable struct {
-	Variables  map[string]interface{}
-	ModulePath []string
-	ModuleTree *module.Tree
+// The result is written into the map given in Values, with its key
+// set to the local name of the variable, disregarding the module instance
+// address. Any existing values in that map are deleted first. This weird
+// interface is a result of trying to be convenient for use with
+// EvalContext.SetModuleCallArguments, which expects a map to merge in with
+// any existing arguments.
+type EvalModuleCallArgument struct {
+	Addr   addrs.InputVariable
+	Config *configs.Variable
+	Expr   hcl.Expression
+
+	// If this flag is set, any diagnostics are discarded and this operation
+	// will always succeed, though may produce an unknown value in the
+	// event of an error.
+	IgnoreDiagnostics bool
+
+	Values map[string]cty.Value
 }
 
-// Eval implements the EvalNode interface. See EvalCoerceMapVariable for
-// details.
-func (n *EvalCoerceMapVariable) Eval(ctx EvalContext) (interface{}, error) {
-	currentTree := n.ModuleTree
-	for _, pathComponent := range n.ModulePath[1:] {
-		currentTree = currentTree.Children()[pathComponent]
-	}
-	targetConfig := currentTree.Config()
-
-	prototypes := make(map[string]config.VariableType)
-	for _, variable := range targetConfig.Variables {
-		prototypes[variable.Name] = variable.Type()
+func (n *EvalModuleCallArgument) Eval(ctx EvalContext) (interface{}, error) {
+	// Clear out the existing mapping
+	for k := range n.Values {
+		delete(n.Values, k)
 	}
 
-	for name, declaredType := range prototypes {
-		if declaredType != config.VariableTypeMap {
-			continue
-		}
+	wantType := n.Config.Type
+	name := n.Addr.Name
+	expr := n.Expr
 
-		proposedValue, ok := n.Variables[name]
-		if !ok {
-			continue
-		}
-
-		if list, ok := proposedValue.([]interface{}); ok && len(list) == 1 {
-			if m, ok := list[0].(map[string]interface{}); ok {
-				log.Printf("[DEBUG] EvalCoerceMapVariable: "+
-					"Coercing single element list into map: %#v", m)
-				n.Variables[name] = m
-			}
-		}
+	if expr == nil {
+		// Should never happen, but we'll bail out early here rather than
+		// crash in case it does. We set no value at all in this case,
+		// making a subsequent call to EvalContext.SetModuleCallArguments
+		// a no-op.
+		log.Printf("[ERROR] attempt to evaluate %s with nil expression", n.Addr.String())
+		return nil, nil
 	}
 
-	return nil, nil
+	val, diags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
+
+	// We intentionally passed DynamicPseudoType to EvaluateExpr above because
+	// now we can do our own local type conversion and produce an error message
+	// with better context if it fails.
+	var convErr error
+	val, convErr = convert.Convert(val, wantType)
+	if convErr != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid value for module argument",
+			Detail: fmt.Sprintf(
+				"The given value is not suitable for child module variable %q defined at %s: %s.",
+				name, n.Config.DeclRange.String(), convErr,
+			),
+			Subject: expr.Range().Ptr(),
+		})
+		// We'll return a placeholder unknown value to avoid producing
+		// redundant downstream errors.
+		val = cty.UnknownVal(wantType)
+	}
+
+	n.Values[name] = val
+	if n.IgnoreDiagnostics {
+		return nil, nil
+	}
+	return nil, diags.ErrWithWarnings()
 }
 
 // hclTypeName returns the name of the type that would represent this value in

@@ -1,15 +1,19 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
+
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+
 	"github.com/hashicorp/hcl2/hcl"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -57,24 +61,29 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Validate the provided resource address for syntax
-	addr, err := terraform.ParseResourceAddress(args[0])
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(importCommandInvalidAddressFmt, err))
+	var diags tfdiags.Diagnostics
+
+	// Parse the provided resource address.
+	traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(args[0]), "<import-address>", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(travDiags)
+	if travDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		c.Ui.Info(importCommandInvalidAddressReference)
 		return 1
 	}
-	if !addr.HasResourceSpec() {
-		// module.foo target isn't allowed for import
-		c.Ui.Error(importCommandMissingResourceSpecMsg)
-		return 1
-	}
-	if addr.Mode != config.ManagedResourceMode {
-		// can't import to a data resource address
-		c.Ui.Error(importCommandResourceModeMsg)
+	addr, addrDiags := addrs.ParseAbsResourceInstance(traversal)
+	diags = diags.Append(addrDiags)
+	if addrDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		c.Ui.Info(importCommandInvalidAddressReference)
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
+	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
+		diags = diags.Append(errors.New("A managed resource address is required. Importing into a data resource is not allowed."))
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	if !c.dirIsConfigPath(configPath) {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -102,9 +111,9 @@ func (c *ImportCommand) Run(args []string) int {
 	// This is to reduce the risk that a typo in the resource address will
 	// import something that Terraform will want to immediately destroy on
 	// the next plan, and generally acts as a reassurance of user intent.
-	targetConfig := config.Descendent(addr.Path)
+	targetConfig := config.DescendentForInstance(addr.Module)
 	if targetConfig == nil {
-		modulePath := addr.WholeModuleAddress().String()
+		modulePath := addr.Module.String()
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Import to non-existent module",
@@ -118,15 +127,16 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 	targetMod := targetConfig.Module
 	rcs := targetMod.ManagedResources
-	var rc *configs.ManagedResource
+	var rc *configs.Resource
+	resourceRelAddr := addr.Resource.Resource
 	for _, thisRc := range rcs {
-		if addr.MatchesManagedResourceConfig(addr.Path, thisRc) {
+		if resourceRelAddr.Type == thisRc.Type && resourceRelAddr.Name == thisRc.Name {
 			rc = thisRc
 			break
 		}
 	}
 	if !c.Meta.allowMissingConfig && rc == nil {
-		modulePath := addr.WholeModuleAddress().String()
+		modulePath := addr.Module.String()
 		if modulePath == "" {
 			modulePath = "the root module"
 		}
@@ -140,9 +150,31 @@ func (c *ImportCommand) Run(args []string) int {
 		// message.
 		c.Ui.Error(fmt.Sprintf(
 			importCommandMissingResourceFmt,
-			addr, modulePath, addr.Type, addr.Name,
+			addr, modulePath, resourceRelAddr.Type, resourceRelAddr.Name,
 		))
 		return 1
+	}
+
+	// Also parse the user-provided provider address, if any.
+	var providerAddr addrs.AbsProviderConfig
+	if c.Meta.provider != "" {
+		traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(c.Meta.provider), `-provider=...`, hcl.Pos{Line: 1, Column: 1})
+		diags = diags.Append(travDiags)
+		if travDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			c.Ui.Info(importCommandInvalidAddressReference)
+			return 1
+		}
+		relAddr, addrDiags := addrs.ParseProviderConfigCompact(traversal)
+		diags = diags.Append(addrDiags)
+		if addrDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+		providerAddr = relAddr.Absolute(addrs.RootModuleInstance)
+	} else {
+		// Use a default address inferred from the resource type.
+		providerAddr = resourceRelAddr.DefaultProviderConfig().Absolute(addrs.RootModuleInstance)
 	}
 
 	// Check for user-supplied plugin path
@@ -200,17 +232,17 @@ func (c *ImportCommand) Run(args []string) int {
 	// Perform the import. Note that as you can see it is possible for this
 	// API to import more than one resource at once. For now, we only allow
 	// one while we stabilize this feature.
-	newState, err := ctx.Import(&terraform.ImportOpts{
+	newState, importDiags := ctx.Import(&terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
 			&terraform.ImportTarget{
-				Addr:     args[0],
-				ID:       args[1],
-				Provider: c.Meta.provider,
+				Addr:         addr,
+				ID:           args[1],
+				ProviderAddr: providerAddr,
 			},
 		},
 	})
-	if err != nil {
-		diags = diags.Append(err)
+	diags = diags.Append(importDiags)
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
@@ -318,22 +350,8 @@ func (c *ImportCommand) Synopsis() string {
 	return "Import existing infrastructure into Terraform"
 }
 
-const importCommandInvalidAddressFmt = `Error: %s
-
-For information on valid syntax, see:
-https://www.terraform.io/docs/internals/resource-addressing.html
-`
-
-const importCommandMissingResourceSpecMsg = `Error: resource address must include a full resource spec
-
-For information on valid syntax, see:
-https://www.terraform.io/docs/internals/resource-addressing.html
-`
-
-const importCommandResourceModeMsg = `Error: resource address must refer to a managed resource.
-
-Data resources cannot be imported.
-`
+const importCommandInvalidAddressReference = `For information on valid syntax, see:
+https://www.terraform.io/docs/internals/resource-addressing.html`
 
 const importCommandMissingResourceFmt = `[reset][bold][red]Error:[reset][bold] resource address %q does not exist in the configuration.[reset]
 

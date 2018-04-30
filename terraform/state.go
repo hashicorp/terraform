@@ -19,13 +19,17 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/mitchellh/copystructure"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
-
-	"github.com/mitchellh/copystructure"
 )
 
 const (
@@ -36,26 +40,38 @@ const (
 // rootModulePath is the path of the root module
 var rootModulePath = []string{"root"}
 
+// normalizeModulePath transforms a legacy module path (which may or may not
+// have a redundant "root" label at the start of it) into an
+// addrs.ModuleInstance representing the same module.
+//
+// For legacy reasons, different parts of Terraform disagree about whether the
+// root module has the path []string{} or []string{"root"}, and so this
+// function accepts both and trims off the "root". An implication of this is
+// that it's not possible to actually have a module call in the root module
+// that is itself named "root", since that would be ambiguous.
+//
 // normalizeModulePath takes a raw module path and returns a path that
 // has the rootModulePath prepended to it. If I could go back in time I
 // would've never had a rootModulePath (empty path would be root). We can
 // still fix this but thats a big refactor that my branch doesn't make sense
 // for. Instead, this function normalizes paths.
-func normalizeModulePath(p []string) []string {
-	k := len(rootModulePath)
+func normalizeModulePath(p []string) addrs.ModuleInstance {
+	// FIXME: Remove this once everyone is using addrs.ModuleInstance.
 
-	// If we already have a root module prefix, we're done
-	if len(p) >= len(rootModulePath) {
-		if reflect.DeepEqual(p[:k], rootModulePath) {
-			return p
-		}
+	if len(p) > 0 && p[0] == "root" {
+		p = p[1:]
 	}
 
-	// None? Prefix it
-	result := make([]string, len(rootModulePath)+len(p))
-	copy(result, rootModulePath)
-	copy(result[k:], p)
-	return result
+	ret := make(addrs.ModuleInstance, len(p))
+	for i, name := range p {
+		// For now we don't actually support modules with multiple instances
+		// identified by keys, so we just treat every path element as a
+		// step with no key.
+		ret[i] = addrs.ModuleInstanceStep{
+			Name: name,
+		}
+	}
+	return ret
 }
 
 // State keeps track of a snapshot state-of-the-world that Terraform
@@ -141,21 +157,37 @@ func (s *State) children(path []string) []*ModuleState {
 //
 // This should be the preferred method to add module states since it
 // allows us to optimize lookups later as well as control sorting.
-func (s *State) AddModule(path []string) *ModuleState {
+func (s *State) AddModule(path addrs.ModuleInstance) *ModuleState {
 	s.Lock()
 	defer s.Unlock()
 
 	return s.addModule(path)
 }
 
-func (s *State) addModule(path []string) *ModuleState {
+func (s *State) addModule(path addrs.ModuleInstance) *ModuleState {
 	// check if the module exists first
 	m := s.moduleByPath(path)
 	if m != nil {
 		return m
 	}
 
-	m = &ModuleState{Path: path}
+	// Lower the new-style address into a legacy-style address.
+	// This requires that none of the steps have instance keys, which is
+	// true for all addresses at the time of implementing this because
+	// "count" and "for_each" are not yet implemented for modules.
+	legacyPath := make([]string, len(path))
+	for i, step := range path {
+		if step.InstanceKey != addrs.NoKey {
+			// FIXME: Once the rest of Terraform is ready to use count and
+			// for_each, remove all of this and just write the addrs.ModuleInstance
+			// value itself into the ModuleState.
+			panic("state cannot represent modules with count or for_each keys")
+		}
+
+		legacyPath[i] = step.Name
+	}
+
+	m = &ModuleState{Path: legacyPath}
 	m.init()
 	s.Modules = append(s.Modules, m)
 	s.sort()
@@ -165,7 +197,7 @@ func (s *State) addModule(path []string) *ModuleState {
 // ModuleByPath is used to lookup the module state for the given path.
 // This should be the preferred lookup mechanism as it allows for future
 // lookup optimizations.
-func (s *State) ModuleByPath(path []string) *ModuleState {
+func (s *State) ModuleByPath(path addrs.ModuleInstance) *ModuleState {
 	if s == nil {
 		return nil
 	}
@@ -175,7 +207,7 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 	return s.moduleByPath(path)
 }
 
-func (s *State) moduleByPath(path []string) *ModuleState {
+func (s *State) moduleByPath(path addrs.ModuleInstance) *ModuleState {
 	for _, mod := range s.Modules {
 		if mod == nil {
 			continue
@@ -183,7 +215,8 @@ func (s *State) moduleByPath(path []string) *ModuleState {
 		if mod.Path == nil {
 			panic("missing module path")
 		}
-		if reflect.DeepEqual(mod.Path, path) {
+		modPath := normalizeModulePath(mod.Path)
+		if modPath.String() == path.String() {
 			return mod
 		}
 	}
@@ -397,8 +430,9 @@ func (s *State) Remove(addr ...string) error {
 	// Go through each result and grab what we need
 	removed := make(map[interface{}]struct{})
 	for _, r := range results {
-		// Convert the path to our own type
-		path := append([]string{"root"}, r.Path...)
+		// Convert the legacy path used by the state filter API into a
+		// new-style module instance address.
+		path := normalizeModulePath(r.Path)
 
 		// If we removed this already, then ignore
 		if _, ok := removed[r.Value]; ok {
@@ -435,7 +469,7 @@ func (s *State) Remove(addr ...string) error {
 	return nil
 }
 
-func (s *State) removeModule(path []string, v *ModuleState) {
+func (s *State) removeModule(path addrs.ModuleInstance, v *ModuleState) {
 	for i, m := range s.Modules {
 		if m == v {
 			s.Modules, s.Modules[len(s.Modules)-1] = append(s.Modules[:i], s.Modules[i+1:]...), nil
@@ -444,7 +478,7 @@ func (s *State) removeModule(path []string, v *ModuleState) {
 	}
 }
 
-func (s *State) removeResource(path []string, v *ResourceState) {
+func (s *State) removeResource(path addrs.ModuleInstance, v *ResourceState) {
 	// Get the module this resource lives in. If it doesn't exist, we're done.
 	mod := s.moduleByPath(path)
 	if mod == nil {
@@ -463,7 +497,7 @@ func (s *State) removeResource(path []string, v *ResourceState) {
 	}
 }
 
-func (s *State) removeInstance(path []string, r *ResourceState, v *InstanceState) {
+func (s *State) removeInstance(path addrs.ModuleInstance, r *ResourceState, v *InstanceState) {
 	// Go through the resource and find the instance that matches this
 	// (if any) and remove it.
 
@@ -490,7 +524,7 @@ func (s *State) removeInstance(path []string, r *ResourceState, v *InstanceState
 
 // RootModule returns the ModuleState for the root module
 func (s *State) RootModule() *ModuleState {
-	root := s.ModuleByPath(rootModulePath)
+	root := s.ModuleByPath(addrs.RootModuleInstance)
 	if root == nil {
 		panic("missing root module")
 	}
@@ -525,7 +559,7 @@ func (s *State) equal(other *State) bool {
 	}
 	for _, m := range s.Modules {
 		// This isn't very optimal currently but works.
-		otherM := other.moduleByPath(m.Path)
+		otherM := other.moduleByPath(normalizeModulePath(m.Path))
 		if otherM == nil {
 			return false
 		}
@@ -684,8 +718,8 @@ func (s *State) init() {
 		s.Version = StateVersion
 	}
 
-	if s.moduleByPath(rootModulePath) == nil {
-		s.addModule(rootModulePath)
+	if s.moduleByPath(addrs.RootModuleInstance) == nil {
+		s.addModule(addrs.RootModuleInstance)
 	}
 	s.ensureHasLineage()
 
@@ -1092,58 +1126,60 @@ func (m *ModuleState) IsDescendent(other *ModuleState) bool {
 // Orphans returns a list of keys of resources that are in the State
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.
-func (m *ModuleState) Orphans(c *config.Config) []string {
+func (m *ModuleState) Orphans(c *configs.Module) []addrs.ResourceInstance {
 	m.Lock()
 	defer m.Unlock()
 
-	keys := make(map[string]struct{})
-	for k := range m.Resources {
-		keys[k] = struct{}{}
-	}
-
+	inConfig := make(map[string]struct{})
 	if c != nil {
-		for _, r := range c.Resources {
-			delete(keys, r.Id())
-
-			for k := range keys {
-				if strings.HasPrefix(k, r.Id()+".") {
-					delete(keys, k)
-				}
-			}
+		for _, r := range c.ManagedResources {
+			inConfig[r.Addr().String()] = struct{}{}
+		}
+		for _, r := range c.DataResources {
+			inConfig[r.Addr().String()] = struct{}{}
 		}
 	}
 
-	result := make([]string, 0, len(keys))
-	for k := range keys {
-		result = append(result, k)
-	}
+	var result []addrs.ResourceInstance
+	for k := range m.Resources {
+		// Since we've not yet updated state to use our new address format,
+		// we need to do some shimming here.
+		legacyAddr, err := parseResourceAddressInternal(k)
+		if err != nil {
+			// Suggests that the user tampered with the state, since we always
+			// generate valid internal addresses.
+			log.Printf("ModuleState has invalid resource key %q. Ignoring.", k)
+			continue
+		}
 
+		addr := legacyAddr.AbsResourceInstanceAddr().Resource
+		compareKey := addr.Resource.String() // compare by resource address, ignoring instance key
+		if _, exists := inConfig[compareKey]; !exists {
+			result = append(result, addr)
+		}
+	}
 	return result
 }
 
 // RemovedOutputs returns a list of outputs that are in the State but aren't
 // present in the configuration itself.
-func (m *ModuleState) RemovedOutputs(c *config.Config) []string {
-	m.Lock()
-	defer m.Unlock()
-
-	keys := make(map[string]struct{})
-	for k := range m.Outputs {
-		keys[k] = struct{}{}
+func (s *ModuleState) RemovedOutputs(outputs map[string]*configs.Output) []addrs.OutputValue {
+	if len(outputs) == 0 {
+		return nil
 	}
+	s.Lock()
+	defer s.Unlock()
 
-	if c != nil {
-		for _, o := range c.Outputs {
-			delete(keys, o.Name)
+	var ret []addrs.OutputValue
+	for n := range s.Outputs {
+		if _, declared := outputs[n]; !declared {
+			ret = append(ret, addrs.OutputValue{
+				Name: n,
+			})
 		}
 	}
 
-	result := make([]string, 0, len(keys))
-	for k := range keys {
-		result = append(result, k)
-	}
-
-	return result
+	return ret
 }
 
 // View returns a view with the given resource prefix.
@@ -1544,6 +1580,24 @@ func (s *ResourceState) Untaint() {
 	if s.Primary != nil {
 		s.Primary.Tainted = false
 	}
+}
+
+// ProviderAddr returns the provider address for the receiver, by parsing the
+// string representation saved in state. An error can be returned if the
+// value in state is corrupt.
+func (s *ResourceState) ProviderAddr() (addrs.AbsProviderConfig, error) {
+	var diags tfdiags.Diagnostics
+
+	str := s.Provider
+	traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(travDiags)
+	if travDiags.HasErrors() {
+		return addrs.AbsProviderConfig{}, diags.Err()
+	}
+
+	addr, addrDiags := addrs.ParseAbsProviderConfig(traversal)
+	diags = diags.Append(addrDiags)
+	return addr, diags.Err()
 }
 
 func (s *ResourceState) init() {
@@ -2190,17 +2244,27 @@ func (s moduleStateSort) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-// StateCompatible returns an error if the state is not compatible with the
-// current version of terraform.
-func CheckStateVersion(state *State) error {
+// CheckStateVersion returns error diagnostics if the state is not compatible
+// with the current version of Terraform Core.
+func CheckStateVersion(state *State, allowFuture bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if state == nil {
-		return nil
+		return diags
 	}
 
-	if state.FromFutureTerraform() {
-		return fmt.Errorf(stateInvalidTerraformVersionErr, state.TFVersion)
+	if state.FromFutureTerraform() && !allowFuture {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible Terraform state format",
+			fmt.Sprintf(
+				"For safety reasons, Terraform will not run operations against a state that was written by a future Terraform version. Your current version is %s, but the state requires at least %s. To proceed, upgrade Terraform to a suitable version.",
+				tfversion.String(), state.TFVersion,
+			),
+		))
 	}
-	return nil
+
+	return diags
 }
 
 const stateValidateErrMultiModule = `
@@ -2210,12 +2274,4 @@ This means that there are multiple entries in the "modules" field
 in your state file that point to the same module. This will cause Terraform
 to behave in unexpected and error prone ways and is invalid. Please back up
 and modify your state file manually to resolve this.
-`
-
-const stateInvalidTerraformVersionErr = `
-Terraform doesn't allow running any operations against a state
-that was written by a future Terraform version. The state is
-reporting it is written by Terraform '%s'
-
-Please run at least that version of Terraform to continue.
 `

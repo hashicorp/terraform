@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -72,14 +74,10 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	if module == "" {
-		module = "root"
-	} else {
-		module = "root." + module
-	}
-
-	// Get the proper module we want to get outputs for
-	modPath := strings.Split(module, ".")
+	// This command uses a legacy shorthand syntax for the module path that
+	// can't deal with keyed instances, so we'll just shim it for now and
+	// make the breaking change for this interface later.
+	modPath := addrs.Module(strings.Split(module, ".")).UnkeyedInstanceShim()
 
 	state := stateStore.State()
 	mod := state.ModuleByPath(modPath)

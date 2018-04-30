@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // EvalImportState is an EvalNode implementation that performs an
@@ -55,7 +57,7 @@ func (n *EvalImportState) Eval(ctx EvalContext) (interface{}, error) {
 // EvalImportStateVerify verifies the state after ImportState and
 // after the refresh to make sure it is non-nil and valid.
 type EvalImportStateVerify struct {
-	Info  *InstanceInfo
+	Addr  addrs.ResourceInstance
 	Id    string
 	State **InstanceState
 }
@@ -68,7 +70,7 @@ func (n *EvalImportStateVerify) Eval(ctx EvalContext) (interface{}, error) {
 			"import %s (id: %s): Terraform detected a resource with this ID doesn't\n"+
 				"exist. Please verify the ID is correct. You cannot import non-existent\n"+
 				"resources using Terraform import.",
-			n.Info.HumanId(),
+			n.Addr.String(),
 			n.Id)
 	}
 

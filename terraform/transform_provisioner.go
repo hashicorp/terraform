@@ -3,6 +3,9 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/config/configschema"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -22,10 +25,16 @@ type GraphNodeCloseProvisioner interface {
 }
 
 // GraphNodeProvisionerConsumer is an interface that nodes that require
-// a provisioner must implement. ProvisionedBy must return the name of the
-// provisioner to use.
+// a provisioner must implement. ProvisionedBy must return the names of the
+// provisioners to use.
 type GraphNodeProvisionerConsumer interface {
 	ProvisionedBy() []string
+
+	// SetProvisionerSchema is called during transform for each provisioner
+	// type returned from ProvisionedBy, providing the configuration schema
+	// for each provisioner in turn. The implementer should save these for
+	// later use in evaluating provisioner configuration blocks.
+	SetProvisionerSchema(name string, schema *configschema.Block)
 }
 
 // ProvisionerTransformer is a GraphTransformer that maps resources to
@@ -83,12 +92,9 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 
 		// If this node has a subpath, then we use that as a prefix
 		// into our map to check for an existing provider.
-		var path []string
+		path := addrs.RootModuleInstance
 		if sp, ok := pv.(GraphNodeSubPath); ok {
-			raw := normalizeModulePath(sp.Path())
-			if len(raw) > len(rootModulePath) {
-				path = raw
-			}
+			path = sp.Path()
 		}
 
 		for _, p := range pv.ProvisionedBy() {
@@ -101,7 +107,7 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 			}
 
 			if _, ok := supported[p]; !ok {
-				// If we don't support the provisioner type, skip it.
+				// If we don't support the provisioner type, we skip it.
 				// Validation later will catch this as an error.
 				continue
 			}
@@ -156,10 +162,7 @@ func (t *CloseProvisionerTransformer) Transform(g *Graph) error {
 func provisionerMapKey(k string, v dag.Vertex) string {
 	pathPrefix := ""
 	if sp, ok := v.(GraphNodeSubPath); ok {
-		raw := normalizeModulePath(sp.Path())
-		if len(raw) > len(rootModulePath) {
-			pathPrefix = modulePrefixStr(raw) + "."
-		}
+		pathPrefix = sp.Path().String() + "."
 	}
 
 	return pathPrefix + k

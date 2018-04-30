@@ -9,12 +9,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/hashicorp/terraform/configs"
-
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -168,8 +168,8 @@ type Operation struct {
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
 	Destroy      bool
-	Targets      []string
-	Variables    map[string]interface{}
+	Targets      []addrs.Targetable
+	Variables    map[string]UnparsedVariableValue
 	AutoApprove  bool
 	DestroyForce bool
 

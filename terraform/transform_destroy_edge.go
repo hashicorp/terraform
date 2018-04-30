@@ -3,7 +3,9 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/addrs"
+
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -11,16 +13,16 @@ import (
 type GraphNodeDestroyer interface {
 	dag.Vertex
 
-	// ResourceAddr is the address of the resource that is being
+	// DestroyAddr is the address of the resource that is being
 	// destroyed by this node. If this returns nil, then this node
 	// is not destroying anything.
-	DestroyAddr() *ResourceAddress
+	DestroyAddr() *addrs.AbsResourceInstance
 }
 
 // GraphNodeCreator must be implemented by nodes that create OR update resources.
 type GraphNodeCreator interface {
-	// ResourceAddr is the address of the resource being created or updated
-	CreateAddr() *ResourceAddress
+	// CreateAddr is the address of the resource being created or updated
+	CreateAddr() *addrs.AbsResourceInstance
 }
 
 // DestroyEdgeTransformer is a GraphTransformer that creates the proper
@@ -40,7 +42,7 @@ type GraphNodeCreator interface {
 type DestroyEdgeTransformer struct {
 	// These are needed to properly build the graph of dependencies
 	// to determine what a destroy node depends on. Any of these can be nil.
-	Module *module.Tree
+	Config *configs.Config
 	State  *State
 }
 
@@ -51,22 +53,23 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// the list of destroyers. In general there will only be one destroyer
 	// but to make it more robust we support multiple.
 	destroyers := make(map[string][]GraphNodeDestroyer)
+	destroyerAddrs := make(map[string]addrs.AbsResourceInstance)
 	for _, v := range g.Vertices() {
 		dn, ok := v.(GraphNodeDestroyer)
 		if !ok {
 			continue
 		}
 
-		addr := dn.DestroyAddr()
-		if addr == nil {
+		addrP := dn.DestroyAddr()
+		if addrP == nil {
 			continue
 		}
+		addr := *addrP
 
 		key := addr.String()
-		log.Printf(
-			"[TRACE] DestroyEdgeTransformer: %s destroying %q",
-			dag.VertexName(dn), key)
+		log.Printf("[TRACE] DestroyEdgeTransformer: %s will destroy %s", dag.VertexName(dn), key)
 		destroyers[key] = append(destroyers[key], dn)
+		destroyerAddrs[key] = addr
 	}
 
 	// If we aren't destroying anything, there will be no edges to make
@@ -120,20 +123,20 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	}
 	steps := []GraphTransformer{
 		// Add the local values
-		&LocalTransformer{Module: t.Module},
+		&LocalTransformer{Config: t.Config},
 
 		// Add outputs and metadata
-		&OutputTransformer{Module: t.Module},
-		&AttachResourceConfigTransformer{Module: t.Module},
+		&OutputTransformer{Config: t.Config},
+		&AttachResourceConfigTransformer{Config: t.Config},
 		&AttachStateTransformer{State: t.State},
 
-		TransformProviders(nil, providerFn, t.Module),
+		TransformProviders(nil, providerFn, t.Config),
 
 		// Add all the variables. We can depend on resources through
 		// variables due to module parameters, and we need to properly
 		// determine that.
-		&RootVariableTransformer{Module: t.Module},
-		&ModuleVariableTransformer{Module: t.Module},
+		&RootVariableTransformer{Config: t.Config},
+		&ModuleVariableTransformer{Config: t.Config},
 
 		&ReferenceTransformer{},
 	}
@@ -146,24 +149,26 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	//
 	var tempG Graph
 	var tempDestroyed []dag.Vertex
-	for d, _ := range destroyers {
-		// d is what is being destroyed. We parse the resource address
-		// which it came from it is a panic if this fails.
-		addr, err := ParseResourceAddress(d)
-		if err != nil {
-			panic(err)
-		}
+	for d := range destroyers {
+		// d is the string key for the resource being destroyed. We actually
+		// want the address value, which we stashed earlier.
+		addr := destroyerAddrs[d]
 
 		// This part is a little bit weird but is the best way to
 		// find the dependencies we need to: build a graph and use the
 		// attach config and state transformers then ask for references.
-		abstract := &NodeAbstractResource{Addr: addr}
+		abstract := &NodeAbstractResourceInstance{
+			NodeAbstractResource: NodeAbstractResource{
+				Addr: addr.ContainingResource(),
+			},
+			InstanceKey: addr.Resource.Key,
+		}
 		tempG.Add(abstract)
 		tempDestroyed = append(tempDestroyed, abstract)
 
 		// We also add the destroy version here since the destroy can
 		// depend on things that the creation doesn't (destroy provisioners).
-		destroy := &NodeDestroyResource{NodeAbstractResource: abstract}
+		destroy := &NodeDestroyResourceInstance{NodeAbstractResourceInstance: abstract}
 		tempG.Add(destroy)
 		tempDestroyed = append(tempDestroyed, destroy)
 	}
@@ -213,10 +218,6 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		}
 
 		addr := rn.ResourceAddr()
-		if addr == nil {
-			continue
-		}
-
 		dns := destroyers[addr.String()]
 
 		// We have dependencies, check if any are being destroyed
@@ -237,10 +238,6 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			}
 
 			addr := rn.ResourceAddr()
-			if addr == nil {
-				continue
-			}
-
 			key := addr.String()
 			if ds, ok := destroyers[key]; ok {
 				for _, d := range ds {

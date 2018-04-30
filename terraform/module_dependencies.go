@@ -101,15 +101,15 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// dependency, though we'll only record it if there isn't already
 		// an explicit dependency on the same provider.
 		for _, rc := range module.ManagedResources {
-			fullName := rc.ProviderConfigKey()
-			inst := moduledeps.ProviderInstance(fullName)
+			addr := rc.ProviderConfigAddr()
+			inst := moduledeps.ProviderInstance(addr.StringCompact())
 			if _, exists := providers[inst]; exists {
 				// Explicit dependency already present
 				continue
 			}
 
 			reason := moduledeps.ProviderDependencyImplicit
-			if _, inherited := inheritProviders[fullName]; inherited {
+			if _, inherited := inheritProviders[addr.String()]; inherited {
 				reason = moduledeps.ProviderDependencyInherited
 			}
 
@@ -119,15 +119,15 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 			}
 		}
 		for _, rc := range module.DataResources {
-			fullName := rc.ProviderConfigKey()
-			inst := moduledeps.ProviderInstance(fullName)
+			addr := rc.ProviderConfigAddr()
+			inst := moduledeps.ProviderInstance(addr.StringCompact())
 			if _, exists := providers[inst]; exists {
 				// Explicit dependency already present
 				continue
 			}
 
 			reason := moduledeps.ProviderDependencyImplicit
-			if _, inherited := inheritProviders[fullName]; inherited {
+			if _, inherited := inheritProviders[addr.String()]; inherited {
 				reason = moduledeps.ProviderDependencyInherited
 			}
 
@@ -161,10 +161,11 @@ func configTreeMergeStateDependencies(root *moduledeps.Module, state *State) {
 
 	findModule := func(path []string) *moduledeps.Module {
 		module := root
-		for _, name := range path[1:] { // skip initial "root"
+		realPath := normalizeModulePath(path)
+		for _, step := range realPath { // skip initial "root"
 			var next *moduledeps.Module
 			for _, cm := range module.Children {
-				if cm.Name == name {
+				if cm.Name == step.Name {
 					next = cm
 					break
 				}
@@ -173,7 +174,7 @@ func configTreeMergeStateDependencies(root *moduledeps.Module, state *State) {
 			if next == nil {
 				// If we didn't find a next node, we'll need to make one
 				next = &moduledeps.Module{
-					Name: name,
+					Name: step.Name,
 				}
 				module.Children = append(module.Children, next)
 			}

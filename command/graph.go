@@ -127,12 +127,13 @@ func (c *GraphCommand) Run(args []string) int {
 
 	// Skip validation during graph generation - we want to see the graph even if
 	// it is invalid for some reason.
-	g, err := ctx.Graph(graphType, &terraform.ContextGraphOpts{
+	g, graphDiags := ctx.Graph(graphType, &terraform.ContextGraphOpts{
 		Verbose:  verbose,
 		Validate: false,
 	})
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error creating graph: %s", err))
+	diags = diags.Append(graphDiags)
+	if graphDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/config/configschema"
 
 	"github.com/hashicorp/hcl2/hcl"
@@ -50,9 +51,6 @@ func TestScopeEvalContext(t *testing.T) {
 		PathAttrs: map[string]cty.Value{
 			"module": cty.StringVal("foo/bar"),
 		},
-		Self: cty.ObjectVal(map[string]cty.Value{
-			"is_self": cty.True,
-		}),
 		TerraformAttrs: map[string]cty.Value{
 			"workspace": cty.StringVal("default"),
 		},
@@ -192,8 +190,19 @@ func TestScopeEvalContext(t *testing.T) {
 		{
 			`self.baz`,
 			map[string]cty.Value{
+				// In the test function below we set "SelfAddr" to be
+				// one of the resources in our dataset, causing it to get
+				// expanded here and then copied into "self".
+				"null_resource": cty.ObjectVal(map[string]cty.Value{
+					"multi": cty.TupleVal([]cty.Value{
+						cty.DynamicVal,
+						cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("multi1"),
+						}),
+					}),
+				}),
 				"self": cty.ObjectVal(map[string]cty.Value{
-					"is_self": cty.True,
+					"attr": cty.StringVal("multi1"),
 				}),
 			},
 		},
@@ -233,6 +242,17 @@ func TestScopeEvalContext(t *testing.T) {
 
 			scope := &Scope{
 				Data: data,
+
+				// "self" will just be an arbitrary one of the several resource
+				// instances we have in our test dataset.
+				SelfAddr: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "null_resource",
+						Name: "multi",
+					},
+					Key: addrs.IntKey(1),
+				},
 			}
 			ctx, ctxDiags := scope.EvalContext(refs)
 			if ctxDiags.HasErrors() {

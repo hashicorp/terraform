@@ -3,7 +3,11 @@ package terraform
 import (
 	"sync"
 
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/tfdiags"
+
+	"github.com/hashicorp/terraform/addrs"
+
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -19,8 +23,8 @@ import (
 //     create-before-destroy can be completely ignored.
 //
 type PlanGraphBuilder struct {
-	// Module is the root module for the graph to build.
-	Module *module.Tree
+	// Config is the configuration tree to build a plan from.
+	Config *configs.Config
 
 	// State is the current state
 	State *State
@@ -32,7 +36,7 @@ type PlanGraphBuilder struct {
 	Provisioners []string
 
 	// Targets are resources to target
-	Targets []string
+	Targets []addrs.Targetable
 
 	// DisableReduce, if true, will not reduce the graph. Great for testing.
 	DisableReduce bool
@@ -46,13 +50,13 @@ type PlanGraphBuilder struct {
 	CustomConcrete         bool
 	ConcreteProvider       ConcreteProviderNodeFunc
 	ConcreteResource       ConcreteResourceNodeFunc
-	ConcreteResourceOrphan ConcreteResourceNodeFunc
+	ConcreteResourceOrphan ConcreteResourceInstanceNodeFunc
 
 	once sync.Once
 }
 
 // See GraphBuilder
-func (b *PlanGraphBuilder) Build(path []string) (*Graph, error) {
+func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
 		Steps:    b.Steps(),
 		Validate: b.Validate,
@@ -68,38 +72,38 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
 			Concrete: b.ConcreteResource,
-			Module:   b.Module,
+			Config:   b.Config,
 		},
 
 		// Add the local values
-		&LocalTransformer{Module: b.Module},
+		&LocalTransformer{Config: b.Config},
 
 		// Add the outputs
-		&OutputTransformer{Module: b.Module},
+		&OutputTransformer{Config: b.Config},
 
 		// Add orphan resources
 		&OrphanResourceTransformer{
 			Concrete: b.ConcreteResourceOrphan,
 			State:    b.State,
-			Module:   b.Module,
+			Config:   b.Config,
 		},
 
 		// Create orphan output nodes
 		&OrphanOutputTransformer{
-			Module: b.Module,
+			Config: b.Config,
 			State:  b.State,
 		},
 
 		// Attach the configuration to any resources
-		&AttachResourceConfigTransformer{Module: b.Module},
+		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
 		// Add root variables
-		&RootVariableTransformer{Module: b.Module},
+		&RootVariableTransformer{Config: b.Config},
 
-		TransformProviders(b.Providers, b.ConcreteProvider, b.Module),
+		TransformProviders(b.Providers, b.ConcreteProvider, b.Config),
 
 		// Provisioner-related transformations. Only add these if requested.
 		GraphTransformIf(
@@ -112,11 +116,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Add module variables
 		&ModuleVariableTransformer{
-			Module: b.Module,
+			Config: b.Config,
 		},
 
 		// Remove modules no longer present in the config
-		&RemovedModuleTransformer{Module: b.Module, State: b.State},
+		&RemovedModuleTransformer{Config: b.Config, State: b.State},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
@@ -167,15 +171,13 @@ func (b *PlanGraphBuilder) init() {
 
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
 		return &NodePlannableResource{
-			NodeAbstractCountResource: &NodeAbstractCountResource{
-				NodeAbstractResource: a,
-			},
+			NodeAbstractResource: a,
 		}
 	}
 
-	b.ConcreteResourceOrphan = func(a *NodeAbstractResource) dag.Vertex {
-		return &NodePlannableResourceOrphan{
-			NodeAbstractResource: a,
+	b.ConcreteResourceOrphan = func(a *NodeAbstractResourceInstance) dag.Vertex {
+		return &NodePlannableResourceInstanceOrphan{
+			NodeAbstractResourceInstance: a,
 		}
 	}
 }

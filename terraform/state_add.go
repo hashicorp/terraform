@@ -91,7 +91,7 @@ func stateAddFunc_Module_Module(s *State, fromAddr, addr *ResourceAddress, raw i
 	src := root.(*ModuleState).deepcopy()
 
 	// If the target module exists, it is an error
-	path := append([]string{"root"}, addr.Path...)
+	path := normalizeModulePath(addr.Path)
 	if s.ModuleByPath(path) != nil {
 		return fmt.Errorf("module target is not empty: %s", addr)
 	}
@@ -317,7 +317,7 @@ func stateAddInitAddr(s *State, addr *ResourceAddress) (interface{}, bool) {
 	addType := detectAddrAddLoc(addr)
 
 	// Get the module
-	path := append([]string{"root"}, addr.Path...)
+	path := normalizeModulePath(addr.Path)
 	exists := true
 	mod := s.ModuleByPath(path)
 	if mod == nil {

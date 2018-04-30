@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // EvalReadState is an EvalNode implementation that reads the
@@ -130,13 +132,13 @@ func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
 type EvalWriteState struct {
 	Name         string
 	ResourceType string
-	Provider     string
+	Provider     addrs.AbsProviderConfig
 	Dependencies []string
 	State        **InstanceState
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
-	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider, n.Dependencies,
+	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider.String(), n.Dependencies,
 		func(rs *ResourceState) error {
 			rs.Primary = *n.State
 			return nil

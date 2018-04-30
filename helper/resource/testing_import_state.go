@@ -6,6 +6,11 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
+
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -41,33 +46,45 @@ func testStepImportState(
 
 	// Setup the context. We initialize with an empty state. We use the
 	// full config for provider configurations.
-	mod, err := testModule(opts, step)
+	cfg, err := testConfig(opts, step)
 	if err != nil {
 		return state, err
 	}
 
-	opts.Module = mod
+	opts.Config = cfg
 	opts.State = terraform.NewState()
-	ctx, err := terraform.NewContext(&opts)
-	if err != nil {
-		return state, err
+	ctx, stepDiags := terraform.NewContext(&opts)
+	if stepDiags.HasErrors() {
+		return state, stepDiags.Err()
 	}
 
-	// Do the import!
-	newState, err := ctx.Import(&terraform.ImportOpts{
+	// The test step provides the resource address as a string, so we need
+	// to parse it to get an addrs.AbsResourceAddress to pass in to the
+	// import method.
+	traversal, hclDiags := hclsyntax.ParseTraversalAbs([]byte(step.ResourceName), "", hcl.Pos{})
+	if hclDiags.HasErrors() {
+		return nil, hclDiags
+	}
+	importAddr, stepDiags := addrs.ParseAbsResourceInstance(traversal)
+	if stepDiags.HasErrors() {
+		return nil, stepDiags.Err()
+	}
+
+	// Do the import
+	newState, stepDiags := ctx.Import(&terraform.ImportOpts{
 		// Set the module so that any provider config is loaded
-		Module: mod,
+		Config: cfg,
 
 		Targets: []*terraform.ImportTarget{
 			&terraform.ImportTarget{
-				Addr: step.ResourceName,
+				Addr: importAddr,
 				ID:   importId,
 			},
 		},
 	})
-	if err != nil {
-		log.Printf("[ERROR] Test: ImportState failure: %s", err)
-		return state, err
+	if stepDiags.HasErrors() {
+		log.Printf("[ERROR] Test: ImportState failure: %s", stepDiags.Err())
+		return state, stepDiags.Err()
 	}
 
 	// Go through the new state and verify

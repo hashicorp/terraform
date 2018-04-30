@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/terraform/addrs"
+
 	"github.com/mitchellh/copystructure"
 )
 
@@ -69,8 +71,24 @@ func (d *Diff) Prune() {
 //
 // This should be the preferred method to add module diffs since it
 // allows us to optimize lookups later as well as control sorting.
-func (d *Diff) AddModule(path []string) *ModuleDiff {
-	m := &ModuleDiff{Path: path}
+func (d *Diff) AddModule(path addrs.ModuleInstance) *ModuleDiff {
+	// Lower the new-style address into a legacy-style address.
+	// This requires that none of the steps have instance keys, which is
+	// true for all addresses at the time of implementing this because
+	// "count" and "for_each" are not yet implemented for modules.
+	legacyPath := make([]string, len(path))
+	for i, step := range path {
+		if step.InstanceKey != addrs.NoKey {
+			// FIXME: Once the rest of Terraform is ready to use count and
+			// for_each, remove all of this and just write the addrs.ModuleInstance
+			// value itself into the ModuleState.
+			panic("diff cannot represent modules with count or for_each keys")
+		}
+
+		legacyPath[i] = step.Name
+	}
+
+	m := &ModuleDiff{Path: legacyPath}
 	m.init()
 	d.Modules = append(d.Modules, m)
 	return m
@@ -79,7 +97,7 @@ func (d *Diff) AddModule(path []string) *ModuleDiff {
 // ModuleByPath is used to lookup the module diff for the given path.
 // This should be the preferred lookup mechanism as it allows for future
 // lookup optimizations.
-func (d *Diff) ModuleByPath(path []string) *ModuleDiff {
+func (d *Diff) ModuleByPath(path addrs.ModuleInstance) *ModuleDiff {
 	if d == nil {
 		return nil
 	}
@@ -87,7 +105,8 @@ func (d *Diff) ModuleByPath(path []string) *ModuleDiff {
 		if mod.Path == nil {
 			panic("missing module path")
 		}
-		if reflect.DeepEqual(mod.Path, path) {
+		modPath := normalizeModulePath(mod.Path)
+		if modPath.String() == path.String() {
 			return mod
 		}
 	}
@@ -96,7 +115,7 @@ func (d *Diff) ModuleByPath(path []string) *ModuleDiff {
 
 // RootModule returns the ModuleState for the root module
 func (d *Diff) RootModule() *ModuleDiff {
-	root := d.ModuleByPath(rootModulePath)
+	root := d.ModuleByPath(addrs.RootModuleInstance)
 	if root == nil {
 		panic("missing root module")
 	}
