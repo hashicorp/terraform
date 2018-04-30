@@ -9,6 +9,68 @@ import (
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 )
 
+func TestParseProviderConfigCompact(t *testing.T) {
+	tests := []struct {
+		Input    string
+		Want     ProviderConfig
+		WantDiag string
+	}{
+		{
+			`aws`,
+			ProviderConfig{
+				Type: "aws",
+			},
+			``,
+		},
+		{
+			`aws.foo`,
+			ProviderConfig{
+				Type:  "aws",
+				Alias: "foo",
+			},
+			``,
+		},
+		{
+			`aws["foo"]`,
+			ProviderConfig{},
+			`The provider type name must either stand alone or be followed by an alias name separated with a dot.`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Input, func(t *testing.T) {
+			traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(test.Input), "", hcl.Pos{})
+			if len(parseDiags) != 0 {
+				t.Errorf("unexpected diagnostics during parse")
+				for _, diag := range parseDiags {
+					t.Logf("- %s", diag)
+				}
+				return
+			}
+
+			got, diags := ParseProviderConfigCompact(traversal)
+
+			if test.WantDiag != "" {
+				if len(diags) != 1 {
+					t.Fatalf("got %d diagnostics; want 1", len(diags))
+				}
+				gotDetail := diags[0].Description().Detail
+				if gotDetail != test.WantDiag {
+					t.Fatalf("wrong diagnostic detail\ngot:  %s\nwant: %s", gotDetail, test.WantDiag)
+				}
+				return
+			} else {
+				if len(diags) != 0 {
+					t.Fatalf("got %d diagnostics; want 0", len(diags))
+				}
+			}
+
+			for _, problem := range deep.Equal(got, test.Want) {
+				t.Error(problem)
+			}
+		})
+	}
+}
 func TestParseAbsProviderConfig(t *testing.T) {
 	tests := []struct {
 		Input    string
