@@ -1,18 +1,24 @@
 package terraform
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
 
 // EvalCompareDiff is an EvalNode implementation that compares two diffs
 // and errors if the diffs are not equal.
 type EvalCompareDiff struct {
-	Info     *InstanceInfo
+	Addr     addrs.ResourceInstance
 	One, Two **InstanceDiff
 }
 
@@ -43,10 +49,10 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}()
 
 	if same, reason := one.Same(two); !same {
-		log.Printf("[ERROR] %s: diffs didn't match", n.Info.Id)
-		log.Printf("[ERROR] %s: reason: %s", n.Info.Id, reason)
-		log.Printf("[ERROR] %s: diff one: %#v", n.Info.Id, one)
-		log.Printf("[ERROR] %s: diff two: %#v", n.Info.Id, two)
+		log.Printf("[ERROR] %s: diffs didn't match", n.Addr)
+		log.Printf("[ERROR] %s: reason: %s", n.Addr, reason)
+		log.Printf("[ERROR] %s: diff one: %#v", n.Addr, one)
+		log.Printf("[ERROR] %s: diff two: %#v", n.Addr, two)
 		return nil, fmt.Errorf(
 			"%s: diffs didn't match during apply. This is a bug with "+
 				"Terraform and should be reported as a GitHub Issue.\n"+
@@ -61,7 +67,7 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 				"\n"+
 				"Also include as much context as you can about your config, state, "+
 				"and the steps you performed to trigger this error.\n",
-			n.Info.Id, version.Version, n.Info.Id, reason, one, two)
+			n.Addr, version.Version, n.Addr, reason, one, two)
 	}
 
 	return nil, nil
@@ -70,23 +76,17 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 // EvalDiff is an EvalNode implementation that does a refresh for
 // a resource.
 type EvalDiff struct {
-	Name        string
-	Info        *InstanceInfo
-	Config      **ResourceConfig
-	Provider    *ResourceProvider
-	Diff        **InstanceDiff
-	State       **InstanceState
+	Addr           addrs.ResourceInstance
+	Config         *configs.Resource
+	Provider       *ResourceProvider
+	ProviderSchema **ProviderSchema
+	State          **InstanceState
+	PreviousDiff   **InstanceDiff
+
 	OutputDiff  **InstanceDiff
+	OutputValue *cty.Value
 	OutputState **InstanceState
 
-	// Resource is needed to fetch the ignore_changes list so we can
-	// filter user-requested ignored attributes from the diff.
-	Resource *config.Resource
-
-	// Stub is used to flag the generated InstanceDiff as a stub. This is used to
-	// ensure that the node exists to perform interpolations and generate
-	// computed paths off of, but not as an actual diff where resouces should be
-	// counted, and not as a diff that should be acted on.
 	Stub bool
 }
 
@@ -95,11 +95,21 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
 	config := *n.Config
 	provider := *n.Provider
+	providerSchema := *n.ProviderSchema
+
+	var diags tfdiags.Diagnostics
+
+	// The provider and hook APIs still expect our legacy InstanceInfo type.
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()).ContainingResource())
+
+	// State still uses legacy-style internal ids, so we need to shim to get
+	// a suitable key to use.
+	stateId := NewLegacyResourceInstanceAddress(n.Addr.Absolute(ctx.Path())).stateId()
 
 	// Call pre-diff hook
 	if !n.Stub {
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreDiff(n.Info, state)
+			return h.PreDiff(legacyInfo, state)
 		})
 		if err != nil {
 			return nil, err
@@ -113,8 +123,23 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 	diffState.init()
 
+	// Evaluate the configuration
+	schema := providerSchema.ResourceTypes[n.Addr.Resource.Type]
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
+	}
+	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	// The provider API still expects our legacy ResourceConfig type.
+	legacyRC := NewResourceConfigShimmed(configVal, schema)
+
 	// Diff!
-	diff, err := provider.Diff(n.Info, diffState, config)
+	diff, err := provider.Diff(legacyInfo, diffState, legacyRC)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +148,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Set DestroyDeposed if we have deposed instances
-	_, err = readInstanceFromState(ctx, n.Name, nil, func(rs *ResourceState) (*InstanceState, error) {
+	_, err = readInstanceFromState(ctx, stateId, nil, func(rs *ResourceState) (*InstanceState, error) {
 		if len(rs.Deposed) > 0 {
 			diff.DestroyDeposed = true
 		}
@@ -135,8 +160,8 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Preserve the DestroyTainted flag
-	if n.Diff != nil {
-		diff.SetTainted((*n.Diff).GetDestroyTainted())
+	if n.PreviousDiff != nil {
+		diff.SetTainted((*n.PreviousDiff).GetDestroyTainted())
 	}
 
 	// Require a destroy if there is an ID and it requires new.
@@ -161,7 +186,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		})
 	}
 
-	// filter out ignored resources
+	// filter out ignored attributes
 	if err := n.processIgnoreChanges(diff); err != nil {
 		return nil, err
 	}
@@ -169,7 +194,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// Call post-refresh hook
 	if !n.Stub {
 		err = ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostDiff(n.Info, diff)
+			return h.PostDiff(legacyInfo, diff)
 		})
 		if err != nil {
 			return nil, err
@@ -179,6 +204,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// Update our output if we care
 	if n.OutputDiff != nil {
 		*n.OutputDiff = diff
+	}
+
+	if n.OutputValue != nil {
+		*n.OutputValue = configVal
 	}
 
 	// Update the state if we care
@@ -195,12 +224,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 }
 
 func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
-	if diff == nil || n.Resource == nil || n.Resource.Id() == "" {
+	if diff == nil || n.Config == nil || n.Config.Managed == nil {
 		return nil
 	}
-	ignoreChanges := n.Resource.Lifecycle.IgnoreChanges
+	ignoreChanges := n.Config.Managed.IgnoreChanges
+	ignoreAll := n.Config.Managed.IgnoreAllChanges
 
-	if len(ignoreChanges) == 0 {
+	if len(ignoreChanges) == 0 && !ignoreAll {
 		return nil
 	}
 
@@ -220,9 +250,10 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 
 	// get the complete set of keys we want to ignore
 	ignorableAttrKeys := make(map[string]bool)
-	for _, ignoredKey := range ignoreChanges {
+	for _, ignoredTraversal := range ignoreChanges {
+		ignoredKey := legacyFlatmapKeyForTraversal(ignoredTraversal)
 		for k := range attrs {
-			if ignoredKey == "*" || strings.HasPrefix(k, ignoredKey) {
+			if ignoreAll || strings.HasPrefix(k, ignoredKey) {
 				ignorableAttrKeys[k] = true
 			}
 		}
@@ -285,12 +316,54 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 
 	// If we didn't hit any of our early exit conditions, we can filter the diff.
 	for k := range ignorableAttrKeys {
-		log.Printf("[DEBUG] [EvalIgnoreChanges] %s - Ignoring diff attribute: %s",
-			n.Resource.Id(), k)
+		log.Printf("[DEBUG] [EvalIgnoreChanges] %s: Ignoring diff attribute: %s", n.Addr.String(), k)
 		diff.DelAttribute(k)
 	}
 
 	return nil
+}
+
+// legacyFlagmapKeyForTraversal constructs a key string compatible with what
+// the flatmap package would generate for an attribute addressable by the given
+// traversal.
+//
+// This is used only to shim references to attributes within the diff and
+// state structures, which have not (at the time of writing) yet been updated
+// to use the newer HCL-based representations.
+func legacyFlatmapKeyForTraversal(traversal hcl.Traversal) string {
+	var buf bytes.Buffer
+	first := true
+	for _, step := range traversal {
+		if !first {
+			buf.WriteByte('.')
+		}
+		switch ts := step.(type) {
+		case hcl.TraverseRoot:
+			buf.WriteString(ts.Name)
+		case hcl.TraverseAttr:
+			buf.WriteString(ts.Name)
+		case hcl.TraverseIndex:
+			val := ts.Key
+			switch val.Type() {
+			case cty.Number:
+				bf := val.AsBigFloat()
+				buf.WriteString(bf.String())
+			case cty.String:
+				s := val.AsString()
+				buf.WriteString(s)
+			default:
+				// should never happen, since no other types appear in
+				// traversals in practice.
+				buf.WriteByte('?')
+			}
+		default:
+			// should never happen, since we've covered all of the types
+			// that show up in parsed traversals in practice.
+			buf.WriteByte('?')
+		}
+		first = false
+	}
+	return buf.String()
 }
 
 // a group of key-*ResourceAttrDiff pairs from the same flatmapped container
@@ -343,7 +416,7 @@ func groupContainers(d *InstanceDiff) map[string]flatAttrDiff {
 // EvalDiffDestroy is an EvalNode implementation that returns a plain
 // destroy diff.
 type EvalDiffDestroy struct {
-	Info   *InstanceInfo
+	Addr   addrs.ResourceInstance
 	State  **InstanceState
 	Output **InstanceDiff
 }
@@ -357,9 +430,12 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
+	// The provider and hook APIs still expect our legacy InstanceInfo type.
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()).ContainingResource())
+
 	// Call pre-diff hook
 	err := ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.Info, state)
+		return h.PreDiff(legacyInfo, state)
 	})
 	if err != nil {
 		return nil, err
@@ -370,7 +446,7 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 
 	// Call post-diff hook
 	err = ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.Info, diff)
+		return h.PostDiff(legacyInfo, diff)
 	})
 	if err != nil {
 		return nil, err
@@ -385,7 +461,7 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 // EvalDiffDestroyModule is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalDiffDestroyModule struct {
-	Path []string
+	Path addrs.ModuleInstance
 }
 
 // TODO: test

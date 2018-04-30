@@ -1,8 +1,7 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -13,15 +12,15 @@ import (
 // This only adds orphans that have no representation at all in the
 // configuration.
 type OrphanResourceTransformer struct {
-	Concrete ConcreteResourceNodeFunc
+	Concrete ConcreteResourceInstanceNodeFunc
 
 	// State is the global state. We require the global state to
 	// properly find module orphans at our path.
 	State *State
 
-	// Module is the root module. We'll look up the proper configuration
-	// using the graph path.
-	Module *module.Tree
+	// Config is the root node in the configuration tree. We'll look up
+	// the appropriate note in this tree using the path in each node.
+	Config *configs.Config
 }
 
 func (t *OrphanResourceTransformer) Transform(g *Graph) error {
@@ -46,31 +45,24 @@ func (t *OrphanResourceTransformer) transform(g *Graph, ms *ModuleState) error {
 		return nil
 	}
 
+	path := normalizeModulePath(ms.Path)
+
 	// Get the configuration for this path. The configuration might be
 	// nil if the module was removed from the configuration. This is okay,
 	// this just means that every resource is an orphan.
-	var c *config.Config
-	if m := t.Module.Child(ms.Path[1:]); m != nil {
-		c = m.Config()
+	var m *configs.Module
+	if c := t.Config.DescendentForInstance(path); c != nil {
+		m = c.Module
 	}
 
 	// Go through the orphans and add them all to the state
-	for _, key := range ms.Orphans(c) {
-		// Build the abstract resource
-		addr, err := parseResourceAddressInternal(key)
-		if err != nil {
-			return err
-		}
-		addr.Path = ms.Path[1:]
-
-		// Build the abstract node and the concrete one
-		abstract := &NodeAbstractResource{Addr: addr}
+	for _, relAddr := range ms.Orphans(m) {
+		addr := relAddr.Absolute(path)
+		abstract := NewNodeAbstractResourceInstance(addr)
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)
 		}
-
-		// Add it to the graph
 		g.Add(node)
 	}
 

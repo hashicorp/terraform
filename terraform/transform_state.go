@@ -13,7 +13,7 @@ import (
 // This transform is used for example by the DestroyPlanGraphBuilder to ensure
 // that only resources that are in the state are represented in the graph.
 type StateTransformer struct {
-	Concrete ConcreteResourceNodeFunc
+	Concrete ConcreteResourceInstanceNodeFunc
 
 	State *State
 }
@@ -34,19 +34,21 @@ func (t *StateTransformer) Transform(g *Graph) error {
 		for name, rs := range ms.Resources {
 			log.Printf("[TRACE] StateTransformer: Resource %q: %#v", name, rs)
 
-			// Add the resource to the graph
-			addr, err := parseResourceAddressInternal(name)
+			// State hasn't yet been updated to our new address format, so
+			// we need to shim this.
+			legacyAddr, err := parseResourceAddressInternal(name)
 			if err != nil {
-				panic(fmt.Sprintf(
-					"Error parsing internal name, this is a bug: %q", name))
+				// Indicates someone has tampered with the state file
+				return fmt.Errorf("invalid resource address %q in state", name)
 			}
-
 			// Very important: add the module path for this resource to
 			// the address. Remove "root" from it.
-			addr.Path = ms.Path[1:]
+			legacyAddr.Path = ms.Path[1:]
+
+			addr := legacyAddr.AbsResourceInstanceAddr()
 
 			// Add the resource to the graph
-			abstract := &NodeAbstractResource{Addr: addr}
+			abstract := NewNodeAbstractResourceInstance(addr)
 			var node dag.Vertex = abstract
 			if f := t.Concrete; f != nil {
 				node = f(abstract)

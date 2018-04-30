@@ -2,7 +2,6 @@ package local
 
 import (
 	"context"
-	"errors"
 
 	"github.com/hashicorp/errwrap"
 
@@ -58,15 +57,23 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 	opts.Destroy = op.Destroy
 	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
-	if op.Variables != nil {
-		opts.Variables = op.Variables
-	}
 
-	// FIXME: Configuration is temporarily stubbed out here to artificially
-	// create a stopping point in our work to switch to the new config loader.
-	// This means no backend-provided Terraform operations will actually work.
-	// This will be addressed in a subsequent commit.
-	opts.Module = nil
+	// Load the configuration using the caller-provided configuration loader.
+	config, configDiags := op.ConfigLoader.LoadConfig(op.ConfigDir)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		return nil, nil, diags
+	}
+	opts.Config = config
+
+	variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
+	if op.Variables != nil {
+		opts.Variables = variables
+	}
 
 	// Load our state
 	// By the time we get here, the backend creation code in "command" took
@@ -77,23 +84,14 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 
 	// Build the context
 	var tfCtx *terraform.Context
+	var ctxDiags tfdiags.Diagnostics
 	if op.Plan != nil {
-		tfCtx, err = op.Plan.Context(&opts)
+		tfCtx, ctxDiags = op.Plan.Context(&opts)
 	} else {
-		tfCtx, err = terraform.NewContext(&opts)
+		tfCtx, ctxDiags = terraform.NewContext(&opts)
 	}
-
-	// any errors resolving plugins returns this
-	if rpe, ok := err.(*terraform.ResourceProviderError); ok {
-		b.pluginInitRequired(rpe)
-		// we wrote the full UI error here, so return a generic error for flow
-		// control in the command.
-		diags = diags.Append(errors.New("Can't satisfy plugin requirements"))
-		return nil, nil, diags
-	}
-
-	if err != nil {
-		diags = diags.Append(err)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
 		return nil, nil, diags
 	}
 
@@ -106,8 +104,9 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 			mode |= terraform.InputModeVar
 			mode |= terraform.InputModeVarUnset
 
-			if err := tfCtx.Input(mode); err != nil {
-				diags = diags.Append(errwrap.Wrapf("Error asking for user input: {{err}}", err))
+			inputDiags := tfCtx.Input(mode)
+			diags = diags.Append(inputDiags)
+			if inputDiags.HasErrors() {
 				return nil, nil, diags
 			}
 		}

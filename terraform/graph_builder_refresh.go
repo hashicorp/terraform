@@ -3,8 +3,10 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/tfdiags"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -21,8 +23,8 @@ import (
 //     create-before-destroy can be completely ignored.
 //
 type RefreshGraphBuilder struct {
-	// Module is the root module for the graph to build.
-	Module *module.Tree
+	// Config is the configuration tree.
+	Config *configs.Config
 
 	// State is the current state
 	State *State
@@ -31,7 +33,7 @@ type RefreshGraphBuilder struct {
 	Providers []string
 
 	// Targets are resources to target
-	Targets []string
+	Targets []addrs.Targetable
 
 	// DisableReduce, if true, will not reduce the graph. Great for testing.
 	DisableReduce bool
@@ -41,7 +43,7 @@ type RefreshGraphBuilder struct {
 }
 
 // See GraphBuilder
-func (b *RefreshGraphBuilder) Build(path []string) (*Graph, error) {
+func (b *RefreshGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
 		Steps:    b.Steps(),
 		Validate: b.Validate,
@@ -60,23 +62,19 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 
 	concreteManagedResource := func(a *NodeAbstractResource) dag.Vertex {
 		return &NodeRefreshableManagedResource{
-			NodeAbstractCountResource: &NodeAbstractCountResource{
-				NodeAbstractResource: a,
-			},
+			NodeAbstractResource: a,
 		}
 	}
 
-	concreteManagedResourceInstance := func(a *NodeAbstractResource) dag.Vertex {
+	concreteManagedResourceInstance := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		return &NodeRefreshableManagedResourceInstance{
-			NodeAbstractResource: a,
+			NodeAbstractResourceInstance: a,
 		}
 	}
 
 	concreteDataResource := func(a *NodeAbstractResource) dag.Vertex {
 		return &NodeRefreshableDataResource{
-			NodeAbstractCountResource: &NodeAbstractCountResource{
-				NodeAbstractResource: a,
-			},
+			NodeAbstractResource: a,
 		}
 	}
 
@@ -88,13 +86,13 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 			if b.State.HasResources() {
 				return &ConfigTransformer{
 					Concrete:   concreteManagedResource,
-					Module:     b.Module,
+					Config:     b.Config,
 					Unique:     true,
 					ModeFilter: true,
-					Mode:       config.ManagedResourceMode,
+					Mode:       addrs.ManagedResourceMode,
 				}
 			}
-			log.Println("[TRACE] No managed resources in state during refresh, skipping managed resource transformer")
+			log.Println("[TRACE] No managed resources in state during refresh; skipping managed resource transformer")
 			return nil
 		}(),
 
@@ -102,10 +100,10 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// add any orphans from scaling in as destroy nodes.
 		&ConfigTransformer{
 			Concrete:   concreteDataResource,
-			Module:     b.Module,
+			Config:     b.Config,
 			Unique:     true,
 			ModeFilter: true,
-			Mode:       config.DataResourceMode,
+			Mode:       addrs.DataResourceMode,
 		},
 
 		// Add any fully-orphaned resources from config (ones that have been
@@ -114,28 +112,28 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		&OrphanResourceTransformer{
 			Concrete: concreteManagedResourceInstance,
 			State:    b.State,
-			Module:   b.Module,
+			Config:   b.Config,
 		},
 
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
 		// Attach the configuration to any resources
-		&AttachResourceConfigTransformer{Module: b.Module},
+		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// Add root variables
-		&RootVariableTransformer{Module: b.Module},
+		&RootVariableTransformer{Config: b.Config},
 
-		TransformProviders(b.Providers, concreteProvider, b.Module),
+		TransformProviders(b.Providers, concreteProvider, b.Config),
 
 		// Add the local values
-		&LocalTransformer{Module: b.Module},
+		&LocalTransformer{Config: b.Config},
 
 		// Add the outputs
-		&OutputTransformer{Module: b.Module},
+		&OutputTransformer{Config: b.Config},
 
 		// Add module variables
-		&ModuleVariableTransformer{Module: b.Module},
+		&ModuleVariableTransformer{Config: b.Config},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.

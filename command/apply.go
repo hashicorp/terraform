@@ -7,14 +7,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/configs"
-
-	"github.com/hashicorp/terraform/tfdiags"
-
 	"github.com/hashicorp/go-getter"
+
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ApplyCommand is a Command implementation that applies a Terraform
@@ -314,7 +314,7 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func outputsAsString(state *terraform.State, modPath []string, schema []*config.Output, includeHeader bool) string {
+func outputsAsString(state *terraform.State, modPath addrs.ModuleInstance, schema []*config.Output, includeHeader bool) string {
 	if state == nil {
 		return ""
 	}

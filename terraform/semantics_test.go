@@ -2,56 +2,43 @@ package terraform
 
 import (
 	"testing"
+
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestSMCUserVariables(t *testing.T) {
-	c := testConfig(t, "smc-uservars")
+	c := testModule(t, "smc-uservars")
 
 	// Required variables not set
-	errs := smcUserVariables(c, nil)
-	if len(errs) == 0 {
-		t.Fatal("should have errors")
+	diags := checkInputVariables(c.Module.Variables, nil)
+	if !diags.HasErrors() {
+		t.Fatal("check succeeded, but want errors")
 	}
 
 	// Required variables set, optional variables unset
-	errs = smcUserVariables(c, map[string]interface{}{"foo": "bar"})
-	if len(errs) != 0 {
-		t.Fatalf("err: %#v", errs)
-	}
-
-	// Mapping element override
-	errs = smcUserVariables(c, map[string]interface{}{
-		"foo":     "bar",
-		"map.foo": "baz",
+	diags = checkInputVariables(c.Module.Variables, InputValues{
+		"foo": &InputValue{
+			Value:      cty.StringVal("bar"),
+			SourceType: ValueFromCLIArg,
+		},
 	})
-	if len(errs) == 0 {
-		t.Fatalf("err: %#v", errs)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
 	// Mapping complete override
-	errs = smcUserVariables(c, map[string]interface{}{
-		"foo": "bar",
-		"map": "baz",
-	})
-	if len(errs) == 0 {
-		t.Fatal("should have errors")
-	}
-
-}
-
-func TestSMCUserVariables_mapFromJSON(t *testing.T) {
-	c := testConfig(t, "uservars-map")
-
-	// ensure that a single map in a list can satisfy a map variable, since it
-	// will be coerced later to a map
-	err := smcUserVariables(c, map[string]interface{}{
-		"test_map": []map[string]interface{}{
-			map[string]interface{}{
-				"foo": "bar",
-			},
+	diags = checkInputVariables(c.Module.Variables, InputValues{
+		"foo": &InputValue{
+			Value:      cty.StringVal("bar"),
+			SourceType: ValueFromCLIArg,
+		},
+		"map": &InputValue{
+			Value:      cty.StringVal("baz"),
+			SourceType: ValueFromCLIArg,
 		},
 	})
-	if err != nil {
-		t.Fatal(err)
+	if !diags.HasErrors() {
+		t.Fatal("check succeeded, but want errors")
 	}
+
 }

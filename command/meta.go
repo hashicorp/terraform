@@ -12,19 +12,17 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
-	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
@@ -108,13 +106,11 @@ type Meta struct {
 	backendState *terraform.BackendState
 
 	// Variables for the context (private)
-	autoKey       string
-	autoVariables map[string]interface{}
-	input         bool
-	variables     map[string]interface{}
+	variableArgs rawFlags
+	input        bool
 
 	// Targets for this context (private)
-	targets []string
+	targets []addrs.Targetable
 
 	// Internal fields
 	color bool
@@ -325,18 +321,6 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	opts.Hooks = []terraform.Hook{m.uiHook(), &terraform.DebugHook{}}
 	opts.Hooks = append(opts.Hooks, m.ExtraHooks...)
 
-	vs := make(map[string]interface{})
-	for k, v := range opts.Variables {
-		vs[k] = v
-	}
-	for k, v := range m.autoVariables {
-		vs[k] = v
-	}
-	for k, v := range m.variables {
-		vs[k] = v
-	}
-	opts.Variables = vs
-
 	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
 	opts.Parallelism = m.parallelism
@@ -369,13 +353,15 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*variables.Flag)(&m.variables), "var", "variables")
-	f.Var((*variables.FlagFile)(&m.variables), "var-file", "variable file")
-	f.Var((*FlagStringSlice)(&m.targets), "target", "resource to target")
+	f.Var((*FlagTargetSlice)(&m.targets), "target", "resource to target")
 
-	if m.autoKey != "" {
-		f.Var((*variables.FlagFile)(&m.autoVariables), m.autoKey, "variable file")
+	if m.variableArgs.items == nil {
+		m.variableArgs = newRawFlags("-var")
 	}
+	varValues := m.variableArgs.Alias("-var")
+	varFiles := m.variableArgs.Alias("-var-file")
+	f.Var(varValues, "var", "variables")
+	f.Var(varFiles, "var-file", "variable file")
 
 	// Advanced (don't need documentation, or unlikely to be set)
 	f.BoolVar(&m.shadow, "shadow", true, "shadow graph")
@@ -454,51 +440,6 @@ func (m *Meta) process(args []string, vars bool) ([]string, error) {
 			WarnColor:  "[yellow]",
 			Ui:         m.oldUi,
 		},
-	}
-
-	// If we support vars and the default var file exists, add it to
-	// the args...
-	m.autoKey = ""
-	if vars {
-		var preArgs []string
-
-		if _, err := os.Stat(DefaultVarsFilename); err == nil {
-			m.autoKey = "var-file-default"
-			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename)
-		}
-
-		if _, err := os.Stat(DefaultVarsFilename + ".json"); err == nil {
-			m.autoKey = "var-file-default"
-			preArgs = append(preArgs, "-"+m.autoKey, DefaultVarsFilename+".json")
-		}
-
-		wd, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-
-		fis, err := ioutil.ReadDir(wd)
-		if err != nil {
-			return nil, err
-		}
-
-		// make sure we add the files in order
-		sort.Slice(fis, func(i, j int) bool {
-			return fis[i].Name() < fis[j].Name()
-		})
-
-		for _, fi := range fis {
-			name := fi.Name()
-			// Ignore directories, non-var-files, and ignored files
-			if fi.IsDir() || !isAutoVarFile(name) || config.IsIgnoredFile(name) {
-				continue
-			}
-
-			m.autoKey = "var-file-default"
-			preArgs = append(preArgs, "-"+m.autoKey, name)
-		}
-
-		args = append(preArgs, args...)
 	}
 
 	return args, nil

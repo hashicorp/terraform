@@ -48,6 +48,9 @@ func References(traversals []hcl.Traversal) ([]*addrs.Reference, tfdiags.Diagnos
 // A block schema must be provided so that this function can determine where in
 // the body variables are expected.
 func ReferencesInBlock(body hcl.Body, schema *configschema.Block) ([]*addrs.Reference, tfdiags.Diagnostics) {
+	if body == nil {
+		return nil, nil
+	}
 	spec := schema.DecoderSpec()
 	traversals := hcldec.Variables(body, spec)
 	return References(traversals)
@@ -57,6 +60,9 @@ func ReferencesInBlock(body hcl.Body, schema *configschema.Block) ([]*addrs.Refe
 // the given expression for traversals, before converting those traversals
 // to references.
 func ReferencesInExpr(expr hcl.Expression) ([]*addrs.Reference, tfdiags.Diagnostics) {
+	if expr == nil {
+		return nil, nil
+	}
 	traversals := expr.Variables()
 	return References(traversals)
 }
