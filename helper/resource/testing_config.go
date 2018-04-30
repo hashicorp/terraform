@@ -6,6 +6,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/tfdiags"
+
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -30,41 +32,41 @@ func testStep(
 		}
 	}
 
-	mod, err := testModule(opts, step)
+	cfg, err := testConfig(opts, step)
 	if err != nil {
 		return state, err
 	}
 
+	var stepDiags tfdiags.Diagnostics
+
 	// Build the context
-	opts.Module = mod
+	opts.Config = cfg
 	opts.State = state
 	opts.Destroy = step.Destroy
-	ctx, err := terraform.NewContext(&opts)
-	if err != nil {
-		return state, fmt.Errorf("Error initializing context: %s", err)
+	ctx, stepDiags := terraform.NewContext(&opts)
+	if stepDiags.HasErrors() {
+		return state, fmt.Errorf("Error initializing context: %s", stepDiags.Err())
 	}
-	if diags := ctx.Validate(); len(diags) > 0 {
-		if diags.HasErrors() {
-			return nil, errwrap.Wrapf("config is invalid: {{err}}", diags.Err())
+	if stepDiags := ctx.Validate(); len(stepDiags) > 0 {
+		if stepDiags.HasErrors() {
+			return nil, errwrap.Wrapf("config is invalid: {{err}}", stepDiags.Err())
 		}
 
-		log.Printf("[WARN] Config warnings:\n%s", diags)
+		log.Printf("[WARN] Config warnings:\n%s", stepDiags)
 	}
 
 	// Refresh!
-	state, err = ctx.Refresh()
-	if err != nil {
-		return state, fmt.Errorf(
-			"Error refreshing: %s", err)
+	state, stepDiags = ctx.Refresh()
+	if stepDiags.HasErrors() {
+		return state, fmt.Errorf("Error refreshing: %s", stepDiags.Err())
 	}
 
 	// If this step is a PlanOnly step, skip over this first Plan and subsequent
 	// Apply, and use the follow up Plan that checks for perpetual diffs
 	if !step.PlanOnly {
 		// Plan!
-		if p, err := ctx.Plan(); err != nil {
-			return state, fmt.Errorf(
-				"Error planning: %s", err)
+		if p, stepDiags := ctx.Plan(); stepDiags.HasErrors() {
+			return state, fmt.Errorf("Error planning: %s", stepDiags.Err())
 		} else {
 			log.Printf("[WARN] Test: Step plan: %s", p)
 		}
@@ -74,13 +76,13 @@ func testStep(
 		// function
 		stateBeforeApplication := state.DeepCopy()
 
-		// Apply!
-		state, err = ctx.Apply()
-		if err != nil {
-			return state, fmt.Errorf("Error applying: %s", err)
+		// Apply the diff, creating real resources.
+		state, stepDiags = ctx.Apply()
+		if stepDiags.HasErrors() {
+			return state, fmt.Errorf("Error applying: %s", stepDiags.Err())
 		}
 
-		// Check! Excitement!
+		// Run any configured checks
 		if step.Check != nil {
 			if step.Destroy {
 				if err := step.Check(stateBeforeApplication); err != nil {
@@ -97,8 +99,8 @@ func testStep(
 	// Now, verify that Plan is now empty and we don't have a perpetual diff issue
 	// We do this with TWO plans. One without a refresh.
 	var p *terraform.Plan
-	if p, err = ctx.Plan(); err != nil {
-		return state, fmt.Errorf("Error on follow-up plan: %s", err)
+	if p, stepDiags = ctx.Plan(); stepDiags.HasErrors() {
+		return state, fmt.Errorf("Error on follow-up plan: %s", stepDiags.Err())
 	}
 	if p.Diff != nil && !p.Diff.Empty() {
 		if step.ExpectNonEmptyPlan {
@@ -111,14 +113,13 @@ func testStep(
 
 	// And another after a Refresh.
 	if !step.Destroy || (step.Destroy && !step.PreventPostDestroyRefresh) {
-		state, err = ctx.Refresh()
-		if err != nil {
-			return state, fmt.Errorf(
-				"Error on follow-up refresh: %s", err)
+		state, stepDiags = ctx.Refresh()
+		if stepDiags.HasErrors() {
+			return state, fmt.Errorf("Error on follow-up refresh: %s", stepDiags.Err())
 		}
 	}
-	if p, err = ctx.Plan(); err != nil {
-		return state, fmt.Errorf("Error on second follow-up plan: %s", err)
+	if p, stepDiags = ctx.Plan(); stepDiags.HasErrors() {
+		return state, fmt.Errorf("Error on second follow-up plan: %s", stepDiags.Err())
 	}
 	empty := p.Diff == nil || p.Diff.Empty()
 

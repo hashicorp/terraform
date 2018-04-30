@@ -2,7 +2,10 @@ package terraform
 
 import (
 	"fmt"
-	"strings"
+
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ImportProviderValidateTransformer is a GraphTransformer that goes through
@@ -10,6 +13,8 @@ import (
 type ImportProviderValidateTransformer struct{}
 
 func (t *ImportProviderValidateTransformer) Transform(g *Graph) error {
+	var diags tfdiags.Diagnostics
+
 	for _, v := range g.Vertices() {
 		// We only care about providers
 		pv, ok := v.(GraphNodeProvider)
@@ -24,15 +29,16 @@ func (t *ImportProviderValidateTransformer) Transform(g *Graph) error {
 		}
 
 		for _, ref := range rn.References() {
-			if !strings.HasPrefix(ref, "var.") {
-				return fmt.Errorf(
-					"Provider %q depends on non-var %q. Providers for import can currently\n"+
-						"only depend on variables or must be hardcoded. You can stop import\n"+
-						"from loading configurations by specifying `-config=\"\"`.",
-					pv.ProviderName(), ref)
+			if _, ok := ref.Subject.(addrs.InputVariable); !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider dependency for import",
+					Detail:   fmt.Sprintf("The configuration for %s depends on %s. Providers used with import must either have literal configuration or refer only to input variables.", pv.ProviderAddr(), ref.Subject.String()),
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
 			}
 		}
 	}
 
-	return nil
+	return diags.Err()
 }
