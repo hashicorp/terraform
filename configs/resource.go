@@ -2,13 +2,12 @@ package configs
 
 import (
 	"fmt"
-	"strings"
-
-	"github.com/hashicorp/terraform/addrs"
 
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // Resource represents a "resource" or "data" block in a module or file.
@@ -58,20 +57,29 @@ func (r *Resource) moduleUniqueKey() string {
 	}
 }
 
-// ProviderConfigKey returns a string key for the provider configuration
+// Addr returns a resource address for the receiver that is relative to the
+// resource's containing module.
+func (r *Resource) Addr() addrs.Resource {
+	return addrs.Resource{
+		Mode: r.Mode,
+		Type: r.Type,
+		Name: r.Name,
+	}
+}
+
+// ProviderConfigAddr returns the address for the provider configuration
 // that should be used for this resource. This function implements the
 // default behavior of extracting the type from the resource type name if
 // an explicit "provider" argument was not provided.
-func (r *Resource) ProviderConfigKey() string {
+func (r *Resource) ProviderConfigAddr() addrs.ProviderConfig {
 	if r.ProviderConfigRef == nil {
-		typeName := r.Type
-		if under := strings.Index(typeName, "_"); under != -1 {
-			return typeName[:under]
-		}
-		return typeName
+		return r.Addr().DefaultProviderConfig()
 	}
 
-	return r.ProviderConfigRef.String()
+	return addrs.ProviderConfig{
+		Type:  r.ProviderConfigRef.Name,
+		Alias: r.ProviderConfigRef.Alias,
+	}
 }
 
 func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
@@ -387,6 +395,18 @@ func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConf
 	}
 
 	return ret, diags
+}
+
+// Addr returns the provider config address corresponding to the receiving
+// config reference.
+//
+// This is a trivial conversion, essentially just discarding the source
+// location information and keeping just the addressing information.
+func (r *ProviderConfigRef) Addr() addrs.ProviderConfig {
+	return addrs.ProviderConfig{
+		Type:  r.Name,
+		Alias: r.Alias,
+	}
 }
 
 func (r *ProviderConfigRef) String() string {
