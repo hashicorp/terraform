@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -119,6 +120,11 @@ func (p *Provisioner) Stop() error {
 	p.stopOnce.Do(p.stopInit)
 	p.stopCtxCancel()
 	return nil
+}
+
+// GetConfigSchema implementation of terraform.ResourceProvisioner interface.
+func (p *Provisioner) GetConfigSchema() (*configschema.Block, error) {
+	return schemaMap(p.Schema).CoreConfigSchema(), nil
 }
 
 // Apply implementation of terraform.ResourceProvisioner interface.

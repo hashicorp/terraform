@@ -20,7 +20,6 @@ func TestDiffTransformer_nilDiff(t *testing.T) {
 func TestDiffTransformer(t *testing.T) {
 	g := Graph{Path: RootModulePath}
 	tf := &DiffTransformer{
-		Module: testModule(t, "transform-diff-basic"),
 		Diff: &Diff{
 			Modules: []*ModuleDiff{
 				&ModuleDiff{

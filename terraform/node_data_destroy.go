@@ -1,17 +1,17 @@
 package terraform
 
-// NodeDestroyableDataResource represents a resource that is "plannable":
-// it is ready to be planned in order to create a diff.
+// NodeDestroyableDataResource represents a resource that is "destroyable":
+// it is ready to be destroyed.
 type NodeDestroyableDataResource struct {
-	*NodeAbstractResource
+	*NodeAbstractResourceInstance
 }
 
 // GraphNodeEvalable
 func (n *NodeDestroyableDataResource) EvalTree() EvalNode {
-	addr := n.NodeAbstractResource.Addr
+	addr := n.ResourceInstanceAddr()
 
 	// stateId is the ID to put into the state
-	stateId := addr.stateId()
+	stateId := NewLegacyResourceInstanceAddress(addr).stateId()
 
 	// Just destroy it.
 	var state *InstanceState

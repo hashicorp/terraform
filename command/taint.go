@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -107,8 +108,10 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the proper module we want to taint
-	modPath := strings.Split(module, ".")
+	// Get the ModuleState where we will taint. This is provided in a legacy
+	// string form that doesn't support module instance keys, so we'll shim
+	// it here.
+	modPath := addrs.Module(strings.Split(module, ".")).UnkeyedInstanceShim()
 	mod := s.ModuleByPath(modPath)
 	if mod == nil {
 		if allowMissing {

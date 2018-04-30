@@ -3,16 +3,20 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/zclconf/go-cty/cty/gocty"
+
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // EvalApply is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalApply struct {
-	Info      *InstanceInfo
+	Addr      addrs.ResourceInstance
 	State     **InstanceState
 	Diff      **InstanceDiff
 	Provider  *ResourceProvider
@@ -27,10 +31,11 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	provider := *n.Provider
 	state := *n.State
 
-	// If we have no diff, we have nothing to do!
+	// The provider API still expects our legacy InstanceInfo type, so we must shim it.
+	legacyInfo := NewInstanceInfo(n.Addr.Absolute(ctx.Path()).ContainingResource())
+
 	if diff.Empty() {
-		log.Printf(
-			"[DEBUG] apply: %s: diff is empty, doing nothing.", n.Info.Id)
+		log.Printf("[DEBUG] apply %s: diff is empty, so skipping.", n.Addr)
 		return nil, nil
 	}
 
@@ -53,8 +58,8 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// With the completed diff, apply!
-	log.Printf("[DEBUG] apply: %s: executing Apply", n.Info.Id)
-	state, err := provider.Apply(n.Info, state, diff)
+	log.Printf("[DEBUG] apply %s: executing Apply", n.Addr)
+	state, err := provider.Apply(legacyInfo, state, diff)
 	if state == nil {
 		state = new(InstanceState)
 	}
@@ -84,7 +89,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// if we have one, otherwise we just output it.
 	if err != nil {
 		if n.Error != nil {
-			helpfulErr := fmt.Errorf("%s: %s", n.Info.Id, err.Error())
+			helpfulErr := fmt.Errorf("%s: %s", n.Addr, err.Error())
 			*n.Error = multierror.Append(*n.Error, helpfulErr)
 		} else {
 			return nil, err
@@ -96,7 +101,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 
 // EvalApplyPre is an EvalNode implementation that does the pre-Apply work
 type EvalApplyPre struct {
-	Info  *InstanceInfo
+	Addr  addrs.ResourceInstance
 	State **InstanceState
 	Diff  **InstanceDiff
 }
@@ -106,16 +111,20 @@ func (n *EvalApplyPre) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
 	diff := *n.Diff
 
+	// The hook API still uses our legacy InstanceInfo type, so we must
+	// shim it.
+	legacyInfo := NewInstanceInfo(n.Addr.ContainingResource().Absolute(ctx.Path()))
+
 	// If the state is nil, make it non-nil
 	if state == nil {
 		state = new(InstanceState)
 	}
 	state.init()
 
-	if resourceHasUserVisibleApply(n.Info) {
+	if resourceHasUserVisibleApply(legacyInfo) {
 		// Call post-apply hook
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreApply(n.Info, state, diff)
+			return h.PreApply(legacyInfo, state, diff)
 		})
 		if err != nil {
 			return nil, err
@@ -127,7 +136,7 @@ func (n *EvalApplyPre) Eval(ctx EvalContext) (interface{}, error) {
 
 // EvalApplyPost is an EvalNode implementation that does the post-Apply work
 type EvalApplyPost struct {
-	Info  *InstanceInfo
+	Addr  addrs.ResourceInstance
 	State **InstanceState
 	Error *error
 }
@@ -136,10 +145,14 @@ type EvalApplyPost struct {
 func (n *EvalApplyPost) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
 
-	if resourceHasUserVisibleApply(n.Info) {
+	// The hook API still uses our legacy InstanceInfo type, so we must
+	// shim it.
+	legacyInfo := NewInstanceInfo(n.Addr.ContainingResource().Absolute(ctx.Path()))
+
+	if resourceHasUserVisibleApply(legacyInfo) {
 		// Call post-apply hook
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(n.Info, state, *n.Error)
+			return h.PostApply(legacyInfo, state, *n.Error)
 		})
 		if err != nil {
 			return nil, err
@@ -171,20 +184,22 @@ func resourceHasUserVisibleApply(info *InstanceInfo) bool {
 // TODO(mitchellh): This should probably be split up into a more fine-grained
 // ApplyProvisioner (single) that is looped over.
 type EvalApplyProvisioners struct {
-	Info           *InstanceInfo
+	Addr           addrs.ResourceInstance
 	State          **InstanceState
-	Resource       *config.Resource
-	InterpResource *Resource
+	ResourceConfig *configs.Resource
 	CreateNew      *bool
 	Error          *error
 
 	// When is the type of provisioner to run at this point
-	When config.ProvisionerWhen
+	When configs.ProvisionerWhen
 }
 
 // TODO: test
 func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
+
+	// The hook API still uses the legacy InstanceInfo type, so we need to shim it.
+	legacyInfo := NewInstanceInfo(n.Addr.Resource.Absolute(ctx.Path()))
 
 	if n.CreateNew != nil && !*n.CreateNew {
 		// If we're not creating a new resource, then don't run provisioners
@@ -198,7 +213,7 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// taint tells us whether to enable tainting.
-	taint := n.When == config.ProvisionerWhenCreate
+	taint := n.When == configs.ProvisionerWhenCreate
 
 	if n.Error != nil && *n.Error != nil {
 		if taint {
@@ -212,7 +227,7 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	{
 		// Call pre hook
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreProvisionResource(n.Info, state)
+			return h.PreProvisionResource(legacyInfo, state)
 		})
 		if err != nil {
 			return nil, err
@@ -234,7 +249,7 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	{
 		// Call post hook
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostProvisionResource(n.Info, state)
+			return h.PostProvisionResource(legacyInfo, state)
 		})
 		if err != nil {
 			return nil, err
@@ -246,18 +261,18 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 
 // filterProvisioners filters the provisioners on the resource to only
 // the provisioners specified by the "when" option.
-func (n *EvalApplyProvisioners) filterProvisioners() []*config.Provisioner {
+func (n *EvalApplyProvisioners) filterProvisioners() []*configs.Provisioner {
 	// Fast path the zero case
-	if n.Resource == nil {
+	if n.ResourceConfig == nil || n.ResourceConfig.Managed == nil {
 		return nil
 	}
 
-	if len(n.Resource.Provisioners) == 0 {
+	if len(n.ResourceConfig.Managed.Provisioners) == 0 {
 		return nil
 	}
 
-	result := make([]*config.Provisioner, 0, len(n.Resource.Provisioners))
-	for _, p := range n.Resource.Provisioners {
+	result := make([]*configs.Provisioner, 0, len(n.ResourceConfig.Managed.Provisioners))
+	for _, p := range n.ResourceConfig.Managed.Provisioners {
 		if p.When == n.When {
 			result = append(result, p)
 		}
@@ -266,8 +281,12 @@ func (n *EvalApplyProvisioners) filterProvisioners() []*config.Provisioner {
 	return result
 }
 
-func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*config.Provisioner) error {
+func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisioner) error {
+	instanceAddr := n.Addr
 	state := *n.State
+
+	// The hook API still uses the legacy InstanceInfo type, so we need to shim it.
+	legacyInfo := NewInstanceInfo(n.Addr.Resource.Absolute(ctx.Path()))
 
 	// Store the original connection info, restore later
 	origConnInfo := state.Ephemeral.ConnInfo
@@ -275,55 +294,55 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*config.Provision
 		state.Ephemeral.ConnInfo = origConnInfo
 	}()
 
+	var diags tfdiags.Diagnostics
+
 	for _, prov := range provs {
 		// Get the provisioner
 		provisioner := ctx.Provisioner(prov.Type)
+		schema := ctx.ProvisionerSchema(prov.Type)
 
-		// Interpolate the provisioner config
-		provConfig, err := ctx.Interpolate(prov.RawConfig.Copy(), n.InterpResource)
-		if err != nil {
-			return err
+		// Evaluate the main provisioner configuration.
+		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr)
+		diags = diags.Append(configDiags)
+
+		connInfo, _, connInfoDiags := ctx.EvaluateBlock(prov.Config, connectionBlockSupersetSchema, instanceAddr)
+		diags = diags.Append(connInfoDiags)
+
+		if configDiags.HasErrors() || connInfoDiags.HasErrors() {
+			continue
 		}
 
-		// Interpolate the conn info, since it may contain variables
-		connInfo, err := ctx.Interpolate(prov.ConnInfo.Copy(), n.InterpResource)
-		if err != nil {
-			return err
-		}
-
-		// Merge the connection information
+		// Merge the connection information, and also lower everything to strings
+		// for compatibility with the communicator API.
 		overlay := make(map[string]string)
 		if origConnInfo != nil {
 			for k, v := range origConnInfo {
 				overlay[k] = v
 			}
 		}
-		for k, v := range connInfo.Config {
-			switch vt := v.(type) {
-			case string:
-				overlay[k] = vt
-			case int64:
-				overlay[k] = strconv.FormatInt(vt, 10)
-			case int32:
-				overlay[k] = strconv.FormatInt(int64(vt), 10)
-			case int:
-				overlay[k] = strconv.FormatInt(int64(vt), 10)
-			case float32:
-				overlay[k] = strconv.FormatFloat(float64(vt), 'f', 3, 32)
-			case float64:
-				overlay[k] = strconv.FormatFloat(vt, 'f', 3, 64)
-			case bool:
-				overlay[k] = strconv.FormatBool(vt)
-			default:
-				overlay[k] = fmt.Sprintf("%v", vt)
+		for it := connInfo.ElementIterator(); it.Next(); {
+			kv, vv := it.Element()
+			var k, v string
+
+			err := gocty.FromCtyValue(kv, &k)
+			if err != nil {
+				// Should never happen, because connectionBlockSupersetSchema requires all primitives
+				panic(err)
 			}
+			err = gocty.FromCtyValue(vv, &v)
+			if err != nil {
+				// Should never happen, because connectionBlockSupersetSchema requires all primitives
+				panic(err)
+			}
+
+			overlay[k] = v
 		}
 		state.Ephemeral.ConnInfo = overlay
 
 		{
 			// Call pre hook
 			err := ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PreProvision(n.Info, prov.Type)
+				return h.PreProvision(legacyInfo, prov.Type)
 			})
 			if err != nil {
 				return err
@@ -333,30 +352,31 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*config.Provision
 		// The output function
 		outputFn := func(msg string) {
 			ctx.Hook(func(h Hook) (HookAction, error) {
-				h.ProvisionOutput(n.Info, prov.Type, msg)
+				h.ProvisionOutput(legacyInfo, prov.Type, msg)
 				return HookActionContinue, nil
 			})
 		}
 
+		// The provisioner API still uses our legacy ResourceConfig type, so
+		// we need to shim it.
+		legacyRC := NewResourceConfigShimmed(config, schema)
+
 		// Invoke the Provisioner
 		output := CallbackUIOutput{OutputFn: outputFn}
-		applyErr := provisioner.Apply(&output, state, provConfig)
+		applyErr := provisioner.Apply(&output, state, legacyRC)
 
 		// Call post hook
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostProvision(n.Info, prov.Type, applyErr)
+			return h.PostProvision(legacyInfo, prov.Type, applyErr)
 		})
 
 		// Handle the error before we deal with the hook
 		if applyErr != nil {
 			// Determine failure behavior
 			switch prov.OnFailure {
-			case config.ProvisionerOnFailureContinue:
-				log.Printf(
-					"[INFO] apply: %s [%s]: error during provision, continue requested",
-					n.Info.Id, prov.Type)
-
-			case config.ProvisionerOnFailureFail:
+			case configs.ProvisionerOnFailureContinue:
+				log.Printf("[INFO] apply %s [%s]: error during provision, but continuing as requested in configuration", n.Addr, prov.Type)
+			case configs.ProvisionerOnFailureFail:
 				return applyErr
 			}
 		}
@@ -367,6 +387,5 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*config.Provision
 		}
 	}
 
-	return nil
-
+	return diags.ErrWithWarnings()
 }

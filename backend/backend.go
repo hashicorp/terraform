@@ -9,12 +9,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/hashicorp/terraform/configs"
-
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/config/configschema"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -184,11 +184,10 @@ type Operation struct {
 	// behavior of the operation.
 	AutoApprove  bool
 	Destroy      bool
+	Targets      []addrs.Targetable
+	Variables    map[string]UnparsedVariableValue
+	AutoApprove  bool
 	DestroyForce bool
-	ModuleDepth  int
-	Parallelism  int
-	Targets      []string
-	Variables    map[string]interface{}
 
 	// Input/output/control options.
 	UIIn  terraform.UIInput

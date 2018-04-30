@@ -12,7 +12,6 @@ type dataForTests struct {
 	LocalValues       map[string]cty.Value
 	Modules           map[string]cty.Value
 	PathAttrs         map[string]cty.Value
-	Self              cty.Value
 	TerraformAttrs    map[string]cty.Value
 	InputVariables    map[string]cty.Value
 }
@@ -47,10 +46,6 @@ func (d *dataForTests) GetModuleInstanceOutput(addr addrs.ModuleCallOutput, rng 
 
 func (d *dataForTests) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.PathAttrs[addr.Name], nil
-}
-
-func (d *dataForTests) GetSelf(rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	return d.Self, nil
 }
 
 func (d *dataForTests) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
