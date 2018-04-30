@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/config/configschema"
 )
 
 // EvalInitProvisioner is an EvalNode implementation that initializes a provisioner
@@ -31,6 +33,7 @@ func (n *EvalCloseProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 type EvalGetProvisioner struct {
 	Name   string
 	Output *ResourceProvisioner
+	Schema **configschema.Block
 }
 
 func (n *EvalGetProvisioner) Eval(ctx EvalContext) (interface{}, error) {
@@ -41,6 +44,10 @@ func (n *EvalGetProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 
 	if n.Output != nil {
 		*n.Output = result
+	}
+
+	if n.Schema != nil {
+		*n.Schema = ctx.ProvisionerSchema(n.Name)
 	}
 
 	return result, nil

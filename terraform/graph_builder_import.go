@@ -1,8 +1,10 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ImportGraphBuilder implements GraphBuilder and is responsible for building
@@ -12,15 +14,15 @@ type ImportGraphBuilder struct {
 	// ImportTargets are the list of resources to import.
 	ImportTargets []*ImportTarget
 
-	// Module is the module to add to the graph. See ImportOpts.Module.
-	Module *module.Tree
+	// Module is a configuration to build the graph from. See ImportOpts.Config.
+	Config *configs.Config
 
 	// Providers is the list of providers supported.
 	Providers []string
 }
 
 // Build builds the graph according to the steps returned by Steps.
-func (b *ImportGraphBuilder) Build(path []string) (*Graph, error) {
+func (b *ImportGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
 		Steps:    b.Steps(),
 		Validate: true,
@@ -33,9 +35,9 @@ func (b *ImportGraphBuilder) Build(path []string) (*Graph, error) {
 func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 	// Get the module. If we don't have one, we just use an empty tree
 	// so that the transform still works but does nothing.
-	mod := b.Module
-	if mod == nil {
-		mod = module.NewEmptyTree()
+	config := b.Config
+	if config == nil {
+		config = configs.NewEmptyConfig()
 	}
 
 	// Custom factory for creating providers.
@@ -47,12 +49,12 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 
 	steps := []GraphTransformer{
 		// Create all our resources from the configuration and state
-		&ConfigTransformer{Module: mod},
+		&ConfigTransformer{Config: config},
 
 		// Add the import steps
 		&ImportStateTransformer{Targets: b.ImportTargets},
 
-		TransformProviders(b.Providers, concreteProvider, mod),
+		TransformProviders(b.Providers, concreteProvider, config),
 
 		// This validates that the providers only depend on variables
 		&ImportProviderValidateTransformer{},

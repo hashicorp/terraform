@@ -1,48 +1,62 @@
 package terraform
 
 import (
+	"log"
+
+	"github.com/hashicorp/terraform/config/configschema"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeValidatableResource represents a resource that is used for validation
 // only.
 type NodeValidatableResource struct {
-	*NodeAbstractCountResource
+	*NodeAbstractResource
 }
 
-// GraphNodeEvalable
-func (n *NodeValidatableResource) EvalTree() EvalNode {
-	// Ensure we're validating
-	c := n.NodeAbstractCountResource
-	c.Validate = true
-	return c.EvalTree()
-}
+var (
+	_ GraphNodeSubPath              = (*NodeValidatableResource)(nil)
+	_ GraphNodeDynamicExpandable    = (*NodeValidatableResource)(nil)
+	_ GraphNodeReferenceable        = (*NodeValidatableResource)(nil)
+	_ GraphNodeReferencer           = (*NodeValidatableResource)(nil)
+	_ GraphNodeResource             = (*NodeValidatableResource)(nil)
+	_ GraphNodeAttachResourceConfig = (*NodeValidatableResource)(nil)
+)
 
 // GraphNodeDynamicExpandable
 func (n *NodeValidatableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	var diags tfdiags.Diagnostics
+
+	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
+	diags = diags.Append(countDiags)
+	if countDiags.HasErrors() {
+		log.Printf("[TRACE] %T %s: count expression has errors", n, n.Name())
+		return nil, diags.Err()
+	}
+	if count >= 0 {
+		log.Printf("[TRACE] %T %s: count expression evaluates to %d", n, n.Name(), count)
+	} else {
+		log.Printf("[TRACE] %T %s: no count argument present", n, n.Name())
+	}
+
+	// Next we need to potentially rename an instance address in the state
+	// if we're transitioning whether "count" is set at all.
+	fixResourceCountSetTransition(ctx, n.ResourceAddr().Resource, count != -1)
+
 	// Grab the state which we read
 	state, lock := ctx.State()
 	lock.RLock()
 	defer lock.RUnlock()
 
-	// Expand the resource count which must be available by now from EvalTree
-	count := 1
-	if n.Config.RawCount.Value() != unknownValue() {
-		var err error
-		count, err = n.Config.Count()
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// The concrete resource factory we'll use
-	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
+	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
 
 		return &NodeValidatableResourceInstance{
-			NodeAbstractResource: a,
+			NodeAbstractResourceInstance: a,
 		}
 	}
 
@@ -59,7 +73,7 @@ func (n *NodeValidatableResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 		&AttachStateTransformer{State: state},
 
 		// Targeting
-		&TargetsTransformer{ParsedTargets: n.Targets},
+		&TargetsTransformer{Targets: n.Targets},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
@@ -75,84 +89,79 @@ func (n *NodeValidatableResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 		Name:     "NodeValidatableResource",
 	}
 
-	return b.Build(ctx.Path())
+	graph, diags := b.Build(ctx.Path())
+	return graph, diags.ErrWithWarnings()
 }
 
 // This represents a _single_ resource instance to validate.
 type NodeValidatableResourceInstance struct {
-	*NodeAbstractResource
+	*NodeAbstractResourceInstance
 }
+
+var (
+	_ GraphNodeSubPath              = (*NodeValidatableResourceInstance)(nil)
+	_ GraphNodeReferenceable        = (*NodeValidatableResourceInstance)(nil)
+	_ GraphNodeReferencer           = (*NodeValidatableResourceInstance)(nil)
+	_ GraphNodeResource             = (*NodeValidatableResourceInstance)(nil)
+	_ GraphNodeResourceInstance     = (*NodeValidatableResourceInstance)(nil)
+	_ GraphNodeAttachResourceConfig = (*NodeValidatableResourceInstance)(nil)
+	_ GraphNodeAttachResourceState  = (*NodeValidatableResourceInstance)(nil)
+	_ GraphNodeEvalable             = (*NodeValidatableResourceInstance)(nil)
+)
 
 // GraphNodeEvalable
 func (n *NodeValidatableResourceInstance) EvalTree() EvalNode {
-	addr := n.NodeAbstractResource.Addr
-
-	// Build the resource for eval
-	resource := &Resource{
-		Name:       addr.Name,
-		Type:       addr.Type,
-		CountIndex: addr.Index,
-	}
-	if resource.CountIndex < 0 {
-		resource.CountIndex = 0
-	}
+	addr := n.ResourceInstanceAddr()
+	config := n.Config
 
 	// Declare a bunch of variables that are used for state during
-	// evaluation. Most of this are written to by-address below.
-	var config *ResourceConfig
+	// evaluation. These are written to via pointers passed to the EvalNodes
+	// below.
 	var provider ResourceProvider
+	var providerSchema *ProviderSchema
+	var configVal cty.Value
 
 	seq := &EvalSequence{
 		Nodes: []EvalNode{
-			&EvalValidateResourceSelfRef{
-				Addr:   &addr,
-				Config: &n.Config.RawConfig,
+			&EvalValidateSelfRef{
+				Addr:   addr.Resource,
+				Config: config.Config,
 			},
 			&EvalGetProvider{
-				Name:   n.ResolvedProvider,
+				Addr:   n.ResolvedProvider,
 				Output: &provider,
-			},
-			&EvalInterpolate{
-				Config:   n.Config.RawConfig.Copy(),
-				Resource: resource,
-				Output:   &config,
+				Schema: &providerSchema,
 			},
 			&EvalValidateResource{
-				Provider:     &provider,
-				Config:       &config,
-				ResourceName: n.Config.Name,
-				ResourceType: n.Config.Type,
-				ResourceMode: n.Config.Mode,
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+				Config:         config,
+				ConfigVal:      &configVal,
 			},
 		},
 	}
 
-	// Validate all the provisioners
-	for _, p := range n.Config.Provisioners {
-		var provisioner ResourceProvisioner
-		var connConfig *ResourceConfig
-		seq.Nodes = append(
-			seq.Nodes,
-			&EvalGetProvisioner{
-				Name:   p.Type,
-				Output: &provisioner,
-			},
-			&EvalInterpolate{
-				Config:   p.RawConfig.Copy(),
-				Resource: resource,
-				Output:   &config,
-			},
-			&EvalInterpolate{
-				Config:   p.ConnInfo.Copy(),
-				Resource: resource,
-				Output:   &connConfig,
-			},
-			&EvalValidateProvisioner{
-				Provisioner: &provisioner,
-				Config:      &config,
-				ConnConfig:  &connConfig,
-			},
-		)
+	if managed := n.Config.Managed; managed != nil {
+		// Validate all the provisioners
+		for _, p := range managed.Provisioners {
+			var provisioner ResourceProvisioner
+			var provisionerSchema *configschema.Block
+			seq.Nodes = append(
+				seq.Nodes,
+				&EvalGetProvisioner{
+					Name:   p.Type,
+					Output: &provisioner,
+					Schema: &provisionerSchema,
+				},
+				&EvalValidateProvisioner{
+					ResourceAddr: addr.Resource,
+					Provisioner:  &provisioner,
+					Schema:       &provisionerSchema,
+					Config:       p,
+				},
+			)
+		}
 	}
 
 	return seq

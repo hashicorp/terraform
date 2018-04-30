@@ -2,11 +2,13 @@ package terraform
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // GraphSemanticChecker is the interface that semantic checks across
@@ -49,84 +51,87 @@ type SemanticChecker interface {
 	Check(*dag.Graph, dag.Vertex) error
 }
 
-// smcUserVariables does all the semantic checks to verify that the
-// variables given satisfy the configuration itself.
-func smcUserVariables(c *config.Config, vs map[string]interface{}) []error {
-	var errs []error
+// checkInputVariables ensures that variable values supplied at the UI conform
+// to their corresponding declarations in configuration.
+//
+// The set of values is considered valid only if the returned diagnostics
+// does not contain errors. A valid set of values may still produce warnings,
+// which should be returned to the user.
+func checkInputVariables(vcs map[string]*configs.Variable, vs InputValues) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 
-	cvs := make(map[string]*config.Variable)
-	for _, v := range c.Variables {
-		cvs[v.Name] = v
-	}
-
-	// Check that all required variables are present
-	required := make(map[string]struct{})
-	for _, v := range c.Variables {
-		if v.Required() {
-			required[v.Name] = struct{}{}
-		}
-	}
-	for k, _ := range vs {
-		delete(required, k)
-	}
-	if len(required) > 0 {
-		for k, _ := range required {
-			errs = append(errs, fmt.Errorf(
-				"Required variable not set: %s", k))
-		}
-	}
-
-	// Check that types match up
-	for name, proposedValue := range vs {
-		// Check for "map.key" fields. These stopped working with Terraform
-		// 0.7 but we do this to surface a better error message informing
-		// the user what happened.
-		if idx := strings.Index(name, "."); idx > 0 {
-			key := name[:idx]
-			if _, ok := cvs[key]; ok {
-				errs = append(errs, fmt.Errorf(
-					"%s: Overriding map keys with the format `name.key` is no "+
-						"longer allowed. You may still override keys by setting "+
-						"`name = { key = value }`. The maps will be merged. This "+
-						"behavior appeared in 0.7.0.", name))
-				continue
-			}
-		}
-
-		schema, ok := cvs[name]
-		if !ok {
+	for name, vc := range vcs {
+		val, isSet := vs[name]
+		if !isSet {
+			// Always an error, since the caller should already have included
+			// default values from the configuration in the values map.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unassigned variable",
+				fmt.Sprintf("The input variable %q has not been assigned a value. This is a bug in Terraform; please report it in a GitHub issue.", name),
+			))
 			continue
 		}
 
-		declaredType := schema.Type()
+		wantType := vc.Type
 
-		switch declaredType {
-		case config.VariableTypeString:
-			switch proposedValue.(type) {
-			case string:
-				continue
-			}
-		case config.VariableTypeMap:
-			switch v := proposedValue.(type) {
-			case map[string]interface{}:
-				continue
-			case []map[string]interface{}:
-				// if we have a list of 1 map, it will get coerced later as needed
-				if len(v) == 1 {
-					continue
-				}
-			}
-		case config.VariableTypeList:
-			switch proposedValue.(type) {
-			case []interface{}:
-				continue
+		// A given value is valid if it can convert to the desired type.
+		_, err := convert.Convert(val.Value, wantType)
+		if err != nil {
+			switch val.SourceType {
+			case ValueFromConfig, ValueFromFile:
+				// We have source location information for these.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid value for input variable",
+					Detail:   fmt.Sprintf("The given value is not valid for variable %q: %s.", name, err),
+					Subject:  val.SourceRange.ToHCL().Ptr(),
+				})
+			case ValueFromEnvVar:
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid value for input variable",
+					fmt.Sprintf("The environment variable TF_VAR_%s does not contain a valid value for variable %q: %s.", name, name, err),
+				))
+			case ValueFromCLIArg:
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid value for input variable",
+					fmt.Sprintf("The argument -var=\"%s=...\" does not contain a valid value for variable %q: %s.", name, name, err),
+				))
+			case ValueFromInput:
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid value for input variable",
+					fmt.Sprintf("The value entered for variable %q is not valid: %s.", name, err),
+				))
+			default:
+				// The above gets us good coverage for the situations users
+				// are likely to encounter with their own inputs. The other
+				// cases are generally implementation bugs, so we'll just
+				// use a generic error for these.
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid value for input variable",
+					fmt.Sprintf("The value provided for variable %q is not valid: %s.", name, err),
+				))
 			}
 		}
-		errs = append(errs, fmt.Errorf("variable %s should be type %s, got %s",
-			name, declaredType.Printable(), hclTypeName(proposedValue)))
 	}
 
-	// TODO(mitchellh): variables that are unknown
+	// Check for any variables that are assigned without being configured.
+	// This is always an implementation error in the caller, because we
+	// expect undefined variables to be caught during context construction
+	// where there is better context to report it well.
+	for name := range vs {
+		if _, defined := vcs[name]; !defined {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Value assigned to undeclared variable",
+				fmt.Sprintf("A value was assigned to an undeclared input variable %q.", name),
+			))
+		}
+	}
 
-	return errs
+	return diags
 }

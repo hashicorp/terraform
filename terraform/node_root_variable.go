@@ -1,22 +1,31 @@
 package terraform
 
 import (
-	"fmt"
-
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 )
 
 // NodeRootVariable represents a root variable input.
 type NodeRootVariable struct {
-	Config *config.Variable
+	Addr   addrs.InputVariable
+	Config *configs.Variable
 }
 
+var (
+	_ GraphNodeSubPath       = (*NodeRootVariable)(nil)
+	_ GraphNodeReferenceable = (*NodeRootVariable)(nil)
+)
+
 func (n *NodeRootVariable) Name() string {
-	result := fmt.Sprintf("var.%s", n.Config.Name)
-	return result
+	return n.Addr.String()
+}
+
+// GraphNodeSubPath
+func (n *NodeRootVariable) Path() addrs.ModuleInstance {
+	return addrs.RootModuleInstance
 }
 
 // GraphNodeReferenceable
-func (n *NodeRootVariable) ReferenceableName() []string {
-	return []string{n.Name()}
+func (n *NodeRootVariable) ReferenceableAddrs() []addrs.Referenceable {
+	return []addrs.Referenceable{n.Addr}
 }
